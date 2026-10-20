@@ -326,14 +326,7 @@ pub use yog_config::Config;
 pub use yog_core::{BlockPos, Server, split_state};
 pub use yog_dimensions::{ChunkWriter, YogDimensionDef, YogDimensionTypeDef};
 pub use yog_entity::Entity;
-pub use yog_event::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ClientTickEvent,
-    ContainerCloseEvent, ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent,
-    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, ItemInsertEvent, ItemPickupEvent,
-    KeyPressEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerJoinEvent, PlayerLeaveEvent,
-    PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenCloseEvent, ScreenOpenEvent, ServerStartedEvent, ServerStoppingEvent, ServerTickEvent, UseBlockEvent,
-    UseItemEvent,
-};
+pub use yog_event::{Event, EventPhase};
 pub use yog_inventory::{InventoryDef, SlotLayout};
 #[doc(inline)]
 pub use yog_network::packet;
@@ -357,7 +350,8 @@ pub mod core {
     pub use yog_core::*;
 }
 
-/// Events and the subscription registry.
+/// Events by plane — `event::player::session::Join`, `event::block::Break`, … —
+/// subscribed with `Registry::on` / `before` / `after`.
 pub mod event {
     pub use yog_event::*;
 }

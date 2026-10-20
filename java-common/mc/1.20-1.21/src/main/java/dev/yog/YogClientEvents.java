@@ -37,7 +37,7 @@ public final class YogClientEvents {
     /** The end of a client tick: key presses, then the mods. */
     public static void tick() {
         dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
-        new YogEvents.ClientTick().emit();
+        new YogEvents.Client.Game.Tick().emit();
     }
 
     /** The HUD drawn this frame: the mods draw in it. */
@@ -68,12 +68,12 @@ public final class YogClientEvents {
 
     public static void screenOpened(Screen screen) {
         if (screen instanceof YogUIScreen) return;
-        new YogEvents.ScreenOpen(screen.getClass().getSimpleName()).emit();
+        new YogEvents.Client.Ui.Open(screen.getClass().getSimpleName()).emit();
     }
 
     public static void screenClosed(Screen screen) {
         if (screen instanceof YogUIScreen) return;
-        new YogEvents.ScreenClose(screen.getClass().getSimpleName()).emit();
+        new YogEvents.Client.Ui.Close(screen.getClass().getSimpleName()).emit();
     }
 
     /** The mods' menu entries as buttons, on the title screen and a loader's mod list (none on others). */

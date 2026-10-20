@@ -17,8 +17,8 @@ use yog_formats::book::Book;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_dimensions::{ChunkWriter, YogDimensionDef};
-use yog_event::{
-    EventPhase, ItemInsertEvent, };
+use yog_event::EventPhase;
+use yog_event::block::Insert as ItemInsertEvent;
 use yog_gfx::GfxContext;
 use yog_network::{Packet, PacketEvent};
 use yog_registry::{ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial};

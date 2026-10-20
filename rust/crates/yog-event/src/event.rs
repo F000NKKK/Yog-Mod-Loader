@@ -1,9 +1,9 @@
 //! Events on the bus: each event type's addresses, and its payload's bytes.
 
 use yog_data::Schema;
-use yog_ids::event::*;
+use yog_ids as ids;
 
-use crate::events::*;
+use crate::{block, client, container, entity, player, server, world};
 
 /// An event the bus carries; its payload is `Self` in `yog-data`'s binary form.
 pub trait Event: Schema + Sized {
@@ -23,50 +23,66 @@ pub trait Event: Schema + Sized {
     }
 }
 
+/// An event type's descriptor: its plane and name, addresses and payload shape.
+pub struct EventInfo {
+    /// Its place in the tree: `player/session`, `block`, `client/ui`…
+    pub plane: &'static str,
+    pub name: &'static str,
+    pub address: &'static str,
+    pub pre: Option<&'static str>,
+    pub shape: yog_data::Shape,
+}
+
 macro_rules! events {
-    ($($ty:ident => $post:ident, $pre:expr;)*) => {
+    ($($ty:path, $plane:literal => $post:expr, $pre:expr;)*) => {
         $(impl Event for $ty {
             const ADDRESS: &'static str = $post;
             const PRE: Option<&'static str> = $pre;
         })*
 
-        /// Every event type's descriptor: its name, addresses and payload shape.
-        pub fn all() -> Vec<(&'static str, &'static str, Option<&'static str>, yog_data::Shape)> {
-            vec![$((stringify!($ty), $post, $pre, <$ty as Schema>::shape())),*]
+        /// Every event type, plane by plane.
+        pub fn all() -> Vec<EventInfo> {
+            vec![$(EventInfo {
+                plane: $plane,
+                name: { let p = stringify!($ty); match p.rfind(':') { Some(i) => p.split_at(i + 1).1.trim(), None => p } },
+                address: $post,
+                pre: $pre,
+                shape: <$ty as Schema>::shape(),
+            }),*]
         }
     };
 }
 
 events! {
-    BlockBreakEvent => BLOCK_BREAK, Some(BLOCK_BREAK_PRE);
-    ChatEvent => CHAT, Some(CHAT_PRE);
-    PlayerJoinEvent => PLAYER_JOIN, None;
-    PlayerLeaveEvent => PLAYER_LEAVE, None;
-    UseItemEvent => USE_ITEM, Some(USE_ITEM_PRE);
-    UseBlockEvent => USE_BLOCK, Some(USE_BLOCK_PRE);
-    AttackEntityEvent => ATTACK_ENTITY, None;
-    EntityDamageEvent => ENTITY_DAMAGE, Some(ENTITY_DAMAGE_PRE);
-    EntityDeathEvent => ENTITY_DEATH, None;
-    PlaceBlockEvent => PLACE_BLOCK, Some(PLACE_BLOCK_PRE);
-    EntitySpawnEvent => ENTITY_SPAWN, Some(ENTITY_SPAWN_PRE);
-    PlayerDeathEvent => PLAYER_DEATH, Some(PLAYER_DEATH_PRE);
-    PlayerRespawnEvent => PLAYER_RESPAWN, None;
-    AdvancementEvent => ADVANCEMENT, None;
-    EntityInteractEvent => ENTITY_INTERACT, Some(ENTITY_INTERACT_PRE);
-    CraftEvent => CRAFT, None;
-    ExplosionEvent => EXPLOSION, Some(EXPLOSION_PRE);
-    ItemInsertEvent => ITEM_INSERT, None;
-    ItemPickupEvent => ITEM_PICKUP, Some(ITEM_PICKUP_PRE);
-    PlayerMoveEvent => PLAYER_MOVE, None;
-    ContainerOpenEvent => CONTAINER_OPEN, Some(CONTAINER_OPEN_PRE);
-    ContainerCloseEvent => CONTAINER_CLOSE, None;
-    ClientTickEvent => CLIENT_TICK, None;
-    HudRenderEvent => HUD_RENDER, None;
-    KeyPressEvent => KEY_PRESS, Some(KEY_PRESS_PRE);
-    ProjectileHitEvent => PROJECTILE_HIT, Some(PROJECTILE_HIT_PRE);
-    ScreenOpenEvent => SCREEN_OPEN, None;
-    ScreenCloseEvent => SCREEN_CLOSE, None;
-    ServerTickEvent => SERVER_TICK, None;
-    ServerStartedEvent => SERVER_STARTED, None;
-    ServerStoppingEvent => SERVER_STOPPING, None;
+    player::session::Join, "player/session" => ids::event_player_session::JOIN, None;
+    player::session::Leave, "player/session" => ids::event_player_session::LEAVE, None;
+    player::life::Death, "player/life" => ids::event_player_life::DEATH, Some(ids::event_player_life::DEATH_PRE);
+    player::life::Respawn, "player/life" => ids::event_player_life::RESPAWN, None;
+    player::chat::Message, "player/chat" => ids::event_player_chat::MESSAGE, Some(ids::event_player_chat::MESSAGE_PRE);
+    player::action::Move, "player/action" => ids::event_player_action::MOVE, None;
+    player::action::UseItem, "player/action" => ids::event_player_action::USE_ITEM, Some(ids::event_player_action::USE_ITEM_PRE);
+    player::action::Attack, "player/action" => ids::event_player_action::ATTACK, None;
+    player::action::Interact, "player/action" => ids::event_player_action::INTERACT, Some(ids::event_player_action::INTERACT_PRE);
+    player::action::Craft, "player/action" => ids::event_player_action::CRAFT, None;
+    player::action::Pickup, "player/action" => ids::event_player_action::PICKUP, Some(ids::event_player_action::PICKUP_PRE);
+    player::progress::Advancement, "player/progress" => ids::event_player_progress::ADVANCEMENT, None;
+    block::Break, "block" => ids::event_block::BREAK, Some(ids::event_block::BREAK_PRE);
+    block::Place, "block" => ids::event_block::PLACE, Some(ids::event_block::PLACE_PRE);
+    block::Use, "block" => ids::event_block::USE, Some(ids::event_block::USE_PRE);
+    block::Insert, "block" => ids::event_block::INSERT, None;
+    entity::life::Spawn, "entity/life" => ids::event_entity_life::SPAWN, Some(ids::event_entity_life::SPAWN_PRE);
+    entity::life::Death, "entity/life" => ids::event_entity_life::DEATH, None;
+    entity::combat::Damage, "entity/combat" => ids::event_entity_combat::DAMAGE, Some(ids::event_entity_combat::DAMAGE_PRE);
+    entity::combat::ProjectileHit, "entity/combat" => ids::event_entity_combat::PROJECTILE_HIT, Some(ids::event_entity_combat::PROJECTILE_HIT_PRE);
+    world::Explosion, "world" => ids::event_world::EXPLOSION, Some(ids::event_world::EXPLOSION_PRE);
+    container::Open, "container" => ids::event_container::OPEN, Some(ids::event_container::OPEN_PRE);
+    container::Close, "container" => ids::event_container::CLOSE, None;
+    server::game::Tick, "server/game" => ids::event_server_game::TICK, None;
+    server::life::Started, "server/life" => ids::event_server_life::STARTED, None;
+    server::life::Stopping, "server/life" => ids::event_server_life::STOPPING, None;
+    client::game::Tick, "client/game" => ids::event_client_game::TICK, None;
+    client::input::Key, "client/input" => ids::event_client_input::KEY, Some(ids::event_client_input::KEY_PRE);
+    client::ui::Open, "client/ui" => ids::event_client_ui::OPEN, None;
+    client::ui::Close, "client/ui" => ids::event_client_ui::CLOSE, None;
+    client::render::Hud, "client/render" => ids::event_client_render::HUD, None;
 }

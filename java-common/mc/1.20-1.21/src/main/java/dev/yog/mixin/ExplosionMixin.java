@@ -26,10 +26,10 @@ public class ExplosionMixin {
     private void yog$onExplosion(CallbackInfo ci) {
         String dim       = level.dimension().location().toString();
         String causeUuid = source != null ? source.getStringUUID() : "";
-        if (!new YogEvents.Explosion(dim, x, y, z, radius, causeUuid).emitPre()) {
+        if (!new YogEvents.World.Explosion(dim, x, y, z, radius, causeUuid).emitPre()) {
             ci.cancel();
             return;
         }
-        new YogEvents.Explosion(dim, x, y, z, radius, causeUuid).emit();
+        new YogEvents.World.Explosion(dim, x, y, z, radius, causeUuid).emit();
     }
 }

@@ -23,11 +23,11 @@ public class ItemPickupMixin {
         int count = stack.getCount();
         String entityUuid = self.getStringUUID();
         String dim = self.level().dimension().location().toString();
-        boolean allow = new YogEvents.ItemPickup(sp.getName().getString(), sp.getStringUUID(), itemId, count, entityUuid, dim).emitPre();
+        boolean allow = new YogEvents.Player.Action.Pickup(sp.getName().getString(), sp.getStringUUID(), itemId, count, entityUuid, dim).emitPre();
         if (!allow) {
             ci.cancel();
             return;
         }
-        new YogEvents.ItemPickup(sp.getName().getString(), sp.getStringUUID(), itemId, count, entityUuid, dim).emit();
+        new YogEvents.Player.Action.Pickup(sp.getName().getString(), sp.getStringUUID(), itemId, count, entityUuid, dim).emit();
     }
 }

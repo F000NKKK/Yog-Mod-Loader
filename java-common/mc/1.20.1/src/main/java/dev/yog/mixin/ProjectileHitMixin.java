@@ -45,11 +45,11 @@ public abstract class ProjectileHitMixin extends Entity {
             hitEntityUuid = "";
         }
 
-        boolean allow = new YogEvents.ProjectileHit(projType, projUuid, shooterUuid, hitType, hitEntityUuid, pos.x, pos.y, pos.z, dim).emitPre();
+        boolean allow = new YogEvents.Entity.Combat.ProjectileHit(projType, projUuid, shooterUuid, hitType, hitEntityUuid, pos.x, pos.y, pos.z, dim).emitPre();
         if (!allow) {
             ci.cancel();
             return;
         }
-        new YogEvents.ProjectileHit(projType, projUuid, shooterUuid, hitType, hitEntityUuid, pos.x, pos.y, pos.z, dim).emit();
+        new YogEvents.Entity.Combat.ProjectileHit(projType, projUuid, shooterUuid, hitType, hitEntityUuid, pos.x, pos.y, pos.z, dim).emit();
     }
 }

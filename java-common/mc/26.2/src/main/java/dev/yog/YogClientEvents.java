@@ -36,7 +36,7 @@ public final class YogClientEvents {
     /** The end of a client tick: key presses, then the mods. */
     public static void tick() {
         dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
-        new YogEvents.ClientTick().emit();
+        new YogEvents.Client.Game.Tick().emit();
     }
 
     /** The HUD being extracted for this frame: the mods' 2-D draws go into it, their raw GL onto the main target. */
@@ -73,12 +73,12 @@ public final class YogClientEvents {
 
     public static void screenOpened(Screen screen) {
         if (screen instanceof YogUIScreen) return;
-        new YogEvents.ScreenOpen(screen.getClass().getSimpleName()).emit();
+        new YogEvents.Client.Ui.Open(screen.getClass().getSimpleName()).emit();
     }
 
     public static void screenClosed(Screen screen) {
         if (screen instanceof YogUIScreen) return;
-        new YogEvents.ScreenClose(screen.getClass().getSimpleName()).emit();
+        new YogEvents.Client.Ui.Close(screen.getClass().getSimpleName()).emit();
     }
 
     /** The mods' menu entries as buttons for the title screen (none on other screens). */

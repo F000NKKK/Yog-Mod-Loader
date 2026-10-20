@@ -44,27 +44,29 @@ fn camel(snake: &str) -> String {
     out
 }
 
-/// `BlockBreakEvent` → `BlockBreak`.
-fn record_name(rust: &str) -> &str {
-    rust.strip_suffix("Event").unwrap_or(rust)
+/// `player` → `Player`.
+fn class_name(plane: &str) -> String {
+    let mut c = plane.chars();
+    c.next().map(|f| f.to_uppercase().chain(c).collect()).unwrap_or_default()
 }
 
 /// A record with `fields`, its `toData()` building the payload map.
-fn record(out: &mut String, name: &str, doc: &str, s: &StructShape, records: &mut Vec<StructShape>, body: &str) {
+fn record(out: &mut String, pad: &str, name: &str, doc: &str, s: &StructShape, records: &mut Vec<StructShape>, body: &str) {
     let params: Vec<String> = s.fields.iter().map(|f| format!("{} {}", java_type(&(f.shape)(), records), camel(f.name))).collect();
     if !doc.is_empty() {
-        let _ = writeln!(out, "\n    /** {doc} */");
+        let _ = writeln!(out, "\n{pad}/** {doc} */");
     }
-    let _ = writeln!(out, "    public record {name}({}) {{", params.join(", "));
-    let _ = writeln!(out, "        public Map<String, Object> toData() {{\n            Map<String, Object> m = new LinkedHashMap<>();");
+    let _ = writeln!(out, "{pad}public record {name}({}) {{", params.join(", "));
+    let _ = writeln!(out, "{pad}    public Map<String, Object> toData() {{\n{pad}        Map<String, Object> m = new LinkedHashMap<>();");
     for f in &s.fields {
         let value = match (f.shape)() {
             Shape::Struct(_) => format!("{}.toData()", camel(f.name)),
             _ => camel(f.name),
         };
-        let _ = writeln!(out, "            m.put(\"{}\", {value});", f.name);
+        let _ = writeln!(out, "{pad}        m.put(\"{}\", {value});", f.name);
     }
-    let _ = writeln!(out, "            return m;\n        }}{body}\n    }}");
+    let body = body.replace('\n', &format!("\n{pad}"));
+    let _ = writeln!(out, "{pad}        return m;\n{pad}    }}{body}\n{pad}}}");
 }
 
 /// `dev.yog.bus.YogEvents`.
@@ -73,24 +75,45 @@ pub fn java(package: &str) -> String {
         "// {HEADER}\npackage {package};\n\nimport dev.yog.YogBus;\nimport dev.yog.data.YogData;\nimport java.util.LinkedHashMap;\nimport java.util.Map;\n\n/** The bus's events: a record per event; {{@code emit}} after the game did it, {{@code emitPre}} before (false: a handler cancelled it). */\npublic final class YogEvents {{\n    private YogEvents() {{}}\n"
     );
     let mut records = Vec::new();
-    for (name, post, pre, shape) in crate::all() {
-        let Shape::Struct(s) = shape else { continue };
-        let r = record_name(name);
-        let mut body = format!(
-            "\n\n        private static final class Address {{\n            static final int POST = YogBus.resolve(\"{post}\");{}\n        }}\n\n        public YogBus.Reply emit() {{\n            return YogBus.emit(Address.POST, YogData.encode(toData()));\n        }}",
-            pre.map(|p| format!("\n            static final int PRE = YogBus.resolve(\"{p}\");")).unwrap_or_default()
-        );
-        if pre.is_some() {
-            body.push_str("\n\n        public boolean emitPre() {\n            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;\n        }");
+    let all = crate::all();
+    // The class path open now (`Player`, `Session`), closed and opened as the planes go.
+    let mut open: Vec<&str> = Vec::new();
+    for (i, e) in all.iter().enumerate() {
+        let path: Vec<&str> = e.plane.split('/').collect();
+        if i == 0 || all[i - 1].plane != e.plane {
+            let common = open.iter().zip(&path).take_while(|(a, b)| a == b).count();
+            while open.len() > common {
+                open.pop();
+                let _ = writeln!(out, "{}}}", "    ".repeat(open.len() + 1));
+            }
+            for seg in &path[common..] {
+                let pad = "    ".repeat(open.len() + 1);
+                let class = class_name(seg);
+                let _ = writeln!(out, "\n{pad}/** The `{seg}` events. */\n{pad}public static final class {class} {{\n{pad}    private {class}() {{}}");
+                open.push(seg);
+            }
         }
-        record(&mut out, r, s.doc, &s, &mut records, &body);
+        let Shape::Struct(s) = &e.shape else { continue };
+        let mut body = format!(
+            "\n\n    private static final class Address {{\n        static final int POST = YogBus.resolve(\"{}\");{}\n    }}\n\n    public YogBus.Reply emit() {{\n        return YogBus.emit(Address.POST, YogData.encode(toData()));\n    }}",
+            e.address,
+            e.pre.map(|p| format!("\n        static final int PRE = YogBus.resolve(\"{p}\");")).unwrap_or_default()
+        );
+        if e.pre.is_some() {
+            body.push_str("\n\n    public boolean emitPre() {\n        return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;\n    }");
+        }
+        record(&mut out, &"    ".repeat(open.len() + 1), e.name, s.doc, s, &mut records, &body);
+    }
+    while !open.is_empty() {
+        open.pop();
+        let _ = writeln!(out, "{}}}", "    ".repeat(open.len() + 1));
     }
     let mut done = 0;
     while done < records.len() {
         let s = records[done].clone();
-        record(&mut out, s.name, s.doc, &s, &mut records, "");
+        record(&mut out, "    ", s.name, s.doc, &s, &mut records, "");
         done += 1;
     }
     out.push_str("}\n");
-    out
+    out.lines().map(str::trim_end).collect::<Vec<_>>().join("\n") + "\n"
 }

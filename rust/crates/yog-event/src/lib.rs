@@ -1,22 +1,24 @@
-//! Event types passed from Minecraft into Rust mods.
+//! The events Minecraft fires (through the Java host) to Rust mods, by
+//! plane — `player::Join`, `block::Break`, `server::Tick` … — each a bus
+//! message with its addresses and its payload's schema.
 //!
-//! The subscription hub (`Registry`) lives in the `yog-api` facade, where all
-//! domains compose; this crate is just the event vocabulary.
+//! The subscription hub (`Registry::on`/`before`/`after`) lives in the
+//! `yog-api` facade; this crate is the event vocabulary.
 
 mod event;
 pub mod java;
-mod events;
+mod phase;
 mod pos;
 #[cfg(test)]
 mod tests;
 
-pub use event::{Event, all};
+pub mod block;
+pub mod client;
+pub mod container;
+pub mod entity;
+pub mod player;
+pub mod server;
+pub mod world;
 
-pub use events::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ClientTickEvent,
-    ContainerCloseEvent, ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent,
-    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, HudRenderEvent,
-    ItemInsertEvent, ItemPickupEvent, KeyPressEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerJoinEvent,
-    PlayerLeaveEvent, PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenCloseEvent, ScreenOpenEvent, ServerStartedEvent, ServerStoppingEvent, ServerTickEvent,
-    UseBlockEvent, UseItemEvent,
-};
+pub use event::{Event, EventInfo, all};
+pub use phase::EventPhase;

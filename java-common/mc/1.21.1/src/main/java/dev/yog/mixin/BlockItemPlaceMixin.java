@@ -28,6 +28,6 @@ public class BlockItemPlaceMixin {
 
         BlockPos pos = context.getClickedPos();
         String blockId = BuiltInRegistries.BLOCK.getKey(((BlockItem) (Object) this).getBlock()).toString();
-        new YogEvents.PlaceBlock(sp.getName().getString(), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), context.getLevel().dimension().location().toString(), sp.isShiftKeyDown()).emit();
+        new YogEvents.Block.Place(sp.getName().getString(), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), context.getLevel().dimension().location().toString(), sp.isShiftKeyDown()).emit();
     }
 }

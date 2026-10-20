@@ -22,6 +22,6 @@ public class PlayerMoveMixin {
         double z     = packet.getZ(player.getZ());
         float  yaw   = packet.getYRot(player.getYRot());
         float  pitch = packet.getXRot(player.getXRot());
-        new YogEvents.PlayerMove(player.getName().getString(), player.getStringUUID(), x, y, z, yaw, pitch, player.level().dimension().identifier().toString()).emit();
+        new YogEvents.Player.Action.Move(player.getName().getString(), player.getStringUUID(), x, y, z, yaw, pitch, player.level().dimension().identifier().toString()).emit();
     }
 }

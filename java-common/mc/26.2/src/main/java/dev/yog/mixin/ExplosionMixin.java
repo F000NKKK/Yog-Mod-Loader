@@ -19,10 +19,10 @@ public class ExplosionMixin {
         Vec3 at = self.center();
         Entity cause = self.getDirectSourceEntity();
         String causeUuid = cause != null ? cause.getStringUUID() : "";
-        if (!new YogEvents.Explosion(dim, at.x, at.y, at.z, self.radius(), causeUuid).emitPre()) {
+        if (!new YogEvents.World.Explosion(dim, at.x, at.y, at.z, self.radius(), causeUuid).emitPre()) {
             cir.setReturnValue(0);
             return;
         }
-        new YogEvents.Explosion(dim, at.x, at.y, at.z, self.radius(), causeUuid).emit();
+        new YogEvents.World.Explosion(dim, at.x, at.y, at.z, self.radius(), causeUuid).emit();
     }
 }

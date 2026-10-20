@@ -21,6 +21,6 @@ public class CraftingMixin {
     private void yog$onCraft(Player player, ItemStack stack, CallbackInfo ci) {
         if (!(player instanceof ServerPlayer sp)) return;
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-        new YogEvents.Craft(sp.getName().getString(), sp.getStringUUID(), itemId, stack.getCount(), sp.level().dimension().location().toString()).emit();
+        new YogEvents.Player.Action.Craft(sp.getName().getString(), sp.getStringUUID(), itemId, stack.getCount(), sp.level().dimension().location().toString()).emit();
     }
 }

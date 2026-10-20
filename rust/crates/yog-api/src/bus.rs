@@ -136,7 +136,7 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use yog_event::{BlockBreakEvent, ChatEvent};
+    use yog_event::{block, player};
 
     /// Runs `on_event` for `handler` in `phase` on `bytes`.
     fn deliver_bytes<E: Event, R: IntoFlow, F: Fn(&E, &EventCx) -> R + Send + Sync>(handler: F, phase: EventPhase, bytes: &[u8]) -> YogStatus {
@@ -148,13 +148,13 @@ mod tests {
         deliver_bytes(handler, phase, &event.to_bytes())
     }
 
-    fn chat(message: &str) -> ChatEvent {
-        ChatEvent { player_name: "Dev".into(), message: message.into(), dimension: "minecraft:overworld".into() }
+    fn chat(message: &str) -> player::chat::Message {
+        player::chat::Message { player_name: "Dev".into(), message: message.into(), dimension: "minecraft:overworld".into() }
     }
 
     #[test]
     fn events_arrive_read_with_their_phase_and_a_pre_false_cancels() {
-        let allow = |e: &ChatEvent, _: &EventCx| e.message != "cancel me";
+        let allow = |e: &player::chat::Message, _: &EventCx| e.message != "cancel me";
         assert_eq!(deliver(allow, EventPhase::Pre, &chat("hi")), status::OK);
         assert_eq!(deliver(allow, EventPhase::Pre, &chat("cancel me")), status::CANCELLED);
         assert_eq!(deliver(allow, EventPhase::Post, &chat("cancel me")), status::OK, "only a pre-event can be cancelled");
@@ -162,22 +162,22 @@ mod tests {
 
     #[test]
     fn a_panicking_handler_allows_the_action() {
-        let handler = |_: &BlockBreakEvent, _: &EventCx| -> bool { panic!("mod bug") };
-        let event = BlockBreakEvent { player_name: "Dev".into(), block_id: "minecraft:stone".into(), pos: yog_core::BlockPos { x: 1, y: 2, z: 3 }, dimension: "minecraft:overworld".into() };
+        let handler = |_: &block::Break, _: &EventCx| -> bool { panic!("mod bug") };
+        let event = block::Break { player_name: "Dev".into(), block_id: "minecraft:stone".into(), pos: yog_core::BlockPos { x: 1, y: 2, z: 3 }, dimension: "minecraft:overworld".into() };
         assert_eq!(deliver(handler, EventPhase::Pre, &event), status::OK);
     }
 
     #[test]
     fn a_payload_that_isnt_the_event_is_refused() {
-        let handler = |_: &ChatEvent, _: &EventCx| true;
+        let handler = |_: &player::chat::Message, _: &EventCx| true;
         assert_eq!(deliver_bytes(handler, EventPhase::Post, b"junk"), status::BAD_PAYLOAD);
     }
 
     #[test]
     fn a_handler_returning_nothing_lets_it_happen() {
-        let handler = |_: &ChatEvent, _: &EventCx| {};
+        let handler = |_: &player::chat::Message, _: &EventCx| {};
         assert_eq!(deliver(handler, EventPhase::Pre, &chat("hi")), status::OK);
-        let cancel = |_: &ChatEvent, _: &EventCx| Flow::Cancel;
+        let cancel = |_: &player::chat::Message, _: &EventCx| Flow::Cancel;
         assert_eq!(deliver(cancel, EventPhase::Pre, &chat("hi")), status::CANCELLED);
     }
 }

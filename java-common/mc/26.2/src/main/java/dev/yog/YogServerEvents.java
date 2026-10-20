@@ -59,11 +59,11 @@ public final class YogServerEvents {
 
     public static void serverStarted(MinecraftServer server) {
         NativeBridge.setServer(server);
-        new YogEvents.ServerStarted(server.getWorldPath(LevelResource.ROOT).toAbsolutePath().toString()).emit();
+        new YogEvents.Server.Life.Started(server.getWorldPath(LevelResource.ROOT).toAbsolutePath().toString()).emit();
     }
 
     public static void serverStopping() {
-        new YogEvents.ServerStopping().emit();
+        new YogEvents.Server.Life.Stopping().emit();
     }
 
     /** The end of a server tick: joined players who are in the list now are announced, then the mods tick. */
@@ -73,7 +73,7 @@ public final class YogServerEvents {
             PENDING_JOINS.forEach((uuid, left) -> {
                 ServerPlayer found = server.getPlayerList().getPlayer(uuid);
                 if (found != null) {
-                    new YogEvents.PlayerJoin(name(found), uuid.toString(), dim(found.level())).emit();
+                    new YogEvents.Player.Session.Join(name(found), uuid.toString(), dim(found.level())).emit();
                     done.add(uuid);
                 } else if (left <= 0) {
                     YogLog.warn("player join: " + uuid + " never appeared in the server's list");
@@ -84,7 +84,7 @@ public final class YogServerEvents {
             });
             done.forEach(PENDING_JOINS::remove);
         }
-        new YogEvents.ServerTick().emit();
+        new YogEvents.Server.Game.Tick().emit();
     }
 
     /** A player connected: announced once the server lists them; their entity data sent. */
@@ -95,16 +95,16 @@ public final class YogServerEvents {
 
     public static void playerLeft(ServerPlayer p) {
         PENDING_JOINS.remove(p.getUUID());
-        new YogEvents.PlayerLeave(name(p), p.getStringUUID(), dim(p.level())).emit();
+        new YogEvents.Player.Session.Leave(name(p), p.getStringUUID(), dim(p.level())).emit();
     }
 
     public static boolean blockBreakPre(Level level, Player player, BlockPos pos, BlockState state) {
-        return new YogEvents.BlockBreak(name(player), blockId(state), new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emitPre();
+        return new YogEvents.Block.Break(name(player), blockId(state), new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emitPre();
     }
 
     /** A block broken: to the mods; an inventory's contents dropped. */
     public static void blockBroken(Level level, Player player, BlockPos pos, BlockState state, BlockEntity blockEntity) {
-        new YogEvents.BlockBreak(name(player), blockId(state), new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emit();
+        new YogEvents.Block.Break(name(player), blockId(state), new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emit();
         if (blockEntity instanceof YogInventoryBlockEntity inv && !inv.isEmpty()) {
             net.minecraft.world.Containers.dropContents(level, pos, inv);
             inv.clearContent();
@@ -112,11 +112,11 @@ public final class YogServerEvents {
     }
 
     public static boolean chatPre(ServerPlayer p, String message) {
-        return new YogEvents.Chat(name(p), message, dim(p.level())).emitPre();
+        return new YogEvents.Player.Chat.Message(name(p), message, dim(p.level())).emitPre();
     }
 
     public static void chat(ServerPlayer p, String message) {
-        new YogEvents.Chat(name(p), message, dim(p.level())).emit();
+        new YogEvents.Player.Chat.Message(name(p), message, dim(p.level())).emit();
     }
 
     /** An item used (right-click); as vanilla, one cooling down isn't. */
@@ -125,8 +125,8 @@ public final class YogServerEvents {
         if (sp.getCooldowns().isOnCooldown(stack)) return true;
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         String dim = dim(sp.level());
-        if (!new YogEvents.UseItem(name(sp), itemId, sp.isShiftKeyDown(), dim).emitPre()) return false;
-        new YogEvents.UseItem(name(sp), itemId, sp.isShiftKeyDown(), dim).emit();
+        if (!new YogEvents.Player.Action.UseItem(name(sp), itemId, sp.isShiftKeyDown(), dim).emitPre()) return false;
+        new YogEvents.Player.Action.UseItem(name(sp), itemId, sp.isShiftKeyDown(), dim).emit();
         return true;
     }
 
@@ -141,13 +141,13 @@ public final class YogServerEvents {
         if (!itemFirst) {
             BlockPos pos = hit.getBlockPos();
             String blockId = blockId(level.getBlockState(pos));
-            if (!new YogEvents.UseBlock(name(sp), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emitPre()) return false;
-            new YogEvents.UseBlock(name(sp), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emit();
+            if (!new YogEvents.Block.Use(name(sp), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emitPre()) return false;
+            new YogEvents.Block.Use(name(sp), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emit();
         }
         if (sp.getItemInHand(hand).getItem() instanceof BlockItem bi) {
             BlockPos placed = hit.getBlockPos().relative(hit.getDirection());
             String blockId = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
-            return new YogEvents.PlaceBlock(name(sp), blockId, new YogEvents.BlockPos(placed.getX(), placed.getY(), placed.getZ()), dim, sp.isShiftKeyDown()).emitPre();
+            return new YogEvents.Block.Place(name(sp), blockId, new YogEvents.BlockPos(placed.getX(), placed.getY(), placed.getZ()), dim, sp.isShiftKeyDown()).emitPre();
         }
         return true;
     }
@@ -155,27 +155,27 @@ public final class YogServerEvents {
     public static boolean interactEntity(ServerPlayer sp, InteractionHand hand, Entity entity) {
         String handName = hand == InteractionHand.MAIN_HAND ? MAIN_HAND : OFF_HAND;
         String dim = dim(sp.level());
-        if (!new YogEvents.EntityInteract(name(sp), sp.getStringUUID(), typeId(entity), entity.getStringUUID(), handName, dim).emitPre()) return false;
-        new YogEvents.EntityInteract(name(sp), sp.getStringUUID(), typeId(entity), entity.getStringUUID(), handName, dim).emit();
+        if (!new YogEvents.Player.Action.Interact(name(sp), sp.getStringUUID(), typeId(entity), entity.getStringUUID(), handName, dim).emitPre()) return false;
+        new YogEvents.Player.Action.Interact(name(sp), sp.getStringUUID(), typeId(entity), entity.getStringUUID(), handName, dim).emit();
         return true;
     }
 
     public static void attackEntity(ServerPlayer sp, Entity entity) {
-        new YogEvents.AttackEntity(name(sp), typeId(entity), entity.getStringUUID(), dim(sp.level())).emit();
+        new YogEvents.Player.Action.Attack(name(sp), typeId(entity), entity.getStringUUID(), dim(sp.level())).emit();
     }
 
     public static boolean damage(LivingEntity entity, DamageSource source, float amount) {
         String type = typeId(entity), dim = dim(entity.level());
-        if (!new YogEvents.EntityDamage(type, entity.getStringUUID(), amount, source.getMsgId(), dim).emitPre()) return false;
-        new YogEvents.EntityDamage(type, entity.getStringUUID(), amount, source.getMsgId(), dim).emit();
+        if (!new YogEvents.Entity.Combat.Damage(type, entity.getStringUUID(), amount, source.getMsgId(), dim).emitPre()) return false;
+        new YogEvents.Entity.Combat.Damage(type, entity.getStringUUID(), amount, source.getMsgId(), dim).emit();
         return true;
     }
 
     /** An entity came into a server world: whether it stays. */
     public static boolean entityLoaded(Entity entity, Level level) {
         String type = typeId(entity), uuid = entity.getStringUUID(), dim = dim(level);
-        if (!new YogEvents.EntitySpawn(type, uuid, dim).emitPre()) return false;
-        new YogEvents.EntitySpawn(type, uuid, dim).emit();
+        if (!new YogEvents.Entity.Life.Spawn(type, uuid, dim).emitPre()) return false;
+        new YogEvents.Entity.Life.Spawn(type, uuid, dim).emit();
         return true;
     }
 
@@ -187,20 +187,20 @@ public final class YogServerEvents {
     /** A living thing died; a player's death has its own events ({@link #playerDeathPre}). */
     public static void died(LivingEntity entity, DamageSource source) {
         if (entity instanceof ServerPlayer) return;
-        new YogEvents.EntityDeath(typeId(entity), entity.getStringUUID(), source.getMsgId(), dim(entity.level())).emit();
+        new YogEvents.Entity.Life.Death(typeId(entity), entity.getStringUUID(), source.getMsgId(), dim(entity.level())).emit();
     }
 
     public static boolean playerDeathPre(ServerPlayer sp, DamageSource source) {
         String dim = dim(sp.level());
-        if (!new YogEvents.PlayerDeath(name(sp), sp.getStringUUID(), source.getMsgId(), dim).emitPre()) return false;
-        new YogEvents.PlayerDeath(name(sp), sp.getStringUUID(), source.getMsgId(), dim).emit();
+        if (!new YogEvents.Player.Life.Death(name(sp), sp.getStringUUID(), source.getMsgId(), dim).emitPre()) return false;
+        new YogEvents.Player.Life.Death(name(sp), sp.getStringUUID(), source.getMsgId(), dim).emit();
         return true;
     }
 
     /** A player back: after death to the mods ({@code alive}: back from the End, not from death); their data sent again. */
     public static void respawned(ServerPlayer p, boolean alive) {
         sendEntityData(p, p);
-        if (!alive) new YogEvents.PlayerRespawn(name(p), p.getStringUUID(), false, dim(p.level())).emit();
+        if (!alive) new YogEvents.Player.Life.Respawn(name(p), p.getStringUUID(), false, dim(p.level())).emit();
     }
 
     /** A player went to another world: their data sent again. */

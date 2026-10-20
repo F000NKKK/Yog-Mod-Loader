@@ -17,6 +17,6 @@ public class ContainerCloseMixin {
 
     @Inject(method = "handleContainerClose", at = @At("HEAD"))
     private void yog$onContainerClose(ServerboundContainerClosePacket packet, CallbackInfo ci) {
-        new YogEvents.ContainerClose(player.getName().getString(), player.getStringUUID(), player.level().dimension().identifier().toString()).emit();
+        new YogEvents.Container.Close(player.getName().getString(), player.getStringUUID(), player.level().dimension().identifier().toString()).emit();
     }
 }

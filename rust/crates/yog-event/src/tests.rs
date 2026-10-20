@@ -6,11 +6,11 @@ use super::*;
 
 #[test]
 fn an_event_round_trips_through_its_bytes() {
-    let e = BlockBreakEvent { player_name: "Steve".into(), block_id: "minecraft:stone".into(), pos: BlockPos { x: 1, y: -2, z: 3 }, dimension: "minecraft:overworld".into() };
-    let back = BlockBreakEvent::from_bytes(&e.to_bytes()).expect("reads back");
+    let e = block::Break { player_name: "Steve".into(), block_id: "minecraft:stone".into(), pos: BlockPos { x: 1, y: -2, z: 3 }, dimension: "minecraft:overworld".into() };
+    let back = block::Break::from_bytes(&e.to_bytes()).expect("reads back");
     assert_eq!((back.player_name, back.block_id, back.pos, back.dimension), (e.player_name, e.block_id, e.pos, e.dimension));
-    assert_eq!(BlockBreakEvent::ADDRESS, "yog:event/block_break");
-    assert_eq!(BlockBreakEvent::PRE, Some("yog:event/block_break/pre"));
+    assert_eq!(block::Break::ADDRESS, "yog:event/block/break");
+    assert_eq!(block::Break::PRE, Some("yog:event/block/break/pre"));
 }
 
 #[test]

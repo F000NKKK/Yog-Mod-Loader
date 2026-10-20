@@ -28,6 +28,6 @@ public abstract class AdvancementMixin {
         if (!cir.getReturnValue()) return;
         if (!getOrStartProgress(advancement).isDone()) return;
         if (player == null || advancement.getId() == null) return;
-        new YogEvents.Advancement(player.getName().getString(), player.getStringUUID(), advancement.getId().toString(), player.level().dimension().location().toString()).emit();
+        new YogEvents.Player.Progress.Advancement(player.getName().getString(), player.getStringUUID(), advancement.getId().toString(), player.level().dimension().location().toString()).emit();
     }
 }

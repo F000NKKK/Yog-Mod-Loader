@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class KeyboardMixin {
     @Inject(method = "keyPress(JIIII)V", at = @At("HEAD"), cancellable = true)
     private void yog$onKey(long window, int keyCode, int scanCode, int action, int modifiers, CallbackInfo ci) {
-        if (!new YogEvents.KeyPress(keyCode, scanCode, action, modifiers).emitPre()) {
+        if (!new YogEvents.Client.Input.Key(keyCode, scanCode, action, modifiers).emitPre()) {
             ci.cancel();
         }
     }

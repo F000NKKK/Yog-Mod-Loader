@@ -116,59 +116,140 @@ names! {
         BYTES = "bytes",
     }
 
-    /// The bus's events (`docs/design/bus.md`): `yog:event/<name>` after the
-    /// game did it, `…/pre` before (a cancel stops it).
+    /// The bus's events (`docs/design/bus.md`): `yog:event/<plane>/<name>`
+    /// after the game did it, `…/pre` before (a cancel stops it).
     event {
         /// What every event address starts with.
         PREFIX = concatcp!(ns::YOG, sep::NAMESPACE, "event", sep::PATH),
         /// What a pre-event's address ends with.
         PRE = concatcp!(sep::PATH, "pre"),
-        BLOCK_BREAK = concatcp!(PREFIX, "block_break"),
-        BLOCK_BREAK_PRE = concatcp!(BLOCK_BREAK, PRE),
-        CHAT = concatcp!(PREFIX, "chat"),
-        CHAT_PRE = concatcp!(CHAT, PRE),
-        PLAYER_JOIN = concatcp!(PREFIX, "player_join"),
-        PLAYER_LEAVE = concatcp!(PREFIX, "player_leave"),
-        USE_ITEM = concatcp!(PREFIX, "use_item"),
-        USE_ITEM_PRE = concatcp!(USE_ITEM, PRE),
-        USE_BLOCK = concatcp!(PREFIX, "use_block"),
-        USE_BLOCK_PRE = concatcp!(USE_BLOCK, PRE),
-        ATTACK_ENTITY = concatcp!(PREFIX, "attack_entity"),
-        ENTITY_DAMAGE = concatcp!(PREFIX, "entity_damage"),
-        ENTITY_DAMAGE_PRE = concatcp!(ENTITY_DAMAGE, PRE),
-        ENTITY_DEATH = concatcp!(PREFIX, "entity_death"),
-        PLACE_BLOCK = concatcp!(PREFIX, "place_block"),
-        PLACE_BLOCK_PRE = concatcp!(PLACE_BLOCK, PRE),
-        ENTITY_SPAWN = concatcp!(PREFIX, "entity_spawn"),
-        ENTITY_SPAWN_PRE = concatcp!(ENTITY_SPAWN, PRE),
-        PLAYER_DEATH = concatcp!(PREFIX, "player_death"),
-        PLAYER_DEATH_PRE = concatcp!(PLAYER_DEATH, PRE),
-        PLAYER_RESPAWN = concatcp!(PREFIX, "player_respawn"),
-        ADVANCEMENT = concatcp!(PREFIX, "advancement"),
-        ENTITY_INTERACT = concatcp!(PREFIX, "entity_interact"),
-        ENTITY_INTERACT_PRE = concatcp!(ENTITY_INTERACT, PRE),
-        CRAFT = concatcp!(PREFIX, "craft"),
-        EXPLOSION = concatcp!(PREFIX, "explosion"),
-        EXPLOSION_PRE = concatcp!(EXPLOSION, PRE),
-        ITEM_INSERT = concatcp!(PREFIX, "item_insert"),
-        ITEM_PICKUP = concatcp!(PREFIX, "item_pickup"),
-        ITEM_PICKUP_PRE = concatcp!(ITEM_PICKUP, PRE),
-        PLAYER_MOVE = concatcp!(PREFIX, "player_move"),
-        CONTAINER_OPEN = concatcp!(PREFIX, "container_open"),
-        CONTAINER_OPEN_PRE = concatcp!(CONTAINER_OPEN, PRE),
-        CONTAINER_CLOSE = concatcp!(PREFIX, "container_close"),
-        CLIENT_TICK = concatcp!(PREFIX, "client_tick"),
-        HUD_RENDER = concatcp!(PREFIX, "hud_render"),
-        KEY_PRESS = concatcp!(PREFIX, "key_press"),
-        KEY_PRESS_PRE = concatcp!(KEY_PRESS, PRE),
-        PROJECTILE_HIT = concatcp!(PREFIX, "projectile_hit"),
-        PROJECTILE_HIT_PRE = concatcp!(PROJECTILE_HIT, PRE),
-        SCREEN_OPEN = concatcp!(PREFIX, "screen_open"),
-        SCREEN_CLOSE = concatcp!(PREFIX, "screen_close"),
-        SERVER_TICK = concatcp!(PREFIX, "server_tick"),
-        SERVER_STARTED = concatcp!(PREFIX, "server_started"),
-        SERVER_STOPPING = concatcp!(PREFIX, "server_stopping"),
     }
+
+    /// `yog:event/player/session/…`.
+    event_player_session {
+        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "session", sep::PATH),
+        JOIN = concatcp!(PLANE, "join"),
+        LEAVE = concatcp!(PLANE, "leave"),
+    }
+
+    /// `yog:event/player/life/…`.
+    event_player_life {
+        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "life", sep::PATH),
+        DEATH = concatcp!(PLANE, "death"),
+        DEATH_PRE = concatcp!(DEATH, event::PRE),
+        RESPAWN = concatcp!(PLANE, "respawn"),
+    }
+
+    /// `yog:event/player/chat/…`.
+    event_player_chat {
+        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "chat", sep::PATH),
+        MESSAGE = concatcp!(PLANE, "message"),
+        MESSAGE_PRE = concatcp!(MESSAGE, event::PRE),
+    }
+
+    /// `yog:event/player/action/…`.
+    event_player_action {
+        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "action", sep::PATH),
+        MOVE = concatcp!(PLANE, "move"),
+        USE_ITEM = concatcp!(PLANE, "use_item"),
+        USE_ITEM_PRE = concatcp!(USE_ITEM, event::PRE),
+        ATTACK = concatcp!(PLANE, "attack"),
+        INTERACT = concatcp!(PLANE, "interact"),
+        INTERACT_PRE = concatcp!(INTERACT, event::PRE),
+        CRAFT = concatcp!(PLANE, "craft"),
+        PICKUP = concatcp!(PLANE, "pickup"),
+        PICKUP_PRE = concatcp!(PICKUP, event::PRE),
+    }
+
+    /// `yog:event/player/progress/…`.
+    event_player_progress {
+        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "progress", sep::PATH),
+        ADVANCEMENT = concatcp!(PLANE, "advancement"),
+    }
+
+    /// `yog:event/block/…`.
+    event_block {
+        PLANE = concatcp!(event::PREFIX, "block", sep::PATH),
+        BREAK = concatcp!(PLANE, "break"),
+        BREAK_PRE = concatcp!(BREAK, event::PRE),
+        PLACE = concatcp!(PLANE, "place"),
+        PLACE_PRE = concatcp!(PLACE, event::PRE),
+        USE = concatcp!(PLANE, "use"),
+        USE_PRE = concatcp!(USE, event::PRE),
+        INSERT = concatcp!(PLANE, "insert"),
+    }
+
+    /// `yog:event/entity/life/…`.
+    event_entity_life {
+        PLANE = concatcp!(event::PREFIX, "entity", sep::PATH, "life", sep::PATH),
+        SPAWN = concatcp!(PLANE, "spawn"),
+        SPAWN_PRE = concatcp!(SPAWN, event::PRE),
+        DEATH = concatcp!(PLANE, "death"),
+    }
+
+    /// `yog:event/entity/combat/…`.
+    event_entity_combat {
+        PLANE = concatcp!(event::PREFIX, "entity", sep::PATH, "combat", sep::PATH),
+        DAMAGE = concatcp!(PLANE, "damage"),
+        DAMAGE_PRE = concatcp!(DAMAGE, event::PRE),
+        PROJECTILE_HIT = concatcp!(PLANE, "projectile_hit"),
+        PROJECTILE_HIT_PRE = concatcp!(PROJECTILE_HIT, event::PRE),
+    }
+
+    /// `yog:event/world/…`.
+    event_world {
+        PLANE = concatcp!(event::PREFIX, "world", sep::PATH),
+        EXPLOSION = concatcp!(PLANE, "explosion"),
+        EXPLOSION_PRE = concatcp!(EXPLOSION, event::PRE),
+    }
+
+    /// `yog:event/container/…`.
+    event_container {
+        PLANE = concatcp!(event::PREFIX, "container", sep::PATH),
+        OPEN = concatcp!(PLANE, "open"),
+        OPEN_PRE = concatcp!(OPEN, event::PRE),
+        CLOSE = concatcp!(PLANE, "close"),
+    }
+
+    /// `yog:event/server/game/…`.
+    event_server_game {
+        PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "game", sep::PATH),
+        TICK = concatcp!(PLANE, "tick"),
+    }
+
+    /// `yog:event/server/life/…`.
+    event_server_life {
+        PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "life", sep::PATH),
+        STARTED = concatcp!(PLANE, "started"),
+        STOPPING = concatcp!(PLANE, "stopping"),
+    }
+
+    /// `yog:event/client/game/…`.
+    event_client_game {
+        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "game", sep::PATH),
+        TICK = concatcp!(PLANE, "tick"),
+    }
+
+    /// `yog:event/client/input/…`.
+    event_client_input {
+        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "input", sep::PATH),
+        KEY = concatcp!(PLANE, "key"),
+        KEY_PRE = concatcp!(KEY, event::PRE),
+    }
+
+    /// `yog:event/client/ui/…`.
+    event_client_ui {
+        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "ui", sep::PATH),
+        OPEN = concatcp!(PLANE, "open"),
+        CLOSE = concatcp!(PLANE, "close"),
+    }
+
+    /// `yog:event/client/render/…`.
+    event_client_render {
+        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "render", sep::PATH),
+        HUD = concatcp!(PLANE, "hud"),
+    }
+
 
     /// A `.yres` entry's type (`{ "type": "sound", ... }`).
     res_kind {

@@ -23,7 +23,7 @@ public class ContainerOpenMixin {
     private void yog$onContainerOpenPre(MenuProvider factory,
                                          CallbackInfoReturnable<OptionalInt> cir) {
         ServerPlayer sp = (ServerPlayer)(Object)this;
-        boolean allow = new YogEvents.ContainerOpen(sp.getName().getString(), sp.getStringUUID(), "", sp.level().dimension().identifier().toString()).emitPre();
+        boolean allow = new YogEvents.Container.Open(sp.getName().getString(), sp.getStringUUID(), "", sp.level().dimension().identifier().toString()).emitPre();
         if (!allow) cir.setReturnValue(OptionalInt.empty());
     }
 
@@ -37,6 +37,6 @@ public class ContainerOpenMixin {
         ServerPlayer sp = (ServerPlayer)(Object)this;
         Identifier typeId = BuiltInRegistries.MENU.getKey(sp.containerMenu.getType());
         String containerType = typeId != null ? typeId.toString() : "";
-        new YogEvents.ContainerOpen(sp.getName().getString(), sp.getStringUUID(), containerType, sp.level().dimension().identifier().toString()).emit();
+        new YogEvents.Container.Open(sp.getName().getString(), sp.getStringUUID(), containerType, sp.level().dimension().identifier().toString()).emit();
     }
 }

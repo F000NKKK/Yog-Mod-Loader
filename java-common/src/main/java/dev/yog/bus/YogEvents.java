@@ -10,707 +10,807 @@ import java.util.Map;
 public final class YogEvents {
     private YogEvents() {}
 
-    /** Fired when a player breaks a block (server side). */
-    public record BlockBreak(String playerName, String blockId, BlockPos pos, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("block_id", blockId);
-            m.put("pos", pos.toData());
-            m.put("dimension", dimension);
-            return m;
+    /** The `player` events. */
+    public static final class Player {
+        private Player() {}
+
+        /** The `session` events. */
+        public static final class Session {
+            private Session() {}
+
+            /** Fired when a player joins the server. */
+            public record Join(String playerName, String uuid, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("uuid", uuid);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/session/join");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+
+            /** Fired when a player leaves the server. */
+            public record Leave(String playerName, String uuid, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("uuid", uuid);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/session/leave");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
         }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/block_break");
-            static final int PRE = YogBus.resolve("yog:event/block_break/pre");
-        }
+        /** The `life` events. */
+        public static final class Life {
+            private Life() {}
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a player sends a chat message. */
-    public record Chat(String playerName, String message, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("message", message);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/chat");
-            static final int PRE = YogBus.resolve("yog:event/chat/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a player joins the server. */
-    public record PlayerJoin(String playerName, String uuid, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("uuid", uuid);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/player_join");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired when a player leaves the server. */
-    public record PlayerLeave(String playerName, String uuid, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("uuid", uuid);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/player_leave");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired when a player right-clicks with an item (server side). */
-    public record UseItem(String playerName, String itemId, boolean sneaking, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("item_id", itemId);
-            m.put("sneaking", sneaking);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/use_item");
-            static final int PRE = YogBus.resolve("yog:event/use_item/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a player right-clicks a block (server side). */
-    public record UseBlock(String playerName, String blockId, BlockPos pos, String dimension, boolean sneaking) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("block_id", blockId);
-            m.put("pos", pos.toData());
-            m.put("dimension", dimension);
-            m.put("sneaking", sneaking);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/use_block");
-            static final int PRE = YogBus.resolve("yog:event/use_block/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a player attacks (left-clicks) an entity (server side). */
-    public record AttackEntity(String playerName, String targetType, String targetUuid, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("target_type", targetType);
-            m.put("target_uuid", targetUuid);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/attack_entity");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired after a living entity takes damage (server side). */
-    public record EntityDamage(String entityType, String uuid, double amount, String source, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("entity_type", entityType);
-            m.put("uuid", uuid);
-            m.put("amount", amount);
-            m.put("source", source);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/entity_damage");
-            static final int PRE = YogBus.resolve("yog:event/entity_damage/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired after a living entity dies (server side). */
-    public record EntityDeath(String entityType, String uuid, String source, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("entity_type", entityType);
-            m.put("uuid", uuid);
-            m.put("source", source);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/entity_death");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired when a player places a block (server side).
-
-Passed to handlers registered via `Registry::on_player_place_block` with an [`EventPhase`] argument: - `Pre`  — fires before placement; return `false` to cancel. - `Post` — fires after the block has been placed. */
-    public record PlaceBlock(String playerName, String blockId, BlockPos pos, String dimension, boolean sneaking) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("block_id", blockId);
-            m.put("pos", pos.toData());
-            m.put("dimension", dimension);
-            m.put("sneaking", sneaking);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/place_block");
-            static final int PRE = YogBus.resolve("yog:event/place_block/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when any entity is loaded into a world (server side).
-
-Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the entity immediately after loading (effective spawn cancellation). */
-    public record EntitySpawn(String entityType, String uuid, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("entity_type", entityType);
-            m.put("uuid", uuid);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/entity_spawn");
-            static final int PRE = YogBus.resolve("yog:event/entity_spawn/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a player dies.
+            /** Fired when a player dies.
 
 - `Pre`  — fires before death is processed; return `false` to prevent death (entity survives at 0.5 HP). - `Post` — fires after the player has died. */
-    public record PlayerDeath(String playerName, String uuid, String source, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("uuid", uuid);
-            m.put("source", source);
-            m.put("dimension", dimension);
-            return m;
+            public record Death(String playerName, String uuid, String source, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("uuid", uuid);
+                    m.put("source", source);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/life/death");
+                    static final int PRE = YogBus.resolve("yog:event/player/life/death/pre");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
+
+            /** Fired when a player respawns after death (Post only). */
+            public record Respawn(String playerName, String uuid, boolean atAnchor, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("uuid", uuid);
+                    m.put("at_anchor", atAnchor);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/life/respawn");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
         }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/player_death");
-            static final int PRE = YogBus.resolve("yog:event/player_death/pre");
+        /** The `chat` events. */
+        public static final class Chat {
+            private Chat() {}
+
+            /** Fired when a player sends a chat message. */
+            public record Message(String playerName, String message, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("message", message);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/chat/message");
+                    static final int PRE = YogBus.resolve("yog:event/player/chat/message/pre");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
         }
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
+        /** The `action` events. */
+        public static final class Action {
+            private Action() {}
 
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a player respawns after death (Post only). */
-    public record PlayerRespawn(String playerName, String uuid, boolean atAnchor, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("uuid", uuid);
-            m.put("at_anchor", atAnchor);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/player_respawn");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired when a player earns an advancement (Post only). */
-    public record Advancement(String playerName, String uuid, String advancementId, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("uuid", uuid);
-            m.put("advancement_id", advancementId);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/advancement");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired when a player right-clicks (interacts with) an entity (server side).
-
-- `Pre`  — fires before the interaction; return `false` to cancel. - `Post` — fires after the interaction. */
-    public record EntityInteract(String playerName, String playerUuid, String entityType, String entityUuid, String hand, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("player_uuid", playerUuid);
-            m.put("entity_type", entityType);
-            m.put("entity_uuid", entityUuid);
-            m.put("hand", hand);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/entity_interact");
-            static final int PRE = YogBus.resolve("yog:event/entity_interact/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a player takes a crafted item from a crafting output slot (Post only). */
-    public record Craft(String playerName, String playerUuid, String resultItem, long resultCount, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("player_uuid", playerUuid);
-            m.put("result_item", resultItem);
-            m.put("result_count", resultCount);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/craft");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired when an explosion occurs in a world.
-
-- `Pre`  — fires before block destruction; return `false` to cancel (blocks and entities are unaffected). - `Post` — fires after the explosion has taken effect. */
-    public record Explosion(String dimension, double x, double y, double z, double power, String causeUuid) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("dimension", dimension);
-            m.put("x", x);
-            m.put("y", y);
-            m.put("z", z);
-            m.put("power", power);
-            m.put("cause_uuid", causeUuid);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/explosion");
-            static final int PRE = YogBus.resolve("yog:event/explosion/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** A hopper or dropper puts an item into a block that accepts items (`block.accepts_items`).
-
-- `Pre`  — return whether the block takes it (nothing changes yet). - `Post` — it takes it: do what taking it means. */
-    public record ItemInsert(String blockId, BlockPos pos, String dimension, String itemId, long count, String nbt) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("block_id", blockId);
-            m.put("pos", pos.toData());
-            m.put("dimension", dimension);
-            m.put("item_id", itemId);
-            m.put("count", count);
-            m.put("nbt", nbt);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/item_insert");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired when a player picks up an item entity.
-
-- `Pre`  — return `false` to prevent the pickup. - `Post` — item was successfully picked up. */
-    public record ItemPickup(String playerName, String playerUuid, String itemId, long itemCount, String entityUuid, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("player_uuid", playerUuid);
-            m.put("item_id", itemId);
-            m.put("item_count", itemCount);
-            m.put("entity_uuid", entityUuid);
-            m.put("dimension", dimension);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/item_pickup");
-            static final int PRE = YogBus.resolve("yog:event/item_pickup/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired every time a player sends a movement packet (very high frequency).
+            /** Fired every time a player sends a movement packet (very high frequency).
 
 Post-phase only. The fields reflect the *new* position the client claims. */
-    public record PlayerMove(String playerName, String playerUuid, double x, double y, double z, double yaw, double pitch, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("player_uuid", playerUuid);
-            m.put("x", x);
-            m.put("y", y);
-            m.put("z", z);
-            m.put("yaw", yaw);
-            m.put("pitch", pitch);
-            m.put("dimension", dimension);
-            return m;
+            public record Move(String playerName, String playerUuid, double x, double y, double z, double yaw, double pitch, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("player_uuid", playerUuid);
+                    m.put("x", x);
+                    m.put("y", y);
+                    m.put("z", z);
+                    m.put("yaw", yaw);
+                    m.put("pitch", pitch);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/action/move");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+
+            /** Fired when a player right-clicks with an item (server side). */
+            public record UseItem(String playerName, String itemId, boolean sneaking, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("item_id", itemId);
+                    m.put("sneaking", sneaking);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/action/use_item");
+                    static final int PRE = YogBus.resolve("yog:event/player/action/use_item/pre");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
+
+            /** Fired when a player attacks (left-clicks) an entity (server side). */
+            public record Attack(String playerName, String targetType, String targetUuid, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("target_type", targetType);
+                    m.put("target_uuid", targetUuid);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/action/attack");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+
+            /** Fired when a player right-clicks (interacts with) an entity (server side).
+
+- `Pre`  — fires before the interaction; return `false` to cancel. - `Post` — fires after the interaction. */
+            public record Interact(String playerName, String playerUuid, String entityType, String entityUuid, String hand, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("player_uuid", playerUuid);
+                    m.put("entity_type", entityType);
+                    m.put("entity_uuid", entityUuid);
+                    m.put("hand", hand);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/action/interact");
+                    static final int PRE = YogBus.resolve("yog:event/player/action/interact/pre");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
+
+            /** Fired when a player takes a crafted item from a crafting output slot (Post only). */
+            public record Craft(String playerName, String playerUuid, String resultItem, long resultCount, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("player_uuid", playerUuid);
+                    m.put("result_item", resultItem);
+                    m.put("result_count", resultCount);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/action/craft");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+
+            /** Fired when a player picks up an item entity.
+
+- `Pre`  — return `false` to prevent the pickup. - `Post` — item was successfully picked up. */
+            public record Pickup(String playerName, String playerUuid, String itemId, long itemCount, String entityUuid, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("player_uuid", playerUuid);
+                    m.put("item_id", itemId);
+                    m.put("item_count", itemCount);
+                    m.put("entity_uuid", entityUuid);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/action/pickup");
+                    static final int PRE = YogBus.resolve("yog:event/player/action/pickup/pre");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
         }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/player_move");
-        }
+        /** The `progress` events. */
+        public static final class Progress {
+            private Progress() {}
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
+            /** Fired when a player earns an advancement (Post only). */
+            public record Advancement(String playerName, String uuid, String advancementId, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("player_name", playerName);
+                    m.put("uuid", uuid);
+                    m.put("advancement_id", advancementId);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/player/progress/advancement");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
         }
     }
 
-    /** Fired when a player opens a container screen.
+    /** The `block` events. */
+    public static final class Block {
+        private Block() {}
 
-- `Pre`  — return `false` to prevent the screen from opening. - `Post` — screen opened; `container_type` is set. */
-    public record ContainerOpen(String playerName, String playerUuid, String containerType, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("player_uuid", playerUuid);
-            m.put("container_type", containerType);
-            m.put("dimension", dimension);
-            return m;
+        /** Fired when a player breaks a block (server side). */
+        public record Break(String playerName, String blockId, BlockPos pos, String dimension) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("player_name", playerName);
+                m.put("block_id", blockId);
+                m.put("pos", pos.toData());
+                m.put("dimension", dimension);
+                return m;
+            }
+
+            private static final class Address {
+                static final int POST = YogBus.resolve("yog:event/block/break");
+                static final int PRE = YogBus.resolve("yog:event/block/break/pre");
+            }
+
+            public YogBus.Reply emit() {
+                return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            public boolean emitPre() {
+                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+            }
         }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/container_open");
-            static final int PRE = YogBus.resolve("yog:event/container_open/pre");
+        /** Fired when a player places a block (server side).
+
+Passed to handlers registered via `Registry::on_player_place_block` with an [`EventPhase`] argument: - `Pre`  — fires before placement; return `false` to cancel. - `Post` — fires after the block has been placed. */
+        public record Place(String playerName, String blockId, BlockPos pos, String dimension, boolean sneaking) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("player_name", playerName);
+                m.put("block_id", blockId);
+                m.put("pos", pos.toData());
+                m.put("dimension", dimension);
+                m.put("sneaking", sneaking);
+                return m;
+            }
+
+            private static final class Address {
+                static final int POST = YogBus.resolve("yog:event/block/place");
+                static final int PRE = YogBus.resolve("yog:event/block/place/pre");
+            }
+
+            public YogBus.Reply emit() {
+                return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            public boolean emitPre() {
+                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+            }
         }
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
+        /** Fired when a player right-clicks a block (server side). */
+        public record Use(String playerName, String blockId, BlockPos pos, String dimension, boolean sneaking) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("player_name", playerName);
+                m.put("block_id", blockId);
+                m.put("pos", pos.toData());
+                m.put("dimension", dimension);
+                m.put("sneaking", sneaking);
+                return m;
+            }
+
+            private static final class Address {
+                static final int POST = YogBus.resolve("yog:event/block/use");
+                static final int PRE = YogBus.resolve("yog:event/block/use/pre");
+            }
+
+            public YogBus.Reply emit() {
+                return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            public boolean emitPre() {
+                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+            }
         }
 
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+        /** A hopper or dropper puts an item into a block that accepts items (`block.accepts_items`).
+
+- `Pre`  — return whether the block takes it (nothing changes yet). - `Post` — it takes it: do what taking it means. */
+        public record Insert(String blockId, BlockPos pos, String dimension, String itemId, long count, String nbt) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("block_id", blockId);
+                m.put("pos", pos.toData());
+                m.put("dimension", dimension);
+                m.put("item_id", itemId);
+                m.put("count", count);
+                m.put("nbt", nbt);
+                return m;
+            }
+
+            private static final class Address {
+                static final int POST = YogBus.resolve("yog:event/block/insert");
+            }
+
+            public YogBus.Reply emit() {
+                return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
         }
     }
 
-    /** Fired when a player closes a container screen (Post only). */
-    public record ContainerClose(String playerName, String playerUuid, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("player_name", playerName);
-            m.put("player_uuid", playerUuid);
-            m.put("dimension", dimension);
-            return m;
+    /** The `entity` events. */
+    public static final class Entity {
+        private Entity() {}
+
+        /** The `life` events. */
+        public static final class Life {
+            private Life() {}
+
+            /** Fired when any entity is loaded into a world (server side).
+
+Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the entity immediately after loading (effective spawn cancellation). */
+            public record Spawn(String entityType, String uuid, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("entity_type", entityType);
+                    m.put("uuid", uuid);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/entity/life/spawn");
+                    static final int PRE = YogBus.resolve("yog:event/entity/life/spawn/pre");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
+
+            /** Fired after a living entity dies (server side). */
+            public record Death(String entityType, String uuid, String source, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("entity_type", entityType);
+                    m.put("uuid", uuid);
+                    m.put("source", source);
+                    m.put("dimension", dimension);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/entity/life/death");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
         }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/container_close");
-        }
+        /** The `combat` events. */
+        public static final class Combat {
+            private Combat() {}
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
+            /** Fired after a living entity takes damage (server side). */
+            public record Damage(String entityType, String uuid, double amount, String source, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("entity_type", entityType);
+                    m.put("uuid", uuid);
+                    m.put("amount", amount);
+                    m.put("source", source);
+                    m.put("dimension", dimension);
+                    return m;
+                }
 
-    /** Fired every client tick on the render thread. */
-    public record ClientTick() {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            return m;
-        }
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/entity/combat/damage");
+                    static final int PRE = YogBus.resolve("yog:event/entity/combat/damage/pre");
+                }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/client_tick");
-        }
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
 
-    /** Fired every frame when the HUD is rendered. `delta_tick` is the partial-tick interpolation factor (0.0–1.0). */
-    public record HudRender(double deltaTick) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("delta_tick", deltaTick);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/hud_render");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired on every key press, release, or repeat (client-side).
-
-Return `false` in the handler to prevent Minecraft from processing the key. */
-    public record KeyPress(int keyCode, int scanCode, int action, int modifiers) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("key_code", keyCode);
-            m.put("scan_code", scanCode);
-            m.put("action", action);
-            m.put("modifiers", modifiers);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/key_press");
-            static final int PRE = YogBus.resolve("yog:event/key_press/pre");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a persistent projectile (arrow, trident, etc.) hits a target.
+            /** Fired when a persistent projectile (arrow, trident, etc.) hits a target.
 
 - `Pre`  — return `false` to cancel the hit (projectile passes through). - `Post` — hit was processed. */
-    public record ProjectileHit(String projectileType, String projectileUuid, String shooterUuid, String hitType, String hitEntityUuid, double x, double y, double z, String dimension) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("projectile_type", projectileType);
-            m.put("projectile_uuid", projectileUuid);
-            m.put("shooter_uuid", shooterUuid);
-            m.put("hit_type", hitType);
-            m.put("hit_entity_uuid", hitEntityUuid);
-            m.put("x", x);
-            m.put("y", y);
-            m.put("z", z);
-            m.put("dimension", dimension);
-            return m;
-        }
+            public record ProjectileHit(String projectileType, String projectileUuid, String shooterUuid, String hitType, String hitEntityUuid, double x, double y, double z, String dimension) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("projectile_type", projectileType);
+                    m.put("projectile_uuid", projectileUuid);
+                    m.put("shooter_uuid", shooterUuid);
+                    m.put("hit_type", hitType);
+                    m.put("hit_entity_uuid", hitEntityUuid);
+                    m.put("x", x);
+                    m.put("y", y);
+                    m.put("z", z);
+                    m.put("dimension", dimension);
+                    return m;
+                }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/projectile_hit");
-            static final int PRE = YogBus.resolve("yog:event/projectile_hit/pre");
-        }
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/entity/combat/projectile_hit");
+                    static final int PRE = YogBus.resolve("yog:event/entity/combat/projectile_hit/pre");
+                }
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
 
-        public boolean emitPre() {
-            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
-        }
-    }
-
-    /** Fired when a GUI screen opens. */
-    public record ScreenOpen(String screenClass) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("screen_class", screenClass);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/screen_open");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
         }
     }
 
-    /** Fired when a GUI screen closes. */
-    public record ScreenClose(String screenClass) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("screen_class", screenClass);
-            return m;
-        }
+    /** The `world` events. */
+    public static final class World {
+        private World() {}
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/screen_close");
-        }
+        /** Fired when an explosion occurs in a world.
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
+- `Pre`  — fires before block destruction; return `false` to cancel (blocks and entities are unaffected). - `Post` — fires after the explosion has taken effect. */
+        public record Explosion(String dimension, double x, double y, double z, double power, String causeUuid) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("dimension", dimension);
+                m.put("x", x);
+                m.put("y", y);
+                m.put("z", z);
+                m.put("power", power);
+                m.put("cause_uuid", causeUuid);
+                return m;
+            }
 
-    /** Fired every server tick (20 a second). */
-    public record ServerTick() {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            return m;
-        }
+            private static final class Address {
+                static final int POST = YogBus.resolve("yog:event/world/explosion");
+                static final int PRE = YogBus.resolve("yog:event/world/explosion/pre");
+            }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/server_tick");
-        }
+            public YogBus.Reply emit() {
+                return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
-        }
-    }
-
-    /** Fired once the server has started. */
-    public record ServerStarted(String worldDir) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("world_dir", worldDir);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/server_started");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
+            public boolean emitPre() {
+                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+            }
         }
     }
 
-    /** Fired as the server stops. */
-    public record ServerStopping() {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            return m;
+    /** The `container` events. */
+    public static final class Container {
+        private Container() {}
+
+        /** Fired when a player opens a container screen.
+
+- `Pre`  — return `false` to prevent the screen from opening. - `Post` — screen opened; `container_type` is set. */
+        public record Open(String playerName, String playerUuid, String containerType, String dimension) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("player_name", playerName);
+                m.put("player_uuid", playerUuid);
+                m.put("container_type", containerType);
+                m.put("dimension", dimension);
+                return m;
+            }
+
+            private static final class Address {
+                static final int POST = YogBus.resolve("yog:event/container/open");
+                static final int PRE = YogBus.resolve("yog:event/container/open/pre");
+            }
+
+            public YogBus.Reply emit() {
+                return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+
+            public boolean emitPre() {
+                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+            }
         }
 
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/server_stopping");
+        /** Fired when a player closes a container screen (Post only). */
+        public record Close(String playerName, String playerUuid, String dimension) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("player_name", playerName);
+                m.put("player_uuid", playerUuid);
+                m.put("dimension", dimension);
+                return m;
+            }
+
+            private static final class Address {
+                static final int POST = YogBus.resolve("yog:event/container/close");
+            }
+
+            public YogBus.Reply emit() {
+                return YogBus.emit(Address.POST, YogData.encode(toData()));
+            }
+        }
+    }
+
+    /** The `server` events. */
+    public static final class Server {
+        private Server() {}
+
+        /** The `game` events. */
+        public static final class Game {
+            private Game() {}
+
+            /** Fired every server tick (20 a second). */
+            public record Tick() {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/server/game/tick");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
         }
 
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
+        /** The `life` events. */
+        public static final class Life {
+            private Life() {}
+
+            /** Fired once the server has started. */
+            public record Started(String worldDir) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("world_dir", worldDir);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/server/life/started");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+
+            /** Fired as the server stops. */
+            public record Stopping() {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/server/life/stopping");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+        }
+    }
+
+    /** The `client` events. */
+    public static final class Client {
+        private Client() {}
+
+        /** The `game` events. */
+        public static final class Game {
+            private Game() {}
+
+            /** Fired every client tick on the render thread. */
+            public record Tick() {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/client/game/tick");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+        }
+
+        /** The `input` events. */
+        public static final class Input {
+            private Input() {}
+
+            /** Fired on every key press, release, or repeat (client-side).
+
+Return `false` in the handler to prevent Minecraft from processing the key. */
+            public record Key(int keyCode, int scanCode, int action, int modifiers) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("key_code", keyCode);
+                    m.put("scan_code", scanCode);
+                    m.put("action", action);
+                    m.put("modifiers", modifiers);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/client/input/key");
+                    static final int PRE = YogBus.resolve("yog:event/client/input/key/pre");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
+        }
+
+        /** The `ui` events. */
+        public static final class Ui {
+            private Ui() {}
+
+            /** Fired when a GUI screen opens. */
+            public record Open(String screenClass) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("screen_class", screenClass);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/client/ui/open");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+
+            /** Fired when a GUI screen closes. */
+            public record Close(String screenClass) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("screen_class", screenClass);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/client/ui/close");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
+        }
+
+        /** The `render` events. */
+        public static final class Render {
+            private Render() {}
+
+            /** Fired every frame when the HUD is rendered. `delta_tick` is the partial-tick interpolation factor (0.0–1.0). */
+            public record Hud(double deltaTick) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("delta_tick", deltaTick);
+                    return m;
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve("yog:event/client/render/hud");
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+            }
         }
     }
 
