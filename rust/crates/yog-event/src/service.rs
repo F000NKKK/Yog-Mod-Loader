@@ -49,6 +49,7 @@ const ACTIONS: &[fn() -> Vec<ServiceInfo>] = &[
     crate::entity::actions,
     crate::game::actions,
     crate::item::actions,
+    crate::jvm::actions,
     crate::net::actions,
     crate::particle::actions,
     crate::player::actions,

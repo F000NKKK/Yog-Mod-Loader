@@ -221,6 +221,12 @@ names! {
         CLOSE = concatcp!(DOMAIN, "close"),
     }
 
+    /// `yog:jvm/…`: Java mods' code, reached by reflection.
+    service_jvm {
+        DOMAIN = concatcp!(service::PREFIX, "jvm", sep::PATH),
+        CALL = concatcp!(DOMAIN, "call"),
+    }
+
     /// `yog:menu/…`: the menu entries mods declare (provided by the runtime).
     service_menu {
         DOMAIN = concatcp!(service::PREFIX, "menu", sep::PATH),

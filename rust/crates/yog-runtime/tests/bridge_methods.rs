@@ -209,7 +209,7 @@ fn source_dirs(root: &Path, host: &str, platform: &Path) -> Vec<PathBuf> {
 
 /// The public statics of class `class` as a host compiles it for `platform`.
 fn class_statics(root: &Path, host: &str, platform: &Path, class: &str) -> Option<BTreeSet<(String, usize)>> {
-    let file = format!("dev/yog/{class}.java");
+    let file = format!("dev/yog/{}.java", class.replace('.', "/"));
     let found: Vec<_> = source_dirs(root, host, platform).into_iter().filter_map(|d| fs::read_to_string(d.join(&file)).ok()).collect();
     (!found.is_empty()).then(|| found.iter().flat_map(|j| java_statics(j)).collect())
 }

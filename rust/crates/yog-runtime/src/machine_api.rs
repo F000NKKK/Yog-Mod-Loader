@@ -12,7 +12,7 @@ pub(super) fn machine_event(
     def: &str,
     found: &machine::Found,
     dim: &str,
-    pos: YogBlockPos,
+    pos: BlockPos,
     player: &str,
 ) -> Craft {
     Craft {
@@ -22,7 +22,7 @@ pub(super) fn machine_event(
         result_item: found.result.clone(),
         result_count: found.count,
         values: found.values.clone(),
-        pos: BlockPos { x: pos.x, y: pos.y, z: pos.z },
+        pos,
         dimension: dim.to_owned(),
         player: player.to_owned(),
     }
@@ -30,7 +30,7 @@ pub(super) fn machine_event(
 
 /// The recipe machine `def` at `pos` makes of `items` (by inventory slot,
 /// `""` empty): the first that fits and every mod allows; `recipe` only it.
-pub(super) fn machine_recipe(def: &str, dim: &str, pos: YogBlockPos, items: &[String], recipe: Option<&str>) -> Option<machine::Found> {
+pub(super) fn machine_recipe(def: &str, dim: &str, pos: BlockPos, items: &[String], recipe: Option<&str>) -> Option<machine::Found> {
     let h = handlers();
     let m = h.inventories.iter().find(|d| d.id == def)?.machine.as_ref()?;
     let has_tag = |item: &str, tag: &str| crate::bus::call(&yog_event::tag::HasItem { item: item.to_owned(), tag: tag.to_owned() }).unwrap_or(false);
@@ -54,7 +54,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeMachineResult<'l>(
     let (def, d, items) = (jstr!(env, def, std::ptr::null_mut()), jstr!(env, dimension, std::ptr::null_mut()), jstr!(env, items, std::ptr::null_mut()));
     let items: Vec<String> = items.split('\n').map(str::to_string).collect();
     let mut found = None;
-    guard("machine_result", || found = machine_recipe(&def, &d, YogBlockPos { x, y, z }, &items, None));
+    guard("machine_result", || found = machine_recipe(&def, &d, BlockPos { x, y, z }, &items, None));
     match found {
         Some(f) => env.new_string(format!("{}\n{}\n{}", f.recipe, f.result, f.count)).map(JString::into_raw).unwrap_or(std::ptr::null_mut()),
         None => std::ptr::null_mut(),
@@ -80,7 +80,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeMachineCraft<'l>(
     let (def, recipe, d, items, player) =
         (jstr!(env, def, 0), jstr!(env, recipe, 0), jstr!(env, dimension, 0), jstr!(env, items, 0), jstr!(env, player, 0));
     let items: Vec<String> = items.split('\n').map(str::to_string).collect();
-    let pos = YogBlockPos { x, y, z };
+    let pos = BlockPos { x, y, z };
     let mut made = false;
     guard("machine_craft", || {
         let Some(found) = machine_recipe(&def, &d, pos, &items, Some(&recipe)) else { return };
@@ -102,24 +102,6 @@ pub(super) fn mod_loaded(id: &str) -> bool {
         || HOT_RELOADER.get().is_some_and(|r| r.all_active().iter().any(|(m, _)| m == id))
         // SAFETY: a host call with a string argument, on the calling thread.
         || unsafe { bridge!("isModLoaded", [JArg::S(YogStr::from_str(id))]) }.unwrap_or(false)
-}
-
-pub(super) unsafe extern "C" fn api_java_call(_ctx: *mut c_void, expr: YogStr, args: YogStr) -> YogOwnedStr {
-    unsafe {
-        let args = match yog_data::text::parse_value(args.as_str()) {
-            Ok(v) => v,
-            Err(e) => {
-                yog_logging::warn!("java_call {}: its arguments aren't Yog Data: {}", expr.as_str(), e.message);
-                return YogOwnedStr::NONE;
-            }
-        };
-        let bytes = yog_data::binary::encode(&args);
-        let out: Option<Vec<u8>> = host!("dev/yog/data/YogJava", "call", [JArg::S(expr), JArg::Bytes(&bytes)]);
-        match out.map(|b| yog_data::binary::decode(&b)) {
-            Some(Ok(v)) => YogOwnedStr::from_string(yog_data::text::to_string(&v)),
-            _ => YogOwnedStr::NONE,
-        }
-    }
 }
 
 /// The game's text for translation `key` in the current language — `None`

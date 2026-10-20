@@ -9,7 +9,7 @@ fn layout_fingerprint() -> u64 {
         ($($t:ty),* $(,)?) => { [$((stringify!($t), size_of::<$t>(), align_of::<$t>())),*] };
     }
     let all = layouts!(
-        YogStr, YogOwnedStr, YogBlockPos, YogVec3,
+        YogStr,
         YogGfxApi, YogApi, YogBytes, YogReply, YogBus,
     );
     // FNV-1a over (name, size, align).
@@ -28,7 +28,7 @@ fn layout_fingerprint() -> u64 {
 #[test]
 #[cfg(target_pointer_width = "64")]
 fn the_layout_matches_its_version() {
-    assert_eq!((ABI_VERSION, layout_fingerprint()), (40000, 0xe8d3_529b_52ab_6762), "layout fingerprint: {:#x}", layout_fingerprint());
+    assert_eq!((ABI_VERSION, layout_fingerprint()), (40000, 0xed07_d8bc_f6dc_d179), "layout fingerprint: {:#x}", layout_fingerprint());
 }
 
 #[test]
@@ -46,9 +46,4 @@ fn strings_cross_and_come_back() {
     assert_eq!(unsafe { s.as_str() }, "Ünïcode ✓");
     assert!(YogStr::EMPTY.is_empty());
     assert_eq!(unsafe { YogStr::EMPTY.as_str() }, "");
-    let owned = YogOwnedStr::from_string("runtime".to_string());
-    assert!(!owned.is_none() && owned.len == 7);
-    assert!(YogOwnedStr::NONE.is_none());
-    // What `free_str` does with it.
-    drop(unsafe { Box::from_raw(std::ptr::slice_from_raw_parts_mut(owned.ptr, owned.len as usize)) });
 }

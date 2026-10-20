@@ -22,23 +22,6 @@ use yog_event::server::net::Packet as PacketEvent;
 use yog_network::Packet;
 use yog_registry::{ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial};
 
-/// Copy a runtime-owned string out and free it; `None` for NONE.
-pub(crate) fn take_owned(
-    free_str: unsafe extern "C" fn(ptr: *mut u8, len: u32),
-    owned: yog_abi::YogOwnedStr,
-) -> Option<String> {
-    if owned.is_none() {
-        return None;
-    }
-    // SAFETY: a non-NONE owned string is `len` valid bytes until freed.
-    let text = unsafe {
-        String::from_utf8_lossy(std::slice::from_raw_parts(owned.ptr, owned.len as usize))
-            .into_owned()
-    };
-    unsafe { free_str(owned.ptr, owned.len) };
-    Some(text)
-}
-
 // ── Trampoline helpers ────────────────────────────────────────────────────────
 //
 // A panic must never unwind out of a trampoline: the runtime calls them

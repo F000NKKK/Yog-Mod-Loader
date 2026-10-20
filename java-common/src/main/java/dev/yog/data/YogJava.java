@@ -1,7 +1,5 @@
 package dev.yog.data;
 
-import dev.yog.YogLog;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -10,7 +8,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Yog mods calling into Java mods' APIs ({@code java_call}, ABI 2.3): a chain
+ * Yog mods calling into Java mods' APIs (the {@code jvm/call} action): a chain
  * from a class, by reflection —
  * {@code virtuoel.pehkui.api.ScaleTypes.BASE.getScaleData($0).getScale()}.
  * The longest dotted prefix that is a class starts it; then each step is a
@@ -31,17 +29,11 @@ public final class YogJava {
     /** An entity's uuid, or null for anything that isn't one — set by the host. */
     public static volatile Function<Object, String> uuidOf = o -> null;
 
-    /** The call {@code expr} with {@code args} (a Yog Data list); the result as Yog Data, or null when it failed. */
-    public static byte[] call(String expr, byte[] args) {
-        try {
-            List<Object> list = YogData.list(YogData.decode(args));
-            Object[] values = new Object[list.size()];
-            for (int i = 0; i < values.length; i++) values[i] = toJava(list.get(i));
-            return YogData.encode(toData(eval(expr.trim(), values)));
-        } catch (Throwable t) {
-            YogLog.warn("java_call " + expr + ": " + t);
-            return null;
-        }
+    /** The call {@code expr} with {@code args}; its result as Yog Data (null for none). */
+    public static Object invoke(String expr, List<Object> args) throws Exception {
+        Object[] values = new Object[args.size()];
+        for (int i = 0; i < values.length; i++) values[i] = toJava(args.get(i));
+        return toData(eval(expr.trim(), values));
     }
 
     private static Object toJava(Object v) {

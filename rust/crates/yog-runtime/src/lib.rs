@@ -26,7 +26,7 @@ use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
-    ABI_VERSION, YogApi, YogBlockPos, YogGfxApi, YogOwnedStr,
+    ABI_VERSION, YogApi, YogGfxApi,
     YogStr,
 };
 use yog_registry::{BlockDef, ItemDef};
@@ -42,8 +42,6 @@ mod handlers;
 use handlers::*;
 mod jni_util;
 use jni_util::*;
-mod owned_str;
-use owned_str::*;
 mod logging;
 use logging::*;
 mod gpu;

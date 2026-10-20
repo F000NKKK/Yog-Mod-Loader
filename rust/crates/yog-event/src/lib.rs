@@ -27,6 +27,7 @@ pub mod container;
 pub mod entity;
 pub mod game;
 pub mod item;
+pub mod jvm;
 pub mod key_binding;
 pub mod menu;
 pub mod net;

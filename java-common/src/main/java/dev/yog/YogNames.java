@@ -527,6 +527,13 @@ public final class YogNames {
         public static final String CLOSE = "yog:ui/close";
     }
 
+    public static final class ServiceJvm {
+        private ServiceJvm() {}
+
+        public static final String DOMAIN = "yog:jvm/";
+        public static final String CALL = "yog:jvm/call";
+    }
+
     public static final class ServiceMenu {
         private ServiceMenu() {}
 

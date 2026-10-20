@@ -12,10 +12,8 @@
 //! }
 //! ```
 
-use yog_abi::YogStr;
 use yog_data::Value;
 
-use crate::registry::global_api;
 
 /// Whether mod `id` is loaded: a Yog mod, or a Java mod in Fabric's,
 /// Forge's or NeoForge's mod list. Content and code for another mod —
@@ -29,15 +27,8 @@ pub fn mod_loaded(id: &str) -> bool {
 /// fields and methods, `$n` the `n`-th of `args`. Numbers, strings,
 /// booleans and null cross as they are; an entity is
 /// `Value::Ref(Ref::new("entity", uuid))` both ways. `None` when the call
-/// failed (the log says why). For other mods' APIs only: Minecraft's own
+/// failed (the log says why) or answered null. For other mods' APIs only: Minecraft's own
 /// classes are renamed at run time on some loaders.
 pub fn call(expr: &str, args: &[Value]) -> Option<Value> {
-    let api = global_api();
-    if api.is_null() {
-        return None;
-    }
-    let args = yog_data::text::to_string(&Value::List(args.to_vec()));
-    let owned = unsafe { ((*api).java_call)((*api).ctx, YogStr::from_str(expr), YogStr::from_str(&args)) };
-    let text = crate::registry::take_owned(unsafe { (*api).free_str }, owned)?;
-    yog_data::text::parse_value(&text).ok()
+    crate::call(&yog_event::jvm::Call { expr: expr.to_owned(), args: args.to_vec() }).flatten()
 }

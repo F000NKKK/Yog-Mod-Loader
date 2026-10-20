@@ -27,18 +27,6 @@ pub struct YogApi {
     /// content — new kinds need no new ABI.
     pub register_content: unsafe extern "C" fn(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize),
 
-    /// Free a `YogOwnedStr` returned by an api-table call (same allocator as
-    /// `YogApi::free_str`).
-    pub free_str: unsafe extern "C" fn(ptr: *mut u8, len: u32),
-
-    /// Calls into a Java mod's API by reflection: `expr` is a chain from a
-    /// class — `virtuoel.pehkui.api.ScaleTypes.BASE.getScaleData($0).getScale()`
-    /// — `$n` the `n`-th of `args`, a list in Yog Data text (an entity is
-    /// `@entity:<uuid>`). The result in Yog Data text, or
-    /// [`YogOwnedStr::NONE`] when the call failed (said in the log).
-    /// Free with `free_str`.
-    pub java_call: unsafe extern "C" fn(ctx: *mut c_void, expr: YogStr, args: YogStr) -> YogOwnedStr,
-
     // ── ABI 3.8 — logging ───────────────────────────────────────────────────
     /// Writes `message` to the game's log at `level` (`yog_logging::Level`
     /// as a number: 0 info, 1 warn, 2 error) — where a mod's records go, so

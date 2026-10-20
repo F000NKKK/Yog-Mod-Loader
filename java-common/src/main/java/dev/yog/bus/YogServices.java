@@ -13,7 +13,7 @@ public final class YogServices {
     private YogServices() {}
 
     /** The actions the host answers ({@code YogHostServices}). */
-    public static final List<Class<? extends Record>> HOSTED = List.of(Advancement.Grant.class, Advancement.Done.class, Block.Nbt.class, Block.SetNbt.class, Block.State.class, Block.SetState.class, Block.Info.class, Block.Destroy.class, Block.Bonemeal.class, Block.UseItem.class, Block.PourFluid.class, Block.RedstonePower.class, Block.RedstoneSignal.class, Block.SetRedstoneOutput.class, Block.InventorySlot.class, Block.SetInventorySlot.class, Bossbar.Create.class, Bossbar.Remove.class, Bossbar.SetTitle.class, Bossbar.SetProgress.class, Bossbar.SetColor.class, Bossbar.AddPlayer.class, Bossbar.RemovePlayer.class, Bossbar.SetVisible.class, Chat.Broadcast.class, Chat.Tellraw.class, Chat.Title.class, Chat.Actionbar.class, Chat.ActionbarJson.class, Client.PlaySound.class, Client.StopSound.class, Client.HeldItem.class, Client.SetBlockTint.class, Client.KeyDown.class, Client.AttributeValue.class, Client.AdvancementDone.class, Client.Op.class, Client.BodyTrack.class, Client.BodyTrackType.class, Client.SetDimensions.class, Entity.Teleport.class, Entity.TeleportToDim.class, Entity.Position.class, Entity.Rotation.class, Entity.Velocity.class, Entity.SetVelocity.class, Entity.AddVelocity.class, Entity.Health.class, Entity.SetHealth.class, Entity.Kill.class, Entity.Spawn.class, Entity.AddEffect.class, Entity.RemoveEffect.class, Entity.ClearEffects.class, Entity.Nbt.class, Entity.SetNbt.class, Entity.AttributeBase.class, Entity.SetAttributeBase.class, Entity.AttributeValue.class, Entity.Info.class, Entity.Damage.class, Entity.SetFireTicks.class, Entity.Vehicle.class, Entity.Passengers.class, Entity.Mount.class, Entity.Dismount.class, Entity.SetFallDistance.class, Game.Dir.class, Game.WorldDir.class, Game.Translate.class, Item.Spawn.class, Item.EntityStack.class, Item.SetEntityStack.class, Item.Block.class, Net.SendToPlayer.class, Net.SendToServer.class, Particle.Spawn.class, Player.GiveItem.class, Player.Teleport.class, Player.TeleportToDim.class, Player.Kick.class, Player.SetGamemode.class, Player.Inventory.class, Player.SetSlot.class, Player.HeldItemNbt.class, Player.SetHeldItemNbt.class, Player.OffhandItemNbt.class, Player.SetOffhandItemNbt.class, Player.SlotItem.class, Player.SetSlotItem.class, Player.AddXp.class, Player.SetMayFly.class, Player.Info.class, Player.SetItemCooldown.class, Player.PlaceBlockFromSlot.class, Player.Online.class, Scoreboard.Get.class, Scoreboard.Set.class, Scoreboard.Add.class, Sound.Play.class, Sound.PlayToPlayer.class, Tag.HasItem.class, Tag.HasBlock.class, Tag.HasEntity.class, Ui.Open.class, Ui.OpenWithFlags.class, Ui.Close.class, World.GetBlock.class, World.SetBlock.class, World.Time.class, World.SetTime.class, World.IsRaining.class, World.SetWeather.class, World.IsThundering.class, World.SetThunder.class, World.FillRegion.class, World.ScanRegion.class, World.PlaceFeature.class, World.Explode.class, World.DropLoot.class, World.EntityCount.class, World.EntitiesInBox.class, World.RaycastBlock.class, World.RaycastEntity.class);
+    public static final List<Class<? extends Record>> HOSTED = List.of(Advancement.Grant.class, Advancement.Done.class, Block.Nbt.class, Block.SetNbt.class, Block.State.class, Block.SetState.class, Block.Info.class, Block.Destroy.class, Block.Bonemeal.class, Block.UseItem.class, Block.PourFluid.class, Block.RedstonePower.class, Block.RedstoneSignal.class, Block.SetRedstoneOutput.class, Block.InventorySlot.class, Block.SetInventorySlot.class, Bossbar.Create.class, Bossbar.Remove.class, Bossbar.SetTitle.class, Bossbar.SetProgress.class, Bossbar.SetColor.class, Bossbar.AddPlayer.class, Bossbar.RemovePlayer.class, Bossbar.SetVisible.class, Chat.Broadcast.class, Chat.Tellraw.class, Chat.Title.class, Chat.Actionbar.class, Chat.ActionbarJson.class, Client.PlaySound.class, Client.StopSound.class, Client.HeldItem.class, Client.SetBlockTint.class, Client.KeyDown.class, Client.AttributeValue.class, Client.AdvancementDone.class, Client.Op.class, Client.BodyTrack.class, Client.BodyTrackType.class, Client.SetDimensions.class, Entity.Teleport.class, Entity.TeleportToDim.class, Entity.Position.class, Entity.Rotation.class, Entity.Velocity.class, Entity.SetVelocity.class, Entity.AddVelocity.class, Entity.Health.class, Entity.SetHealth.class, Entity.Kill.class, Entity.Spawn.class, Entity.AddEffect.class, Entity.RemoveEffect.class, Entity.ClearEffects.class, Entity.Nbt.class, Entity.SetNbt.class, Entity.AttributeBase.class, Entity.SetAttributeBase.class, Entity.AttributeValue.class, Entity.Info.class, Entity.Damage.class, Entity.SetFireTicks.class, Entity.Vehicle.class, Entity.Passengers.class, Entity.Mount.class, Entity.Dismount.class, Entity.SetFallDistance.class, Game.Dir.class, Game.WorldDir.class, Game.Translate.class, Item.Spawn.class, Item.EntityStack.class, Item.SetEntityStack.class, Item.Block.class, Jvm.Call.class, Net.SendToPlayer.class, Net.SendToServer.class, Particle.Spawn.class, Player.GiveItem.class, Player.Teleport.class, Player.TeleportToDim.class, Player.Kick.class, Player.SetGamemode.class, Player.Inventory.class, Player.SetSlot.class, Player.HeldItemNbt.class, Player.SetHeldItemNbt.class, Player.OffhandItemNbt.class, Player.SetOffhandItemNbt.class, Player.SlotItem.class, Player.SetSlotItem.class, Player.AddXp.class, Player.SetMayFly.class, Player.Info.class, Player.SetItemCooldown.class, Player.PlaceBlockFromSlot.class, Player.Online.class, Scoreboard.Get.class, Scoreboard.Set.class, Scoreboard.Add.class, Sound.Play.class, Sound.PlayToPlayer.class, Tag.HasItem.class, Tag.HasBlock.class, Tag.HasEntity.class, Ui.Open.class, Ui.OpenWithFlags.class, Ui.Close.class, World.GetBlock.class, World.SetBlock.class, World.Time.class, World.SetTime.class, World.IsRaining.class, World.SetWeather.class, World.IsThundering.class, World.SetThunder.class, World.FillRegion.class, World.ScanRegion.class, World.PlaceFeature.class, World.Explode.class, World.DropLoot.class, World.EntityCount.class, World.EntitiesInBox.class, World.RaycastBlock.class, World.RaycastEntity.class);
 
     /** `advancement`. */
     public static final class Advancement {
@@ -3416,6 +3416,51 @@ public final class YogServices {
                     }
                 }
                 return (v == null ? null : YogData.str(v, ""));
+            }
+        }
+    }
+
+    /** `jvm`. */
+    public static final class Jvm {
+        private Jvm() {}
+
+        /** A chain from a class (`virtuoel.pehkui.api.ScaleTypes.BASE.getScaleData($0).getScale()`) called with `args` (`$n`); its result (`None`: failed, or null). */
+        public record Call(String expr, List<Object> args) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("expr", expr);
+                m.put("args", args);
+                return m;
+            }
+
+            public static Call fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Call(YogData.str(m.get("expr"), ""), YogData.list(m.get("args")).stream().map(e0 -> e0).toList());
+            }
+
+            public static Call fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceJvm.CALL);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "data.YogJava.invoke";
+            public static final String ADDRESS = YogNames.ServiceJvm.CALL;
+
+            public Object call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return (v == null ? null : v);
             }
         }
     }
