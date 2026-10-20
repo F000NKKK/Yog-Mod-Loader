@@ -23,7 +23,8 @@
 //! order. A function taking `&mut Bencher` is one benchmark named
 //! `<file>/<fn>`; one taking `&mut Criterion` sets up its own (groups,
 //! throughput, batched inputs). The mod is linked in as a library under
-//! its crate name, and `yog_api::core::NullServer` stands in for a game.
+//! its crate name; with no game, the bus's actions answer nothing
+//! (their replies' defaults).
 
 use std::path::Path;
 

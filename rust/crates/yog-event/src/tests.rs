@@ -46,3 +46,16 @@ fn a_keyed_service_goes_to_its_keys_branch() {
     assert_eq!(insert.target(), "yog:block/insert/mymod:crate");
     assert!(services().iter().any(|s| s.domain == "block" && s.name == "Insert"));
 }
+
+/// With no bus reached, actions answer their replies' defaults — through a
+/// function or a handle alike.
+#[test]
+fn actions_answer_defaults_without_a_bus() {
+    use crate::{Player, World, entity, player};
+    assert!(!player::give_item("Steve", "minecraft:diamond", 1u32));
+    assert!(!Player::new("Steve").give_item("minecraft:diamond", 1u32));
+    assert_eq!(Player::new("Steve").entity(), None);
+    assert_eq!(entity::position("u"), None);
+    assert_eq!(World::overworld().get_block(BlockPos::new(0, 0, 0)), None);
+    assert!(World::overworld().scan_region(BlockPos::new(0, 0, 0), BlockPos::new(1, 1, 1)).is_empty());
+}

@@ -1544,7 +1544,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             private Command() {}
 
             /** A mod's command run; keyed by its name. Its handlers (subcommands of different shapes) are tried in order — the first to answer sets `reply`, what the source is told. */
-            public record Run(String name, String args, String source, String uuid, String dimension, String reply) {
+            public record Run(String name, java.util.List<String> args, String source, String uuid, String dimension, String reply) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("name", name);
@@ -1558,7 +1558,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
                 public static Run fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Run(YogData.str(m.get("name"), ""), YogData.str(m.get("args"), ""), YogData.str(m.get("source"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""), (m.get("reply") == null ? null : YogData.str(m.get("reply"), "")));
+                    return new Run(YogData.str(m.get("name"), ""), YogData.list(m.get("args")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.str(m.get("source"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""), (m.get("reply") == null ? null : YogData.str(m.get("reply"), "")));
                 }
 
                 public static Run fromBytes(byte[] bytes) {

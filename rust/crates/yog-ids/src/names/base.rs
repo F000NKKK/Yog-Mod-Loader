@@ -22,8 +22,6 @@ names! {
         TAG_SHOWN = "#",
         /// What joins an ingredient's alternatives where it's shown: `a | b`.
         ALTERNATIVES = "|",
-        /// What separates the fields of a host's reply to the runtime.
-        FIELD = "\t",
     }
 
     /// The kinds of content: what a reference names (`@item:…`), what a

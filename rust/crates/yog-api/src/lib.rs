@@ -16,13 +16,11 @@ pub mod vanilla;
 mod bus;
 mod draw;
 pub use bus::{EventCx, Flow, IntoFlow, emit};
-pub use server::CServer;
 pub use service::call;
 mod interop;
 mod lang;
 mod registry;
 mod scheduler;
-mod server;
 mod service;
 
 #[doc(hidden)]
@@ -30,7 +28,7 @@ pub use interop::{YogExportEntry, __yog_call, __yog_export_registry, __yog_serve
 pub use interop::{call_export, export_address};
 pub use lang::{format_translation, tag_name, tr, tr_args, translation};
 pub use registry::{
-    Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui, server,
+    Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui,
 };
 pub use yog_gfx::{
     GfxContext, core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image,
@@ -238,17 +236,15 @@ pub use yog_book::BookRenderer;
 pub use yog_formats::book::{Book, BookCategory, BookEntry, BookPage};
 pub use yog_command::CommandContext;
 pub use yog_config::Config;
-pub use yog_core::{BlockPos, Server, split_state};
+pub use yog_core::{BlockHit, BlockInfo, BlockPos, EntityInfo, Face, PlacedBlock, PlayerInfo, Point, Rotation, ScreenSlot, SlotStack, Stack, entity_flags, split_state};
 pub use yog_dimensions::{GeneratedChunk, YogDimensionDef, YogDimensionTypeDef};
-pub use yog_entity::Entity;
-pub use yog_event::{Event, EventPhase, Message, Service};
+pub use yog_event::{Entity, Event, EventPhase, Message, Player, Service, World};
 pub use yog_inventory::{InventoryDef, SlotLayout};
 #[doc(inline)]
 pub use yog_network::packet;
 pub use yog_network::{Packet, PacketField};
 /// A packet the server or the client received (`on_packet` / `on_client_packet`).
 pub use yog_event::{client::net::Packet as ClientPacketEvent, server::net::Packet as PacketEvent};
-pub use yog_player::Player;
 pub use yog_registry::{
     BlockDef, BlockProperty, Cooking, EntityDef, EntityKind, FoodDef, ItemDef, Recipe,
     ArmorDefense, ArmorMaterial, ArmorPiece, RecipeKind, SoundGroup, StartupGrant, ToolItem, ToolMaterial,
@@ -257,7 +253,7 @@ pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_ui::{
     Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, Stretch, UiRoot, Units, widget,
 };
-pub use yog_world::World;
+
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
 pub use yog_logging::{error, info, warn};
@@ -273,20 +269,10 @@ pub mod event {
     pub use yog_event::*;
 }
 
-/// World access (block get/set, dimensions).
-pub mod world {
-    pub use yog_world::*;
-}
-
-/// Entity access (teleport, position, health, ... by UUID).
-pub mod entity {
-    pub use yog_entity::*;
-}
-
-/// Player access (give item, teleport).
-pub mod player {
-    pub use yog_player::*;
-}
+/// The bus's domains: each one's actions as functions
+/// (`world::get_block(dim, pos)`, `entity::position(uuid)`,
+/// `player::give_item(name, item, count)`) beside its events.
+pub use yog_event::{block, bossbar, chat, entity, game, item, net, particle, player, scoreboard, sound, tag, world};
 
 /// Content registration (custom items / blocks / food).
 pub mod content {

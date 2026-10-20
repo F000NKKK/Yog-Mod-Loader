@@ -14,14 +14,15 @@ pub(crate) mod op;
 pub mod player;
 pub mod world;
 
+pub use yog_event::client::*;
 pub use yog_event::ui::flags as ui_flags;
-use yog_event::{client, ui};
+use yog_event::client;
 
 use crate::call;
 
 /// Open the Yog UI `ui_id` with [`ui_flags`] bits.
 pub fn open_ui_flags(ui_id: &str, flags: u32) {
-    call(&ui::OpenWithFlags { ui_id: ui_id.to_owned(), flags: i32::try_from(flags).unwrap_or(i32::MAX) });
+    call(&yog_event::ui::OpenWithFlags { ui_id: ui_id.to_owned(), flags: i32::try_from(flags).unwrap_or(i32::MAX) });
 }
 
 /// A sound started by [`play_sound`]; `SoundHandle(0)` is "none".
@@ -42,24 +43,6 @@ pub fn stop_sound(handle: SoundHandle) {
         return;
     }
     call(&client::StopSound { handle: i32::try_from(handle.0).unwrap_or(i32::MAX) });
-}
-
-/// Item id in the local player's main hand (or `off_hand`), `None` for an
-/// empty hand.
-pub fn held_item(off_hand: bool) -> Option<String> {
-    call(&client::HeldItem { off_hand }).flatten()
-}
-
-/// Attribute `attribute_id`'s value on this client's player — its base
-/// changed by every modifier (effects, equipment); `None` without a player
-/// or such an attribute.
-pub fn attribute_value(attribute_id: &str) -> Option<f64> {
-    call(&client::AttributeValue { attribute: attribute_id.to_owned() }).flatten()
-}
-
-/// Whether this client's player has advancement `id`.
-pub fn advancement_done(id: &str) -> bool {
-    call(&client::AdvancementDone { id: id.to_owned() }).unwrap_or(false)
 }
 
 /// Tints the block at `pos` in `dimension` on this client — the faces of
@@ -111,11 +94,6 @@ pub mod keys {
     pub const RIGHT_SHIFT: i32 = 344;
     pub const RIGHT_CONTROL: i32 = 345;
     pub const RIGHT_ALT: i32 = 346;
-}
-
-/// Whether GLFW key `key` is held right now.
-pub fn key_down(key: i32) -> bool {
-    call(&client::KeyDown { key }).unwrap_or(false)
 }
 
 /// Either Control key is held (Minecraft's `Screen.hasControlDown()`; on

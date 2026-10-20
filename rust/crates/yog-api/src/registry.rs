@@ -10,7 +10,6 @@
 use yog_abi::YogApi;
 use yog_formats::book::Book;
 use yog_command::CommandContext;
-use yog_core::Server;
 use yog_dimensions::{GeneratedChunk, YogDimensionDef};
 use yog_gfx::GfxContext;
 use yog_event::client::net::Packet as ClientPacketEvent;
@@ -105,14 +104,6 @@ impl UiHandled for bool {
     }
 }
 
-/// The server's actions, from any handler after this mod registered —
-/// including client-side ones that don't receive `&dyn Server` (UI
-/// handlers, client tick): world actions answer nothing client side, but
-/// networking (`send_to_server`) and the like work.
-pub fn server() -> Option<crate::CServer> {
-    (!global_api().is_null()).then_some(crate::CServer)
-}
-
 pub struct Registry {
     api: *const YogApi,
 }
@@ -158,7 +149,7 @@ impl Registry {
 
     pub fn on_command<F>(&mut self, name: impl AsRef<str>, handler: F)
     where
-        F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
+        F: Fn(&CommandContext) -> Option<String> + Send + Sync + 'static,
     {
         self.command(name.as_ref(), None, handler);
     }
@@ -171,7 +162,7 @@ impl Registry {
     /// In the handler use `ctx.arg_int(0)`, `ctx.arg_blockpos(1)`, etc.
     pub fn on_typed_command<F>(&mut self, name: impl AsRef<str>, schema: impl AsRef<str>, handler: F)
     where
-        F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
+        F: Fn(&CommandContext) -> Option<String> + Send + Sync + 'static,
     {
         self.command(name.as_ref(), Some(schema.as_ref()), handler);
     }
@@ -181,7 +172,7 @@ impl Registry {
     /// [`yog_command::Fit::ORDER`] says, the first answer winning.
     fn command<F>(&mut self, name: &str, schema: Option<&str>, handler: F)
     where
-        F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
+        F: Fn(&CommandContext) -> Option<String> + Send + Sync + 'static,
     {
         let declare = yog_event::command::CommandSpec { name: name.to_owned(), schema: schema.map(str::to_owned) };
         if self.call(&declare) != Some(true) {
@@ -190,13 +181,13 @@ impl Registry {
         let handler = std::sync::Arc::new(handler);
         for &fit in yog_command::Fit::ways(schema) {
             let (handler, schema) = (std::sync::Arc::clone(&handler), declare.schema.clone());
-            self.change_key_at::<yog_event::server::command::Run>(name, fit.rank() as i32, move |run, cx| {
+            self.change_key_at::<yog_event::server::command::Run>(name, fit.rank() as i32, move |run, _| {
                 if run.reply.is_some() {
                     return;
                 }
                 let Some(args) = fit.take(schema.as_deref(), &run.args) else { return };
                 let ctx = CommandContext { name: run.name.clone(), args, source: run.source.clone(), uuid: run.uuid.clone(), dimension: run.dimension.clone() };
-                run.reply = handler(&ctx, cx.server());
+                run.reply = handler(&ctx);
             });
         }
     }
@@ -206,17 +197,17 @@ impl Registry {
     /// Runs `handler` on every packet a client sends on `channel` (server side).
     pub fn on_packet<F>(&mut self, channel: impl AsRef<str>, handler: F)
     where
-        F: Fn(&PacketEvent, &dyn Server) + Send + Sync + 'static,
+        F: Fn(&PacketEvent) + Send + Sync + 'static,
     {
-        self.on_key::<PacketEvent, _>(channel.as_ref(), move |p, cx| handler(p, cx.server()));
+        self.on_key::<PacketEvent, _>(channel.as_ref(), move |p, _| handler(p));
     }
 
     /// Runs `handler` on every packet the server sends on `channel` (client side).
     pub fn on_client_packet<F>(&mut self, channel: impl AsRef<str>, handler: F)
     where
-        F: Fn(&ClientPacketEvent, &dyn Server) + Send + Sync + 'static,
+        F: Fn(&ClientPacketEvent) + Send + Sync + 'static,
     {
-        self.on_key::<ClientPacketEvent, _>(channel.as_ref(), move |p, cx| handler(p, cx.server()));
+        self.on_key::<ClientPacketEvent, _>(channel.as_ref(), move |p, _| handler(p));
     }
 
     /// Register a typed-packet handler.
@@ -226,11 +217,11 @@ impl Registry {
     pub fn on_typed_packet<P, F>(&mut self, channel: impl AsRef<str>, handler: F)
     where
         P: Packet + Send + Sync + 'static,
-        F: Fn(&P, &dyn Server) + Send + Sync + 'static,
+        F: Fn(&P) + Send + Sync + 'static,
     {
-        self.on_packet(channel, move |ev, srv| {
+        self.on_packet(channel, move |ev| {
             if let Some(pkt) = P::decode(&ev.payload) {
-                handler(&pkt, srv);
+                handler(&pkt);
             }
         });
     }
@@ -545,11 +536,11 @@ impl Registry {
 
     /// Change the loot of some tables as `modifier` says.
     pub fn add_loot_modifier(&mut self, modifier: crate::loot::LootModifier) {
-        self.change::<yog_event::world::loot::Roll>(move |loot, cx| crate::loot::apply(cx.server(), &modifier, loot));
+        self.change::<yog_event::world::loot::Roll>(move |loot, _| crate::loot::apply(&modifier, loot));
     }
 
     /// Register an attribute every player has — what effects change and
-    /// [`Server::entity_attribute_value`] reads.
+    /// [`yog_event::entity::attribute_value`] reads.
     pub fn register_attribute(&mut self, def: yog_registry::AttributeDef) {
         use yog_data::Schema;
         self.content(yog_ids::kind::ATTRIBUTE, &def.id.clone(), &def.write());
@@ -586,7 +577,7 @@ impl Registry {
     /// its custom data, say.
     pub fn loot_function<F>(&mut self, name: &str, function: F)
     where
-        F: Fn(&dyn Server, &mut crate::loot::LootStack, &crate::loot::Loot) + Send + Sync + 'static,
+        F: Fn(&mut crate::loot::LootStack, &crate::loot::Loot) + Send + Sync + 'static,
     {
         if let Ok(mut f) = crate::loot::functions().write() {
             f.insert(name.to_string(), std::sync::Arc::new(function));

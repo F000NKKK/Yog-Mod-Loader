@@ -873,6 +873,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "pastey"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ee67f1008b1ba2321834326597b8e186293b049a023cdef258527550b9935b4"
+
+[[package]]
 name = "pico-args"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1587,7 +1593,6 @@ dependencies = [
  "yog-core",
  "yog-data",
  "yog-dimensions",
- "yog-entity",
  "yog-event",
  "yog-formats",
  "yog-gfx",
@@ -1596,12 +1601,10 @@ dependencies = [
  "yog-inventory",
  "yog-logging",
  "yog-network",
- "yog-player",
  "yog-registry",
  "yog-storage",
  "yog-sync",
  "yog-ui",
- "yog-world",
 ]
 
 [[package]]
@@ -1676,7 +1679,7 @@ version = "0.1.1"
 name = "yog-core"
 version = "0.6.0"
 dependencies = [
- "criterion",
+ "yog-data",
 ]
 
 [[package]]
@@ -1724,16 +1727,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "yog-entity"
-version = "0.6.0"
-dependencies = [
- "yog-core",
-]
-
-[[package]]
 name = "yog-event"
 version = "0.7.0"
 dependencies = [
+ "pastey",
  "yog-body",
  "yog-core",
  "yog-data",
@@ -1855,14 +1852,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "yog-player"
-version = "0.7.0"
-dependencies = [
- "yog-core",
- "yog-entity",
-]
-
-[[package]]
 name = "yog-registry"
 version = "0.37.0"
 dependencies = [
@@ -1935,14 +1924,6 @@ dependencies = [
  "yog-gfx",
  "yog-ids",
  "yog-sync",
-]
-
-[[package]]
-name = "yog-world"
-version = "0.7.0"
-dependencies = [
- "yog-core",
- "yog-ids",
 ]
 
 [[package]]

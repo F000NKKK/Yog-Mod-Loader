@@ -19,9 +19,9 @@
 //!
 //! # Where
 //! Every store lives under a `root`: the world's directory
-//! (`Server::world_dir`) for what belongs to the world being played — its
+//! (`game::world_dir`) for what belongs to the world being played — its
 //! blocks' state, its players' progress, its dimensions — or the game's
-//! (`Server::game_dir`) for what belongs to the install, whatever world
+//! (`game::dir`) for what belongs to the install, whatever world
 //! (settings).
 //!
 //! # File layout

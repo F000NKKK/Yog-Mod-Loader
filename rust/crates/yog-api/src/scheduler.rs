@@ -4,14 +4,13 @@
 use std::sync::{Arc, Mutex, Once};
 
 use yog_abi::priority;
-use yog_core::Server;
 use yog_event::server::game::Tick;
 use yog_sync::Locked;
 
 use crate::registry::Registry;
 
 /// A scheduled task.
-type Task = Arc<dyn Fn(&dyn Server) + Send + Sync>;
+type Task = Arc<dyn Fn() + Send + Sync>;
 
 /// The tasks waiting for their tick.
 struct Tasks<T> {
@@ -59,7 +58,7 @@ impl Registry {
     /// Runs `handler` once, `delay_ticks` server ticks from now.
     pub fn schedule_once<F>(&self, delay_ticks: u64, handler: F)
     where
-        F: Fn(&dyn Server) + Send + Sync + 'static,
+        F: Fn() + Send + Sync + 'static,
     {
         TASKS.locked().once.push((delay_ticks, Arc::new(handler)));
         self.tick_tasks();
@@ -68,7 +67,7 @@ impl Registry {
     /// Runs `handler` every `period_ticks` server ticks.
     pub fn schedule_repeating<F>(&self, period_ticks: u64, handler: F)
     where
-        F: Fn(&dyn Server) + Send + Sync + 'static,
+        F: Fn() + Send + Sync + 'static,
     {
         TASKS.locked().repeating.push((period_ticks, period_ticks.max(1), Arc::new(handler)));
         self.tick_tasks();
@@ -77,10 +76,10 @@ impl Registry {
     /// Subscribes the tasks to the server's tick, once.
     fn tick_tasks(&self) {
         TICKING.call_once(|| {
-            self.after_at::<Tick, _, _>(priority::LATE, |_, cx| {
+            self.after_at::<Tick, _, _>(priority::LATE, |_, _| {
                 let due = TASKS.locked().due();
                 for task in due {
-                    crate::registry::guard((), || task(cx.server()));
+                    crate::registry::guard((), &*task);
                 }
             });
         });

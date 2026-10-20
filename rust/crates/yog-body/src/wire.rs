@@ -34,7 +34,7 @@ pub struct Frame {
     pub game_time: f64,
     /// What was captured last frame (see [`Ops::capture`]).
     pub captures: Vec<Capture>,
-    /// What the entity keeps by key (`Server::set_entity_data`), as this
+    /// What the entity keeps by key (`entity::SetData`), as this
     /// client was told.
     pub data: Vec<(String, Vec<u8>)>,
 }

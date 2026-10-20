@@ -11,7 +11,7 @@
 //! damage_multiplier = 1.5
 //! ```
 //!
-//! Obtain a game dir from `srv.game_dir()` inside an event handler.
+//! Obtain a game dir from `game::dir()`.
 
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};

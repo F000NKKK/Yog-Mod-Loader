@@ -3,7 +3,8 @@
 //! [`Fit::ORDER`] until one answers.
 
 /// What separates a typed command's arguments in [`crate::CommandContext::args`].
-pub const ARG_SEP: char = '\t';
+/// What joins the words a greedy argument takes.
+const WORD_SEP: &str = " ";
 /// The argument type that takes the rest of the line.
 pub const GREEDY: &str = "string";
 
@@ -38,21 +39,20 @@ impl Fit {
 
     /// `args` as a handler with `schema` takes them this way, or `None` if
     /// they don't fit it.
-    pub fn take(self, schema: Option<&str>, args: &str) -> Option<String> {
-        let given: Vec<&str> = if args.is_empty() { Vec::new() } else { args.split(ARG_SEP).collect() };
+    pub fn take(self, schema: Option<&str>, args: &[String]) -> Option<Vec<String>> {
         match (self, schema) {
-            (Fit::Exact, Some(schema)) => (schema.split_whitespace().count() == given.len()).then(|| args.to_owned()),
+            (Fit::Exact, Some(schema)) => (schema.split_whitespace().count() == args.len()).then(|| args.to_vec()),
             (Fit::Joined, Some(schema)) => {
                 let types: Vec<&str> = schema.split_whitespace().collect();
                 let k = types.len();
-                if types.last() != Some(&GREEDY) || given.len() <= k {
+                if types.last() != Some(&GREEDY) || args.len() <= k {
                     return None;
                 }
-                let mut parts: Vec<String> = given[..k - 1].iter().map(|a| (*a).to_owned()).collect();
-                parts.push(given[k - 1..].join(" "));
-                Some(parts.join(&ARG_SEP.to_string()))
+                let mut parts = args[..k - 1].to_vec();
+                parts.push(args[k - 1..].join(WORD_SEP));
+                Some(parts)
             }
-            (Fit::Plain, None) => Some(args.to_owned()),
+            (Fit::Plain, None) => Some(args.to_vec()),
             _ => None,
         }
     }
@@ -62,25 +62,29 @@ impl Fit {
 mod tests {
     use super::*;
 
+    fn v(words: &[&str]) -> Vec<String> {
+        words.iter().map(|w| (*w).to_owned()).collect()
+    }
+
     #[test]
     fn exact_takes_as_many_arguments_as_the_schema_has() {
-        assert_eq!(Fit::Exact.take(Some("int word"), "1\tx"), Some("1\tx".into()));
-        assert_eq!(Fit::Exact.take(Some("int word"), "1"), None);
-        assert_eq!(Fit::Exact.take(Some(""), ""), Some(String::new()));
+        assert_eq!(Fit::Exact.take(Some("int word"), &v(&["1", "x"])), Some(v(&["1", "x"])));
+        assert_eq!(Fit::Exact.take(Some("int word"), &v(&["1"])), None);
+        assert_eq!(Fit::Exact.take(Some(""), &[]), Some(Vec::new()));
     }
 
     #[test]
     fn joined_folds_the_extra_words_into_a_last_greedy_string() {
-        assert_eq!(Fit::Joined.take(Some("int string"), "1\ta\tb"), Some("1\ta b".into()));
-        assert_eq!(Fit::Joined.take(Some("int word"), "1\ta\tb"), None);
-        assert_eq!(Fit::Joined.take(Some("int string"), "1\ta"), None, "an exact fit isn't a join");
+        assert_eq!(Fit::Joined.take(Some("int string"), &v(&["1", "a", "b"])), Some(v(&["1", "a b"])));
+        assert_eq!(Fit::Joined.take(Some("int word"), &v(&["1", "a", "b"])), None);
+        assert_eq!(Fit::Joined.take(Some("int string"), &v(&["1", "a"])), None, "an exact fit isn't a join");
     }
 
     #[test]
     fn plain_takes_anything_and_only_plain_handlers() {
-        assert_eq!(Fit::Plain.take(None, "a\tb"), Some("a\tb".into()));
-        assert_eq!(Fit::Plain.take(Some("int"), "1"), None);
-        assert_eq!(Fit::Exact.take(None, ""), None);
+        assert_eq!(Fit::Plain.take(None, &v(&["a", "b"])), Some(v(&["a", "b"])));
+        assert_eq!(Fit::Plain.take(Some("int"), &v(&["1"])), None);
+        assert_eq!(Fit::Exact.take(None, &[]), None);
     }
 
     #[test]

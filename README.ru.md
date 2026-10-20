@@ -192,14 +192,14 @@ license     = "MIT OR Apache-2.0"
 И `src/lib.rs`:
 
 ```rust
-use yog_api::{Mod, Registry};
+use yog_api::{Mod, Registry, chat, event::server::life::Started};
 
 pub struct MyMod;
 
 impl Mod for MyMod {
     fn register(registry: &mut Registry) {
-        registry.on_server_started(|srv| {
-            srv.broadcast("my-mod loaded!");
+        registry.after::<Started, _>(|_, _| {
+            chat::broadcast("my-mod loaded!");
         });
     }
 }
@@ -225,24 +225,26 @@ yog_api::export_mod!(MyMod);
 
 ### События и команды
 
-Один обработчик получает обе фазы. `false` в фазе `Pre` отменяет действие:
+`before` срабатывает до того, как игра это сделает; `Flow::Cancel` отменяет действие. Действия — обычные функции (`chat::broadcast`):
 
 ```rust
-use yog_api::{info, EventPhase, Mod, Registry};
+use yog_api::{chat, info, Flow, Mod, Registry, event::block::Break};
 
 impl Mod for MyMod {
     fn register(r: &mut Registry) {
-        r.on_block_break(|e, phase, _srv| {
-            if phase == EventPhase::Pre && e.block_id == "minecraft:bedrock" {
+        r.before::<Break, _>(|e, _| {
+            if e.block_id == "minecraft:bedrock" {
                 info!("Nice try, {}.", e.player_name);
-                return false; // отменить
+                return Flow::Cancel;
             }
-            true
+            Flow::Continue
         });
 
-        r.on_command("hello", |ctx, _srv| Some(format!("Hi, {}!", ctx.source)));
+        r.on_command("hello", |ctx| Some(format!("Hi, {}!", ctx.source)));
 
-        r.schedule_repeating(1200, |srv| srv.broadcast("Another minute passed."));
+        r.schedule_repeating(1200, || {
+            chat::broadcast("Another minute passed.");
+        });
     }
 }
 ```
@@ -437,7 +439,7 @@ flowchart TB
 | [`yog-ui`](https://crates.io/crates/yog-ui) | Виджеты, flexbox и `Grid`, отрисовка | MIT/Apache |
 | [`yog-gfx`](https://crates.io/crates/yog-gfx) | Доступ к GPU, 2D-рисование, источники картинок | MIT/Apache |
 | [`yog-book`](https://crates.io/crates/yog-book) | Книги-руководства: формат и рендерер | MIT/Apache |
-| `yog-core`, `yog-event`, `yog-world`, `yog-player`, `yog-entity`, `yog-registry`, `yog-command`, `yog-network`, `yog-storage`, `yog-config`, `yog-logging`, `yog-dimensions`, `yog-inventory`, `yog-interop` | Предметные крейты за `yog-api` | MIT/Apache |
+| `yog-core`, `yog-event`, `yog-registry`, `yog-command`, `yog-network`, `yog-storage`, `yog-config`, `yog-logging`, `yog-dimensions`, `yog-inventory`, `yog-interop` | Предметные крейты за `yog-api` | MIT/Apache |
 | [`yog-abi`](https://crates.io/crates/yog-abi) | `#[repr(C)]`-контракт между модами и runtime | MIT/Apache |
 | [`yog-cli`](https://crates.io/crates/yog-cli) | Команда `yog` | MIT/Apache |
 | [`yog-runtime`](https://crates.io/crates/yog-runtime) | Движок: мост JNI, загрузка модов, события, управляющий сокет | AGPL |

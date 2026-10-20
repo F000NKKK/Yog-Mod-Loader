@@ -20,7 +20,6 @@ public final class YogNames {
         public static final String TYPED = "@";
         public static final String TAG_SHOWN = "#";
         public static final String ALTERNATIVES = "|";
-        public static final String FIELD = "\t";
     }
 
     public static final class Kind {
@@ -464,6 +463,7 @@ public final class YogNames {
         public static final String HAS_ITEM = "yog:tag/has_item";
         public static final String HAS_BLOCK = "yog:tag/has_block";
         public static final String HAS_ENTITY = "yog:tag/has_entity";
+        public static final String ITEMS = "yog:tag/items";
     }
 
     public static final class ServiceAdvancement {
@@ -506,6 +506,14 @@ public final class YogNames {
         public static final String TRANSLATE = "yog:game/translate";
         public static final String MODS = "yog:game/mods";
         public static final String MOD_LOADED = "yog:game/mod_loaded";
+        public static final String PLATFORM_MODS = "yog:game/platform_mods";
+    }
+
+    public static final class ModSource {
+        private ModSource() {}
+
+        public static final String YOG = "yog";
+        public static final String PLATFORM = "platform";
     }
 
     public static final class ServiceClient {
@@ -524,6 +532,7 @@ public final class YogNames {
         public static final String BODY_TRACK_TYPE = "yog:client/body_track_type";
         public static final String SET_DIMENSIONS = "yog:client/set_dimensions";
         public static final String ENTITY_DATA = "yog:client/entity_data";
+        public static final String SCREEN_SLOTS = "yog:client/screen_slots";
     }
 
     public static final class ServiceUi {

@@ -10,10 +10,8 @@ use std::sync::{Arc, OnceLock, RwLock};
 
 pub use yog_registry::{Loot, LootAdd, LootModifier, LootScale, LootStack};
 
-use yog_core::Server;
-
 /// A loot function: finishes a stack a [`LootModifier`] adds (sets its custom data).
-pub(crate) type LootFunction = Arc<dyn Fn(&dyn Server, &mut LootStack, &Loot) + Send + Sync>;
+pub(crate) type LootFunction = Arc<dyn Fn(&mut LootStack, &Loot) + Send + Sync>;
 
 /// This mod's loot functions, by name.
 pub(crate) fn functions() -> &'static RwLock<HashMap<String, LootFunction>> {
@@ -42,10 +40,10 @@ pub fn random() -> f64 {
 }
 
 /// Applies `modifier` to `loot`, running the mod's loot functions it names.
-pub(crate) fn apply(srv: &dyn Server, modifier: &LootModifier, loot: &mut Loot) {
+pub(crate) fn apply(modifier: &LootModifier, loot: &mut Loot) {
     let functions = functions().read().map(|f| f.clone()).unwrap_or_default();
     modifier.apply(loot, &mut random, &mut |name, stack, loot| match functions.get(name) {
-        Some(f) => f(srv, stack, loot),
+        Some(f) => f(stack, loot),
         None => crate::error!("loot modifier {}: no loot function {name} (registry.loot_function)", modifier.id),
     });
 }

@@ -1,19 +1,19 @@
 //! This client's own actions: the host's (nothing on a dedicated server).
 
-use yog_core::BlockPos;
+use yog_core::{BlockPos, ScreenSlot, Stack};
 use yog_ids as ids;
-
-use crate::pos::Pos;
 
 actions! {
     /// Plays `sound` to this client's player; its handle (to stop it).
     PlaySound { sound: String, volume: f32, pitch: f32, looping: bool } -> Option<i32> = ids::service_client::PLAY_SOUND, "YogClientApi.playSound";
     /// Stops a sound `PlaySound` started.
     StopSound { handle: i32 } -> bool = ids::service_client::STOP_SOUND, "YogClientApi.stopSound";
-    /// What this client's player holds: `item\tcount\tsnbt`.
-    HeldItem { off_hand: bool } -> Option<String> = ids::service_client::HELD_ITEM, "YogClientApi.heldItem";
+    /// What this client's player holds.
+    HeldItem { off_hand: bool } -> Option<Stack> = ids::service_client::HELD_ITEM, "YogClientApi.heldItem";
     /// Tints the block at `pos` on this client (`0xRRGGBB`; -1 clears it).
-    SetBlockTint { dim: String, #[data(with = "Pos")] pos: BlockPos, color: i32 } -> bool = ids::service_client::SET_BLOCK_TINT, "YogClientApi.setBlockTint";
+    SetBlockTint { dim: String, pos: BlockPos, color: i32 } -> bool = ids::service_client::SET_BLOCK_TINT, "YogClientApi.setBlockTint";
+    /// The slots of the inventory screen this client has open (none when it has none).
+    ScreenSlots {  } -> Vec<ScreenSlot> = ids::service_client::SCREEN_SLOTS, "YogQueries.screenSlots";
     /// Whether GLFW key `key` is held down.
     KeyDown { key: i32 } -> bool = ids::service_client::KEY_DOWN, "YogClientApi.keyDown";
     /// An attribute's value on this client's player.

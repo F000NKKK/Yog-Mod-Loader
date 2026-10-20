@@ -20,13 +20,13 @@ pub fn track(uuid: &str, on: bool) {
 }
 
 /// What this client was told entity `uuid` keeps under `key`
-/// ([`yog_core::Server::set_entity_data`]); body frames carry it too
+/// (`entity::SetData`); body frames carry it too
 /// ([`Frame::data`]).
 pub fn entity_data(uuid: &str, key: &str) -> Option<Vec<u8>> {
     call(&client::EntityData { uuid: uuid.to_owned(), key: key.to_owned() }).flatten().map(|v| v.bytes)
 }
 
-/// This client's side of [`yog_core::Server::entity_set_dimensions`]: the
+/// This client's side of `entity::SetDimensions`: the
 /// entity's own hitbox (`Some((width, height, eye height))`, blocks) or
 /// vanilla's again. The mod sends who has which (its own packet); the local
 /// player moves and collides with it.

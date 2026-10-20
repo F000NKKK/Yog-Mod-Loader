@@ -6,9 +6,6 @@ members = [
     # domain crates (permissive — see LICENSING.md)
     "crates/yog-core",
     "crates/yog-event",
-    "crates/yog-world",
-    "crates/yog-entity",
-    "crates/yog-player",
     "crates/yog-registry",
     "crates/yog-network",
     "crates/yog-command",
@@ -75,6 +72,8 @@ license = "AGPL-3.0-only"
 [workspace.dependencies]
 bumpalo = "3"
 const_format = "0.2.36"
+# Names composed in macros (`actions!`'s functions: `GiveItem` → `give_item`).
+pastey = "0.2.3"
 criterion = { version = "0.8", default-features = false }
 libc = "0.2"
 resvg = { version = "0.48", default-features = false }
@@ -90,7 +89,6 @@ yog-core = { version = "0.6.0", path = "crates/yog-core" }
 yog-data = { version = "0.6.0", path = "crates/yog-data" }
 yog-data-derive = { version = "0.4.1", path = "crates/yog-data-derive" }
 yog-dimensions = { version = "0.13.0", path = "crates/yog-dimensions" }
-yog-entity = { version = "0.6.0", path = "crates/yog-entity" }
 yog-event = { version = "0.7.0", path = "crates/yog-event" }
 yog-font = { version = "0.3.0", path = "crates/yog-font" }
 yog-formats = { version = "0.11.3", path = "crates/yog-formats" }
@@ -105,12 +103,10 @@ yog-interop = { version = "0.21.4", path = "crates/yog-interop" }
 yog-inventory = { version = "0.20.0", path = "crates/yog-inventory" }
 yog-logging = { version = "0.1.1", path = "crates/yog-logging" }
 yog-network = { version = "0.1.1", path = "crates/yog-network" }
-yog-player = { version = "0.7.0", path = "crates/yog-player" }
 yog-registry = { version = "0.37.0", path = "crates/yog-registry" }
 yog-storage = { version = "0.1.2", path = "crates/yog-storage" }
 yog-symbols = { version = "0.4.1", path = "crates/yog-symbols" }
 yog-ui = { version = "0.45.0", path = "crates/yog-ui" }
-yog-world = { version = "0.7.0", path = "crates/yog-world" }
 yog-worldgen = { version = "0.3.0", path = "crates/yog-worldgen" }
 syn = { version = "3", features = ["full", "extra-traits"] }
 quote = "1"

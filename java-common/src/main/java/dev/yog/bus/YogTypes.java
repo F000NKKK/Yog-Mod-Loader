@@ -8,7 +8,7 @@ import dev.yog.data.YogData;
 public final class YogTypes {
     private YogTypes() {}
 
-    /** A block position in a payload. */
+    /** A block position in the world. */
     public record BlockPos(int x, int y, int z) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
@@ -141,6 +141,51 @@ public final class YogTypes {
         }
     }
 
+    /** A block's properties (`block::Info`). */
+    public record BlockInfo(String state, double hardness, boolean replaceable, boolean air, String fluid, boolean fluidSource, int redstone, boolean inWorld) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("state", state);
+            m.put("hardness", hardness);
+            m.put("replaceable", replaceable);
+            m.put("air", air);
+            if (fluid != null) m.put("fluid", fluid);
+            m.put("fluid_source", fluidSource);
+            m.put("redstone", redstone);
+            m.put("in_world", inWorld);
+            return m;
+        }
+
+        public static BlockInfo fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BlockInfo(YogData.str(m.get("state"), ""), YogData.number(m.get("hardness"), 0), YogData.bool(m.get("replaceable"), false), YogData.bool(m.get("air"), false), (m.get("fluid") == null ? null : YogData.str(m.get("fluid"), "")), YogData.bool(m.get("fluid_source"), false), (int) YogData.integer(m.get("redstone"), 0), YogData.bool(m.get("in_world"), false));
+        }
+
+        public static BlockInfo fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** A stack of items: what it is, how many, its data (SNBT). */
+    public record Stack(String item, long count, String snbt) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("item", item);
+            m.put("count", count);
+            m.put("snbt", snbt);
+            return m;
+        }
+
+        public static Stack fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Stack(YogData.str(m.get("item"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("snbt"), ""));
+        }
+
+        public static Stack fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
     /** An address's descriptor. */
     public record Descriptor(String address, String kind, String doc, Object shape, Object reply, java.util.List<String> interfaces) {
         public java.util.Map<String, Object> toData() {
@@ -182,6 +227,26 @@ public final class YogTypes {
         }
     }
 
+    /** A slot of an open inventory screen: what it holds, where it's drawn (GUI pixels from the screen's corner). */
+    public record ScreenSlot(YogTypes.Stack stack, int x, int y) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            if (stack != null) m.put("stack", stack.toData());
+            m.put("x", x);
+            m.put("y", y);
+            return m;
+        }
+
+        public static ScreenSlot fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new ScreenSlot((m.get("stack") == null ? null : YogTypes.Stack.fromData(m.get("stack"))), (int) YogData.integer(m.get("x"), 0), (int) YogData.integer(m.get("y"), 0));
+        }
+
+        public static ScreenSlot fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
     /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
     public record CommandSpec(String name, String schema) {
         public java.util.Map<String, Object> toData() {
@@ -197,6 +262,70 @@ public final class YogTypes {
         }
 
         public static CommandSpec fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** A point in a world (blocks, fractional). */
+    public record Point(double x, double y, double z) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("x", x);
+            m.put("y", y);
+            m.put("z", z);
+            return m;
+        }
+
+        public static Point fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Point(YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0));
+        }
+
+        public static Point fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** Which way an entity faces, in degrees. */
+    public record Rotation(double yaw, double pitch) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("yaw", yaw);
+            m.put("pitch", pitch);
+            return m;
+        }
+
+        public static Rotation fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Rotation(YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0));
+        }
+
+        public static Rotation fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** A loaded entity (`entity::Info`). */
+    public record EntityInfo(String typeId, String dimension, YogTypes.Point pos, double eyeHeight, double width, double height, long flags, String name) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("type_id", typeId);
+            m.put("dimension", dimension);
+            m.put("pos", pos.toData());
+            m.put("eye_height", eyeHeight);
+            m.put("width", width);
+            m.put("height", height);
+            m.put("flags", flags);
+            m.put("name", name);
+            return m;
+        }
+
+        public static EntityInfo fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new EntityInfo(YogData.str(m.get("type_id"), ""), YogData.str(m.get("dimension"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.number(m.get("eye_height"), 0), YogData.number(m.get("width"), 0), YogData.number(m.get("height"), 0), YogData.integer(m.get("flags"), 0), YogData.str(m.get("name"), ""));
+        }
+
+        public static EntityInfo fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
     }
@@ -283,22 +412,85 @@ public final class YogTypes {
         }
     }
 
-    /** A point in a world (blocks, fractional). */
-    public record Point(double x, double y, double z) {
+    /** A stack in an inventory slot. */
+    public record SlotStack(long slot, YogTypes.Stack stack) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
-            m.put("x", x);
-            m.put("y", y);
-            m.put("z", z);
+            m.put("slot", slot);
+            m.put("stack", stack.toData());
             return m;
         }
 
-        public static Point fromData(Object data) {
+        public static SlotStack fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Point(YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0));
+            return new SlotStack(YogData.integer(m.get("slot"), 0), YogTypes.Stack.fromData(m.get("stack")));
         }
 
-        public static Point fromBytes(byte[] bytes) {
+        public static SlotStack fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** An online player's state (`player::Info`). */
+    public record PlayerInfo(String uuid, String gamemode, long selectedSlot, int xpLevel, int xpTotal, int air, boolean mayFly, boolean flying) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("uuid", uuid);
+            m.put("gamemode", gamemode);
+            m.put("selected_slot", selectedSlot);
+            m.put("xp_level", xpLevel);
+            m.put("xp_total", xpTotal);
+            m.put("air", air);
+            m.put("may_fly", mayFly);
+            m.put("flying", flying);
+            return m;
+        }
+
+        public static PlayerInfo fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new PlayerInfo(YogData.str(m.get("uuid"), ""), YogData.str(m.get("gamemode"), ""), YogData.integer(m.get("selected_slot"), 0), (int) YogData.integer(m.get("xp_level"), 0), (int) YogData.integer(m.get("xp_total"), 0), (int) YogData.integer(m.get("air"), 0), YogData.bool(m.get("may_fly"), false), YogData.bool(m.get("flying"), false));
+        }
+
+        public static PlayerInfo fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** A block found in the world: where, and its state. */
+    public record PlacedBlock(YogTypes.BlockPos pos, String state) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("pos", pos.toData());
+            m.put("state", state);
+            return m;
+        }
+
+        public static PlacedBlock fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new PlacedBlock(YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("state"), ""));
+        }
+
+        public static PlacedBlock fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** A block a ray stopped at. */
+    public record BlockHit(YogTypes.BlockPos pos, String face, YogTypes.Point hit) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("pos", pos.toData());
+            m.put("face", face);
+            m.put("hit", hit.toData());
+            return m;
+        }
+
+        public static BlockHit fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BlockHit(YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("face"), ""), YogTypes.Point.fromData(m.get("hit")));
+        }
+
+        public static BlockHit fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
     }

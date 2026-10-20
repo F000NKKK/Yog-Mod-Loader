@@ -1,6 +1,7 @@
 package dev.yog;
 
 import dev.yog.bus.YogServices;
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogData;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -18,8 +19,9 @@ import java.util.List;
  * spreads into — one provider for all of them.
  * The request's components are laid out in order (a nested record spreads
  * into its own), converted to the method's parameter types, and its result
- * is the reply: {@code NaN}, {@link Long#MIN_VALUE}, {@link Integer#MIN_VALUE}
- * and {@code null} read as none, a {@code void} method as done.
+ * is the reply: a {@code YogTypes} record as its data, {@code NaN},
+ * {@link Long#MIN_VALUE}, {@link Integer#MIN_VALUE} and {@code null} as
+ * none, a {@code void} method as done.
  */
 public final class YogHostServices {
     private YogHostServices() {}
@@ -106,8 +108,17 @@ public final class YogHostServices {
         return value;
     }
 
-    /** A host method's result as the reply: its "none" values as null. */
-    private static Object reply(Object out) {
+    /**
+     * A host method's result as the reply: its "none" values as null, a
+     * {@link YogTypes} record (or a list of them) as its data.
+     */
+    private static Object reply(Object out) throws ReflectiveOperationException {
+        if (out instanceof Record r) return r.getClass().getMethod("toData").invoke(r);
+        if (out instanceof List<?> list) {
+            List<Object> data = new ArrayList<>(list.size());
+            for (Object o : list) data.add(reply(o));
+            return data;
+        }
         if (out instanceof Double d && d.isNaN()) return null;
         if (out instanceof Float f && f.isNaN()) return null;
         if (out instanceof Long l && l == Long.MIN_VALUE) return null;

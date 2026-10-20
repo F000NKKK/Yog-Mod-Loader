@@ -9,8 +9,6 @@ use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, priority, sta
 use yog_event::{Event, EventPhase, keyed};
 
 use crate::registry::{Registry, guard};
-use crate::server::CServer;
-use yog_core::Server;
 
 /// What a handler decides about an event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,10 +43,9 @@ impl IntoFlow for Flow {
     }
 }
 
-/// What a handler is handed besides the event: when it runs, and the server.
+/// What a handler is handed besides the event: when it runs.
 pub struct EventCx {
     phase: EventPhase,
-    server: CServer,
 }
 
 impl EventCx {
@@ -59,11 +56,6 @@ impl EventCx {
 
     pub fn is_pre(&self) -> bool {
         self.phase == EventPhase::Pre
-    }
-
-    /// The server (actions and queries on the world).
-    pub fn server(&self) -> &dyn Server {
-        &self.server
     }
 }
 
@@ -117,7 +109,7 @@ impl<E, F> Subscription<E, F> {
     }
 
     pub(crate) fn cx(&self) -> EventCx {
-        EventCx { phase: self.phase, server: CServer }
+        EventCx { phase: self.phase }
     }
 }
 

@@ -5,5 +5,5 @@ use yog_ids as ids;
 
 actions! {
     /// Spawns `count` particles around `pos`.
-    Spawn { dim: String, pos: Point, particle: String, count: i32, spread: Point, speed: f64 } -> bool = ids::service_particle::SPAWN, "spawnParticles";
+    SpawnParticles { dim: String, pos: Point, particle: String, count: i32, spread: Point, speed: f64 } -> bool = ids::service_particle::SPAWN, "spawnParticles";
 }

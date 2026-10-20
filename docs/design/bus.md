@@ -76,87 +76,35 @@ reached only by the code that needs them.
 ## Typed on top
 
 The generic channel is for the boundary; nobody writes payloads by hand.
-`yog-api` keeps (and grows) typed wrappers, generated from one description
-per message:
+Each action is described once (`actions!`, below) and becomes:
+
+- a **function** of its domain — `world::get_block(dim, pos)`,
+  `player::give_item(name, item, count)`; what no one answers reads as the
+  reply's default (`false`, `None`, empty);
+- a **method on a handle** when its first field binds one — `uuid` an
+  `Entity`, `player` a `Player`, `dim` a `World`. A handle only holds its
+  key; its methods are the functions with the key put in first:
 
 ```rust
-/// Sets a block. Provided by the host.
-#[derive(Message)]
-#[message(address = yog_ids::bus::world::SET_BLOCK, reply = bool)]
-pub struct SetBlock { pub dim: Dim, pub pos: BlockPos, pub state: BlockState }
-
-server.call(&SetBlock { dim, pos, state })?;       // what a mod writes
-bus.on::<BlockBreak>(|e| …);                       // events the same way
+let me = Player::new(&e.player_name);          // or player::give_item(&e.player_name, …)
+me.give_item("minecraft:diamond", 1u32);
+if let Some(body) = me.entity() {               // its uuid, asked of the server
+    body.teleport((0.5, 100.0, 0.5));
+}
+World::new(&e.dimension).set_block(pos, "minecraft:torch");
+r.before::<Break, _>(|e, _| Flow::Continue);    // events the same way
 ```
+
+There is no `Server` trait: the functions reach the bus through the caller
+`yog-api` (in a mod) or the runtime (in itself) sets once
+(`yog_event::set_caller`). Replies are typed records (`EntityInfo`,
+`BlockHit`, `Stack`…, Yog Data schemas in `yog-core`) the host builds as
+`YogTypes` records — no tab-separated lines anywhere.
 
 The address constants live in `yog-ids` (one source; Java and TypeScript get
 them generated), the payload schemas in Rust (`yog-data` `Schema`); Java
 gets a typed record per message generated from the same schema, so a Java
-mod writes `YogBus.call(SetBlock.of(dim, pos, state))`.
-
-## Nanites — portals into the game's code
-
-A Java mod reaches into Minecraft with Mixins and reflection: it hooks a
-method of a game class, reads a private field, calls a method no API
-exposes. A **nanite** gives a Yog mod the same reach — typed, checked, and
-through the bus, so nothing new crosses the ABI.
-
-A nanite is a typed handle to a **member of a game class** (or a Java
-mod's): a method or a field, named the way the mod's code names it
-(Mojang names), resolved by the host for the running game version.
-
-```rust
-// Generated from the game's mappings, per supported version:
-use yog_api::nanite::net::minecraft::world::entity::LivingEntity;
-
-// Reflection: typed reads, writes and calls on a live object.
-let hp: f32 = LivingEntity::get_health(&entity)?;
-LivingEntity::set_health(&entity, hp + 2.0)?;
-
-// Injection: a hook into the method, like a Mixin's @Inject.
-#[nanite::inject(LivingEntity::hurt, at = Head)]
-fn armor_of_light(e: &mut Hurt) -> Flow {
-    if e.source().is(DamageTypes::LIGHTNING) { e.cancel(false) } else { Flow::Continue }
-}
-```
-
-* **Reflection** — `call`, `get`, `set` on a class, an object handle or a
-  static, typed by the member's signature. The host resolves the member
-  once (by name and descriptor, mapped for the running version) and keeps
-  a handle; a member missing on this version is a clear `NO_HANDLER`, not
-  a crash.
-* **Injection** — hooks at the points a Mixin has: `Head`, `Return`,
-  `Invoke(target)` (around a call inside the method), `FieldGet/Set`. A
-  hook gets the arguments (and `this`, the return value at `Return`)
-  typed, and can **continue**, **cancel** (with a return value), or
-  **change** the arguments / return value. Under the hood the injection is
-  a bus event — `nanite:<class>#<member>@<point>` — so several mods hook
-  the same method in priority order, and a Java mod can listen to it too.
-* **Declared up front.** Injections are woven into classes before they
-  load, so a mod lists them (its `#[nanite::inject]`s, collected by
-  `yog build` into the mod's manifest); the host turns the manifest into a
-  generated Mixin config at startup, one tiny dispatching injector per
-  point, each emitting its bus event. Reflection needs no declaring.
-* **Typed by generation.** `yog-cli` reads the game's mappings for every
-  supported version and generates the nanite modules (classes, members,
-  signatures) — the same single-source rule as `yog-ids`: names live in
-  the mappings, everything else is generated. A member that differs
-  between versions is generated per version behind the mod's targets.
-
-**Mixin parity.** A nanite does everything a Mixin does — no subset:
-
-| Mixin | Nanite |
-|---|---|
-| `@Inject` (`HEAD`, `RETURN`, `TAIL`, `INVOKE`, `FIELD`, `NEW`, any `@At`; cancellable, set the return value, capture locals) | `#[nanite::inject(…, at = …)]`, the hook's event carries args, `this`, locals and the return value; cancel / change through the reply |
-| `@Redirect`, `@WrapOperation`, `@WrapWithCondition` | `#[nanite::redirect]` / `wrap`: the call inside the method goes to the mod, which may run the original |
-| `@ModifyArg(s)`, `@ModifyVariable`, `@ModifyConstant`, `@ModifyReturnValue` | changing hooks: the value is the payload, the handler's reply replaces it |
-| `@Overwrite` | `#[nanite::overwrite]` (one per method; a second is an error at load) |
-| `@Accessor`, `@Invoker`, `@Shadow` | typed reflection: `get` / `set` / `call` on any member |
-| added fields and methods, `@Unique`, `@Implements` / interface injection | `#[nanite::extend(Class)]`: members and interfaces added to the class, reached typed |
-| priorities among mods | bus priorities on the hook's event |
-
-Nanites are the low level: everything Yog's own API offers is built from
-the same pieces, and what it doesn't offer, a mod reaches itself.
+mod writes `new YogServices.World.GetBlock(dim, pos).call()`.
 
 ## Actions: services the host provides (stage 3)
 
@@ -165,20 +113,22 @@ Every action on the game (`YogServer`'s ~116 functions) is a service the
 
 ```rust
 actions! {
-    world::SetBlock { dim: String, #[data(with = "Pos")] pos: BlockPos, block: String } -> bool = "setBlock";
+    world::SetBlock { dim: String, pos: BlockPos, block: String } -> bool = "setBlock";
     entity::Health { uuid: String } -> Option<f64> = "entityHealth";
 }
 ```
 
 From that line come the request struct and its `Service` impl (address in
 `yog-ids`), the reply type, Java's record (`YogServices`) and the host
-method that answers it. The host answers **every** action with one generic
+method that answers it (`"setBlock"`: a `NativeBridge` method;
+`"YogQueries.entityInfo"`: another class's). The host answers **every** action with one generic
 provider (`YogHostServices`): the request read as its record, its
 components laid out in order (a nested record or a list spreads into its
 parts: a `BlockPos` is `x, y, z`), each converted to the type of the host
 method's parameter (found by `MethodHandle` — `float` or `double` is the
 method's own business), the method called, its result encoded as the
-reply (`NaN`, `Long.MIN_VALUE`, `Integer.MIN_VALUE` and `null` read as "none" for an `Option`).
+reply (a `YogTypes` record or a list of them as its data; `NaN`,
+`Long.MIN_VALUE`, `Integer.MIN_VALUE` and `null` read as "none" for an `Option`).
 No per-action code in the runtime or in Java; the runtime's `YogServer`
 table and its ~116 functions go. A Java mod calls the same actions through
 `YogServices`. The same machinery — typed message → reflective call — is

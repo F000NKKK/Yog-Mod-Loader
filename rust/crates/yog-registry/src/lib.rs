@@ -768,7 +768,7 @@ pub struct BlockDef {
     /// block (default). See `yog_inventory`'s DESIGN.md.
     pub inventory_id: Option<String>,
     /// Gives off redstone power — how much, per position, the mod sets with
-    /// `Server::set_redstone_output`.
+    /// `block::set_redstone_output`.
     pub redstone_source: bool,
     /// How it turns when placed (a `facing` property): `""` (it doesn't),
     /// `"horizontal"` or `"all"`.
@@ -938,7 +938,7 @@ impl BlockDef {
     /// shape/layout was registered separately via `Registry::register_inventory`
     /// — see `yog_inventory::InventoryDef`. `id` is that def's id.
     /// A redstone power source: what each placed block gives off is set
-    /// with `Server::set_redstone_output` (0 until then).
+    /// with `block::set_redstone_output` (0 until then).
     pub fn redstone_source(mut self) -> Self {
         self.redstone_source = true;
         self

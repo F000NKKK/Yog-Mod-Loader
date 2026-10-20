@@ -9,4 +9,6 @@ actions! {
     HasBlock { block: String, tag: String } -> bool = ids::service_tag::HAS_BLOCK, "hasBlockTag";
     /// Whether `entity_type` is in entity type tag `tag`.
     HasEntity { entity_type: String, tag: String } -> bool = ids::service_tag::HAS_ENTITY, "hasEntityTag";
+    /// The items of item tag `tag`.
+    Items { tag: String } -> Vec<String> = ids::service_tag::ITEMS, "YogClientApi.tagItems";
 }

@@ -156,6 +156,7 @@ names! {
         HAS_ITEM = concatcp!(DOMAIN, "has_item"),
         HAS_BLOCK = concatcp!(DOMAIN, "has_block"),
         HAS_ENTITY = concatcp!(DOMAIN, "has_entity"),
+        ITEMS = concatcp!(DOMAIN, "items"),
     }
 
     /// `yog:advancement/…`: advancements.
@@ -194,6 +195,15 @@ names! {
         TRANSLATE = concatcp!(DOMAIN, "translate"),
         MODS = concatcp!(DOMAIN, "mods"),
         MOD_LOADED = concatcp!(DOMAIN, "mod_loaded"),
+        PLATFORM_MODS = concatcp!(DOMAIN, "platform_mods"),
+    }
+
+    /// Which list an installed mod is on.
+    mod_source {
+        /// Yog's own mods.
+        YOG = "yog",
+        /// The loader's (Java) mods.
+        PLATFORM = "platform",
     }
 
     /// `yog:client/…`: this client's own actions (nothing on a server).
@@ -211,6 +221,7 @@ names! {
         BODY_TRACK_TYPE = concatcp!(DOMAIN, "body_track_type"),
         SET_DIMENSIONS = concatcp!(DOMAIN, "set_dimensions"),
         ENTITY_DATA = concatcp!(DOMAIN, "entity_data"),
+        SCREEN_SLOTS = concatcp!(DOMAIN, "screen_slots"),
     }
 
     /// `yog:ui/…`: mods' screens.

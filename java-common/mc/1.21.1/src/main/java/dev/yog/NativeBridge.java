@@ -1,7 +1,5 @@
 package dev.yog;
 
-import static dev.yog.util.YogProps.flag01;
-import static dev.yog.util.YogProps.tsvField;
 
 import dev.yog.util.YogEntityFlags;
 import dev.yog.util.YogNativeRuntime;
@@ -79,7 +77,7 @@ import java.util.Map;
  */
 public final class NativeBridge {
     private static boolean loaded = false;
-    private static volatile MinecraftServer server;
+    static volatile MinecraftServer server;
 
     private NativeBridge() {}
 
@@ -170,7 +168,7 @@ public final class NativeBridge {
         return true;
     }
 
-    private static ServerPlayer playerByName(String name) {
+    static ServerPlayer playerByName(String name) {
         MinecraftServer s = server;
         return s == null ? null : s.getPlayerList().getPlayerByName(name);
     }
@@ -182,17 +180,6 @@ public final class NativeBridge {
         if (e == null) return false;
         if (e.level() instanceof ServerLevel sl) e.teleportTo(sl, x, y, z, java.util.Set.of(), e.getYRot(), e.getXRot());
         return true;
-    }
-
-    public static String entityPosition(String uuid) {
-        Entity e = entityByUuid(uuid);
-        return e == null ? null : e.getX() + "\t" + e.getY() + "\t" + e.getZ();
-    }
-
-    /** Yaw and pitch (degrees) of an entity by UUID: "yaw\tpitch", or null. */
-    public static String entityRotation(String uuid) {
-        Entity e = entityByUuid(uuid);
-        return e == null ? null : e.getYRot() + "\t" + e.getXRot();
     }
 
     public static double entityHealth(String uuid) {
@@ -232,13 +219,6 @@ public final class NativeBridge {
         int dur = durationTicks > 0 ? durationTicks : DEFAULT_WEATHER_TICKS;
         w.setWeatherParameters(raining ? 0 : dur, raining ? dur : 0, false, false);
         return true;
-    }
-
-    public static String entityVelocity(String uuid) {
-        Entity e = entityByUuid(uuid);
-        if (e == null) return null;
-        net.minecraft.world.phys.Vec3 v = e.getDeltaMovement();
-        return v.x + "\t" + v.y + "\t" + v.z;
     }
 
     public static boolean entitySetVelocity(String uuid, double vx, double vy, double vz) {
@@ -307,17 +287,6 @@ public final class NativeBridge {
         return true;
     }
 
-    public static String onlinePlayers() {
-        MinecraftServer s = server;
-        if (s == null) return null;
-        StringBuilder sb = new StringBuilder();
-        for (ServerPlayer p : s.getPlayerList().getPlayers()) {
-            if (sb.length() > 0) sb.append('\n');
-            sb.append(p.getName().getString());
-        }
-        return sb.toString();
-    }
-
     public static String getBlockNbt(String dimension, int x, int y, int z) {
         ServerLevel w = worldFor(dimension);
         if (w == null) return null;
@@ -337,26 +306,17 @@ public final class NativeBridge {
     }
 
     /** The block container at (dimension, x, y, z) — a chest, a Yog inventory block — or null. */
-    private static net.minecraft.world.Container containerAt(String dimension, int x, int y, int z) {
+    static net.minecraft.world.Container containerAt(String dimension, int x, int y, int z) {
         ServerLevel w = worldFor(dimension);
         if (w == null) return null;
         return w.getBlockEntity(new net.minecraft.core.BlockPos(x, y, z)) instanceof net.minecraft.world.Container c ? c : null;
     }
 
-    /** A container slot: "item\tcount\tsnbt", or null when empty or not a container. */
-    public static String getInventorySlot(String dimension, int x, int y, int z, int slot) {
-        net.minecraft.world.Container inv = containerAt(dimension, x, y, z);
-        if (inv == null || slot < 0 || slot >= inv.getContainerSize()) return null;
-        var stack = inv.getItem(slot);
-        if (stack.isEmpty()) return null;
-        return BuiltInRegistries.ITEM.getKey(stack.getItem()) + "\t" + stack.getCount() + "\t" + stackSnbt(stack);
-    }
-
     /**
-     * Sets a container slot. {@code itemId} may carry the item's SNBT after a
-     * tab ("mymod:blueprint\t{...}"); count 0 empties the slot.
+     * Sets a container slot to {@code count} of {@code item} with data
+     * {@code snbt} (empty: none); count 0 empties the slot.
      */
-    public static boolean setInventorySlot(String dimension, int x, int y, int z, int slot, String itemId, int count) {
+    public static boolean setInventorySlot(String dimension, int x, int y, int z, int slot, String item, int count, String snbt) {
         net.minecraft.world.Container inv = containerAt(dimension, x, y, z);
         if (inv == null || slot < 0 || slot >= inv.getContainerSize()) return false;
         if (count <= 0) {
@@ -364,9 +324,6 @@ public final class NativeBridge {
             inv.setChanged();
             return true;
         }
-        String[] parts = itemId.split("\t", 2);
-        String item = parts[0];
-        String snbt = parts.length > 1 ? parts[1] : "";
         ResourceLocation id = ResourceLocation.tryParse(item);
         if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return false;
         var stack = new ItemStack(BuiltInRegistries.ITEM.get(id), count);
@@ -381,21 +338,6 @@ public final class NativeBridge {
         inv.setItem(slot, stack);
         inv.setChanged();
         return true;
-    }
-
-    public static String playerInventory(String playerName) {
-        ServerPlayer p = playerByName(playerName);
-        if (p == null) return null;
-        Inventory inv = p.getInventory();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < inv.items.size(); i++) {
-            ItemStack stack = inv.items.get(i);
-            if (!stack.isEmpty()) {
-                if (sb.length() > 0) sb.append('\n');
-                sb.append(i).append('\t').append(BuiltInRegistries.ITEM.getKey(stack.getItem())).append('\t').append(stack.getCount());
-            }
-        }
-        return sb.toString();
     }
 
     public static boolean playerSetSlot(String playerName, int slot, String itemId, int count) {
@@ -492,19 +434,6 @@ public final class NativeBridge {
         catch (Exception ex) { return false; }
     }
 
-    public static int worldEntityCount(String dimension, String entityTypeId) {
-        ServerLevel w = worldFor(dimension);
-        if (w == null) return -1;
-        ResourceLocation id = ResourceLocation.tryParse(entityTypeId);
-        if (id == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(id)) return -1;
-        EntityType<?> targetType = BuiltInRegistries.ENTITY_TYPE.get(id);
-        int count = 0;
-        for (Entity e : w.getAllEntities()) {
-            if (e.getType() == targetType) count++;
-        }
-        return count;
-    }
-
     public static String spawnEntity(String typeId, String dimension, double x, double y, double z) {
         ServerLevel w = worldFor(dimension);
         ResourceLocation id = ResourceLocation.tryParse(typeId);
@@ -566,55 +495,6 @@ public final class NativeBridge {
         return flags;
     }
 
-    /** "type\tdim\tx\ty\tz\teyeHeight\twidth\theight\tflags\tname", or null. */
-    public static String entityInfo(String uuid) {
-        try {
-            Entity e = entityByUuid(uuid);
-            if (e == null) return null;
-            int flags = entityFlags(e);
-            return BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()) + "\t"
-                    + e.level().dimension().location() + "\t"
-                    + e.getX() + "\t" + e.getY() + "\t" + e.getZ() + "\t"
-                    + e.getEyeHeight() + "\t" + e.getBbWidth() + "\t" + e.getBbHeight() + "\t"
-                    + flags + "\t" + tsvField(e.getName().getString());
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
-    /** UUIDs (newline-separated) of entities intersecting the box; null if dim unknown. */
-    public static String entitiesInBox(String dim, double x0, double y0, double z0, double x1, double y1, double z1) {
-        try {
-            ServerLevel w = worldFor(dim);
-            if (w == null) return null;
-            StringBuilder sb = new StringBuilder();
-            for (Entity e : w.getEntities((Entity) null, new AABB(x0, y0, z0, x1, y1, z1), o -> true)) {
-                if (sb.length() > 0) sb.append('\n');
-                sb.append(e.getStringUUID());
-            }
-            return sb.toString();
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
-    /** "x\ty\tz\tface\thx\thy\thz" of the first block hit, or null on miss. */
-    public static String raycastBlock(String dim, double fx, double fy, double fz, double tx, double ty, double tz) {
-        try {
-            ServerLevel w = worldFor(dim);
-            if (w == null) return null;
-            BlockHitResult hit = w.clip(new ClipContext(new Vec3(fx, fy, fz), new Vec3(tx, ty, tz),
-                    ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
-            if (hit == null || hit.getType() == HitResult.Type.MISS) return null;
-            BlockPos p = hit.getBlockPos();
-            Vec3 h = hit.getLocation();
-            return p.getX() + "\t" + p.getY() + "\t" + p.getZ() + "\t" + hit.getDirection().get3DDataValue()
-                    + "\t" + h.x + "\t" + h.y + "\t" + h.z;
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
     /** UUID of the nearest entity hit along from→to (ProjectileUtil semantics), or null. */
     public static String raycastEntity(String dim, double fx, double fy, double fz,
             double tx, double ty, double tz, String excludeUuid) {
@@ -647,29 +527,6 @@ public final class NativeBridge {
                 }
             }
             return best == null ? null : best.getStringUUID();
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
-    /** "state\thardness\treplaceable\tair\tfluid\tsource\tredstone\tinWorld", or null. */
-    public static String blockInfo(String dim, int x, int y, int z) {
-        try {
-            ServerLevel w = worldFor(dim);
-            if (w == null) return null;
-            BlockPos pos = new BlockPos(x, y, z);
-            BlockState st = w.getBlockState(pos);
-            FluidState fs = st.getFluidState();
-            String fluid = fs.isEmpty() ? "" : BuiltInRegistries.FLUID.getKey(fs.getType()).toString();
-            boolean inWorld = w.isInWorldBounds(pos) && w.getWorldBorder().isWithinBounds(pos);
-            return BlockStateParser.serialize(st) + "\t"
-                    + st.getDestroySpeed(w, pos) + "\t"
-                    + flag01(st.canBeReplaced()) + "\t"
-                    + flag01(st.isAir()) + "\t"
-                    + fluid + "\t"
-                    + flag01(!fs.isEmpty() && fs.isSource()) + "\t"
-                    + w.getBestNeighborSignal(pos) + "\t"
-                    + flag01(inWorld);
         } catch (Throwable t) {
             return null;
         }
@@ -815,24 +672,6 @@ public final class NativeBridge {
         }
     }
 
-    /** "uuid\tgamemode\tselectedSlot\txpLevel\txpTotal\tair\tmayFly\tflying", or null. */
-    public static String playerInfo(String player) {
-        try {
-            ServerPlayer p = playerByName(player);
-            if (p == null) return null;
-            return p.getStringUUID() + "\t"
-                    + p.gameMode.getGameModeForPlayer().getName() + "\t"
-                    + p.getInventory().selected + "\t"
-                    + p.experienceLevel + "\t"
-                    + p.totalExperience + "\t"
-                    + p.getAirSupply() + "\t"
-                    + flag01(p.getAbilities().mayfly) + "\t"
-                    + flag01(p.getAbilities().flying);
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
     /** Spawn an item entity with the given velocity; returns its uuid or null. */
     public static String spawnItem(String dim, double x, double y, double z,
             double vx, double vy, double vz, String itemId, int count, String snbt) {
@@ -845,17 +684,6 @@ public final class NativeBridge {
             ie.setDeltaMovement(vx, vy, vz);
             if (!w.addFreshEntity(ie)) return null;
             return ie.getStringUUID();
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
-    /** "itemId\tcount\tsnbt" of an item entity's stack, or null. */
-    public static String itemEntityStack(String uuid) {
-        try {
-            if (!(entityByUuid(uuid) instanceof ItemEntity ie)) return null;
-            ItemStack stack = ie.getItem();
-            return BuiltInRegistries.ITEM.getKey(stack.getItem()) + "\t" + stack.getCount() + "\t" + stackSnbt(stack);
         } catch (Throwable t) {
             return null;
         }
@@ -1144,17 +972,6 @@ public final class NativeBridge {
         }
     }
 
-    /** Full item stack at inventory slot: "item_id\tcount\tnbt_snbt", or null if empty/offline. */
-    public static String getSlotItem(String playerName, int slot) {
-        ServerPlayer p = playerByName(playerName);
-        if (p == null) return null;
-        Inventory inv = p.getInventory();
-        if (slot < 0 || slot >= inv.getContainerSize()) return null;
-        ItemStack stack = inv.getItem(slot);
-        if (stack.isEmpty()) return null;
-        return BuiltInRegistries.ITEM.getKey(stack.getItem()) + "\t" + stack.getCount() + "\t" + stackSnbt(stack);
-    }
-
     /** Replace inventory slot; snbt becomes the new item's custom data (pass "" for none). */
     public static boolean setSlotItem(String playerName, int slot, String itemId, int count, String snbt) {
         ServerPlayer p = playerByName(playerName);
@@ -1255,7 +1072,7 @@ public final class NativeBridge {
         }
     }
 
-    private static Entity entityByUuid(String uuidStr) {
+    static Entity entityByUuid(String uuidStr) {
         MinecraftServer s = server;
         if (s == null) return null;
         for (ServerLevel w : s.getAllLevels()) {
@@ -1265,7 +1082,7 @@ public final class NativeBridge {
         return null;
     }
 
-    private static ServerLevel worldFor(String dimension) {
+    static ServerLevel worldFor(String dimension) {
         MinecraftServer s = server;
         ResourceLocation id = ResourceLocation.tryParse(dimension);
         if (s == null || id == null) return null;
@@ -1288,15 +1105,6 @@ public final class NativeBridge {
         Entity e = entityByUuid(uuid);
         Entity v = e == null ? null : e.getVehicle();
         return v == null ? null : v.getStringUUID();
-    }
-
-    /** The UUIDs of what rides an entity directly, one a line, or null. */
-    public static String entityPassengers(String uuid) {
-        Entity e = entityByUuid(uuid);
-        if (e == null) return null;
-        StringBuilder out = new StringBuilder();
-        for (Entity p : e.getPassengers()) out.append(p.getStringUUID()).append('\n');
-        return out.toString();
     }
 
     /** Seats {@code rider} on {@code vehicle}; {@code force}: even one that wouldn't take it. */
@@ -1328,31 +1136,6 @@ public final class NativeBridge {
         if (e == null || !e.isPassenger()) return false;
         e.stopRiding();
         return true;
-    }
-
-    /** The strongest signal the block gives off (dust: its power), or -1 if it isn't a source. */
-    public static int redstoneSignal(String dimension, int x, int y, int z) {
-        ServerLevel w = worldFor(dimension);
-        if (w == null) return -1;
-        net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
-        net.minecraft.world.level.block.state.BlockState state = w.getBlockState(pos);
-        if (state.getBlock() instanceof net.minecraft.world.level.block.RedStoneWireBlock) {
-            return state.getValue(net.minecraft.world.level.block.RedStoneWireBlock.POWER);
-        }
-        if (!state.isSignalSource()) return -1;
-        int best = 0;
-        for (net.minecraft.core.Direction d : net.minecraft.core.Direction.values()) {
-            best = Math.max(best, state.getSignal(w, pos, d));
-        }
-        return best;
-    }
-
-    /** The redstone power a block receives from its neighbours (0–15), or -1. */
-    public static int redstonePower(String dimension, int x, int y, int z) {
-        ServerLevel w = worldFor(dimension);
-        if (w == null) return -1;
-        net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
-        return w.getBestNeighborSignal(pos);
     }
 
     /** Power a Yog block declared as a redstone source gives off, by "dimension|x|y|z". */
@@ -1398,39 +1181,6 @@ public final class NativeBridge {
             YogLog.warn("setBlockState: " + state + ": " + e.getMessage());
             return false;
         }
-    }
-
-    /** Sets every block of the box to {@code state} (no neighbour updates); how many changed, or -1. */
-    public static int fillRegion(String dimension, int x1, int y1, int z1, int x2, int y2, int z2, String state) {
-        ServerLevel w = worldFor(dimension);
-        if (w == null) return -1;
-        try {
-            var parsed = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK.asLookup(), state, false).blockState();
-            net.minecraft.core.BlockPos from = new net.minecraft.core.BlockPos(x1, y1, z1), to = new net.minecraft.core.BlockPos(x2, y2, z2);
-            int changed = 0;
-            for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(from, to)) {
-                if (w.setBlock(pos, parsed, 2)) changed++;
-            }
-            return changed;
-        } catch (Exception e) {
-            YogLog.warn("fillRegion: " + state + ": " + e.getMessage());
-            return -1;
-        }
-    }
-
-    /** The box's non-air blocks: "x y z state" lines. */
-    public static String scanRegion(String dimension, int x1, int y1, int z1, int x2, int y2, int z2) {
-        ServerLevel w = worldFor(dimension);
-        if (w == null) return null;
-        net.minecraft.core.BlockPos from = new net.minecraft.core.BlockPos(x1, y1, z1), to = new net.minecraft.core.BlockPos(x2, y2, z2);
-        StringBuilder sb = new StringBuilder();
-        for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(from, to)) {
-            var st = w.getBlockState(pos);
-            if (st.isAir()) continue;
-            if (sb.length() > 0) sb.append('\n');
-            sb.append(pos.getX()).append(' ').append(pos.getY()).append(' ').append(pos.getZ()).append(' ').append(net.minecraft.commands.arguments.blocks.BlockStateParser.serialize(st));
-        }
-        return sb.toString();
     }
 
     public static boolean worldIsThundering(String dimension) {
@@ -1541,21 +1291,6 @@ public final class NativeBridge {
         return lang.has(key) ? lang.getOrDefault(key) : null;
     }
 
-    // ── platform mod listing (consumed by the runtime's mods_list ABI) ──────
-
-    /** TSV lines: id \t name \t version \t authors \t description. */
-    public static String listPlatformMods() {
-        StringBuilder sb = new StringBuilder();
-        for (dev.yog.util.YogModInfo info : YogPlatform.mods()) {
-            if (sb.length() > 0) sb.append('\n');
-            sb.append(tsvField(info.id())).append('\t')
-              .append(tsvField(info.name())).append('\t')
-              .append(tsvField(info.version())).append('\t')
-              .append(tsvField(info.authors())).append('\t')
-              .append(tsvField(info.description()));
-        }
-        return sb.toString();
-    }
 
     // ── Inventory bridge (yog-ui ↔ YogInventoryMenu) ──────────────────────────
 
@@ -1563,28 +1298,7 @@ public final class NativeBridge {
     public static YogInventoryMenu activeInventoryMenu;
 
     /** Slot count of the active inventory menu (0 if none open). */
-    public static int getSlotCount() {
-        return activeInventoryMenu != null ? activeInventoryMenu.slots.size() : 0;
-    }
-
-    /** Query one slot: returns {@code "item_id\tcount"} or {@code null} if empty. */
-    public static String getSlotItem(int index) {
-        if (activeInventoryMenu == null || index < 0 || index >= activeInventoryMenu.slots.size()) return null;
-        net.minecraft.world.inventory.Slot slot = activeInventoryMenu.slots.get(index);
-        ItemStack stack = slot.getItem();
-        if (stack.isEmpty()) return null;
-        return net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()) + "\t" + stack.getCount();
-    }
-
     /** Slot pixel position in screen space: {@code "x\ty"}. */
-    public static String getSlotPos(int index) {
-        if (activeInventoryMenu == null || index < 0 || index >= activeInventoryMenu.slots.size()) return null;
-        net.minecraft.world.inventory.Slot slot = activeInventoryMenu.slots.get(index);
-        // Slot.x/y are relative to the guiLeft/guiTop. We return raw values;
-        // yog-ui offsets them by the screen's leftPos/topPos.
-        return slot.x + "\t" + slot.y;
-    }
-
     // ── Pictures in item tooltips (ABI 2.2) ─────────────────────────────────
 
     /** Entity data: everything about an entity, for a player who starts seeing it; null for nothing. */

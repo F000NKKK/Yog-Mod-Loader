@@ -1,11 +1,9 @@
-//! Records returned by the world-query part of [`Server`](crate::Server)
-//! (ABI minor 1), and their wire form.
-//!
-//! The Java host answers these queries with one tab-separated line; the
-//! `decode` functions here are the single place that reads that line, so the
-//! runtime and the tests agree on it.
+//! What the world queries answer (`yog_event`'s entity, block, player and
+//! world actions): records the host builds and the bus carries as Yog Data.
 
-use crate::BlockPos;
+use yog_data::Schema;
+
+use crate::{BlockPos, Point};
 
 /// What kind of entity something is, as a bit set ([`EntityInfo::flags`]).
 pub mod entity_flags {
@@ -41,16 +39,15 @@ pub mod entity_flags {
     pub const GLIDING: u32 = 1 << 14;
 }
 
-/// A loaded entity, as [`Server::entity_info`](crate::Server::entity_info)
-/// sees it.
-#[derive(Debug, Clone, PartialEq)]
+/// A loaded entity (`entity::Info`).
+#[derive(Debug, Clone, PartialEq, Schema)]
 pub struct EntityInfo {
     /// Registry id of its type, e.g. `"minecraft:zombie"`.
     pub type_id: String,
     /// Dimension id, e.g. `"minecraft:overworld"`.
     pub dimension: String,
     /// Feet position.
-    pub pos: (f64, f64, f64),
+    pub pos: Point,
     /// Eye height above `pos`.
     pub eye_height: f64,
     /// Bounding box width and height.
@@ -68,37 +65,14 @@ impl EntityInfo {
     }
 
     /// Eye position.
-    pub fn eye_pos(&self) -> (f64, f64, f64) {
-        (self.pos.0, self.pos.1 + self.eye_height, self.pos.2)
-    }
-
-    /// `type\tdim\tx\ty\tz\teye\twidth\theight\tflags\tname`.
-    pub fn decode(line: &str) -> Option<Self> {
-        let mut it = line.splitn(10, '\t');
-        let type_id = it.next()?.to_owned();
-        let dimension = it.next()?.to_owned();
-        let mut num = || it.next()?.parse::<f64>().ok();
-        let pos = (num()?, num()?, num()?);
-        let eye_height = num()?;
-        let width = num()?;
-        let height = num()?;
-        let flags = it.next()?.parse().ok()?;
-        let name = it.next().unwrap_or_default().to_owned();
-        Some(Self {
-            type_id,
-            dimension,
-            pos,
-            eye_height,
-            width,
-            height,
-            flags,
-            name,
-        })
+    pub fn eye_pos(&self) -> Point {
+        Point { y: self.pos.y + self.eye_height, ..self.pos }
     }
 }
 
-/// The six block faces, in Minecraft's `Direction` order.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The six block faces, in Minecraft's `Direction` order (named as the
+/// game names them: `down`, `up`, …).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Schema)]
 pub enum Face {
     Down,
     Up,
@@ -140,31 +114,17 @@ impl Face {
 }
 
 /// A block a ray stopped at.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Schema)]
 pub struct BlockHit {
     pub pos: BlockPos,
     /// The face the ray entered through.
     pub face: Face,
     /// The exact hit point (on the block's surface).
-    pub hit: (f64, f64, f64),
+    pub hit: Point,
 }
 
-impl BlockHit {
-    /// `x\ty\tz\tface\thx\thy\thz`.
-    pub fn decode(line: &str) -> Option<Self> {
-        let mut it = line.split('\t');
-        let mut int = || it.next()?.parse::<i32>().ok();
-        let pos = BlockPos::new(int()?, int()?, int()?);
-        let face = Face::from_index(u8::try_from(int()?).ok()?)?;
-        let mut num = || it.next()?.parse::<f64>().ok();
-        let hit = (num()?, num()?, num()?);
-        Some(Self { pos, face, hit })
-    }
-}
-
-/// A block's properties, as [`Server::block_info`](crate::Server::block_info)
-/// sees them.
-#[derive(Debug, Clone, PartialEq)]
+/// A block's properties (`block::Info`).
+#[derive(Debug, Clone, PartialEq, Schema)]
 pub struct BlockInfo {
     /// Full block state, e.g. `"minecraft:oak_log[axis=y]"`.
     pub state: String,
@@ -189,37 +149,10 @@ impl BlockInfo {
     pub fn block_id(&self) -> &str {
         self.state.split('[').next().unwrap_or_default()
     }
-
-    /// `state\thardness\treplaceable\tair\tfluid\tsource\tredstone\tin_world`
-    /// (booleans as `0`/`1`, an empty `fluid` for none).
-    pub fn decode(line: &str) -> Option<Self> {
-        let mut it = line.split('\t');
-        let state = it.next()?.to_owned();
-        let hardness = it.next()?.parse().ok()?;
-        let flag = |s: Option<&str>| s.map(|s| s == "1");
-        let replaceable = flag(it.next())?;
-        let air = flag(it.next())?;
-        let fluid = it.next()?;
-        let fluid = (!fluid.is_empty()).then(|| fluid.to_owned());
-        let fluid_source = flag(it.next())?;
-        let redstone = it.next()?.parse().ok()?;
-        let in_world = flag(it.next())?;
-        Some(Self {
-            state,
-            hardness,
-            replaceable,
-            air,
-            fluid,
-            fluid_source,
-            redstone,
-            in_world,
-        })
-    }
 }
 
-/// An online player's state, as
-/// [`Server::player_info`](crate::Server::player_info) sees it.
-#[derive(Debug, Clone, PartialEq)]
+/// An online player's state (`player::Info`).
+#[derive(Debug, Clone, PartialEq, Schema)]
 pub struct PlayerInfo {
     pub uuid: String,
     /// `"survival"`, `"creative"`, `"adventure"` or `"spectator"`.
@@ -240,63 +173,79 @@ impl PlayerInfo {
     pub fn is_creative(&self) -> bool {
         self.gamemode == "creative"
     }
+}
 
-    /// `uuid\tgamemode\tslot\tlevel\ttotal\tair\tmay_fly\tflying`.
-    pub fn decode(line: &str) -> Option<Self> {
-        let mut it = line.split('\t');
-        let uuid = it.next()?.to_owned();
-        let gamemode = it.next()?.to_owned();
-        let selected_slot = it.next()?.parse().ok()?;
-        let xp_level = it.next()?.parse().ok()?;
-        let xp_total = it.next()?.parse().ok()?;
-        let air = it.next()?.parse().ok()?;
-        let may_fly = it.next()? == "1";
-        let flying = it.next()? == "1";
-        Some(Self {
-            uuid,
-            gamemode,
-            selected_slot,
-            xp_level,
-            xp_total,
-            air,
-            may_fly,
-            flying,
-        })
-    }
+/// A stack of items: what it is, how many, its data (SNBT).
+#[derive(Debug, Clone, PartialEq, Schema)]
+pub struct Stack {
+    pub item: String,
+    pub count: u32,
+    /// `{}` when it has none.
+    pub snbt: String,
+}
+
+/// A stack in an inventory slot.
+#[derive(Debug, Clone, PartialEq, Schema)]
+pub struct SlotStack {
+    pub slot: u32,
+    pub stack: Stack,
+}
+
+/// A slot of an open inventory screen: what it holds, where it's drawn
+/// (GUI pixels from the screen's corner).
+#[derive(Debug, Clone, PartialEq, Schema)]
+pub struct ScreenSlot {
+    pub stack: Option<Stack>,
+    pub x: i32,
+    pub y: i32,
+}
+
+/// Which way an entity faces, in degrees.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Schema)]
+pub struct Rotation {
+    pub yaw: f32,
+    pub pitch: f32,
+}
+
+/// A block found in the world: where, and its state.
+#[derive(Debug, Clone, PartialEq, Schema)]
+pub struct PlacedBlock {
+    pub pos: BlockPos,
+    /// Full block state, e.g. `"minecraft:oak_log[axis=y]"`.
+    pub state: String,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn round_trip<T: Schema>(v: &T) -> T {
+        yog_data::read_bytes(&yog_data::binary::encode(&v.write())).unwrap()
+    }
+
     #[test]
-    fn records_decode() {
-        let e = EntityInfo::decode(
-            "minecraft:zombie\tminecraft:overworld\t1.5\t64\t-2\t1.74\t0.6\t1.95\t169\tZom\tbie",
-        )
-        .unwrap();
-        assert_eq!(e.pos, (1.5, 64.0, -2.0));
-        assert!(e.has(entity_flags::LIVING) && e.has(entity_flags::MONSTER));
-        assert!(!e.has(entity_flags::PLAYER));
-        assert_eq!(e.name, "Zom\tbie");
-        assert_eq!(e.eye_pos().1, 65.74);
-
-        let h = BlockHit::decode("1\t2\t3\t5\t1.0\t2.5\t3.5").unwrap();
-        assert_eq!(h.face, Face::East);
+    fn records_round_trip_as_data() {
+        let e = EntityInfo {
+            type_id: "minecraft:zombie".into(),
+            dimension: "minecraft:overworld".into(),
+            pos: Point { x: 1.5, y: 64.0, z: -2.0 },
+            eye_height: 1.74,
+            width: 0.6,
+            height: 1.95,
+            flags: entity_flags::LIVING | entity_flags::MONSTER,
+            name: "Zom\tbie".into(),
+        };
+        assert!(e.has(entity_flags::LIVING) && !e.has(entity_flags::PLAYER));
+        assert_eq!(e.eye_pos().y, 65.74);
+        assert_eq!(round_trip(&e), e);
+        let h = BlockHit { pos: BlockPos::new(1, 2, 3), face: Face::East, hit: Point { x: 1.0, y: 2.5, z: 3.5 } };
+        assert_eq!(round_trip(&h), h);
         assert_eq!(h.face.normal(), (1, 0, 0));
+    }
 
-        let b = BlockInfo::decode("minecraft:water[level=0]\t100\t1\t0\tminecraft:water\t1\t3\t1")
-            .unwrap();
-        assert_eq!(b.block_id(), "minecraft:water");
-        assert_eq!(b.fluid.as_deref(), Some("minecraft:water"));
-        assert!(b.fluid_source && b.replaceable && b.in_world && !b.air);
-        assert_eq!(b.redstone, 3);
-
-        let p = PlayerInfo::decode("u\tcreative\t4\t30\t1395\t300\t1\t0").unwrap();
-        assert!(p.is_creative() && p.may_fly && !p.flying);
-        assert_eq!(p.selected_slot, 4);
-
-        assert!(EntityInfo::decode("x\ty\tnope").is_none());
-        assert!(BlockHit::decode("1\t2\t3\t9\t0\t0\t0").is_none());
+    #[test]
+    fn faces_are_named_as_the_game_names_them() {
+        let names: Vec<String> = Face::ALL.iter().map(|f| yog_data::text::to_string(&f.write())).collect();
+        assert_eq!(names, ["\"down\"", "\"up\"", "\"north\"", "\"south\"", "\"west\"", "\"east\""]);
     }
 }

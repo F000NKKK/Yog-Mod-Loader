@@ -65,6 +65,32 @@ macro_rules! key_value {
 }
 
 
+/// An action's method on the handle its first field binds — `uuid` an
+/// [`crate::Entity`], `player` a [`crate::Player`], `dim` a [`crate::World`]:
+/// the action's function with the handle's key put in first.
+macro_rules! handle_method {
+    ($name:ident, $reply:ty, [$($doc:tt)*]; uuid : $t:ty $(, $f:ident : $ft:ty)*) => {
+        handle_method!(@on $crate::Entity, uuid, $name, $reply, [$($doc)*]; $($f : $ft),*);
+    };
+    ($name:ident, $reply:ty, [$($doc:tt)*]; player : $t:ty $(, $f:ident : $ft:ty)*) => {
+        handle_method!(@on $crate::Player, name, $name, $reply, [$($doc)*]; $($f : $ft),*);
+    };
+    ($name:ident, $reply:ty, [$($doc:tt)*]; dim : $t:ty $(, $f:ident : $ft:ty)*) => {
+        handle_method!(@on $crate::World, dim, $name, $reply, [$($doc)*]; $($f : $ft),*);
+    };
+    (@on $handle:path, $key:ident, $name:ident, $reply:ty, [$($doc:tt)*]; $($f:ident : $ft:ty),*) => {
+        pastey::paste! {
+            impl $handle {
+                $($doc)*
+                pub fn [<$name:snake>](&self $(, $f: impl Into<$ft>)*) -> $reply {
+                    [<$name:snake>](&*self.$key $(, $f)*)
+                }
+            }
+        }
+    };
+    ($($other:tt)*) => {};
+}
+
 /// Actions the Java host provides (`docs/design/bus.md`, stage 3): each a
 /// request struct, its reply, its address and the host method answering
 /// it; and the domain's `actions()` descriptors.
@@ -84,6 +110,17 @@ macro_rules! actions {
                     None
                 }
             }
+
+            pastey::paste! {
+                $(#[$doc])*
+                #[doc = ""]
+                #[doc = concat!("Calls [`", stringify!($name), "`]; what no one answers reads as the reply's default.")]
+                pub fn [<$name:snake>]($( $field: impl Into<$fty> ),*) -> $reply {
+                    $crate::call(&$name { $( $field: $field.into() ),* }).unwrap_or_default()
+                }
+            }
+
+            handle_method! { $name, $reply, [$(#[$doc])*]; $( $field : $fty ),* }
         )*
 
         /// This domain's actions.

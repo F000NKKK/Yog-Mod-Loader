@@ -64,8 +64,8 @@ impl Hanging {
     }
 
     /// Hanging entity `uuid` on the server, if it is one.
-    pub fn get(srv: &dyn yog_core::Server, uuid: &str) -> Option<Hanging> {
-        Hanging::decode(&srv.entity_data(uuid, HANGING)?)
+    pub fn get(uuid: &str) -> Option<Hanging> {
+        Hanging::decode(&crate::call(&yog_event::entity::Data { uuid: uuid.to_owned(), key: HANGING.to_owned() })??.bytes)
     }
 }
 

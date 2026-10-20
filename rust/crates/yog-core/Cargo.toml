@@ -9,10 +9,4 @@ license = "MIT OR Apache-2.0"
 description = "Yog core types and handles shared across all API modules."
 
 [dependencies]
-
-[dev-dependencies]
-criterion = { workspace = true, features = ["cargo_bench_support"] }
-
-[[bench]]
-name = "query_decode"
-harness = false
+yog-data = { workspace = true }

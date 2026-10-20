@@ -224,14 +224,14 @@ license     = "MIT OR Apache-2.0"
 
     // src/lib.rs
     let lib_rs = format!(
-        r#"use yog_api::{{Mod, Registry}};
+        r#"use yog_api::{{Mod, Registry, chat, event::server::life::Started}};
 
 pub struct {struct_name};
 
 impl Mod for {struct_name} {{
     fn register(registry: &mut Registry) {{
-        registry.on_server_started(|srv| {{
-            srv.broadcast("{name} loaded!");
+        registry.after::<Started, _>(|_, _| {{
+            chat::broadcast("{name} loaded!");
         }});
     }}
 }}

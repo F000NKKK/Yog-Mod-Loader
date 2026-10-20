@@ -9,6 +9,8 @@ actions! {
     WorldDir {  } -> Option<String> = ids::service_game::WORLD_DIR, "worldDir";
     /// The game's text for translation `key` in the current language.
     Translate { key: String } -> Option<String> = ids::service_game::TRANSLATE, "translate";
+    /// The loader's own (Java) mods.
+    PlatformMods {  } -> Vec<ModInfo> = ids::service_game::PLATFORM_MODS, "YogMods.platformMods";
 }
 
 /// Every installed mod: Yog's and the loader's (the runtime answers).
@@ -18,7 +20,7 @@ pub struct Mods {}
 /// An installed mod.
 #[derive(Debug, Clone, PartialEq, yog_data::Schema)]
 pub struct ModInfo {
-    /// `yog` or `platform` (a Java mod).
+    /// Which list it's on (`yog_ids::mod_source`).
     pub source: String,
     pub id: String,
     pub name: String,

@@ -9,8 +9,8 @@ use yog_data::Schema;
 pub struct Run {
     /// The command, without the slash.
     pub name: String,
-    /// Its arguments, separated by `yog_command::ARG_SEP`.
-    pub args: String,
+    /// Its arguments: a typed command's values in order, a plain one's words.
+    pub args: Vec<String>,
     /// Who ran it: a player's name, or the console.
     pub source: String,
     /// The running entity's uuid; empty for the console.

@@ -3,7 +3,6 @@
 use crate::{UiLayer, handlers};
 use jni::{JNIEnv, objects::JClass, objects::JString, sys::*};
 
-use crate::jcall::jcall;
 use std::cell::Cell;
 use yog_abi::YogStr;
 use yog_sync::Locked;
@@ -268,21 +267,17 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     // `slot_item_ids` and `snapshot` must outlive the `render_cbs` loop below
     // (not just this `if`) — mods read through the pointer we hand them via
     // `push_inventory_snapshot` for the rest of this function's duration.
-    let n = (inv_slot_count(&mut env).max(0) as usize).min(yog_inventory::MAX_SNAPSHOT_SLOTS);
-    let mut slot_item_ids: Vec<String> = Vec::with_capacity(n);
+    let slots = crate::bus::call(&yog_event::client::ScreenSlots {}).unwrap_or_default();
+    let n = slots.len().min(yog_inventory::MAX_SNAPSHOT_SLOTS);
+    let slot_item_ids: Vec<String> = slots.iter().take(n).map(|s| s.stack.as_ref().map(|st| st.item.clone()).unwrap_or_default()).collect();
     let mut snapshot = yog_inventory::YogInvSnapshotRaw::EMPTY;
     if n > 0 {
         snapshot.slot_count = n as u32;
-        for i in 0..n {
-            let item = inv_slot_item(&mut env, i as i32);
-            let pos = inv_slot_pos(&mut env, i as i32).unwrap_or((0, 0));
-            slot_item_ids.push(item.as_ref().map(|(id, _)| id.clone()).unwrap_or_default());
-            snapshot.slots[i].count = item.map(|(_, c)| c as u32).unwrap_or(0);
-            snapshot.slots[i].x = pos.0;
-            snapshot.slots[i].y = pos.1;
-        }
-        for (slot, id) in snapshot.slots.iter_mut().zip(&slot_item_ids) {
-            slot.item_id = YogStr::from_str(id);
+        for ((raw, slot), id) in snapshot.slots.iter_mut().zip(&slots).zip(&slot_item_ids) {
+            raw.count = slot.stack.as_ref().map_or(0, |st| st.count);
+            raw.x = slot.x;
+            raw.y = slot.y;
+            raw.item_id = YogStr::from_str(id);
         }
         push_inventory_snapshot(&snapshot);
     }
@@ -338,28 +333,6 @@ fn push_inventory_snapshot(snapshot: &yog_inventory::YogInvSnapshotRaw) {
             }
         });
     }
-}
-
-// ── Inventory slot queries (Rust → Java, called during yog-ui render) ──────
-
-/// Number of slots in the currently open inventory screen (0 if none).
-pub fn inv_slot_count(env: &mut JNIEnv) -> i32 {
-    unsafe { jcall!(env, "dev/yog/NativeBridge", "getSlotCount", []) }.unwrap_or(0)
-}
-
-/// Query one slot: returns `Some((item_id, count))` or `None` if empty.
-/// `item_id` is a namespaced string like `"minecraft:diamond"`.
-pub fn inv_slot_item(env: &mut JNIEnv, index: i32) -> Option<(String, i32)> {
-    let s: String = unsafe { jcall!(env, "dev/yog/NativeBridge", "getSlotItem", [I(index)]) }?;
-    let (id, count) = s.split_once('\t')?;
-    Some((id.to_owned(), count.parse().ok()?))
-}
-
-/// Pixel position of a slot (relative to screen, already including guiLeft/guiTop).
-pub fn inv_slot_pos(env: &mut JNIEnv, index: i32) -> Option<(i32, i32)> {
-    let s: String = unsafe { jcall!(env, "dev/yog/NativeBridge", "getSlotPos", [I(index)]) }?;
-    let [x, y] = crate::parse_tsv(&s)?;
-    Some((x, y))
 }
 
 // ── Pictures in item tooltips ─────────────────────────────────────

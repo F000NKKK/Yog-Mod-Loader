@@ -9,11 +9,12 @@
 
 #[macro_use]
 mod message;
+mod call;
 mod event;
+mod handles;
 mod service;
 pub mod java;
 mod phase;
-mod pos;
 #[cfg(test)]
 mod tests;
 
@@ -43,8 +44,10 @@ pub mod tag;
 pub mod ui;
 pub mod world;
 
+pub use call::{Caller, call, set_caller};
+pub use handles::{Entity, Player, World};
 pub use event::{Event, EventInfo, all};
 pub use message::{Message, keyed};
 pub use service::{Service, ServiceInfo, services};
 pub use phase::EventPhase;
-pub use pos::Point;
+pub use yog_core::Point;

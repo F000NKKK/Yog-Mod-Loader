@@ -14,7 +14,7 @@ yog_data::kind! {
 
 /// A number every player has (`hexcasting:grid_zoom`) — what effects
 /// change (`EffectDef::modifiers`) and the mod reads
-/// (`Server::entity_attribute_value`).
+/// (`entity::attribute_value`).
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct AttributeDef {
     pub id: String,

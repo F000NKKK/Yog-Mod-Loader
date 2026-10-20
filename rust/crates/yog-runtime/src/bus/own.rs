@@ -6,10 +6,6 @@ use yog_sync::Locked;
 
 use super::duties::provide;
 
-/// Which list a mod is on: Yog's own, or the loader's (Java mods).
-const YOG: &str = "yog";
-const PLATFORM: &str = "platform";
-
 /// A Yog mod's `.yres` name or description in the player's language, else as written.
 fn localized(text: &str, key: &str) -> String {
     crate::translate(key).unwrap_or_else(|| text.to_owned())
@@ -21,7 +17,7 @@ fn mods() -> Vec<game::ModInfo> {
     let mut out: Vec<game::ModInfo> = infos
         .iter()
         .map(|m| game::ModInfo {
-            source: YOG.to_owned(),
+            source: yog_ids::mod_source::YOG.to_owned(),
             id: m[0].clone(),
             name: localized(&m[1], &m[5]),
             version: m[2].clone(),
@@ -29,13 +25,7 @@ fn mods() -> Vec<game::ModInfo> {
             description: localized(&m[4], &m[6]),
         })
         .collect();
-    // The loader's mods, `id\tname\tversion\tauthors\tdescription` a line.
-    let platform: Option<String> = unsafe { bridge!("listPlatformMods", []) };
-    for line in platform.iter().flat_map(|s| s.lines()).filter(|l| !l.trim().is_empty()) {
-        let mut f = line.split(yog_ids::sep::FIELD).map(str::to_owned);
-        let mut next = || f.next().unwrap_or_default();
-        out.push(game::ModInfo { source: PLATFORM.to_owned(), id: next(), name: next(), version: next(), authors: next(), description: next() });
-    }
+    out.extend(super::call(&game::PlatformMods {}).unwrap_or_default());
     out
 }
 

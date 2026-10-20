@@ -41,23 +41,23 @@ public final class YogCommands {
         for (YogTypes.CommandSpec d : declared) if (d.schema() == null) plain.add(d.name());
         for (String name : plain) {
             dispatcher.register(Commands.literal(name)
-                    .executes(ctx -> runCommand(name, "", ctx))
+                    .executes(ctx -> runCommand(name, java.util.List.of(), ctx))
                     .then(Commands.argument("args", StringArgumentType.greedyString())
                             .executes(ctx -> runCommand(
-                                    name, StringArgumentType.getString(ctx, "args").trim().replaceAll("\\s+", "\t"), ctx))));
+                                    name, java.util.List.of(StringArgumentType.getString(ctx, "args").trim().split("\\s+")), ctx))));
         }
     }
 
     /**
      * Build a Brigadier literal node with typed argument chain from a schema like
      * {@code ["int", "player", "blockpos"]}.  Each arg is named {@code arg_N}.
-     * All resolved args are serialised tab-separated and forwarded to Rust.
+     * The resolved args go to Rust as a list.
      */
     private static LiteralArgumentBuilder<CommandSourceStack>
             buildTypedCommand(String name, String[] schema) {
         var root = Commands.literal(name);
         if (schema.length == 0) {
-            root.executes(ctx -> runCommand(name, "", ctx));
+            root.executes(ctx -> runCommand(name, java.util.List.of(), ctx));
             return root;
         }
         // Build argument chain from last to first, wrapping inner with outer.
@@ -102,12 +102,9 @@ public final class YogCommands {
         String type    = schema[idx];
         String argName = argName(idx, type);
         return buildArgNode(type, argName).executes(ctx -> {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i <= idx; i++) {
-                if (i > 0) sb.append('\t');
-                sb.append(resolveArg(schema[i], argName(i, schema[i]), ctx));
-            }
-            return runCommand(cmdName, sb.toString(), ctx);
+            java.util.List<String> args = new java.util.ArrayList<>();
+            for (int i = 0; i <= idx; i++) args.add(resolveArg(schema[i], argName(i, schema[i]), ctx));
+            return runCommand(cmdName, args, ctx);
         });
     }
 
@@ -129,7 +126,7 @@ public final class YogCommands {
         }
     }
 
-    private static int runCommand(String name, String args, CommandContext<CommandSourceStack> ctx) {
+    private static int runCommand(String name, java.util.List<String> args, CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack src = ctx.getSource();
         net.minecraft.world.entity.Entity entity = src.getEntity();
         String uuid = entity != null ? entity.getStringUUID() : "";
