@@ -1,7 +1,5 @@
 //! Reading a value against a schema: its problems, with their paths.
-
-#[allow(unused_imports)] // each part uses some of the module's names
-use super::*;
+use super::{LineCol, MapRef, Path, Ref, Res, Schema, Seg, Text, ValueRef, fmt};
 
 // ── Reading ─────────────────────────────────────────────────────────────────
 

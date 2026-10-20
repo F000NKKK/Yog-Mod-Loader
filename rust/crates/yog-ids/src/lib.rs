@@ -19,8 +19,6 @@ macro_rules! names {
         $(
             $(#[$gdoc])*
             pub mod $group {
-                #[allow(unused_imports)] // a group composes names from the ones above
-                use crate::*;
                 $( $(#[$doc])* pub const $name: &str = $value; )*
             }
         )*

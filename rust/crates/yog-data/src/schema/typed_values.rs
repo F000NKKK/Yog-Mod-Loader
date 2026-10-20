@@ -1,7 +1,5 @@
 //! The schemas of typed values: references, tags, resources, texts, images, colors.
-
-#[allow(unused_imports)] // each part uses some of the module's names
-use super::*;
+use super::{PhantomData, Reader, Ref, Res, Schema, Shape, Value, ValueRef, fmt, typed};
 
 // ── Typed values ────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 //! The table passed to `yog_mod_register`.
+use super::{YogBus, YogGfxApi};
 
-use super::*;
 
 /// Passed to `yog_mod_register`: the bus — everything a mod does goes
 /// through it (`docs/design/bus.md`) — and the one thing that can't afford

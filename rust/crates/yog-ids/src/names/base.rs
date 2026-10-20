@@ -71,22 +71,22 @@ names! {
 
     /// What a reference to content of a kind starts with: `@item:`.
     reference {
-        ITEM = concatcp!(sep::TYPED, kind::ITEM, sep::NAMESPACE),
-        BLOCK = concatcp!(sep::TYPED, kind::BLOCK, sep::NAMESPACE),
-        ENTITY = concatcp!(sep::TYPED, kind::ENTITY, sep::NAMESPACE),
-        RECIPE = concatcp!(sep::TYPED, kind::RECIPE, sep::NAMESPACE),
-        ENTRY = concatcp!(sep::TYPED, kind::ENTRY, sep::NAMESPACE),
-        CATEGORY = concatcp!(sep::TYPED, kind::CATEGORY, sep::NAMESPACE),
-        FLUID = concatcp!(sep::TYPED, kind::FLUID, sep::NAMESPACE),
-        BIOME = concatcp!(sep::TYPED, kind::BIOME, sep::NAMESPACE),
-        DIMENSION = concatcp!(sep::TYPED, kind::DIMENSION, sep::NAMESPACE),
-        TEXTURE = concatcp!(sep::TYPED, kind::TEXTURE, sep::NAMESPACE),
-        MATERIAL = concatcp!(sep::TYPED, kind::MATERIAL, sep::NAMESPACE),
+        ITEM = crate::concatcp!(crate::sep::TYPED, crate::kind::ITEM, crate::sep::NAMESPACE),
+        BLOCK = crate::concatcp!(crate::sep::TYPED, crate::kind::BLOCK, crate::sep::NAMESPACE),
+        ENTITY = crate::concatcp!(crate::sep::TYPED, crate::kind::ENTITY, crate::sep::NAMESPACE),
+        RECIPE = crate::concatcp!(crate::sep::TYPED, crate::kind::RECIPE, crate::sep::NAMESPACE),
+        ENTRY = crate::concatcp!(crate::sep::TYPED, crate::kind::ENTRY, crate::sep::NAMESPACE),
+        CATEGORY = crate::concatcp!(crate::sep::TYPED, crate::kind::CATEGORY, crate::sep::NAMESPACE),
+        FLUID = crate::concatcp!(crate::sep::TYPED, crate::kind::FLUID, crate::sep::NAMESPACE),
+        BIOME = crate::concatcp!(crate::sep::TYPED, crate::kind::BIOME, crate::sep::NAMESPACE),
+        DIMENSION = crate::concatcp!(crate::sep::TYPED, crate::kind::DIMENSION, crate::sep::NAMESPACE),
+        TEXTURE = crate::concatcp!(crate::sep::TYPED, crate::kind::TEXTURE, crate::sep::NAMESPACE),
+        MATERIAL = crate::concatcp!(crate::sep::TYPED, crate::kind::MATERIAL, crate::sep::NAMESPACE),
     }
 
     /// Typed values that aren't references to content.
     typed {
-        TAG = kind::TAG,
+        TAG = crate::kind::TAG,
         LANG = "lang",
         IMAGE = "image",
         /// Bytes as they are, base64 in text: `@bytes:iVBORw0…`.

@@ -5,191 +5,191 @@ names! {
     /// after the game did it, `…/pre` before (a cancel stops it).
     event {
         /// What every event address starts with.
-        PREFIX = concatcp!(ns::YOG, sep::NAMESPACE, "event", sep::PATH),
+        PREFIX = crate::concatcp!(crate::ns::YOG, crate::sep::NAMESPACE, "event", crate::sep::PATH),
         /// What a pre-event's address ends with.
-        PRE = concatcp!(sep::PATH, "pre"),
+        PRE = crate::concatcp!(crate::sep::PATH, "pre"),
     }
 
     /// `yog:event/log/…`.
     event_log {
-        PLANE = concatcp!(event::PREFIX, "log", sep::PATH),
-        RECORD = concatcp!(PLANE, "record"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "log", crate::sep::PATH),
+        RECORD = crate::concatcp!(PLANE, "record"),
     }
 
     /// `yog:event/player/session/…`.
     event_player_session {
-        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "session", sep::PATH),
-        JOIN = concatcp!(PLANE, "join"),
-        LEAVE = concatcp!(PLANE, "leave"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "player", crate::sep::PATH, "session", crate::sep::PATH),
+        JOIN = crate::concatcp!(PLANE, "join"),
+        LEAVE = crate::concatcp!(PLANE, "leave"),
     }
 
     /// `yog:event/player/life/…`.
     event_player_life {
-        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "life", sep::PATH),
-        DEATH = concatcp!(PLANE, "death"),
-        DEATH_PRE = concatcp!(DEATH, event::PRE),
-        RESPAWN = concatcp!(PLANE, "respawn"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "player", crate::sep::PATH, "life", crate::sep::PATH),
+        DEATH = crate::concatcp!(PLANE, "death"),
+        DEATH_PRE = crate::concatcp!(DEATH, crate::event::PRE),
+        RESPAWN = crate::concatcp!(PLANE, "respawn"),
     }
 
     /// `yog:event/player/chat/…`.
     event_player_chat {
-        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "chat", sep::PATH),
-        MESSAGE = concatcp!(PLANE, "message"),
-        MESSAGE_PRE = concatcp!(MESSAGE, event::PRE),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "player", crate::sep::PATH, "chat", crate::sep::PATH),
+        MESSAGE = crate::concatcp!(PLANE, "message"),
+        MESSAGE_PRE = crate::concatcp!(MESSAGE, crate::event::PRE),
     }
 
     /// `yog:event/player/action/…`.
     event_player_action {
-        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "action", sep::PATH),
-        MOVE = concatcp!(PLANE, "move"),
-        USE_ITEM = concatcp!(PLANE, "use_item"),
-        USE_ITEM_PRE = concatcp!(USE_ITEM, event::PRE),
-        ATTACK = concatcp!(PLANE, "attack"),
-        INTERACT = concatcp!(PLANE, "interact"),
-        INTERACT_PRE = concatcp!(INTERACT, event::PRE),
-        CRAFT = concatcp!(PLANE, "craft"),
-        PICKUP = concatcp!(PLANE, "pickup"),
-        PICKUP_PRE = concatcp!(PICKUP, event::PRE),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "player", crate::sep::PATH, "action", crate::sep::PATH),
+        MOVE = crate::concatcp!(PLANE, "move"),
+        USE_ITEM = crate::concatcp!(PLANE, "use_item"),
+        USE_ITEM_PRE = crate::concatcp!(USE_ITEM, crate::event::PRE),
+        ATTACK = crate::concatcp!(PLANE, "attack"),
+        INTERACT = crate::concatcp!(PLANE, "interact"),
+        INTERACT_PRE = crate::concatcp!(INTERACT, crate::event::PRE),
+        CRAFT = crate::concatcp!(PLANE, "craft"),
+        PICKUP = crate::concatcp!(PLANE, "pickup"),
+        PICKUP_PRE = crate::concatcp!(PICKUP, crate::event::PRE),
     }
 
     /// `yog:event/player/progress/…`.
     event_player_progress {
-        PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "progress", sep::PATH),
-        ADVANCEMENT = concatcp!(PLANE, "advancement"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "player", crate::sep::PATH, "progress", crate::sep::PATH),
+        ADVANCEMENT = crate::concatcp!(PLANE, "advancement"),
     }
 
     /// `yog:event/block/…`.
     event_block {
-        PLANE = concatcp!(event::PREFIX, "block", sep::PATH),
-        BREAK = concatcp!(PLANE, "break"),
-        BREAK_PRE = concatcp!(BREAK, event::PRE),
-        PLACE = concatcp!(PLANE, "place"),
-        PLACE_PRE = concatcp!(PLACE, event::PRE),
-        USE = concatcp!(PLANE, "use"),
-        USE_PRE = concatcp!(USE, event::PRE),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "block", crate::sep::PATH),
+        BREAK = crate::concatcp!(PLANE, "break"),
+        BREAK_PRE = crate::concatcp!(BREAK, crate::event::PRE),
+        PLACE = crate::concatcp!(PLANE, "place"),
+        PLACE_PRE = crate::concatcp!(PLACE, crate::event::PRE),
+        USE = crate::concatcp!(PLANE, "use"),
+        USE_PRE = crate::concatcp!(USE, crate::event::PRE),
     }
 
     /// `yog:event/entity/life/…`.
     event_entity_life {
-        PLANE = concatcp!(event::PREFIX, "entity", sep::PATH, "life", sep::PATH),
-        SPAWN = concatcp!(PLANE, "spawn"),
-        SPAWN_PRE = concatcp!(SPAWN, event::PRE),
-        DEATH = concatcp!(PLANE, "death"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "entity", crate::sep::PATH, "life", crate::sep::PATH),
+        SPAWN = crate::concatcp!(PLANE, "spawn"),
+        SPAWN_PRE = crate::concatcp!(SPAWN, crate::event::PRE),
+        DEATH = crate::concatcp!(PLANE, "death"),
     }
 
     /// `yog:event/entity/combat/…`.
     event_entity_combat {
-        PLANE = concatcp!(event::PREFIX, "entity", sep::PATH, "combat", sep::PATH),
-        DAMAGE = concatcp!(PLANE, "damage"),
-        DAMAGE_PRE = concatcp!(DAMAGE, event::PRE),
-        PROJECTILE_HIT = concatcp!(PLANE, "projectile_hit"),
-        PROJECTILE_HIT_PRE = concatcp!(PROJECTILE_HIT, event::PRE),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "entity", crate::sep::PATH, "combat", crate::sep::PATH),
+        DAMAGE = crate::concatcp!(PLANE, "damage"),
+        DAMAGE_PRE = crate::concatcp!(DAMAGE, crate::event::PRE),
+        PROJECTILE_HIT = crate::concatcp!(PLANE, "projectile_hit"),
+        PROJECTILE_HIT_PRE = crate::concatcp!(PROJECTILE_HIT, crate::event::PRE),
     }
 
     /// `yog:event/entity/game/…`; keyed by the entity's type.
     event_entity_game {
-        PLANE = concatcp!(event::PREFIX, "entity", sep::PATH, "game", sep::PATH),
-        TICK = concatcp!(PLANE, "tick"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "entity", crate::sep::PATH, "game", crate::sep::PATH),
+        TICK = crate::concatcp!(PLANE, "tick"),
     }
 
     /// `yog:event/world/…`.
     event_world {
-        PLANE = concatcp!(event::PREFIX, "world", sep::PATH),
-        EXPLOSION = concatcp!(PLANE, "explosion"),
-        EXPLOSION_PRE = concatcp!(EXPLOSION, event::PRE),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "world", crate::sep::PATH),
+        EXPLOSION = crate::concatcp!(PLANE, "explosion"),
+        EXPLOSION_PRE = crate::concatcp!(EXPLOSION, crate::event::PRE),
     }
 
     /// `yog:event/world/generation/…`; keyed by the generator type.
     event_world_generation {
-        PLANE = concatcp!(event::PREFIX, "world", sep::PATH, "generation", sep::PATH),
-        CHUNK = concatcp!(PLANE, "chunk"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "world", crate::sep::PATH, "generation", crate::sep::PATH),
+        CHUNK = crate::concatcp!(PLANE, "chunk"),
     }
 
     /// `yog:event/world/loot/…`.
     event_world_loot {
-        PLANE = concatcp!(event::PREFIX, "world", sep::PATH, "loot", sep::PATH),
-        ROLL = concatcp!(PLANE, "roll"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "world", crate::sep::PATH, "loot", crate::sep::PATH),
+        ROLL = crate::concatcp!(PLANE, "roll"),
     }
 
     /// `yog:event/container/…`.
     event_container {
-        PLANE = concatcp!(event::PREFIX, "container", sep::PATH),
-        OPEN = concatcp!(PLANE, "open"),
-        OPEN_PRE = concatcp!(OPEN, event::PRE),
-        CLOSE = concatcp!(PLANE, "close"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "container", crate::sep::PATH),
+        OPEN = crate::concatcp!(PLANE, "open"),
+        OPEN_PRE = crate::concatcp!(OPEN, crate::event::PRE),
+        CLOSE = crate::concatcp!(PLANE, "close"),
     }
 
     /// `yog:event/container/machine/…`.
     event_container_machine {
-        PLANE = concatcp!(event::PREFIX, "container", sep::PATH, "machine", sep::PATH),
-        CRAFT = concatcp!(PLANE, "craft"),
-        CRAFT_PRE = concatcp!(CRAFT, event::PRE),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "container", crate::sep::PATH, "machine", crate::sep::PATH),
+        CRAFT = crate::concatcp!(PLANE, "craft"),
+        CRAFT_PRE = crate::concatcp!(CRAFT, crate::event::PRE),
     }
 
     /// `yog:event/server/game/…`.
     event_server_game {
-        PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "game", sep::PATH),
-        TICK = concatcp!(PLANE, "tick"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "server", crate::sep::PATH, "game", crate::sep::PATH),
+        TICK = crate::concatcp!(PLANE, "tick"),
     }
 
     /// `yog:event/server/life/…`.
     event_server_life {
-        PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "life", sep::PATH),
-        STARTED = concatcp!(PLANE, "started"),
-        STOPPING = concatcp!(PLANE, "stopping"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "server", crate::sep::PATH, "life", crate::sep::PATH),
+        STARTED = crate::concatcp!(PLANE, "started"),
+        STOPPING = crate::concatcp!(PLANE, "stopping"),
     }
 
     /// `yog:event/server/command/…`; keyed by the command's name.
     event_server_command {
-        PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "command", sep::PATH),
-        RUN = concatcp!(PLANE, "run"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "server", crate::sep::PATH, "command", crate::sep::PATH),
+        RUN = crate::concatcp!(PLANE, "run"),
     }
 
     /// `yog:event/server/net/…`; keyed by channel.
     event_server_net {
-        PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "net", sep::PATH),
-        PACKET = concatcp!(PLANE, "packet"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "server", crate::sep::PATH, "net", crate::sep::PATH),
+        PACKET = crate::concatcp!(PLANE, "packet"),
     }
 
     /// `yog:event/client/game/…`.
     event_client_game {
-        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "game", sep::PATH),
-        TICK = concatcp!(PLANE, "tick"),
-        TRAVEL = concatcp!(PLANE, "travel"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "client", crate::sep::PATH, "game", crate::sep::PATH),
+        TICK = crate::concatcp!(PLANE, "tick"),
+        TRAVEL = crate::concatcp!(PLANE, "travel"),
     }
 
     /// `yog:event/client/input/…`.
     event_client_input {
-        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "input", sep::PATH),
-        KEY = concatcp!(PLANE, "key"),
-        KEY_PRE = concatcp!(KEY, event::PRE),
-        BINDING = concatcp!(PLANE, "binding"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "client", crate::sep::PATH, "input", crate::sep::PATH),
+        KEY = crate::concatcp!(PLANE, "key"),
+        KEY_PRE = crate::concatcp!(KEY, crate::event::PRE),
+        BINDING = crate::concatcp!(PLANE, "binding"),
     }
 
     /// `yog:event/client/ui/…`.
     event_client_ui {
-        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "ui", sep::PATH),
-        OPEN = concatcp!(PLANE, "open"),
-        CLOSE = concatcp!(PLANE, "close"),
-        INPUT = concatcp!(PLANE, "input"),
-        INPUT_PRE = concatcp!(INPUT, event::PRE),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "client", crate::sep::PATH, "ui", crate::sep::PATH),
+        OPEN = crate::concatcp!(PLANE, "open"),
+        CLOSE = crate::concatcp!(PLANE, "close"),
+        INPUT = crate::concatcp!(PLANE, "input"),
+        INPUT_PRE = crate::concatcp!(INPUT, crate::event::PRE),
     }
 
     /// `yog:event/client/render/…`.
     event_client_render {
-        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "render", sep::PATH),
-        HUD = concatcp!(PLANE, "hud"),
-        WORLD = concatcp!(PLANE, "world"),
-        UI = concatcp!(PLANE, "ui"),
-        TOOLTIP = concatcp!(PLANE, "tooltip"),
-        PAGE = concatcp!(PLANE, "page"),
-        CAMERA = concatcp!(PLANE, "camera"),
-        BODY = concatcp!(PLANE, "body"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "client", crate::sep::PATH, "render", crate::sep::PATH),
+        HUD = crate::concatcp!(PLANE, "hud"),
+        WORLD = crate::concatcp!(PLANE, "world"),
+        UI = crate::concatcp!(PLANE, "ui"),
+        TOOLTIP = crate::concatcp!(PLANE, "tooltip"),
+        PAGE = crate::concatcp!(PLANE, "page"),
+        CAMERA = crate::concatcp!(PLANE, "camera"),
+        BODY = crate::concatcp!(PLANE, "body"),
     }
 
     /// `yog:event/client/net/…`; keyed by channel.
     event_client_net {
-        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "net", sep::PATH),
-        PACKET = concatcp!(PLANE, "packet"),
+        PLANE = crate::concatcp!(crate::event::PREFIX, "client", crate::sep::PATH, "net", crate::sep::PATH),
+        PACKET = crate::concatcp!(PLANE, "packet"),
     }
 }

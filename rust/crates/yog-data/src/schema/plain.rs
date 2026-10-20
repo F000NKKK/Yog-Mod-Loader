@@ -1,7 +1,8 @@
 //! The schemas of plain types: numbers, strings, lists, maps.
-
-#[allow(unused_imports)] // each part uses some of the module's names
-use super::*;
+use super::{
+    BTreeMap, Decoder, HashMap, Packer, Reader, Schema, Seg, Shape, Unpacker, Value, ValueRef,
+    Writer, is_metadata_key, typed,
+};
 
 /// What a typed value's string starts with (`@item:…`).
 fn typed_mark() -> char {

@@ -1,6 +1,6 @@
 //! Yog's file formats and where files live.
 
-use crate::*;
+use crate::{kind, ns, res, sep, yog};
 
 macro_rules! formats {
     ($( $(#[$doc:meta])* $variant:ident = $ext:expr, $noun:expr; )*) => {

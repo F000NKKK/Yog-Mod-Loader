@@ -1,7 +1,6 @@
 //! Shapes: what a format looks like.
 
-use super::*;
-#[allow(unused_imports)] // each part uses some of the module's names
+use super::{Map, Value};
 use yog_ids::shape_kind as kind;
 
 // ── Shapes ──────────────────────────────────────────────────────────────────

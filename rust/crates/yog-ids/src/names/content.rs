@@ -5,7 +5,7 @@ names! {
     /// A `.yres` entry's type (`{ "type": "sound", ... }`).
     res_kind {
         STRING = "string",
-        IMAGE = typed::IMAGE,
+        IMAGE = crate::typed::IMAGE,
         FILE = "file",
         SOUND = "sound",
         COLOR = "color",
@@ -15,8 +15,8 @@ names! {
 
     /// What an image source starts with (`item:apple`).
     image_scheme {
-        ITEM = kind::ITEM,
-        BLOCK = kind::BLOCK,
+        ITEM = crate::kind::ITEM,
+        BLOCK = crate::kind::BLOCK,
         SPRITE = "sprite",
         MOD = "mod",
     }
@@ -83,35 +83,35 @@ names! {
     /// Where the game keeps resources, and what their files end with.
     res {
         /// The textures' folder: `<ns>:textures/<path>.png`.
-        TEXTURES = concatcp!("textures", sep::PATH),
+        TEXTURES = crate::concatcp!("textures", crate::sep::PATH),
         /// The models' folder: `<ns>:models/<path>.json`.
-        MODELS = concatcp!("models", sep::PATH),
+        MODELS = crate::concatcp!("models", crate::sep::PATH),
         /// The block states' folder: `<ns>:blockstates/<path>.json`.
-        BLOCKSTATES = concatcp!("blockstates", sep::PATH),
+        BLOCKSTATES = crate::concatcp!("blockstates", crate::sep::PATH),
         /// Items' textures and models: `item/apple`.
-        ITEM_DIR = concatcp!(kind::ITEM, sep::PATH),
+        ITEM_DIR = crate::concatcp!(crate::kind::ITEM, crate::sep::PATH),
         /// Item definitions (1.21.4+): `<ns>:items/<path>.json`.
-        ITEM_DEFINITIONS = concatcp!("items", sep::PATH),
+        ITEM_DEFINITIONS = crate::concatcp!("items", crate::sep::PATH),
         /// Equipment's worn looks (1.21.4+): `<ns>:equipment/<path>.json`.
-        EQUIPMENT = concatcp!("equipment", sep::PATH),
+        EQUIPMENT = crate::concatcp!("equipment", crate::sep::PATH),
         /// Worn equipment's textures (1.21.4+): `entity/equipment/<layer>/<path>`.
-        EQUIPMENT_TEXTURES = concatcp!("entity", sep::PATH, "equipment", sep::PATH),
+        EQUIPMENT_TEXTURES = crate::concatcp!("entity", crate::sep::PATH, "equipment", crate::sep::PATH),
         /// Armor's worn textures before 1.21.4: `models/armor/<path>_layer_<n>`.
-        ARMOR_TEXTURES = concatcp!("models", sep::PATH, "armor", sep::PATH),
+        ARMOR_TEXTURES = crate::concatcp!("models", crate::sep::PATH, "armor", crate::sep::PATH),
         /// Between an armor texture's name and its layer's number.
         ARMOR_LAYER = "_layer_",
         /// What a spawn egg's item path ends with: `<mob>_spawn_egg`.
         SPAWN_EGG_SUFFIX = "_spawn_egg",
         /// Blocks' textures and models: `block/stone`.
-        BLOCK_DIR = concatcp!(kind::BLOCK, sep::PATH),
+        BLOCK_DIR = crate::concatcp!(crate::kind::BLOCK, crate::sep::PATH),
         /// The GUI atlas's sprites under `textures/` (1.20.2+).
-        GUI_SPRITES = concatcp!("gui", sep::PATH, "sprites", sep::PATH),
+        GUI_SPRITES = crate::concatcp!("gui", crate::sep::PATH, "sprites", crate::sep::PATH),
         /// The atlases' definitions: `<ns>:atlases/<atlas>.json` (every pack's sources combine).
-        ATLASES = concatcp!("atlases", sep::PATH),
+        ATLASES = crate::concatcp!("atlases", crate::sep::PATH),
         /// The language files' folder: `<ns>:lang/<locale>.json`.
-        LANG = concatcp!("lang", sep::PATH),
+        LANG = crate::concatcp!("lang", crate::sep::PATH),
         /// Models the game draws in code (`builtin/entity`), not from elements.
-        BUILTIN = concatcp!("builtin", sep::PATH),
+        BUILTIN = crate::concatcp!("builtin", crate::sep::PATH),
         PNG = ".png",
         SVG = ".svg",
         JSON = ".json",
@@ -121,42 +121,42 @@ names! {
     /// Yog's own ids.
     yog {
         /// An entity's data the hosts keep for the mods.
-        STATE = id!(ns::YOG, "state"),
+        STATE = crate::id!(crate::ns::YOG, "state"),
         /// A hanging entity's attachment (its face, size, item).
-        HANGING = id!(ns::YOG, "hanging"),
+        HANGING = crate::id!(crate::ns::YOG, "hanging"),
         /// The channel entity data is synced on.
-        ENTITY_DATA = id!(ns::YOG, "entity_data"),
+        ENTITY_DATA = crate::id!(crate::ns::YOG, "entity_data"),
         /// The entity data key an entity's own hitbox travels under: width,
         /// height, eye height as three little-endian f32.
-        DIMENSIONS = id!(ns::YOG, "dimensions"),
+        DIMENSIONS = crate::id!(crate::ns::YOG, "dimensions"),
         /// An inventory slot widget's id: `yog:slot:<index>`.
-        SLOT_PREFIX = id!(ns::YOG, "slot:"),
+        SLOT_PREFIX = crate::id!(crate::ns::YOG, "slot:"),
         /// The player's inventory widget.
-        PLAYER_INVENTORY = id!(ns::YOG, "player_inventory"),
+        PLAYER_INVENTORY = crate::id!(crate::ns::YOG, "player_inventory"),
         /// A machine screen's id: `yog:machine:<id>`.
-        MACHINE_PREFIX = id!(ns::YOG, "machine:"),
+        MACHINE_PREFIX = crate::id!(crate::ns::YOG, "machine:"),
         /// Yog's alias of a game potion: `yog:potion/<name>`.
-        POTION_ALIAS = id!(ns::YOG, "potion/"),
+        POTION_ALIAS = crate::id!(crate::ns::YOG, "potion/"),
         /// Yog's alias of a game font, `yog:font/<name>` — the only way
         /// anything names one of the game's fonts.
-        FONT_ALIAS = id!(ns::YOG, "font/"),
+        FONT_ALIAS = crate::id!(crate::ns::YOG, "font/"),
         /// The font text is drawn in by default (the game's).
-        DEFAULT_FONT = concatcp!(FONT_ALIAS, game_font::DEFAULT),
+        DEFAULT_FONT = crate::concatcp!(FONT_ALIAS, crate::game_font::DEFAULT),
         /// The model every mod's spawn egg inherits: Yog's egg in two layers, base and spots.
-        SPAWN_EGG_MODEL = id!(ns::YOG, "item/spawn_egg"),
+        SPAWN_EGG_MODEL = crate::id!(crate::ns::YOG, "item/spawn_egg"),
         /// The book's pictures.
-        BOOK_SHEET = id!(ns::YOG, "gui/book/book"),
-        CRAFTING_SHEET = id!(ns::YOG, "gui/book/crafting"),
+        BOOK_SHEET = crate::id!(crate::ns::YOG, "gui/book/book"),
+        CRAFTING_SHEET = crate::id!(crate::ns::YOG, "gui/book/crafting"),
         /// A screen being designed in the IDE.
-        DESIGNER_SCREEN = id!(ns::YOG, "designer"),
+        DESIGNER_SCREEN = crate::id!(crate::ns::YOG, "designer"),
         /// A book's default texture (its sheet is [`BOOK_SHEET`]).
-        BOOK_TEXTURE = id!(ns::YOG, "gui/book"),
+        BOOK_TEXTURE = crate::id!(crate::ns::YOG, "gui/book"),
         /// An image source that draws nothing (a bare surface).
-        NO_IMAGE = id!(ns::YOG, "none"),
+        NO_IMAGE = crate::id!(crate::ns::YOG, "none"),
         /// The textures the runtime renders SVG images into: `<prefix><key>_<w>x<h>`.
-        DYNAMIC_SVG_PREFIX = id!(ns::YOG, "dynamic/svg_"),
+        DYNAMIC_SVG_PREFIX = crate::id!(crate::ns::YOG, "dynamic/svg_"),
         /// The textures the runtime draws text in Yog's fonts into: `<prefix><n>`.
-        DYNAMIC_TEXT_PREFIX = id!(ns::YOG, "dynamic/text_"),
+        DYNAMIC_TEXT_PREFIX = crate::id!(crate::ns::YOG, "dynamic/text_"),
     }
 
     /// The game's fonts, by name: Yog aliases each as
@@ -174,21 +174,21 @@ names! {
     game {
         /// The game's own id of its default font (hosts only; everything
         /// else says [`crate::yog::DEFAULT_FONT`]).
-        DEFAULT_FONT = id!(ns::MINECRAFT, game_font::DEFAULT),
+        DEFAULT_FONT = crate::id!(crate::ns::MINECRAFT, crate::game_font::DEFAULT),
         /// The UI theme drawn like the game's own screens.
-        VANILLA_THEME = id!(ns::MINECRAFT, "vanilla"),
-        OVERWORLD = id!(ns::MINECRAFT, "overworld"),
+        VANILLA_THEME = crate::id!(crate::ns::MINECRAFT, "vanilla"),
+        OVERWORLD = crate::id!(crate::ns::MINECRAFT, "overworld"),
         /// The biome a dimension is all of when it doesn't say.
-        PLAINS = id!(ns::MINECRAFT, "plains"),
-        THE_NETHER = id!(ns::MINECRAFT, "the_nether"),
-        THE_END = id!(ns::MINECRAFT, "the_end"),
+        PLAINS = crate::id!(crate::ns::MINECRAFT, "plains"),
+        THE_NETHER = crate::id!(crate::ns::MINECRAFT, "the_nether"),
+        THE_END = crate::id!(crate::ns::MINECRAFT, "the_end"),
         /// The block tags of what each kind of tool mines: `<MINEABLE><kind>`.
-        MINEABLE = id!(ns::MINECRAFT, "mineable/"),
+        MINEABLE = crate::id!(crate::ns::MINECRAFT, "mineable/"),
         /// The texture the game draws where one is missing.
-        MISSING_TEXTURE = id!(ns::MINECRAFT, "missingno"),
+        MISSING_TEXTURE = crate::id!(crate::ns::MINECRAFT, "missingno"),
         /// What a book is given to players as.
-        WRITTEN_BOOK = id!(ns::MINECRAFT, "written_book"),
-        BOOK = id!(ns::MINECRAFT, "book"),
+        WRITTEN_BOOK = crate::id!(crate::ns::MINECRAFT, "written_book"),
+        BOOK = crate::id!(crate::ns::MINECRAFT, "book"),
         /// The language every lang file falls back to, and a mod's texts are written in.
         LOCALE = "en_us",
     }

@@ -5,197 +5,197 @@
 names! {
     service {
         /// What every service address starts with.
-        PREFIX = concatcp!(ns::YOG, sep::NAMESPACE),
+        PREFIX = crate::concatcp!(crate::ns::YOG, crate::sep::NAMESPACE),
     }
 
     /// `yog:block/…`: blocks.
     service_block {
-        DOMAIN = concatcp!(service::PREFIX, "block", sep::PATH),
-        INSERT = concatcp!(DOMAIN, "insert"),
-        NBT = concatcp!(DOMAIN, "nbt"),
-        SET_NBT = concatcp!(DOMAIN, "set_nbt"),
-        STATE = concatcp!(DOMAIN, "state"),
-        SET_STATE = concatcp!(DOMAIN, "set_state"),
-        INFO = concatcp!(DOMAIN, "info"),
-        DESTROY = concatcp!(DOMAIN, "destroy"),
-        BONEMEAL = concatcp!(DOMAIN, "bonemeal"),
-        USE_ITEM = concatcp!(DOMAIN, "use_item"),
-        POUR_FLUID = concatcp!(DOMAIN, "pour_fluid"),
-        REDSTONE_POWER = concatcp!(DOMAIN, "redstone_power"),
-        REDSTONE_SIGNAL = concatcp!(DOMAIN, "redstone_signal"),
-        SET_REDSTONE_OUTPUT = concatcp!(DOMAIN, "set_redstone_output"),
-        INVENTORY_SLOT = concatcp!(DOMAIN, "inventory_slot"),
-        SET_INVENTORY_SLOT = concatcp!(DOMAIN, "set_inventory_slot"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "block", crate::sep::PATH),
+        INSERT = crate::concatcp!(DOMAIN, "insert"),
+        NBT = crate::concatcp!(DOMAIN, "nbt"),
+        SET_NBT = crate::concatcp!(DOMAIN, "set_nbt"),
+        STATE = crate::concatcp!(DOMAIN, "state"),
+        SET_STATE = crate::concatcp!(DOMAIN, "set_state"),
+        INFO = crate::concatcp!(DOMAIN, "info"),
+        DESTROY = crate::concatcp!(DOMAIN, "destroy"),
+        BONEMEAL = crate::concatcp!(DOMAIN, "bonemeal"),
+        USE_ITEM = crate::concatcp!(DOMAIN, "use_item"),
+        POUR_FLUID = crate::concatcp!(DOMAIN, "pour_fluid"),
+        REDSTONE_POWER = crate::concatcp!(DOMAIN, "redstone_power"),
+        REDSTONE_SIGNAL = crate::concatcp!(DOMAIN, "redstone_signal"),
+        SET_REDSTONE_OUTPUT = crate::concatcp!(DOMAIN, "set_redstone_output"),
+        INVENTORY_SLOT = crate::concatcp!(DOMAIN, "inventory_slot"),
+        SET_INVENTORY_SLOT = crate::concatcp!(DOMAIN, "set_inventory_slot"),
     }
 
     /// `yog:item/…`: items and item stacks.
     service_item {
-        DOMAIN = concatcp!(service::PREFIX, "item", sep::PATH),
-        TEXT = concatcp!(DOMAIN, "text"),
-        PICTURE = concatcp!(DOMAIN, "picture"),
-        SPAWN = concatcp!(DOMAIN, "spawn"),
-        ENTITY_STACK = concatcp!(DOMAIN, "entity_stack"),
-        SET_ENTITY_STACK = concatcp!(DOMAIN, "set_entity_stack"),
-        BLOCK = concatcp!(DOMAIN, "block"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "item", crate::sep::PATH),
+        TEXT = crate::concatcp!(DOMAIN, "text"),
+        PICTURE = crate::concatcp!(DOMAIN, "picture"),
+        SPAWN = crate::concatcp!(DOMAIN, "spawn"),
+        ENTITY_STACK = crate::concatcp!(DOMAIN, "entity_stack"),
+        SET_ENTITY_STACK = crate::concatcp!(DOMAIN, "set_entity_stack"),
+        BLOCK = crate::concatcp!(DOMAIN, "block"),
     }
 
     /// `yog:world/…`: a world.
     service_world {
-        DOMAIN = concatcp!(service::PREFIX, "world", sep::PATH),
-        GET_BLOCK = concatcp!(DOMAIN, "get_block"),
-        SET_BLOCK = concatcp!(DOMAIN, "set_block"),
-        TIME = concatcp!(DOMAIN, "time"),
-        SET_TIME = concatcp!(DOMAIN, "set_time"),
-        IS_RAINING = concatcp!(DOMAIN, "is_raining"),
-        SET_WEATHER = concatcp!(DOMAIN, "set_weather"),
-        IS_THUNDERING = concatcp!(DOMAIN, "is_thundering"),
-        SET_THUNDER = concatcp!(DOMAIN, "set_thunder"),
-        FILL_REGION = concatcp!(DOMAIN, "fill_region"),
-        SCAN_REGION = concatcp!(DOMAIN, "scan_region"),
-        PLACE_FEATURE = concatcp!(DOMAIN, "place_feature"),
-        EXPLODE = concatcp!(DOMAIN, "explode"),
-        DROP_LOOT = concatcp!(DOMAIN, "drop_loot"),
-        ENTITY_COUNT = concatcp!(DOMAIN, "entity_count"),
-        ENTITIES_IN_BOX = concatcp!(DOMAIN, "entities_in_box"),
-        RAYCAST_BLOCK = concatcp!(DOMAIN, "raycast_block"),
-        RAYCAST_ENTITY = concatcp!(DOMAIN, "raycast_entity"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "world", crate::sep::PATH),
+        GET_BLOCK = crate::concatcp!(DOMAIN, "get_block"),
+        SET_BLOCK = crate::concatcp!(DOMAIN, "set_block"),
+        TIME = crate::concatcp!(DOMAIN, "time"),
+        SET_TIME = crate::concatcp!(DOMAIN, "set_time"),
+        IS_RAINING = crate::concatcp!(DOMAIN, "is_raining"),
+        SET_WEATHER = crate::concatcp!(DOMAIN, "set_weather"),
+        IS_THUNDERING = crate::concatcp!(DOMAIN, "is_thundering"),
+        SET_THUNDER = crate::concatcp!(DOMAIN, "set_thunder"),
+        FILL_REGION = crate::concatcp!(DOMAIN, "fill_region"),
+        SCAN_REGION = crate::concatcp!(DOMAIN, "scan_region"),
+        PLACE_FEATURE = crate::concatcp!(DOMAIN, "place_feature"),
+        EXPLODE = crate::concatcp!(DOMAIN, "explode"),
+        DROP_LOOT = crate::concatcp!(DOMAIN, "drop_loot"),
+        ENTITY_COUNT = crate::concatcp!(DOMAIN, "entity_count"),
+        ENTITIES_IN_BOX = crate::concatcp!(DOMAIN, "entities_in_box"),
+        RAYCAST_BLOCK = crate::concatcp!(DOMAIN, "raycast_block"),
+        RAYCAST_ENTITY = crate::concatcp!(DOMAIN, "raycast_entity"),
     }
 
     /// `yog:chat/…`: messages to players.
     service_chat {
-        DOMAIN = concatcp!(service::PREFIX, "chat", sep::PATH),
-        BROADCAST = concatcp!(DOMAIN, "broadcast"),
-        TELLRAW = concatcp!(DOMAIN, "tellraw"),
-        TITLE = concatcp!(DOMAIN, "title"),
-        ACTIONBAR = concatcp!(DOMAIN, "actionbar"),
-        ACTIONBAR_JSON = concatcp!(DOMAIN, "actionbar_json"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "chat", crate::sep::PATH),
+        BROADCAST = crate::concatcp!(DOMAIN, "broadcast"),
+        TELLRAW = crate::concatcp!(DOMAIN, "tellraw"),
+        TITLE = crate::concatcp!(DOMAIN, "title"),
+        ACTIONBAR = crate::concatcp!(DOMAIN, "actionbar"),
+        ACTIONBAR_JSON = crate::concatcp!(DOMAIN, "actionbar_json"),
     }
 
     /// `yog:player/…`: players.
     service_player {
-        DOMAIN = concatcp!(service::PREFIX, "player", sep::PATH),
-        GIVE_ITEM = concatcp!(DOMAIN, "give_item"),
-        TELEPORT = concatcp!(DOMAIN, "teleport"),
-        TELEPORT_TO_DIM = concatcp!(DOMAIN, "teleport_to_dim"),
-        KICK = concatcp!(DOMAIN, "kick"),
-        SET_GAMEMODE = concatcp!(DOMAIN, "set_gamemode"),
-        INVENTORY = concatcp!(DOMAIN, "inventory"),
-        SET_SLOT = concatcp!(DOMAIN, "set_slot"),
-        HELD_ITEM_NBT = concatcp!(DOMAIN, "held_item_nbt"),
-        SET_HELD_ITEM_NBT = concatcp!(DOMAIN, "set_held_item_nbt"),
-        OFFHAND_ITEM_NBT = concatcp!(DOMAIN, "offhand_item_nbt"),
-        SET_OFFHAND_ITEM_NBT = concatcp!(DOMAIN, "set_offhand_item_nbt"),
-        SLOT_ITEM = concatcp!(DOMAIN, "slot_item"),
-        SET_SLOT_ITEM = concatcp!(DOMAIN, "set_slot_item"),
-        ADD_XP = concatcp!(DOMAIN, "add_xp"),
-        SET_MAY_FLY = concatcp!(DOMAIN, "set_may_fly"),
-        INFO = concatcp!(DOMAIN, "info"),
-        SET_ITEM_COOLDOWN = concatcp!(DOMAIN, "set_item_cooldown"),
-        PLACE_BLOCK_FROM_SLOT = concatcp!(DOMAIN, "place_block_from_slot"),
-        ONLINE = concatcp!(DOMAIN, "online"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "player", crate::sep::PATH),
+        GIVE_ITEM = crate::concatcp!(DOMAIN, "give_item"),
+        TELEPORT = crate::concatcp!(DOMAIN, "teleport"),
+        TELEPORT_TO_DIM = crate::concatcp!(DOMAIN, "teleport_to_dim"),
+        KICK = crate::concatcp!(DOMAIN, "kick"),
+        SET_GAMEMODE = crate::concatcp!(DOMAIN, "set_gamemode"),
+        INVENTORY = crate::concatcp!(DOMAIN, "inventory"),
+        SET_SLOT = crate::concatcp!(DOMAIN, "set_slot"),
+        HELD_ITEM_NBT = crate::concatcp!(DOMAIN, "held_item_nbt"),
+        SET_HELD_ITEM_NBT = crate::concatcp!(DOMAIN, "set_held_item_nbt"),
+        OFFHAND_ITEM_NBT = crate::concatcp!(DOMAIN, "offhand_item_nbt"),
+        SET_OFFHAND_ITEM_NBT = crate::concatcp!(DOMAIN, "set_offhand_item_nbt"),
+        SLOT_ITEM = crate::concatcp!(DOMAIN, "slot_item"),
+        SET_SLOT_ITEM = crate::concatcp!(DOMAIN, "set_slot_item"),
+        ADD_XP = crate::concatcp!(DOMAIN, "add_xp"),
+        SET_MAY_FLY = crate::concatcp!(DOMAIN, "set_may_fly"),
+        INFO = crate::concatcp!(DOMAIN, "info"),
+        SET_ITEM_COOLDOWN = crate::concatcp!(DOMAIN, "set_item_cooldown"),
+        PLACE_BLOCK_FROM_SLOT = crate::concatcp!(DOMAIN, "place_block_from_slot"),
+        ONLINE = crate::concatcp!(DOMAIN, "online"),
     }
 
     /// `yog:net/…`: the network.
     service_net {
-        DOMAIN = concatcp!(service::PREFIX, "net", sep::PATH),
-        SEND_TO_PLAYER = concatcp!(DOMAIN, "send_to_player"),
-        SEND_TO_SERVER = concatcp!(DOMAIN, "send_to_server"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "net", crate::sep::PATH),
+        SEND_TO_PLAYER = crate::concatcp!(DOMAIN, "send_to_player"),
+        SEND_TO_SERVER = crate::concatcp!(DOMAIN, "send_to_server"),
     }
 
     /// `yog:sound/…`: sounds.
     service_sound {
-        DOMAIN = concatcp!(service::PREFIX, "sound", sep::PATH),
-        PLAY = concatcp!(DOMAIN, "play"),
-        PLAY_TO_PLAYER = concatcp!(DOMAIN, "play_to_player"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "sound", crate::sep::PATH),
+        PLAY = crate::concatcp!(DOMAIN, "play"),
+        PLAY_TO_PLAYER = crate::concatcp!(DOMAIN, "play_to_player"),
     }
 
     /// `yog:particle/…`: particles.
     service_particle {
-        DOMAIN = concatcp!(service::PREFIX, "particle", sep::PATH),
-        SPAWN = concatcp!(DOMAIN, "spawn"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "particle", crate::sep::PATH),
+        SPAWN = crate::concatcp!(DOMAIN, "spawn"),
     }
 
     /// `yog:entity/…`: entities.
     service_entity {
-        DOMAIN = concatcp!(service::PREFIX, "entity", sep::PATH),
-        TELEPORT = concatcp!(DOMAIN, "teleport"),
-        TELEPORT_TO_DIM = concatcp!(DOMAIN, "teleport_to_dim"),
-        POSITION = concatcp!(DOMAIN, "position"),
-        ROTATION = concatcp!(DOMAIN, "rotation"),
-        VELOCITY = concatcp!(DOMAIN, "velocity"),
-        SET_VELOCITY = concatcp!(DOMAIN, "set_velocity"),
-        ADD_VELOCITY = concatcp!(DOMAIN, "add_velocity"),
-        HEALTH = concatcp!(DOMAIN, "health"),
-        SET_HEALTH = concatcp!(DOMAIN, "set_health"),
-        KILL = concatcp!(DOMAIN, "kill"),
-        SPAWN = concatcp!(DOMAIN, "spawn"),
-        ADD_EFFECT = concatcp!(DOMAIN, "add_effect"),
-        REMOVE_EFFECT = concatcp!(DOMAIN, "remove_effect"),
-        CLEAR_EFFECTS = concatcp!(DOMAIN, "clear_effects"),
-        NBT = concatcp!(DOMAIN, "nbt"),
-        SET_NBT = concatcp!(DOMAIN, "set_nbt"),
-        ATTRIBUTE_BASE = concatcp!(DOMAIN, "attribute_base"),
-        SET_ATTRIBUTE_BASE = concatcp!(DOMAIN, "set_attribute_base"),
-        ATTRIBUTE_VALUE = concatcp!(DOMAIN, "attribute_value"),
-        INFO = concatcp!(DOMAIN, "info"),
-        DAMAGE = concatcp!(DOMAIN, "damage"),
-        SET_FIRE_TICKS = concatcp!(DOMAIN, "set_fire_ticks"),
-        VEHICLE = concatcp!(DOMAIN, "vehicle"),
-        PASSENGERS = concatcp!(DOMAIN, "passengers"),
-        MOUNT = concatcp!(DOMAIN, "mount"),
-        DISMOUNT = concatcp!(DOMAIN, "dismount"),
-        SET_FALL_DISTANCE = concatcp!(DOMAIN, "set_fall_distance"),
-        SET_DIMENSIONS = concatcp!(DOMAIN, "set_dimensions"),
-        DATA = concatcp!(DOMAIN, "data"),
-        SET_DATA = concatcp!(DOMAIN, "set_data"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "entity", crate::sep::PATH),
+        TELEPORT = crate::concatcp!(DOMAIN, "teleport"),
+        TELEPORT_TO_DIM = crate::concatcp!(DOMAIN, "teleport_to_dim"),
+        POSITION = crate::concatcp!(DOMAIN, "position"),
+        ROTATION = crate::concatcp!(DOMAIN, "rotation"),
+        VELOCITY = crate::concatcp!(DOMAIN, "velocity"),
+        SET_VELOCITY = crate::concatcp!(DOMAIN, "set_velocity"),
+        ADD_VELOCITY = crate::concatcp!(DOMAIN, "add_velocity"),
+        HEALTH = crate::concatcp!(DOMAIN, "health"),
+        SET_HEALTH = crate::concatcp!(DOMAIN, "set_health"),
+        KILL = crate::concatcp!(DOMAIN, "kill"),
+        SPAWN = crate::concatcp!(DOMAIN, "spawn"),
+        ADD_EFFECT = crate::concatcp!(DOMAIN, "add_effect"),
+        REMOVE_EFFECT = crate::concatcp!(DOMAIN, "remove_effect"),
+        CLEAR_EFFECTS = crate::concatcp!(DOMAIN, "clear_effects"),
+        NBT = crate::concatcp!(DOMAIN, "nbt"),
+        SET_NBT = crate::concatcp!(DOMAIN, "set_nbt"),
+        ATTRIBUTE_BASE = crate::concatcp!(DOMAIN, "attribute_base"),
+        SET_ATTRIBUTE_BASE = crate::concatcp!(DOMAIN, "set_attribute_base"),
+        ATTRIBUTE_VALUE = crate::concatcp!(DOMAIN, "attribute_value"),
+        INFO = crate::concatcp!(DOMAIN, "info"),
+        DAMAGE = crate::concatcp!(DOMAIN, "damage"),
+        SET_FIRE_TICKS = crate::concatcp!(DOMAIN, "set_fire_ticks"),
+        VEHICLE = crate::concatcp!(DOMAIN, "vehicle"),
+        PASSENGERS = crate::concatcp!(DOMAIN, "passengers"),
+        MOUNT = crate::concatcp!(DOMAIN, "mount"),
+        DISMOUNT = crate::concatcp!(DOMAIN, "dismount"),
+        SET_FALL_DISTANCE = crate::concatcp!(DOMAIN, "set_fall_distance"),
+        SET_DIMENSIONS = crate::concatcp!(DOMAIN, "set_dimensions"),
+        DATA = crate::concatcp!(DOMAIN, "data"),
+        SET_DATA = crate::concatcp!(DOMAIN, "set_data"),
     }
 
     /// `yog:tag/…`: tags.
     service_tag {
-        DOMAIN = concatcp!(service::PREFIX, "tag", sep::PATH),
-        HAS_ITEM = concatcp!(DOMAIN, "has_item"),
-        HAS_BLOCK = concatcp!(DOMAIN, "has_block"),
-        HAS_ENTITY = concatcp!(DOMAIN, "has_entity"),
-        ITEMS = concatcp!(DOMAIN, "items"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "tag", crate::sep::PATH),
+        HAS_ITEM = crate::concatcp!(DOMAIN, "has_item"),
+        HAS_BLOCK = crate::concatcp!(DOMAIN, "has_block"),
+        HAS_ENTITY = crate::concatcp!(DOMAIN, "has_entity"),
+        ITEMS = crate::concatcp!(DOMAIN, "items"),
     }
 
     /// `yog:advancement/…`: advancements.
     service_advancement {
-        DOMAIN = concatcp!(service::PREFIX, "advancement", sep::PATH),
-        GRANT = concatcp!(DOMAIN, "grant"),
-        DONE = concatcp!(DOMAIN, "done"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "advancement", crate::sep::PATH),
+        GRANT = crate::concatcp!(DOMAIN, "grant"),
+        DONE = crate::concatcp!(DOMAIN, "done"),
     }
 
     /// `yog:scoreboard/…`: the scoreboard.
     service_scoreboard {
-        DOMAIN = concatcp!(service::PREFIX, "scoreboard", sep::PATH),
-        GET = concatcp!(DOMAIN, "get"),
-        SET = concatcp!(DOMAIN, "set"),
-        ADD = concatcp!(DOMAIN, "add"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "scoreboard", crate::sep::PATH),
+        GET = crate::concatcp!(DOMAIN, "get"),
+        SET = crate::concatcp!(DOMAIN, "set"),
+        ADD = crate::concatcp!(DOMAIN, "add"),
     }
 
     /// `yog:bossbar/…`: boss bars.
     service_bossbar {
-        DOMAIN = concatcp!(service::PREFIX, "bossbar", sep::PATH),
-        CREATE = concatcp!(DOMAIN, "create"),
-        REMOVE = concatcp!(DOMAIN, "remove"),
-        SET_TITLE = concatcp!(DOMAIN, "set_title"),
-        SET_PROGRESS = concatcp!(DOMAIN, "set_progress"),
-        SET_COLOR = concatcp!(DOMAIN, "set_color"),
-        ADD_PLAYER = concatcp!(DOMAIN, "add_player"),
-        REMOVE_PLAYER = concatcp!(DOMAIN, "remove_player"),
-        SET_VISIBLE = concatcp!(DOMAIN, "set_visible"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "bossbar", crate::sep::PATH),
+        CREATE = crate::concatcp!(DOMAIN, "create"),
+        REMOVE = crate::concatcp!(DOMAIN, "remove"),
+        SET_TITLE = crate::concatcp!(DOMAIN, "set_title"),
+        SET_PROGRESS = crate::concatcp!(DOMAIN, "set_progress"),
+        SET_COLOR = crate::concatcp!(DOMAIN, "set_color"),
+        ADD_PLAYER = crate::concatcp!(DOMAIN, "add_player"),
+        REMOVE_PLAYER = crate::concatcp!(DOMAIN, "remove_player"),
+        SET_VISIBLE = crate::concatcp!(DOMAIN, "set_visible"),
     }
 
     /// `yog:game/…`: the game.
     service_game {
-        DOMAIN = concatcp!(service::PREFIX, "game", sep::PATH),
-        DIR = concatcp!(DOMAIN, "dir"),
-        WORLD_DIR = concatcp!(DOMAIN, "world_dir"),
-        TRANSLATE = concatcp!(DOMAIN, "translate"),
-        MODS = concatcp!(DOMAIN, "mods"),
-        MOD_LOADED = concatcp!(DOMAIN, "mod_loaded"),
-        PLATFORM_MODS = concatcp!(DOMAIN, "platform_mods"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "game", crate::sep::PATH),
+        DIR = crate::concatcp!(DOMAIN, "dir"),
+        WORLD_DIR = crate::concatcp!(DOMAIN, "world_dir"),
+        TRANSLATE = crate::concatcp!(DOMAIN, "translate"),
+        MODS = crate::concatcp!(DOMAIN, "mods"),
+        MOD_LOADED = crate::concatcp!(DOMAIN, "mod_loaded"),
+        PLATFORM_MODS = crate::concatcp!(DOMAIN, "platform_mods"),
     }
 
     /// Which list an installed mod is on.
@@ -208,95 +208,95 @@ names! {
 
     /// `yog:client/…`: this client's own actions (nothing on a server).
     service_client {
-        DOMAIN = concatcp!(service::PREFIX, "client", sep::PATH),
-        PLAY_SOUND = concatcp!(DOMAIN, "play_sound"),
-        STOP_SOUND = concatcp!(DOMAIN, "stop_sound"),
-        HELD_ITEM = concatcp!(DOMAIN, "held_item"),
-        SET_BLOCK_TINT = concatcp!(DOMAIN, "set_block_tint"),
-        KEY_DOWN = concatcp!(DOMAIN, "key_down"),
-        ATTRIBUTE_VALUE = concatcp!(DOMAIN, "attribute_value"),
-        ADVANCEMENT_DONE = concatcp!(DOMAIN, "advancement_done"),
-        BODY_TRACK = concatcp!(DOMAIN, "body_track"),
-        BODY_TRACK_TYPE = concatcp!(DOMAIN, "body_track_type"),
-        SET_DIMENSIONS = concatcp!(DOMAIN, "set_dimensions"),
-        ENTITY_DATA = concatcp!(DOMAIN, "entity_data"),
-        SCREEN_SLOTS = concatcp!(DOMAIN, "screen_slots"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "client", crate::sep::PATH),
+        PLAY_SOUND = crate::concatcp!(DOMAIN, "play_sound"),
+        STOP_SOUND = crate::concatcp!(DOMAIN, "stop_sound"),
+        HELD_ITEM = crate::concatcp!(DOMAIN, "held_item"),
+        SET_BLOCK_TINT = crate::concatcp!(DOMAIN, "set_block_tint"),
+        KEY_DOWN = crate::concatcp!(DOMAIN, "key_down"),
+        ATTRIBUTE_VALUE = crate::concatcp!(DOMAIN, "attribute_value"),
+        ADVANCEMENT_DONE = crate::concatcp!(DOMAIN, "advancement_done"),
+        BODY_TRACK = crate::concatcp!(DOMAIN, "body_track"),
+        BODY_TRACK_TYPE = crate::concatcp!(DOMAIN, "body_track_type"),
+        SET_DIMENSIONS = crate::concatcp!(DOMAIN, "set_dimensions"),
+        ENTITY_DATA = crate::concatcp!(DOMAIN, "entity_data"),
+        SCREEN_SLOTS = crate::concatcp!(DOMAIN, "screen_slots"),
     }
 
     /// `yog:client/local/…`: what this client's player is and sees.
     service_client_local {
-        DOMAIN = concatcp!(service_client::DOMAIN, "local", sep::PATH),
-        STATE = concatcp!(DOMAIN, "state"),
-        INVENTORY = concatcp!(DOMAIN, "inventory"),
-        SCAN = concatcp!(DOMAIN, "scan"),
-        AREA = concatcp!(DOMAIN, "area"),
-        ENTITIES = concatcp!(DOMAIN, "entities"),
+        DOMAIN = crate::concatcp!(crate::service_client::DOMAIN, "local", crate::sep::PATH),
+        STATE = crate::concatcp!(DOMAIN, "state"),
+        INVENTORY = crate::concatcp!(DOMAIN, "inventory"),
+        SCAN = crate::concatcp!(DOMAIN, "scan"),
+        AREA = crate::concatcp!(DOMAIN, "area"),
+        ENTITIES = crate::concatcp!(DOMAIN, "entities"),
     }
 
     /// `yog:client/control/…`: this client's player doing what a player
     /// does — its own keys and clicks, for automation.
     service_client_control {
-        DOMAIN = concatcp!(service_client::DOMAIN, "control", sep::PATH),
-        DRIVE = concatcp!(DOMAIN, "drive"),
-        RELEASE = concatcp!(DOMAIN, "release"),
-        LOOK = concatcp!(DOMAIN, "look"),
-        ATTACK = concatcp!(DOMAIN, "attack"),
-        USE_ITEM = concatcp!(DOMAIN, "use_item"),
-        MINE = concatcp!(DOMAIN, "mine"),
-        STOP_MINING = concatcp!(DOMAIN, "stop_mining"),
-        PLACE = concatcp!(DOMAIN, "place"),
-        SELECT_SLOT = concatcp!(DOMAIN, "select_slot"),
-        CLICK = concatcp!(DOMAIN, "click"),
-        CHAT = concatcp!(DOMAIN, "chat"),
+        DOMAIN = crate::concatcp!(crate::service_client::DOMAIN, "control", crate::sep::PATH),
+        DRIVE = crate::concatcp!(DOMAIN, "drive"),
+        RELEASE = crate::concatcp!(DOMAIN, "release"),
+        LOOK = crate::concatcp!(DOMAIN, "look"),
+        ATTACK = crate::concatcp!(DOMAIN, "attack"),
+        USE_ITEM = crate::concatcp!(DOMAIN, "use_item"),
+        MINE = crate::concatcp!(DOMAIN, "mine"),
+        STOP_MINING = crate::concatcp!(DOMAIN, "stop_mining"),
+        PLACE = crate::concatcp!(DOMAIN, "place"),
+        SELECT_SLOT = crate::concatcp!(DOMAIN, "select_slot"),
+        CLICK = crate::concatcp!(DOMAIN, "click"),
+        CHAT = crate::concatcp!(DOMAIN, "chat"),
     }
 
     /// `yog:ui/…`: mods' screens.
     service_ui {
-        DOMAIN = concatcp!(service::PREFIX, "ui", sep::PATH),
-        OPEN = concatcp!(DOMAIN, "open"),
-        OPEN_WITH_FLAGS = concatcp!(DOMAIN, "open_with_flags"),
-        CLOSE = concatcp!(DOMAIN, "close"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "ui", crate::sep::PATH),
+        OPEN = crate::concatcp!(DOMAIN, "open"),
+        OPEN_WITH_FLAGS = crate::concatcp!(DOMAIN, "open_with_flags"),
+        CLOSE = crate::concatcp!(DOMAIN, "close"),
     }
 
     /// `yog:bus/…`: what the bus carries, described (provided by the runtime).
     service_bus {
-        DOMAIN = concatcp!(service::PREFIX, "bus", sep::PATH),
-        DECLARE = concatcp!(DOMAIN, "declare"),
-        DESCRIBE = concatcp!(DOMAIN, "describe"),
-        LIST = concatcp!(DOMAIN, "list"),
-        FIND = concatcp!(DOMAIN, "find"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "bus", crate::sep::PATH),
+        DECLARE = crate::concatcp!(DOMAIN, "declare"),
+        DESCRIBE = crate::concatcp!(DOMAIN, "describe"),
+        LIST = crate::concatcp!(DOMAIN, "list"),
+        FIND = crate::concatcp!(DOMAIN, "find"),
     }
 
     /// `yog:content/…`: what mods register (provided by the runtime).
     service_content {
-        DOMAIN = concatcp!(service::PREFIX, "content", sep::PATH),
-        REGISTER = concatcp!(DOMAIN, "register"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "content", crate::sep::PATH),
+        REGISTER = crate::concatcp!(DOMAIN, "register"),
     }
 
     /// `yog:jvm/…`: Java mods' code, reached by reflection.
     service_jvm {
-        DOMAIN = concatcp!(service::PREFIX, "jvm", sep::PATH),
-        CALL = concatcp!(DOMAIN, "call"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "jvm", crate::sep::PATH),
+        CALL = crate::concatcp!(DOMAIN, "call"),
     }
 
     /// `yog:menu/…`: the menu entries mods declare (provided by the runtime).
     service_menu {
-        DOMAIN = concatcp!(service::PREFIX, "menu", sep::PATH),
-        DECLARE = concatcp!(DOMAIN, "declare"),
-        DECLARED = concatcp!(DOMAIN, "declared"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "menu", crate::sep::PATH),
+        DECLARE = crate::concatcp!(DOMAIN, "declare"),
+        DECLARED = crate::concatcp!(DOMAIN, "declared"),
     }
 
     /// `yog:key_binding/…`: the key bindings mods declare (provided by the runtime).
     service_key_binding {
-        DOMAIN = concatcp!(service::PREFIX, "key_binding", sep::PATH),
-        DECLARE = concatcp!(DOMAIN, "declare"),
-        DECLARED = concatcp!(DOMAIN, "declared"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "key_binding", crate::sep::PATH),
+        DECLARE = crate::concatcp!(DOMAIN, "declare"),
+        DECLARED = crate::concatcp!(DOMAIN, "declared"),
     }
 
     /// `yog:command/…`: the commands mods declare (provided by the runtime).
     service_command {
-        DOMAIN = concatcp!(service::PREFIX, "command", sep::PATH),
-        DECLARE = concatcp!(DOMAIN, "declare"),
-        DECLARED = concatcp!(DOMAIN, "declared"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "command", crate::sep::PATH),
+        DECLARE = crate::concatcp!(DOMAIN, "declare"),
+        DECLARED = crate::concatcp!(DOMAIN, "declared"),
     }
 }
