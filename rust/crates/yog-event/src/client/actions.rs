@@ -20,8 +20,6 @@ actions! {
     AttributeValue { attribute: String } -> Option<f64> = ids::service_client::ATTRIBUTE_VALUE, "YogClientApi.attributeValue";
     /// Whether this client's player has advancement `id`.
     AdvancementDone { id: String } -> bool = ids::service_client::ADVANCEMENT_DONE, "YogClientApi.advancementDone";
-    /// An operation of `yog_ids::client_op` with `args` (JSON); its answer as JSON.
-    Op { op: String, args: String } -> Option<String> = ids::service_client::OP, "YogClientOps.call";
     /// Asks the mods about entity `uuid`'s body each frame (`on`) or not.
     BodyTrack { uuid: String, on: bool } -> bool = ids::service_client::BODY_TRACK, "YogClientApi.bodyTrack";
     /// The same for every entity of `entity_type`.

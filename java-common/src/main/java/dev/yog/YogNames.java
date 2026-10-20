@@ -527,12 +527,39 @@ public final class YogNames {
         public static final String KEY_DOWN = "yog:client/key_down";
         public static final String ATTRIBUTE_VALUE = "yog:client/attribute_value";
         public static final String ADVANCEMENT_DONE = "yog:client/advancement_done";
-        public static final String OP = "yog:client/op";
         public static final String BODY_TRACK = "yog:client/body_track";
         public static final String BODY_TRACK_TYPE = "yog:client/body_track_type";
         public static final String SET_DIMENSIONS = "yog:client/set_dimensions";
         public static final String ENTITY_DATA = "yog:client/entity_data";
         public static final String SCREEN_SLOTS = "yog:client/screen_slots";
+    }
+
+    public static final class ServiceClientLocal {
+        private ServiceClientLocal() {}
+
+        public static final String DOMAIN = "yog:client/local/";
+        public static final String STATE = "yog:client/local/state";
+        public static final String INVENTORY = "yog:client/local/inventory";
+        public static final String SCAN = "yog:client/local/scan";
+        public static final String AREA = "yog:client/local/area";
+        public static final String ENTITIES = "yog:client/local/entities";
+    }
+
+    public static final class ServiceClientControl {
+        private ServiceClientControl() {}
+
+        public static final String DOMAIN = "yog:client/control/";
+        public static final String DRIVE = "yog:client/control/drive";
+        public static final String RELEASE = "yog:client/control/release";
+        public static final String LOOK = "yog:client/control/look";
+        public static final String ATTACK = "yog:client/control/attack";
+        public static final String USE_ITEM = "yog:client/control/use_item";
+        public static final String MINE = "yog:client/control/mine";
+        public static final String STOP_MINING = "yog:client/control/stop_mining";
+        public static final String PLACE = "yog:client/control/place";
+        public static final String SELECT_SLOT = "yog:client/control/select_slot";
+        public static final String CLICK = "yog:client/control/click";
+        public static final String CHAT = "yog:client/control/chat";
     }
 
     public static final class ServiceUi {
@@ -831,26 +858,6 @@ public final class YogNames {
         public static final String EFFECT = "effect";
         public static final String OF = "of";
         public static final String COLOR = "color";
-    }
-
-    public static final class ClientOp {
-        private ClientOp() {}
-
-        public static final String STATE = "state";
-        public static final String DRIVE = "drive";
-        public static final String RELEASE = "release";
-        public static final String LOOK = "look";
-        public static final String ATTACK = "attack";
-        public static final String USE = "use";
-        public static final String MINE = "mine";
-        public static final String PLACE = "place";
-        public static final String SLOT = "slot";
-        public static final String SCAN = "scan";
-        public static final String AREA = "area";
-        public static final String ENTITIES = "entities";
-        public static final String INVENTORY = "inventory";
-        public static final String CLICK = "click";
-        public static final String CHAT = "chat";
     }
 
     public static final class YuiAttr {

@@ -10,10 +10,6 @@
 //! client::stop_sound(loop_);
 //! ```
 
-pub(crate) mod op;
-pub mod player;
-pub mod world;
-
 pub use yog_event::client::*;
 pub use yog_event::ui::flags as ui_flags;
 use yog_event::client;

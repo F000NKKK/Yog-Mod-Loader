@@ -147,7 +147,7 @@ pub struct BlockInfo {
 impl BlockInfo {
     /// Registry id of the block, without its state properties.
     pub fn block_id(&self) -> &str {
-        self.state.split('[').next().unwrap_or_default()
+        crate::split_state(&self.state).0
     }
 }
 
@@ -213,6 +213,13 @@ pub struct PlacedBlock {
     pub pos: BlockPos,
     /// Full block state, e.g. `"minecraft:oak_log[axis=y]"`.
     pub state: String,
+}
+
+impl PlacedBlock {
+    /// Registry id of the block, without its state properties.
+    pub fn block_id(&self) -> &str {
+        crate::split_state(&self.state).0
+    }
 }
 
 #[cfg(test)]

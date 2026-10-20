@@ -4,9 +4,11 @@
 //! bus: every other `yog-*` crate builds on this, and the facade
 //! [`yog-api`] re-exports it.
 
+mod local;
 mod query;
 mod state;
 
+pub use local::{BlockArea, BlockKind, ClickMode, LocalState, NearbyEntity};
 pub use query::{BlockHit, BlockInfo, EntityInfo, Face, PlacedBlock, PlayerInfo, Rotation, ScreenSlot, SlotStack, Stack, entity_flags};
 pub use state::{PROPERTY_IS, PROPERTY_SEP, join_state, split_state};
 

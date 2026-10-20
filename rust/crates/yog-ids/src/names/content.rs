@@ -299,42 +299,6 @@ names! {
         COLOR = "color",
     }
 
-    /// What a mod asks of this client (`client_op`, ABI 3.9) — what the
-    /// local player is and sees, and what it does: arguments and answers are JSON.
-    client_op {
-        /// Where it is and how it's doing: position, look, motion, health, food, dimension, slot.
-        STATE = "state",
-        /// Moves as if keys were held — `forward`, `strafe` in -1..1, `jump`, `sneak`, `sprint` — till `release`.
-        DRIVE = "drive",
-        /// Hands the movement keys back to the player.
-        RELEASE = "release",
-        /// Turns to `yaw`, `pitch` (degrees).
-        LOOK = "look",
-        /// Attacks entity `entity` (its UUID), or what the crosshair is on.
-        ATTACK = "attack",
-        /// Uses the held item (`off_hand` for the other hand).
-        USE = "use",
-        /// Keeps breaking the block at `x y z` from `face`; `stop` to give up.
-        MINE = "mine",
-        /// Places the held block against the block at `x y z`, on `face`.
-        PLACE = "place",
-        /// Selects hotbar slot `slot` (0–8).
-        SLOT = "slot",
-        /// The blocks among `ids` between `min` and `max`: `[x, y, z, id]` each.
-        SCAN = "scan",
-        /// The blocks between `min` and `max` for finding a way: a palette
-        /// (`id`, `solid`, `liquid`, `climbable`) and an index per block, x fastest.
-        AREA = "area",
-        /// The entities within `radius`: `uuid`, `type`, position, health, a player's `name`.
-        ENTITIES = "entities",
-        /// The player's inventory: `slot`, `item`, `count` each.
-        INVENTORY = "inventory",
-        /// Clicks slot `slot` of the open container (`button`, `mode` as the game's).
-        CLICK = "click",
-        /// Sends `text` to the chat (a command when it starts with `/`).
-        CHAT = "chat",
-    }
-
     /// The attributes of `.yui` elements.
     yui_attr {
         ID = "id",

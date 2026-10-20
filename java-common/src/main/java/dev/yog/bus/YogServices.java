@@ -10,7 +10,7 @@ public final class YogServices {
     private YogServices() {}
 
     /** The actions the host answers ({@code YogHostServices}). */
-    public static final java.util.List<Class<? extends Record>> HOSTED = java.util.List.of(Advancement.Grant.class, Advancement.Done.class, Block.Nbt.class, Block.SetNbt.class, Block.State.class, Block.SetState.class, Block.Info.class, Block.Destroy.class, Block.Bonemeal.class, Block.UseItem.class, Block.PourFluid.class, Block.RedstonePower.class, Block.RedstoneSignal.class, Block.SetRedstoneOutput.class, Block.InventorySlot.class, Block.SetInventorySlot.class, Bossbar.Create.class, Bossbar.Remove.class, Bossbar.SetTitle.class, Bossbar.SetProgress.class, Bossbar.SetColor.class, Bossbar.AddPlayer.class, Bossbar.RemovePlayer.class, Bossbar.SetVisible.class, Chat.Broadcast.class, Chat.Tellraw.class, Chat.Title.class, Chat.Actionbar.class, Chat.ActionbarJson.class, Client.PlaySound.class, Client.StopSound.class, Client.HeldItem.class, Client.SetBlockTint.class, Client.ScreenSlots.class, Client.KeyDown.class, Client.AttributeValue.class, Client.AdvancementDone.class, Client.Op.class, Client.BodyTrack.class, Client.BodyTrackType.class, Client.SetDimensions.class, Entity.Teleport.class, Entity.TeleportToDim.class, Entity.Position.class, Entity.Rotation.class, Entity.Velocity.class, Entity.SetVelocity.class, Entity.AddVelocity.class, Entity.Health.class, Entity.SetHealth.class, Entity.Kill.class, Entity.Spawn.class, Entity.AddEffect.class, Entity.RemoveEffect.class, Entity.ClearEffects.class, Entity.Nbt.class, Entity.SetNbt.class, Entity.AttributeBase.class, Entity.SetAttributeBase.class, Entity.AttributeValue.class, Entity.Info.class, Entity.Damage.class, Entity.SetFireTicks.class, Entity.Vehicle.class, Entity.Passengers.class, Entity.Mount.class, Entity.Dismount.class, Entity.SetFallDistance.class, Game.Dir.class, Game.WorldDir.class, Game.Translate.class, Game.PlatformMods.class, Item.SpawnItem.class, Item.EntityStack.class, Item.SetEntityStack.class, Item.Block.class, Jvm.Call.class, Net.SendToPlayer.class, Net.SendToServer.class, Particle.SpawnParticles.class, Player.GiveItem.class, Player.Teleport.class, Player.TeleportToDim.class, Player.Kick.class, Player.SetGamemode.class, Player.Inventory.class, Player.SetSlot.class, Player.HeldItemNbt.class, Player.SetHeldItemNbt.class, Player.OffhandItemNbt.class, Player.SetOffhandItemNbt.class, Player.SlotItem.class, Player.SetSlotItem.class, Player.AddXp.class, Player.SetMayFly.class, Player.Info.class, Player.SetItemCooldown.class, Player.PlaceBlockFromSlot.class, Player.Online.class, Scoreboard.Get.class, Scoreboard.Set.class, Scoreboard.Add.class, Sound.Play.class, Sound.PlayToPlayer.class, Tag.HasItem.class, Tag.HasBlock.class, Tag.HasEntity.class, Tag.Items.class, Ui.Open.class, Ui.OpenWithFlags.class, Ui.Close.class, World.GetBlock.class, World.SetBlock.class, World.Time.class, World.SetTime.class, World.IsRaining.class, World.SetWeather.class, World.IsThundering.class, World.SetThunder.class, World.FillRegion.class, World.ScanRegion.class, World.PlaceFeature.class, World.Explode.class, World.DropLoot.class, World.EntityCount.class, World.EntitiesInBox.class, World.RaycastBlock.class, World.RaycastEntity.class);
+    public static final java.util.List<Class<? extends Record>> HOSTED = java.util.List.of(Advancement.Grant.class, Advancement.Done.class, Block.Nbt.class, Block.SetNbt.class, Block.State.class, Block.SetState.class, Block.Info.class, Block.Destroy.class, Block.Bonemeal.class, Block.UseItem.class, Block.PourFluid.class, Block.RedstonePower.class, Block.RedstoneSignal.class, Block.SetRedstoneOutput.class, Block.InventorySlot.class, Block.SetInventorySlot.class, Bossbar.Create.class, Bossbar.Remove.class, Bossbar.SetTitle.class, Bossbar.SetProgress.class, Bossbar.SetColor.class, Bossbar.AddPlayer.class, Bossbar.RemovePlayer.class, Bossbar.SetVisible.class, Chat.Broadcast.class, Chat.Tellraw.class, Chat.Title.class, Chat.Actionbar.class, Chat.ActionbarJson.class, Client.PlaySound.class, Client.StopSound.class, Client.HeldItem.class, Client.SetBlockTint.class, Client.ScreenSlots.class, Client.KeyDown.class, Client.AttributeValue.class, Client.AdvancementDone.class, Client.BodyTrack.class, Client.BodyTrackType.class, Client.SetDimensions.class, Client.Control.Drive.class, Client.Control.Release.class, Client.Control.Look.class, Client.Control.Attack.class, Client.Control.UseItem.class, Client.Control.Mine.class, Client.Control.StopMining.class, Client.Control.Place.class, Client.Control.SelectSlot.class, Client.Control.Click.class, Client.Control.Chat.class, Client.Local.State.class, Client.Local.Inventory.class, Client.Local.Scan.class, Client.Local.Area.class, Client.Local.Entities.class, Entity.Teleport.class, Entity.TeleportToDim.class, Entity.Position.class, Entity.Rotation.class, Entity.Velocity.class, Entity.SetVelocity.class, Entity.AddVelocity.class, Entity.Health.class, Entity.SetHealth.class, Entity.Kill.class, Entity.Spawn.class, Entity.AddEffect.class, Entity.RemoveEffect.class, Entity.ClearEffects.class, Entity.Nbt.class, Entity.SetNbt.class, Entity.AttributeBase.class, Entity.SetAttributeBase.class, Entity.AttributeValue.class, Entity.Info.class, Entity.Damage.class, Entity.SetFireTicks.class, Entity.Vehicle.class, Entity.Passengers.class, Entity.Mount.class, Entity.Dismount.class, Entity.SetFallDistance.class, Game.Dir.class, Game.WorldDir.class, Game.Translate.class, Game.PlatformMods.class, Item.SpawnItem.class, Item.EntityStack.class, Item.SetEntityStack.class, Item.Block.class, Jvm.Call.class, Net.SendToPlayer.class, Net.SendToServer.class, Particle.SpawnParticles.class, Player.GiveItem.class, Player.Teleport.class, Player.TeleportToDim.class, Player.Kick.class, Player.SetGamemode.class, Player.Inventory.class, Player.SetSlot.class, Player.HeldItemNbt.class, Player.SetHeldItemNbt.class, Player.OffhandItemNbt.class, Player.SetOffhandItemNbt.class, Player.SlotItem.class, Player.SetSlotItem.class, Player.AddXp.class, Player.SetMayFly.class, Player.Info.class, Player.SetItemCooldown.class, Player.PlaceBlockFromSlot.class, Player.Online.class, Scoreboard.Get.class, Scoreboard.Set.class, Scoreboard.Add.class, Sound.Play.class, Sound.PlayToPlayer.class, Tag.HasItem.class, Tag.HasBlock.class, Tag.HasEntity.class, Tag.Items.class, Ui.Open.class, Ui.OpenWithFlags.class, Ui.Close.class, World.GetBlock.class, World.SetBlock.class, World.Time.class, World.SetTime.class, World.IsRaining.class, World.SetWeather.class, World.IsThundering.class, World.SetThunder.class, World.FillRegion.class, World.ScanRegion.class, World.PlaceFeature.class, World.Explode.class, World.DropLoot.class, World.EntityCount.class, World.EntitiesInBox.class, World.RaycastBlock.class, World.RaycastEntity.class);
 
     /** `advancement`. */
     public static final class Advancement {
@@ -1753,46 +1753,6 @@ public final class YogServices {
             }
         }
 
-        /** An operation of `yog_ids::client_op` with `args` (JSON); its answer as JSON. */
-        public record Op(String op, String args) {
-            public java.util.Map<String, Object> toData() {
-                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
-                m.put("op", op);
-                m.put("args", args);
-                return m;
-            }
-
-            public static Op fromData(Object data) {
-                java.util.Map<String, Object> m = YogData.map(data);
-                return new Op(YogData.str(m.get("op"), ""), YogData.str(m.get("args"), ""));
-            }
-
-            public static Op fromBytes(byte[] bytes) {
-                return fromData(YogData.decode(bytes));
-            }
-
-            private static final class Address {
-                static final int AT = YogBus.resolve(YogNames.ServiceClient.OP);
-            }
-
-            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientOps.call";
-            public static final String ADDRESS = YogNames.ServiceClient.OP;
-
-            public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
-                if (r.status() == YogBus.OK && r.bytes().length > 0) {
-                    try {
-                        v = YogData.decode(r.bytes());
-                    } catch (YogData.DecodeException e) {
-                        v = null;
-                    }
-                }
-                return (v == null ? null : YogData.str(v, ""));
-            }
-        }
-
         /** Asks the mods about entity `uuid`'s body each frame (`on`) or not. */
         public record BodyTrack(String uuid, boolean on) {
             public java.util.Map<String, Object> toData() {
@@ -1912,6 +1872,649 @@ public final class YogServices {
                     }
                 }
                 return YogData.bool(v, false);
+            }
+        }
+
+        /** `control`. */
+        public static final class Control {
+            private Control() {}
+
+            /** Holds the movement keys each tick till [`release`]: `forward` -1 (back) to 1, `strafe` -1 (right) to 1 (left); `use_item` raises a shield, draws a bow, eats. */
+            public record Drive(double forward, double strafe, boolean jump, boolean sneak, boolean sprint, boolean useItem) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("forward", forward);
+                    m.put("strafe", strafe);
+                    m.put("jump", jump);
+                    m.put("sneak", sneak);
+                    m.put("sprint", sprint);
+                    m.put("use_item", useItem);
+                    return m;
+                }
+
+                public static Drive fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Drive(YogData.number(m.get("forward"), 0), YogData.number(m.get("strafe"), 0), YogData.bool(m.get("jump"), false), YogData.bool(m.get("sneak"), false), YogData.bool(m.get("sprint"), false), YogData.bool(m.get("use_item"), false));
+                }
+
+                public static Drive fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.DRIVE);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.drive";
+                public static final String ADDRESS = YogNames.ServiceClientControl.DRIVE;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Gives the movement keys back to the player. */
+            public record Release() {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    return m;
+                }
+
+                public static Release fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Release();
+                }
+
+                public static Release fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.RELEASE);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.release";
+                public static final String ADDRESS = YogNames.ServiceClientControl.RELEASE;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Turns the player to `yaw`, `pitch` (degrees). */
+            public record Look(double yaw, double pitch) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("yaw", yaw);
+                    m.put("pitch", pitch);
+                    return m;
+                }
+
+                public static Look fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Look(YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0));
+                }
+
+                public static Look fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.LOOK);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.look";
+                public static final String ADDRESS = YogNames.ServiceClientControl.LOOK;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Attacks entity `entity` (its uuid), or (`None`) what the crosshair is on; whether something was hit. */
+            public record Attack(String entity) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    if (entity != null) m.put("entity", entity);
+                    return m;
+                }
+
+                public static Attack fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Attack((m.get("entity") == null ? null : YogData.str(m.get("entity"), "")));
+                }
+
+                public static Attack fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.ATTACK);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.attack";
+                public static final String ADDRESS = YogNames.ServiceClientControl.ATTACK;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Uses the held item, the main hand's or the off hand's. */
+            public record UseItem(boolean offHand) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("off_hand", offHand);
+                    return m;
+                }
+
+                public static UseItem fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new UseItem(YogData.bool(m.get("off_hand"), false));
+                }
+
+                public static UseItem fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.USE_ITEM);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.useItem";
+                public static final String ADDRESS = YogNames.ServiceClientControl.USE_ITEM;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Keeps breaking the block at `pos` from `face` (call each tick); whether it's still there. */
+            public record Mine(YogTypes.BlockPos pos, String face) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("pos", pos.toData());
+                    m.put("face", face);
+                    return m;
+                }
+
+                public static Mine fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Mine(YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("face"), ""));
+                }
+
+                public static Mine fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.MINE);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.mine";
+                public static final String ADDRESS = YogNames.ServiceClientControl.MINE;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Stops breaking a block. */
+            public record StopMining() {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    return m;
+                }
+
+                public static StopMining fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new StopMining();
+                }
+
+                public static StopMining fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.STOP_MINING);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.stopMining";
+                public static final String ADDRESS = YogNames.ServiceClientControl.STOP_MINING;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Places the held block against the block at `pos`, on `face`; whether the game took it. */
+            public record Place(YogTypes.BlockPos pos, String face) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("pos", pos.toData());
+                    m.put("face", face);
+                    return m;
+                }
+
+                public static Place fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Place(YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("face"), ""));
+                }
+
+                public static Place fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.PLACE);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.place";
+                public static final String ADDRESS = YogNames.ServiceClientControl.PLACE;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Selects hotbar slot `slot` (0–8). */
+            public record SelectSlot(long slot) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("slot", slot);
+                    return m;
+                }
+
+                public static SelectSlot fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new SelectSlot(YogData.integer(m.get("slot"), 0));
+                }
+
+                public static SelectSlot fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.SELECT_SLOT);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.selectSlot";
+                public static final String ADDRESS = YogNames.ServiceClientControl.SELECT_SLOT;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Clicks `slot` of the open container (`button` as the game's). */
+            public record Click(int slot, int button, String mode) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("slot", slot);
+                    m.put("button", button);
+                    m.put("mode", mode);
+                    return m;
+                }
+
+                public static Click fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Click((int) YogData.integer(m.get("slot"), 0), (int) YogData.integer(m.get("button"), 0), YogData.str(m.get("mode"), ""));
+                }
+
+                public static Click fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.CLICK);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.click";
+                public static final String ADDRESS = YogNames.ServiceClientControl.CLICK;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+
+            /** Sends `text` to the chat — a command when it starts with `/`. */
+            public record Chat(String text) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("text", text);
+                    return m;
+                }
+
+                public static Chat fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Chat(YogData.str(m.get("text"), ""));
+                }
+
+                public static Chat fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientControl.CHAT);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.chat";
+                public static final String ADDRESS = YogNames.ServiceClientControl.CHAT;
+
+                public boolean call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.bool(v, false);
+                }
+            }
+        }
+
+        /** `local`. */
+        public static final class Local {
+            private Local() {}
+
+            /** Where the player is and how it fares. */
+            public record State() {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    return m;
+                }
+
+                public static State fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new State();
+                }
+
+                public static State fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.STATE);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.state";
+                public static final String ADDRESS = YogNames.ServiceClientLocal.STATE;
+
+                public YogTypes.LocalState call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return (v == null ? null : YogTypes.LocalState.fromData(v));
+                }
+            }
+
+            /** The player's stacks, by slot: 0–8 the hotbar, 9–35 the rest, 36–39 armor (feet first), 40 the off hand. */
+            public record Inventory() {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    return m;
+                }
+
+                public static Inventory fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Inventory();
+                }
+
+                public static Inventory fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.INVENTORY);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.inventory";
+                public static final String ADDRESS = YogNames.ServiceClientLocal.INVENTORY;
+
+                public java.util.List<YogTypes.SlotStack> call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.list(v).stream().map(e0 -> YogTypes.SlotStack.fromData(e0)).toList();
+                }
+            }
+
+            /** The loaded blocks among `ids` (`minecraft:diamond_ore`, `#minecraft:logs` for a tag) between `min` and `max`. */
+            public record Scan(YogTypes.BlockPos min, YogTypes.BlockPos max, java.util.List<String> ids) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("min", min.toData());
+                    m.put("max", max.toData());
+                    m.put("ids", ids);
+                    return m;
+                }
+
+                public static Scan fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Scan(YogTypes.BlockPos.fromData(m.get("min")), YogTypes.BlockPos.fromData(m.get("max")), YogData.list(m.get("ids")).stream().map(e0 -> YogData.str(e0, "")).toList());
+                }
+
+                public static Scan fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.SCAN);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.scan";
+                public static final String ADDRESS = YogNames.ServiceClientLocal.SCAN;
+
+                public java.util.List<YogTypes.PlacedBlock> call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.list(v).stream().map(e0 -> YogTypes.PlacedBlock.fromData(e0)).toList();
+                }
+            }
+
+            /** The blocks between `min` and `max`, for finding a way; `None` for a box too big. */
+            public record Area(YogTypes.BlockPos min, YogTypes.BlockPos max) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("min", min.toData());
+                    m.put("max", max.toData());
+                    return m;
+                }
+
+                public static Area fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Area(YogTypes.BlockPos.fromData(m.get("min")), YogTypes.BlockPos.fromData(m.get("max")));
+                }
+
+                public static Area fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.AREA);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.area";
+                public static final String ADDRESS = YogNames.ServiceClientLocal.AREA;
+
+                public YogTypes.BlockArea call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return (v == null ? null : YogTypes.BlockArea.fromData(v));
+                }
+            }
+
+            /** The entities within `radius` blocks of the player (not the player). */
+            public record Entities(double radius) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("radius", radius);
+                    return m;
+                }
+
+                public static Entities fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Entities(YogData.number(m.get("radius"), 0));
+                }
+
+                public static Entities fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.ENTITIES);
+                }
+
+                /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+                public static final String HOST = "YogClientOps.entities";
+                public static final String ADDRESS = YogNames.ServiceClientLocal.ENTITIES;
+
+                public java.util.List<YogTypes.NearbyEntity> call() {
+                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                    Object v = null;
+                    if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                        try {
+                            v = YogData.decode(r.bytes());
+                        } catch (YogData.DecodeException e) {
+                            v = null;
+                        }
+                    }
+                    return YogData.list(v).stream().map(e0 -> YogTypes.NearbyEntity.fromData(e0)).toList();
+                }
             }
         }
     }

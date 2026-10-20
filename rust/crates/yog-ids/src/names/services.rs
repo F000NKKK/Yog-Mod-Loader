@@ -216,12 +216,38 @@ names! {
         KEY_DOWN = concatcp!(DOMAIN, "key_down"),
         ATTRIBUTE_VALUE = concatcp!(DOMAIN, "attribute_value"),
         ADVANCEMENT_DONE = concatcp!(DOMAIN, "advancement_done"),
-        OP = concatcp!(DOMAIN, "op"),
         BODY_TRACK = concatcp!(DOMAIN, "body_track"),
         BODY_TRACK_TYPE = concatcp!(DOMAIN, "body_track_type"),
         SET_DIMENSIONS = concatcp!(DOMAIN, "set_dimensions"),
         ENTITY_DATA = concatcp!(DOMAIN, "entity_data"),
         SCREEN_SLOTS = concatcp!(DOMAIN, "screen_slots"),
+    }
+
+    /// `yog:client/local/…`: what this client's player is and sees.
+    service_client_local {
+        DOMAIN = concatcp!(service_client::DOMAIN, "local", sep::PATH),
+        STATE = concatcp!(DOMAIN, "state"),
+        INVENTORY = concatcp!(DOMAIN, "inventory"),
+        SCAN = concatcp!(DOMAIN, "scan"),
+        AREA = concatcp!(DOMAIN, "area"),
+        ENTITIES = concatcp!(DOMAIN, "entities"),
+    }
+
+    /// `yog:client/control/…`: this client's player doing what a player
+    /// does — its own keys and clicks, for automation.
+    service_client_control {
+        DOMAIN = concatcp!(service_client::DOMAIN, "control", sep::PATH),
+        DRIVE = concatcp!(DOMAIN, "drive"),
+        RELEASE = concatcp!(DOMAIN, "release"),
+        LOOK = concatcp!(DOMAIN, "look"),
+        ATTACK = concatcp!(DOMAIN, "attack"),
+        USE_ITEM = concatcp!(DOMAIN, "use_item"),
+        MINE = concatcp!(DOMAIN, "mine"),
+        STOP_MINING = concatcp!(DOMAIN, "stop_mining"),
+        PLACE = concatcp!(DOMAIN, "place"),
+        SELECT_SLOT = concatcp!(DOMAIN, "select_slot"),
+        CLICK = concatcp!(DOMAIN, "click"),
+        CHAT = concatcp!(DOMAIN, "chat"),
     }
 
     /// `yog:ui/…`: mods' screens.

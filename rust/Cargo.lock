@@ -1583,8 +1583,6 @@ name = "yog-api"
 version = "0.100.1"
 dependencies = [
  "ctor",
- "serde",
- "serde_json",
  "yog-abi",
  "yog-body",
  "yog-book",

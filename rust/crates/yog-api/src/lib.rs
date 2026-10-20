@@ -11,7 +11,6 @@ pub mod client;
 pub mod entities;
 pub mod java;
 pub mod loot;
-pub mod control;
 pub mod vanilla;
 mod bus;
 mod draw;
