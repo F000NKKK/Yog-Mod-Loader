@@ -142,6 +142,13 @@ impl Registry {
         }
     }
 
+    /// [`Registry::before`] for a keyed event's `key` only.
+    pub fn before_key<E: Event + 'static, R: IntoFlow + 'static>(&mut self, key: &str, handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static) {
+        if let Some(pre) = E::PRE {
+            self.at::<E, _, R>(&keyed(pre, key), EventPhase::Pre, Arc::new(handler));
+        }
+    }
+
     /// Runs `handler` after the game did `E`.
     pub fn after<E: Event + 'static, R: IntoFlow + 'static>(&mut self, handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static) {
         self.at::<E, _, R>(E::ADDRESS, EventPhase::Post, Arc::new(handler));

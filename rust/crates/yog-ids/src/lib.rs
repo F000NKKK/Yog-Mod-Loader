@@ -301,6 +301,8 @@ names! {
         PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "ui", sep::PATH),
         OPEN = concatcp!(PLANE, "open"),
         CLOSE = concatcp!(PLANE, "close"),
+        INPUT = concatcp!(PLANE, "input"),
+        INPUT_PRE = concatcp!(INPUT, event::PRE),
     }
 
     /// `yog:event/client/render/…`.

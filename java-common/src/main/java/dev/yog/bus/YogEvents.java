@@ -1804,6 +1804,44 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     }
                 }
             }
+
+            /** Input on a mod's screen; keyed by the screen's id. `event` is `click:X:Y`, `drag:X:Y`, `release:X:Y`, `scroll:DY`, `key:KEY:MODS` (GLFW key code and modifier bits, on press and repeat) or `char:CODEPOINT`. Before: a handler that used a `key:`/`char:` cancels it — the host then skips its own handling (Esc closing the screen). */
+            public record Input(String uiId, String event) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("ui_id", uiId);
+                    m.put("event", event);
+                    return m;
+                }
+
+                public static Input fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Input(YogData.str(m.get("ui_id"), ""), YogData.str(m.get("event"), ""));
+                }
+
+                public static Input fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT, uiId), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Input emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT_PRE, uiId), YogData.encode(toData())).status() != YogBus.CANCELLED;
+                }
+            }
         }
 
         /** `render`. */

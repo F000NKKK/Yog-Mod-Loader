@@ -149,10 +149,6 @@ pub(super) unsafe extern "C" fn api_ui_close(_ctx: *mut c_void, ui_id: YogStr) {
     }
 }
 
-pub(super) unsafe extern "C" fn api_ui_consume_event(_ctx: *mut c_void) {
-    ui_jni::consume_event();
-}
-
 pub(super) unsafe extern "C" fn api_translate(_ctx: *mut c_void, key: YogStr) -> YogOwnedStr {
     unsafe { translate(key.as_str()).map_or(YogOwnedStr::NONE, YogOwnedStr::from_string) }
 }

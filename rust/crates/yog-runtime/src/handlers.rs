@@ -60,7 +60,6 @@ pub(super) struct RuntimeHandlers {
     /// Dimensions' `terrain`s (`.ydef`), generated here: by the dimension's id,
     /// which is its `generator_type`.
     pub(super) terrains: HashMap<String, Arc<yog_worldgen::Generator>>,
-    pub(super) ui_handlers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogUIEventFn)>,
     pub(super) menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
     /// The mods' key bindings (ABI 3.10), once each by id: the game's controls show them.
     pub(super) key_bindings: Vec<KeyBinding>,
@@ -112,8 +111,6 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         let mut h = lock.write_locked();
         let h = &mut *h;
         h.chunk_generators
-            .retain(|_, (m, ..)| m.generation() != generation);
-        h.ui_handlers
             .retain(|_, (m, ..)| m.generation() != generation);
     }
 }

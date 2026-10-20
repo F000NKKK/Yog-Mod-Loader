@@ -1727,10 +1727,7 @@ impl Registry {
         F: Fn(&str, &str) -> R + Send + Sync + 'static,
         R: UiHandled,
     {
-        let ud = Self::leak(handler);
-        let id = YogStr::from_str(ui_id);
-        let empty = YogStr::from_str("{}");
-        unsafe { ((*self.api).register_ui)(self.ctx(), id, empty, ud, trampoline_ui_event::<F, R>) }
+        self.before_key::<yog_event::client::ui::Input, _>(ui_id, move |input, _| !handler(&input.ui_id, &input.event).handled());
     }
 
     // ── client-side hooks (ABI minor 10) ─────────────────────────────────────
@@ -1959,25 +1956,6 @@ impl Registry {
     }
 
 
-}
-
-unsafe extern "C" fn trampoline_ui_event<F, R>(
-    ud: *mut c_void,
-    ui_id: yog_abi::YogStr,
-    event_id: yog_abi::YogStr,
-) where
-    F: Fn(&str, &str) -> R + Send + Sync + 'static,
-    R: UiHandled,
-{
-    let f = unsafe { &*(ud as *const F) };
-    let ui = unsafe { ui_id.as_str() };
-    let ev = unsafe { event_id.as_str() };
-    if guard(false, || f(ui, ev).handled()) {
-        let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
-        if !api.is_null() {
-            unsafe { ((*api).ui_consume_event)((*api).ctx) }
-        }
-    }
 }
 
 unsafe extern "C" fn trampoline_chunk_generator<F>(

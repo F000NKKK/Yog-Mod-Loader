@@ -29,18 +29,6 @@ pub struct YogApi {
     /// content — new kinds need no new ABI.
     pub register_content: unsafe extern "C" fn(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize),
 
-    // ── ABI minor 19 — UI system ──────────────────────────────────────────────
-    /// Register a UI tree. `ui_id` is the unique identifier (e.g. "mymod:menu").
-    /// `layout_json` is the serialized layout tree.
-    /// `handler` is called when an interactive element is clicked/keyed.
-    pub register_ui: unsafe extern "C" fn(
-        ctx: *mut c_void,
-        ui_id: YogStr,
-        layout_json: YogStr,
-        ud: *mut c_void,
-        h: YogUIEventFn,
-    ),
-
     // ── ABI minor 22 — menu entry registration ──────────────────────────────
     /// Register a button/link that the host renders on vanilla screens
     /// (TitleScreen on Fabric, ModListScreen on Forge/NeoForge).
@@ -87,10 +75,6 @@ pub struct YogApi {
     /// screen is open). Scheduled onto the render thread, so it's safe to
     /// call from that screen's own event handler. Client-side only.
     pub ui_close: unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr),
-    /// Called from inside a `register_ui` handler while it handles a `key:`
-    /// or `char:` event: the mod used the key, so the host skips its default
-    /// handling (Esc closing the screen, Tab focus navigation, ...).
-    pub ui_consume_event: unsafe extern "C" fn(ctx: *mut c_void),
 
     // ── ABI minor 33 — translations ─────────────────────────────────────────
     /// The text of translation key `key` (e.g. `mymod.screen.title`) in the

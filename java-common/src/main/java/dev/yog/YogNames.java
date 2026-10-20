@@ -290,6 +290,8 @@ public final class YogNames {
         public static final String PLANE = "yog:event/client/ui/";
         public static final String OPEN = "yog:event/client/ui/open";
         public static final String CLOSE = "yog:event/client/ui/close";
+        public static final String INPUT = "yog:event/client/ui/input";
+        public static final String INPUT_PRE = "yog:event/client/ui/input/pre";
     }
 
     public static final class EventClientRender {

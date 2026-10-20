@@ -105,6 +105,7 @@ events! {
     client::input::Binding => ids::event_client_input::BINDING, None, key = id;
     client::ui::Open => ids::event_client_ui::OPEN, None;
     client::ui::Close => ids::event_client_ui::CLOSE, None;
+    client::ui::Input => ids::event_client_ui::INPUT, Some(ids::event_client_ui::INPUT_PRE), key = ui_id;
     client::render::Hud => ids::event_client_render::HUD, None;
     client::render::World => ids::event_client_render::WORLD, None;
     client::render::Ui => ids::event_client_render::UI, None, key = ui_id;

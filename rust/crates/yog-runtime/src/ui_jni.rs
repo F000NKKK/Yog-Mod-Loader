@@ -8,20 +8,9 @@ use std::cell::Cell;
 use yog_abi::YogStr;
 use yog_sync::Locked;
 
-/// Sends `ev` to the `register_ui` handler of `id`, if any (result ignored).
-fn dispatch(id: &str, ev: &str) {
-    let h = handlers();
-    let Some((module, ud, handler)) = h.ui_handlers.get(id).cloned() else {
-        return;
-    };
-    if module.is_retiring() {
-        return;
-    }
-    if let Some(_call) = module.enter() {
-        unsafe {
-            handler(ud, YogStr::from_str(id), YogStr::from_str(ev));
-        }
-    }
+/// Sends `ev` to screen `id`'s input handlers; `true` when one used it (cancelled it).
+fn dispatch(id: &str, ev: &str) -> bool {
+    !crate::bus::allowed(&yog_event::client::ui::Input { ui_id: id.to_owned(), event: ev.to_owned() })
 }
 
 /// A Yog UI screen (or inventory screen) opened: a new top layer, and
@@ -166,7 +155,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIClick<'l>(
     // Generic UI handler: raw click coords, hit-tested by the mod. A click
     // it doesn't use (on an inventory screen's slot, say) goes on to the game.
     let _ = button;
-    dispatch_consumable(&id, &format!("click:{mx:.1}:{my:.1}")) as jboolean
+    dispatch(&id, &format!("click:{mx:.1}:{my:.1}")) as jboolean
 }
 
 #[unsafe(no_mangle)]
@@ -177,17 +166,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIScroll<'l>(
     dy: jfloat,
 ) {
     let id = jstr!(env, ui_id);
-    let h = handlers();
-    // Forward as a generic UI event; the mod applies its own scroll offset.
-    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned()
-        && !module.is_retiring()
-        && let Some(_call) = module.enter()
-    {
-        let ev = format!("scroll:{dy:.2}");
-        unsafe {
-            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
-        }
-    }
+    dispatch(&id, &format!("scroll:{dy:.2}"));
 }
 
 #[unsafe(no_mangle)]
@@ -199,16 +178,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIDrag<'l>(
     my: jfloat,
 ) {
     let id = jstr!(env, ui_id);
-    let h = handlers();
-    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned()
-        && !module.is_retiring()
-        && let Some(_call) = module.enter()
-    {
-        let ev = format!("drag:{mx:.1}:{my:.1}");
-        unsafe {
-            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
-        }
-    }
+    dispatch(&id, &format!("drag:{mx:.1}:{my:.1}"));
 }
 
 #[unsafe(no_mangle)]
@@ -220,50 +190,13 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRelease<'l>(
     my: jfloat,
 ) {
     let id = jstr!(env, ui_id);
-    let h = handlers();
-    if let Some((module, ud, handler)) = h.ui_handlers.get(&id).cloned()
-        && !module.is_retiring()
-        && let Some(_call) = module.enter()
-    {
-        let ev = format!("release:{mx:.1}:{my:.1}");
-        unsafe {
-            handler(ud, YogStr::from_str(&id), YogStr::from_str(&ev));
-        }
-    }
+    dispatch(&id, &format!("release:{mx:.1}:{my:.1}"));
 }
 
 thread_local! {
-    /// Set by `YogApi::ui_consume_event` while a `key:`/`char:` event is
-    /// being dispatched — the mod used the key.
-    static CONSUMED: Cell<bool> = const { Cell::new(false) };
     /// A UTF-16 high surrogate waiting for its low half (`charTyped` hands
     /// characters outside the BMP over as two calls).
     static HIGH_SURROGATE: Cell<Option<u16>> = const { Cell::new(None) };
-}
-
-/// `YogApi::ui_consume_event`: marks the event being dispatched as used.
-pub(crate) fn consume_event() {
-    CONSUMED.with(|c| c.set(true));
-}
-
-/// Sends `ev` to the `register_ui` handler of `id`; `true` when the handler
-/// consumed it (called `ui_consume_event`).
-fn dispatch_consumable(id: &str, ev: &str) -> bool {
-    let h = handlers();
-    let Some((module, ud, handler)) = h.ui_handlers.get(id).cloned() else {
-        return false;
-    };
-    if module.is_retiring() {
-        return false;
-    }
-    let Some(_call) = module.enter() else {
-        return false;
-    };
-    let before = CONSUMED.with(|c| c.replace(false));
-    unsafe {
-        handler(ud, YogStr::from_str(id), YogStr::from_str(ev));
-    }
-    CONSUMED.with(|c| c.replace(before))
 }
 
 /// A key pressed (or repeating) over a Yog UI screen — forwarded as
@@ -283,7 +216,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIKey<'l>(
     if action == 0 {
         return 0;
     }
-    dispatch_consumable(&id, &format!("key:{key}:{mods}")) as jboolean
+    dispatch(&id, &format!("key:{key}:{mods}")) as jboolean
 }
 
 /// A character typed over a Yog UI screen (one UTF-16 unit, as
@@ -313,7 +246,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIChar<'l>(
         _ => char::from_u32(chr as u32),
     };
     let Some(c) = c else { return 0 };
-    dispatch_consumable(&id, &format!("char:{}", c as u32)) as jboolean
+    dispatch(&id, &format!("char:{}", c as u32)) as jboolean
 }
 
 #[unsafe(no_mangle)]

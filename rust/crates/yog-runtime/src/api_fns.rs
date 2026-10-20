@@ -190,20 +190,3 @@ pub(super) unsafe extern "C" fn api_register_chunk_generator(
     }
 }
 
-pub(super) unsafe extern "C" fn api_register_ui(
-    ctx: *mut c_void,
-    ui_id: YogStr,
-    _layout_json: YogStr,
-    ud: *mut c_void,
-    h: yog_abi::YogUIEventFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        let id = ui_id.as_str().to_owned();
-        handlers
-            .ui_handlers
-            .insert(id.clone(), (current_registration(), ud, h));
-        yog_logging::info!("registered UI handler: {}", id);
-    }
-}
-
