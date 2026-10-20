@@ -3,7 +3,7 @@
 //! the mod answers with. Little-endian; strings are a u16 length and UTF-8.
 
 use yog_graphics::Color;
-use yog_ids::game::TICKS_PER_SECOND as TICKS;
+use yog_ids::time::TICKS_PER_SECOND as TICKS;
 
 use crate::math::{Mat4, Vec3};
 use crate::model::Quad;
