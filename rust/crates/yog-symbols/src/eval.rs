@@ -558,7 +558,7 @@ impl Parser {
         t
     }
 
-    fn expect(&mut self, want: Tok) -> Result<(), String> {
+    fn want(&mut self, want: Tok) -> Result<(), String> {
         match self.next() {
             Some(t) if t == want => Ok(()),
             Some(t) => Err(format!(
@@ -596,7 +596,7 @@ impl Parser {
                 Some(Tok::LBracket) => {
                     self.pos += 1;
                     let index = self.unary(depth + 1)?;
-                    self.expect(Tok::RBracket)?;
+                    self.want(Tok::RBracket)?;
                     e = Expr::Index(Box::new(e), Box::new(index));
                 }
                 _ => return Ok(e),
@@ -609,7 +609,7 @@ impl Parser {
             Some(Tok::Int(n)) => Ok(Expr::Int(n)),
             Some(Tok::LParen) => {
                 let e = self.unary(depth + 1)?;
-                self.expect(Tok::RParen)?;
+                self.want(Tok::RParen)?;
                 Ok(e)
             }
             Some(Tok::Ident(first)) => {
