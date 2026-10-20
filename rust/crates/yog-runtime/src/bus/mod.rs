@@ -47,13 +47,18 @@ pub(crate) fn table() -> *const YogBus {
 
 /// Emits `event` before the game does it: whether every handler lets it.
 pub(crate) fn allowed<E: Event>(event: &E) -> bool {
-    let Some(pre) = E::PRE else { return true };
-    ROUTER.emit(ROUTER.resolve(pre), &event.to_bytes(), java::run).0 != status::CANCELLED
+    let Some(pre) = event.pre_target() else { return true };
+    ROUTER.emit(ROUTER.resolve(&pre), &event.to_bytes(), java::run).0 != status::CANCELLED
 }
 
 /// Emits `event` after the game did it.
 pub(crate) fn emitted<E: Event>(event: &E) {
-    ROUTER.emit(ROUTER.resolve(E::ADDRESS), &event.to_bytes(), java::run);
+    ROUTER.emit(ROUTER.resolve(&event.target()), &event.to_bytes(), java::run);
+}
+
+/// Whether anyone listens to `E` (unkeyed) — skip building a frame no one draws.
+pub(crate) fn heard<E: Event>() -> bool {
+    ROUTER.heard(ROUTER.resolve(E::ADDRESS))
 }
 
 /// The mod registering right now, if any — what its handlers are dropped with.

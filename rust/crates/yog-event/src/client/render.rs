@@ -10,6 +10,19 @@ pub struct Hud {
     pub delta_tick: f32,
 }
 
+/// Fired every frame at the end of world rendering (the frame's graphics
+/// carry the camera: `view_proj`, `camera_pos`).
+#[derive(Debug, Clone, Schema)]
+pub struct World {
+    pub delta_tick: f32,
+}
+
+/// A mod's screen drawn this frame (after its background); keyed by the screen's id.
+#[derive(Debug, Clone, Schema)]
+pub struct Ui {
+    pub ui_id: String,
+}
+
 /// The camera this frame, as vanilla placed it, and what the mods make of
 /// it: each handler adds to `out`, seeing the one before's.
 #[derive(Debug, Clone, Schema)]

@@ -22,21 +22,8 @@ pub trait Service: Message {
 
     /// Where this call goes: the address, or its branch for the key.
     fn target(&self) -> String {
-        match self.key() {
-            Some(key) => crate::keyed(Self::ADDRESS, key),
-            None => Self::ADDRESS.to_owned(),
-        }
+        crate::message::target(Self::ADDRESS, self.key())
     }
-}
-
-/// A call's key field's value, if an entry gives one.
-macro_rules! key_value {
-    ($self:ident,) => {
-        None
-    };
-    ($self:ident, $key:ident) => {
-        Some(&$self.$key)
-    };
 }
 
 /// A service's descriptor: its domain and name, address and shapes.

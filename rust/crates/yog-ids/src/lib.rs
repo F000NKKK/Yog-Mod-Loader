@@ -306,6 +306,8 @@ names! {
     event_client_render {
         PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "render", sep::PATH),
         HUD = concatcp!(PLANE, "hud"),
+        WORLD = concatcp!(PLANE, "world"),
+        UI = concatcp!(PLANE, "ui"),
         CAMERA = concatcp!(PLANE, "camera"),
         BODY = concatcp!(PLANE, "body"),
     }

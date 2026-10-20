@@ -1,26 +1,5 @@
 //! The runtime's macros, declared before every module that uses them.
 
-/// The `yog-hot-reload` host contract: `retarget` needs no work here because
-/// `LoadedModule::is_retiring()` already makes a superseded generation's
-/// dispatch-table entries inert (every `handlers().<field>` loop checks it)
-/// the instant `HotReloader::reload` calls `retire` on the old module —
-/// well before this is even invoked. `purge` is the actual safety-net
-/// sweep, dropping every entry tagged with a retired generation right
-/// before its library is hard-unloaded.
-/// Runs `$body` with `$list` bound to each per-event handler list of `$h`.
-macro_rules! for_each_handler_list {
-    ($h:expr_2021, |$list:ident| $body:expr_2021) => {{
-        {
-            let $list = &mut $h.hud_render;
-            $body;
-        }
-        {
-            let $list = &mut $h.world_render;
-            $body;
-        }
-    }};
-}
-
 /// Reads a Java string, returning `$or` (default: `Default::default()`)
 /// from the enclosing function when it can't be read.
 macro_rules! jstr {

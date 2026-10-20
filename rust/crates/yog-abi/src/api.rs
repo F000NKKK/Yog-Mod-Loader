@@ -29,17 +29,6 @@ pub struct YogApi {
     /// content — new kinds need no new ABI.
     pub register_content: unsafe extern "C" fn(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize),
 
-
-    // ── ABI minor 10 — client-side events ────────────────────────────────────
-    pub on_hud_render: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogHudRenderFn),
-
-    // ── ABI minor 14 — world render ──────────────────────────────────────────
-    /// Register a handler that fires after world geometry is rendered.
-    /// `gfx.view_proj` and `gfx.camera_pos` are filled; use them to project
-    /// custom 3D geometry into clip space.
-    pub on_world_render:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogWorldRenderFn),
-
     // ── ABI minor 19 — UI system ──────────────────────────────────────────────
     /// Register a UI tree. `ui_id` is the unique identifier (e.g. "mymod:menu").
     /// `layout_json` is the serialized layout tree.
@@ -51,15 +40,6 @@ pub struct YogApi {
         ud: *mut c_void,
         h: YogUIEventFn,
     ),
-
-    // ── ABI minor 20 — per-UI screen renderer ────────────────────────────────
-    /// Register a render callback that fires during `YogUIScreen.render()` for a
-    /// specific UI id — i.e. AFTER the screen darkening, unlike `on_hud_render`.
-    /// Reuses `YogHudRenderFn` (`fn(ud, gfx)`); `gfx.screen_w/h` are set.
-    /// Clicks are forwarded as `"click:X:Y"` events to the `register_ui` handler
-    /// so mods can do their own hit-testing with their stored layout.
-    pub on_ui_render:
-        unsafe extern "C" fn(ctx: *mut c_void, ui_id: YogStr, ud: *mut c_void, h: YogHudRenderFn),
 
     // ── ABI minor 22 — menu entry registration ──────────────────────────────
     /// Register a button/link that the host renders on vanilla screens
@@ -227,6 +207,9 @@ pub struct YogApi {
     /// The bus: calls, events and services by address (`docs/design/bus.md`).
     /// Valid for the runtime's lifetime.
     pub bus: *const YogBus,
+    /// The frame's graphics while a render event (`yog:event/client/render/…`)
+    /// runs on this thread; null otherwise. Valid until the event's handlers return.
+    pub gfx: unsafe extern "C" fn(ctx: *mut c_void) -> *const YogGfxApi,
 }
 
 /// Flag bits for [`YogApi::ui_open_flags`].

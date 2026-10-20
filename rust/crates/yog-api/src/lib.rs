@@ -14,6 +14,7 @@ pub mod loot;
 pub mod control;
 pub mod vanilla;
 mod bus;
+mod draw;
 pub use bus::{EventCx, Flow, IntoFlow};
 pub use service::call;
 mod interop;

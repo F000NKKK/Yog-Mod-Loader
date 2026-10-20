@@ -296,6 +296,8 @@ public final class YogNames {
 
         public static final String PLANE = "yog:event/client/render/";
         public static final String HUD = "yog:event/client/render/hud";
+        public static final String WORLD = "yog:event/client/render/world";
+        public static final String UI = "yog:event/client/render/ui";
         public static final String CAMERA = "yog:event/client/render/camera";
         public static final String BODY = "yog:event/client/render/body";
     }

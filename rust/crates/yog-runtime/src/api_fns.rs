@@ -8,19 +8,6 @@ use super::*;
 // `current_registration()` for how each entry gets tagged with the
 // `LoadedModule` that's registering it.
 
-macro_rules! api_event {
-    ($name:ident, $field:ident, $fn_ty:ty) => {
-        pub(super) unsafe extern "C" fn $name(ctx: *mut c_void, ud: *mut c_void, h: $fn_ty) {
-            unsafe {
-                let mut handlers = handlers_mut(ctx);
-                handlers.$field.push((current_registration(), ud, h));
-            }
-        }
-    };
-}
-
-api_event!(api_on_hud_render, hud_render, YogHudRenderFn);
-api_event!(api_on_world_render, world_render, YogWorldRenderFn);
 
 /// The handlers a registration call writes into: `ctx` is the
 /// `RwLock<RuntimeHandlers>` the runtime handed the mod's `yog_mod_register`.
@@ -217,23 +204,6 @@ pub(super) unsafe extern "C" fn api_register_ui(
             .ui_handlers
             .insert(id.clone(), (current_registration(), ud, h));
         yog_logging::info!("registered UI handler: {}", id);
-    }
-}
-
-pub(super) unsafe extern "C" fn api_on_ui_render(
-    ctx: *mut c_void,
-    ui_id: YogStr,
-    ud: *mut c_void,
-    h: YogHudRenderFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        let id = ui_id.as_str().to_owned();
-        handlers
-            .ui_render_handlers
-            .entry(id)
-            .or_default()
-            .push((current_registration(), ud, h));
     }
 }
 

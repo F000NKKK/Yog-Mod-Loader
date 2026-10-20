@@ -47,10 +47,7 @@ pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *cons
         ctx: ctx as *mut c_void,
         server,
         register_content: api_register_content,
-        on_hud_render: api_on_hud_render,
-        on_world_render: api_on_world_render,
         register_ui: api_register_ui,
-        on_ui_render: api_on_ui_render,
         register_menu_entry: api_register_menu_entry,
         mods_list: api_mods_list,
         free_str: yog_free_str,
@@ -81,5 +78,6 @@ pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *cons
         register_key_binding: api_register_key_binding,
         log: api_log,
         bus: crate::bus::table(),
+        gfx: crate::gfx_frame::api_gfx,
     }
 }

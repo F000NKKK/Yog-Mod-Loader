@@ -3,7 +3,6 @@
 //! test's own `extern "C"` functions, the "mod" is the test process.
 
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, RwLock};
 
 use yog_abi::YogStr;
@@ -107,35 +106,6 @@ fn blocks_and_inventories_arrive_as_their_definitions() {
     assert_eq!(h.blocks[0].shape, Some([0.0, 0.0, 0.0, 16.0, 8.0, 16.0]));
     assert_eq!(h.blocks[0].inventory_id.as_deref(), Some("mymod:box"));
     assert_eq!((h.inventories[0].slot_count, h.inventories[0].background_size), (3, Some((176.0, 120.0))));
-}
-
-type Ping = unsafe extern "C" fn(*mut c_void) -> bool;
-
-unsafe extern "C" fn ping_yes(ud: *mut c_void) -> bool {
-    unsafe { (*(ud as *const AtomicUsize)).fetch_add(1, Ordering::SeqCst) };
-    true
-}
-
-unsafe extern "C" fn ping_no(ud: *mut c_void) -> bool {
-    unsafe { (*(ud as *const AtomicUsize)).fetch_add(1, Ordering::SeqCst) };
-    false
-}
-
-#[test]
-fn handlers_stop_at_the_first_no_and_skip_retired_mods() {
-    let calls = Box::new(AtomicUsize::new(0));
-    let ud = &*calls as *const AtomicUsize as *mut c_void;
-    let live = module();
-    let retired = module();
-    retired.retire(|| {});
-    let entries: Vec<Entry<Ping>> = vec![
-        (retired.clone(), ud, ping_no as Ping),
-        (live.clone(), ud, ping_yes as Ping),
-        (live.clone(), ud, ping_no as Ping),
-        (live.clone(), ud, ping_yes as Ping),
-    ];
-    assert!(!each_while(&entries, |ud, f| unsafe { f(ud) }), "a handler said no");
-    assert_eq!(calls.load(Ordering::SeqCst), 2, "the retired one is skipped, the last never runs");
 }
 
 #[test]

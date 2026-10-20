@@ -16,6 +16,19 @@ pub trait Event: Message {
     /// The field whose value picks the event's branch (`entity_type`: each
     /// type's ticks go to `…/tick/<type>`), if it's keyed — see [`crate::keyed`].
     const KEY: Option<&'static str>;
+
+    /// The key field's value, if it's keyed.
+    fn key(&self) -> Option<&str>;
+
+    /// Where this event goes after the game did it: the address, or its branch for the key.
+    fn target(&self) -> String {
+        crate::message::target(Self::ADDRESS, self.key())
+    }
+
+    /// Where it goes before, if it can be stopped.
+    fn pre_target(&self) -> Option<String> {
+        Self::PRE.map(|pre| crate::message::target(pre, self.key()))
+    }
 }
 
 /// An event type's descriptor: its plane and name, addresses and payload shape.
@@ -35,6 +48,10 @@ macro_rules! events {
             const ADDRESS: &'static str = $post;
             const PRE: Option<&'static str> = $pre;
             const KEY: Option<&'static str> = key!($($key)?);
+
+            fn key(&self) -> Option<&str> {
+                key_value!(self, $($key)?)
+            }
         })*
 
         /// Every event type, plane by plane.
@@ -89,6 +106,8 @@ events! {
     client::ui::Open => ids::event_client_ui::OPEN, None;
     client::ui::Close => ids::event_client_ui::CLOSE, None;
     client::render::Hud => ids::event_client_render::HUD, None;
+    client::render::World => ids::event_client_render::WORLD, None;
+    client::render::Ui => ids::event_client_render::UI, None, key = ui_id;
     client::render::Camera => ids::event_client_render::CAMERA, None;
     client::render::Body => ids::event_client_render::BODY, None;
     client::net::Packet => ids::event_client_net::PACKET, None, key = channel;

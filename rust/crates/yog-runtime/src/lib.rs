@@ -27,8 +27,8 @@ use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
-    ABI_VERSION, YogApi, YogBlockPos, YogGfxApi, YogHudRenderFn, YogOwnedStr,
-    YogServer, YogStr, YogVec3, YogWorldRenderFn,
+    ABI_VERSION, YogApi, YogBlockPos, YogGfxApi, YogOwnedStr,
+    YogServer, YogStr, YogVec3,
 };
 use yog_registry::{BlockDef, ItemDef};
 use yog_sync::{Locked, ReadWrite};
@@ -51,6 +51,7 @@ mod logging;
 use logging::*;
 mod gpu;
 use gpu::*;
+mod gfx_frame;
 mod gfx_table;
 use gfx_table::*;
 mod api_fns;

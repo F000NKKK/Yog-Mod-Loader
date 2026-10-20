@@ -391,18 +391,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         // ui=None → fall through to on_ui_render callbacks
     }
 
-    // Generic on_ui_render callbacks — run AFTER renderBackground(), so they appear
-    // on top of the screen darkening (unlike on_hud_render which runs before screens).
-    let render_cbs: Vec<_> = h.ui_render_handlers.get(&id).cloned().unwrap_or_default();
-    for (module, ud, f) in render_cbs {
-        if module.is_retiring() {
-            continue;
-        }
-        let Some(_call) = module.enter() else {
-            continue;
-        };
-        unsafe { f(ud, &gfx as *const _) };
-    }
+    // The screen's own drawing — after renderBackground(), so on top of the
+    // darkening (unlike the HUD, drawn before screens).
+    crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&yog_event::client::render::Ui { ui_id: id.clone() }));
 }
 
 /// Hand `snapshot` to every loaded mod's own copy of `yog-inventory`'s

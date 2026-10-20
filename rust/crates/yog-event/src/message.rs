@@ -24,6 +24,14 @@ pub fn keyed(address: &str, key: &str) -> String {
     format!("{address}{}{key}", ids::sep::PATH)
 }
 
+/// Where a message with `key` (if keyed) goes: `address`, or its branch.
+pub(crate) fn target(address: &str, key: Option<&str>) -> String {
+    match key {
+        Some(key) => keyed(address, key),
+        None => address.to_owned(),
+    }
+}
+
 /// Where `address` sits under `prefix`: `yog:event/player/session/join`
 /// under `yog:event/` → `player/session`.
 pub(crate) fn branch(address: &'static str, prefix: &str) -> &'static str {
@@ -45,3 +53,14 @@ macro_rules! key {
         Some(stringify!($key))
     };
 }
+
+/// A message's key field's value, if an entry gives one.
+macro_rules! key_value {
+    ($self:ident,) => {
+        None
+    };
+    ($self:ident, $key:ident) => {
+        Some(&$self.$key)
+    };
+}
+

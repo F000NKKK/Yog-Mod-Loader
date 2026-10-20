@@ -30,8 +30,6 @@ pub(super) type TooltipEntry = (LoadedModule, *mut c_void, yog_abi::YogTooltipSi
 // regardless of what this crate does.
 #[derive(Default)]
 pub(super) struct RuntimeHandlers {
-    pub(super) hud_render: Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>,
-    pub(super) world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
     /// (namespace, name, the recipe in Yog's own format).
     pub(super) recipes: Vec<(String, String, yog_data::Value)>,
     pub(super) items: Vec<ItemDef>,
@@ -65,7 +63,6 @@ pub(super) struct RuntimeHandlers {
     /// which is its `generator_type`.
     pub(super) terrains: HashMap<String, Arc<yog_worldgen::Generator>>,
     pub(super) ui_handlers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogUIEventFn)>,
-    pub(super) ui_render_handlers: HashMap<String, Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>>,
     /// Book pages' pictures (`BookPage::Drawn`), by drawer id.
     pub(super) page_drawers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogPageDrawFn)>,
     /// Pictures in item tooltips, by item id: the first that answers draws.
@@ -85,35 +82,6 @@ pub(super) struct RuntimeHandlers {
 unsafe impl Send for RuntimeHandlers {}
 unsafe impl Sync for RuntimeHandlers {}
 
-/// A mod callback, tagged with the module that registered it.
-pub(super) type Entry<F> = (LoadedModule, *mut c_void, F);
-
-/// Calls `call(ud, f)` for every entry whose module is still live, until
-/// one returns `false`; whether none did.
-pub(super) fn each_while<F: Copy>(entries: &[Entry<F>], mut call: impl FnMut(*mut c_void, F) -> bool) -> bool {
-    for (module, ud, f) in entries {
-        if module.is_retiring() {
-            continue;
-        }
-        let Some(_call) = module.enter() else {
-            continue;
-        };
-        if !call(*ud, *f) {
-            return false;
-        }
-    }
-    true
-}
-
-/// Calls `call(ud, f)` for every entry whose module is still live (a
-/// post-phase handler's result is ignored).
-pub(super) fn each<F: Copy, R>(entries: &[Entry<F>], mut call: impl FnMut(*mut c_void, F) -> R) {
-    each_while(entries, |ud, f| {
-        call(ud, f);
-        true
-    });
-}
-
 pub(super) fn handlers() -> std::sync::RwLockReadGuard<'static, RuntimeHandlers> {
     HANDLERS
         .get()
@@ -132,7 +100,13 @@ pub(super) fn hot_reloader() -> &'static HotReloader<RuntimeModuleRegistry> {
     HOT_RELOADER.get().expect("yog: nativeInit not called yet")
 }
 
-
+/// The `yog-hot-reload` host contract: `retarget` needs no work here because
+/// `LoadedModule::is_retiring()` already makes a superseded generation's
+/// entries inert (the router and every `handlers().<field>` lookup check it)
+/// the instant `HotReloader::reload` calls `retire` on the old module —
+/// well before this is even invoked. `purge` is the actual safety-net
+/// sweep, dropping every entry tagged with a retired generation right
+/// before its library is hard-unloaded.
 pub(super) struct RuntimeModuleRegistry;
 
 impl ModuleRegistry for RuntimeModuleRegistry {
@@ -143,15 +117,10 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         let Some(lock) = HANDLERS.get() else { return };
         let mut h = lock.write_locked();
         let h = &mut *h;
-        for_each_handler_list!(h, |list| list
-            .retain(|(m, ..)| m.generation() != generation));
         h.chunk_generators
             .retain(|_, (m, ..)| m.generation() != generation);
         h.ui_handlers
             .retain(|_, (m, ..)| m.generation() != generation);
-        for entries in h.ui_render_handlers.values_mut() {
-            entries.retain(|(m, ..)| m.generation() != generation);
-        }
         h.page_drawers
             .retain(|_, (m, ..)| m.generation() != generation);
         for entries in h.item_tooltips.values_mut() {

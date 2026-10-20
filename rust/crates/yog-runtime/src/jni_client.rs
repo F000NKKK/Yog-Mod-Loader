@@ -61,12 +61,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     gfx.scale_factor = scale_factor;
     gfx.player_pos = [player_x, player_y, player_z];
 
-    // Mod hud_render callbacks.
-    if !h.hud_render.is_empty() {
-        guard("on_hud_render", || {
-            each(&h.hud_render, |ud, f| unsafe { f(ud, &gfx) });
-        });
-    }
+    crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&yog_event::client::render::Hud { delta_tick }));
 
     // Render active book UIs.
     let active_layers: Vec<UiLayer> = h.active_uis.locked().clone();
@@ -100,8 +95,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     player_y: jfloat,
     player_z: jfloat,
 ) {
-    let h = handlers();
-    if h.world_render.is_empty() {
+    if !crate::bus::heard::<yog_event::client::render::World>() {
         return;
     }
     let mut view_proj = [0f32; 16];
@@ -119,8 +113,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     gfx.view_proj = view_proj;
     gfx.camera_pos = [cam_x, cam_y, cam_z];
     gfx.player_pos = [player_x, player_y, player_z];
-    guard("on_world_render", || {
-        each(&h.world_render, |ud, f| unsafe { f(ud, &gfx) });
-    });
+    crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&yog_event::client::render::World { delta_tick }));
 }
 

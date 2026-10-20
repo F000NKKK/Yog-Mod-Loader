@@ -1253,16 +1253,6 @@ pub(crate) fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
 
 // ── ABI minor 10 — client-side trampolines ────────────────────────────────────
 
-unsafe extern "C" fn trampoline_hud_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
-where
-    F: Fn(&GfxContext) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        guard((), || f(&GfxContext::from_raw(gfx)));
-    }
-}
-
 /// What `Registry::on_item_tooltip` keeps: the size and the draw closures.
 struct TooltipPicture<S, D> {
     size: S,
@@ -1306,16 +1296,6 @@ where
         let bytes = if data.is_null() { &[][..] } else { std::slice::from_raw_parts(data, len) };
         let value = yog_data::binary::decode(bytes).unwrap_or(yog_data::Value::Null);
         guard((), || f(&GfxContext::from_raw(gfx), &value, [x, y, w, h]));
-    }
-}
-
-unsafe extern "C" fn trampoline_world_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
-where
-    F: Fn(&GfxContext) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        guard((), || f(&GfxContext::from_raw(gfx)));
     }
 }
 
@@ -1813,9 +1793,7 @@ impl Registry {
     where
         F: Fn(&GfxContext) + Send + Sync + 'static,
     {
-        let ud = Self::leak(handler);
-        let id = YogStr::from_str(ui_id);
-        unsafe { ((*self.api).on_ui_render)(self.ctx(), id, ud, trampoline_hud_render::<F>) }
+        self.on_draw::<yog_event::client::render::Ui>(Some(ui_id), handler);
     }
 
     /// Draw the pictures of book pages of type `drawn` whose `drawer` is
@@ -1983,8 +1961,7 @@ impl Registry {
     where
         F: Fn(&GfxContext) + Send + Sync + 'static,
     {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_hud_render)(self.ctx(), ud, trampoline_hud_render::<F>) }
+        self.on_draw::<yog_event::client::render::Hud>(None, handler);
     }
 
     /// Register a handler called every frame at the end of world rendering.
@@ -1996,8 +1973,7 @@ impl Registry {
     where
         F: Fn(&GfxContext) + Send + Sync + 'static,
     {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_world_render)(self.ctx(), ud, trampoline_world_render::<F>) }
+        self.on_draw::<yog_event::client::render::World>(None, handler);
     }
 
     /// A key binding the player sees in the game's controls (under this

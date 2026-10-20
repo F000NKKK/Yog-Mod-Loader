@@ -24,9 +24,6 @@ use super::*;
 /// Call `YogApi::ui_consume_event` while handling `key:`/`char:` to stop the
 /// host's default handling of that key (Esc closing the screen, ...).
 pub type YogUIEventFn = unsafe extern "C" fn(ud: *mut c_void, ui_id: YogStr, event_id: YogStr);
-/// HUD render — `gfx` is the graphics context for this frame; only valid for
-/// the call duration.  `draw2d_*` functions in `gfx` work here.
-pub type YogHudRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
 /// A book page's picture: `data`/`len` is the page's `data` (Yog Data,
 /// binary), `x, y, w, h` its box in screen pixels; `gfx` is valid for the
 /// call.
@@ -62,6 +59,3 @@ pub type YogBytesSink = unsafe extern "C" fn(sink: *mut c_void, data: *const u8,
 
 
 
-/// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
-/// Valid only for the call duration.
-pub type YogWorldRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);

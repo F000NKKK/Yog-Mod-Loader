@@ -1852,6 +1852,81 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
             }
 
+            /** Fired every frame at the end of world rendering (the frame's graphics carry the camera: `view_proj`, `camera_pos`). */
+            public record World(double deltaTick) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("delta_tick", deltaTick);
+                    return m;
+                }
+
+                public static World fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new World(YogData.number(m.get("delta_tick"), 0));
+                }
+
+                public static World fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventClientRender.WORLD);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public World emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+
+            /** A mod's screen drawn this frame (after its background); keyed by the screen's id. */
+            public record Ui(String uiId) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("ui_id", uiId);
+                    return m;
+                }
+
+                public static Ui fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Ui(YogData.str(m.get("ui_id"), ""));
+                }
+
+                public static Ui fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.UI, uiId), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Ui emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+
             /** The camera this frame, as vanilla placed it, and what the mods make of it: each handler adds to `out`, seeing the one before's. */
             public record Camera(YogTypes.CameraFrame frame, YogTypes.CameraOut out) {
                 public Map<String, Object> toData() {
