@@ -627,6 +627,7 @@ public final class YogNames {
 
         public static final String RESOURCES = "resources";
         public static final String CONTENT = "content";
+        public static final String FONT_COPIES = "font";
         public static final String SRC = "src";
         public static final String BUILD = ".yog-build";
     }
@@ -679,6 +680,8 @@ public final class YogNames {
         public static final String PLAYER_INVENTORY = "yog:player_inventory";
         public static final String MACHINE_PREFIX = "yog:machine:";
         public static final String POTION_ALIAS = "yog:potion/";
+        public static final String FONT_ALIAS = "yog:font/";
+        public static final String DEFAULT_FONT = "yog:font/default";
         public static final String SPAWN_EGG_MODEL = "yog:item/spawn_egg";
         public static final String BOOK_SHEET = "yog:gui/book/book";
         public static final String CRAFTING_SHEET = "yog:gui/book/crafting";
@@ -687,6 +690,15 @@ public final class YogNames {
         public static final String NO_IMAGE = "yog:none";
         public static final String DYNAMIC_SVG_PREFIX = "yog:dynamic/svg_";
         public static final String DYNAMIC_TEXT_PREFIX = "yog:dynamic/text_";
+    }
+
+    public static final class GameFont {
+        private GameFont() {}
+
+        public static final String DEFAULT = "default";
+        public static final String UNIFORM = "uniform";
+        public static final String ALT = "alt";
+        public static final String ILLAGERALT = "illageralt";
     }
 
     public static final class Game {

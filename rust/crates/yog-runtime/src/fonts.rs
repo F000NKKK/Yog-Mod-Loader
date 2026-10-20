@@ -3,8 +3,9 @@
 //! by `yog_font` at the screen's resolution, white (the color is the
 //! draw's tint), kept as a host texture per run and drawn as an image; the
 //! game's own text (chat, signs, tooltips) gets the font as a bitmap atlas
-//! ([`atlases`]) the host makes its version's font JSON of. Text in any
-//! other font is the game's.
+//! ([`atlases`]) the host makes its version's font JSON of. The game's
+//! own fonts are named only through Yog's aliases (`yog:font/uniform`,
+//! [`named`]).
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
@@ -43,6 +44,8 @@ struct Runs {
 }
 
 static RUNS: Mutex<Option<Runs>> = Mutex::new(None);
+/// Fonts named that are neither Yog's nor aliases, reported once each.
+static UNKNOWN: Mutex<std::collections::BTreeSet<String>> = Mutex::new(std::collections::BTreeSet::new());
 
 /// Pixels an em is in a font's atlas for the game (it scales them to [`EM`]).
 const ATLAS_EM_PX: f32 = 32.0;
@@ -124,6 +127,33 @@ pub(crate) fn register(id: String, font: Font) {
 /// Yog's font `id`, if it is one.
 pub(crate) fn get(id: &str) -> Option<Arc<Font>> {
     FONTS.read_locked().as_ref()?.get(id).cloned()
+}
+
+/// What a font a mod names is drawn with.
+pub(crate) enum Named {
+    /// One of Yog's fonts.
+    Yog(Arc<Font>),
+    /// The game's font of this id (Yog's alias of it named it).
+    Game(String),
+}
+
+/// The font `id` names: a Yog font, or the game's one behind a `yog:font/`
+/// alias — the game's fonts are never named directly, so anything else
+/// is reported once and drawn in the default font.
+pub(crate) fn named(id: &str) -> Named {
+    if let Some(font) = get(id) {
+        return Named::Yog(font);
+    }
+    if id.is_empty() {
+        return Named::Game(yog_ids::game::DEFAULT_FONT.to_owned());
+    }
+    if let Some(game) = yog_ids::game_font_of(id) {
+        return Named::Game(game);
+    }
+    if UNKNOWN.locked().insert(id.to_owned()) {
+        yog_logging::warn!("font {id} is neither a Yog font nor a {}<name> alias; drawn in the default font", yog_ids::yog::FONT_ALIAS);
+    }
+    Named::Game(yog_ids::game::DEFAULT_FONT.to_owned())
 }
 
 /// GUI pixels a font unit is, at `scale`.

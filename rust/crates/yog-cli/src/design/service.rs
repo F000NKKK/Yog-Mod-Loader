@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
-use super::{advancements, book, codebehind, content, custom, images, project, recipe_kinds, refs, tags, worldgen, yui_codegen};
+use super::{advancements, book, codebehind, content, custom, font_copy, images, project, recipe_kinds, refs, tags, worldgen, yui_codegen};
 
 type Reply = Result<Value, Value>;
 
@@ -69,6 +69,8 @@ pub fn dispatch(method: &str, params: &Value) -> Option<Reply> {
         "content_tags" => with("registry", &|p, r| ok(content::tags(p, r))),
         "content_parent_model" => with("id", &|p, id| done(content::parent_model(p, id))),
         "content_item_potion_color" => file(|p| ok(content::item_potion_color(p))),
+        // The mod's copy of a game font (by Yog's alias), made if it has none: `{ id, file }`.
+        "font_copy" => with("alias", &|p, alias| done(font_copy::copy(p, alias))),
         "content_import" => with("kind", &|p, kind| {
             let model = param::<Option<String>>(params, "model")?;
             done(content::import(p, kind, &param::<String>(params, "source")?, model.as_deref(), param(params, "force")?))

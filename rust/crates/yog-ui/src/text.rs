@@ -2,8 +2,8 @@
 //!
 //! Widths use Minecraft's default (ASCII) font advance table so that
 //! wrapping and centering match what the MC text renderer actually draws.
-//! Other fonts (`Style::font`, e.g. `"minecraft:uniform"` or a resource-pack
-//! font) are measured by the host's text renderer once [`use_host_metrics`]
+//! Other fonts (`Style::font`: a Yog font, or a game font by Yog's alias
+//! such as `"yog:font/uniform"`) are measured by the host's text renderer once [`use_host_metrics`]
 //! has been called (`UiRoot::render` does it); before that, and outside a
 //! game, they fall back to the default font's table.
 
@@ -19,8 +19,8 @@ pub const CHAR_W: f32 = 6.0;
 pub const LINE_H: f32 = 9.0;
 /// Gap between wrapped lines.
 pub const LINE_GAP: f32 = 1.0;
-/// Minecraft's default font id — what an empty `Style::font` means.
-pub use yog_ids::game::DEFAULT_FONT;
+/// Yog's alias of the game's default font — what an empty `Style::font` means.
+pub use yog_ids::yog::DEFAULT_FONT;
 
 /// Advance width in pixels (including 1px inter-glyph spacing) of one char
 /// in Minecraft's default ASCII font at GUI scale 1.
@@ -41,7 +41,7 @@ pub fn char_width(c: char) -> f32 {
     }
 }
 
-/// Whether `font` means Minecraft's default font (empty or `minecraft:default`).
+/// Whether `font` means the game's default font (empty or `yog:font/default`).
 pub fn is_default_font(font: &str) -> bool {
     font.is_empty() || font == DEFAULT_FONT
 }

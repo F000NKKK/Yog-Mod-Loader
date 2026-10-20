@@ -63,6 +63,8 @@ enum Provider {
     Bitmap(BitmapProvider),
     Unihex(Arc<UnihexProvider>),
     Ttf(Arc<TtfProvider>),
+    /// One of the mod's own fonts.
+    Yog(Arc<super::font_yog::YogProvider>),
 }
 
 pub struct Font {
@@ -445,22 +447,29 @@ fn missing_glyph() -> Glyph {
 }
 
 impl Font {
-    /// `font_id` like `minecraft:default`; `""` is the default font.
+    /// `font_id` like `yog:font/uniform` (Yog's alias of a game font) or
+    /// one of the mod's own (`mymod:font/fancy`); `""` is the default font.
     pub fn load(res: &Resources, font_id: &str) -> Arc<Font> {
-        type Cache = Mutex<HashMap<(Option<std::path::PathBuf>, String), Arc<Font>>>;
+        // A mod's own font is read again once its file changes.
+        type Cache = Mutex<HashMap<(Option<std::path::PathBuf>, String, Option<std::time::SystemTime>), Arc<Font>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
-        let id = if font_id.trim().is_empty() {
-            yog_ids::game::DEFAULT_FONT
-        } else {
-            font_id.trim()
+        let named = font_id.trim();
+        let game = yog_ids::game_font_of(named);
+        let id = match &game {
+            Some(game) => game.as_str(),
+            None if named.is_empty() => yog_ids::game::DEFAULT_FONT,
+            None => named,
         };
-        let key = (res.mod_root.clone(), id.to_string());
+        let key = (res.mod_root.clone(), id.to_string(), super::font_yog::changed(res, id));
         let cache = CACHE.get_or_init(Default::default);
         if let Some(f) = cache.lock().ok().and_then(|c| c.get(&key).cloned()) {
             return f;
         }
         let mut providers = Vec::new();
-        load_providers(res, id, 0, &mut providers);
+        match super::font_yog::load(res, id) {
+            Some(own) => providers.push(Provider::Yog(own)),
+            None => load_providers(res, id, 0, &mut providers),
+        }
         if providers.is_empty() && id != yog_ids::game::DEFAULT_FONT {
             // An unknown font falls back to the default one, as in game.
             load_providers(res, yog_ids::game::DEFAULT_FONT, 0, &mut providers);
@@ -474,6 +483,31 @@ impl Font {
         }
         font
     }
+
+    /// The characters its providers draw, in order; Unifont's (tens of
+    /// thousands) only when `unihex`.
+    pub fn chars(&self, unihex: bool) -> Vec<char> {
+        let mut out: Vec<char> = self
+            .providers
+            .iter()
+            .flat_map(|p| -> Vec<char> {
+                match p {
+                    Provider::Space(a) => a.keys().copied().collect(),
+                    Provider::Bitmap(b) => b.chars.keys().copied().collect(),
+                    Provider::Unihex(u) if unihex => u.glyphs.keys().filter_map(|&c| char::from_u32(c)).collect(),
+                    Provider::Unihex(_) => Vec::new(),
+                    Provider::Ttf(t) => t.font.chars().keys().filter(|c| !t.skip.contains(c)).copied().collect(),
+                    Provider::Yog(y) => y.chars().collect(),
+                }
+            })
+            .collect();
+        out.sort_unstable();
+        out.dedup();
+        out
+    }
+
+    /// The text's baseline, in GUI pixels below its top.
+    pub const BASELINE: f32 = BASELINE;
 
     /// Whether any glyph source was found (else everything is the missing box).
     pub fn is_real(&self) -> bool {
@@ -497,6 +531,7 @@ impl Font {
                     Provider::Bitmap(b) => b.glyph(ch),
                     Provider::Unihex(u) => u.glyph(ch),
                     Provider::Ttf(t) => t.glyph(ch),
+                    Provider::Yog(y) => y.glyph(ch, BASELINE),
                 })
                 .unwrap_or_else(missing_glyph),
         );

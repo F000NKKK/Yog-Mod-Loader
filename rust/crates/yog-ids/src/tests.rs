@@ -34,3 +34,11 @@ fn the_exports_name_every_group() {
     let java = export::java("dev.yog.generated", "YogNames");
     assert!(java.contains("public static final class ImageScheme {") && java.contains("public static final String STATE = \"yog:state\";"), "{java}");
 }
+
+#[test]
+fn a_font_alias_stands_for_the_games_font() {
+    assert_eq!(game_font_of(&font_alias(game_font::UNIFORM)).as_deref(), Some("minecraft:uniform"));
+    assert_eq!(game_font_of(yog::DEFAULT_FONT).as_deref(), Some(game::DEFAULT_FONT));
+    assert_eq!(game_font_of("minecraft:uniform"), None);
+    assert_eq!(game_font_of(yog::FONT_ALIAS), None);
+}

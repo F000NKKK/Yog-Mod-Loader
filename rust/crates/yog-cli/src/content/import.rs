@@ -6,7 +6,9 @@
 //!   flattened from the pack or the Minecraft client jar), textures copied
 //!   into `resources/`, the blockstate's rotations kept;
 //! - `yog import bbmodel <file.bbmodel> [--id <name>] [--item]` — a
-//!   Blockbench project in the Java block/item format, textures included.
+//!   Blockbench project in the Java block/item format, textures included;
+//! - `yog import font <yog:font/name> [--id <path>] [--chars <ranges>]` — a copy of
+//!   one of the game's fonts as the mod's own `.yfont` ([`font`]).
 
 use super::json::{J, V, to_pretty};
 use super::{TEMPLATES, template, valid_namespace, valid_path};
@@ -19,7 +21,11 @@ use crate::yres::RESOURCES_DIR;
 use yog_data::Schema;
 use yog_ids::Format;
 
-const USAGE: &str = "usage:\n  yog import resourcepack <pack.zip|dir> [--model <ns:block/name|ns:item/name>] [--all] [--force]\n  yog import bbmodel <file.bbmodel> [--id <name>] [--item] [--force]";
+mod font;
+
+pub(crate) use font::copy_path as font_copy_path;
+
+const USAGE: &str = "usage:\n  yog import resourcepack <pack.zip|dir> [--model <ns:block/name|ns:item/name>] [--all] [--force]\n  yog import bbmodel <file.bbmodel> [--id <name>] [--item] [--force]\n  yog import font <yog:font/name> [--id <path>] [--chars <hex ranges>] [--force]";
 
 /// `yog import ...` (args after `import`).
 pub fn import_command(args: &[String]) -> Result<(), String> {
@@ -36,7 +42,7 @@ pub fn import_command(args: &[String]) -> Result<(), String> {
         for a in args.iter().skip(1) {
             if skip {
                 skip = false;
-            } else if a == "--model" || a == "--id" {
+            } else if a == "--model" || a == "--id" || a == "--chars" {
                 skip = true;
             } else if !a.starts_with("--") {
                 out.push(a.as_str());
@@ -60,6 +66,9 @@ pub fn import_command(args: &[String]) -> Result<(), String> {
         }
         (Some("bbmodel"), Some(file)) => {
             import_bbmodel(&mut target, &root.join(file), value("--id"), flag("--item"))?;
+        }
+        (Some(kind), Some(alias)) if kind == yog_ids::kind::FONT => {
+            font::import_font(&mut target, alias, value("--id"), value("--chars"))?;
         }
         _ => return Err(USAGE.into()),
     }

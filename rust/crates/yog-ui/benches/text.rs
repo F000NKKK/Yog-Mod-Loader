@@ -8,7 +8,7 @@ use std::hint::black_box;
 use yog_gfx::GfxContext;
 use yog_ui::text;
 
-const HOST_FONT: &str = "minecraft:uniform";
+const HOST_FONT: &str = "yog:font/uniform";
 
 const PARAGRAPH: &str = "The quick brown fox jumps over the lazy dog. Patchouli-style books \
     wrap long paragraphs like this one into narrow pages, so every layout pass measures \

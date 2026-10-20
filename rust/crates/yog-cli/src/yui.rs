@@ -51,6 +51,16 @@ pub(crate) fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, Str
     Err(format!("line {}: <{}> {msg}", el.line, el.name))
 }
 
+/// A `font` attribute: a Yog font, or a game font by Yog's alias — never
+/// the game's own id.
+fn font_attr<'a>(el: &Element, v: &'a str) -> Result<&'a str, String> {
+    let font = v.trim();
+    match yog_ids::split(font) {
+        (yog_ids::ns::MINECRAFT, name) if !font.is_empty() => err(el, format!("font=\"{font}\": the game's fonts are named by Yog's alias, {}", yog_ids::font_alias(name))),
+        _ => Ok(font),
+    }
+}
+
 /// Whether `key` is an attribute every element takes (not a component's
 /// own property).
 pub(crate) fn is_common_attr(key: &str) -> bool {
@@ -719,7 +729,7 @@ impl Gen {
                 }
                 "placeholder" => call(format!("placeholder({})", text_attr(el, key, v)?)),
                 "tooltip" => call(format!("tooltip({})", text_attr(el, key, v)?)),
-                "font" => call(format!("font({:?})", v.trim())),
+                yog_ids::yui_attr::FONT => call(format!("font({:?})", font_attr(el, v)?)),
                 "max_length" => {
                     let n = v.trim().parse::<usize>().map_err(|_| {
                         format!(
@@ -1526,7 +1536,7 @@ mod tests {
     #[test]
     fn text_box_and_font() {
         let src = r#"<Screen id="a:b">
-  <TextBox id="search" w="100%" placeholder="Search..." max_length="64" on_change="search" on_submit="go" font="minecraft:uniform" shadow="false"/>
+  <TextBox id="search" w="100%" placeholder="Search..." max_length="64" on_change="search" on_submit="go" font="yog:font/uniform" shadow="false"/>
 </Screen>"#;
         let code = generate(src, "x").unwrap();
         assert!(code.contains(r#"widget::text_box("")"#), "{code}");
@@ -1534,12 +1544,14 @@ mod tests {
         assert!(code.contains(".max_length(64)"));
         assert!(code.contains(r#".on_change("search")"#));
         assert!(code.contains(r#".on_submit("go")"#));
-        assert!(code.contains(r#".font("minecraft:uniform")"#));
+        assert!(code.contains(r#".font("yog:font/uniform")"#));
         assert!(code.contains(".shadow(false)"));
         assert!(code.contains(r#"pub const GO: &str = "go";"#));
         assert!(code.contains("pub fn text_box("));
         let bad = r#"<Screen id="a:b"><TextBox max_length="x"/></Screen>"#;
         assert!(generate(bad, "x").unwrap_err().contains("whole number"));
+        let direct = r#"<Screen id="a:b"><Label text="x" font="minecraft:alt"/></Screen>"#;
+        assert!(generate(direct, "x").unwrap_err().contains("yog:font/alt"));
     }
 
     #[test]

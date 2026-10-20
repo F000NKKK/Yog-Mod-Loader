@@ -30,6 +30,8 @@ pub mod codebehind;
 pub mod components;
 pub mod custom;
 pub mod font;
+pub mod font_copy;
+mod font_yog;
 pub mod gfx;
 pub mod host;
 pub mod images;
@@ -255,7 +257,7 @@ pub fn render(args: &RenderArgs) -> Result<Rendered, String> {
 }
 
 fn canvas_font_real(res: &Resources) -> bool {
-    font::Font::load(res, yog_ids::game::DEFAULT_FONT).is_real()
+    font::Font::load(res, yog_ids::yog::DEFAULT_FONT).is_real()
 }
 
 #[derive(Debug, Deserialize)]
@@ -674,7 +676,7 @@ mod visual {
                     ("x", "6"),
                     ("y", "76"),
                     ("text", "Galactic"),
-                    ("font", "minecraft:alt"),
+                    ("font", "yog:font/alt"),
                     ("no_wrap", "true"),
                 ],
             ),

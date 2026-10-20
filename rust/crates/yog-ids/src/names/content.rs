@@ -51,6 +51,8 @@ names! {
         RESOURCES = "resources",
         /// Its content: blocks, items, recipes, books, definitions.
         CONTENT = "content",
+        /// Where a copy of a game font goes, under its content.
+        FONT_COPIES = "font",
         /// Its code and screens.
         SRC = "src",
         /// Where `yog build` writes: the generated crate, generated code, listings.
@@ -128,6 +130,11 @@ names! {
         MACHINE_PREFIX = id!(ns::YOG, "machine:"),
         /// Yog's alias of a game potion: `yog:potion/<name>`.
         POTION_ALIAS = id!(ns::YOG, "potion/"),
+        /// Yog's alias of a game font, `yog:font/<name>` — the only way
+        /// anything names one of the game's fonts.
+        FONT_ALIAS = id!(ns::YOG, "font/"),
+        /// The font text is drawn in by default (the game's).
+        DEFAULT_FONT = concatcp!(FONT_ALIAS, game_font::DEFAULT),
         /// The model every mod's spawn egg inherits: Yog's egg in two layers, base and spots.
         SPAWN_EGG_MODEL = id!(ns::YOG, "item/spawn_egg"),
         /// The book's pictures.
@@ -145,10 +152,22 @@ names! {
         DYNAMIC_TEXT_PREFIX = id!(ns::YOG, "dynamic/text_"),
     }
 
+    /// The game's fonts, by name: Yog aliases each as
+    /// `yog:font/<name>` ([`crate::yog::FONT_ALIAS`]).
+    game_font {
+        DEFAULT = "default",
+        /// Unifont.
+        UNIFORM = "uniform",
+        /// The enchanting table's.
+        ALT = "alt",
+        ILLAGERALT = "illageralt",
+    }
+
     /// The game's ids Yog's code names.
     game {
-        /// The font text is drawn in by default.
-        DEFAULT_FONT = id!(ns::MINECRAFT, "default"),
+        /// The game's own id of its default font (hosts only; everything
+        /// else says [`crate::yog::DEFAULT_FONT`]).
+        DEFAULT_FONT = id!(ns::MINECRAFT, game_font::DEFAULT),
         /// The UI theme drawn like the game's own screens.
         VANILLA_THEME = id!(ns::MINECRAFT, "vanilla"),
         OVERWORLD = id!(ns::MINECRAFT, "overworld"),

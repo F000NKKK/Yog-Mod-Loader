@@ -130,7 +130,7 @@ entry order are what a reorder changes. Keeping them in one place makes a drag-r
     "nameplate_color": "#00072B",
     "text_color": "#000000", "header_color": "#333333",
     "link_color": "#0000EE", "link_hover_color": "#8800EE",
-    "font": "minecraft:default",                 // any yog-ui font id
+    "font": "yog:font/default",                  // any yog-ui font id
     "parts": { "separator": "mat:hexcasting:gui/book_separator" }   // per-part material overrides (§7.3)
   },
 

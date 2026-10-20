@@ -976,7 +976,7 @@ pub fn placeholder(name: &str, message: &str, w: f32, h: f32) -> Vec<DrawOp> {
         };
         ops.push(DrawOp::Text {
             text: line.clone(),
-            font: yog_ids::game::DEFAULT_FONT.into(),
+            font: yog_ids::yog::DEFAULT_FONT.into(),
             x: PAD,
             y,
             color,

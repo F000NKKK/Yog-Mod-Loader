@@ -139,9 +139,9 @@ pub struct YogGfxApi {
     pub draw2d_item: unsafe extern "C" fn(id: YogStr, x: f32, y: f32, size: f32),
 
     // ── appended in ABI minor 33 ──────────────────────────────────────────────
-    /// `draw2d_text` in the font `font` — a font id such as
-    /// `"minecraft:default"`, `"minecraft:uniform"`, `"minecraft:alt"` or a
-    /// resource-pack font (`"mymod:fancy"`); empty = the default font. Only
+    /// `draw2d_text` in the font `font` — a Yog font (`"mymod:fancy"`) or a
+    /// game font by Yog's alias (`"yog:font/uniform"`); empty = the default
+    /// font. Only
     /// valid during a render callback.
     pub draw2d_text_font:
         unsafe extern "C" fn(text: YogStr, font: YogStr, x: f32, y: f32, color: u32, shadow: bool),

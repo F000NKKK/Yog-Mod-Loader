@@ -25,6 +25,7 @@ mod book;
 mod datapack;
 mod defs;
 mod import;
+pub(crate) use import::font_copy_path;
 pub mod json;
 mod looks;
 pub(crate) mod material;

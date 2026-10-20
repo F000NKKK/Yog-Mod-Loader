@@ -54,7 +54,7 @@ public final class NativeDraw {
         return out;
     }
 
-    /** drawText in a font: "minecraft:uniform", a resource-pack font id, ... */
+    /** drawText in a font: the game's id of it ("minecraft:uniform", a Yog font's) — the runtime resolved Yog's alias. */
     public static void drawTextFont(String text, String font, float x, float y, int color, boolean shadow) {
         if (YogIds.isDefaultFont(font)) {
             drawText(text, x, y, color, shadow);

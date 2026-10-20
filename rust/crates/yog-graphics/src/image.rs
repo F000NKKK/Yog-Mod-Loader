@@ -1,6 +1,7 @@
 //! RGBA images.
 
 use yog_data::Schema;
+use yog_data::with::Raw;
 
 use crate::color::Color;
 
@@ -15,6 +16,8 @@ pub type Rgba8 = [u8; BYTES_PER_PIXEL];
 pub struct Image {
     pub width: u32,
     pub height: u32,
+    /// Written as bytes, not a list of numbers.
+    #[data(with = "Raw")]
     pub rgba: Vec<u8>,
 }
 

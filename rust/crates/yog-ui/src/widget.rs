@@ -478,9 +478,10 @@ pub struct Style {
     /// scrollbar there whenever the content overflows (see
     /// [`ScrollState`](crate::ScrollState) for driving it).
     pub scrollbar: bool,
-    /// Font id for text — empty (default) = Minecraft's default font
-    /// (`minecraft:default`); also `minecraft:uniform`, `minecraft:alt`,
-    /// `minecraft:illageralt` or a resource-pack font such as `mymod:fancy`.
+    /// Font id for text — empty (default) = the game's default font
+    /// (`yog:font/default`); a Yog font such as `mymod:fancy`, or another
+    /// game font by Yog's alias: `yog:font/uniform`, `yog:font/alt`,
+    /// `yog:font/illageralt`.
     /// See [`crate::text`] for how non-default fonts are measured.
     pub font: String,
 }

@@ -162,3 +162,16 @@ pub fn qualify(id: &str) -> String {
 pub fn qualify_in(ns: &str, id: &str) -> String {
     if id.contains(sep::NAMESPACE) { id.to_string() } else { join(ns, id) }
 }
+
+/// The game font `font` stands for when it's Yog's alias of one
+/// (`yog:font/uniform` → `minecraft:uniform`).
+#[must_use]
+pub fn game_font_of(font: &str) -> Option<String> {
+    font.strip_prefix(yog::FONT_ALIAS).filter(|name| !name.is_empty()).map(|name| join(ns::MINECRAFT, name))
+}
+
+/// Yog's alias of the game's font `name`: `yog:font/<name>`.
+#[must_use]
+pub fn font_alias(name: &str) -> String {
+    format!("{}{name}", yog::FONT_ALIAS)
+}
