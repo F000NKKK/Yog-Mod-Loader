@@ -89,3 +89,15 @@ fn an_event_is_heard_once_someone_listens() {
     r.on(e, 0, native(1, append_ud));
     assert!(r.heard(e));
 }
+
+#[test]
+fn the_keys_listened_to_under_an_address_are_its_branches() {
+    let r = Router::default();
+    let base = "test:packet";
+    for key in ["b:sync", "a:ping"] {
+        let at = r.resolve(&yog_event::keyed(base, key));
+        r.on(at, 0, native(1, append_ud));
+    }
+    r.resolve(&yog_event::keyed(base, "c:unheard"));
+    assert_eq!(r.listened_keys(base), ["a:ping", "b:sync"]);
+}

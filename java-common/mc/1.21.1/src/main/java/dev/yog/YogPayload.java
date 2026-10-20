@@ -34,12 +34,12 @@ public record YogPayload(String channel, byte[] data) implements CustomPacketPay
 
     /** A message that came to the server from {@code player}: to the mods. */
     public void toServer(net.minecraft.server.level.ServerPlayer player) {
-        NativeBridge.nativeOnPacket(channel, player.getName().getString(), data);
+        new dev.yog.bus.YogEvents.Server.Net.Packet(channel, player.getName().getString(), data).emit();
     }
 
     /** A message that came to this client: to the mods. */
     public void toClient() {
-        NativeBridge.nativeOnClientPacket(channel, data);
+        new dev.yog.bus.YogEvents.Client.Net.Packet(channel, data).emit();
     }
 
     @Override

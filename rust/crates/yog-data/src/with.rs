@@ -188,3 +188,27 @@ impl<F: Schema> With<F> for Plain {
         f.skip()
     }
 }
+
+/// Bytes as they are (`Vec<u8>`): a payload a format doesn't look into.
+pub struct Raw;
+
+impl With<Vec<u8>> for Raw {
+    fn shape() -> Shape {
+        Shape::Bytes
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Vec<u8>> {
+        match v {
+            ValueRef::Bytes(b) => Some(b.to_vec()),
+            other => {
+                cx.expected("bytes", other);
+                None
+            }
+        }
+    }
+    fn write(f: &Vec<u8>) -> Value {
+        Value::Bytes(f.clone())
+    }
+    fn absent() -> Option<Vec<u8>> {
+        Some(Vec::new())
+    }
+}

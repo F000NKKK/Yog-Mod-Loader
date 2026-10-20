@@ -1518,8 +1518,6 @@ public final class NativeBridge {
     /** Everything registered — items, blocks, inventories — as one Yog Data blob ({@code YogContent}). */
     public static native byte[] nativeContent();
 
-    public static native void nativeOnPacket(String channel, String player, byte[] payload);
-    public static native void nativeOnClientPacket(String channel, byte[] payload);
     public static native String nativePacketChannels();
     public static native String nativeClientPacketChannels();
     public static native void nativeGlInit();

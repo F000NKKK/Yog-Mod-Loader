@@ -1633,10 +1633,6 @@ public final class NativeBridge {
 
     // (no native entry points needed for #4 — all calls are Rust→Java via JNI)
 
-    public static native void nativeOnPacket(String channel, String player, byte[] payload);
-
-    public static native void nativeOnClientPacket(String channel, byte[] payload);
-
     /** Server-receiver packet channels, one per line. */
     public static native String nativePacketChannels();
 

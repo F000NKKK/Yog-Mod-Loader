@@ -1449,6 +1449,46 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
             }
         }
+
+        /** `net`. */
+        public static final class Net {
+            private Net() {}
+
+            /** A packet a client sent on a mod's channel; keyed by the channel. */
+            public record Packet(String channel, String player, byte[] payload) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("channel", channel);
+                    m.put("player", player);
+                    m.put("payload", payload);
+                    return m;
+                }
+
+                public static Packet fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Packet(YogData.str(m.get("channel"), ""), YogData.str(m.get("player"), ""), (m.get("payload") instanceof byte[] e0 ? e0 : new byte[0]));
+                }
+
+                public static Packet fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventServerNet.PACKET, channel), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Packet emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+        }
     }
 
     /** `client`. */
@@ -1716,6 +1756,45 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Hud emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+        }
+
+        /** `net`. */
+        public static final class Net {
+            private Net() {}
+
+            /** A packet the server sent on a mod's channel; keyed by the channel. */
+            public record Packet(String channel, byte[] payload) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("channel", channel);
+                    m.put("payload", payload);
+                    return m;
+                }
+
+                public static Packet fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Packet(YogData.str(m.get("channel"), ""), (m.get("payload") instanceof byte[] e0 ? e0 : new byte[0]));
+                }
+
+                public static Packet fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientNet.PACKET, channel), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Packet emitChanged() {
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {

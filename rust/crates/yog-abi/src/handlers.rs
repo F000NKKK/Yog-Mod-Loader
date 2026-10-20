@@ -14,8 +14,6 @@ use super::*;
 // the render thread and have no server context.
 
 
-/// Packet events — always Post, no phase.
-pub type YogPacketFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
 /// Command handler.
 pub type YogCommandFn = unsafe extern "C" fn(
     ud: *mut c_void,

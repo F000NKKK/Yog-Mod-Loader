@@ -5,7 +5,7 @@
 use std::os::raw::c_void;
 
 use yog_abi::{YogBytes, YogReply, YogStatus, status};
-use yog_event::{Event, player, server};
+use yog_event::{Event, client, keyed, player, server};
 
 use yog_sync::Locked;
 
@@ -30,7 +30,12 @@ unsafe extern "C" fn run<E: Event>(ud: *mut c_void, payload: YogBytes, _reply: *
 
 /// `f` on every `E` after the game did it, at `priority`.
 fn after<E: Event>(priority: i32, f: fn(&E)) {
-    let at = ROUTER.resolve(E::ADDRESS);
+    listen(E::ADDRESS, priority, f);
+}
+
+/// `f` on every `E` at `address`, at `priority`.
+fn listen<E: Event>(address: &str, priority: i32, f: fn(&E)) {
+    let at = ROUTER.resolve(address);
     ROUTER.on(at, priority, Handler::Native { owner: None, ud: f as usize, f: run::<E> });
 }
 
@@ -43,4 +48,8 @@ pub(crate) fn register() {
     after::<player::session::Join>(LAST, |e| crate::ticks::queue_startup_grants(&e.player_name, &e.uuid));
     after::<server::game::Tick>(LAST, |_| crate::ticks::after_tick());
     after::<server::life::Stopping>(LAST, |_| crate::entity_data::server_stopped());
+    // What the server tells this client about entities comes on the runtime's own channel.
+    listen::<client::net::Packet>(&keyed(client::net::Packet::ADDRESS, crate::entity_data::ENTITY_DATA), FIRST, |p| {
+        crate::entity_data::receive(&p.payload)
+    });
 }

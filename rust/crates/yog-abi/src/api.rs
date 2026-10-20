@@ -20,12 +20,6 @@ pub struct YogApi {
     /// Stable server action table — pass to handlers.
     pub server: *const YogServer,
 
-    // ── networking ───────────────────────────────────────────────────────────
-    pub on_packet:
-        unsafe extern "C" fn(ctx: *mut c_void, channel: YogStr, ud: *mut c_void, h: YogPacketFn),
-    pub on_client_packet:
-        unsafe extern "C" fn(ctx: *mut c_void, channel: YogStr, ud: *mut c_void, h: YogPacketFn),
-
     // ── commands ─────────────────────────────────────────────────────────────
     pub register_command:
         unsafe extern "C" fn(ctx: *mut c_void, name: YogStr, ud: *mut c_void, h: YogCommandFn),

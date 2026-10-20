@@ -25,18 +25,6 @@
 //! assert_eq!(decoded.player, "Steve");
 //! ```
 
-/// A packet received on a channel.
-#[derive(Debug, Clone)]
-pub struct PacketEvent {
-    /// Channel id, e.g. `mymod:sync`.
-    pub channel: String,
-    /// Sender's player name on the server side; empty for packets the client
-    /// received from the server.
-    pub player: String,
-    /// Raw payload bytes.
-    pub payload: Vec<u8>,
-}
-
 // ── Typed packet support ──────────────────────────────────────────────────────
 
 /// Encode/decode a single field to/from a byte buffer.

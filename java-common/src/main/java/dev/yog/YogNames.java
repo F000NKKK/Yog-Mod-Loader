@@ -237,6 +237,13 @@ public final class YogNames {
         public static final String STOPPING = "yog:event/server/life/stopping";
     }
 
+    public static final class EventServerNet {
+        private EventServerNet() {}
+
+        public static final String PLANE = "yog:event/server/net/";
+        public static final String PACKET = "yog:event/server/net/packet";
+    }
+
     public static final class EventClientGame {
         private EventClientGame() {}
 
@@ -266,6 +273,13 @@ public final class YogNames {
 
         public static final String PLANE = "yog:event/client/render/";
         public static final String HUD = "yog:event/client/render/hud";
+    }
+
+    public static final class EventClientNet {
+        private EventClientNet() {}
+
+        public static final String PLANE = "yog:event/client/net/";
+        public static final String PACKET = "yog:event/client/net/packet";
     }
 
     public static final class ResKind {

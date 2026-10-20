@@ -255,6 +255,12 @@ names! {
         STOPPING = concatcp!(PLANE, "stopping"),
     }
 
+    /// `yog:event/server/net/…`; keyed by channel.
+    event_server_net {
+        PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "net", sep::PATH),
+        PACKET = concatcp!(PLANE, "packet"),
+    }
+
     /// `yog:event/client/game/…`.
     event_client_game {
         PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "game", sep::PATH),
@@ -280,6 +286,12 @@ names! {
     event_client_render {
         PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "render", sep::PATH),
         HUD = concatcp!(PLANE, "hud"),
+    }
+
+    /// `yog:event/client/net/…`; keyed by channel.
+    event_client_net {
+        PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "net", sep::PATH),
+        PACKET = concatcp!(PLANE, "packet"),
     }
 
 

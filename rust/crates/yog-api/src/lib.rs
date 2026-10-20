@@ -332,7 +332,9 @@ pub use yog_event::{Event, EventPhase, Message, Service};
 pub use yog_inventory::{InventoryDef, SlotLayout};
 #[doc(inline)]
 pub use yog_network::packet;
-pub use yog_network::{Packet, PacketEvent, PacketField};
+pub use yog_network::{Packet, PacketField};
+/// A packet the server or the client received (`on_packet` / `on_client_packet`).
+pub use yog_event::{client::net::Packet as ClientPacketEvent, server::net::Packet as PacketEvent};
 pub use yog_player::Player;
 pub use yog_registry::{
     BlockDef, BlockProperty, Cooking, EntityDef, EntityKind, FoodDef, ItemDef, Recipe,

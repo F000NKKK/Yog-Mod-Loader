@@ -80,10 +80,12 @@ events! {
     server::game::Tick => ids::event_server_game::TICK, None;
     server::life::Started => ids::event_server_life::STARTED, None;
     server::life::Stopping => ids::event_server_life::STOPPING, None;
+    server::net::Packet => ids::event_server_net::PACKET, None, key = channel;
     client::game::Tick => ids::event_client_game::TICK, None;
     client::input::Key => ids::event_client_input::KEY, Some(ids::event_client_input::KEY_PRE);
     client::input::Binding => ids::event_client_input::BINDING, None, key = id;
     client::ui::Open => ids::event_client_ui::OPEN, None;
     client::ui::Close => ids::event_client_ui::CLOSE, None;
     client::render::Hud => ids::event_client_render::HUD, None;
+    client::net::Packet => ids::event_client_net::PACKET, None, key = channel;
 }

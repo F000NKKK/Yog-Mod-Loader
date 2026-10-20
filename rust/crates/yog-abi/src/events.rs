@@ -7,14 +7,6 @@ use super::*;
 // ── ABI minor 9–10 event structs ──────────────────────────────────────────────
 
 #[repr(C)]
-pub struct YogPacketEvent {
-    pub channel: YogStr,
-    pub player: YogStr, // empty string on client-received packets
-    pub payload: *const u8,
-    pub payload_len: u32,
-}
-
-#[repr(C)]
 pub struct YogCommandEvent {
     pub name: YogStr,
     pub args: YogStr,

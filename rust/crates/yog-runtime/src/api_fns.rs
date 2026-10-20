@@ -22,34 +22,6 @@ macro_rules! api_event {
 api_event!(api_on_hud_render, hud_render, YogHudRenderFn);
 api_event!(api_on_world_render, world_render, YogWorldRenderFn);
 
-pub(super) unsafe extern "C" fn api_on_packet(
-    ctx: *mut c_void,
-    channel: YogStr,
-    ud: *mut c_void,
-    h: YogPacketFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        handlers
-            .packets
-            .insert(channel.as_str().to_owned(), (current_registration(), ud, h));
-    }
-}
-
-pub(super) unsafe extern "C" fn api_on_client_packet(
-    ctx: *mut c_void,
-    channel: YogStr,
-    ud: *mut c_void,
-    h: YogPacketFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        handlers
-            .client_packets
-            .insert(channel.as_str().to_owned(), (current_registration(), ud, h));
-    }
-}
-
 pub(super) unsafe extern "C" fn api_register_command(
     ctx: *mut c_void,
     name: YogStr,

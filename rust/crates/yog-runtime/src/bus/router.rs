@@ -88,6 +88,22 @@ impl Router {
         self.subscribers.read_locked().get(&event).is_some_and(|list| !list.is_empty())
     }
 
+    /// The keys someone listens to under keyed event `address` (the
+    /// channels of `…/net/packet/<channel>`), sorted.
+    pub(crate) fn listened_keys(&self, address: &str) -> Vec<String> {
+        let branch = yog_event::keyed(address, "");
+        let names = self.names.read_locked();
+        let mut keys: Vec<String> = self
+            .subscribers
+            .read_locked()
+            .iter()
+            .filter(|(_, list)| !list.is_empty())
+            .filter_map(|(at, _)| names.names.get(*at as usize)?.strip_prefix(branch.as_str()).map(str::to_owned))
+            .collect();
+        keys.sort();
+        keys
+    }
+
     /// Calls `to`'s provider.
     pub(crate) fn call(&self, to: YogAddress, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
         let Some(handler) = self.providers.read_locked().get(&to).cloned() else {

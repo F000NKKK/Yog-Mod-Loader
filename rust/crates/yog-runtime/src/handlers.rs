@@ -49,8 +49,6 @@ pub(super) struct RuntimeHandlers {
     pub(super) commands: HashMap<String, Vec<CommandEntry>>,
     /// (namespace, name, the recipe in Yog's own format).
     pub(super) recipes: Vec<(String, String, yog_data::Value)>,
-    pub(super) packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
-    pub(super) client_packets: HashMap<String, (LoadedModule, *mut c_void, YogPacketFn)>,
     pub(super) items: Vec<ItemDef>,
     /// Mods' entity types, as Yog Data (the host reads them whole).
     pub(super) entities: Vec<yog_data::Value>,
@@ -220,9 +218,6 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         for entries in h.commands.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }
-        h.packets.retain(|_, (m, ..)| m.generation() != generation);
-        h.client_packets
-            .retain(|_, (m, ..)| m.generation() != generation);
         h.chunk_generators
             .retain(|_, (m, ..)| m.generation() != generation);
         h.ui_handlers

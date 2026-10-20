@@ -20,14 +20,14 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
 use glow::HasContext;
 use jcall::JArg;
-use jni::objects::{JByteArray, JClass, JFloatArray, JString};
+use jni::objects::{JClass, JFloatArray, JString};
 use jni::sys::{jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
 use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
-    ABI_VERSION, YogApi, YogBlockPos, YogCommandFn, YogGfxApi, YogHudRenderFn, YogOwnedStr, YogPacketFn,
+    ABI_VERSION, YogApi, YogBlockPos, YogCommandFn, YogGfxApi, YogHudRenderFn, YogOwnedStr,
     YogScheduledFn, YogServer, YogStr, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, ItemDef};

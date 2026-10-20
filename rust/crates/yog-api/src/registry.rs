@@ -11,14 +11,16 @@ use std::os::raw::c_void;
 
 use yog_abi::{
     YogApi, YogCommandEvent, YogGfxApi,
-    YogPacketEvent, YogServer,
+    YogServer,
     YogStr, };
 use yog_formats::book::Book;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_dimensions::{ChunkWriter, YogDimensionDef};
 use yog_gfx::GfxContext;
-use yog_network::{Packet, PacketEvent};
+use yog_event::client::net::Packet as ClientPacketEvent;
+use yog_event::server::net::Packet as PacketEvent;
+use yog_network::Packet;
 use yog_registry::{ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial};
 
 // ── CServer — implements Server via the YogServer function table ──────────────
@@ -1249,31 +1251,6 @@ pub(crate) fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
 // Closures are Box::into_raw'd in Registry methods — they are INTENTIONALLY
 // leaked and live for the process lifetime.
 
-
-unsafe extern "C" fn trampoline_packet<F>(
-    ud: *mut c_void,
-    srv: *const YogServer,
-    ev: *const YogPacketEvent,
-) where
-    F: Fn(&PacketEvent, &dyn Server) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        let ev = &*ev;
-        let rust_ev = PacketEvent {
-            channel: ev.channel.as_str().to_owned(),
-            player: ev.player.as_str().to_owned(),
-            // (A null pointer with no bytes is fine for C, not for a slice.)
-            payload: if ev.payload.is_null() || ev.payload_len == 0 {
-                Vec::new()
-            } else {
-                std::slice::from_raw_parts(ev.payload, ev.payload_len as usize).to_vec()
-            },
-        };
-        guard((), || f(&rust_ev, &CServer(srv)));
-    }
-}
-
 unsafe extern "C" fn trampoline_command<F>(
     ud: *mut c_void,
     srv: *const YogServer,
@@ -1701,22 +1678,20 @@ impl Registry {
 
     // ── networking ───────────────────────────────────────────────────────────
 
+    /// Runs `handler` on every packet a client sends on `channel` (server side).
     pub fn on_packet<F>(&mut self, channel: impl AsRef<str>, handler: F)
     where
         F: Fn(&PacketEvent, &dyn Server) + Send + Sync + 'static,
     {
-        let ch = YogStr::from_str(channel.as_ref());
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_packet)(self.ctx(), ch, ud, trampoline_packet::<F>) }
+        self.on_key::<PacketEvent, _>(channel.as_ref(), move |p, cx| handler(p, cx.server()));
     }
 
+    /// Runs `handler` on every packet the server sends on `channel` (client side).
     pub fn on_client_packet<F>(&mut self, channel: impl AsRef<str>, handler: F)
     where
-        F: Fn(&PacketEvent, &dyn Server) + Send + Sync + 'static,
+        F: Fn(&ClientPacketEvent, &dyn Server) + Send + Sync + 'static,
     {
-        let ch = YogStr::from_str(channel.as_ref());
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_client_packet)(self.ctx(), ch, ud, trampoline_packet::<F>) }
+        self.on_key::<ClientPacketEvent, _>(channel.as_ref(), move |p, cx| handler(p, cx.server()));
     }
 
     /// Register a typed-packet handler.
@@ -2251,7 +2226,7 @@ pub trait Mod {
 #[cfg(test)]
 mod trampoline_tests {
     use super::*;
-    use yog_abi::{YogCommandEvent, YogPacketEvent};
+    use yog_abi::YogCommandEvent;
 
     fn ud<F>(f: &F) -> *mut c_void {
         f as *const F as *mut c_void
@@ -2261,10 +2236,6 @@ mod trampoline_tests {
         let mut len = 99u32;
         unsafe { trampoline_command::<F>(ud(f), std::ptr::null(), ev, buf.as_mut_ptr(), buf.len() as u32, &mut len) };
         len
-    }
-
-    fn packet<F: Fn(&PacketEvent, &dyn Server) + Send + Sync>(f: &F, ev: &YogPacketEvent) {
-        unsafe { trampoline_packet::<F>(ud(f), std::ptr::null(), ev) }
     }
 
     #[test]
@@ -2281,19 +2252,5 @@ mod trampoline_tests {
         let len = command(&handler, &ev, &mut buf);
         // "x: п" is 5 bytes; "пр" wouldn't fit whole in 6.
         assert_eq!(std::str::from_utf8(&buf[..len as usize]), Ok("x: п"));
-    }
-
-    #[test]
-    fn empty_packets_need_no_payload_pointer() {
-        let got = std::sync::Mutex::new(None);
-        let handler = |p: &PacketEvent, _: &dyn Server| *got.lock().unwrap() = Some(p.payload.len());
-        let ev = YogPacketEvent {
-            channel: YogStr::from_str("mymod:ping"),
-            player: YogStr::from_str("Dev"),
-            payload: std::ptr::null(),
-            payload_len: 0,
-        };
-        packet(&handler, &ev);
-        assert_eq!(*got.lock().unwrap(), Some(0));
     }
 }
