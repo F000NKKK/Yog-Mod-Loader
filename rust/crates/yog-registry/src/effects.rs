@@ -121,7 +121,8 @@ mod tests {
         };
         let back = yog_data::read_bytes::<EffectDef>(&yog_data::binary::encode(&e.write())).unwrap();
         assert_eq!(back, e);
-        assert_eq!(yog_data::text::to_string(&e.write()).contains("\"multiply_total\"") && yog_data::text::to_string(&e.write()).contains("\"beneficial\""), true, "{}", yog_data::text::to_string(&e.write()));
+        let text = yog_data::text::to_string(&e.write());
+        assert!(text.contains("\"multiply_total\"") && text.contains("\"beneficial\""), "{text}");
         let p = PotionDef {
             id: "mymod:clarity".into(),
             name: None,

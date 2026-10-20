@@ -21,21 +21,16 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use glow::HasContext;
 use jcall::JArg;
 use jni::objects::{JByteArray, JClass, JFloatArray, JString};
-use jni::sys::{jdouble, jfloat, jint, jstring};
+use jni::sys::{jfloat, jint, jstring};
 use jni::{JNIEnv, JavaVM};
 use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
-    ABI_VERSION, YogAdvancementEvent, YogAdvancementFn, YogApi, YogAttackEntityFn, YogBlockBreakFn,
-    YogBlockPos, YogChatFn, YogClientFn, YogCommandFn, YogContainerCloseEvent,
-    YogContainerCloseFn, YogContainerOpenEvent, YogContainerOpenFn, YogCraftEvent, YogCraftFn,
-    YogEntityDamageFn, YogEntityDeathFn, YogEntityInteractEvent, YogEntityInteractFn,
-    YogEntitySpawnFn, YogExplosionEvent, YogExplosionFn, YogGfxApi, YogHudRenderFn, YogItemInsertEvent, YogItemInsertFn, YogItemPickupEvent, YogItemPickupFn, YogKeyPressEvent, YogMachineCraftEvent, YogMachineCraftFn, YogKeyPressFn, YogKeyBindingFn, YogOwnedStr, YogPacketFn,
-    YogPlaceBlockEvent, YogPlaceBlockFn, YogPlayerDeathEvent, YogPlayerDeathFn, YogPlayerFn,
-    YogPlayerMoveEvent, YogPlayerMoveFn, YogPlayerRespawnEvent, YogPlayerRespawnFn,
-    YogProjectileHitEvent, YogProjectileHitFn, YogScheduledFn, YogScreenFn, YogServer, YogServerFn,
-    YogStr, YogUseBlockFn, YogUseItemFn, YogVec3, YogWorldRenderFn,
+    ABI_VERSION, YogApi, YogBlockPos, YogClientFn, YogCommandFn, YogContainerOpenEvent, YogContainerOpenFn, YogCraftEvent, YogCraftFn,
+    YogGfxApi, YogHudRenderFn, YogItemInsertEvent, YogItemInsertFn, YogKeyPressEvent, YogMachineCraftEvent, YogMachineCraftFn, YogKeyPressFn, YogKeyBindingFn, YogOwnedStr, YogPacketFn,
+    YogScheduledFn, YogScreenFn, YogServer, YogServerFn,
+    YogStr, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, ItemDef};
 use yog_sync::{Locked, ReadWrite};

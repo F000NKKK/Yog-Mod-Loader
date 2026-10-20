@@ -13,6 +13,7 @@ pub mod java;
 pub mod loot;
 pub mod control;
 pub mod vanilla;
+mod bus;
 mod interop;
 mod lang;
 mod registry;

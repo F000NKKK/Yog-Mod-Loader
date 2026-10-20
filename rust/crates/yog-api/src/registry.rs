@@ -10,26 +10,17 @@
 use std::os::raw::c_void;
 
 use yog_abi::{
-    YogAdvancementEvent, YogApi, YogAttackEntityEvent, YogBlockBreakEvent, 
-    YogChatEvent, YogCommandEvent, YogContainerCloseEvent, YogContainerOpenEvent, YogCraftEvent,
-    YogEntityDamageEvent, YogEntityDeathEvent, YogEntityInteractEvent, YogEntitySpawnEvent,
-    YogExplosionEvent, YogGfxApi, YogItemInsertEvent, YogItemPickupEvent, YogMachineCraftEvent,
-    YogKeyPressEvent, YogPacketEvent, YogPlaceBlockEvent, YogPlayerDeathEvent, YogPlayerEvent,
-    YogPlayerMoveEvent, YogPlayerRespawnEvent, YogProjectileHitEvent, YogServer,
-    YogStr, YogUseBlockEvent, YogUseItemEvent,
-};
+    YogApi, YogCommandEvent, YogContainerOpenEvent, YogCraftEvent,
+    YogGfxApi, YogItemInsertEvent, YogMachineCraftEvent,
+    YogKeyPressEvent, YogPacketEvent, YogServer,
+    YogStr, };
 use yog_formats::book::Book;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_dimensions::{ChunkWriter, YogDimensionDef};
 use yog_event::{
-    AdvancementEvent, AttackEntityEvent, BlockBreakEvent, ChatEvent, ClientTickEvent,
-    ContainerCloseEvent, ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent,
-    EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, ItemInsertEvent, ItemPickupEvent,
-    KeyPressEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerJoinEvent, PlayerLeaveEvent,
-    PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenEvent, UseBlockEvent,
-    UseItemEvent,
-};
+    ClientTickEvent,
+    ContainerOpenEvent, CraftEvent, EventPhase, ItemInsertEvent, KeyPressEvent, ScreenEvent, };
 use yog_gfx::GfxContext;
 use yog_network::{Packet, PacketEvent};
 use yog_registry::{ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial};
@@ -1246,7 +1237,7 @@ fn bp(pos: yog_core::BlockPos) -> yog_abi::YogBlockPos {
 // at the boundary — the panic message is already in the log — and the
 // event goes on as if the mod hadn't handled it.
 
-fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
+pub(crate) fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(call)).unwrap_or_else(|_| {
         crate::error!("a mod's callback panicked (see above); carrying on without it");
         fallback
@@ -1293,191 +1284,6 @@ macro_rules! trampoline_phased {
         }
     };
 }
-
-trampoline_phased!(
-    trampoline_block_break,
-    YogBlockBreakEvent,
-    BlockBreakEvent,
-    |ev| BlockBreakEvent {
-        player_name: ev.player.as_str().to_owned(),
-        block_id: ev.block.as_str().to_owned(),
-        pos: yog_core::BlockPos {
-            x: ev.pos.x,
-            y: ev.pos.y,
-            z: ev.pos.z
-        },
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(trampoline_chat, YogChatEvent, ChatEvent, |ev| ChatEvent {
-    player_name: ev.player.as_str().to_owned(),
-    message: ev.message.as_str().to_owned(),
-    dimension: ev.dimension.as_str().to_owned(),
-});
-
-trampoline_phased!(
-    trampoline_player_join,
-    YogPlayerEvent,
-    PlayerJoinEvent,
-    |ev| PlayerJoinEvent {
-        player_name: ev.player.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_player_leave,
-    YogPlayerEvent,
-    PlayerLeaveEvent,
-    |ev| PlayerLeaveEvent {
-        player_name: ev.player.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(trampoline_use_item, YogUseItemEvent, UseItemEvent, |ev| {
-    UseItemEvent {
-        player_name: ev.player.as_str().to_owned(),
-        item_id: ev.item.as_str().to_owned(),
-        sneaking: ev.sneaking,
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-});
-
-trampoline_phased!(
-    trampoline_use_block,
-    YogUseBlockEvent,
-    UseBlockEvent,
-    |ev| UseBlockEvent {
-        player_name: ev.player.as_str().to_owned(),
-        block_id: ev.block.as_str().to_owned(),
-        pos: yog_core::BlockPos {
-            x: ev.pos.x,
-            y: ev.pos.y,
-            z: ev.pos.z
-        },
-        dimension: ev.dimension.as_str().to_owned(),
-        sneaking: ev.sneaking,
-    }
-);
-
-trampoline_phased!(
-    trampoline_attack_entity,
-    YogAttackEntityEvent,
-    AttackEntityEvent,
-    |ev| AttackEntityEvent {
-        player_name: ev.player.as_str().to_owned(),
-        target_type: ev.target_type.as_str().to_owned(),
-        target_uuid: ev.target_uuid.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_entity_damage,
-    YogEntityDamageEvent,
-    EntityDamageEvent,
-    |ev| EntityDamageEvent {
-        entity_type: ev.entity_type.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        amount: ev.amount,
-        source: ev.source.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_entity_death,
-    YogEntityDeathEvent,
-    EntityDeathEvent,
-    |ev| EntityDeathEvent {
-        entity_type: ev.entity_type.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        source: ev.source.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_entity_spawn,
-    YogEntitySpawnEvent,
-    EntitySpawnEvent,
-    |ev| EntitySpawnEvent {
-        entity_type: ev.entity_type.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_place_block,
-    YogPlaceBlockEvent,
-    PlaceBlockEvent,
-    |ev| PlaceBlockEvent {
-        player_name: ev.player.as_str().to_owned(),
-        block_id: ev.block.as_str().to_owned(),
-        pos: yog_core::BlockPos {
-            x: ev.pos.x,
-            y: ev.pos.y,
-            z: ev.pos.z
-        },
-        dimension: ev.dimension.as_str().to_owned(),
-        sneaking: ev.sneaking,
-    }
-);
-
-trampoline_phased!(
-    trampoline_player_death,
-    YogPlayerDeathEvent,
-    PlayerDeathEvent,
-    |ev| PlayerDeathEvent {
-        player_name: ev.player.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        source: ev.source.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_player_respawn,
-    YogPlayerRespawnEvent,
-    PlayerRespawnEvent,
-    |ev| PlayerRespawnEvent {
-        player_name: ev.player.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        at_anchor: ev.at_anchor,
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_advancement,
-    YogAdvancementEvent,
-    AdvancementEvent,
-    |ev| AdvancementEvent {
-        player_name: ev.player.as_str().to_owned(),
-        uuid: ev.uuid.as_str().to_owned(),
-        advancement_id: ev.advancement.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_entity_interact,
-    YogEntityInteractEvent,
-    EntityInteractEvent,
-    |ev| EntityInteractEvent {
-        player_name: ev.player.as_str().to_owned(),
-        player_uuid: ev.player_uuid.as_str().to_owned(),
-        entity_type: ev.entity_type.as_str().to_owned(),
-        entity_uuid: ev.entity_uuid.as_str().to_owned(),
-        hand: ev.hand.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
 
 trampoline_phased!(trampoline_craft, YogCraftEvent, CraftEvent, |ev| {
     CraftEvent {
@@ -1528,20 +1334,6 @@ trampoline_phased!(trampoline_machine_craft, YogMachineCraftEvent, MachineCraftE
 });
 
 trampoline_phased!(
-    trampoline_explosion,
-    YogExplosionEvent,
-    ExplosionEvent,
-    |ev| ExplosionEvent {
-        dimension: ev.dimension.as_str().to_owned(),
-        x: ev.x,
-        y: ev.y,
-        z: ev.z,
-        power: ev.power,
-        cause_uuid: ev.cause_uuid.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
     trampoline_item_insert,
     YogItemInsertEvent,
     ItemInsertEvent,
@@ -1560,36 +1352,6 @@ trampoline_phased!(
 );
 
 trampoline_phased!(
-    trampoline_item_pickup,
-    YogItemPickupEvent,
-    ItemPickupEvent,
-    |ev| ItemPickupEvent {
-        player_name: ev.player.as_str().to_owned(),
-        player_uuid: ev.player_uuid.as_str().to_owned(),
-        item_id: ev.item_id.as_str().to_owned(),
-        item_count: ev.item_count,
-        entity_uuid: ev.entity_uuid.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_player_move,
-    YogPlayerMoveEvent,
-    PlayerMoveEvent,
-    |ev| PlayerMoveEvent {
-        player_name: ev.player.as_str().to_owned(),
-        player_uuid: ev.player_uuid.as_str().to_owned(),
-        x: ev.x,
-        y: ev.y,
-        z: ev.z,
-        yaw: ev.yaw,
-        pitch: ev.pitch,
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
     trampoline_container_open,
     YogContainerOpenEvent,
     ContainerOpenEvent,
@@ -1597,34 +1359,6 @@ trampoline_phased!(
         player_name: ev.player.as_str().to_owned(),
         player_uuid: ev.player_uuid.as_str().to_owned(),
         container_type: ev.container_type.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_container_close,
-    YogContainerCloseEvent,
-    ContainerCloseEvent,
-    |ev| ContainerCloseEvent {
-        player_name: ev.player.as_str().to_owned(),
-        player_uuid: ev.player_uuid.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-trampoline_phased!(
-    trampoline_projectile_hit,
-    YogProjectileHitEvent,
-    ProjectileHitEvent,
-    |ev| ProjectileHitEvent {
-        projectile_type: ev.projectile_type.as_str().to_owned(),
-        projectile_uuid: ev.projectile_uuid.as_str().to_owned(),
-        shooter_uuid: ev.shooter_uuid.as_str().to_owned(),
-        hit_type: ev.hit_type.as_str().to_owned(),
-        hit_entity_uuid: ev.hit_entity_uuid.as_str().to_owned(),
-        x: ev.x,
-        y: ev.y,
-        z: ev.z,
         dimension: ev.dimension.as_str().to_owned(),
     }
 );
@@ -2113,6 +1847,11 @@ impl Registry {
         Self { api }
     }
 
+    /// The runtime's table.
+    pub(crate) fn api(&self) -> &YogApi {
+        unsafe { &*self.api }
+    }
+
     #[inline]
     fn ctx(&self) -> *mut c_void {
         unsafe { (*self.api).ctx }
@@ -2131,126 +1870,6 @@ impl Registry {
     // In `Post` phase, the return value is ignored.
     // A single registration fires for BOTH phases.
 
-    pub fn on_block_break<F>(&mut self, handler: F)
-    where
-        F: Fn(&BlockBreakEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_block_break)(self.ctx(), ud, trampoline_block_break::<F>) }
-    }
-
-    pub fn on_chat<F>(&mut self, handler: F)
-    where
-        F: Fn(&ChatEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_chat)(self.ctx(), ud, trampoline_chat::<F>) }
-    }
-
-    pub fn on_player_join<F>(&mut self, handler: F)
-    where
-        F: Fn(&PlayerJoinEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_player_join)(self.ctx(), ud, trampoline_player_join::<F>) }
-    }
-
-    pub fn on_player_leave<F>(&mut self, handler: F)
-    where
-        F: Fn(&PlayerLeaveEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_player_leave)(self.ctx(), ud, trampoline_player_leave::<F>) }
-    }
-
-    pub fn on_use_item<F>(&mut self, handler: F)
-    where
-        F: Fn(&UseItemEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_use_item)(self.ctx(), ud, trampoline_use_item::<F>) }
-    }
-
-    pub fn on_use_block<F>(&mut self, handler: F)
-    where
-        F: Fn(&UseBlockEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_use_block)(self.ctx(), ud, trampoline_use_block::<F>) }
-    }
-
-    pub fn on_attack_entity<F>(&mut self, handler: F)
-    where
-        F: Fn(&AttackEntityEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_attack_entity)(self.ctx(), ud, trampoline_attack_entity::<F>) }
-    }
-
-    pub fn on_entity_damage<F>(&mut self, handler: F)
-    where
-        F: Fn(&EntityDamageEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_entity_damage)(self.ctx(), ud, trampoline_entity_damage::<F>) }
-    }
-
-    pub fn on_entity_death<F>(&mut self, handler: F)
-    where
-        F: Fn(&EntityDeathEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_entity_death)(self.ctx(), ud, trampoline_entity_death::<F>) }
-    }
-
-    pub fn on_entity_spawn<F>(&mut self, handler: F)
-    where
-        F: Fn(&EntitySpawnEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_entity_spawn)(self.ctx(), ud, trampoline_entity_spawn::<F>) }
-    }
-
-    pub fn on_player_place_block<F>(&mut self, handler: F)
-    where
-        F: Fn(&PlaceBlockEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_player_place_block)(self.ctx(), ud, trampoline_place_block::<F>) }
-    }
-
-    pub fn on_player_death<F>(&mut self, handler: F)
-    where
-        F: Fn(&PlayerDeathEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_player_death)(self.ctx(), ud, trampoline_player_death::<F>) }
-    }
-
-    pub fn on_player_respawn<F>(&mut self, handler: F)
-    where
-        F: Fn(&PlayerRespawnEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_player_respawn)(self.ctx(), ud, trampoline_player_respawn::<F>) }
-    }
-
-    pub fn on_advancement<F>(&mut self, handler: F)
-    where
-        F: Fn(&AdvancementEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_advancement)(self.ctx(), ud, trampoline_advancement::<F>) }
-    }
-
-    pub fn on_entity_interact<F>(&mut self, handler: F)
-    where
-        F: Fn(&EntityInteractEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_entity_interact)(self.ctx(), ud, trampoline_entity_interact::<F>) }
-    }
-
     pub fn on_item_craft<F>(&mut self, handler: F)
     where
         F: Fn(&CraftEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
@@ -2268,14 +1887,6 @@ impl Registry {
         unsafe { ((*self.api).on_machine_craft)(self.ctx(), ud, trampoline_machine_craft::<F>) }
     }
 
-    pub fn on_explosion<F>(&mut self, handler: F)
-    where
-        F: Fn(&ExplosionEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_explosion)(self.ctx(), ud, trampoline_explosion::<F>) }
-    }
-
     /// A hopper or dropper offers an item to a block that accepts items
     /// (`block.accepts_items`): `Pre` returns whether it takes it, `Post`
     /// takes it.
@@ -2287,44 +1898,12 @@ impl Registry {
         unsafe { ((*self.api).on_item_insert)(self.ctx(), ud, trampoline_item_insert::<F>) }
     }
 
-    pub fn on_item_pickup<F>(&mut self, handler: F)
-    where
-        F: Fn(&ItemPickupEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_item_pickup)(self.ctx(), ud, trampoline_item_pickup::<F>) }
-    }
-
-    pub fn on_player_move<F>(&mut self, handler: F)
-    where
-        F: Fn(&PlayerMoveEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_player_move)(self.ctx(), ud, trampoline_player_move::<F>) }
-    }
-
     pub fn on_container_open<F>(&mut self, handler: F)
     where
         F: Fn(&ContainerOpenEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
     {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_container_open)(self.ctx(), ud, trampoline_container_open::<F>) }
-    }
-
-    pub fn on_container_close<F>(&mut self, handler: F)
-    where
-        F: Fn(&ContainerCloseEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_container_close)(self.ctx(), ud, trampoline_container_close::<F>) }
-    }
-
-    pub fn on_projectile_hit<F>(&mut self, handler: F)
-    where
-        F: Fn(&ProjectileHitEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_projectile_hit)(self.ctx(), ud, trampoline_projectile_hit::<F>) }
     }
 
     pub fn on_tick<F>(&mut self, listener: F)
@@ -3013,18 +2592,10 @@ pub trait Mod {
 #[cfg(test)]
 mod trampoline_tests {
     use super::*;
-    use yog_abi::{YogBlockPos, YogChatEvent, YogCommandEvent, YogPacketEvent};
+    use yog_abi::{YogCommandEvent, YogPacketEvent};
 
     fn ud<F>(f: &F) -> *mut c_void {
         f as *const F as *mut c_void
-    }
-
-    fn chat<F: Fn(&ChatEvent, EventPhase, &dyn Server) -> bool + Send + Sync>(f: &F, ev: &YogChatEvent, phase: u8) -> bool {
-        unsafe { trampoline_chat::<F>(ud(f), std::ptr::null(), ev, phase) }
-    }
-
-    fn block_break<F: Fn(&BlockBreakEvent, EventPhase, &dyn Server) -> bool + Send + Sync>(f: &F, ev: &YogBlockBreakEvent) -> bool {
-        unsafe { trampoline_block_break::<F>(ud(f), std::ptr::null(), ev, 0) }
     }
 
     fn command<F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync>(f: &F, ev: &YogCommandEvent, buf: &mut [u8]) -> u32 {
@@ -3035,38 +2606,6 @@ mod trampoline_tests {
 
     fn packet<F: Fn(&PacketEvent, &dyn Server) + Send + Sync>(f: &F, ev: &YogPacketEvent) {
         unsafe { trampoline_packet::<F>(ud(f), std::ptr::null(), ev) }
-    }
-
-    #[test]
-    fn events_arrive_converted_with_their_phase() {
-        let seen = std::sync::Mutex::new(Vec::new());
-        let handler = |ev: &ChatEvent, p: EventPhase, _: &dyn Server| {
-            seen.lock().unwrap().push((ev.player_name.clone(), ev.message.clone(), p));
-            ev.message != "cancel me"
-        };
-        let ev = |msg: &'static str| YogChatEvent {
-            player: YogStr::from_str("Dev"),
-            message: YogStr::from_str(msg),
-            dimension: YogStr::from_str("minecraft:overworld"),
-        };
-        assert!(chat(&handler, &ev("hi"), 0));
-        assert!(!chat(&handler, &ev("cancel me"), 0));
-        chat(&handler, &ev("after"), 1);
-        let seen = seen.into_inner().unwrap();
-        assert_eq!(seen[0], ("Dev".into(), "hi".into(), EventPhase::Pre));
-        assert_eq!(seen[2].2, EventPhase::Post);
-    }
-
-    #[test]
-    fn a_panicking_handler_allows_the_action() {
-        let handler = |_: &BlockBreakEvent, _: EventPhase, _: &dyn Server| -> bool { panic!("mod bug") };
-        let ev = YogBlockBreakEvent {
-            player: YogStr::from_str("Dev"),
-            block: YogStr::from_str("minecraft:stone"),
-            pos: YogBlockPos { x: 1, y: 2, z: 3 },
-            dimension: YogStr::from_str("minecraft:overworld"),
-        };
-        assert!(block_break(&handler, &ev));
     }
 
     #[test]

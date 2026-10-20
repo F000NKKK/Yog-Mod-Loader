@@ -13,52 +13,14 @@ use super::*;
 // Client-side handlers (minor 10) do NOT receive a `YogServer*` — they run on
 // the render thread and have no server context.
 
-pub type YogBlockBreakFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogBlockBreakEvent, u8) -> bool;
-pub type YogChatFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogChatEvent, u8) -> bool;
-pub type YogPlayerFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerEvent, u8) -> bool;
-pub type YogUseItemFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogUseItemEvent, u8) -> bool;
-pub type YogUseBlockFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogUseBlockEvent, u8) -> bool;
-pub type YogAttackEntityFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogAttackEntityEvent, u8) -> bool;
-pub type YogEntityDamageFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDamageEvent, u8) -> bool;
-pub type YogEntityDeathFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityDeathEvent, u8) -> bool;
-pub type YogEntitySpawnFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntitySpawnEvent, u8) -> bool;
-pub type YogPlaceBlockFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlaceBlockEvent, u8) -> bool;
-pub type YogPlayerDeathFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerDeathEvent, u8) -> bool;
-pub type YogPlayerRespawnFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerRespawnEvent, u8) -> bool;
-pub type YogAdvancementFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogAdvancementEvent, u8) -> bool;
-pub type YogEntityInteractFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogEntityInteractEvent, u8) -> bool;
 pub type YogCraftFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogCraftEvent, u8) -> bool;
 pub type YogMachineCraftFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogMachineCraftEvent, u8) -> bool;
-pub type YogExplosionFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogExplosionEvent, u8) -> bool;
 pub type YogItemInsertFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogItemInsertEvent, u8) -> bool;
-pub type YogItemPickupFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogItemPickupEvent, u8) -> bool;
-pub type YogPlayerMoveFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPlayerMoveEvent, u8) -> bool;
 pub type YogContainerOpenFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogContainerOpenEvent, u8) -> bool;
-pub type YogContainerCloseFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogContainerCloseEvent, u8) -> bool;
-pub type YogProjectileHitFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogProjectileHitEvent, u8) -> bool;
 
 /// Packet events — always Post, no phase.
 pub type YogPacketFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);

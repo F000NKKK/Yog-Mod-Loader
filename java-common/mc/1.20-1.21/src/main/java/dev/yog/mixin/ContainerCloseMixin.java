@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -17,8 +17,6 @@ public class ContainerCloseMixin {
 
     @Inject(method = "handleContainerClose", at = @At("HEAD"))
     private void yog$onContainerClose(ServerboundContainerClosePacket packet, CallbackInfo ci) {
-        NativeBridge.nativeOnContainerClose(
-                player.getName().getString(), player.getStringUUID(),
-                player.level().dimension().location().toString());
+        new YogEvents.ContainerClose(player.getName().getString(), player.getStringUUID(), player.level().dimension().location().toString()).emit();
     }
 }

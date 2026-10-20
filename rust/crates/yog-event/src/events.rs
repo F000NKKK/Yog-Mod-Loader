@@ -1,6 +1,9 @@
 //! Event types passed from Minecraft (through the Java host) into Rust mods.
 
 use yog_core::BlockPos;
+use yog_data::Schema;
+
+use crate::pos::Pos;
 
 /// Whether a handler is running before or after the action.
 ///
@@ -13,18 +16,19 @@ pub enum EventPhase {
 }
 
 /// Fired when a player breaks a block (server side).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct BlockBreakEvent {
     pub player_name: String,
     /// Registry id of the block, e.g. `minecraft:stone`.
     pub block_id: String,
+    #[data(with = "Pos")]
     pub pos: BlockPos,
     /// Dimension the block was broken in, e.g. `minecraft:overworld`.
     pub dimension: String,
 }
 
 /// Fired when a player sends a chat message.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ChatEvent {
     pub player_name: String,
     pub message: String,
@@ -32,7 +36,7 @@ pub struct ChatEvent {
 }
 
 /// Fired when a player joins the server.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct PlayerJoinEvent {
     pub player_name: String,
     /// Player UUID as a string, e.g. `069a79f4-44e9-4726-a5be-fca90e38aaf5`.
@@ -41,7 +45,7 @@ pub struct PlayerJoinEvent {
 }
 
 /// Fired when a player leaves the server.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct PlayerLeaveEvent {
     pub player_name: String,
     pub uuid: String,
@@ -49,7 +53,7 @@ pub struct PlayerLeaveEvent {
 }
 
 /// Fired when a player right-clicks with an item (server side).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct UseItemEvent {
     pub player_name: String,
     /// Registry id of the held item, e.g. `minecraft:stick`.
@@ -60,11 +64,12 @@ pub struct UseItemEvent {
 }
 
 /// Fired when a player right-clicks a block (server side).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct UseBlockEvent {
     pub player_name: String,
     /// Registry id of the targeted block, e.g. `minecraft:chest`.
     pub block_id: String,
+    #[data(with = "Pos")]
     pub pos: BlockPos,
     pub dimension: String,
     /// Whether the player was sneaking (shift).
@@ -72,7 +77,7 @@ pub struct UseBlockEvent {
 }
 
 /// Fired when a player attacks (left-clicks) an entity (server side).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct AttackEntityEvent {
     pub player_name: String,
     /// Registry id of the target, e.g. `minecraft:zombie`.
@@ -83,7 +88,7 @@ pub struct AttackEntityEvent {
 }
 
 /// Fired after a living entity takes damage (server side).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct EntityDamageEvent {
     /// Registry id of the entity, e.g. `minecraft:zombie`.
     pub entity_type: String,
@@ -96,7 +101,7 @@ pub struct EntityDamageEvent {
 }
 
 /// Fired after a living entity dies (server side).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct EntityDeathEvent {
     /// Registry id of the entity, e.g. `minecraft:zombie`.
     pub entity_type: String,
@@ -112,11 +117,12 @@ pub struct EntityDeathEvent {
 /// [`EventPhase`] argument:
 /// - `Pre`  — fires before placement; return `false` to cancel.
 /// - `Post` — fires after the block has been placed.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct PlaceBlockEvent {
     pub player_name: String,
     /// Registry id of the block being placed, e.g. `minecraft:stone`.
     pub block_id: String,
+    #[data(with = "Pos")]
     pub pos: BlockPos,
     pub dimension: String,
     /// Whether the player was sneaking (shift).
@@ -127,7 +133,7 @@ pub struct PlaceBlockEvent {
 ///
 /// Also used for `on_entity_spawn_pre` (cancellable): return `false` to
 /// discard the entity immediately after loading (effective spawn cancellation).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct EntitySpawnEvent {
     /// Registry id of the entity, e.g. `minecraft:zombie`.
     pub entity_type: String,
@@ -141,7 +147,7 @@ pub struct EntitySpawnEvent {
 /// - `Pre`  — fires before death is processed; return `false` to prevent death
 ///   (entity survives at 0.5 HP).
 /// - `Post` — fires after the player has died.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct PlayerDeathEvent {
     pub player_name: String,
     pub uuid: String,
@@ -151,7 +157,7 @@ pub struct PlayerDeathEvent {
 }
 
 /// Fired when a player respawns after death (Post only).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct PlayerRespawnEvent {
     pub player_name: String,
     pub uuid: String,
@@ -162,7 +168,7 @@ pub struct PlayerRespawnEvent {
 }
 
 /// Fired when a player earns an advancement (Post only).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct AdvancementEvent {
     pub player_name: String,
     pub uuid: String,
@@ -175,7 +181,7 @@ pub struct AdvancementEvent {
 ///
 /// - `Pre`  — fires before the interaction; return `false` to cancel.
 /// - `Post` — fires after the interaction.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct EntityInteractEvent {
     pub player_name: String,
     pub player_uuid: String,
@@ -188,7 +194,7 @@ pub struct EntityInteractEvent {
 }
 
 /// Fired when a player takes a crafted item from a crafting output slot (Post only).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct CraftEvent {
     pub player_name: String,
     pub player_uuid: String,
@@ -203,7 +209,7 @@ pub struct CraftEvent {
 /// - `Pre`  — fires before block destruction; return `false` to cancel
 ///   (blocks and entities are unaffected).
 /// - `Post` — fires after the explosion has taken effect.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ExplosionEvent {
     pub dimension: String,
     pub x: f64,
@@ -221,10 +227,11 @@ pub struct ExplosionEvent {
 ///
 /// - `Pre`  — return whether the block takes it (nothing changes yet).
 /// - `Post` — it takes it: do what taking it means.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ItemInsertEvent {
     /// Registry id of the block.
     pub block_id: String,
+    #[data(with = "Pos")]
     pub pos: BlockPos,
     pub dimension: String,
     pub item_id: String,
@@ -237,7 +244,7 @@ pub struct ItemInsertEvent {
 ///
 /// - `Pre`  — return `false` to prevent the pickup.
 /// - `Post` — item was successfully picked up.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ItemPickupEvent {
     pub player_name: String,
     pub player_uuid: String,
@@ -252,7 +259,7 @@ pub struct ItemPickupEvent {
 /// Fired every time a player sends a movement packet (very high frequency).
 ///
 /// Post-phase only. The fields reflect the *new* position the client claims.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct PlayerMoveEvent {
     pub player_name: String,
     pub player_uuid: String,
@@ -268,7 +275,7 @@ pub struct PlayerMoveEvent {
 ///
 /// - `Pre`  — return `false` to prevent the screen from opening.
 /// - `Post` — screen opened; `container_type` is set.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ContainerOpenEvent {
     pub player_name: String,
     pub player_uuid: String,
@@ -279,7 +286,7 @@ pub struct ContainerOpenEvent {
 }
 
 /// Fired when a player closes a container screen (Post only).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ContainerCloseEvent {
     pub player_name: String,
     pub player_uuid: String,
@@ -289,12 +296,12 @@ pub struct ContainerCloseEvent {
 // ── ABI minor 10 — client-side events ────────────────────────────────────────
 
 /// Fired every client tick on the render thread.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ClientTickEvent {}
 
 /// Fired every frame when the HUD is rendered.
 /// `delta_tick` is the partial-tick interpolation factor (0.0–1.0).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct HudRenderEvent {
     pub delta_tick: f32,
 }
@@ -302,7 +309,7 @@ pub struct HudRenderEvent {
 /// Fired on every key press, release, or repeat (client-side).
 ///
 /// Return `false` in the handler to prevent Minecraft from processing the key.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct KeyPressEvent {
     /// GLFW key code (e.g. 69 = E). See `org.lwjgl.glfw.GLFW`.
     pub key_code: i32,
@@ -314,7 +321,7 @@ pub struct KeyPressEvent {
 }
 
 /// Fired when a GUI screen opens or closes.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ScreenEvent {
     /// Simple class name of the screen, e.g. `"InventoryScreen"`, `"ChestScreen"`.
     pub screen_class: String,
@@ -324,7 +331,7 @@ pub struct ScreenEvent {
 ///
 /// - `Pre`  — return `false` to cancel the hit (projectile passes through).
 /// - `Post` — hit was processed.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Schema)]
 pub struct ProjectileHitEvent {
     /// Registry id of the projectile, e.g. `"minecraft:arrow"`.
     pub projectile_type: String,

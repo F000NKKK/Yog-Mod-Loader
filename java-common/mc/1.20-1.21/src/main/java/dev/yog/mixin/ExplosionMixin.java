@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
@@ -26,10 +26,10 @@ public class ExplosionMixin {
     private void yog$onExplosion(CallbackInfo ci) {
         String dim       = level.dimension().location().toString();
         String causeUuid = source != null ? source.getStringUUID() : "";
-        if (!NativeBridge.nativeOnExplosionPre(dim, x, y, z, radius, causeUuid)) {
+        if (!new YogEvents.Explosion(dim, x, y, z, radius, causeUuid).emitPre()) {
             ci.cancel();
             return;
         }
-        NativeBridge.nativeOnExplosion(dim, x, y, z, radius, causeUuid);
+        new YogEvents.Explosion(dim, x, y, z, radius, causeUuid).emit();
     }
 }

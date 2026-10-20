@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogEvents;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,7 @@ public final class YogServerEvents {
             PENDING_JOINS.forEach((uuid, left) -> {
                 ServerPlayer found = server.getPlayerList().getPlayer(uuid);
                 if (found != null) {
-                    NativeBridge.nativeOnPlayerJoin(name(found), uuid.toString(), dim(found.level()));
+                    new YogEvents.PlayerJoin(name(found), uuid.toString(), dim(found.level())).emit();
                     done.add(uuid);
                 } else if (left <= 0) {
                     YogLog.warn("player join: " + uuid + " never appeared in the server's list");
@@ -94,16 +95,16 @@ public final class YogServerEvents {
 
     public static void playerLeft(ServerPlayer p) {
         PENDING_JOINS.remove(p.getUUID());
-        NativeBridge.nativeOnPlayerLeave(name(p), p.getStringUUID(), dim(p.level()));
+        new YogEvents.PlayerLeave(name(p), p.getStringUUID(), dim(p.level())).emit();
     }
 
     public static boolean blockBreakPre(Level level, Player player, BlockPos pos, BlockState state) {
-        return NativeBridge.nativeOnBlockBreakPre(name(player), blockId(state), pos.getX(), pos.getY(), pos.getZ(), dim(level));
+        return new YogEvents.BlockBreak(name(player), blockId(state), new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emitPre();
     }
 
     /** A block broken: to the mods; an inventory's contents dropped. */
     public static void blockBroken(Level level, Player player, BlockPos pos, BlockState state, BlockEntity blockEntity) {
-        NativeBridge.nativeOnBlockBreak(name(player), blockId(state), pos.getX(), pos.getY(), pos.getZ(), dim(level));
+        new YogEvents.BlockBreak(name(player), blockId(state), new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim(level)).emit();
         if (blockEntity instanceof YogInventoryBlockEntity inv && !inv.isEmpty()) {
             net.minecraft.world.Containers.dropContents(level, pos, inv);
             inv.clearContent();
@@ -111,11 +112,11 @@ public final class YogServerEvents {
     }
 
     public static boolean chatPre(ServerPlayer p, String message) {
-        return NativeBridge.nativeOnChatPre(name(p), message, dim(p.level()));
+        return new YogEvents.Chat(name(p), message, dim(p.level())).emitPre();
     }
 
     public static void chat(ServerPlayer p, String message) {
-        NativeBridge.nativeOnChat(name(p), message, dim(p.level()));
+        new YogEvents.Chat(name(p), message, dim(p.level())).emit();
     }
 
     /** An item used (right-click); as vanilla, one cooling down isn't. */
@@ -124,8 +125,8 @@ public final class YogServerEvents {
         if (sp.getCooldowns().isOnCooldown(stack)) return true;
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         String dim = dim(sp.level());
-        if (!NativeBridge.nativeOnUseItemPre(name(sp), itemId, sp.isShiftKeyDown(), dim)) return false;
-        NativeBridge.nativeOnUseItem(name(sp), itemId, sp.isShiftKeyDown(), dim);
+        if (!new YogEvents.UseItem(name(sp), itemId, sp.isShiftKeyDown(), dim).emitPre()) return false;
+        new YogEvents.UseItem(name(sp), itemId, sp.isShiftKeyDown(), dim).emit();
         return true;
     }
 
@@ -140,13 +141,13 @@ public final class YogServerEvents {
         if (!itemFirst) {
             BlockPos pos = hit.getBlockPos();
             String blockId = blockId(level.getBlockState(pos));
-            if (!NativeBridge.nativeOnUseBlockPre(name(sp), blockId, pos.getX(), pos.getY(), pos.getZ(), dim, sp.isShiftKeyDown())) return false;
-            NativeBridge.nativeOnUseBlock(name(sp), blockId, pos.getX(), pos.getY(), pos.getZ(), dim, sp.isShiftKeyDown());
+            if (!new YogEvents.UseBlock(name(sp), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emitPre()) return false;
+            new YogEvents.UseBlock(name(sp), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), dim, sp.isShiftKeyDown()).emit();
         }
         if (sp.getItemInHand(hand).getItem() instanceof BlockItem bi) {
             BlockPos placed = hit.getBlockPos().relative(hit.getDirection());
             String blockId = BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
-            return NativeBridge.nativeOnPlaceBlockPre(name(sp), blockId, placed.getX(), placed.getY(), placed.getZ(), dim, sp.isShiftKeyDown());
+            return new YogEvents.PlaceBlock(name(sp), blockId, new YogEvents.BlockPos(placed.getX(), placed.getY(), placed.getZ()), dim, sp.isShiftKeyDown()).emitPre();
         }
         return true;
     }
@@ -154,27 +155,27 @@ public final class YogServerEvents {
     public static boolean interactEntity(ServerPlayer sp, InteractionHand hand, Entity entity) {
         String handName = hand == InteractionHand.MAIN_HAND ? MAIN_HAND : OFF_HAND;
         String dim = dim(sp.level());
-        if (!NativeBridge.nativeOnEntityInteractPre(name(sp), sp.getStringUUID(), typeId(entity), entity.getStringUUID(), handName, dim)) return false;
-        NativeBridge.nativeOnEntityInteract(name(sp), sp.getStringUUID(), typeId(entity), entity.getStringUUID(), handName, dim);
+        if (!new YogEvents.EntityInteract(name(sp), sp.getStringUUID(), typeId(entity), entity.getStringUUID(), handName, dim).emitPre()) return false;
+        new YogEvents.EntityInteract(name(sp), sp.getStringUUID(), typeId(entity), entity.getStringUUID(), handName, dim).emit();
         return true;
     }
 
     public static void attackEntity(ServerPlayer sp, Entity entity) {
-        NativeBridge.nativeOnAttackEntity(name(sp), typeId(entity), entity.getStringUUID(), dim(sp.level()));
+        new YogEvents.AttackEntity(name(sp), typeId(entity), entity.getStringUUID(), dim(sp.level())).emit();
     }
 
     public static boolean damage(LivingEntity entity, DamageSource source, float amount) {
         String type = typeId(entity), dim = dim(entity.level());
-        if (!NativeBridge.nativeOnEntityDamagePre(type, entity.getStringUUID(), amount, source.getMsgId(), dim)) return false;
-        NativeBridge.nativeOnEntityDamage(type, entity.getStringUUID(), amount, source.getMsgId(), dim);
+        if (!new YogEvents.EntityDamage(type, entity.getStringUUID(), amount, source.getMsgId(), dim).emitPre()) return false;
+        new YogEvents.EntityDamage(type, entity.getStringUUID(), amount, source.getMsgId(), dim).emit();
         return true;
     }
 
     /** An entity came into a server world: whether it stays. */
     public static boolean entityLoaded(Entity entity, Level level) {
         String type = typeId(entity), uuid = entity.getStringUUID(), dim = dim(level);
-        if (!NativeBridge.nativeOnEntitySpawnPre(type, uuid, dim)) return false;
-        NativeBridge.nativeOnEntitySpawn(type, uuid, dim);
+        if (!new YogEvents.EntitySpawn(type, uuid, dim).emitPre()) return false;
+        new YogEvents.EntitySpawn(type, uuid, dim).emit();
         return true;
     }
 
@@ -186,20 +187,20 @@ public final class YogServerEvents {
     /** A living thing died; a player's death has its own events ({@link #playerDeathPre}). */
     public static void died(LivingEntity entity, DamageSource source) {
         if (entity instanceof ServerPlayer) return;
-        NativeBridge.nativeOnEntityDeath(typeId(entity), entity.getStringUUID(), source.getMsgId(), dim(entity.level()));
+        new YogEvents.EntityDeath(typeId(entity), entity.getStringUUID(), source.getMsgId(), dim(entity.level())).emit();
     }
 
     public static boolean playerDeathPre(ServerPlayer sp, DamageSource source) {
         String dim = dim(sp.level());
-        if (!NativeBridge.nativeOnPlayerDeathPre(name(sp), sp.getStringUUID(), source.getMsgId(), dim)) return false;
-        NativeBridge.nativeOnPlayerDeath(name(sp), sp.getStringUUID(), source.getMsgId(), dim);
+        if (!new YogEvents.PlayerDeath(name(sp), sp.getStringUUID(), source.getMsgId(), dim).emitPre()) return false;
+        new YogEvents.PlayerDeath(name(sp), sp.getStringUUID(), source.getMsgId(), dim).emit();
         return true;
     }
 
     /** A player back: after death to the mods ({@code alive}: back from the End, not from death); their data sent again. */
     public static void respawned(ServerPlayer p, boolean alive) {
         sendEntityData(p, p);
-        if (!alive) NativeBridge.nativeOnPlayerRespawn(name(p), p.getStringUUID(), false, dim(p.level()));
+        if (!alive) new YogEvents.PlayerRespawn(name(p), p.getStringUUID(), false, dim(p.level())).emit();
     }
 
     /** A player went to another world: their data sent again. */

@@ -116,6 +116,55 @@ names! {
         BYTES = "bytes",
     }
 
+    /// The bus's events (`docs/design/bus.md`): `yog:event/<name>` after the
+    /// game did it, `…/pre` before (a cancel stops it).
+    event {
+        /// What every event address starts with.
+        PREFIX = concatcp!(ns::YOG, sep::NAMESPACE, "event", sep::PATH),
+        /// What a pre-event's address ends with.
+        PRE = concatcp!(sep::PATH, "pre"),
+        BLOCK_BREAK = concatcp!(PREFIX, "block_break"),
+        BLOCK_BREAK_PRE = concatcp!(BLOCK_BREAK, PRE),
+        CHAT = concatcp!(PREFIX, "chat"),
+        CHAT_PRE = concatcp!(CHAT, PRE),
+        PLAYER_JOIN = concatcp!(PREFIX, "player_join"),
+        PLAYER_LEAVE = concatcp!(PREFIX, "player_leave"),
+        USE_ITEM = concatcp!(PREFIX, "use_item"),
+        USE_ITEM_PRE = concatcp!(USE_ITEM, PRE),
+        USE_BLOCK = concatcp!(PREFIX, "use_block"),
+        USE_BLOCK_PRE = concatcp!(USE_BLOCK, PRE),
+        ATTACK_ENTITY = concatcp!(PREFIX, "attack_entity"),
+        ENTITY_DAMAGE = concatcp!(PREFIX, "entity_damage"),
+        ENTITY_DAMAGE_PRE = concatcp!(ENTITY_DAMAGE, PRE),
+        ENTITY_DEATH = concatcp!(PREFIX, "entity_death"),
+        PLACE_BLOCK = concatcp!(PREFIX, "place_block"),
+        PLACE_BLOCK_PRE = concatcp!(PLACE_BLOCK, PRE),
+        ENTITY_SPAWN = concatcp!(PREFIX, "entity_spawn"),
+        ENTITY_SPAWN_PRE = concatcp!(ENTITY_SPAWN, PRE),
+        PLAYER_DEATH = concatcp!(PREFIX, "player_death"),
+        PLAYER_DEATH_PRE = concatcp!(PLAYER_DEATH, PRE),
+        PLAYER_RESPAWN = concatcp!(PREFIX, "player_respawn"),
+        ADVANCEMENT = concatcp!(PREFIX, "advancement"),
+        ENTITY_INTERACT = concatcp!(PREFIX, "entity_interact"),
+        ENTITY_INTERACT_PRE = concatcp!(ENTITY_INTERACT, PRE),
+        CRAFT = concatcp!(PREFIX, "craft"),
+        EXPLOSION = concatcp!(PREFIX, "explosion"),
+        EXPLOSION_PRE = concatcp!(EXPLOSION, PRE),
+        ITEM_INSERT = concatcp!(PREFIX, "item_insert"),
+        ITEM_PICKUP = concatcp!(PREFIX, "item_pickup"),
+        ITEM_PICKUP_PRE = concatcp!(ITEM_PICKUP, PRE),
+        PLAYER_MOVE = concatcp!(PREFIX, "player_move"),
+        CONTAINER_OPEN = concatcp!(PREFIX, "container_open"),
+        CONTAINER_OPEN_PRE = concatcp!(CONTAINER_OPEN, PRE),
+        CONTAINER_CLOSE = concatcp!(PREFIX, "container_close"),
+        CLIENT_TICK = concatcp!(PREFIX, "client_tick"),
+        HUD_RENDER = concatcp!(PREFIX, "hud_render"),
+        KEY_PRESS = concatcp!(PREFIX, "key_press"),
+        SCREEN = concatcp!(PREFIX, "screen"),
+        PROJECTILE_HIT = concatcp!(PREFIX, "projectile_hit"),
+        PROJECTILE_HIT_PRE = concatcp!(PROJECTILE_HIT, PRE),
+    }
+
     /// A `.yres` entry's type (`{ "type": "sound", ... }`).
     res_kind {
         STRING = "string",

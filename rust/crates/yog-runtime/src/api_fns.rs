@@ -19,34 +19,10 @@ macro_rules! api_event {
     };
 }
 
-api_event!(api_on_block_break, block_break, YogBlockBreakFn);
-api_event!(api_on_chat, chat, YogChatFn);
-api_event!(api_on_player_join, player_join, YogPlayerFn);
-api_event!(api_on_player_leave, player_leave, YogPlayerFn);
-api_event!(api_on_use_item, use_item, YogUseItemFn);
-api_event!(api_on_use_block, use_block, YogUseBlockFn);
-api_event!(api_on_attack_entity, attack_entity, YogAttackEntityFn);
-api_event!(api_on_entity_damage, entity_damage, YogEntityDamageFn);
-api_event!(api_on_entity_death, entity_death, YogEntityDeathFn);
-api_event!(api_on_entity_spawn, entity_spawn, YogEntitySpawnFn);
-api_event!(
-    api_on_player_place_block,
-    player_place_block,
-    YogPlaceBlockFn
-);
-api_event!(api_on_player_death, player_death, YogPlayerDeathFn);
-api_event!(api_on_player_respawn, player_respawn, YogPlayerRespawnFn);
-api_event!(api_on_advancement, advancement, YogAdvancementFn);
-api_event!(api_on_entity_interact, entity_interact, YogEntityInteractFn);
 api_event!(api_on_item_craft, item_craft, YogCraftFn);
 api_event!(api_on_machine_craft, machine_craft, YogMachineCraftFn);
-api_event!(api_on_explosion, explosion, YogExplosionFn);
-api_event!(api_on_item_pickup, item_pickup, YogItemPickupFn);
 api_event!(api_on_item_insert, item_insert, YogItemInsertFn);
-api_event!(api_on_player_move, player_move, YogPlayerMoveFn);
 api_event!(api_on_container_open, container_open, YogContainerOpenFn);
-api_event!(api_on_container_close, container_close, YogContainerCloseFn);
-api_event!(api_on_projectile_hit, projectile_hit, YogProjectileHitFn);
 api_event!(api_on_client_tick, client_tick, YogClientFn);
 api_event!(api_on_hud_render, hud_render, YogHudRenderFn);
 api_event!(api_on_world_render, world_render, YogWorldRenderFn);

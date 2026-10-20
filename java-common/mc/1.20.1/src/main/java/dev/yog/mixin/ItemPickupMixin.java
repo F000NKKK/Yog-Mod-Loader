@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -24,15 +24,11 @@ public class ItemPickupMixin {
         int count = stack.getCount();
         String entityUuid = self.getStringUUID();
         String dim = self.level().dimension().location().toString();
-        boolean allow = NativeBridge.nativeOnItemPickupPre(
-                sp.getName().getString(), sp.getStringUUID(),
-                itemId, count, entityUuid, dim);
+        boolean allow = new YogEvents.ItemPickup(sp.getName().getString(), sp.getStringUUID(), itemId, count, entityUuid, dim).emitPre();
         if (!allow) {
             ci.cancel();
             return;
         }
-        NativeBridge.nativeOnItemPickup(
-                sp.getName().getString(), sp.getStringUUID(),
-                itemId, count, entityUuid, dim);
+        new YogEvents.ItemPickup(sp.getName().getString(), sp.getStringUUID(), itemId, count, entityUuid, dim).emit();
     }
 }

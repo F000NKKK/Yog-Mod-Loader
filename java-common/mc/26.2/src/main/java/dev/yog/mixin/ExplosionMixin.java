@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ServerExplosion;
 import net.minecraft.world.phys.Vec3;
@@ -19,10 +19,10 @@ public class ExplosionMixin {
         Vec3 at = self.center();
         Entity cause = self.getDirectSourceEntity();
         String causeUuid = cause != null ? cause.getStringUUID() : "";
-        if (!NativeBridge.nativeOnExplosionPre(dim, at.x, at.y, at.z, self.radius(), causeUuid)) {
+        if (!new YogEvents.Explosion(dim, at.x, at.y, at.z, self.radius(), causeUuid).emitPre()) {
             cir.setReturnValue(0);
             return;
         }
-        NativeBridge.nativeOnExplosion(dim, at.x, at.y, at.z, self.radius(), causeUuid);
+        new YogEvents.Explosion(dim, at.x, at.y, at.z, self.radius(), causeUuid).emit();
     }
 }

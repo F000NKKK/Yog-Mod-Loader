@@ -22,43 +22,12 @@ pub struct YogApi {
 
     // ── events — all handlers receive (ud, srv, event, phase: u8) → bool ────────
     // phase 0 = Pre (return false to cancel), phase 1 = Post (return ignored).
-    pub on_block_break: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogBlockBreakFn),
-    pub on_chat: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogChatFn),
-    pub on_player_join: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerFn),
-    pub on_player_leave: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerFn),
-    pub on_use_item: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogUseItemFn),
-    pub on_use_block: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogUseBlockFn),
-    pub on_attack_entity:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogAttackEntityFn),
-    pub on_entity_damage:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityDamageFn),
-    pub on_entity_death:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityDeathFn),
-    pub on_entity_spawn:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntitySpawnFn),
-    pub on_player_place_block:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlaceBlockFn),
-    pub on_player_death:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerDeathFn),
-    pub on_player_respawn:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerRespawnFn),
-    pub on_advancement:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogAdvancementFn),
     // ── ABI minor 8 ──────────────────────────────────────────────────────────
-    pub on_entity_interact:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogEntityInteractFn),
     pub on_item_craft: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCraftFn),
-    pub on_explosion: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogExplosionFn),
     // ── ABI minor 9 ──────────────────────────────────────────────────────────
-    pub on_item_pickup: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogItemPickupFn),
     pub on_item_insert: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogItemInsertFn),
-    pub on_player_move: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogPlayerMoveFn),
     pub on_container_open:
         unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogContainerOpenFn),
-    pub on_container_close:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogContainerCloseFn),
-    pub on_projectile_hit:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogProjectileHitFn),
     pub on_server_tick: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
     pub on_server_started: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
     pub on_server_stopping: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),

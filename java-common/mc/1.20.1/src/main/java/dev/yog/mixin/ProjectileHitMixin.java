@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -45,17 +45,11 @@ public abstract class ProjectileHitMixin extends Entity {
             hitEntityUuid = "";
         }
 
-        boolean allow = NativeBridge.nativeOnProjectileHitPre(
-                projType, projUuid, shooterUuid,
-                hitType, hitEntityUuid,
-                pos.x, pos.y, pos.z, dim);
+        boolean allow = new YogEvents.ProjectileHit(projType, projUuid, shooterUuid, hitType, hitEntityUuid, pos.x, pos.y, pos.z, dim).emitPre();
         if (!allow) {
             ci.cancel();
             return;
         }
-        NativeBridge.nativeOnProjectileHit(
-                projType, projUuid, shooterUuid,
-                hitType, hitEntityUuid,
-                pos.x, pos.y, pos.z, dim);
+        new YogEvents.ProjectileHit(projType, projUuid, shooterUuid, hitType, hitEntityUuid, pos.x, pos.y, pos.z, dim).emit();
     }
 }

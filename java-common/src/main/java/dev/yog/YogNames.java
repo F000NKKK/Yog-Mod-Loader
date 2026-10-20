@@ -85,6 +85,53 @@ public final class YogNames {
         public static final String BYTES = "bytes";
     }
 
+    public static final class Event {
+        private Event() {}
+
+        public static final String PREFIX = "yog:event/";
+        public static final String PRE = "/pre";
+        public static final String BLOCK_BREAK = "yog:event/block_break";
+        public static final String BLOCK_BREAK_PRE = "yog:event/block_break/pre";
+        public static final String CHAT = "yog:event/chat";
+        public static final String CHAT_PRE = "yog:event/chat/pre";
+        public static final String PLAYER_JOIN = "yog:event/player_join";
+        public static final String PLAYER_LEAVE = "yog:event/player_leave";
+        public static final String USE_ITEM = "yog:event/use_item";
+        public static final String USE_ITEM_PRE = "yog:event/use_item/pre";
+        public static final String USE_BLOCK = "yog:event/use_block";
+        public static final String USE_BLOCK_PRE = "yog:event/use_block/pre";
+        public static final String ATTACK_ENTITY = "yog:event/attack_entity";
+        public static final String ENTITY_DAMAGE = "yog:event/entity_damage";
+        public static final String ENTITY_DAMAGE_PRE = "yog:event/entity_damage/pre";
+        public static final String ENTITY_DEATH = "yog:event/entity_death";
+        public static final String PLACE_BLOCK = "yog:event/place_block";
+        public static final String PLACE_BLOCK_PRE = "yog:event/place_block/pre";
+        public static final String ENTITY_SPAWN = "yog:event/entity_spawn";
+        public static final String ENTITY_SPAWN_PRE = "yog:event/entity_spawn/pre";
+        public static final String PLAYER_DEATH = "yog:event/player_death";
+        public static final String PLAYER_DEATH_PRE = "yog:event/player_death/pre";
+        public static final String PLAYER_RESPAWN = "yog:event/player_respawn";
+        public static final String ADVANCEMENT = "yog:event/advancement";
+        public static final String ENTITY_INTERACT = "yog:event/entity_interact";
+        public static final String ENTITY_INTERACT_PRE = "yog:event/entity_interact/pre";
+        public static final String CRAFT = "yog:event/craft";
+        public static final String EXPLOSION = "yog:event/explosion";
+        public static final String EXPLOSION_PRE = "yog:event/explosion/pre";
+        public static final String ITEM_INSERT = "yog:event/item_insert";
+        public static final String ITEM_PICKUP = "yog:event/item_pickup";
+        public static final String ITEM_PICKUP_PRE = "yog:event/item_pickup/pre";
+        public static final String PLAYER_MOVE = "yog:event/player_move";
+        public static final String CONTAINER_OPEN = "yog:event/container_open";
+        public static final String CONTAINER_OPEN_PRE = "yog:event/container_open/pre";
+        public static final String CONTAINER_CLOSE = "yog:event/container_close";
+        public static final String CLIENT_TICK = "yog:event/client_tick";
+        public static final String HUD_RENDER = "yog:event/hud_render";
+        public static final String KEY_PRESS = "yog:event/key_press";
+        public static final String SCREEN = "yog:event/screen";
+        public static final String PROJECTILE_HIT = "yog:event/projectile_hit";
+        public static final String PROJECTILE_HIT_PRE = "yog:event/projectile_hit/pre";
+    }
+
     public static final class ResKind {
         private ResKind() {}
 

@@ -1878,6 +1878,8 @@ name = "yog-event"
 version = "0.7.0"
 dependencies = [
  "yog-core",
+ "yog-data",
+ "yog-ids",
 ]
 
 [[package]]

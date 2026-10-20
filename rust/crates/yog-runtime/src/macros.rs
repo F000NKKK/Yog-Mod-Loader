@@ -11,66 +11,6 @@
 macro_rules! for_each_handler_list {
     ($h:expr_2021, |$list:ident| $body:expr_2021) => {{
         {
-            let $list = &mut $h.block_break;
-            $body;
-        }
-        {
-            let $list = &mut $h.chat;
-            $body;
-        }
-        {
-            let $list = &mut $h.player_join;
-            $body;
-        }
-        {
-            let $list = &mut $h.player_leave;
-            $body;
-        }
-        {
-            let $list = &mut $h.use_item;
-            $body;
-        }
-        {
-            let $list = &mut $h.use_block;
-            $body;
-        }
-        {
-            let $list = &mut $h.attack_entity;
-            $body;
-        }
-        {
-            let $list = &mut $h.entity_damage;
-            $body;
-        }
-        {
-            let $list = &mut $h.entity_death;
-            $body;
-        }
-        {
-            let $list = &mut $h.entity_spawn;
-            $body;
-        }
-        {
-            let $list = &mut $h.player_place_block;
-            $body;
-        }
-        {
-            let $list = &mut $h.player_death;
-            $body;
-        }
-        {
-            let $list = &mut $h.player_respawn;
-            $body;
-        }
-        {
-            let $list = &mut $h.advancement;
-            $body;
-        }
-        {
-            let $list = &mut $h.entity_interact;
-            $body;
-        }
-        {
             let $list = &mut $h.item_craft;
             $body;
         }
@@ -79,31 +19,11 @@ macro_rules! for_each_handler_list {
             $body;
         }
         {
-            let $list = &mut $h.explosion;
-            $body;
-        }
-        {
-            let $list = &mut $h.item_pickup;
-            $body;
-        }
-        {
             let $list = &mut $h.item_insert;
             $body;
         }
         {
-            let $list = &mut $h.player_move;
-            $body;
-        }
-        {
             let $list = &mut $h.container_open;
-            $body;
-        }
-        {
-            let $list = &mut $h.container_close;
-            $body;
-        }
-        {
-            let $list = &mut $h.projectile_hit;
             $body;
         }
         {

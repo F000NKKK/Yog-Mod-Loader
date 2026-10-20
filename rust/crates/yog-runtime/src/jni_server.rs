@@ -18,58 +18,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeCommandNames<'l>(
         .unwrap_or(std::ptr::null_mut())
 }
 
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnBlockBreakPre<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    block: JString<'l>,
-    x: jint,
-    y: jint,
-    z: jint,
-    dimension: JString<'l>,
-) -> jni::sys::jboolean {
-    let h = handlers();
-    if h.block_break.is_empty() {
-        return 1;
-    }
-    let p = jstr!(env, player, 1);
-    let b = jstr!(env, block, 1);
-    let d = jstr!(env, dimension, 1);
-    let ev = yog_abi::YogBlockBreakEvent {
-        player: YogStr::from_str(&p),
-        block: YogStr::from_str(&b),
-        pos: YogBlockPos { x, y, z },
-        dimension: YogStr::from_str(&d),
-    };
-    let srv = srv_ptr();
-    allowed(&h.block_break, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnChatPre<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    player: JString<'l>,
-    message: JString<'l>,
-    dimension: JString<'l>,
-) -> jni::sys::jboolean {
-    let h = handlers();
-    if h.chat.is_empty() {
-        return 1;
-    }
-    let p = jstr!(env, player, 1);
-    let m = jstr!(env, message, 1);
-    let d = jstr!(env, dimension, 1);
-    let ev = yog_abi::YogChatEvent {
-        player: YogStr::from_str(&p),
-        message: YogStr::from_str(&m),
-        dimension: YogStr::from_str(&d),
-    };
-    let srv = srv_ptr();
-    allowed(&h.chat, |ud, f| unsafe { f(ud, srv, &ev, 0) }) as jni::sys::jboolean
-}
-
 /// Called by a registered chunk-generator closure (via `ChunkWriter::set_block`)
 /// to place one block in the chunk currently being generated. Calls back
 /// into `YogCallbackChunkGenerator.setBlockInGeneratingChunk` on the Java

@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.server.PlayerAdvancements;
@@ -28,10 +28,6 @@ public abstract class AdvancementMixin {
         if (!cir.getReturnValue()) return;
         if (!getOrStartProgress(advancement).isDone()) return;
         if (player == null || advancement.id() == null) return;
-        NativeBridge.nativeOnAdvancement(
-                player.getName().getString(),
-                player.getStringUUID(),
-                advancement.id().toString(),
-                player.level().dimension().location().toString());
+        new YogEvents.Advancement(player.getName().getString(), player.getStringUUID(), advancement.id().toString(), player.level().dimension().location().toString()).emit();
     }
 }

@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -22,9 +22,6 @@ public class PlayerMoveMixin {
         double z     = packet.getZ(player.getZ());
         float  yaw   = packet.getYRot(player.getYRot());
         float  pitch = packet.getXRot(player.getXRot());
-        NativeBridge.nativeOnPlayerMove(
-                player.getName().getString(), player.getStringUUID(),
-                x, y, z, yaw, pitch,
-                player.level().dimension().identifier().toString());
+        new YogEvents.PlayerMove(player.getName().getString(), player.getStringUUID(), x, y, z, yaw, pitch, player.level().dimension().identifier().toString()).emit();
     }
 }

@@ -36,13 +36,13 @@ mod tests;
 
 // ── Version ──────────────────────────────────────────────────────────────────
 
-pub const ABI_MAJOR: u32 = 3;
-pub const ABI_MINOR: u32 = 11;
+pub const ABI_MAJOR: u32 = 4;
+pub const ABI_MINOR: u32 = 0;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
 /// Whether a mod built for ABI `version` runs on this one: the same major,
 /// a minor no newer (what it knows is all here; later additions it doesn't use).
 pub const fn compatible(version: u32) -> bool {
-    version / 10_000 == ABI_MAJOR && version % 10_000 <= ABI_MINOR
+    version / 10_000 == ABI_MAJOR && version <= ABI_VERSION
 }

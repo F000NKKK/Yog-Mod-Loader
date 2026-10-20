@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Fires {@code nativeOnPlaceBlock} (Post phase) after a block is successfully placed.
+ * Emits the bus's {@code yog:event/place_block} (post) after a block is successfully placed.
  * Pre phase is handled in YogHost via RightClickBlock, which can cancel placement.
  */
 @Mixin(BlockItem.class)
@@ -28,8 +28,6 @@ public class BlockItemPlaceMixin {
 
         BlockPos pos = context.getClickedPos();
         String blockId = BuiltInRegistries.BLOCK.getKey(((BlockItem) (Object) this).getBlock()).toString();
-        NativeBridge.nativeOnPlaceBlock(
-                sp.getName().getString(), blockId, pos.getX(), pos.getY(), pos.getZ(),
-                context.getLevel().dimension().location().toString(), sp.isShiftKeyDown());
+        new YogEvents.PlaceBlock(sp.getName().getString(), blockId, new YogEvents.BlockPos(pos.getX(), pos.getY(), pos.getZ()), context.getLevel().dimension().location().toString(), sp.isShiftKeyDown()).emit();
     }
 }
