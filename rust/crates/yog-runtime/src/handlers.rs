@@ -1,7 +1,15 @@
 //! The runtime's handler storage: what mods registered, read during dispatch.
+use crate::globals::HANDLERS;
+use crate::globals::HOT_RELOADER;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::Mutex;
+use yog_hot_reload::HotReloader;
+use yog_hot_reload::ModuleGeneration;
+use yog_hot_reload::ModuleRegistry;
+use yog_registry::BlockDef;
+use yog_registry::ItemDef;
 use yog_sync::ReadWrite;
-use super::{Arc, BlockDef, HANDLERS, HOT_RELOADER, HashMap, HotReloader, ItemDef, ModuleGeneration, ModuleRegistry, Mutex};
-
 
 // ── Handler storage ───────────────────────────────────────────────────────────
 

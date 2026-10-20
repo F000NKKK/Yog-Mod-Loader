@@ -11,8 +11,8 @@
 //! of the entity, key and value empty). Strings are a u16 length and UTF-8.
 
 use std::collections::{BTreeMap, HashMap};
-use yog_sync::Locked;
 use std::sync::{LazyLock, Mutex};
+use yog_sync::Locked;
 
 use jni::JNIEnv;
 use jni::objects::{JByteArray, JClass, JString};
@@ -85,9 +85,15 @@ fn records(mut b: &[u8]) -> Vec<Record> {
             let op = take(&mut b, 1)?[0];
             let uuid = str(&mut b)?;
             let key = str(&mut b)?;
-            let n = take(&mut b, 4).map(|s| u32::from_le_bytes([s[0], s[1], s[2], s[3]]) as usize)?;
+            let n =
+                take(&mut b, 4).map(|s| u32::from_le_bytes([s[0], s[1], s[2], s[3]]) as usize)?;
             let value = take(&mut b, n)?.to_vec();
-            Some(Record { op, uuid, key, value })
+            Some(Record {
+                op,
+                uuid,
+                key,
+                value,
+            })
         })() else {
             break;
         };
@@ -101,7 +107,14 @@ fn records(mut b: &[u8]) -> Vec<Record> {
 /// Sends records about `uuid` to the players who see it, and to it.
 fn send_to_watchers(uuid: &str, bytes: &[u8]) {
     unsafe {
-        let _: Option<bool> = bridge!("sendToTracking", [S(YogStr::from_str(uuid)), S(YogStr::from_str(ENTITY_DATA)), Bytes(bytes)]);
+        let _: Option<bool> = bridge!(
+            "sendToTracking",
+            [
+                S(YogStr::from_str(uuid)),
+                S(YogStr::from_str(ENTITY_DATA)),
+                Bytes(bytes)
+            ]
+        );
     }
 }
 
@@ -112,12 +125,22 @@ pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
         match value {
             Some(v) => {
                 let values = store.entry(uuid.to_owned()).or_default();
-                let same = values.get(key).is_some_and(|old| old.bytes == v && old.persist == persist);
-                values.insert(key.to_owned(), Value { bytes: v.to_vec(), persist });
+                let same = values
+                    .get(key)
+                    .is_some_and(|old| old.bytes == v && old.persist == persist);
+                values.insert(
+                    key.to_owned(),
+                    Value {
+                        bytes: v.to_vec(),
+                        persist,
+                    },
+                );
                 !same
             }
             None => {
-                let removed = store.get_mut(uuid).is_some_and(|values| values.remove(key).is_some());
+                let removed = store
+                    .get_mut(uuid)
+                    .is_some_and(|values| values.remove(key).is_some());
                 if store.get(uuid).is_some_and(|v| v.is_empty()) {
                     store.remove(uuid);
                 }
@@ -126,7 +149,11 @@ pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
         }
     };
     if changed {
-        PENDING.locked().entry(uuid.to_owned()).or_default().insert(key.to_owned(), value.map(<[u8]>::to_vec));
+        PENDING
+            .locked()
+            .entry(uuid.to_owned())
+            .or_default()
+            .insert(key.to_owned(), value.map(<[u8]>::to_vec));
     }
 }
 
@@ -157,12 +184,23 @@ pub(crate) fn register() {
         if d.uuid.is_empty() || d.key.is_empty() {
             return false;
         }
-        set(&d.uuid, &d.key, d.value.as_ref().map(|v| v.bytes.as_slice()), d.persist);
+        set(
+            &d.uuid,
+            &d.key,
+            d.value.as_ref().map(|v| v.bytes.as_slice()),
+            d.persist,
+        );
         true
     });
     crate::bus::serve::<SetDimensions>(|d| {
         let [w, h, eye] = d.size.unwrap_or(VANILLA_SIZE);
-        let found: bool = unsafe { bridge!("entitySetDimensions", [S(YogStr::from_str(&d.uuid)), F(w), F(h), F(eye)]) }.unwrap_or(false);
+        let found: bool = unsafe {
+            bridge!(
+                "entitySetDimensions",
+                [S(YogStr::from_str(&d.uuid)), F(w), F(h), F(eye)]
+            )
+        }
+        .unwrap_or(false);
         if found {
             let value = d.size.map(|[w, h, eye]| encode_dims(w, h, eye));
             set(&d.uuid, DIMENSIONS, value.as_deref(), false);
@@ -190,7 +228,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataFor<'l>(
     if b.is_empty() {
         return std::ptr::null_mut();
     }
-    env.byte_array_from_slice(&b).map(|a| a.into_raw()).unwrap_or(std::ptr::null_mut())
+    env.byte_array_from_slice(&b)
+        .map(|a| a.into_raw())
+        .unwrap_or(std::ptr::null_mut())
 }
 
 /// `byte[] nativeEntityDataSave(String uuid)`: the values kept with the
@@ -211,7 +251,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataSave<'l>(
     if b.is_empty() {
         return std::ptr::null_mut();
     }
-    env.byte_array_from_slice(&b).map(|a| a.into_raw()).unwrap_or(std::ptr::null_mut())
+    env.byte_array_from_slice(&b)
+        .map(|a| a.into_raw())
+        .unwrap_or(std::ptr::null_mut())
 }
 
 /// `nativeEntityDataLoad(String uuid, byte[] saved)`: the saved values back,
@@ -224,12 +266,20 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataLoad<'l>(
     saved: JByteArray<'l>,
 ) {
     let uuid = jstr!(env, uuid);
-    let Ok(saved) = env.convert_byte_array(&saved) else { return };
+    let Ok(saved) = env.convert_byte_array(&saved) else {
+        return;
+    };
     let mut store = SERVER.locked();
     let values = store.entry(uuid).or_default();
     for r in records(&saved) {
         if r.op == SET {
-            values.insert(r.key, Value { bytes: r.value, persist: true });
+            values.insert(
+                r.key,
+                Value {
+                    bytes: r.value,
+                    persist: true,
+                },
+            );
         }
     }
 }
@@ -247,7 +297,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataSet<'l>(
 ) {
     let uuid = jstr!(env, uuid);
     let key = jstr!(env, key);
-    let value = if value.is_null() { None } else { env.convert_byte_array(&value).ok() };
+    let value = if value.is_null() {
+        None
+    } else {
+        env.convert_byte_array(&value).ok()
+    };
     if !uuid.is_empty() && !key.is_empty() {
         set(&uuid, &key, value.as_deref(), false);
     }
@@ -307,7 +361,11 @@ pub(crate) fn receive(payload: &[u8]) {
     for (uuid, d) in dims {
         let [w, h, e] = d.unwrap_or([-1.0, 0.0, 0.0]);
         unsafe {
-            let _: Option<()> = host!("dev/yog/YogClientApi", "setDimensions", [S(YogStr::from_str(&uuid)), F(w), F(h), F(e)]);
+            let _: Option<()> = host!(
+                "dev/yog/YogClientApi",
+                "setDimensions",
+                [S(YogStr::from_str(&uuid)), F(w), F(h), F(e)]
+            );
         }
     }
 }
@@ -317,18 +375,28 @@ pub(crate) fn encode_dims(w: f32, h: f32, eye: f32) -> Vec<u8> {
 }
 
 fn decode_dims(b: &[u8]) -> Option<[f32; 3]> {
-    let f = |i: usize| b.get(i * 4..i * 4 + 4).map(|s| f32::from_le_bytes([s[0], s[1], s[2], s[3]]));
+    let f = |i: usize| {
+        b.get(i * 4..i * 4 + 4)
+            .map(|s| f32::from_le_bytes([s[0], s[1], s[2], s[3]]))
+    };
     Some([f(0)?, f(1)?, f(2)?])
 }
 
 /// What this client knows of `uuid` (for body frames).
 pub(crate) fn client_values(uuid: &str) -> Vec<(String, Vec<u8>)> {
-    CLIENT.locked().get(uuid).map(|v| v.iter().map(|(k, v)| (k.clone(), v.clone())).collect()).unwrap_or_default()
+    CLIENT
+        .locked()
+        .get(uuid)
+        .map(|v| v.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+        .unwrap_or_default()
 }
 
 /// `nativeEntityDataClientReset()`: the client left a world — forget it all.
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataClientReset<'l>(_env: JNIEnv<'l>, _class: JClass<'l>) {
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataClientReset<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) {
     CLIENT.locked().clear();
 }
 
@@ -369,13 +437,20 @@ mod tests {
         record(&mut b, CLEAR, "u", "", &[]);
         let r = records(&b);
         assert_eq!(r.len(), 2);
-        assert_eq!((r[0].op, r[0].key.as_str(), r[0].value.as_slice()), (SET, "k", &[1u8, 2, 3][..]));
+        assert_eq!(
+            (r[0].op, r[0].key.as_str(), r[0].value.as_slice()),
+            (SET, "k", &[1u8, 2, 3][..])
+        );
         assert_eq!(r[1].op, CLEAR);
     }
 
     #[test]
     fn frames_get_their_data() {
-        CLIENT.locked().entry("ab".into()).or_default().insert("m:k".into(), vec![9]);
+        CLIENT
+            .locked()
+            .entry("ab".into())
+            .or_default()
+            .insert("m:k".into(), vec![9]);
         let frame = [1u8, 2, 0, b'a', b'b'];
         let out = with_data(&frame);
         assert_eq!(&out[..5], &frame);

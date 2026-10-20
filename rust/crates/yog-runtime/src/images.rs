@@ -42,13 +42,24 @@ fn warn_once(source: &str, why: &str) {
 
 /// Whether the host's GUI sprite atlas has sprite `id` (none before 1.20.2).
 fn has_gui_sprite(env: &mut JNIEnv, id: &str) -> bool {
-    unsafe { jcall!(env, "dev/yog/NativeDraw", "hasGuiSprite", [S(YogStr::from_str(id))]) }.unwrap_or(false)
+    unsafe {
+        jcall!(
+            env,
+            "dev/yog/NativeDraw",
+            "hasGuiSprite",
+            [S(YogStr::from_str(id))]
+        )
+    }
+    .unwrap_or(false)
 }
 
 /// The source of `sp` this game has: the first of its sources the host finds.
 fn resolve<'s>(env: &mut JNIEnv, sp: &'s Sprite) -> Option<SpriteSource<'s>> {
     let sources = sp.sources();
-    let cached = RESOLVED.lock().ok().and_then(|r| r.as_ref().and_then(|m| m.get(&sp.name).copied()));
+    let cached = RESOLVED
+        .lock()
+        .ok()
+        .and_then(|r| r.as_ref().and_then(|m| m.get(&sp.name).copied()));
     let index = match cached {
         Some(i) => i,
         None => {
@@ -57,7 +68,8 @@ fn resolve<'s>(env: &mut JNIEnv, sp: &'s Sprite) -> Option<SpriteSource<'s>> {
                 SpriteSource::Region(r) => texture_size(env, &r.texture).is_some(),
             });
             if let Ok(mut r) = RESOLVED.lock() {
-                r.get_or_insert_with(HashMap::new).insert(sp.name.clone(), found);
+                r.get_or_insert_with(HashMap::new)
+                    .insert(sp.name.clone(), found);
             }
             found
         }
@@ -210,7 +222,10 @@ fn draw_legacy(env: &mut JNIEnv, l: &LegacyRegion, border: f32, dest: [f32; 4], 
     ];
     for (dy, dh, sv, sh) in rows {
         for (dx, dw, su, sw) in cols {
-            let region = Region { uv: [su, sv, sw, sh], texture: tex };
+            let region = Region {
+                uv: [su, sv, sw, sh],
+                texture: tex,
+            };
             draw_texture(env, &l.texture, [dx, dy, dw, dh], region, tint);
         }
     }
@@ -224,7 +239,10 @@ fn draw_sprite(env: &mut JNIEnv, source: &str, sp: &Sprite, dest: [f32; 4], tint
     match resolve(env, sp) {
         Some(SpriteSource::Atlas(id)) => draw_atlas_sprite(env, &id, dest, tint),
         Some(SpriteSource::Region(l)) => draw_legacy(env, l, sp.border, dest, tint),
-        None => warn_once(source, "none of this sprite's sources is in this Minecraft version"),
+        None => warn_once(
+            source,
+            "none of this sprite's sources is in this Minecraft version",
+        ),
     }
 }
 
@@ -247,7 +265,7 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
             return;
         }
         let source = source.as_str();
-        let Some(mut env) = crate::get_env() else {
+        let Some(mut env) = crate::jni_util::get_env() else {
             return;
         };
         let dest = [x, y, w, h];
@@ -262,13 +280,19 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
                 }
                 None => warn_once(source, "unknown sprite name (see yog_gfx::image::SPRITES)"),
             },
-            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => match crate::svg::file(&mut env, &id) {
-                Some(doc) => crate::svg::draw(&mut env, &doc, dest, tint),
-                None => warn_once(source, &format!("SVG {id} not found")),
-            },
+            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => {
+                match crate::svg::file(&mut env, &id) {
+                    Some(doc) => crate::svg::draw(&mut env, &doc, dest, tint),
+                    None => warn_once(source, &format!("SVG {id} not found")),
+                }
+            }
             Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
                 Some(size) => {
-                    let uv = if uw > 0.0 && vh > 0.0 { [u, v, uw, vh] } else { [0.0, 0.0, size.0, size.1] };
+                    let uv = if uw > 0.0 && vh > 0.0 {
+                        [u, v, uw, vh]
+                    } else {
+                        [0.0, 0.0, size.0, size.1]
+                    };
                     draw_texture(&mut env, &id, dest, Region { uv, texture: size }, tint);
                 }
                 None => warn_once(source, &format!("texture {id} not found")),
@@ -292,14 +316,15 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
         let size = match ImageSource::parse(source) {
             Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((ICON_SIZE, ICON_SIZE)),
             Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
-                Some(sp) => crate::get_env().map(|mut env| natural_size(sp, resolve(&mut env, sp).as_ref())),
+                Some(sp) => crate::jni_util::get_env()
+                    .map(|mut env| natural_size(sp, resolve(&mut env, sp).as_ref())),
                 None => None,
             },
-            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => crate::get_env()
+            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => crate::jni_util::get_env()
                 .and_then(|mut env| crate::svg::file(&mut env, &id))
                 .and_then(|doc| crate::svg::size(&doc)),
             Some(ImageSource::Texture(id)) => {
-                crate::get_env().and_then(|mut env| texture_size(&mut env, &id))
+                crate::jni_util::get_env().and_then(|mut env| texture_size(&mut env, &id))
             }
             Some(ImageSource::ModPath(_)) | None => None,
         };

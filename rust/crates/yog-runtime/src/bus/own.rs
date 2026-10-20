@@ -8,12 +8,12 @@ use super::duties::provide;
 
 /// A Yog mod's `.yres` name or description in the player's language, else as written.
 fn localized(text: &str, key: &str) -> String {
-    crate::translate(key).unwrap_or_else(|| text.to_owned())
+    crate::machine_api::translate(key).unwrap_or_else(|| text.to_owned())
 }
 
 /// Every installed mod: the Yog mods loaded, then the loader's.
 fn mods() -> Vec<game::ModInfo> {
-    let infos = crate::MOD_INFOS.locked().clone();
+    let infos = crate::globals::MOD_INFOS.locked().clone();
     let mut out: Vec<game::ModInfo> = infos
         .iter()
         .map(|m| game::ModInfo {
@@ -32,10 +32,17 @@ fn mods() -> Vec<game::ModInfo> {
 /// The runtime's own services; once, at start.
 pub(crate) fn register() {
     provide::<content::Register>(|r| {
-        crate::register_blob(&mut crate::handlers_write(), &r.kind, r.id.clone(), &r.data);
+        crate::api_fns::register_blob(
+            &mut crate::handlers::handlers_write(),
+            &r.kind,
+            r.id.clone(),
+            &r.data,
+        );
         true
     });
     provide::<game::Mods>(|_| mods());
-    provide::<game::ModLoaded>(|m| crate::mod_loaded(&m.id));
-    provide::<client::EntityData>(|d| crate::entity_data::client_get(&d.uuid, &d.key).map(|bytes| entity::DataValue { bytes }));
+    provide::<game::ModLoaded>(|m| crate::machine_api::mod_loaded(&m.id));
+    provide::<client::EntityData>(|d| {
+        crate::entity_data::client_get(&d.uuid, &d.key).map(|bytes| entity::DataValue { bytes })
+    });
 }

@@ -7,5 +7,6 @@ pub use crate::test_jvm::{javac, jdk, start};
 /// Hands the runtime the JVM, as the host's `JNI_OnLoad` does.
 pub fn adopt(vm: &jni::JavaVM) {
     // The JVM lives as long as the process; this is the same one.
-    let _ = crate::JAVA_VM.set(unsafe { jni::JavaVM::from_raw(vm.get_java_vm_pointer()) }.expect("the JVM"));
+    let _ = crate::globals::JAVA_VM
+        .set(unsafe { jni::JavaVM::from_raw(vm.get_java_vm_pointer()) }.expect("the JVM"));
 }

@@ -1,6 +1,5 @@
 //! JNI helpers.
-use super::{JAVA_VM};
-
+use crate::globals::JAVA_VM;
 
 // ── JNI helpers ──────────────────────────────────────────────────────────────
 
@@ -13,4 +12,3 @@ pub(super) fn guard(label: &str, f: impl FnOnce()) {
 pub(super) fn get_env() -> Option<jni::AttachGuard<'static>> {
     JAVA_VM.get()?.attach_current_thread().ok()
 }
-

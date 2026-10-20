@@ -1,14 +1,20 @@
 //! `YogApi`'s registration functions.
 
+use std::sync::Arc;
+
 use yog_ids::dimension_field;
-use super::*;
+use yog_sync::Locked;
+
+use yog_registry::{BlockDef, ItemDef};
+
+use crate::handlers::RuntimeHandlers;
+use crate::machine_api::{mod_loaded, translate};
 
 // ── YogApi registration functions ─────────────────────────────────────────────
 //
 // ctx is *const RwLock<RuntimeHandlers> (cast from *mut c_void) — see
 // `current_registration()` for how each entry gets tagged with the
 // `LoadedModule` that's registering it.
-
 
 /// The handlers a registration call writes into: `ctx` is the
 /// `RwLock<RuntimeHandlers>` the runtime handed the mod's `yog_mod_register`.
@@ -29,81 +35,90 @@ pub(super) fn register_blob(h: &mut RuntimeHandlers, kind: &str, id: String, byt
 }
 
 /// Stores content of `kind` (see `register_content` in yog-abi).
-pub(super) fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_data::ValueRef) {
+pub(super) fn register_content(
+    h: &mut RuntimeHandlers,
+    kind: &str,
+    id: String,
+    value: &yog_data::ValueRef,
+) {
     *h.content_blob.get_mut().unwrap_or_else(|e| e.into_inner()) = None;
+    use yog_ids::kind;
+    let (k, i, v) = (kind, id.as_str(), value);
     match kind {
-        yog_ids::kind::ITEM => {
-            if let Some(mut d) = read::<ItemDef>(kind, &id, value) {
-                none_if_empty(&mut [&mut d.name, &mut d.tooltip]);
-                h.items.push(d);
-            }
-        }
-        yog_ids::kind::BLOCK => {
-            if let Some(mut d) = read::<BlockDef>(kind, &id, value) {
-                none_if_empty(&mut [&mut d.name, &mut d.sound, &mut d.inventory_id, &mut d.base, &mut d.set]);
-                h.blocks.push(d);
-            }
-        }
-        yog_ids::kind::ENTITY => {
-            if read::<yog_registry::EntityDef>(kind, &id, value).is_some() {
-                h.entities.push(value.to_value());
-            }
-        }
-        yog_ids::kind::ATTRIBUTE => {
-            if read::<yog_registry::AttributeDef>(kind, &id, value).is_some() {
-                h.attributes.push(value.to_value());
-            }
-        }
-        yog_ids::kind::EFFECT => {
-            if read::<yog_registry::EffectDef>(kind, &id, value).is_some() {
-                h.effects.push(value.to_value());
-            }
-        }
-        yog_ids::kind::POTION => {
-            if read::<yog_registry::PotionDef>(kind, &id, value).is_some() {
-                h.potions.push(value.to_value());
-            }
-        }
-        yog_ids::kind::BIOME_FEATURE => {
-            if let Some(f) = read::<yog_registry::BiomeFeature>(kind, &id, value) {
-                h.biome_features.push(f);
-            }
-        }
-        yog_ids::kind::TOOL_MATERIAL => {
-            if let Some(m) = read::<yog_registry::ToolMaterial>(kind, &id, value) {
+        kind::ITEM => register_item(h, k, i, v),
+        kind::BLOCK => register_block(h, k, i, v),
+        kind::ENTITY => keep::<yog_registry::EntityDef>(&mut h.entities, k, i, v),
+        kind::ATTRIBUTE => keep::<yog_registry::AttributeDef>(&mut h.attributes, k, i, v),
+        kind::EFFECT => keep::<yog_registry::EffectDef>(&mut h.effects, k, i, v),
+        kind::POTION => keep::<yog_registry::PotionDef>(&mut h.potions, k, i, v),
+        kind::BIOME_FEATURE => h.biome_features.extend(read(k, i, v)),
+        kind::TOOL_MATERIAL => {
+            if let Some(m) = read::<yog_registry::ToolMaterial>(k, i, v) {
                 h.tool_materials.insert(m.id.clone(), m);
             }
         }
-        yog_ids::kind::ARMOR_MATERIAL => {
-            if let Some(m) = read::<yog_registry::ArmorMaterial>(kind, &id, value) {
+        kind::ARMOR_MATERIAL => {
+            if let Some(m) = read::<yog_registry::ArmorMaterial>(k, i, v) {
                 h.armor_materials.insert(m.id.clone(), m);
             }
         }
-        yog_ids::kind::SOUND_GROUP => {
-            if let Some(g) = read::<yog_registry::SoundGroup>(kind, &id, value) {
+        kind::SOUND_GROUP => {
+            if let Some(g) = read::<yog_registry::SoundGroup>(k, i, v) {
                 h.sound_groups.insert(g.id.clone(), g);
             }
         }
-        yog_ids::kind::INVENTORY => {
-            if let Some(d) = read::<yog_inventory::InventoryDef>(kind, &id, value) {
-                h.inventories.push(d);
-            }
-        }
-        yog_ids::kind::STARTUP_GRANT => {
-            if let Some(mut g) = read::<yog_registry::StartupGrant>(kind, &id, value) {
+        kind::INVENTORY => h.inventories.extend(read(k, i, v)),
+        kind::STARTUP_GRANT => {
+            if let Some(mut g) = read::<yog_registry::StartupGrant>(k, i, v) {
                 none_if_empty(&mut [&mut g.book, &mut g.command]);
                 h.startup_grants.push(g);
             }
         }
-        yog_ids::kind::RECIPE => register_recipe(h, &id, value),
-        yog_ids::kind::FONT => {
-            if let Some(font) = read::<yog_font::Font>(kind, &id, value) {
+        kind::RECIPE => register_recipe(h, i, v),
+        kind::FONT => {
+            if let Some(font) = read::<yog_font::Font>(k, i, v) {
                 crate::fonts::register(id, font);
             }
         }
-        yog_ids::kind::BOOK => register_book(h, kind, id, value),
-        yog_ids::kind::DIMENSION => register_dimension(h, kind, id, value),
-        other => yog_logging::warn!("unknown kind of content `{other}` ({id}) — this runtime doesn't know it"),
+        kind::BOOK => register_book(h, k, id, v),
+        kind::DIMENSION => register_dimension(h, k, id, v),
+        other => yog_logging::warn!(
+            "unknown kind of content `{other}` ({id}) — this runtime doesn't know it"
+        ),
+    }
+}
+
+/// An item; an empty name or tooltip is none.
+fn register_item(h: &mut RuntimeHandlers, kind: &str, id: &str, value: &yog_data::ValueRef) {
+    if let Some(mut d) = read::<ItemDef>(kind, id, value) {
+        none_if_empty(&mut [&mut d.name, &mut d.tooltip]);
+        h.items.push(d);
+    }
+}
+
+/// A block; its empty optional names are none.
+fn register_block(h: &mut RuntimeHandlers, kind: &str, id: &str, value: &yog_data::ValueRef) {
+    if let Some(mut d) = read::<BlockDef>(kind, id, value) {
+        none_if_empty(&mut [
+            &mut d.name,
+            &mut d.sound,
+            &mut d.inventory_id,
+            &mut d.base,
+            &mut d.set,
+        ]);
+        h.blocks.push(d);
+    }
+}
+
+/// `value`, kept as it is once it reads as `T` (the host reads it whole).
+fn keep<T: yog_data::Schema>(
+    list: &mut Vec<yog_data::Value>,
+    kind: &str,
+    id: &str,
+    value: &yog_data::ValueRef,
+) {
+    if read::<T>(kind, id, value).is_some() {
+        list.push(value.to_value());
     }
 }
 
@@ -112,7 +127,10 @@ fn read<T: yog_data::Schema>(kind: &str, id: &str, v: &yog_data::ValueRef) -> Op
     match yog_data::read_ref_value::<T>(v) {
         Ok(value) => Some(value),
         Err(problems) => {
-            let list: Vec<String> = problems.iter().map(|p| format!("{}: {}", p.path, p.message)).collect();
+            let list: Vec<String> = problems
+                .iter()
+                .map(|p| format!("{}: {}", p.path, p.message))
+                .collect();
             yog_logging::warn!("{kind} {id}: {}", list.join("; "));
             None
         }
@@ -145,7 +163,8 @@ fn register_book(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_da
     let Some(mut book) = read::<yog_formats::book::Book>(kind, &id, value) else {
         return;
     };
-    book.entries.retain(|e| e.requires.iter().all(|m| mod_loaded(m)));
+    book.entries
+        .retain(|e| e.requires.iter().all(|m| mod_loaded(m)));
     h.books.insert(id.clone());
     let mut renderer = yog_book::BookRenderer::new(book);
     renderer.set_translator(translate);
@@ -153,7 +172,10 @@ fn register_book(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_da
     for (ns, name, recipe) in &h.recipes {
         renderer.add_recipe(yog_ids::join(ns, name), recipe);
     }
-    h.book_renderers.get_mut().unwrap_or_else(|e| e.into_inner()).insert(id, renderer);
+    h.book_renderers
+        .get_mut()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(id, renderer);
 }
 
 /// A dimension: its terrain stays here (the generator this one), the host
@@ -162,12 +184,18 @@ fn register_dimension(h: &mut RuntimeHandlers, kind: &str, id: String, value: &y
     yog_logging::info!("registered dimension type: {}", id);
     let mut def = value.to_value();
     if let Some(t) = value.get(dimension_field::TERRAIN) {
-        let Some(terrain) = read::<yog_worldgen::Terrain>(kind, &id, t) else { return };
+        let Some(terrain) = read::<yog_worldgen::Terrain>(kind, &id, t) else {
+            return;
+        };
         if let yog_data::Value::Map(m) = &mut def {
             m.remove(dimension_field::TERRAIN);
-            m.insert(dimension_field::GENERATOR_TYPE, yog_data::Value::from(id.as_str()));
+            m.insert(
+                dimension_field::GENERATOR_TYPE,
+                yog_data::Value::from(id.as_str()),
+            );
         }
-        h.terrains.insert(id.clone(), Arc::new(yog_worldgen::Generator::new(terrain)));
+        h.terrains
+            .insert(id.clone(), Arc::new(yog_worldgen::Generator::new(terrain)));
     }
     h.dimensions.insert(id, def);
 }

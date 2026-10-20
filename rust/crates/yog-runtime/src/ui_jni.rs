@@ -1,6 +1,6 @@
 //! UI system JNI — layer management, show/hide, hit-test, event dispatch.
 
-use crate::{UiLayer, handlers};
+use crate::handlers::{UiLayer, handlers};
 use jni::{JNIEnv, objects::JClass, objects::JString, sys::*};
 
 use std::cell::Cell;
@@ -9,7 +9,10 @@ use yog_sync::Locked;
 
 /// Sends `ev` to screen `id`'s input handlers; `true` when one used it (cancelled it).
 fn dispatch(id: &str, ev: &str) -> bool {
-    !crate::bus::allowed(&yog_event::client::ui::Input { ui_id: id.to_owned(), event: ev.to_owned() })
+    !crate::bus::allowed(&yog_event::client::ui::Input {
+        ui_id: id.to_owned(),
+        event: ev.to_owned(),
+    })
 }
 
 /// A Yog UI screen (or inventory screen) opened: a new top layer, and
@@ -270,7 +273,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     let slots = crate::bus::call(&yog_event::client::ScreenSlots {}).unwrap_or_default();
     let n = slots.len().min(yog_inventory::MAX_SNAPSHOT_SLOTS);
     // Atoms' names live as long as the process: the pointers stay good.
-    let slot_item_ids: Vec<&'static str> = slots.iter().take(n).map(|s| s.stack.as_ref().map_or("", |st| st.item.as_str())).collect();
+    let slot_item_ids: Vec<&'static str> = slots
+        .iter()
+        .take(n)
+        .map(|s| s.stack.as_ref().map_or("", |st| st.item.as_str()))
+        .collect();
     let mut snapshot = yog_inventory::YogInvSnapshotRaw::EMPTY;
     if n > 0 {
         snapshot.slot_count = n as u32;
@@ -283,8 +290,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         push_inventory_snapshot(&snapshot);
     }
 
-    let h = crate::handlers();
-    let mut gfx = crate::GFX_FN_TABLE;
+    let h = crate::handlers::handlers();
+    let mut gfx = crate::gfx_table::GFX_FN_TABLE;
     gfx.screen_w = screen_w;
     gfx.screen_h = screen_h;
     gfx.delta_tick = 1.0;
@@ -302,7 +309,11 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         {
             // Pictures of `drawn` pages: the mod that registered the drawer draws them.
             book_renderer.render_with(&ctx, sw, sh, &mut |_, drawer, data, rect| {
-                let page = yog_event::client::render::Page { drawer: drawer.to_owned(), data: data.clone(), rect };
+                let page = yog_event::client::render::Page {
+                    drawer: drawer.to_owned(),
+                    data: data.clone(),
+                    rect,
+                };
                 crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&page));
             });
             return;
@@ -312,7 +323,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 
     // The screen's own drawing — after renderBackground(), so on top of the
     // darkening (unlike the HUD, drawn before screens).
-    crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&yog_event::client::render::Ui { ui_id: id.clone() }));
+    crate::gfx_frame::drawing(&gfx, || {
+        crate::bus::emitted(&yog_event::client::render::Ui { ui_id: id.clone() })
+    });
 }
 
 /// Hand `snapshot` to every loaded mod's own copy of `yog-inventory`'s
@@ -321,7 +334,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 /// others, which is fine — just skip them).
 fn push_inventory_snapshot(snapshot: &yog_inventory::YogInvSnapshotRaw) {
     type SetSnapshotFn = unsafe extern "C" fn(*const yog_inventory::YogInvSnapshotRaw);
-    for (_id, module) in crate::hot_reloader().all_active() {
+    for (_id, module) in crate::handlers::hot_reloader().all_active() {
         if module.is_retiring() {
             continue;
         }
@@ -356,11 +369,15 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeTooltipDraw<'l>(
 ) {
     let item = jstr!(env, item);
     let snbt = jstr!(env, snbt);
-    let mut gfx = crate::GFX_FN_TABLE;
+    let mut gfx = crate::gfx_table::GFX_FN_TABLE;
     gfx.screen_w = screen_w;
     gfx.screen_h = screen_h;
     gfx.delta_tick = 1.0;
     gfx.scale_factor = 1.0;
-    let tooltip = yog_event::client::render::Tooltip { item, snbt, rect: [x as f32, y as f32, w as f32, hh as f32] };
+    let tooltip = yog_event::client::render::Tooltip {
+        item,
+        snbt,
+        rect: [x as f32, y as f32, w as f32, hh as f32],
+    };
     crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&tooltip));
 }

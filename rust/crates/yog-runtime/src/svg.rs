@@ -30,8 +30,13 @@ struct Cache {
 static CACHE: Mutex<Option<Cache>> = Mutex::new(None);
 
 fn with<R>(f: impl FnOnce(&mut Cache) -> R) -> R {
-    let mut c = CACHE.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-    f(c.get_or_insert_with(|| Cache { rasters: HashMap::new(), files: HashMap::new() }))
+    let mut c = CACHE
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    f(c.get_or_insert_with(|| Cache {
+        rasters: HashMap::new(),
+        files: HashMap::new(),
+    }))
 }
 
 fn hash(data: &str) -> u64 {
@@ -49,7 +54,8 @@ pub fn rasterize(data: &str, w: u32, h: u32) -> Option<Vec<u8>> {
     let tree = tree(data)?;
     let mut pixmap = resvg::tiny_skia::Pixmap::new(w, h)?;
     let size = tree.size();
-    let t = resvg::tiny_skia::Transform::from_scale(w as f32 / size.width(), h as f32 / size.height());
+    let t =
+        resvg::tiny_skia::Transform::from_scale(w as f32 / size.width(), h as f32 / size.height());
     resvg::render(&tree, t, &mut pixmap.as_mut());
     // tiny-skia keeps premultiplied alpha; textures want it straight.
     let mut px = pixmap.take();
@@ -74,9 +80,15 @@ pub fn file(env: &mut JNIEnv, id: &str) -> Option<String> {
     if let Some(hit) = with(|c| c.files.get(id).cloned()) {
         return hit;
     }
-    let text: Option<String> =
-        unsafe { jcall!(env, "dev/yog/NativeDraw", "readResourceText", [S(YogStr::from_str(id))]) }
-            .filter(|t: &String| !t.is_empty());
+    let text: Option<String> = unsafe {
+        jcall!(
+            env,
+            "dev/yog/NativeDraw",
+            "readResourceText",
+            [S(YogStr::from_str(id))]
+        )
+    }
+    .filter(|t: &String| !t.is_empty());
     with(|c| c.files.insert(id.to_string(), text.clone()));
     text
 }
@@ -92,7 +104,9 @@ pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
     let id = match with(|c| c.rasters.get(&key).cloned()) {
         Some(id) => id,
         None => {
-            let Some(px) = rasterize(data, pw, ph) else { return };
+            let Some(px) = rasterize(data, pw, ph) else {
+                return;
+            };
             if with(|c| c.rasters.len()) >= MAX_RASTERS {
                 let old: Vec<String> = with(|c| c.rasters.drain().map(|(_, id)| id).collect());
                 for id in old {
@@ -112,8 +126,13 @@ pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
 
 /// `draw2d_svg` — see `YogGfxApi::draw2d_svg`.
 pub(crate) unsafe extern "C" fn gfx_draw2d_svg(data: YogStr, x: f32, y: f32, w: f32, h: f32) {
-    if let Some(mut env) = crate::get_env() {
-        draw(&mut env, unsafe { data.as_str() }, [x, y, w, h], yog_gfx::Color::WHITE.0);
+    if let Some(mut env) = crate::jni_util::get_env() {
+        draw(
+            &mut env,
+            unsafe { data.as_str() },
+            [x, y, w, h],
+            yog_gfx::Color::WHITE.0,
+        );
     }
 }
 
@@ -130,7 +149,7 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_entity(
     if w <= 0.0 || h <= 0.0 {
         return;
     }
-    if let Some(mut env) = crate::get_env() {
+    if let Some(mut env) = crate::jni_util::get_env() {
         let _: Option<()> = unsafe {
             jcall!(
                 &mut env,

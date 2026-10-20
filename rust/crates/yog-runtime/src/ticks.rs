@@ -1,7 +1,9 @@
 //! The server tick's own work: startup grants, entity data sent, scheduled tasks.
+use crate::entity_data;
+use crate::handlers::handlers;
+use crate::jni_util::guard;
+use yog_abi::YogStr;
 use yog_sync::Locked;
-use super::{YogStr, entity_data, guard, handlers};
-
 
 /// The command tag a player carries once startup grant `id` was given. It's
 /// saved with the player's own data, so it follows the player — not their
@@ -15,7 +17,9 @@ pub(super) fn grant_tag(id: &str) -> String {
 pub(crate) fn queue_startup_grants(player: &str, uuid: &str) {
     let h = handlers();
     if !h.startup_grants.is_empty() {
-        h.pending_grants.locked().push((player.to_owned(), uuid.to_owned(), 0));
+        h.pending_grants
+            .locked()
+            .push((player.to_owned(), uuid.to_owned(), 0));
     }
 }
 
@@ -60,7 +64,12 @@ pub(super) fn process_pending_grants() {
             let book = sg.book.as_ref().map(|_| yog_ids::game::WRITTEN_BOOK);
             let mut ok = true;
             for item_id in sg.items.iter().map(String::as_str).chain(book) {
-                ok &= crate::bus::call(&yog_event::player::GiveItem { player: p.clone(), item: item_id.to_owned(), count: 1 }).unwrap_or(false);
+                ok &= crate::bus::call(&yog_event::player::GiveItem {
+                    player: p.clone(),
+                    item: item_id.to_owned(),
+                    count: 1,
+                })
+                .unwrap_or(false);
             }
             if ok && unsafe { bridge!("addPlayerTag", [S(player), S(tag)]) }.unwrap_or(false) {
                 yog_logging::info!("startup grant {} given to {}", sg.id, p);
@@ -74,4 +83,3 @@ pub(super) fn process_pending_grants() {
     }
     *pending = still_pending;
 }
-

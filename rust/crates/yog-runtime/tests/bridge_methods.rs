@@ -112,7 +112,10 @@ fn action_calls() -> BTreeSet<(String, String, usize)> {
     yog_event::services()
         .iter()
         .filter_map(|s| {
-            let (class, method) = s.host?.rsplit_once('.').unwrap_or(("NativeBridge", s.host?));
+            let (class, method) = s
+                .host?
+                .rsplit_once('.')
+                .unwrap_or(("NativeBridge", s.host?));
             Some((class.to_owned(), method.to_owned(), spread(&s.shape)))
         })
         .collect()
@@ -158,8 +161,19 @@ fn java_statics(java: &str) -> BTreeSet<(String, usize)> {
 /// A platform's `<host>/versions/<mc>.properties` value of `key`.
 fn platform_property(root: &Path, host: &str, platform: &Path, key: &str) -> Option<String> {
     let mc = platform.file_name()?.to_str()?;
-    let text = fs::read_to_string(root.join(host).join("versions").join(format!("{mc}.properties"))).ok()?;
-    text.lines().find_map(|l| l.trim().strip_prefix(key)?.trim_start().strip_prefix('=').map(|v| v.trim().to_string()))
+    let text = fs::read_to_string(
+        root.join(host)
+            .join("versions")
+            .join(format!("{mc}.properties")),
+    )
+    .ok()?;
+    text.lines().find_map(|l| {
+        l.trim()
+            .strip_prefix(key)?
+            .trim_start()
+            .strip_prefix('=')
+            .map(|v| v.trim().to_string())
+    })
 }
 
 /// Whether a platform is only build plumbing so far (`status=scaffold`): the build refuses it.
@@ -174,7 +188,12 @@ fn version_parts(v: &str) -> Option<Vec<u32>> {
 
 /// Whether `v` is at least `lo` and within `hi` on as many parts as `hi` names — `sources.gradle`'s rule.
 fn in_range(v: &[u32], lo: &[u32], hi: &[u32]) -> bool {
-    let compare = |a: &[u32], b: &[u32], n: usize| (0..n).map(|i| a.get(i).unwrap_or(&0).cmp(b.get(i).unwrap_or(&0))).find(|o| o.is_ne()).unwrap_or(std::cmp::Ordering::Equal);
+    let compare = |a: &[u32], b: &[u32], n: usize| {
+        (0..n)
+            .map(|i| a.get(i).unwrap_or(&0).cmp(b.get(i).unwrap_or(&0)))
+            .find(|o| o.is_ne())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    };
     compare(v, lo, v.len().max(lo.len())).is_ge() && compare(v, hi, hi.len()).is_le()
 }
 
@@ -190,13 +209,25 @@ fn source_dirs(root: &Path, host: &str, platform: &Path) -> Vec<PathBuf> {
         dirs.push(root.join(host).join(JAVA));
     }
     dirs.push(root.join("java-common").join(JAVA));
-    let Some(v) = platform.file_name().and_then(|n| n.to_str()).and_then(version_parts) else {
+    let Some(v) = platform
+        .file_name()
+        .and_then(|n| n.to_str())
+        .and_then(version_parts)
+    else {
         return dirs;
     };
-    let mut ranges: Vec<PathBuf> = fs::read_dir(root.join("java-common/mc")).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect();
+    let mut ranges: Vec<PathBuf> = fs::read_dir(root.join("java-common/mc"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir())
+        .collect();
     ranges.sort();
     for d in ranges {
-        let Some(name) = d.file_name().and_then(|n| n.to_str()) else { continue };
+        let Some(name) = d.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
         let (lo, hi) = name.split_once('-').unwrap_or((name, name));
         if let (Some(lo), Some(hi)) = (version_parts(lo), version_parts(hi))
             && in_range(&v, &lo, &hi)
@@ -208,9 +239,17 @@ fn source_dirs(root: &Path, host: &str, platform: &Path) -> Vec<PathBuf> {
 }
 
 /// The public statics of class `class` as a host compiles it for `platform`.
-fn class_statics(root: &Path, host: &str, platform: &Path, class: &str) -> Option<BTreeSet<(String, usize)>> {
+fn class_statics(
+    root: &Path,
+    host: &str,
+    platform: &Path,
+    class: &str,
+) -> Option<BTreeSet<(String, usize)>> {
     let file = format!("dev/yog/{}.java", class.replace('.', "/"));
-    let found: Vec<_> = source_dirs(root, host, platform).into_iter().filter_map(|d| fs::read_to_string(d.join(&file)).ok()).collect();
+    let found: Vec<_> = source_dirs(root, host, platform)
+        .into_iter()
+        .filter_map(|d| fs::read_to_string(d.join(&file)).ok())
+        .collect();
     (!found.is_empty()).then(|| found.iter().flat_map(|j| java_statics(j)).collect())
 }
 
@@ -246,10 +285,18 @@ fn every_host_has_every_bridge_method() {
             }
             // The host finds an action's method by its name and arity: one of them.
             for (class, name, arity) in action_calls() {
-                let Some(statics) = class_statics(&root, host, &platform, &class) else { continue };
-                let found = statics.iter().filter(|(n, a)| *n == name && *a == arity).count();
+                let Some(statics) = class_statics(&root, host, &platform, &class) else {
+                    continue;
+                };
+                let found = statics
+                    .iter()
+                    .filter(|(n, a)| *n == name && *a == arity)
+                    .count();
                 if found > 1 {
-                    missing.push(format!("{}: {class}.{name}/{arity} is overloaded", platform.display()));
+                    missing.push(format!(
+                        "{}: {class}.{name}/{arity} is overloaded",
+                        platform.display()
+                    ));
                 }
             }
         }
@@ -263,7 +310,9 @@ fn every_host_has_every_bridge_method() {
 
 #[test]
 fn an_action_spreads_its_positions() {
-    let set_block = action_calls().into_iter().find(|(_, name, _)| name == "setBlock");
+    let set_block = action_calls()
+        .into_iter()
+        .find(|(_, name, _)| name == "setBlock");
     assert_eq!(set_block.map(|(_, _, n)| n), Some(5), "dim, x, y, z, block");
 }
 
@@ -303,7 +352,11 @@ fn every_native_method_is_exported() {
                 let Some(rest) = line.split(" static native ").nth(1) else {
                     continue;
                 };
-                let Some(name) = rest.split('(').next().and_then(|s| s.split_whitespace().last()) else {
+                let Some(name) = rest
+                    .split('(')
+                    .next()
+                    .and_then(|s| s.split_whitespace().last())
+                else {
                     continue;
                 };
                 seen += 1;
@@ -313,8 +366,15 @@ fn every_native_method_is_exported() {
             }
         }
     }
-    assert!(seen > 100, "found only {seen} native methods — parser broken?");
-    assert!(missing.is_empty(), "native methods with no runtime export:\n{}", missing.into_iter().collect::<Vec<_>>().join("\n"));
+    assert!(
+        seen > 100,
+        "found only {seen} native methods — parser broken?"
+    );
+    assert!(
+        missing.is_empty(),
+        "native methods with no runtime export:\n{}",
+        missing.into_iter().collect::<Vec<_>>().join("\n")
+    );
 }
 
 /// `YogBus.java`'s status values are `yog_abi::status`'s.
@@ -325,11 +385,24 @@ fn java_bus_statuses_match_the_abi() {
         return;
     };
     let value = |name: &str| -> Option<u32> {
-        let line = src.lines().find(|l| l.contains(&format!("public static final int {name} =")))?;
-        line.split('=').nth(1)?.trim().trim_end_matches(';').parse().ok()
+        let line = src
+            .lines()
+            .find(|l| l.contains(&format!("public static final int {name} =")))?;
+        line.split('=')
+            .nth(1)?
+            .trim()
+            .trim_end_matches(';')
+            .parse()
+            .ok()
     };
     use yog_abi::status::*;
-    for (name, v) in [("OK", OK), ("NO_HANDLER", NO_HANDLER), ("BAD_PAYLOAD", BAD_PAYLOAD), ("FAILED", FAILED), ("CANCELLED", CANCELLED)] {
+    for (name, v) in [
+        ("OK", OK),
+        ("NO_HANDLER", NO_HANDLER),
+        ("BAD_PAYLOAD", BAD_PAYLOAD),
+        ("FAILED", FAILED),
+        ("CANCELLED", CANCELLED),
+    ] {
         assert_eq!(value(name), Some(v), "YogBus.{name}");
     }
 }

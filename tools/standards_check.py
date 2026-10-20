@@ -52,6 +52,9 @@ SILENCE = re.compile(r"#!?\[allow\(|@ts-ignore|@ts-expect-error|eslint-disable|@
 PANIC = re.compile(r"\.unwrap\(\)|\.expect\(|\bpanic!\(|\bunreachable!\(|\btodo!\(|\bunimplemented!\(")
 PRINT = re.compile(r"\b(println!|eprintln!|dbg!|print!)\(|System\.(out|err)\.print|console\.(log|debug)\(")
 TODO = re.compile(r"\b(TODO|FIXME|XXX|HACK)\b")
+# A glob import (CODE_STANDARDS: none outside preludes and tests): Rust `use a::*;`, Java
+# `import a.*;`. A `pub use a::*` re-export (a facade's surface, like a prelude) isn't one.
+GLOB_IMPORT = re.compile(r"^\s*use\s+(?![\w:]*\bprelude::\*)[\w:{}, ]*::\*\s*;|^\s*import\s+(static\s+)?[\w.]+\.\*\s*;")
 COMMENTED_CODE = re.compile(r"^\s*//\s*(let |fn |pub |use |if \(|for |return |import |const |\}|[\w.]+\(.*\);\s*$)")
 
 
@@ -67,6 +70,7 @@ class Findings:
     magic_numbers: int = 0
     todos: int = 0
     commented_code: int = 0
+    glob_imports: int = 0
 
     def summary(self):
         out = []
@@ -76,7 +80,7 @@ class Findings:
             out.append("long-fn:" + ",".join(self.long_fns[:5]) + ("…" if len(self.long_fns) > 5 else ""))
         if self.many_params:
             out.append("params:" + ",".join(self.many_params[:5]) + ("…" if len(self.many_params) > 5 else ""))
-        for name in ("silenced", "panics", "prints", "literal_facts", "magic_numbers", "todos", "commented_code"):
+        for name in ("silenced", "panics", "prints", "literal_facts", "magic_numbers", "todos", "commented_code", "glob_imports"):
             n = getattr(self, name)
             if n:
                 out.append(f"{name}:{n}")
@@ -234,6 +238,8 @@ def check(path, text):
             f.todos += 1
         if COMMENTED_CODE.match(l):
             f.commented_code += 1
+        if GLOB_IMPORT.match(l):
+            f.glob_imports += 1
         if CONST_LINE.search(l) or l.strip().startswith(("///", "//", "*", "/*")):
             continue
         if not FACT_HOME.search(path):

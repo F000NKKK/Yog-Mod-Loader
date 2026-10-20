@@ -6,11 +6,11 @@ mod arena;
 mod arena_jvm;
 mod declared;
 mod describe;
-mod own;
 mod duties;
 mod java;
 #[cfg(any(test, feature = "bench"))]
 pub(crate) mod jvm_support;
+mod own;
 mod router;
 #[cfg(test)]
 mod tests;
@@ -18,8 +18,10 @@ mod tests;
 use std::os::raw::c_void;
 use std::sync::{LazyLock, OnceLock};
 
+use yog_abi::{
+    ABI_VERSION, YogAddress, YogBus, YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, status,
+};
 use yog_event::{Event, Message, Service};
-use yog_abi::{ABI_VERSION, YogAddress, YogBus, YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, status};
 
 pub(crate) use describe::purge as purge_descriptors;
 pub(crate) use duties::{provide as serve, register as register_duties};
@@ -58,20 +60,32 @@ pub(crate) fn table() -> *const YogBus {
 
 /// Emits `event` before the game does it: whether every handler lets it.
 pub(crate) fn allowed<E: Event>(event: &E) -> bool {
-    let Some(pre) = event.pre_address() else { return true };
-    event.with_bytes(|payload| ROUTER.emit(pre, payload, &YogReply::discard(), java::run)) != status::CANCELLED
+    let Some(pre) = event.pre_address() else {
+        return true;
+    };
+    event.with_bytes(|payload| ROUTER.emit(pre, payload, &YogReply::discard(), java::run))
+        != status::CANCELLED
 }
 
 /// Emits `event` after the game did it.
 pub(crate) fn emitted<E: Event>(event: &E) {
-    event.with_bytes(|payload| ROUTER.emit(event.address(), payload, &YogReply::discard(), java::run));
+    event.with_bytes(|payload| {
+        ROUTER.emit(event.address(), payload, &YogReply::discard(), java::run)
+    });
 }
 
 /// Emits `event` and reads back what the handlers made of it (itself when
 /// the reply isn't one).
 pub(crate) fn changed<E: Event>(event: E) -> E {
     let mut reply = Vec::new();
-    event.with_bytes(|payload| ROUTER.emit(event.address(), payload, &YogReply::to_vec(&mut reply), java::run));
+    event.with_bytes(|payload| {
+        ROUTER.emit(
+            event.address(),
+            payload,
+            &YogReply::to_vec(&mut reply),
+            java::run,
+        )
+    });
     // Nothing written: no handler changed it.
     E::from_bytes(&reply).unwrap_or(event)
 }
@@ -91,7 +105,8 @@ pub(crate) fn install_caller() {
 
 /// Calls `request`'s provider: its answer, `None` when no one answers.
 pub(crate) fn call<S: Service>(request: &S) -> Option<S::Reply> {
-    let (st, reply) = request.with_bytes(|payload| ROUTER.call_vec(request.address(), payload, java::run));
+    let (st, reply) =
+        request.with_bytes(|payload| ROUTER.call_vec(request.address(), payload, java::run));
     if st != status::OK {
         return None;
     }
@@ -106,7 +121,7 @@ pub(crate) fn heard<E: Event>() -> bool {
 /// The mod registering right now, if any — what its handlers are dropped with.
 fn owner() -> Option<yog_hot_reload::LoadedModule> {
     use yog_sync::Locked;
-    crate::CURRENT_REGISTRATION.locked().clone()
+    crate::globals::CURRENT_REGISTRATION.locked().clone()
 }
 
 unsafe extern "C" fn abi_atom(_ctx: *mut c_void, name: YogStr) -> u32 {
@@ -121,23 +136,69 @@ unsafe extern "C" fn abi_resolve(_ctx: *mut c_void, address: YogStr) -> YogAddre
     ROUTER.resolve(unsafe { address.as_str() })
 }
 
-unsafe extern "C" fn abi_call(_ctx: *mut c_void, to: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
+unsafe extern "C" fn abi_call(
+    _ctx: *mut c_void,
+    to: YogAddress,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus {
     // The reply goes straight to the caller's sink (none: dropped).
     let discard = YogReply::discard();
-    ROUTER.call(to, unsafe { payload.as_slice() }, unsafe { reply.as_ref() }.unwrap_or(&discard), java::run)
+    ROUTER.call(
+        to,
+        unsafe { payload.as_slice() },
+        unsafe { reply.as_ref() }.unwrap_or(&discard),
+        java::run,
+    )
 }
 
-unsafe extern "C" fn abi_emit(_ctx: *mut c_void, event: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
+unsafe extern "C" fn abi_emit(
+    _ctx: *mut c_void,
+    event: YogAddress,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus {
     let discard = YogReply::discard();
-    ROUTER.emit(event, unsafe { payload.as_slice() }, unsafe { reply.as_ref() }.unwrap_or(&discard), java::run)
+    ROUTER.emit(
+        event,
+        unsafe { payload.as_slice() },
+        unsafe { reply.as_ref() }.unwrap_or(&discard),
+        java::run,
+    )
 }
 
-unsafe extern "C" fn abi_on(_ctx: *mut c_void, event: YogAddress, priority: i32, ud: *mut c_void, handler: YogHandlerFn) {
-    ROUTER.on(event, priority, Handler::Native { owner: owner(), ud: ud as usize, f: handler });
+unsafe extern "C" fn abi_on(
+    _ctx: *mut c_void,
+    event: YogAddress,
+    priority: i32,
+    ud: *mut c_void,
+    handler: YogHandlerFn,
+) {
+    ROUTER.on(
+        event,
+        priority,
+        Handler::Native {
+            owner: owner(),
+            ud: ud as usize,
+            f: handler,
+        },
+    );
 }
 
-unsafe extern "C" fn abi_provide(_ctx: *mut c_void, address: YogAddress, ud: *mut c_void, handler: YogHandlerFn) -> YogStatus {
-    let added = ROUTER.provide(address, Handler::Native { owner: owner(), ud: ud as usize, f: handler });
+unsafe extern "C" fn abi_provide(
+    _ctx: *mut c_void,
+    address: YogAddress,
+    ud: *mut c_void,
+    handler: YogHandlerFn,
+) -> YogStatus {
+    let added = ROUTER.provide(
+        address,
+        Handler::Native {
+            owner: owner(),
+            ud: ud as usize,
+            f: handler,
+        },
+    );
     if added { status::OK } else { status::FAILED }
 }
 

@@ -13,7 +13,11 @@ use yog_sync::ReadWrite;
 #[derive(Clone)]
 pub(crate) enum Handler {
     /// Native code: a mod's (`owner`, dropped with it) or the runtime's own.
-    Native { owner: Option<LoadedModule>, ud: usize, f: YogHandlerFn },
+    Native {
+        owner: Option<LoadedModule>,
+        ud: usize,
+        f: YogHandlerFn,
+    },
     /// A handler in the Java host's table (`YogBus.java`), by its id.
     Java(i32),
 }
@@ -62,13 +66,19 @@ impl Router {
     pub(crate) fn on(&self, event: YogAddress, priority: i32, handler: Handler) {
         let mut subs = self.subscribers.write_locked();
         let list = Arc::make_mut(subs.entry(event).or_default());
-        let at = list.iter().position(|s| s.priority < priority).unwrap_or(list.len());
+        let at = list
+            .iter()
+            .position(|s| s.priority < priority)
+            .unwrap_or(list.len());
         list.insert(at, Subscriber { priority, handler });
     }
 
     /// Whether anyone listens to `event` (an emitter can skip building its payload).
     pub(crate) fn heard(&self, event: YogAddress) -> bool {
-        self.subscribers.read_locked().get(&event).is_some_and(|list| !list.is_empty())
+        self.subscribers
+            .read_locked()
+            .get(&event)
+            .is_some_and(|list| !list.is_empty())
     }
 
     /// The keys someone listens to under keyed event `address` (the
@@ -80,14 +90,24 @@ impl Router {
             .read_locked()
             .iter()
             .filter(|(_, list)| !list.is_empty())
-            .filter_map(|(at, _)| yog_data::atom::local::name(*at)?.strip_prefix(branch.as_str()).map(str::to_owned))
+            .filter_map(|(at, _)| {
+                yog_data::atom::local::name(*at)?
+                    .strip_prefix(branch.as_str())
+                    .map(str::to_owned)
+            })
             .collect();
         keys.sort();
         keys
     }
 
     /// Calls `to`'s provider: its status, its reply written to `reply`.
-    pub(crate) fn call(&self, to: YogAddress, payload: &[u8], reply: &YogReply, java: JavaRunner) -> YogStatus {
+    pub(crate) fn call(
+        &self,
+        to: YogAddress,
+        payload: &[u8],
+        reply: &YogReply,
+        java: JavaRunner,
+    ) -> YogStatus {
         let providers = Arc::clone(&self.providers.read_locked());
         match providers.get(&to) {
             Some(handler) => run(handler, payload, reply, java),
@@ -98,7 +118,13 @@ impl Router {
     /// Runs `event`'s subscribers in order, each seeing the last one's reply
     /// (when it wrote one) as its payload; stops at a cancel. The event as
     /// the handlers left it goes to `reply` — nothing when none changed it.
-    pub(crate) fn emit(&self, event: YogAddress, payload: &[u8], reply: &YogReply, java: JavaRunner) -> YogStatus {
+    pub(crate) fn emit(
+        &self,
+        event: YogAddress,
+        payload: &[u8],
+        reply: &YogReply,
+        java: JavaRunner,
+    ) -> YogStatus {
         let Some(subs) = self.subscribers.read_locked().get(&event).cloned() else {
             return status::OK;
         };
@@ -115,8 +141,14 @@ impl Router {
             let out = YogReply::to_vec(&mut next);
             st = match &s.handler {
                 Handler::Java(id) => java(*id, payload_now, &out),
-                Handler::Native { owner: None, ud, f } => unsafe { f(*ud as *mut c_void, YogBytes::new(payload_now), &out) },
-                Handler::Native { owner: Some(m), ud, f } => {
+                Handler::Native { owner: None, ud, f } => unsafe {
+                    f(*ud as *mut c_void, YogBytes::new(payload_now), &out)
+                },
+                Handler::Native {
+                    owner: Some(m),
+                    ud,
+                    f,
+                } => {
                     if entered.as_ref().is_none_or(|(g, _)| *g != m.generation()) {
                         entered = None;
                         match m.enter() {
@@ -140,11 +172,20 @@ impl Router {
         if changed {
             unsafe { YogReply::send(reply, &current) };
         }
-        if st == status::CANCELLED { st } else { status::OK }
+        if st == status::CANCELLED {
+            st
+        } else {
+            status::OK
+        }
     }
 
     /// [`Router::call`] with the reply as a `Vec` (the runtime's own calls, tests).
-    pub(crate) fn call_vec(&self, to: YogAddress, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
+    pub(crate) fn call_vec(
+        &self,
+        to: YogAddress,
+        payload: &[u8],
+        java: JavaRunner,
+    ) -> (YogStatus, Vec<u8>) {
         let mut out = Vec::new();
         let st = self.call(to, payload, &YogReply::to_vec(&mut out), java);
         (st, out)
@@ -153,7 +194,12 @@ impl Router {
     /// [`Router::emit`] with the reply as a `Vec`: the event as the
     /// handlers left it, the payload itself when none changed it.
     #[cfg(test)]
-    pub(crate) fn emit_vec(&self, event: YogAddress, payload: &[u8], java: JavaRunner) -> (YogStatus, Vec<u8>) {
+    pub(crate) fn emit_vec(
+        &self,
+        event: YogAddress,
+        payload: &[u8],
+        java: JavaRunner,
+    ) -> (YogStatus, Vec<u8>) {
         let mut out = Vec::new();
         let st = self.emit(event, payload, &YogReply::to_vec(&mut out), java);
         if out.is_empty() {

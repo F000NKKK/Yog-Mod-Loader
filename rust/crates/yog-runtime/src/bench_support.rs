@@ -16,21 +16,28 @@ fn no_java(_: i32, _: &[u8], _: &YogReply) -> YogStatus {
     status::NO_HANDLER
 }
 
-
 /// An event over `n` live mods' handlers that all let it happen: each
 /// call emits it once through the bus's router.
 pub fn dispatch(n: usize) -> impl FnMut() -> YogStatus {
-    let module = LoadedModule::this_process(GenerationAllocator::new().next()).expect("the bench program as a module");
+    let module = LoadedModule::this_process(GenerationAllocator::new().next())
+        .expect("the bench program as a module");
     let router = Router::default();
     let event = router.resolve("bench:event");
     for _ in 0..n {
-        router.on(event, 0, Handler::Native { owner: Some(module.clone()), ud: 0, f: yes });
+        router.on(
+            event,
+            0,
+            Handler::Native {
+                owner: Some(module.clone()),
+                ud: 0,
+                f: yes,
+            },
+        );
     }
     let payload = [0u8; 16];
     let reply = YogReply::discard();
     move || router.emit(event, &payload, &reply, no_java)
 }
-
 
 /// The bus with a real JVM: `benches/bus_calls.rs`.
 pub mod jvm;

@@ -39,7 +39,13 @@ pub fn find<'r>(
                 .and_then(Value::as_list)
                 .unwrap_or_default()
                 .iter()
-                .map(|alts| alts.as_list().unwrap_or_default().iter().filter_map(Value::as_str).collect())
+                .map(|alts| {
+                    alts.as_list()
+                        .unwrap_or_default()
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .collect()
+                })
                 .collect();
             let have: Vec<&str> = m
                 .places
@@ -56,7 +62,10 @@ pub fn find<'r>(
             recipe: id,
             result: r.get("result")?.as_str()?.to_string(),
             count: r.get("count").and_then(Value::as_i64).unwrap_or(1).max(1) as u32,
-            values: r.get("values").map_or_else(|| "{}".to_string(), |v| yog_data::json::to_json(v).to_string()),
+            values: r.get("values").map_or_else(
+                || "{}".to_string(),
+                |v| yog_data::json::to_json(v).to_string(),
+            ),
         })
     })
 }
@@ -69,8 +78,15 @@ fn fits(wants: &[Vec<&str>], have: &[&str], has_tag: &dyn Fn(&str, &str) -> bool
             None => *a == item,
         })
     }
-    fn assign(wants: &[Vec<&str>], have: &[&str], used: &mut [bool], has_tag: &dyn Fn(&str, &str) -> bool) -> bool {
-        let Some((first, rest)) = wants.split_first() else { return true };
+    fn assign(
+        wants: &[Vec<&str>],
+        have: &[&str],
+        used: &mut [bool],
+        has_tag: &dyn Fn(&str, &str) -> bool,
+    ) -> bool {
+        let Some((first, rest)) = wants.split_first() else {
+            return true;
+        };
         for (i, item) in have.iter().enumerate() {
             if !used[i] && takes(first, item, has_tag) {
                 used[i] = true;
@@ -99,27 +115,69 @@ mod tests {
         let m = Machine {
             kind: "m:press".into(),
             places: vec![
-                MachinePlace { slot: "input".into(), index: 0, inv: 2 },
-                MachinePlace { slot: "input".into(), index: 1, inv: 3 },
-                MachinePlace { slot: "die".into(), index: 0, inv: 4 },
+                MachinePlace {
+                    slot: "input".into(),
+                    index: 0,
+                    inv: 2,
+                },
+                MachinePlace {
+                    slot: "input".into(),
+                    index: 1,
+                    inv: 3,
+                },
+                MachinePlace {
+                    slot: "die".into(),
+                    index: 0,
+                    inv: 4,
+                },
             ],
             result: 5,
         };
-        let plate = recipe(r##"{"type":"m:press","slots":{"input":[["minecraft:iron_ingot"],["#c:ingots"]],"die":[["m:flat_die"]]},"values":{"energy":4},"result":"m:plate","count":2}"##);
+        let plate = recipe(
+            r##"{"type":"m:press","slots":{"input":[["minecraft:iron_ingot"],["#c:ingots"]],"die":[["m:flat_die"]]},"values":{"energy":4},"result":"m:plate","count":2}"##,
+        );
         let other = recipe(r#"{"type":"m:other","slots":{},"result":"m:x"}"#);
         let recipes = [("m:plate".to_string(), &plate), ("m:x".to_string(), &other)];
         let tag = |item: &str, tag: &str| tag == "c:ingots" && item.ends_with("_ingot");
         let items = |v: [&str; 5]| -> Vec<String> { v.iter().map(|s| s.to_string()).collect() };
 
-        let ok = items(["", "", "minecraft:gold_ingot", "minecraft:iron_ingot", "m:flat_die"]);
+        let ok = items([
+            "",
+            "",
+            "minecraft:gold_ingot",
+            "minecraft:iron_ingot",
+            "m:flat_die",
+        ]);
         let found: Vec<Found> = find(&m, recipes.clone(), &ok, &tag).collect();
-        assert_eq!(found, [Found { recipe: "m:plate".into(), result: "m:plate".into(), count: 2, values: r#"{"energy":4}"#.into() }]);
+        assert_eq!(
+            found,
+            [Found {
+                recipe: "m:plate".into(),
+                result: "m:plate".into(),
+                count: 2,
+                values: r#"{"energy":4}"#.into()
+            }]
+        );
 
         let no_die = items(["", "", "minecraft:gold_ingot", "minecraft:iron_ingot", ""]);
-        assert_eq!(find(&m, recipes.clone(), &no_die, &tag).count(), 0, "a slot short");
+        assert_eq!(
+            find(&m, recipes.clone(), &no_die, &tag).count(),
+            0,
+            "a slot short"
+        );
         let one = items(["", "", "", "minecraft:iron_ingot", "m:flat_die"]);
-        assert_eq!(find(&m, recipes.clone(), &one, &tag).count(), 0, "an ingredient short");
-        let wrong = items(["", "", "minecraft:stick", "minecraft:iron_ingot", "m:flat_die"]);
+        assert_eq!(
+            find(&m, recipes.clone(), &one, &tag).count(),
+            0,
+            "an ingredient short"
+        );
+        let wrong = items([
+            "",
+            "",
+            "minecraft:stick",
+            "minecraft:iron_ingot",
+            "m:flat_die",
+        ]);
         assert_eq!(find(&m, recipes, &wrong, &tag).count(), 0, "not an ingot");
     }
 }

@@ -1,7 +1,19 @@
 //! JNI: client-side entry points (ABI minor 10).
+use crate::gfx_table::GFX_FN_TABLE;
+use crate::gl_context::GL;
+use crate::gl_context::GL_GET_PROGRAM_BINARY;
+use crate::gl_context::GL_GET_PROGRAM_IV;
+use crate::gl_context::GL_PROGRAM_BINARY;
+use crate::gl_context::GlCtx;
+use crate::handlers::UiLayer;
+use crate::handlers::handlers;
+use jni::JNIEnv;
+use jni::objects::JClass;
+use jni::objects::JFloatArray;
+use jni::sys::jfloat;
+use jni::sys::jint;
+use yog_abi::YogStr;
 use yog_sync::Locked;
-use super::{GFX_FN_TABLE, GL, GL_GET_PROGRAM_BINARY, GL_GET_PROGRAM_IV, GL_PROGRAM_BINARY, GlCtx, JClass, JFloatArray, JNIEnv, UiLayer, YogStr, handlers, jfloat, jint};
-
 
 // ── ABI minor 10 — client-side JNI entry points ───────────────────────────────
 
@@ -62,7 +74,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnHudRender<'l>(
     gfx.scale_factor = scale_factor;
     gfx.player_pos = [player_x, player_y, player_z];
 
-    crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&yog_event::client::render::Hud { delta_tick }));
+    crate::gfx_frame::drawing(&gfx, || {
+        crate::bus::emitted(&yog_event::client::render::Hud { delta_tick })
+    });
 
     // Render active book UIs.
     let active_layers: Vec<UiLayer> = h.active_uis.locked().clone();
@@ -114,6 +128,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     gfx.view_proj = view_proj;
     gfx.camera_pos = [cam_x, cam_y, cam_z];
     gfx.player_pos = [player_x, player_y, player_z];
-    crate::gfx_frame::drawing(&gfx, || crate::bus::emitted(&yog_event::client::render::World { delta_tick }));
+    crate::gfx_frame::drawing(&gfx, || {
+        crate::bus::emitted(&yog_event::client::render::World { delta_tick })
+    });
 }
-

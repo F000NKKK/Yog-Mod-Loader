@@ -163,8 +163,15 @@ impl StaticMethod {
                 // The first throw of each method goes to the game log with
                 // its stack trace — a host bug, otherwise only a silent
                 // `false`/`None` to the mod.
-                if !self.reported.swap(true, std::sync::atomic::Ordering::Relaxed) {
-                    yog_logging::error!("host method {}.{} threw (later throws aren't logged):", self.class, self.name);
+                if !self
+                    .reported
+                    .swap(true, std::sync::atomic::Ordering::Relaxed)
+                {
+                    yog_logging::error!(
+                        "host method {}.{} threw (later throws aren't logged):",
+                        self.class,
+                        self.name
+                    );
                     let _ = env.exception_describe();
                 }
                 let _ = env.exception_clear();

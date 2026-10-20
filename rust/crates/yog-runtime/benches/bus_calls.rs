@@ -33,26 +33,49 @@ fn compile(jdk: &Path) -> PathBuf {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let java = root.join("../../../java-common/src/main/java/dev/yog");
     let out = Path::new(env!("CARGO_TARGET_TMPDIR")).join("bus-bench-classes");
-    let sources: Vec<PathBuf> = ["YogBus.java", "YogMessage.java", "YogAtoms.java", "YogNames.java", "data/YogFrame.java", "data/YogData.java", "bus/YogTypes.java"]
-        .map(|f| java.join(f))
-        .into_iter()
-        // The tests' stand-in logger: no SLF4J here.
-        .chain([root.join("tests/java/dev/yog/YogLog.java"), root.join("benches/java/bus/dev/yog/BusProbe.java")])
-        .collect();
+    let sources: Vec<PathBuf> = [
+        "YogBus.java",
+        "YogMessage.java",
+        "YogAtoms.java",
+        "YogNames.java",
+        "data/YogFrame.java",
+        "data/YogData.java",
+        "bus/YogTypes.java",
+    ]
+    .map(|f| java.join(f))
+    .into_iter()
+    // The tests' stand-in logger: no SLF4J here.
+    .chain([
+        root.join("tests/java/dev/yog/YogLog.java"),
+        root.join("benches/java/bus/dev/yog/BusProbe.java"),
+    ])
+    .collect();
     assert!(jvm::javac(jdk, &out, &sources), "javac failed");
     out
 }
 
 /// A Rust provider: the point moved, as the host's Java one does.
-unsafe extern "C" fn point_back(_ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus {
-    let Some(p) = read_frame::<Point>(unsafe { payload.as_slice() }) else { return status::BAD_PAYLOAD };
+unsafe extern "C" fn point_back(
+    _ud: *mut c_void,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus {
+    let Some(p) = read_frame::<Point>(unsafe { payload.as_slice() }) else {
+        return status::BAD_PAYLOAD;
+    };
     unsafe { YogReply::send(reply, &to_frame(&Point { x: p.x + 1.0, ..p })) };
     status::OK
 }
 
 fn probe(env: &mut JNIEnv, method: &str, address: &str) {
     let a = env.new_string(address).expect("a string");
-    env.call_static_method("dev/yog/BusProbe", method, "(Ljava/lang/String;)V", &[JValue::Object(&a)]).expect("the probe");
+    env.call_static_method(
+        "dev/yog/BusProbe",
+        method,
+        "(Ljava/lang/String;)V",
+        &[JValue::Object(&a)],
+    )
+    .expect("the probe");
 }
 
 fn warm(n: usize, mut f: impl FnMut()) {
@@ -70,13 +93,25 @@ fn bench(c: &mut Criterion) {
     jvm::adopt(&vm);
     let mut env = vm.attach_current_thread().expect("attached");
     jvm::register_natives(&mut env).expect("natives");
-    for (method, address) in [("providePoint", "bench:point"), ("provideInventory", "bench:inventory"), ("provideArea", "bench:area")] {
+    for (method, address) in [
+        ("providePoint", "bench:point"),
+        ("provideInventory", "bench:inventory"),
+        ("provideArea", "bench:area"),
+    ] {
         probe(&mut env, method, address);
     }
     jvm::provide_native("bench:rust_point", point_back);
-    let (point, inventory, area, rust_point) =
-        (jvm::resolve("bench:point"), jvm::resolve("bench:inventory"), jvm::resolve("bench:area"), jvm::resolve("bench:rust_point"));
-    let request = to_frame(&Point { x: 12.5, y: 64.0, z: -3.25 });
+    let (point, inventory, area, rust_point) = (
+        jvm::resolve("bench:point"),
+        jvm::resolve("bench:inventory"),
+        jvm::resolve("bench:area"),
+        jvm::resolve("bench:rust_point"),
+    );
+    let request = to_frame(&Point {
+        x: 12.5,
+        y: 64.0,
+        z: -3.25,
+    });
     let mut reply = Vec::new();
 
     let mut call_point = |to| {
@@ -88,8 +123,12 @@ fn bench(c: &mut Criterion) {
         call_point(rust_point);
     });
     let mut g = c.benchmark_group("bus");
-    g.bench_function("point/rust→rust", |b| b.iter(|| black_box(call_point(rust_point))));
-    g.bench_function("point/rust→java", |b| b.iter(|| black_box(call_point(point))));
+    g.bench_function("point/rust→rust", |b| {
+        b.iter(|| black_box(call_point(rust_point)))
+    });
+    g.bench_function("point/rust→java", |b| {
+        b.iter(|| black_box(call_point(point)))
+    });
 
     let mut reply = Vec::new();
     warm(WARM_CALLS, || {
@@ -104,7 +143,12 @@ fn bench(c: &mut Criterion) {
     g.bench_function("inventory/rust→java, one slot viewed", |b| {
         b.iter(|| {
             jvm::call(inventory, &[], &mut reply);
-            black_box(read_view::<Vec<SlotStack>>(&reply).expect("slots").get(40).map(|s| s.stack.count))
+            black_box(
+                read_view::<Vec<SlotStack>>(&reply)
+                    .expect("slots")
+                    .get(40)
+                    .map(|s| s.stack.count),
+            )
         })
     });
 
@@ -120,7 +164,12 @@ fn bench(c: &mut Criterion) {
     g.bench_function("area_32/rust→java, one block viewed", |b| {
         b.iter(|| {
             jvm::call(area, &[], &mut reply);
-            black_box(read_view::<BlockArea>(&reply).expect("an area").blocks.get(SOME_BLOCK))
+            black_box(
+                read_view::<BlockArea>(&reply)
+                    .expect("an area")
+                    .blocks
+                    .get(SOME_BLOCK),
+            )
         })
     });
 
@@ -128,12 +177,19 @@ fn bench(c: &mut Criterion) {
     let address = env.new_string("bench:rust_point").expect("a string");
     let mut java_calls = |n: u64| {
         let start = Instant::now();
-        env.call_static_method("dev/yog/BusProbe", "callPoints", "(Ljava/lang/String;J)D", &[JValue::Object(&address), JValue::Long(n as i64)])
-            .expect("calls");
+        env.call_static_method(
+            "dev/yog/BusProbe",
+            "callPoints",
+            "(Ljava/lang/String;J)D",
+            &[JValue::Object(&address), JValue::Long(n as i64)],
+        )
+        .expect("calls");
         start.elapsed()
     };
     java_calls(WARM_CALLS as u64);
-    g.bench_function("point/java→rust", |b| b.iter_custom(|n| java_calls(n).max(Duration::from_nanos(1))));
+    g.bench_function("point/java→rust", |b| {
+        b.iter_custom(|n| java_calls(n).max(Duration::from_nanos(1)))
+    });
     g.finish();
 }
 

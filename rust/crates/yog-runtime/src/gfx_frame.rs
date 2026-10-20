@@ -26,5 +26,7 @@ pub(crate) unsafe extern "C" fn api_gfx() -> *const YogGfxApi {
 pub(crate) fn scale_factor() -> f32 {
     let frame = FRAME.with(Cell::get);
     // SAFETY: a non-null frame is alive while its event's handlers run.
-    unsafe { frame.as_ref() }.map_or(1.0, |g| g.scale_factor).max(1.0)
+    unsafe { frame.as_ref() }
+        .map_or(1.0, |g| g.scale_factor)
+        .max(1.0)
 }

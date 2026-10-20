@@ -11,7 +11,11 @@ fn no_java(_: i32, _: &[u8], _: &YogReply) -> YogStatus {
 }
 
 /// Replies with its payload and `ud` (one byte) appended.
-unsafe extern "C" fn append_ud(ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus {
+unsafe extern "C" fn append_ud(
+    ud: *mut c_void,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus {
     unsafe {
         let mut out = payload.as_slice().to_vec();
         out.push(ud as usize as u8);
@@ -26,7 +30,11 @@ unsafe extern "C" fn cancel(_: *mut c_void, _: YogBytes, _: *const YogReply) -> 
 }
 
 fn native(ud: u8, f: yog_abi::YogHandlerFn) -> Handler {
-    Handler::Native { owner: None, ud: ud as usize, f }
+    Handler::Native {
+        owner: None,
+        ud: ud as usize,
+        f,
+    }
 }
 
 #[test]
@@ -44,9 +52,15 @@ fn a_call_reaches_its_one_provider() {
     let a = r.resolve("test:echo");
     assert_eq!(r.call_vec(a, b"x", no_java).0, status::NO_HANDLER);
     assert!(r.provide(a, native(7, append_ud)));
-    assert!(!r.provide(a, native(8, append_ud)), "one provider per address");
+    assert!(
+        !r.provide(a, native(8, append_ud)),
+        "one provider per address"
+    );
     assert!(r.provided(a));
-    assert_eq!(r.call_vec(a, b"x", no_java), (status::OK, b"x\x07".to_vec()));
+    assert_eq!(
+        r.call_vec(a, b"x", no_java),
+        (status::OK, b"x\x07".to_vec())
+    );
 }
 
 #[test]
@@ -108,28 +122,51 @@ fn declared_commands_are_kept_once_each() {
     use yog_event::{Message, Service, command};
     super::register_duties();
     let router = &*super::ROUTER;
-    let call = |address: &str, payload: Vec<u8>| router.call_vec(router.resolve(address), &payload, no_java);
+    let call = |address: &str, payload: Vec<u8>| {
+        router.call_vec(router.resolve(address), &payload, no_java)
+    };
     for schema in [None, Some("int".to_owned()), None] {
-        let d = command::CommandSpec { name: "hex".into(), schema };
-        assert_eq!(call(command::CommandSpec::ADDRESS, d.to_bytes()).0, status::OK);
+        let d = command::CommandSpec {
+            name: "hex".into(),
+            schema,
+        };
+        assert_eq!(
+            call(command::CommandSpec::ADDRESS, d.to_bytes()).0,
+            status::OK
+        );
     }
     let (st, reply) = call(command::Declared::ADDRESS, command::Declared {}.to_bytes());
     assert_eq!(st, status::OK);
     let all = Vec::<command::CommandSpec>::from_bytes(&reply).expect("the declared commands");
-    let schemas: Vec<Option<&str>> = all.iter().filter(|d| d.name == "hex").map(|d| d.schema.as_deref()).collect();
+    let schemas: Vec<Option<&str>> = all
+        .iter()
+        .filter(|d| d.name == "hex")
+        .map(|d| d.schema.as_deref())
+        .collect();
     assert_eq!(schemas, [None, Some("int")]);
 }
 
 /// An action's function reaches the bus once the caller is installed.
 #[test]
 fn action_functions_reach_the_bus() {
-    unsafe extern "C" fn answer(_ud: *mut std::os::raw::c_void, _payload: YogBytes, reply: *const YogReply) -> YogStatus {
+    unsafe extern "C" fn answer(
+        _ud: *mut std::os::raw::c_void,
+        _payload: YogBytes,
+        reply: *const YogReply,
+    ) -> YogStatus {
         unsafe { YogReply::send(reply, &Message::to_bytes(&true)) };
         status::OK
     }
     use yog_event::{Message, Service};
     super::install_caller();
     let router = &super::ROUTER;
-    router.provide(router.resolve(<yog_event::chat::Broadcast as Service>::ADDRESS), Handler::Native { owner: None, ud: 0, f: answer });
+    router.provide(
+        router.resolve(<yog_event::chat::Broadcast as Service>::ADDRESS),
+        Handler::Native {
+            owner: None,
+            ud: 0,
+            f: answer,
+        },
+    );
     assert!(yog_event::chat::broadcast("hello"));
 }

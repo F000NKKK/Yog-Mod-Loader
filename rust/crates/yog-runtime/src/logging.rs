@@ -1,8 +1,7 @@
 //! The game's log: where the runtime's records and mods' (the `log/record` event) go.
 use std::io::Write as _;
 
-use super::YogStr;
-
+use yog_abi::YogStr;
 
 thread_local! {
     /// Set while a record is on its way to Java: a record the call itself
@@ -14,7 +13,13 @@ thread_local! {
 /// a failing log call, to stderr.
 pub(super) fn host_log(level: yog_logging::Level, message: &str) {
     let sent = !LOGGING.with(|busy| busy.replace(true)) && {
-        let r: Option<()> = unsafe { host!("dev/yog/YogLog", "log", [I(level as i32), S(YogStr::from_str(message))]) };
+        let r: Option<()> = unsafe {
+            host!(
+                "dev/yog/YogLog",
+                "log",
+                [I(level as i32), S(YogStr::from_str(message))]
+            )
+        };
         LOGGING.with(|busy| busy.set(false));
         r.is_some()
     };

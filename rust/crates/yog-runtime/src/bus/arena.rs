@@ -85,7 +85,10 @@ fn write(base: *mut u8, at: usize, bytes: &[u8]) {
 /// Whether `payload` is the arena's last frame, ending at frame offset `top`
 /// (a call from Java passed straight on): it's read where it is.
 fn is_top_frame(base: *mut u8, top: usize, payload: &[u8]) -> bool {
-    top >= payload.len() && std::ptr::eq(payload.as_ptr(), unsafe { base.add(HEADER + top - payload.len()) })
+    top >= payload.len()
+        && std::ptr::eq(payload.as_ptr(), unsafe {
+            base.add(HEADER + top - payload.len())
+        })
 }
 
 /// Where this thread's frames end (none taken: 0).
@@ -97,7 +100,12 @@ pub(crate) fn frames_top() -> usize {
 /// Runs Java handler `handler` through the arena, its reply written to
 /// `reply`: `None` when the payload doesn't fit (the caller sends it the
 /// old way).
-pub(super) fn run_java(env: &mut JNIEnv, handler: i32, payload: &[u8], reply: &YogReply) -> Option<YogStatus> {
+pub(super) fn run_java(
+    env: &mut JNIEnv,
+    handler: i32,
+    payload: &[u8],
+    reply: &YogReply,
+) -> Option<YogStatus> {
     let base = base();
     let top0 = top(base);
     let at = if is_top_frame(base, top0, payload) {
@@ -110,7 +118,14 @@ pub(super) fn run_java(env: &mut JNIEnv, handler: i32, payload: &[u8], reply: &Y
         top0
     };
     set_top(base, at + payload.len());
-    let answer: Option<i64> = unsafe { jcall!(env, "dev/yog/YogBus", "handleAt", [I(handler), I(at as i32), I(payload.len() as i32)]) };
+    let answer: Option<i64> = unsafe {
+        jcall!(
+            env,
+            "dev/yog/YogBus",
+            "handleAt",
+            [I(handler), I(at as i32), I(payload.len() as i32)]
+        )
+    };
     set_top(base, top0);
     let Some(answer) = answer else {
         return Some(status::FAILED);
@@ -145,7 +160,9 @@ struct ArenaSink {
 
 /// [`YogReply::write`] into an [`ArenaSink`].
 unsafe extern "C" fn write_sink(sink: *mut c_void, data: *const u8, len: usize) {
-    let (Some(s), false) = (unsafe { sink.cast::<ArenaSink>().as_mut() }, data.is_null()) else { return };
+    let (Some(s), false) = (unsafe { sink.cast::<ArenaSink>().as_mut() }, data.is_null()) else {
+        return;
+    };
     let bytes = unsafe { std::slice::from_raw_parts(data, len) };
     if !s.spilled && fits(s.at + s.len, bytes.len()) {
         write(base(), s.at + s.len, bytes);
@@ -174,32 +191,69 @@ fn from_java(at: jint, len: jint, send: impl FnOnce(&[u8], &YogReply) -> YogStat
     let Some(payload) = slice(base, at, len) else {
         return pack(status::BAD_PAYLOAD, 0);
     };
-    let mut sink = ArenaSink { at: at + len, len: 0, spilled: false };
-    let reply = YogReply { sink: (&mut sink as *mut ArenaSink).cast(), write: write_sink };
+    let mut sink = ArenaSink {
+        at: at + len,
+        len: 0,
+        spilled: false,
+    };
+    let reply = YogReply {
+        sink: (&mut sink as *mut ArenaSink).cast(),
+        write: write_sink,
+    };
     let st = send(payload, &reply);
-    pack(st, if sink.spilled { SPILLED } else { sink.len as u32 })
+    pack(
+        st,
+        if sink.spilled {
+            SPILLED
+        } else {
+            sink.len as u32
+        },
+    )
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_YogBus_nativeArena<'l>(mut env: JNIEnv<'l>, _class: JClass<'l>) -> jobject {
+pub extern "system" fn Java_dev_yog_YogBus_nativeArena<'l>(
+    mut env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jobject {
     let buffer = unsafe { env.new_direct_byte_buffer(base(), BYTES) };
     buffer.map_or(std::ptr::null_mut(), |b| JObject::from(b).into_raw())
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_YogBus_nativeCallAt<'l>(_env: JNIEnv<'l>, _class: JClass<'l>, to: jint, at: jint, len: jint) -> jlong {
-    from_java(at, len, |payload, reply| ROUTER.call(to as u32, payload, reply, super::java::run))
+pub extern "system" fn Java_dev_yog_YogBus_nativeCallAt<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    to: jint,
+    at: jint,
+    len: jint,
+) -> jlong {
+    from_java(at, len, |payload, reply| {
+        ROUTER.call(to as u32, payload, reply, super::java::run)
+    })
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_YogBus_nativeEmitAt<'l>(_env: JNIEnv<'l>, _class: JClass<'l>, event: jint, at: jint, len: jint) -> jlong {
-    from_java(at, len, |payload, reply| ROUTER.emit(event as u32, payload, reply, super::java::run))
+pub extern "system" fn Java_dev_yog_YogBus_nativeEmitAt<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    event: jint,
+    at: jint,
+    len: jint,
+) -> jlong {
+    from_java(at, len, |payload, reply| {
+        ROUTER.emit(event as u32, payload, reply, super::java::run)
+    })
 }
 
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_YogBus_nativeTakeReply<'l>(env: JNIEnv<'l>, _class: JClass<'l>) -> jbyteArray {
+pub extern "system" fn Java_dev_yog_YogBus_nativeTakeReply<'l>(
+    env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jbyteArray {
     let reply = SPILL.with(|s| std::mem::take(&mut *s.borrow_mut()));
-    env.byte_array_from_slice(&reply).map_or(std::ptr::null_mut(), |a| a.into_raw())
+    env.byte_array_from_slice(&reply)
+        .map_or(std::ptr::null_mut(), |a| a.into_raw())
 }
 
 #[cfg(test)]
@@ -208,7 +262,10 @@ mod tests {
 
     #[test]
     fn answers_pack_their_status_and_length() {
-        assert_eq!(unpack(pack(status::CANCELLED, 1234)), (status::CANCELLED, 1234));
+        assert_eq!(
+            unpack(pack(status::CANCELLED, 1234)),
+            (status::CANCELLED, 1234)
+        );
         assert_eq!(unpack(pack(status::OK, SPILLED)), (status::OK, SPILLED));
         assert!(fits(0, BYTES - HEADER) && !fits(1, BYTES - HEADER) && !fits(usize::MAX, 2));
     }
@@ -216,11 +273,21 @@ mod tests {
     /// `YogBus.java` reads the arena where this writes it.
     #[test]
     fn java_knows_the_layout() {
-        let java = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../java-common/src/main/java/dev/yog/YogBus.java");
-        let Ok(src) = std::fs::read_to_string(&java) else { return };
+        let java = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../java-common/src/main/java/dev/yog/YogBus.java");
+        let Ok(src) = std::fs::read_to_string(&java) else {
+            return;
+        };
         let value = |name: &str| -> Option<usize> {
-            let line = src.lines().find(|l| l.contains(&format!("public static final int {name} =")))?;
-            line.split('=').nth(1)?.trim().trim_end_matches(';').parse().ok()
+            let line = src
+                .lines()
+                .find(|l| l.contains(&format!("public static final int {name} =")))?;
+            line.split('=')
+                .nth(1)?
+                .trim()
+                .trim_end_matches(';')
+                .parse()
+                .ok()
         };
         assert_eq!(value("ARENA_HEADER"), Some(HEADER));
         assert_eq!(value("ARENA_TOP"), Some(TOP));
@@ -229,8 +296,15 @@ mod tests {
     #[test]
     fn a_big_reply_is_kept_aside() {
         let at = 8;
-        let mut sink = ArenaSink { at, len: 0, spilled: false };
-        let reply = YogReply { sink: (&mut sink as *mut ArenaSink).cast(), write: write_sink };
+        let mut sink = ArenaSink {
+            at,
+            len: 0,
+            spilled: false,
+        };
+        let reply = YogReply {
+            sink: (&mut sink as *mut ArenaSink).cast(),
+            write: write_sink,
+        };
         unsafe { YogReply::send(&reply, &[7, 7]) };
         unsafe { YogReply::send(&reply, &[8]) };
         assert_eq!((sink.len, sink.spilled), (3, false));
@@ -238,6 +312,9 @@ mod tests {
         unsafe { YogReply::send(&reply, &vec![1; BYTES]) };
         assert!(sink.spilled);
         // What was in the arena moved aside with the rest.
-        assert_eq!(SPILL.with(|s| (s.borrow().len(), s.borrow()[..3].to_vec())), (BYTES + 3, vec![7, 7, 8]));
+        assert_eq!(
+            SPILL.with(|s| (s.borrow().len(), s.borrow()[..3].to_vec())),
+            (BYTES + 3, vec![7, 7, 8])
+        );
     }
 }

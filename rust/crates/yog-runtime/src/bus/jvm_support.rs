@@ -13,27 +13,79 @@ use yog_abi::{YogReply, YogStatus};
 use super::{Handler, ROUTER, arena, java};
 
 fn native(name: &str, sig: &str, f: *mut c_void) -> NativeMethod {
-    NativeMethod { name: name.into(), sig: sig.into(), fn_ptr: f }
+    NativeMethod {
+        name: name.into(),
+        sig: sig.into(),
+        fn_ptr: f,
+    }
 }
 
 /// Binds `YogBus`'s and `YogAtoms`' natives to the runtime's functions.
 pub fn register_natives(env: &mut JNIEnv) -> jni::errors::Result<()> {
     let bus = [
-        native("nativeResolve", "(Ljava/lang/String;)I", java::Java_dev_yog_YogBus_nativeResolve as *mut c_void),
-        native("nativeCall", "(I[B)[B", java::Java_dev_yog_YogBus_nativeCall as *mut c_void),
-        native("nativeEmit", "(I[B)[B", java::Java_dev_yog_YogBus_nativeEmit as *mut c_void),
-        native("nativeProvide", "(II)Z", java::Java_dev_yog_YogBus_nativeProvide as *mut c_void),
-        native("nativeOn", "(III)V", java::Java_dev_yog_YogBus_nativeOn as *mut c_void),
-        native("nativeHeard", "(I)Z", java::Java_dev_yog_YogBus_nativeHeard as *mut c_void),
-        native("nativeArena", "()Ljava/nio/ByteBuffer;", arena::Java_dev_yog_YogBus_nativeArena as *mut c_void),
-        native("nativeCallAt", "(III)J", arena::Java_dev_yog_YogBus_nativeCallAt as *mut c_void),
-        native("nativeEmitAt", "(III)J", arena::Java_dev_yog_YogBus_nativeEmitAt as *mut c_void),
-        native("nativeTakeReply", "()[B", arena::Java_dev_yog_YogBus_nativeTakeReply as *mut c_void),
+        native(
+            "nativeResolve",
+            "(Ljava/lang/String;)I",
+            java::Java_dev_yog_YogBus_nativeResolve as *mut c_void,
+        ),
+        native(
+            "nativeCall",
+            "(I[B)[B",
+            java::Java_dev_yog_YogBus_nativeCall as *mut c_void,
+        ),
+        native(
+            "nativeEmit",
+            "(I[B)[B",
+            java::Java_dev_yog_YogBus_nativeEmit as *mut c_void,
+        ),
+        native(
+            "nativeProvide",
+            "(II)Z",
+            java::Java_dev_yog_YogBus_nativeProvide as *mut c_void,
+        ),
+        native(
+            "nativeOn",
+            "(III)V",
+            java::Java_dev_yog_YogBus_nativeOn as *mut c_void,
+        ),
+        native(
+            "nativeHeard",
+            "(I)Z",
+            java::Java_dev_yog_YogBus_nativeHeard as *mut c_void,
+        ),
+        native(
+            "nativeArena",
+            "()Ljava/nio/ByteBuffer;",
+            arena::Java_dev_yog_YogBus_nativeArena as *mut c_void,
+        ),
+        native(
+            "nativeCallAt",
+            "(III)J",
+            arena::Java_dev_yog_YogBus_nativeCallAt as *mut c_void,
+        ),
+        native(
+            "nativeEmitAt",
+            "(III)J",
+            arena::Java_dev_yog_YogBus_nativeEmitAt as *mut c_void,
+        ),
+        native(
+            "nativeTakeReply",
+            "()[B",
+            arena::Java_dev_yog_YogBus_nativeTakeReply as *mut c_void,
+        ),
     ];
     env.register_native_methods("dev/yog/YogBus", &bus)?;
     let atoms = [
-        native("nativeAtom", "(Ljava/lang/String;)I", java::Java_dev_yog_YogAtoms_nativeAtom as *mut c_void),
-        native("nativeAtomName", "(I)Ljava/lang/String;", java::Java_dev_yog_YogAtoms_nativeAtomName as *mut c_void),
+        native(
+            "nativeAtom",
+            "(Ljava/lang/String;)I",
+            java::Java_dev_yog_YogAtoms_nativeAtom as *mut c_void,
+        ),
+        native(
+            "nativeAtomName",
+            "(I)Ljava/lang/String;",
+            java::Java_dev_yog_YogAtoms_nativeAtomName as *mut c_void,
+        ),
     ];
     env.register_native_methods("dev/yog/YogAtoms", &atoms)
 }
@@ -52,5 +104,12 @@ pub fn call(to: u32, payload: &[u8], reply: &mut Vec<u8>) -> YogStatus {
 
 /// Makes the native `f` answer `address`.
 pub fn provide_native(address: &str, f: YogHandlerFn) {
-    ROUTER.provide(ROUTER.resolve(address), Handler::Native { owner: None, ud: 0, f });
+    ROUTER.provide(
+        ROUTER.resolve(address),
+        Handler::Native {
+            owner: None,
+            ud: 0,
+            f,
+        },
+    );
 }

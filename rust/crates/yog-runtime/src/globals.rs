@@ -1,7 +1,16 @@
 //! The runtime's static globals: the JVM, the mods, the tables.
 
+use crate::handlers::RuntimeHandlers;
+use crate::handlers::RuntimeModuleRegistry;
+use crate::intermod::build_api_table;
+use jni::JavaVM;
 use std::sync::LazyLock;
-use super::{HotReloader, JavaVM, LoadedModule, Mutex, OnceLock, RuntimeHandlers, RuntimeModuleRegistry, RwLock, YogApi, build_api_table};
+use std::sync::Mutex;
+use std::sync::OnceLock;
+use std::sync::RwLock;
+use yog_abi::YogApi;
+use yog_hot_reload::HotReloader;
+use yog_hot_reload::LoadedModule;
 
 // ── Static globals ────────────────────────────────────────────────────────────
 

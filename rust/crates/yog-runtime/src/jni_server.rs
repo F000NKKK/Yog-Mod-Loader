@@ -1,7 +1,14 @@
 //! JNI: chunk generation, content, packet channels.
+use crate::content_blob;
+use crate::handlers::handlers;
+use crate::jni_util::guard;
+use jni::JNIEnv;
+use jni::objects::JClass;
+use jni::objects::JString;
+use jni::sys::jint;
+use jni::sys::jstring;
+use yog_abi::YogStr;
 use yog_sync::Locked;
-use super::{JClass, JNIEnv, JString, YogStr, content_blob, guard, handlers, jint, jstring};
-
 
 /// Places one block in the chunk being generated, through
 /// `YogCallbackChunkGenerator.setBlockInGeneratingChunk` (same thread: the
@@ -32,7 +39,14 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeGenerateChunk<'l>(
     height: jint,
 ) {
     let generator = jstr!(env, generator_type_id);
-    let mut chunk = yog_dimensions::GeneratedChunk { generator, chunk_x, chunk_z, min_y, height, ..Default::default() };
+    let mut chunk = yog_dimensions::GeneratedChunk {
+        generator,
+        chunk_x,
+        chunk_z,
+        min_y,
+        height,
+        ..Default::default()
+    };
     if let Some(terrain) = handlers().terrains.get(&chunk.generator).cloned() {
         guard("terrain", || {
             terrain.generate(chunk_x, chunk_z, min_y, height, |x, y, z, block| {
@@ -56,7 +70,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeContent<'l>(
     let h = handlers();
     let bytes = {
         let mut cached = h.content_blob.locked();
-        cached.get_or_insert_with(|| std::sync::Arc::new(content_blob::blob(&h))).clone()
+        cached
+            .get_or_insert_with(|| std::sync::Arc::new(content_blob::blob(&h)))
+            .clone()
     };
     env.byte_array_from_slice(&bytes)
         .map(|a| a.into_raw())
@@ -68,7 +84,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativePacketChannels<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) -> jstring {
-    let s = crate::bus::ROUTER.listened_keys(<yog_event::server::net::Packet as yog_event::Event>::ADDRESS).join("\n");
+    let s = crate::bus::ROUTER
+        .listened_keys(<yog_event::server::net::Packet as yog_event::Event>::ADDRESS)
+        .join("\n");
     env.new_string(s)
         .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())
@@ -79,7 +97,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeClientPacketChannels<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) -> jstring {
-    let s = crate::bus::ROUTER.listened_keys(<yog_event::client::net::Packet as yog_event::Event>::ADDRESS).join("\n");
+    let s = crate::bus::ROUTER
+        .listened_keys(<yog_event::client::net::Packet as yog_event::Event>::ADDRESS)
+        .join("\n");
     env.new_string(s)
         .map(jni::objects::JString::into_raw)
         .unwrap_or(std::ptr::null_mut())

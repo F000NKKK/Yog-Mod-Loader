@@ -6,7 +6,7 @@
 //!   (`./gradlew runClient`) is very often *not* an ancestor of the real
 //!   JVM once Gradle's daemon is involved. This tells the client directly.
 //! - "hot-reload this mod" — the handler runs inside this process, so it
-//!   just calls [`crate::trigger_hot_reload`].
+//!   just calls [`crate::hot_reload::trigger_hot_reload`].
 //!
 //! Opt-in: it starts only when `YOG_CONTROL_SOCKET` (a loopback address,
 //! `127.0.0.1:<port>`) and `YOG_CONTROL_TOKEN` are set. TCP on loopback works
@@ -26,7 +26,10 @@ use yog_sync::Locked;
 /// the address (loopback only) on a background thread. Call once, after
 /// `load_mods` (so `ready`'s mod list is complete) — see `nativeInit`.
 pub fn start_if_requested() {
-    let (Ok(addr), Ok(token)) = (std::env::var("YOG_CONTROL_SOCKET"), std::env::var("YOG_CONTROL_TOKEN")) else {
+    let (Ok(addr), Ok(token)) = (
+        std::env::var("YOG_CONTROL_SOCKET"),
+        std::env::var("YOG_CONTROL_TOKEN"),
+    ) else {
         return;
     };
     let addr: SocketAddr = match addr.parse() {
@@ -90,7 +93,7 @@ fn write_line(stream: &mut TcpStream, json: &serde_json::Value) {
 }
 
 fn mod_list_json() -> Vec<serde_json::Value> {
-    crate::MOD_INFOS
+    crate::globals::MOD_INFOS
         .locked()
         .iter()
         .map(|m| serde_json::json!({ "id": m[0], "name": m[1], "version": m[2] }))
@@ -102,21 +105,36 @@ fn str_of<'a>(cmd: &'a serde_json::Value, key: &str) -> &'a str {
 }
 
 fn handle_client(mut stream: TcpStream, token: &str) {
-    let Ok(read_half) = stream.try_clone() else { return };
+    let Ok(read_half) = stream.try_clone() else {
+        return;
+    };
     let mut lines = BufReader::new(read_half).lines().map_while(Result::ok);
+    if !greet(&mut stream, lines.next(), token) {
+        return;
+    }
+    for line in lines {
+        if let Ok(cmd) = serde_json::from_str::<serde_json::Value>(&line) {
+            answer(&mut stream, &cmd);
+        }
+    }
+}
 
-    // The client proves it's the launcher first.
-    let Some(hello) = lines.next().and_then(|l| serde_json::from_str::<serde_json::Value>(&l).ok()) else { return };
+/// The client proves it's the launcher first (`hello` with the token); it's
+/// answered `ready`: this process, its mods, whether it may trace it.
+fn greet(stream: &mut TcpStream, first: Option<String>, token: &str) -> bool {
+    let Some(hello) = first.and_then(|l| serde_json::from_str::<serde_json::Value>(&l).ok()) else {
+        return false;
+    };
     if str_of(&hello, "cmd") != "hello" || str_of(&hello, "token") != token {
         yog_logging::warn!("control socket: a client without the token — closed");
-        return;
+        return false;
     }
     #[cfg(target_os = "linux")]
     let ptracer = allow_to_trace(hello.get("pid").and_then(|v| v.as_i64()).unwrap_or(0));
     #[cfg(not(target_os = "linux"))]
     let ptracer = false;
     write_line(
-        &mut stream,
+        stream,
         &serde_json::json!({
             "event": "ready",
             "pid": std::process::id(),
@@ -124,42 +142,42 @@ fn handle_client(mut stream: TcpStream, token: &str) {
             "ptracer": ptracer,
         }),
     );
+    true
+}
 
-    for line in lines {
-        let Ok(cmd) = serde_json::from_str::<serde_json::Value>(&line) else {
-            continue;
-        };
-        match str_of(&cmd, "cmd") {
-            "hot_reload" => {
-                let mod_id = str_of(&cmd, "mod_id");
-                let ok = crate::trigger_hot_reload(mod_id, Path::new(str_of(&cmd, "yog_path")));
-                // `"resources": true`: the game rereads its data and resources too.
-                if ok && cmd.get("resources").and_then(|v| v.as_bool()).unwrap_or(false) {
-                    crate::registrations::reload_game_resources();
-                }
-                write_line(&mut stream, &serde_json::json!({ "event": "hot-reload-done", "mod_id": mod_id, "ok": ok }));
-            }
-            // What a new `.yog` registers differently from the game as it
-            // started — changes only a restart applies.
-            "hot_reload_check" => {
-                let mod_id = str_of(&cmd, "mod_id");
-                let (added, removed, changed) = crate::registrations::changes(mod_id, Path::new(str_of(&cmd, "yog_path")));
-                write_line(
-                    &mut stream,
-                    &serde_json::json!({
-                        "event": "hot-reload-check", "mod_id": mod_id,
-                        "added": added, "removed": removed, "changed": changed,
-                    }),
-                );
-            }
-            "reload_resources" => {
+/// One command, answered by its event.
+fn answer(stream: &mut TcpStream, cmd: &serde_json::Value) {
+    let mod_id = str_of(cmd, "mod_id");
+    let yog_path = Path::new(str_of(cmd, "yog_path"));
+    let reply = match str_of(cmd, "cmd") {
+        "hot_reload" => {
+            let ok = crate::hot_reload::trigger_hot_reload(mod_id, yog_path);
+            // `"resources": true`: the game rereads its data and resources too.
+            if ok
+                && cmd
+                    .get("resources")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+            {
                 crate::registrations::reload_game_resources();
-                write_line(&mut stream, &serde_json::json!({ "event": "resources-reloaded" }));
             }
-            "list_mods" => {
-                write_line(&mut stream, &serde_json::json!({ "event": "mods", "mods": mod_list_json() }));
-            }
-            _ => {}
+            serde_json::json!({ "event": "hot-reload-done", "mod_id": mod_id, "ok": ok })
         }
-    }
+        // What a new `.yog` registers differently from the game as it
+        // started — changes only a restart applies.
+        "hot_reload_check" => {
+            let (added, removed, changed) = crate::registrations::changes(mod_id, yog_path);
+            serde_json::json!({
+                "event": "hot-reload-check", "mod_id": mod_id,
+                "added": added, "removed": removed, "changed": changed,
+            })
+        }
+        "reload_resources" => {
+            crate::registrations::reload_game_resources();
+            serde_json::json!({ "event": "resources-reloaded" })
+        }
+        "list_mods" => serde_json::json!({ "event": "mods", "mods": mod_list_json() }),
+        _ => return,
+    };
+    write_line(stream, &reply);
 }

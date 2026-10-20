@@ -1,7 +1,16 @@
 //! Loading mods.
+use crate::globals::CURRENT_REGISTRATION;
+use crate::globals::MOD_INFOS;
+use crate::handlers::hot_reloader;
+use crate::machine_api::YOG_MOD_IDS;
+use libloading::Symbol;
+use std::collections::HashMap;
+use std::path::Path;
+use std::path::PathBuf;
+use yog_abi::ABI_VERSION;
+use yog_abi::YogApi;
+use yog_hot_reload::LoadedModule;
 use yog_sync::Locked;
-use super::{ABI_VERSION, CURRENT_REGISTRATION, HashMap, LoadedModule, MOD_INFOS, Path, PathBuf, Symbol, YOG_MOD_IDS, YogApi, hot_reloader};
-
 
 // ── Mod loading ───────────────────────────────────────────────────────────────
 
@@ -47,7 +56,10 @@ pub(super) fn load_mods(dir: &Path, api: &YogApi) {
     let ids: Vec<String> = metas.iter().map(|m| m.id.clone()).collect();
     // Known before any registers: a mod's optional integrations with a Yog
     // mod loaded after it still see it.
-    YOG_MOD_IDS.write().unwrap_or_else(|e| e.into_inner()).extend(ids.iter().cloned());
+    YOG_MOD_IDS
+        .write()
+        .unwrap_or_else(|e| e.into_inner())
+        .extend(ids.iter().cloned());
     let deps_list: Vec<Vec<String>> = metas.iter().map(|m| m.deps.clone()).collect();
     let sorted = match topo_sort_mods(&ids, &deps_list) {
         Some(v) => v,
@@ -74,10 +86,8 @@ pub(super) fn load_mods(dir: &Path, api: &YogApi) {
         if let Some(module) = load_mod_lib(&lib_path, api, &meta.id) {
             loaded.push(module);
             #[cfg(feature = "dev")]
-            registrations::record(&meta.id, &meta.yog_path);
-            MOD_INFOS
-                .locked()
-                .push(read_mod_info(&meta.yog_path));
+            crate::registrations::record(&meta.id, &meta.yog_path);
+            MOD_INFOS.locked().push(read_mod_info(&meta.yog_path));
         }
     }
     yog_logging::info!("loaded {} mod(s) from {}", loaded.len(), dir.display());
@@ -166,13 +176,18 @@ pub(super) fn load_mod_lib(path: &Path, api: &YogApi, mod_id: &str) -> Option<Lo
 /// Calls a loaded module's `yog_mod_register`, tagging everything it
 /// registers with `module` via `CURRENT_REGISTRATION` for the duration of
 /// the call — used for both a mod's initial load and a later hot-reload.
-pub(super) fn invoke_mod_register(module: &LoadedModule, api: &YogApi, mod_id: &str) -> Result<(), String> {
+pub(super) fn invoke_mod_register(
+    module: &LoadedModule,
+    api: &YogApi,
+    mod_id: &str,
+) -> Result<(), String> {
     module
         .with_library(|lib| unsafe {
             let register: Symbol<RegisterFn> = lib
                 .get(b"yog_mod_register")
                 .map_err(|_| "missing yog_mod_register".to_string())?;
-            let mod_id_c = std::ffi::CString::new(mod_id).map_err(|_| format!("mod id {mod_id:?} holds a NUL"))?;
+            let mod_id_c = std::ffi::CString::new(mod_id)
+                .map_err(|_| format!("mod id {mod_id:?} holds a NUL"))?;
             *CURRENT_REGISTRATION.locked() = Some(module.clone());
             register(api as *const YogApi, mod_id_c.as_ptr());
             *CURRENT_REGISTRATION.locked() = None;

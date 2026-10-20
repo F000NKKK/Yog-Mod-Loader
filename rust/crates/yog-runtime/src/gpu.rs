@@ -1,7 +1,13 @@
 //! The low-level GPU pipeline (ABI 14): buffers, vertex arrays, shaders, textures, draws, render state.
+use crate::gl_context::GL;
+use crate::gl_context::GL_GET_PROGRAM_BINARY;
+use crate::gl_context::GL_GET_PROGRAM_IV;
+use crate::gl_context::GL_PROGRAM_BINARY;
 use glow::HasContext;
-use super::{GL, GL_GET_PROGRAM_BINARY, GL_GET_PROGRAM_IV, GL_PROGRAM_BINARY, NonZeroU32, PathBuf, YogStr, c_void};
-
+use std::num::NonZeroU32;
+use std::os::raw::c_void;
+use std::path::PathBuf;
+use yog_abi::YogStr;
 
 /// A user's cache, in their home (XDG's default).
 const USER_CACHE: &str = ".cache";
@@ -33,7 +39,11 @@ pub(super) fn gl_attr_type(dtype: u8) -> u32 {
     }
 }
 
-pub(super) unsafe fn compile_shader(gl: &glow::Context, stage: u32, src: &str) -> Option<glow::NativeShader> {
+pub(super) unsafe fn compile_shader(
+    gl: &glow::Context,
+    stage: u32,
+    src: &str,
+) -> Option<glow::NativeShader> {
     unsafe {
         let sh = gl.create_shader(stage).ok()?;
         gl.shader_source(sh, src);
@@ -66,7 +76,12 @@ pub(super) unsafe extern "C" fn gfx_buf_delete(handle: u32) {
     }
 }
 
-pub(super) unsafe extern "C" fn gfx_buf_data(handle: u32, bytes: *const u8, len: u32, dynamic: bool) {
+pub(super) unsafe extern "C" fn gfx_buf_data(
+    handle: u32,
+    bytes: *const u8,
+    len: u32,
+    dynamic: bool,
+) {
     unsafe {
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new(handle) else {
@@ -85,7 +100,12 @@ pub(super) unsafe extern "C" fn gfx_buf_data(handle: u32, bytes: *const u8, len:
     }
 }
 
-pub(super) unsafe extern "C" fn gfx_buf_subdata(handle: u32, offset: u32, bytes: *const u8, len: u32) {
+pub(super) unsafe extern "C" fn gfx_buf_subdata(
+    handle: u32,
+    offset: u32,
+    bytes: *const u8,
+    len: u32,
+) {
     unsafe {
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new(handle) else {
@@ -200,7 +220,10 @@ pub(super) fn shader_cache_path(vert: &str, frag: &str) -> Option<PathBuf> {
 ///
 /// Uses `glProgramBinary` (GL 4.1 / ARB_get_program_binary) via the raw pointer
 /// captured in `nativeGlInit`.  Returns `None` if the extension is unavailable.
-pub(super) unsafe fn load_shader_binary(gl: &glow::Context, data: &[u8]) -> Option<glow::NativeProgram> {
+pub(super) unsafe fn load_shader_binary(
+    gl: &glow::Context,
+    data: &[u8],
+) -> Option<glow::NativeProgram> {
     unsafe {
         if data.len() < 4 {
             return None;
@@ -377,7 +400,13 @@ pub(super) unsafe extern "C" fn gfx_prog_uniform_2f(prog: u32, name: YogStr, x: 
         ));
     }
 }
-pub(super) unsafe extern "C" fn gfx_prog_uniform_3f(prog: u32, name: YogStr, x: f32, y: f32, z: f32) {
+pub(super) unsafe extern "C" fn gfx_prog_uniform_3f(
+    prog: u32,
+    name: YogStr,
+    x: f32,
+    y: f32,
+    z: f32,
+) {
     unsafe {
         with_prog!(prog, |gl, _p, loc(name)| gl.uniform_3_f32(
             loc.as_ref(),
@@ -387,7 +416,14 @@ pub(super) unsafe extern "C" fn gfx_prog_uniform_3f(prog: u32, name: YogStr, x: 
         ));
     }
 }
-pub(super) unsafe extern "C" fn gfx_prog_uniform_4f(prog: u32, name: YogStr, x: f32, y: f32, z: f32, w: f32) {
+pub(super) unsafe extern "C" fn gfx_prog_uniform_4f(
+    prog: u32,
+    name: YogStr,
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
+) {
     unsafe {
         with_prog!(prog, |gl, _p, loc(name)| gl.uniform_4_f32(
             loc.as_ref(),
@@ -398,7 +434,11 @@ pub(super) unsafe extern "C" fn gfx_prog_uniform_4f(prog: u32, name: YogStr, x: 
         ));
     }
 }
-pub(super) unsafe extern "C" fn gfx_prog_uniform_mat4(prog: u32, name: YogStr, col_major: *const f32) {
+pub(super) unsafe extern "C" fn gfx_prog_uniform_mat4(
+    prog: u32,
+    name: YogStr,
+    col_major: *const f32,
+) {
     unsafe {
         with_prog!(prog, |gl, _p, loc(name)| {
             let data = std::slice::from_raw_parts(col_major, 16);
@@ -409,7 +449,12 @@ pub(super) unsafe extern "C" fn gfx_prog_uniform_mat4(prog: u32, name: YogStr, c
 
 // ── Textures ──────────────────────────────────────────────────────────────────
 
-pub(super) unsafe extern "C" fn gfx_tex_create(w: u32, h: u32, rgba: *const u8, linear: bool) -> u32 {
+pub(super) unsafe extern "C" fn gfx_tex_create(
+    w: u32,
+    h: u32,
+    rgba: *const u8,
+    linear: bool,
+) -> u32 {
     unsafe {
         let Some(g) = GL.get() else { return 0 };
         let gl = &g.0;
@@ -490,7 +535,13 @@ pub(super) unsafe extern "C" fn gfx_tex_from_mc(id: YogStr) -> u32 {
 
 // ── Draw calls ────────────────────────────────────────────────────────────────
 
-pub(super) unsafe extern "C" fn gfx_draw_arrays(vao: u32, prog: u32, mode: u8, first: u32, count: u32) {
+pub(super) unsafe extern "C" fn gfx_draw_arrays(
+    vao: u32,
+    prog: u32,
+    mode: u8,
+    first: u32,
+    count: u32,
+) {
     unsafe {
         let Some(g) = GL.get() else { return };
         let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else {

@@ -26,8 +26,11 @@ fn keep<T: Clone>(list: &Mutex<Vec<T>>, item: &T, same: impl Fn(&T, &T) -> bool)
 /// A key binding's category label: its mod's name, its namespace's when no mod has it.
 fn category(id: &str) -> String {
     let ns = id.split_once(':').map_or(id, |(ns, _)| ns);
-    let infos = crate::MOD_INFOS.locked();
-    infos.iter().find(|m| m[0] == ns).map_or_else(|| ns.to_owned(), |m| m[1].clone())
+    let infos = crate::globals::MOD_INFOS.locked();
+    infos
+        .iter()
+        .find(|m| m[0] == ns)
+        .map_or_else(|| ns.to_owned(), |m| m[1].clone())
 }
 
 /// The declaration services; once, at start.
@@ -39,6 +42,13 @@ pub(crate) fn register() {
     provide::<key_binding::KeyBindingSpec>(|d| keep(&KEY_BINDINGS, d, |a, b| a.id == b.id));
     provide::<key_binding::Declared>(|_| {
         let all = KEY_BINDINGS.locked().clone();
-        all.into_iter().map(|b| key_binding::CategorizedBinding { category: category(&b.id), id: b.id, name: b.name, default_key: b.default_key }).collect()
+        all.into_iter()
+            .map(|b| key_binding::CategorizedBinding {
+                category: category(&b.id),
+                id: b.id,
+                name: b.name,
+                default_key: b.default_key,
+            })
+            .collect()
     });
 }

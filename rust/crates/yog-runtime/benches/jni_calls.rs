@@ -9,8 +9,8 @@
 use std::path::{Path, PathBuf};
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use jni::objects::JValue;
 use jni::JNIEnv;
+use jni::objects::JValue;
 use yog_abi::YogStr;
 
 #[path = "../src/jcall.rs"]
@@ -26,7 +26,10 @@ use test_jvm::jdk;
 fn compile_stubs(jdk: &Path) -> PathBuf {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("benches/java");
     let out = Path::new(env!("CARGO_TARGET_TMPDIR")).join("jni-bench-classes");
-    let sources: Vec<PathBuf> = ["NativeBridge.java", "NativeDraw.java"].iter().map(|f| src.join("dev/yog").join(f)).collect();
+    let sources: Vec<PathBuf> = ["NativeBridge.java", "NativeDraw.java"]
+        .iter()
+        .map(|f| src.join("dev/yog").join(f))
+        .collect();
     assert!(test_jvm::javac(jdk, &out, &sources), "javac failed");
     out
 }
