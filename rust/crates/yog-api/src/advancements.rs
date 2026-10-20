@@ -3,15 +3,15 @@
 //! is awarded here. What a player has is asked here too, and on the client
 //! by [`crate::client::advancement_done`].
 
-use yog_abi::YogStr;
+use yog_event::advancement;
 
 /// Awards advancement `id` to the player `uuid`; `false` without such a
 /// player or advancement.
 pub fn grant(uuid: &str, id: &str) -> bool {
-    crate::registry::server_table().is_some_and(|s| unsafe { (s.advancement_grant)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(id)) })
+    crate::call(&advancement::Grant { uuid: uuid.to_owned(), id: id.to_owned() }).unwrap_or(false)
 }
 
 /// Whether the player `uuid` has advancement `id`.
 pub fn done(uuid: &str, id: &str) -> bool {
-    crate::registry::server_table().is_some_and(|s| unsafe { (s.advancement_done)(s.ctx, YogStr::from_str(uuid), YogStr::from_str(id)) })
+    crate::call(&advancement::Done { uuid: uuid.to_owned(), id: id.to_owned() }).unwrap_or(false)
 }

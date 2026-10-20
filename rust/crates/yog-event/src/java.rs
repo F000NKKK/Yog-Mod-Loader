@@ -134,11 +134,16 @@ fn file(package: &str, class: &str, doc: &str, mut o: Out, entries: &[Entry]) ->
     o.text.push_str(&members);
     // The class path open now (`Player`, `Session`), closed and opened as the paths go.
     let mut open: Vec<String> = Vec::new();
+    let mut opened: Vec<String> = Vec::new();
     for e in entries {
         let path: Vec<&str> = e.path.split('/').collect();
         let common = open.iter().zip(&path).take_while(|(a, b)| a == *b).count();
         close(&mut o.text, &mut open, common);
-        for seg in &path[common..] {
+        for (depth, seg) in path.iter().enumerate().skip(common) {
+            // A class opened again would be a second class of one name.
+            let whole = path[..=depth].join("/");
+            assert!(!opened.contains(&whole), "the entries of `{whole}` aren't together");
+            opened.push(whole);
             let pad = INDENT.repeat(open.len() + 1);
             let class = class_name(seg);
             let _ = writeln!(o.text, "\n{pad}/** `{seg}`. */\n{pad}public static final class {class} {{\n{pad}    private {class}() {{}}");

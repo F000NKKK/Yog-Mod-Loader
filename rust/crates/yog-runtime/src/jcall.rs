@@ -27,7 +27,6 @@ const MAX_ARGS: usize = 16;
 pub(crate) enum JArg<'a> {
     /// `String` (copied into a fresh Java string for the call).
     S(YogStr),
-    D(f64),
     F(f32),
     I(i32),
     Z(bool),
@@ -39,7 +38,6 @@ impl JArg<'_> {
     fn descriptor(&self) -> &'static str {
         match self {
             JArg::S(_) => "Ljava/lang/String;",
-            JArg::D(_) => "D",
             JArg::F(_) => "F",
             JArg::I(_) => "I",
             JArg::Z(_) => "Z",
@@ -205,7 +203,6 @@ impl StaticMethod {
                             break;
                         }
                     },
-                    JArg::D(d) => jvalue { d },
                     JArg::F(f) => jvalue { f },
                     JArg::I(i) => jvalue { i },
                     JArg::Z(z) => jvalue { z: z as u8 },

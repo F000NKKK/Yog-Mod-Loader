@@ -49,7 +49,7 @@ impl YogStr {
 
 /// Heap-allocated UTF-8 string owned by the RUNTIME.
 /// `ptr == null` encodes `None` / "not found".
-/// When `ptr` is non-null the caller MUST free it via `YogServer::free_str`.
+/// When `ptr` is non-null the caller MUST free it via `YogApi::free_str`.
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct YogOwnedStr {

@@ -8,6 +8,7 @@ use std::os::raw::c_void;
 use yog_abi::{YogOwnedStr, YogStr};
 
 use super::owned;
+use crate::jcall::JArg;
 
 pub(crate) unsafe extern "C" fn api_ui_open_flags(_ctx: *mut c_void, ui_id: YogStr, flags: u32) {
     unsafe {
@@ -76,4 +77,20 @@ pub(crate) unsafe extern "C" fn api_client_set_block_tint(
             [S(dim), I(pos.x), I(pos.y), I(pos.z), I(color.clamp(-1, 0xFF_FFFF) as i32)]
         );
     }
+}
+
+pub(crate) unsafe extern "C" fn api_client_attribute_value(_ctx: *mut c_void, attr: YogStr) -> f64 {
+    unsafe { host!("dev/yog/YogClientApi", "attributeValue", [S(attr)]).unwrap_or(f64::NAN) }
+}
+
+/// Whether this client's player has advancement `id` — also what books ask
+/// of their locked entries (see `nativeInit`).
+/// The items of item tag `id`, as this client has them.
+pub(crate) fn client_tag_items(id: &str) -> Vec<String> {
+    let items: Option<String> = unsafe { host!("dev/yog/YogClientApi", "tagItems", [JArg::S(YogStr::from_str(id))]) };
+    items.map(|s| s.split(yog_ids::sep::FIELD).filter(|i| !i.is_empty()).map(str::to_string).collect()).unwrap_or_default()
+}
+
+pub(crate) fn client_advancement_done(id: &str) -> bool {
+    unsafe { host!("dev/yog/YogClientApi", "advancementDone", [JArg::S(YogStr::from_str(id))]).unwrap_or(false) }
 }

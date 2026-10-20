@@ -178,7 +178,7 @@ components laid out in order (a nested record or a list spreads into its
 parts: a `BlockPos` is `x, y, z`), each converted to the type of the host
 method's parameter (found by `MethodHandle` — `float` or `double` is the
 method's own business), the method called, its result encoded as the
-reply (`NaN`, `Long.MIN_VALUE` and `null` read as "none" for an `Option`).
+reply (`NaN`, `Long.MIN_VALUE`, `Integer.MIN_VALUE` and `null` read as "none" for an `Option`).
 No per-action code in the runtime or in Java; the runtime's `YogServer`
 table and its ~116 functions go. A Java mod calls the same actions through
 `YogServices`. The same machinery — typed message → reflective call — is

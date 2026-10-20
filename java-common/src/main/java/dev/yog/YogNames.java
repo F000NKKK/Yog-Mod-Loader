@@ -92,70 +92,6 @@ public final class YogNames {
         public static final String PRE = "/pre";
     }
 
-    public static final class Service {
-        private Service() {}
-
-        public static final String PREFIX = "yog:";
-    }
-
-    public static final class ServiceBlock {
-        private ServiceBlock() {}
-
-        public static final String DOMAIN = "yog:block/";
-        public static final String INSERT = "yog:block/insert";
-    }
-
-    public static final class ServiceWorld {
-        private ServiceWorld() {}
-
-        public static final String DOMAIN = "yog:world/";
-        public static final String GET_BLOCK = "yog:world/get_block";
-        public static final String SET_BLOCK = "yog:world/set_block";
-        public static final String TIME = "yog:world/time";
-        public static final String SET_TIME = "yog:world/set_time";
-        public static final String IS_RAINING = "yog:world/is_raining";
-        public static final String SET_WEATHER = "yog:world/set_weather";
-    }
-
-    public static final class ServiceChat {
-        private ServiceChat() {}
-
-        public static final String DOMAIN = "yog:chat/";
-        public static final String BROADCAST = "yog:chat/broadcast";
-    }
-
-    public static final class ServiceItem {
-        private ServiceItem() {}
-
-        public static final String DOMAIN = "yog:item/";
-        public static final String TEXT = "yog:item/text";
-        public static final String PICTURE = "yog:item/picture";
-    }
-
-    public static final class ServiceMenu {
-        private ServiceMenu() {}
-
-        public static final String DOMAIN = "yog:menu/";
-        public static final String DECLARE = "yog:menu/declare";
-        public static final String DECLARED = "yog:menu/declared";
-    }
-
-    public static final class ServiceKeyBinding {
-        private ServiceKeyBinding() {}
-
-        public static final String DOMAIN = "yog:key_binding/";
-        public static final String DECLARE = "yog:key_binding/declare";
-        public static final String DECLARED = "yog:key_binding/declared";
-    }
-
-    public static final class ServiceCommand {
-        private ServiceCommand() {}
-
-        public static final String DOMAIN = "yog:command/";
-        public static final String DECLARE = "yog:command/declare";
-        public static final String DECLARED = "yog:command/declared";
-    }
-
     public static final class EventPlayerSession {
         private EventPlayerSession() {}
 
@@ -354,6 +290,235 @@ public final class YogNames {
 
         public static final String PLANE = "yog:event/client/net/";
         public static final String PACKET = "yog:event/client/net/packet";
+    }
+
+    public static final class Service {
+        private Service() {}
+
+        public static final String PREFIX = "yog:";
+    }
+
+    public static final class ServiceBlock {
+        private ServiceBlock() {}
+
+        public static final String DOMAIN = "yog:block/";
+        public static final String INSERT = "yog:block/insert";
+        public static final String NBT = "yog:block/nbt";
+        public static final String SET_NBT = "yog:block/set_nbt";
+        public static final String STATE = "yog:block/state";
+        public static final String SET_STATE = "yog:block/set_state";
+        public static final String INFO = "yog:block/info";
+        public static final String DESTROY = "yog:block/destroy";
+        public static final String BONEMEAL = "yog:block/bonemeal";
+        public static final String USE_ITEM = "yog:block/use_item";
+        public static final String POUR_FLUID = "yog:block/pour_fluid";
+        public static final String REDSTONE_POWER = "yog:block/redstone_power";
+        public static final String REDSTONE_SIGNAL = "yog:block/redstone_signal";
+        public static final String SET_REDSTONE_OUTPUT = "yog:block/set_redstone_output";
+        public static final String INVENTORY_SLOT = "yog:block/inventory_slot";
+        public static final String SET_INVENTORY_SLOT = "yog:block/set_inventory_slot";
+    }
+
+    public static final class ServiceItem {
+        private ServiceItem() {}
+
+        public static final String DOMAIN = "yog:item/";
+        public static final String TEXT = "yog:item/text";
+        public static final String PICTURE = "yog:item/picture";
+        public static final String SPAWN = "yog:item/spawn";
+        public static final String ENTITY_STACK = "yog:item/entity_stack";
+        public static final String SET_ENTITY_STACK = "yog:item/set_entity_stack";
+        public static final String BLOCK = "yog:item/block";
+    }
+
+    public static final class ServiceWorld {
+        private ServiceWorld() {}
+
+        public static final String DOMAIN = "yog:world/";
+        public static final String GET_BLOCK = "yog:world/get_block";
+        public static final String SET_BLOCK = "yog:world/set_block";
+        public static final String TIME = "yog:world/time";
+        public static final String SET_TIME = "yog:world/set_time";
+        public static final String IS_RAINING = "yog:world/is_raining";
+        public static final String SET_WEATHER = "yog:world/set_weather";
+        public static final String IS_THUNDERING = "yog:world/is_thundering";
+        public static final String SET_THUNDER = "yog:world/set_thunder";
+        public static final String FILL_REGION = "yog:world/fill_region";
+        public static final String SCAN_REGION = "yog:world/scan_region";
+        public static final String PLACE_FEATURE = "yog:world/place_feature";
+        public static final String EXPLODE = "yog:world/explode";
+        public static final String DROP_LOOT = "yog:world/drop_loot";
+        public static final String ENTITY_COUNT = "yog:world/entity_count";
+        public static final String ENTITIES_IN_BOX = "yog:world/entities_in_box";
+        public static final String RAYCAST_BLOCK = "yog:world/raycast_block";
+        public static final String RAYCAST_ENTITY = "yog:world/raycast_entity";
+    }
+
+    public static final class ServiceChat {
+        private ServiceChat() {}
+
+        public static final String DOMAIN = "yog:chat/";
+        public static final String BROADCAST = "yog:chat/broadcast";
+        public static final String TELLRAW = "yog:chat/tellraw";
+        public static final String TITLE = "yog:chat/title";
+        public static final String ACTIONBAR = "yog:chat/actionbar";
+        public static final String ACTIONBAR_JSON = "yog:chat/actionbar_json";
+    }
+
+    public static final class ServicePlayer {
+        private ServicePlayer() {}
+
+        public static final String DOMAIN = "yog:player/";
+        public static final String GIVE_ITEM = "yog:player/give_item";
+        public static final String TELEPORT = "yog:player/teleport";
+        public static final String TELEPORT_TO_DIM = "yog:player/teleport_to_dim";
+        public static final String KICK = "yog:player/kick";
+        public static final String SET_GAMEMODE = "yog:player/set_gamemode";
+        public static final String INVENTORY = "yog:player/inventory";
+        public static final String SET_SLOT = "yog:player/set_slot";
+        public static final String HELD_ITEM_NBT = "yog:player/held_item_nbt";
+        public static final String SET_HELD_ITEM_NBT = "yog:player/set_held_item_nbt";
+        public static final String OFFHAND_ITEM_NBT = "yog:player/offhand_item_nbt";
+        public static final String SET_OFFHAND_ITEM_NBT = "yog:player/set_offhand_item_nbt";
+        public static final String SLOT_ITEM = "yog:player/slot_item";
+        public static final String SET_SLOT_ITEM = "yog:player/set_slot_item";
+        public static final String ADD_XP = "yog:player/add_xp";
+        public static final String SET_MAY_FLY = "yog:player/set_may_fly";
+        public static final String INFO = "yog:player/info";
+        public static final String SET_ITEM_COOLDOWN = "yog:player/set_item_cooldown";
+        public static final String PLACE_BLOCK_FROM_SLOT = "yog:player/place_block_from_slot";
+        public static final String ONLINE = "yog:player/online";
+    }
+
+    public static final class ServiceNet {
+        private ServiceNet() {}
+
+        public static final String DOMAIN = "yog:net/";
+        public static final String SEND_TO_PLAYER = "yog:net/send_to_player";
+        public static final String SEND_TO_SERVER = "yog:net/send_to_server";
+    }
+
+    public static final class ServiceSound {
+        private ServiceSound() {}
+
+        public static final String DOMAIN = "yog:sound/";
+        public static final String PLAY = "yog:sound/play";
+        public static final String PLAY_TO_PLAYER = "yog:sound/play_to_player";
+    }
+
+    public static final class ServiceParticle {
+        private ServiceParticle() {}
+
+        public static final String DOMAIN = "yog:particle/";
+        public static final String SPAWN = "yog:particle/spawn";
+    }
+
+    public static final class ServiceEntity {
+        private ServiceEntity() {}
+
+        public static final String DOMAIN = "yog:entity/";
+        public static final String TELEPORT = "yog:entity/teleport";
+        public static final String TELEPORT_TO_DIM = "yog:entity/teleport_to_dim";
+        public static final String POSITION = "yog:entity/position";
+        public static final String ROTATION = "yog:entity/rotation";
+        public static final String VELOCITY = "yog:entity/velocity";
+        public static final String SET_VELOCITY = "yog:entity/set_velocity";
+        public static final String ADD_VELOCITY = "yog:entity/add_velocity";
+        public static final String HEALTH = "yog:entity/health";
+        public static final String SET_HEALTH = "yog:entity/set_health";
+        public static final String KILL = "yog:entity/kill";
+        public static final String SPAWN = "yog:entity/spawn";
+        public static final String ADD_EFFECT = "yog:entity/add_effect";
+        public static final String REMOVE_EFFECT = "yog:entity/remove_effect";
+        public static final String CLEAR_EFFECTS = "yog:entity/clear_effects";
+        public static final String NBT = "yog:entity/nbt";
+        public static final String SET_NBT = "yog:entity/set_nbt";
+        public static final String ATTRIBUTE_BASE = "yog:entity/attribute_base";
+        public static final String SET_ATTRIBUTE_BASE = "yog:entity/set_attribute_base";
+        public static final String ATTRIBUTE_VALUE = "yog:entity/attribute_value";
+        public static final String INFO = "yog:entity/info";
+        public static final String DAMAGE = "yog:entity/damage";
+        public static final String SET_FIRE_TICKS = "yog:entity/set_fire_ticks";
+        public static final String VEHICLE = "yog:entity/vehicle";
+        public static final String PASSENGERS = "yog:entity/passengers";
+        public static final String MOUNT = "yog:entity/mount";
+        public static final String DISMOUNT = "yog:entity/dismount";
+        public static final String SET_FALL_DISTANCE = "yog:entity/set_fall_distance";
+        public static final String SET_DIMENSIONS = "yog:entity/set_dimensions";
+        public static final String DATA = "yog:entity/data";
+        public static final String SET_DATA = "yog:entity/set_data";
+    }
+
+    public static final class ServiceTag {
+        private ServiceTag() {}
+
+        public static final String DOMAIN = "yog:tag/";
+        public static final String HAS_ITEM = "yog:tag/has_item";
+        public static final String HAS_BLOCK = "yog:tag/has_block";
+        public static final String HAS_ENTITY = "yog:tag/has_entity";
+    }
+
+    public static final class ServiceAdvancement {
+        private ServiceAdvancement() {}
+
+        public static final String DOMAIN = "yog:advancement/";
+        public static final String GRANT = "yog:advancement/grant";
+        public static final String DONE = "yog:advancement/done";
+    }
+
+    public static final class ServiceScoreboard {
+        private ServiceScoreboard() {}
+
+        public static final String DOMAIN = "yog:scoreboard/";
+        public static final String GET = "yog:scoreboard/get";
+        public static final String SET = "yog:scoreboard/set";
+        public static final String ADD = "yog:scoreboard/add";
+    }
+
+    public static final class ServiceBossbar {
+        private ServiceBossbar() {}
+
+        public static final String DOMAIN = "yog:bossbar/";
+        public static final String CREATE = "yog:bossbar/create";
+        public static final String REMOVE = "yog:bossbar/remove";
+        public static final String SET_TITLE = "yog:bossbar/set_title";
+        public static final String SET_PROGRESS = "yog:bossbar/set_progress";
+        public static final String SET_COLOR = "yog:bossbar/set_color";
+        public static final String ADD_PLAYER = "yog:bossbar/add_player";
+        public static final String REMOVE_PLAYER = "yog:bossbar/remove_player";
+        public static final String SET_VISIBLE = "yog:bossbar/set_visible";
+    }
+
+    public static final class ServiceGame {
+        private ServiceGame() {}
+
+        public static final String DOMAIN = "yog:game/";
+        public static final String DIR = "yog:game/dir";
+        public static final String WORLD_DIR = "yog:game/world_dir";
+    }
+
+    public static final class ServiceMenu {
+        private ServiceMenu() {}
+
+        public static final String DOMAIN = "yog:menu/";
+        public static final String DECLARE = "yog:menu/declare";
+        public static final String DECLARED = "yog:menu/declared";
+    }
+
+    public static final class ServiceKeyBinding {
+        private ServiceKeyBinding() {}
+
+        public static final String DOMAIN = "yog:key_binding/";
+        public static final String DECLARE = "yog:key_binding/declare";
+        public static final String DECLARED = "yog:key_binding/declared";
+    }
+
+    public static final class ServiceCommand {
+        private ServiceCommand() {}
+
+        public static final String DOMAIN = "yog:command/";
+        public static final String DECLARE = "yog:command/declare";
+        public static final String DECLARED = "yog:command/declared";
     }
 
     public static final class ResKind {

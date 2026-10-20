@@ -106,9 +106,16 @@ fn spread(shape: &yog_data::Shape) -> usize {
     }
 }
 
-/// `(class, method, arity)` of every host method the actions name.
+/// `(class, method, arity)` of every host method the actions name: a
+/// `NativeBridge` method, or `Class.method` of another `dev.yog` class.
 fn action_calls() -> BTreeSet<(String, String, usize)> {
-    yog_event::services().iter().filter_map(|s| Some(("NativeBridge".to_owned(), s.host?.to_owned(), spread(&s.shape)))).collect()
+    yog_event::services()
+        .iter()
+        .filter_map(|s| {
+            let (class, method) = s.host?.rsplit_once('.').unwrap_or(("NativeBridge", s.host?));
+            Some((class.to_owned(), method.to_owned(), spread(&s.shape)))
+        })
+        .collect()
 }
 
 /// `(name, arity)` of the public static methods in a Java file.
@@ -237,11 +244,12 @@ fn every_host_has_every_bridge_method() {
                     missing.push(format!("{}: {class}.{name}/{arity}", platform.display()));
                 }
             }
-            // The host finds an action's method by its name alone.
-            let statics = class_statics(&root, host, &platform, "NativeBridge").unwrap_or_default();
-            for (_, name, _) in action_calls() {
-                if statics.iter().filter(|(n, _)| *n == name).count() > 1 {
-                    missing.push(format!("{}: NativeBridge.{name} is overloaded", platform.display()));
+            // The host finds an action's method by its name and arity: one of them.
+            for (class, name, arity) in action_calls() {
+                let Some(statics) = class_statics(&root, host, &platform, &class) else { continue };
+                let found = statics.iter().filter(|(n, a)| *n == name && *a == arity).count();
+                if found > 1 {
+                    missing.push(format!("{}: {class}.{name}/{arity} is overloaded", platform.display()));
                 }
             }
         }

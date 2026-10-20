@@ -12,12 +12,14 @@ import java.util.List;
 
 /**
  * The host's actions on the bus ({@code docs/design/bus.md}, stage 3): every
- * action in {@link YogServices#HOSTED} answered by the {@link NativeBridge}
- * method its record names ({@code HOST}) — one provider for all of them.
+ * action in {@link YogServices#HOSTED} answered by the host method its record
+ * names ({@code HOST}: a {@link NativeBridge} method, or {@code Class.method}
+ * of another {@code dev.yog} class) taking as many arguments as the request
+ * spreads into — one provider for all of them.
  * The request's components are laid out in order (a nested record spreads
  * into its own), converted to the method's parameter types, and its result
- * is the reply: {@code NaN}, {@link Long#MIN_VALUE} and {@code null} read as
- * none, a {@code void} method as done.
+ * is the reply: {@code NaN}, {@link Long#MIN_VALUE}, {@link Integer#MIN_VALUE}
+ * and {@code null} read as none, a {@code void} method as done.
  */
 public final class YogHostServices {
     private YogHostServices() {}
@@ -36,7 +38,7 @@ public final class YogHostServices {
     private static void provide(Class<? extends Record> action) throws ReflectiveOperationException {
         String host = (String) action.getField("HOST").get(null);
         String address = (String) action.getField("ADDRESS").get(null);
-        Method method = hostMethod(host);
+        Method method = hostMethod(host, arity(action));
         MethodHandle handle = MethodHandles.publicLookup().unreflect(method);
         Method fromBytes = action.getMethod("fromBytes", byte[].class);
         Class<?>[] types = method.getParameterTypes();
@@ -60,16 +62,27 @@ public final class YogHostServices {
         });
     }
 
-    /** The public static {@code NativeBridge} method named {@code name}: exactly one. */
-    private static Method hostMethod(String name) throws NoSuchMethodException {
+    /** The public static method {@code host} names, taking {@code arity} arguments: exactly one. */
+    private static Method hostMethod(String host, int arity) throws ReflectiveOperationException {
+        int dot = host.lastIndexOf('.');
+        Class<?> owner = dot < 0 ? NativeBridge.class : Class.forName(NativeBridge.class.getPackageName() + "." + host.substring(0, dot));
+        String name = host.substring(dot + 1);
         Method found = null;
-        for (Method m : NativeBridge.class.getMethods()) {
-            if (!m.getName().equals(name) || !Modifier.isStatic(m.getModifiers())) continue;
-            if (found != null) throw new NoSuchMethodException("NativeBridge." + name + " is overloaded");
+        for (Method m : owner.getMethods()) {
+            if (!m.getName().equals(name) || m.getParameterCount() != arity || !Modifier.isStatic(m.getModifiers())) continue;
+            if (found != null) throw new NoSuchMethodException(host + "/" + arity + " is overloaded");
             found = m;
         }
-        if (found == null) throw new NoSuchMethodException("NativeBridge." + name);
+        if (found == null) throw new NoSuchMethodException(host + "/" + arity);
         return found;
+    }
+
+    /** How many arguments a request of record class {@code type} spreads into. */
+    private static int arity(Class<?> type) {
+        if (!type.isRecord()) return 1;
+        int n = 0;
+        for (RecordComponent c : type.getRecordComponents()) n += arity(c.getType());
+        return n;
     }
 
     /** {@code value}'s arguments: a record's components, each spread; anything else itself. */
@@ -98,6 +111,7 @@ public final class YogHostServices {
         if (out instanceof Double d && d.isNaN()) return null;
         if (out instanceof Float f && f.isNaN()) return null;
         if (out instanceof Long l && l == Long.MIN_VALUE) return null;
+        if (out instanceof Integer i && i == Integer.MIN_VALUE) return null;
         return out;
     }
 }

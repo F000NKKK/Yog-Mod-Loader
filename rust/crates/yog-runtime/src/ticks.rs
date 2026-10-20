@@ -59,7 +59,7 @@ pub(super) fn process_pending_grants() {
             let book = sg.book.as_ref().map(|_| yog_ids::game::WRITTEN_BOOK);
             let mut ok = true;
             for item_id in sg.items.iter().map(String::as_str).chain(book) {
-                ok &= unsafe { srv_give_item(std::ptr::null_mut(), player, YogStr::from_str(item_id), 1) };
+                ok &= crate::bus::call(&yog_event::player::GiveItem { player: p.clone(), item: item_id.to_owned(), count: 1 }).unwrap_or(false);
             }
             if ok && unsafe { bridge!("addPlayerTag", [S(player), S(tag)]) }.unwrap_or(false) {
                 yog_logging::info!("startup grant {} given to {}", sg.id, p);

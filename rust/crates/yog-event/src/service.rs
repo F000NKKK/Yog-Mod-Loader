@@ -4,7 +4,7 @@
 use yog_data::{Schema, Shape};
 use yog_ids as ids;
 
-use crate::{block, command, item, key_binding, menu};
+use crate::{block, command, entity, item, key_binding, menu};
 use crate::message::{Message, branch, last_segment};
 
 /// A call the bus carries: its payload is `Self`, its answer a [`Service::Reply`].
@@ -40,7 +40,22 @@ pub struct ServiceInfo {
 }
 
 /// Each domain's actions.
-const ACTIONS: &[fn() -> Vec<ServiceInfo>] = &[crate::chat::actions, crate::world::actions];
+const ACTIONS: &[fn() -> Vec<ServiceInfo>] = &[
+    crate::advancement::actions,
+    crate::block::actions,
+    crate::bossbar::actions,
+    crate::chat::actions,
+    crate::entity::actions,
+    crate::game::actions,
+    crate::item::actions,
+    crate::net::actions,
+    crate::particle::actions,
+    crate::player::actions,
+    crate::scoreboard::actions,
+    crate::sound::actions,
+    crate::tag::actions,
+    crate::world::actions,
+];
 
 macro_rules! services {
     ($($ty:path => $address:expr, $reply:ty $(, key = $key:ident)?;)*) => {
@@ -88,4 +103,7 @@ services! {
     menu::Declared => ids::service_menu::DECLARED, Vec<menu::MenuEntry>;
     key_binding::KeyBindingSpec => ids::service_key_binding::DECLARE, bool;
     key_binding::Declared => ids::service_key_binding::DECLARED, Vec<key_binding::CategorizedBinding>;
+    entity::Data => ids::service_entity::DATA, Option<entity::DataValue>;
+    entity::SetData => ids::service_entity::SET_DATA, bool;
+    entity::SetDimensions => ids::service_entity::SET_DIMENSIONS, bool;
 }

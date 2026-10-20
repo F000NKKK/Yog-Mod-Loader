@@ -26,10 +26,6 @@ const SET: u8 = 1;
 const REMOVE: u8 = 2;
 const CLEAR: u8 = 3;
 
-/// `entity_data_set` flags.
-pub(crate) const PRESENT: u32 = 1;
-pub(crate) const PERSIST: u32 = 2;
-
 struct Value {
     bytes: Vec<u8>,
     persist: bool,
@@ -154,34 +150,30 @@ pub(crate) fn get(uuid: &str, key: &str) -> Option<Vec<u8>> {
     SERVER.locked().get(uuid)?.get(key).map(|v| v.bytes.clone())
 }
 
-pub(crate) unsafe extern "C" fn srv_entity_data_set(
-    _ctx: *mut c_void,
-    uuid: YogStr,
-    key: YogStr,
-    data: *const u8,
-    len: u32,
-    flags: u32,
-) -> bool {
-    let (uuid, key) = unsafe { (uuid.as_str(), key.as_str()) };
-    if uuid.is_empty() || key.is_empty() {
-        return false;
-    }
-    let value = (flags & PRESENT != 0).then(|| unsafe { std::slice::from_raw_parts(data, len as usize) });
-    set(uuid, key, value, flags & PERSIST != 0);
-    true
+/// The entity services the runtime provides (it keeps the data); once, at start.
+pub(crate) fn register() {
+    use yog_event::entity::{Data, DataValue, SetData, SetDimensions};
+    crate::bus::serve::<Data>(|d| get(&d.uuid, &d.key).map(|bytes| DataValue { bytes }));
+    crate::bus::serve::<SetData>(|d| {
+        if d.uuid.is_empty() || d.key.is_empty() {
+            return false;
+        }
+        set(&d.uuid, &d.key, d.value.as_ref().map(|v| v.bytes.as_slice()), d.persist);
+        true
+    });
+    crate::bus::serve::<SetDimensions>(|d| {
+        let [w, h, eye] = d.size.unwrap_or(VANILLA_SIZE);
+        let found: bool = unsafe { bridge!("entitySetDimensions", [S(YogStr::from_str(&d.uuid)), F(w), F(h), F(eye)]) }.unwrap_or(false);
+        if found {
+            let value = d.size.map(|[w, h, eye]| encode_dims(w, h, eye));
+            set(&d.uuid, DIMENSIONS, value.as_deref(), false);
+        }
+        found
+    });
 }
 
-pub(crate) unsafe extern "C" fn srv_entity_data_get(
-    _ctx: *mut c_void,
-    uuid: YogStr,
-    key: YogStr,
-    sink: *mut c_void,
-    write: YogBytesSink,
-) -> bool {
-    let Some(v) = (unsafe { get(uuid.as_str(), key.as_str()) }) else { return false };
-    unsafe { write(sink, v.as_ptr(), v.len()) };
-    true
-}
+/// What the host reads as "back to vanilla's size" (a negative width).
+const VANILLA_SIZE: [f32; 3] = [-1.0, 0.0, 0.0];
 
 /// `byte[] nativeEntityDataFor(String uuid)`: everything about the entity,
 /// for a player who starts seeing it; null for nothing.

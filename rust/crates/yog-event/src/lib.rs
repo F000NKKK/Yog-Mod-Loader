@@ -17,17 +17,25 @@ mod pos;
 #[cfg(test)]
 mod tests;
 
+pub mod advancement;
 pub mod block;
+pub mod bossbar;
 pub mod chat;
 pub mod client;
 pub mod command;
 pub mod container;
 pub mod entity;
+pub mod game;
 pub mod item;
 pub mod key_binding;
 pub mod menu;
+pub mod net;
+pub mod particle;
 pub mod player;
+pub mod scoreboard;
 pub mod server;
+pub mod sound;
+pub mod tag;
 pub mod world;
 
 pub use event::{Event, EventInfo, all};

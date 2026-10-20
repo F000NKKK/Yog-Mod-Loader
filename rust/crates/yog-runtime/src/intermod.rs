@@ -40,12 +40,11 @@ pub(super) unsafe extern "C" fn interop_import_impl(
     }
 }
 
-pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *const YogServer) -> YogApi {
+pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>) -> YogApi {
     YogApi {
         abi_version: ABI_VERSION,
         size: std::mem::size_of::<YogApi>() as u32,
         ctx: ctx as *mut c_void,
-        server,
         register_content: api_register_content,
         mods_list: api_mods_list,
         free_str: yog_free_str,

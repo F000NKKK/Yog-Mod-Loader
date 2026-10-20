@@ -21,8 +21,6 @@ mod handlers;
 pub use handlers::*;
 mod gfx;
 pub use gfx::*;
-mod server;
-pub use server::*;
 mod api;
 pub use api::*;
 mod bus;

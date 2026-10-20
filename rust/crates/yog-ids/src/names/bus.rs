@@ -1,7 +1,6 @@
-//! The bus's addresses (`docs/design/bus.md`): events and services.
+//! The bus's event addresses (`docs/design/bus.md`); services' are in `services.rs`.
 
 names! {
-
     /// The bus's events (`docs/design/bus.md`): `yog:event/<plane>/<name>`
     /// after the game did it, `…/pre` before (a cancel stops it).
     event {
@@ -9,64 +8,6 @@ names! {
         PREFIX = concatcp!(ns::YOG, sep::NAMESPACE, "event", sep::PATH),
         /// What a pre-event's address ends with.
         PRE = concatcp!(sep::PATH, "pre"),
-    }
-
-    /// The bus's services (`docs/design/bus.md`): `yog:<domain>/<name>`,
-    /// answered by whoever provides them.
-    service {
-        /// What every service address starts with.
-        PREFIX = concatcp!(ns::YOG, sep::NAMESPACE),
-    }
-
-    /// `yog:block/…`.
-    service_block {
-        DOMAIN = concatcp!(service::PREFIX, "block", sep::PATH),
-        INSERT = concatcp!(DOMAIN, "insert"),
-    }
-
-    /// `yog:world/…`: the host's actions on a world.
-    service_world {
-        DOMAIN = concatcp!(service::PREFIX, "world", sep::PATH),
-        GET_BLOCK = concatcp!(DOMAIN, "get_block"),
-        SET_BLOCK = concatcp!(DOMAIN, "set_block"),
-        TIME = concatcp!(DOMAIN, "time"),
-        SET_TIME = concatcp!(DOMAIN, "set_time"),
-        IS_RAINING = concatcp!(DOMAIN, "is_raining"),
-        SET_WEATHER = concatcp!(DOMAIN, "set_weather"),
-    }
-
-    /// `yog:chat/…`: the host's messages to players.
-    service_chat {
-        DOMAIN = concatcp!(service::PREFIX, "chat", sep::PATH),
-        BROADCAST = concatcp!(DOMAIN, "broadcast"),
-    }
-
-    /// `yog:item/…`.
-    service_item {
-        DOMAIN = concatcp!(service::PREFIX, "item", sep::PATH),
-        TEXT = concatcp!(DOMAIN, "text"),
-        PICTURE = concatcp!(DOMAIN, "picture"),
-    }
-
-    /// `yog:menu/…`: the menu entries mods declare (provided by the runtime).
-    service_menu {
-        DOMAIN = concatcp!(service::PREFIX, "menu", sep::PATH),
-        DECLARE = concatcp!(DOMAIN, "declare"),
-        DECLARED = concatcp!(DOMAIN, "declared"),
-    }
-
-    /// `yog:key_binding/…`: the key bindings mods declare (provided by the runtime).
-    service_key_binding {
-        DOMAIN = concatcp!(service::PREFIX, "key_binding", sep::PATH),
-        DECLARE = concatcp!(DOMAIN, "declare"),
-        DECLARED = concatcp!(DOMAIN, "declared"),
-    }
-
-    /// `yog:command/…`: the commands mods declare (provided by the runtime).
-    service_command {
-        DOMAIN = concatcp!(service::PREFIX, "command", sep::PATH),
-        DECLARE = concatcp!(DOMAIN, "declare"),
-        DECLARED = concatcp!(DOMAIN, "declared"),
     }
 
     /// `yog:event/player/session/…`.

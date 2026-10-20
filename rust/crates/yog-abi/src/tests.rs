@@ -10,7 +10,7 @@ fn layout_fingerprint() -> u64 {
     }
     let all = layouts!(
         YogStr, YogOwnedStr, YogBlockPos, YogVec3,
-        YogGfxApi, YogServer, YogApi, YogBytes, YogReply, YogBus,
+        YogGfxApi, YogApi, YogBytes, YogReply, YogBus,
     );
     // FNV-1a over (name, size, align).
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -28,7 +28,7 @@ fn layout_fingerprint() -> u64 {
 #[test]
 #[cfg(target_pointer_width = "64")]
 fn the_layout_matches_its_version() {
-    assert_eq!((ABI_VERSION, layout_fingerprint()), (40000, 0xa91a_d009_e18e_fa6b), "layout fingerprint: {:#x}", layout_fingerprint());
+    assert_eq!((ABI_VERSION, layout_fingerprint()), (40000, 0x4111_20bd_f3e7_9882), "layout fingerprint: {:#x}", layout_fingerprint());
 }
 
 #[test]

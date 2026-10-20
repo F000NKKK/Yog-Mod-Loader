@@ -11,10 +11,10 @@ mod tests;
 use std::os::raw::c_void;
 use std::sync::{LazyLock, OnceLock};
 
-use yog_event::Event;
+use yog_event::{Event, Message, Service};
 use yog_abi::{ABI_VERSION, YogAddress, YogBus, YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, status};
 
-pub(crate) use duties::register as register_duties;
+pub(crate) use duties::{provide as serve, register as register_duties};
 pub(crate) use router::{Handler, Router};
 
 /// The runtime's one router.
@@ -35,12 +35,12 @@ pub(crate) fn table() -> *const YogBus {
                 abi_version: ABI_VERSION,
                 size: std::mem::size_of::<YogBus>() as u32,
                 ctx: std::ptr::null_mut(),
-                resolve,
-                call,
-                emit,
-                on,
-                provide,
-                provided,
+                resolve: abi_resolve,
+                call: abi_call,
+                emit: abi_emit,
+                on: abi_on,
+                provide: abi_provide,
+                provided: abi_provided,
             })
         })
         .0
@@ -64,6 +64,15 @@ pub(crate) fn changed<E: Event>(event: E) -> E {
     E::from_bytes(&reply).unwrap_or(event)
 }
 
+/// Calls `request`'s provider: its answer, `None` when no one answers.
+pub(crate) fn call<S: Service>(request: &S) -> Option<S::Reply> {
+    let (st, reply) = ROUTER.call(ROUTER.resolve(&request.target()), &request.to_bytes(), java::run);
+    if st != status::OK {
+        return None;
+    }
+    S::Reply::from_bytes(&reply)
+}
+
 /// Whether anyone listens to `E` (unkeyed) — skip building a frame no one draws.
 pub(crate) fn heard<E: Event>() -> bool {
     ROUTER.heard(ROUTER.resolve(E::ADDRESS))
@@ -75,31 +84,31 @@ fn owner() -> Option<yog_hot_reload::LoadedModule> {
     crate::CURRENT_REGISTRATION.locked().clone()
 }
 
-unsafe extern "C" fn resolve(_ctx: *mut c_void, address: YogStr) -> YogAddress {
+unsafe extern "C" fn abi_resolve(_ctx: *mut c_void, address: YogStr) -> YogAddress {
     ROUTER.resolve(unsafe { address.as_str() })
 }
 
-unsafe extern "C" fn call(_ctx: *mut c_void, to: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
+unsafe extern "C" fn abi_call(_ctx: *mut c_void, to: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
     let (st, out) = ROUTER.call(to, unsafe { payload.as_slice() }, java::run);
     unsafe { YogReply::send(reply, &out) };
     st
 }
 
-unsafe extern "C" fn emit(_ctx: *mut c_void, event: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
+unsafe extern "C" fn abi_emit(_ctx: *mut c_void, event: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus {
     let (st, out) = ROUTER.emit(event, unsafe { payload.as_slice() }, java::run);
     unsafe { YogReply::send(reply, &out) };
     st
 }
 
-unsafe extern "C" fn on(_ctx: *mut c_void, event: YogAddress, priority: i32, ud: *mut c_void, handler: YogHandlerFn) {
+unsafe extern "C" fn abi_on(_ctx: *mut c_void, event: YogAddress, priority: i32, ud: *mut c_void, handler: YogHandlerFn) {
     ROUTER.on(event, priority, Handler::Native { owner: owner(), ud: ud as usize, f: handler });
 }
 
-unsafe extern "C" fn provide(_ctx: *mut c_void, address: YogAddress, ud: *mut c_void, handler: YogHandlerFn) -> YogStatus {
+unsafe extern "C" fn abi_provide(_ctx: *mut c_void, address: YogAddress, ud: *mut c_void, handler: YogHandlerFn) -> YogStatus {
     let added = ROUTER.provide(address, Handler::Native { owner: owner(), ud: ud as usize, f: handler });
     if added { status::OK } else { status::FAILED }
 }
 
-unsafe extern "C" fn provided(_ctx: *mut c_void, address: YogAddress) -> bool {
+unsafe extern "C" fn abi_provided(_ctx: *mut c_void, address: YogAddress) -> bool {
     ROUTER.provided(address)
 }

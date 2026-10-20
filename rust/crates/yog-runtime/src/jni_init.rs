@@ -19,10 +19,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
         .map(String::from)
         .unwrap_or_default();
 
-    // Build YogServer and store in static (gets a stable address).
-    let _ = SERVER.set(build_server_table());
-    let server_ptr = SERVER.get().unwrap() as *const YogServer;
-
     // Publish HANDLERS *before* any mod registers — its address is then
     // `'static`-stable for the runtime's entire lifetime, unlike the old
     // design (a temporary heap `Box` moved into `HANDLERS` only after
@@ -31,7 +27,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     let handlers_lock = HANDLERS.get_or_init(|| RwLock::new(RuntimeHandlers::default()));
     let handlers_ptr = handlers_lock as *const RwLock<RuntimeHandlers>;
 
-    let api: &'static YogApi = API_TABLE.get_or_init(|| build_api_table(handlers_ptr, server_ptr));
+    let api: &'static YogApi = API_TABLE.get_or_init(|| build_api_table(handlers_ptr));
     crate::bus::register_duties();
 
     let _ = HOT_RELOADER.get_or_init(|| HotReloader::new(RuntimeModuleRegistry));

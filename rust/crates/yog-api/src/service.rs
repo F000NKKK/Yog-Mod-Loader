@@ -46,7 +46,7 @@ impl Registry {
     {
         let api = self.api();
         let bus = unsafe { &*api.bus };
-        let sub = Box::into_raw(Box::new(Subscription::<S, F>::new(handler, api.server, EventPhase::Post)));
+        let sub = Box::into_raw(Box::new(Subscription::<S, F>::new(handler, EventPhase::Post)));
         let st = unsafe {
             let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
             (bus.provide)(bus.ctx, at, sub.cast::<c_void>(), on_call::<S, F>)
@@ -95,7 +95,7 @@ mod tests {
 
     /// Runs `on_call` for `handler` on `request`: its status and reply.
     fn answer<F: Fn(&Insert, &EventCx) -> bool + Send + Sync>(handler: F, request: &[u8]) -> (YogStatus, Vec<u8>) {
-        let sub = Subscription::<Insert, F>::new(Arc::new(handler), std::ptr::null(), EventPhase::Post);
+        let sub = Subscription::<Insert, F>::new(Arc::new(handler), EventPhase::Post);
         let mut out = Vec::new();
         let ud = (&sub as *const Subscription<Insert, F>).cast_mut().cast::<c_void>();
         let st = unsafe { on_call::<Insert, F>(ud, YogBytes::new(request), &YogReply::to_vec(&mut out)) };

@@ -44,7 +44,9 @@ fn record_path(domain: &str, name: &str) -> String {
 /// `dev.yog.bus.YogServices`.
 pub(super) fn services(package: &str) -> (String, Vec<StructShape>) {
     let mut o = Out::default();
-    let services = crate::services();
+    let mut services = crate::services();
+    // A domain's services together: one class each.
+    services.sort_by_key(|s| s.domain);
     let hosted: Vec<String> = services.iter().filter(|s| s.host.is_some()).map(|s| record_path(s.domain, s.name)).collect();
     let _ = write!(
         o.members,

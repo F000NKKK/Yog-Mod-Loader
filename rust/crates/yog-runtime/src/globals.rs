@@ -26,8 +26,6 @@ pub(super) static MOD_INFOS: Mutex<Vec<[String; 7]>> = Mutex::new(Vec::new());
 /// Inter-mod symbol registry: mod_id → (symbol_name → function pointer).
 /// Filled during `yog_mod_register` (export calls), read during import calls.
 pub(super) static INTEROP_SYMBOLS: OnceLock<Mutex<HashMap<String, HashMap<String, usize>>>> = OnceLock::new();
-/// Stable server table (populated once in nativeInit, then read-only).
-pub(super) static SERVER: OnceLock<YogServer> = OnceLock::new();
 /// Stable api table. Mods capture this pointer at registration (yog-api's
 /// `installed_mods()` calls through it later, e.g. from UI render) — so it
 /// must outlive `nativeInit`, not live on its stack. `ctx` inside points at

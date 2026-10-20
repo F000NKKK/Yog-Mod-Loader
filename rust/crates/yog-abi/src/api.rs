@@ -17,8 +17,6 @@ pub struct YogApi {
     pub size: u32,
     /// Opaque pointer to runtime handler storage.
     pub ctx: *mut c_void,
-    /// Stable server action table — pass to handlers.
-    pub server: *const YogServer,
 
     // ── content ──────────────────────────────────────────────────────────────
     /// Register content of `kind` (`item`, `block`, `inventory`, `recipe`,
@@ -38,7 +36,7 @@ pub struct YogApi {
     /// Callable at any time after registration (also client-side).
     pub mods_list: unsafe extern "C" fn(ctx: *mut c_void) -> YogOwnedStr,
     /// Free a `YogOwnedStr` returned by an api-table call (same allocator as
-    /// `YogServer::free_str`).
+    /// `YogApi::free_str`).
     pub free_str: unsafe extern "C" fn(ptr: *mut u8, len: u32),
 
     // ── ABI minor 24 — open a Yog UI screen ─────────────────────────────────

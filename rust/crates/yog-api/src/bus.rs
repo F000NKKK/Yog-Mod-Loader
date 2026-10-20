@@ -5,10 +5,11 @@ use std::marker::PhantomData;
 use std::os::raw::c_void;
 use std::sync::Arc;
 
-use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogServer, YogStatus, YogStr, priority, status};
+use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, priority, status};
 use yog_event::{Event, EventPhase, keyed};
 
-use crate::registry::{CServer, Registry, guard};
+use crate::registry::{Registry, guard};
+use crate::server::CServer;
 use yog_core::Server;
 
 /// What a handler decides about an event.
@@ -67,10 +68,9 @@ impl EventCx {
 }
 
 /// What an event subscription keeps: the handler (shared by its pre and post
-/// subscriptions), the server it hands it, and which phase this one is.
+/// subscriptions), and which phase this one is.
 pub(crate) struct Subscription<E, F> {
     handler: Arc<F>,
-    server: *const YogServer,
     phase: EventPhase,
     event: PhantomData<fn(&E)>,
 }
@@ -108,8 +108,8 @@ where
 }
 
 impl<E, F> Subscription<E, F> {
-    pub(crate) fn new(handler: Arc<F>, server: *const YogServer, phase: EventPhase) -> Self {
-        Self { handler, server, phase, event: PhantomData }
+    pub(crate) fn new(handler: Arc<F>, phase: EventPhase) -> Self {
+        Self { handler, phase, event: PhantomData }
     }
 
     pub(crate) fn handler(&self) -> &F {
@@ -117,7 +117,7 @@ impl<E, F> Subscription<E, F> {
     }
 
     pub(crate) fn cx(&self) -> EventCx {
-        EventCx { phase: self.phase, server: CServer(self.server) }
+        EventCx { phase: self.phase, server: CServer }
     }
 }
 
@@ -210,7 +210,7 @@ impl Registry {
     fn subscribe_at<E: 'static, F: Send + Sync + 'static>(&self, address: &str, priority: i32, phase: EventPhase, handler: Arc<F>, run: YogHandlerFn) {
         let api = self.api();
         let bus = unsafe { &*api.bus };
-        let sub = Box::into_raw(Box::new(Subscription { handler, server: api.server, phase, event: PhantomData::<fn(&E)> }));
+        let sub = Box::into_raw(Box::new(Subscription::<E, F>::new(handler, phase)));
         unsafe {
             let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
             (bus.on)(bus.ctx, at, priority, sub.cast::<c_void>(), run);
@@ -225,7 +225,7 @@ mod tests {
 
     /// Runs `on_event` for `handler` in `phase` on `bytes`.
     fn deliver_bytes<E: Event, R: IntoFlow, F: Fn(&E, &EventCx) -> R + Send + Sync>(handler: F, phase: EventPhase, bytes: &[u8]) -> YogStatus {
-        let sub = Subscription { handler: Arc::new(handler), server: std::ptr::null(), phase, event: PhantomData::<fn(&E)> };
+        let sub = Subscription::<E, F>::new(Arc::new(handler), phase);
         unsafe { on_event::<E, F, R>((&sub as *const Subscription<E, F>).cast_mut().cast::<c_void>(), YogBytes::new(bytes), std::ptr::null()) }
     }
 
@@ -260,7 +260,7 @@ mod tests {
 
     /// Runs `on_change` for `handler` on `event`: its status and reply.
     fn change<E: Event, F: Fn(&mut E, &EventCx) + Send + Sync>(handler: F, event: &E) -> (YogStatus, Vec<u8>) {
-        let sub = Subscription { handler: Arc::new(handler), server: std::ptr::null(), phase: EventPhase::Post, event: PhantomData::<fn(&E)> };
+        let sub = Subscription::<E, F>::new(Arc::new(handler), EventPhase::Post);
         let mut out = Vec::<u8>::new();
         let reply = YogReply::to_vec(&mut out);
         let ud = (&sub as *const Subscription<E, F>).cast_mut().cast::<c_void>();

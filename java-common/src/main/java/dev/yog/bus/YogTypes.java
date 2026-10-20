@@ -144,6 +144,43 @@ public final class YogTypes {
         }
     }
 
+    /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
+    public record CommandSpec(String name, String schema) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", name);
+            if (schema != null) m.put("schema", schema);
+            return m;
+        }
+
+        public static CommandSpec fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new CommandSpec(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
+        }
+
+        public static CommandSpec fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** Bytes a mod keeps on an entity under a key. */
+    public record DataValue(byte[] bytes) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("bytes", bytes);
+            return m;
+        }
+
+        public static DataValue fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new DataValue((m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+        }
+
+        public static DataValue fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
     /** What a stack shows instead of its item's own name and description. */
     public record Shown(String name, List<String> lines) {
         public Map<String, Object> toData() {
@@ -163,21 +200,23 @@ public final class YogTypes {
         }
     }
 
-    /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
-    public record CommandSpec(String name, String schema) {
+    /** A declared key binding as the host registers it: under its mod's category. */
+    public record CategorizedBinding(String id, String name, int defaultKey, String category) {
         public Map<String, Object> toData() {
             Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", id);
             m.put("name", name);
-            if (schema != null) m.put("schema", schema);
+            m.put("default_key", defaultKey);
+            m.put("category", category);
             return m;
         }
 
-        public static CommandSpec fromData(Object data) {
+        public static CategorizedBinding fromData(Object data) {
             Map<String, Object> m = YogData.map(data);
-            return new CommandSpec(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
+            return new CategorizedBinding(YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), (int) YogData.integer(m.get("default_key"), 0), YogData.str(m.get("category"), ""));
         }
 
-        public static CommandSpec fromBytes(byte[] bytes) {
+        public static CategorizedBinding fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
     }
@@ -201,23 +240,22 @@ public final class YogTypes {
         }
     }
 
-    /** A declared key binding as the host registers it: under its mod's category. */
-    public record CategorizedBinding(String id, String name, int defaultKey, String category) {
+    /** A point in a world (blocks, fractional). */
+    public record Point(double x, double y, double z) {
         public Map<String, Object> toData() {
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", id);
-            m.put("name", name);
-            m.put("default_key", defaultKey);
-            m.put("category", category);
+            m.put("x", x);
+            m.put("y", y);
+            m.put("z", z);
             return m;
         }
 
-        public static CategorizedBinding fromData(Object data) {
+        public static Point fromData(Object data) {
             Map<String, Object> m = YogData.map(data);
-            return new CategorizedBinding(YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), (int) YogData.integer(m.get("default_key"), 0), YogData.str(m.get("category"), ""));
+            return new Point(YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0));
         }
 
-        public static CategorizedBinding fromBytes(byte[] bytes) {
+        public static Point fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
     }

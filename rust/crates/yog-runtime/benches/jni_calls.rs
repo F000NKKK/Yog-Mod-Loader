@@ -169,7 +169,6 @@ fn bench(c: &mut Criterion) {
     let mut env = vm.attach_current_thread().unwrap();
     let text = YogStr::from_str("Hello, Yog!");
     let dim = YogStr::from_str("minecraft:overworld");
-    let player = YogStr::from_str("Steve");
 
     let mut g = c.benchmark_group("jni");
     g.bench_function("drawRect/by_name", |b| b.iter(|| by_name_rect(&mut env)));
@@ -212,17 +211,6 @@ fn bench(c: &mut Criterion) {
     });
     g.bench_function("teleport/by_name", |b| {
         b.iter(|| by_name_teleport(&mut env, "Steve"));
-    });
-    g.bench_function("teleport/cached", |b| {
-        b.iter(|| unsafe {
-            let ok: Option<bool> = jcall!(
-                &mut env,
-                "dev/yog/NativeBridge",
-                "teleport",
-                [S(player), D(0.5), D(64.0), D(-3.5)]
-            );
-            ok
-        });
     });
     g.finish();
 }

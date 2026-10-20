@@ -16,17 +16,19 @@ pub mod vanilla;
 mod bus;
 mod draw;
 pub use bus::{EventCx, Flow, IntoFlow};
+pub use server::CServer;
 pub use service::call;
 mod interop;
 mod lang;
 mod registry;
 mod scheduler;
+mod server;
 mod service;
 
 pub use interop::Interop;
 pub use lang::{format_translation, tag_name, tr, tr_args, translation};
 pub use registry::{
-    CServer, Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui, server,
+    Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui, server,
 };
 pub use yog_gfx::{
     GfxContext, core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image,

@@ -33,7 +33,7 @@ pub(super) fn machine_event(
 pub(super) fn machine_recipe(def: &str, dim: &str, pos: YogBlockPos, items: &[String], recipe: Option<&str>) -> Option<machine::Found> {
     let h = handlers();
     let m = h.inventories.iter().find(|d| d.id == def)?.machine.as_ref()?;
-    let has_tag = |item: &str, tag: &str| unsafe { srv_has_item_tag(std::ptr::null_mut(), YogStr::from_str(item), YogStr::from_str(tag)) };
+    let has_tag = |item: &str, tag: &str| crate::bus::call(&yog_event::tag::HasItem { item: item.to_owned(), tag: tag.to_owned() }).unwrap_or(false);
     let recipes = h.recipes.iter().map(|(ns, name, r)| (format!("{ns}:{name}"), r)).filter(|(id, _)| recipe.is_none_or(|r| r == id));
     machine::find(m, recipes, items, &has_tag).find(|found| crate::bus::allowed(&machine_event(m, def, found, dim, pos, "")))
 }

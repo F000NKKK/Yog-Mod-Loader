@@ -43,7 +43,7 @@ unsafe extern "C" fn serve<S: Service>(ud: *mut c_void, payload: YogBytes, reply
 }
 
 /// `f` answers every `S`.
-pub(super) fn provide<S: Service>(f: fn(&S) -> S::Reply) {
+pub(crate) fn provide<S: Service>(f: fn(&S) -> S::Reply) {
     let at = ROUTER.resolve(S::ADDRESS);
     ROUTER.provide(at, Handler::Native { owner: None, ud: f as usize, f: serve::<S> });
 }
@@ -86,6 +86,7 @@ pub(crate) fn register() {
     after::<server::game::Tick>(LAST, |_| crate::ticks::after_tick());
     after::<server::life::Stopping>(LAST, |_| crate::entity_data::server_stopped());
     super::declared::register();
+    crate::entity_data::register();
     // The camera's changes start from none (the defaults live in yog-body).
     change::<client::render::Camera>(FIRST, |c| c.out = yog_body::CameraOut::default());
     // A body's frame carries what this client was told its entity keeps.

@@ -1,16 +1,15 @@
-//! Yog runtime — the native library loaded by the Fabric host.
+//! Yog runtime — the native library the Java hosts load.
 //!
-//! Exposes JNI entry points (`Java_dev_yog_NativeBridge_*`) that the host calls,
-//! and a stable C ABI (`YogApi` / `YogServer`) that mods program against.
+//! Exposes JNI entry points (`Java_dev_yog_*`) that the hosts call, and the
+//! C ABI (`YogApi`, with the bus `YogBus`) that mods program against.
 //!
 //! Architecture:
-//!   - `YogServer`  — a `#[repr(C)]` table of standalone JNI-calling functions
-//!     that mods call to mutate the world.
-//!   - `YogApi`     — a `#[repr(C)]` table of registration functions; mods call
-//!     them inside `yog_mod_register` to subscribe to events.
-//!   - `RuntimeHandlers` — the runtime's internal event/handler storage.
-//!     Filled during `nativeInit` (write), read-only after. The scheduler sub-
-//!     state uses an inner `Mutex` for safe addition during event dispatch.
+//!   - the bus (`bus`) — the router of calls, events and services between
+//!     mods, the runtime and the Java host; the world's actions are services
+//!     the host provides (`docs/design/bus.md`).
+//!   - `YogApi` — a `#[repr(C)]` table of what isn't a message: content
+//!     registration, the bus, the frame's graphics, the client's own calls.
+//!   - `RuntimeHandlers` — the content mods registered, read by the hosts.
 
 use std::collections::HashMap;
 use std::num::NonZeroU32;
@@ -28,7 +27,7 @@ use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry
 
 use yog_abi::{
     ABI_VERSION, YogApi, YogBlockPos, YogGfxApi, YogOwnedStr,
-    YogServer, YogStr, YogVec3,
+    YogStr,
 };
 use yog_registry::{BlockDef, ItemDef};
 use yog_sync::{Locked, ReadWrite};
@@ -45,8 +44,6 @@ mod jni_util;
 use jni_util::*;
 mod owned_str;
 use owned_str::*;
-mod server_fns;
-use server_fns::*;
 mod logging;
 use logging::*;
 mod gpu;
@@ -58,12 +55,6 @@ mod api_fns;
 use api_fns::*;
 mod machine_api;
 use machine_api::*;
-mod world_fns;
-use world_fns::*;
-mod tables;
-use tables::*;
-mod abi3;
-use abi3::*;
 mod intermod;
 use intermod::*;
 mod mod_loading;
@@ -83,6 +74,7 @@ mod body;
 mod registrations;
 mod entity_data;
 mod client_api;
+use client_api::{api_client_attribute_value, client_advancement_done, client_tag_items};
 mod content_blob;
 mod machine;
 #[cfg(feature = "dev")]
