@@ -76,6 +76,33 @@ public final class YogEvents {
                 return v;
             }
 
+            /** {@code Record} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public long level() {
+                    if (o0 < 0) return 0L;
+                    u.seek(o0);
+                    return u.getI();
+                }
+
+                public String message() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventLog.RECORD);
             }
@@ -176,6 +203,41 @@ public final class YogEvents {
                     return v;
                 }
 
+                /** {@code Join} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerSession.JOIN);
                 }
@@ -265,6 +327,41 @@ public final class YogEvents {
                     Leave v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Leave} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -368,6 +465,49 @@ public final class YogEvents {
                     return v;
                 }
 
+                /** {@code Death} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String source() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerLife.DEATH);
                     static final int PRE = YogBus.resolve(YogNames.EventPlayerLife.DEATH_PRE);
@@ -467,6 +607,49 @@ public final class YogEvents {
                     return v;
                 }
 
+                /** {@code Respawn} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public boolean atAnchor() {
+                        if (o2 < 0) return false;
+                        u.seek(o2);
+                        return u.getBool();
+                    }
+
+                    public String dimension() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerLife.RESPAWN);
                 }
@@ -561,6 +744,41 @@ public final class YogEvents {
                     Message v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Message} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String message() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -681,6 +899,81 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return v;
                 }
 
+                /** {@code Move} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+                    private final int o6;
+                    private final int o7;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.skip(8); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.skip(8); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.skip(8); } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); u.skip(4); } else { o5 = -1; }
+                        if (u.more(end)) { o6 = u.position(); u.skip(4); } else { o6 = -1; }
+                        if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String playerUuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public double x() {
+                        if (o2 < 0) return 0.0;
+                        u.seek(o2);
+                        return u.getF64();
+                    }
+
+                    public double y() {
+                        if (o3 < 0) return 0.0;
+                        u.seek(o3);
+                        return u.getF64();
+                    }
+
+                    public double z() {
+                        if (o4 < 0) return 0.0;
+                        u.seek(o4);
+                        return u.getF64();
+                    }
+
+                    public float yaw() {
+                        if (o5 < 0) return 0.0f;
+                        u.seek(o5);
+                        return u.getF32();
+                    }
+
+                    public float pitch() {
+                        if (o6 < 0) return 0.0f;
+                        u.seek(o6);
+                        return u.getF32();
+                    }
+
+                    public String dimension() {
+                        if (o7 < 0) return "";
+                        u.seek(o7);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.MOVE);
                 }
@@ -773,6 +1066,49 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     UseItem v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code UseItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String itemId() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public boolean sneaking() {
+                        if (o2 < 0) return false;
+                        u.seek(o2);
+                        return u.getBool();
+                    }
+
+                    public String dimension() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -872,6 +1208,49 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     Attack v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Attack} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String targetType() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String targetUuid() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -976,6 +1355,65 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return v;
                 }
 
+                /** {@code Interact} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String playerUuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String entityType() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public String entityUuid() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
+
+                    public String hand() {
+                        if (o4 < 0) return "";
+                        u.seek(o4);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o5 < 0) return "";
+                        u.seek(o5);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.INTERACT);
                     static final int PRE = YogBus.resolve(YogNames.EventPlayerAction.INTERACT_PRE);
@@ -1078,6 +1516,57 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return v;
                 }
 
+                /** {@code Craft} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String playerUuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String resultItem() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public long resultCount() {
+                        if (o3 < 0) return 0L;
+                        u.seek(o3);
+                        return u.getI();
+                    }
+
+                    public String dimension() {
+                        if (o4 < 0) return "";
+                        u.seek(o4);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.CRAFT);
                 }
@@ -1178,6 +1667,65 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     Pickup v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Pickup} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String playerUuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String itemId() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public long itemCount() {
+                        if (o3 < 0) return 0L;
+                        u.seek(o3);
+                        return u.getI();
+                    }
+
+                    public String entityUuid() {
+                        if (o4 < 0) return "";
+                        u.seek(o4);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o5 < 0) return "";
+                        u.seek(o5);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -1284,6 +1832,49 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return v;
                 }
 
+                /** {@code Advancement} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String playerName() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String advancementId() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerProgress.ADVANCEMENT);
                 }
@@ -1382,6 +1973,49 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 Break v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Break} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String playerName() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String blockId() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String dimension() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
             }
 
             private static final class Address {
@@ -1488,6 +2122,57 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return v;
             }
 
+            /** {@code Place} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                    u.leave(end);
+                }
+
+                public String playerName() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String blockId() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String dimension() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+
+                public boolean sneaking() {
+                    if (o4 < 0) return false;
+                    u.seek(o4);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventBlock.PLACE);
                 static final int PRE = YogBus.resolve(YogNames.EventBlock.PLACE_PRE);
@@ -1588,6 +2273,57 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 Use v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Use} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                    u.leave(end);
+                }
+
+                public String playerName() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String blockId() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String dimension() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+
+                public boolean sneaking() {
+                    if (o4 < 0) return false;
+                    u.seek(o4);
+                    return u.getBool();
+                }
             }
 
             private static final class Address {
@@ -1697,6 +2433,41 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return v;
                 }
 
+                /** {@code Spawn} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String entityType() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventEntityLife.SPAWN);
                     static final int PRE = YogBus.resolve(YogNames.EventEntityLife.SPAWN_PRE);
@@ -1794,6 +2565,49 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     Death v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Death} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String entityType() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String source() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -1896,6 +2710,57 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     Damage v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Damage} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String entityType() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public float amount() {
+                        if (o2 < 0) return 0.0f;
+                        u.seek(o2);
+                        return u.getF32();
+                    }
+
+                    public String source() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o4 < 0) return "";
+                        u.seek(o4);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -2014,6 +2879,89 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return v;
                 }
 
+                /** {@code ProjectileHit} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+                    private final int o6;
+                    private final int o7;
+                    private final int o8;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); u.skip(8); } else { o5 = -1; }
+                        if (u.more(end)) { o6 = u.position(); u.skip(8); } else { o6 = -1; }
+                        if (u.more(end)) { o7 = u.position(); u.skip(8); } else { o7 = -1; }
+                        if (u.more(end)) { o8 = u.position(); u.getU(); } else { o8 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String projectileType() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String projectileUuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String shooterUuid() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public String hitType() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
+
+                    public String hitEntityUuid() {
+                        if (o4 < 0) return "";
+                        u.seek(o4);
+                        return u.getStr();
+                    }
+
+                    public double x() {
+                        if (o5 < 0) return 0.0;
+                        u.seek(o5);
+                        return u.getF64();
+                    }
+
+                    public double y() {
+                        if (o6 < 0) return 0.0;
+                        u.seek(o6);
+                        return u.getF64();
+                    }
+
+                    public double z() {
+                        if (o7 < 0) return 0.0;
+                        u.seek(o7);
+                        return u.getF64();
+                    }
+
+                    public String dimension() {
+                        if (o8 < 0) return "";
+                        u.seek(o8);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventEntityCombat.PROJECTILE_HIT);
                     static final int PRE = YogBus.resolve(YogNames.EventEntityCombat.PROJECTILE_HIT_PRE);
@@ -2110,6 +3058,33 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     Tick v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Tick} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String entityType() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
                 }
 
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
@@ -2211,6 +3186,65 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return v;
             }
 
+            /** {@code Explosion} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+                private final int o5;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(8); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(8); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skip(8); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
+                    if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                    u.leave(end);
+                }
+
+                public String dimension() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public double x() {
+                    if (o1 < 0) return 0.0;
+                    u.seek(o1);
+                    return u.getF64();
+                }
+
+                public double y() {
+                    if (o2 < 0) return 0.0;
+                    u.seek(o2);
+                    return u.getF64();
+                }
+
+                public double z() {
+                    if (o3 < 0) return 0.0;
+                    u.seek(o3);
+                    return u.getF64();
+                }
+
+                public float power() {
+                    if (o4 < 0) return 0.0f;
+                    u.seek(o4);
+                    return u.getF32();
+                }
+
+                public String causeUuid() {
+                    if (o5 < 0) return "";
+                    u.seek(o5);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventWorld.EXPLOSION);
                 static final int PRE = YogBus.resolve(YogNames.EventWorld.EXPLOSION_PRE);
@@ -2277,7 +3311,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     p.putI(this.chunkZ);
                     p.putI(this.minY);
                     p.putI(this.height);
-                    p.putU(this.palette.size()); for (var e0 : this.palette) { p.putStr(e0); }
+                    { int l0 = p.beginList(this.palette.size()); for (var e0 : this.palette) { p.putStr(e0); } p.end(l0); }
                     p.putBytes(this.cells);
                     p.end(at);
                 }
@@ -2323,6 +3357,73 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return v;
                 }
 
+                /** {@code Chunk} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+                    private final int o6;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o5 = -1; }
+                        if (u.more(end)) { o6 = u.position(); u.skipBytes(); } else { o6 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String generator() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public int chunkX() {
+                        if (o1 < 0) return 0;
+                        u.seek(o1);
+                        return (int) u.getI();
+                    }
+
+                    public int chunkZ() {
+                        if (o2 < 0) return 0;
+                        u.seek(o2);
+                        return (int) u.getI();
+                    }
+
+                    public int minY() {
+                        if (o3 < 0) return 0;
+                        u.seek(o3);
+                        return (int) u.getI();
+                    }
+
+                    public int height() {
+                        if (o4 < 0) return 0;
+                        u.seek(o4);
+                        return (int) u.getI();
+                    }
+
+                    public java.util.List<String> palette() {
+                        if (o5 < 0) return java.util.List.of();
+                        u.seek(o5);
+                        return YogFrame.list(u, () -> u.getStr());
+                    }
+
+                    public byte[] cells() {
+                        if (o6 < 0) return new byte[0];
+                        u.seek(o6);
+                        return u.getBytes();
+                    }
+                }
+
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
                 public YogMessage emit() {
                     return YogBus.emit(YogBus.keyed(YogNames.EventWorldGeneration.CHUNK, generator), packedFrame());
@@ -2347,12 +3448,12 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             private Loot() {}
 
             /** A loot table rolled: where and for whom, and what it gave. Handlers change `items`; each sees the one before's result. */
-            public record Roll(String table, String dimension, java.util.List<Double> pos, String entity, String killer, YogTypes.LootStack tool, java.util.List<java.util.List<Object>> enchantments, java.util.List<YogTypes.LootStack> items) {
+            public record Roll(String table, String dimension, double[] pos, String entity, String killer, YogTypes.LootStack tool, java.util.List<java.util.List<Object>> enchantments, java.util.List<YogTypes.LootStack> items) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("table", table);
                     m.put("dimension", dimension);
-                    if (pos != null) m.put("pos", pos);
+                    if (pos != null) m.put("pos", YogData.listOf(pos));
                     if (entity != null) m.put("entity", entity);
                     if (killer != null) m.put("killer", killer);
                     if (tool != null) m.put("tool", tool.toData());
@@ -2363,7 +3464,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
                 public static Roll fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Roll(YogData.str(m.get("table"), ""), YogData.str(m.get("dimension"), ""), (m.get("pos") == null ? null : YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList()), (m.get("entity") == null ? null : YogData.str(m.get("entity"), "")), (m.get("killer") == null ? null : YogData.str(m.get("killer"), "")), (m.get("tool") == null ? null : YogTypes.LootStack.fromData(m.get("tool"))), YogData.list(m.get("enchantments")).stream().map(e0 -> YogData.list(e0).stream().map(e1 -> e1).toList()).toList(), YogData.list(m.get("items")).stream().map(e0 -> YogTypes.LootStack.fromData(e0)).toList());
+                    return new Roll(YogData.str(m.get("table"), ""), YogData.str(m.get("dimension"), ""), (m.get("pos") == null ? null : YogData.doubles(m.get("pos"))), (m.get("entity") == null ? null : YogData.str(m.get("entity"), "")), (m.get("killer") == null ? null : YogData.str(m.get("killer"), "")), (m.get("tool") == null ? null : YogTypes.LootStack.fromData(m.get("tool"))), YogData.list(m.get("enchantments")).stream().map(e0 -> YogData.list(e0).stream().map(e1 -> e1).toList()).toList(), YogData.list(m.get("items")).stream().map(e0 -> YogTypes.LootStack.fromData(e0)).toList());
                 }
 
                 public static Roll fromBytes(byte[] bytes) {
@@ -2378,8 +3479,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     p.putBool(this.entity != null); if (this.entity != null) { p.putStr(this.entity); }
                     p.putBool(this.killer != null); if (this.killer != null) { p.putStr(this.killer); }
                     p.putBool(this.tool != null); if (this.tool != null) { this.tool.pack(p); }
-                    p.putU(this.enchantments.size()); for (var e0 : this.enchantments) { p.putU(e0.size()); for (var e1 : e0) { p.putTagged(e1); } }
-                    p.putU(this.items.size()); for (var e0 : this.items) { e0.pack(p); }
+                    { int l0 = p.beginList(this.enchantments.size()); for (var e0 : this.enchantments) { { int l1 = p.beginList(e0.size()); for (var e1 : e0) { p.putTagged(e1); } p.end(l1); } } p.end(l0); }
+                    { int l0 = p.beginList(this.items.size()); for (var e0 : this.items) { e0.pack(p); } p.end(l0); }
                     p.end(at);
                 }
 
@@ -2387,7 +3488,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     int end = u.begin();
                     String f_table = u.more(end) ? u.getStr() : "";
                     String f_dimension = u.more(end) ? u.getStr() : "";
-                    java.util.List<Double> f_pos = u.more(end) ? (u.getBool() ? u.getF64s() : null) : null;
+                    double[] f_pos = u.more(end) ? (u.getBool() ? u.getF64s() : null) : null;
                     String f_entity = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
                     String f_killer = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
                     YogTypes.LootStack f_tool = u.more(end) ? (u.getBool() ? YogTypes.LootStack.unpack(u) : null) : null;
@@ -2423,6 +3524,97 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     Roll v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Roll} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+                    private final int o6;
+                    private final int o7;
+                    private final int h7, n7, b7;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); if (u.getBool()) { { int c1 = u.count(); u.skip(c1 * (u.getBool() ? 4 : 8)); } } } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); if (u.getBool()) { u.getU(); } } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); if (u.getBool()) { u.getU(); } } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o5 = -1; }
+                        if (u.more(end)) { o6 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o6 = -1; }
+                        if (u.more(end)) { h7 = u.position(); n7 = u.count(); int e7 = u.listEnd(); b7 = 0; o7 = u.position(); u.skipTo(e7); } else { h7 = n7 = b7 = 0; o7 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String table() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public double[] pos() {
+                        if (o2 < 0) return null;
+                        u.seek(o2);
+                        return (u.getBool() ? u.getF64s() : null);
+                    }
+
+                    public String entity() {
+                        if (o3 < 0) return null;
+                        u.seek(o3);
+                        return (u.getBool() ? u.getStr() : null);
+                    }
+
+                    public String killer() {
+                        if (o4 < 0) return null;
+                        u.seek(o4);
+                        return (u.getBool() ? u.getStr() : null);
+                    }
+
+                    public YogTypes.LootStack tool() {
+                        if (o5 < 0) return null;
+                        u.seek(o5);
+                        return (u.getBool() ? YogTypes.LootStack.unpack(u) : null);
+                    }
+
+                    public java.util.List<java.util.List<Object>> enchantments() {
+                        if (o6 < 0) return java.util.List.of();
+                        u.seek(o6);
+                        return YogFrame.list(u, () -> YogFrame.list(u, () -> u.getTagged()));
+                    }
+
+                    public java.util.List<YogTypes.LootStack> items() {
+                        if (o7 < 0) return java.util.List.of();
+                        u.seek(h7);
+                        return YogFrame.list(u, () -> YogTypes.LootStack.unpack(u));
+                    }
+
+                    public int itemsLength() {
+                        return n7;
+                    }
+
+                    /** Each item, viewed in turn. */
+                    public void forEachItems(java.util.function.Consumer<YogTypes.LootStack.View> each) {
+                        int at = o7;
+                        for (int j = 0; j < n7; j++) {
+                            u.seek(at);
+                            YogTypes.LootStack.View v = new YogTypes.LootStack.View(u);
+                            at = u.position();
+                            each.accept(v);
+                        }
+                    }
                 }
 
                 private static final class Address {
@@ -2527,6 +3719,49 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return v;
             }
 
+            /** {@code Open} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String playerName() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String playerUuid() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public String containerType() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public String dimension() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventContainer.OPEN);
                 static final int PRE = YogBus.resolve(YogNames.EventContainer.OPEN_PRE);
@@ -2621,6 +3856,41 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 Close v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Close} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String playerName() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String playerUuid() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public String dimension() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
             }
 
             private static final class Address {
@@ -2736,6 +4006,89 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return v;
                 }
 
+                /** {@code Craft} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+                    private final int o6;
+                    private final int o7;
+                    private final int o8;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                        if (u.more(end)) { o6 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o6 = -1; }
+                        if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
+                        if (u.more(end)) { o8 = u.position(); u.getU(); } else { o8 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String machine() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String kind() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public String recipe() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public String resultItem() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
+
+                    public long resultCount() {
+                        if (o4 < 0) return 0L;
+                        u.seek(o4);
+                        return u.getI();
+                    }
+
+                    public String values() {
+                        if (o5 < 0) return "";
+                        u.seek(o5);
+                        return u.getStr();
+                    }
+
+                    public YogTypes.BlockPos.View pos() {
+                        if (o6 < 0) return null;
+                        u.seek(o6);
+                        return new YogTypes.BlockPos.View(u);
+                    }
+
+                    public String dimension() {
+                        if (o7 < 0) return "";
+                        u.seek(o7);
+                        return u.getStr();
+                    }
+
+                    public String player() {
+                        if (o8 < 0) return "";
+                        u.seek(o8);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventContainerMachine.CRAFT);
                     static final int PRE = YogBus.resolve(YogNames.EventContainerMachine.CRAFT_PRE);
@@ -2833,6 +4186,17 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return v;
                 }
 
+                /** {@code Tick} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        u.leave(end);
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventServerGame.TICK);
                 }
@@ -2923,6 +4287,25 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return v;
                 }
 
+                /** {@code Started} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String worldDir() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventServerLife.STARTED);
                 }
@@ -3005,6 +4388,17 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return v;
                 }
 
+                /** {@code Stopping} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        u.leave(end);
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventServerLife.STOPPING);
                 }
@@ -3062,7 +4456,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 public void pack(YogFrame.Packer p) {
                     int at = p.begin();
                     p.putStr(this.name);
-                    p.putU(this.args.size()); for (var e0 : this.args) { p.putStr(e0); }
+                    { int l0 = p.beginList(this.args.size()); for (var e0 : this.args) { p.putStr(e0); } p.end(l0); }
                     p.putStr(this.source);
                     p.putStr(this.uuid);
                     p.putStr(this.dimension);
@@ -3108,6 +4502,65 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     Run v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Run} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); if (u.getBool()) { u.getU(); } } else { o5 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String name() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public java.util.List<String> args() {
+                        if (o1 < 0) return java.util.List.of();
+                        u.seek(o1);
+                        return YogFrame.list(u, () -> u.getStr());
+                    }
+
+                    public String source() {
+                        if (o2 < 0) return "";
+                        u.seek(o2);
+                        return u.getStr();
+                    }
+
+                    public String uuid() {
+                        if (o3 < 0) return "";
+                        u.seek(o3);
+                        return u.getStr();
+                    }
+
+                    public String dimension() {
+                        if (o4 < 0) return "";
+                        u.seek(o4);
+                        return u.getStr();
+                    }
+
+                    public String reply() {
+                        if (o5 < 0) return null;
+                        u.seek(o5);
+                        return (u.getBool() ? u.getStr() : null);
+                    }
                 }
 
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
@@ -3197,6 +4650,41 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return v;
                 }
 
+                /** {@code Packet} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.skipBytes(); } else { o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String channel() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String player() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public byte[] payload() {
+                        if (o2 < 0) return new byte[0];
+                        u.seek(o2);
+                        return u.getBytes();
+                    }
+                }
+
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
                 public YogMessage emit() {
                     return YogBus.emit(YogBus.keyed(YogNames.EventServerNet.PACKET, channel), packedFrame());
@@ -3278,6 +4766,17 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     Tick v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Tick} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        u.leave(end);
+                    }
                 }
 
                 private static final class Address {
@@ -3366,6 +4865,33 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     Travel v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Travel} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public YogTypes.TravelFrame.View frame() {
+                        if (o0 < 0) return null;
+                        u.seek(o0);
+                        return new YogTypes.TravelFrame.View(u);
+                    }
+
+                    public YogTypes.Vec3 velocity() {
+                        if (o1 < 0) return null;
+                        u.seek(o1);
+                        return (u.getBool() ? YogTypes.Vec3.unpack(u) : null);
+                    }
                 }
 
                 private static final class Address {
@@ -3469,6 +4995,49 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return v;
                 }
 
+                /** {@code Key} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                        u.leave(end);
+                    }
+
+                    public int keyCode() {
+                        if (o0 < 0) return 0;
+                        u.seek(o0);
+                        return (int) u.getI();
+                    }
+
+                    public int scanCode() {
+                        if (o1 < 0) return 0;
+                        u.seek(o1);
+                        return (int) u.getI();
+                    }
+
+                    public int action() {
+                        if (o2 < 0) return 0;
+                        u.seek(o2);
+                        return (int) u.getI();
+                    }
+
+                    public int modifiers() {
+                        if (o3 < 0) return 0;
+                        u.seek(o3);
+                        return (int) u.getI();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientInput.KEY);
                     static final int PRE = YogBus.resolve(YogNames.EventClientInput.KEY_PRE);
@@ -3559,6 +5128,25 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return v;
                 }
 
+                /** {@code Binding} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String id() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+                }
+
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
                 public YogMessage emit() {
                     return YogBus.emit(YogBus.keyed(YogNames.EventClientInput.BINDING, id), packedFrame());
@@ -3638,6 +5226,25 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     Open v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Open} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String screenClass() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -3723,6 +5330,25 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     Close v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Close} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String screenClass() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
                 }
 
                 private static final class Address {
@@ -3813,6 +5439,33 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return v;
                 }
 
+                /** {@code Input} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String uiId() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String event() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+                }
+
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
                 public YogMessage emit() {
                     return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT, uiId), packedFrame());
@@ -3896,6 +5549,25 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     Hud v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Hud} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.skip(4); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public float deltaTick() {
+                        if (o0 < 0) return 0.0f;
+                        u.seek(o0);
+                        return u.getF32();
+                    }
                 }
 
                 private static final class Address {
@@ -3983,6 +5655,25 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return v;
                 }
 
+                /** {@code World} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.skip(4); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public float deltaTick() {
+                        if (o0 < 0) return 0.0f;
+                        u.seek(o0);
+                        return u.getF32();
+                    }
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientRender.WORLD);
                 }
@@ -4068,6 +5759,25 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return v;
                 }
 
+                /** {@code Ui} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String uiId() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+                }
+
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
                 public YogMessage emit() {
                     return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.UI, uiId), packedFrame());
@@ -4087,18 +5797,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
 
             /** A stack's tooltip picture drawn in `rect` (`[x, y, w, h]`, screen pixels); keyed by the item (`item::Picture` sized it). */
-            public record Tooltip(String item, String snbt, java.util.List<Float> rect) {
+            public record Tooltip(String item, String snbt, float[] rect) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("item", item);
                     m.put("snbt", snbt);
-                    m.put("rect", rect);
+                    m.put("rect", YogData.listOf(rect));
                     return m;
                 }
 
                 public static Tooltip fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Tooltip(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""), YogData.list(m.get("rect")).stream().map(e0 -> (float) YogData.number(e0, 0)).toList());
+                    return new Tooltip(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""), YogData.floats(m.get("rect")));
                 }
 
                 public static Tooltip fromBytes(byte[] bytes) {
@@ -4117,7 +5827,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     int end = u.begin();
                     String f_item = u.more(end) ? u.getStr() : "";
                     String f_snbt = u.more(end) ? u.getStr() : "";
-                    java.util.List<Float> f_rect = u.more(end) ? u.getF32s() : java.util.List.of();
+                    float[] f_rect = u.more(end) ? u.getF32s() : new float[0];
                     u.leave(end);
                     return new Tooltip(f_item, f_snbt, f_rect);
                 }
@@ -4150,6 +5860,52 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return v;
                 }
 
+                /** {@code Tooltip} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int h2, n2, b2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { h2 = u.position(); n2 = u.count(); b2 = 1; o2 = u.position(); u.skip(n2 * (b2 != 0 ? 4 : 8)); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String item() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public String snbt() {
+                        if (o1 < 0) return "";
+                        u.seek(o1);
+                        return u.getStr();
+                    }
+
+                    public float[] rect() {
+                        if (o2 < 0) return new float[0];
+                        u.seek(h2);
+                        return u.getF32s();
+                    }
+
+                    public int rectLength() {
+                        return n2;
+                    }
+
+                    /** Item {@code i}, read in place. */
+                    public float rect(int i) {
+                        if (i < 0 || i >= n2) throw new IndexOutOfBoundsException(i);
+                        return u.f32At(o2 + 4 * i);
+                    }
+                }
+
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
                 public YogMessage emit() {
                     return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.TOOLTIP, item), packedFrame());
@@ -4169,18 +5925,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
 
             /** The picture of a book page of type `drawn` drawn in `rect` (`[x, y, w, h]`, screen pixels), every frame the page is open; keyed by its `drawer`. */
-            public record Page(String drawer, Object data, java.util.List<Float> rect) {
+            public record Page(String drawer, Object data, float[] rect) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("drawer", drawer);
                     m.put("data", data);
-                    m.put("rect", rect);
+                    m.put("rect", YogData.listOf(rect));
                     return m;
                 }
 
                 public static Page fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Page(YogData.str(m.get("drawer"), ""), m.get("data"), YogData.list(m.get("rect")).stream().map(e0 -> (float) YogData.number(e0, 0)).toList());
+                    return new Page(YogData.str(m.get("drawer"), ""), m.get("data"), YogData.floats(m.get("rect")));
                 }
 
                 public static Page fromBytes(byte[] bytes) {
@@ -4199,7 +5955,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     int end = u.begin();
                     String f_drawer = u.more(end) ? u.getStr() : "";
                     Object f_data = u.more(end) ? u.getTagged() : null;
-                    java.util.List<Float> f_rect = u.more(end) ? u.getF32s() : java.util.List.of();
+                    float[] f_rect = u.more(end) ? u.getF32s() : new float[0];
                     u.leave(end);
                     return new Page(f_drawer, f_data, f_rect);
                 }
@@ -4230,6 +5986,52 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     Page v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Page} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int h2, n2, b2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                        if (u.more(end)) { h2 = u.position(); n2 = u.count(); b2 = 1; o2 = u.position(); u.skip(n2 * (b2 != 0 ? 4 : 8)); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String drawer() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public Object data() {
+                        if (o1 < 0) return null;
+                        u.seek(o1);
+                        return u.getTagged();
+                    }
+
+                    public float[] rect() {
+                        if (o2 < 0) return new float[0];
+                        u.seek(h2);
+                        return u.getF32s();
+                    }
+
+                    public int rectLength() {
+                        return n2;
+                    }
+
+                    /** Item {@code i}, read in place. */
+                    public float rect(int i) {
+                        if (i < 0 || i >= n2) throw new IndexOutOfBoundsException(i);
+                        return u.f32At(o2 + 4 * i);
+                    }
                 }
 
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
@@ -4309,6 +6111,33 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     Camera v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Camera} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public YogTypes.CameraFrame.View frame() {
+                        if (o0 < 0) return null;
+                        u.seek(o0);
+                        return new YogTypes.CameraFrame.View(u);
+                    }
+
+                    public YogTypes.CameraOut.View out() {
+                        if (o1 < 0) return null;
+                        u.seek(o1);
+                        return new YogTypes.CameraOut.View(u);
+                    }
                 }
 
                 private static final class Address {
@@ -4397,6 +6226,33 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     Body v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Body} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public byte[] frame() {
+                        if (o0 < 0) return new byte[0];
+                        u.seek(o0);
+                        return u.getBytes();
+                    }
+
+                    public byte[] ops() {
+                        if (o1 < 0) return new byte[0];
+                        u.seek(o1);
+                        return u.getBytes();
+                    }
                 }
 
                 private static final class Address {
@@ -4490,6 +6346,33 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     Packet v = unpack(u);
                     u.finish();
                     return v;
+                }
+
+                /** {@code Packet} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String channel() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+
+                    public byte[] payload() {
+                        if (o1 < 0) return new byte[0];
+                        u.seek(o1);
+                        return u.getBytes();
+                    }
                 }
 
                 /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */

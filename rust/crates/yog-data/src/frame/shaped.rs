@@ -50,8 +50,10 @@ fn list(u: &mut Unpacker<'_>, item: &Shape) -> Option<Value> {
         Shape::Float { bits } if *bits == F32_BITS => u.get_f32s()?.into_iter().map(|f| Value::Float(f64::from(f))).collect(),
         Shape::Float { .. } => u.get_f64s()?.into_iter().map(Value::Float).collect(),
         _ => {
-            let n = u.count()?;
-            (0..n).map(|_| unpack_shaped(u, item)).collect::<Option<_>>()?
+            let (n, end) = u.list()?;
+            let items = (0..n).map(|_| unpack_shaped(u, item)).collect::<Option<_>>()?;
+            u.skip_to(end)?;
+            items
         }
     }))
 }

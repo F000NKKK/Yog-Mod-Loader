@@ -9,6 +9,8 @@ mod describe;
 mod own;
 mod duties;
 mod java;
+#[cfg(any(test, feature = "bench"))]
+pub(crate) mod jvm_support;
 mod router;
 #[cfg(test)]
 mod tests;
@@ -56,28 +58,28 @@ pub(crate) fn table() -> *const YogBus {
 
 /// Emits `event` before the game does it: whether every handler lets it.
 pub(crate) fn allowed<E: Event>(event: &E) -> bool {
-    let Some(pre) = event.pre_target() else { return true };
-    event.with_bytes(|payload| ROUTER.emit(ROUTER.resolve(&pre), payload, &YogReply::discard(), java::run)) != status::CANCELLED
+    let Some(pre) = event.pre_address() else { return true };
+    event.with_bytes(|payload| ROUTER.emit(pre, payload, &YogReply::discard(), java::run)) != status::CANCELLED
 }
 
 /// Emits `event` after the game did it.
 pub(crate) fn emitted<E: Event>(event: &E) {
-    event.with_bytes(|payload| ROUTER.emit(ROUTER.resolve(&event.target()), payload, &YogReply::discard(), java::run));
+    event.with_bytes(|payload| ROUTER.emit(event.address(), payload, &YogReply::discard(), java::run));
 }
 
 /// Emits `event` and reads back what the handlers made of it (itself when
 /// the reply isn't one).
 pub(crate) fn changed<E: Event>(event: E) -> E {
     let mut reply = Vec::new();
-    event.with_bytes(|payload| ROUTER.emit(ROUTER.resolve(&event.target()), payload, &YogReply::to_vec(&mut reply), java::run));
+    event.with_bytes(|payload| ROUTER.emit(event.address(), payload, &YogReply::to_vec(&mut reply), java::run));
     // Nothing written: no handler changed it.
     E::from_bytes(&reply).unwrap_or(event)
 }
 
 /// Calls `address`'s provider with `payload`: its reply, `None` when no one
 /// answers — how the runtime's own `yog_event` functions reach the bus.
-fn call_at(address: &str, payload: &[u8]) -> Option<Vec<u8>> {
-    let (st, reply) = ROUTER.call_vec(ROUTER.resolve(address), payload, java::run);
+fn call_at(address: yog_event::Address, payload: &[u8]) -> Option<Vec<u8>> {
+    let (st, reply) = ROUTER.call_vec(address, payload, java::run);
     (st == status::OK).then_some(reply)
 }
 
@@ -89,7 +91,7 @@ pub(crate) fn install_caller() {
 
 /// Calls `request`'s provider: its answer, `None` when no one answers.
 pub(crate) fn call<S: Service>(request: &S) -> Option<S::Reply> {
-    let (st, reply) = request.with_bytes(|payload| ROUTER.call_vec(ROUTER.resolve(&request.target()), payload, java::run));
+    let (st, reply) = request.with_bytes(|payload| ROUTER.call_vec(request.address(), payload, java::run));
     if st != status::OK {
         return None;
     }

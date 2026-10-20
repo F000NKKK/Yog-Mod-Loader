@@ -29,6 +29,12 @@ pub trait Event: Message {
     fn pre_target(&self) -> Option<String> {
         Self::PRE.map(|pre| crate::message::target(pre, self.key()))
     }
+
+    /// [`Event::target`]'s number — the type's own address cached.
+    fn address(&self) -> crate::Address;
+
+    /// [`Event::pre_target`]'s number.
+    fn pre_address(&self) -> Option<crate::Address>;
 }
 
 /// An event type's descriptor: its plane and name, addresses and payload shape.
@@ -51,6 +57,16 @@ macro_rules! events {
 
             fn key(&self) -> Option<&str> {
                 key_value!(self, $($key)?)
+            }
+
+            fn address(&self) -> crate::Address {
+                static AT: crate::Cached = crate::Cached::new();
+                crate::address::of(&AT, $post, self.key())
+            }
+
+            fn pre_address(&self) -> Option<crate::Address> {
+                static PRE: crate::Cached = crate::Cached::new();
+                $pre.map(|pre: &'static str| crate::address::of(&PRE, pre, self.key()))
             }
         })*
 

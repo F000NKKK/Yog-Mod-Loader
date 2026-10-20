@@ -174,9 +174,12 @@ Rust and Java live in one process, so a message needn't be copied into a
   downcalls were considered and dropped: a critical call may not call back
   into Java, and a Rust handler calls the host's actions all the time; a
   plain FFM call costs what the JNI one does.)
-* **Atoms.** Ids and keys that repeat (`minecraft:stone`, field names,
-  live entities' uuids) go as `u32` through a table in shared memory; Java
-  keeps one `String` per atom — no UTF-8, no allocation per call.
+* **Atoms.** Names that repeat (`minecraft:stone`, a dimension, an entity
+  type) go as `u32` through one table a process — the runtime's, which
+  every mod's `yog-data` and the host's `YogAtoms` share; Java keeps one
+  `String` per atom. Addresses are atoms too: a message type resolves its
+  address once and keeps the number (no string looked up per call). Live
+  entities' uuids aren't atoms: unbounded, and atoms are never freed.
 * **No allocation on the hot path**: reused buffers; SPSC rings between
   the render, client and server threads.
 * **Batches.** Changes (`set_block`, particles, effects) go into a ring the
@@ -234,10 +237,11 @@ benches in `yog-data`): records positional and untagged (both sides are
 generated from one schema; fields only appended, a shape fingerprint
 catches reordering; files keep tagged self-describing records), frames
 without the `YOGD` header, a string table on the stack, `Arc<str>` /
-`Box<str>` reused by table index, int lists bit-packed or raw by what
-saves more, float lists in `f32` when exact, a record's `f64`s that fit in
-`f32` marked in a bitmask, zero-copy views (`XxxView<'a>`) derived next to
-`Schema`, typed Java codecs per record. The goal: beat rkyv, postcard and
+`Box<str>` reused by table index, int lists bit-packed in AVX2-sized
+blocks (`frame::lanes`), float lists in `f32` when exact, other lists with
+their byte length (stepped over), repeated names as atoms, zero-copy views
+(`XxxView<'a>`, lazy lists) derived next to `Schema`, typed Java codecs and
+views per record. The goal: beat rkyv, postcard and
 serde_json in size and speed.
 
 ## Versions without ABI bumps
@@ -280,14 +284,18 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
   fields: ids sent as numbers, one Java `String` each). SPSC rings between
   threads go with F3.
 * **F2.7 — rkyv parity** (the goal: Rust ↔ Java as fast as rkyv's
-  in-place access): generated Java views (`XView` over the arena's
-  buffer, fields read in place, no objects); primitive arrays (`int[]`,
-  `float[]`…) in Java records instead of boxed lists; raw byte-aligned
-  number lists where bit-packing saves little (`get(i)` one load, bulk
-  copies); lazy views (lists kept as bytes and a count, fixed-size records
-  indexed in O(1), no `Vec`); no separate validation pass (every read
-  bounds-checked). Measured in `versus` (field and i-th element access
-  against rkyv) and `jni_calls` (a full Rust → Java → reply round trip).
+  in-place access): number lists bit-packed in blocks of 256 (8 lanes of
+  32-bit words, a row one AVX2 vector; packed and unpacked with AVX2 where
+  the processor has it, the same bytes either way; item `i` in O(1)) and
+  float lists narrowed / widened four at a time; lists carry their byte
+  length, so views step over them and read them lazily (`List<'a, T>`, no
+  `Vec`); Java records hold primitive arrays (`int[]`, `float[]`…), and
+  each record has a generated `View` (fields read in place where the frame
+  is; `serve` reads requests through it, `callView` replies); event
+  dispatch enters a mod once for its handlers in a row (a borrowed guard,
+  no reference count) and trades two reply buffers. Measured in `versus`
+  (one value read, opening included, against rkyv) and `bus_calls` (whole
+  calls on a real JVM: Rust → Java → reply, Java → Rust).
 * **F3 — mirrors**: facts in `yog-ids`; the column store (inodes, key
   spaces, directories, merged demand, writer hand-over); `#[yog_mirror]`;
   its Java side; the host's mirrors (entities, players, block areas); Pipes'

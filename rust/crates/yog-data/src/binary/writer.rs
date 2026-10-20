@@ -69,18 +69,13 @@ impl Writer {
     /// A list of floats, packed, no tag each: four bytes each when every
     /// one is an `f32` exactly ([`tag::FLOATS32`]), else eight.
     pub fn floats(&mut self, items: &[f64]) -> &mut Self {
-        if items.iter().all(|&f| f64::from(f as f32).to_bits() == f.to_bits()) {
-            self.out.push(tag::FLOATS32);
-            varint(&mut self.out, items.len() as u64);
-            for &f in items {
-                self.out.extend_from_slice(&(f as f32).to_le_bytes());
-            }
-            return self;
-        }
-        self.out.push(tag::FLOATS);
+        let narrow = crate::frame::floats::fits_f32(items);
+        self.out.push(if narrow { tag::FLOATS32 } else { tag::FLOATS });
         varint(&mut self.out, items.len() as u64);
-        for f in items {
-            self.out.extend_from_slice(&f.to_le_bytes());
+        if narrow {
+            crate::frame::floats::put_narrow(&mut self.out, items);
+        } else {
+            crate::frame::floats::put_wide(&mut self.out, items);
         }
         self
     }
@@ -89,9 +84,7 @@ impl Writer {
     pub fn floats32(&mut self, items: &[f32]) -> &mut Self {
         self.out.push(tag::FLOATS32);
         varint(&mut self.out, items.len() as u64);
-        for f in items {
-            self.out.extend_from_slice(&f.to_le_bytes());
-        }
+        crate::frame::floats::put_f32s(&mut self.out, items);
         self
     }
 

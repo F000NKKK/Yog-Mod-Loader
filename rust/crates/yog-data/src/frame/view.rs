@@ -35,68 +35,121 @@ pub fn read_view<'a, T: View<'a>>(bytes: &'a [u8]) -> Option<T::View> {
     u.at_end().then_some(v)
 }
 
-/// A list of anything else, read into a `Vec` of views.
-fn list_of<'a, T: View<'a>>(u: &mut Unpacker<'a>) -> Option<Vec<T::View>> {
-    let n = u.count()?;
-    let mut out = Vec::with_capacity(n);
-    for _ in 0..n {
-        out.push(T::unpack_view(u)?);
+/// A list of anything but numbers, read lazily: its bytes and how many
+/// items — each viewed as it's reached ([`List::iter`]), nothing allocated.
+pub struct List<'a, T> {
+    u: Unpacker<'a>,
+    len: usize,
+    item: PhantomData<fn() -> T>,
+}
+
+impl<'a, T> Clone for List<'a, T> {
+    fn clone(&self) -> Self {
+        List { u: self.u.fork(self.u.position()), len: self.len, item: PhantomData }
     }
-    Some(out)
+}
+
+impl<T> std::fmt::Debug for List<'_, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "List({} items)", self.len)
+    }
+}
+
+impl<'a, T: View<'a>> List<'a, T> {
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Each item's view, read as it's reached.
+    pub fn iter(&self) -> ListIter<'a, T> {
+        ListIter { u: self.u.fork(self.u.position()), left: self.len, item: PhantomData }
+    }
+
+    /// Item `i` (the ones before it stepped over).
+    pub fn get(&self, i: usize) -> Option<T::View> {
+        self.iter().nth(i)
+    }
+}
+
+/// [`List::iter`].
+pub struct ListIter<'a, T> {
+    u: Unpacker<'a>,
+    left: usize,
+    item: PhantomData<fn() -> T>,
+}
+
+impl<'a, T: View<'a>> Iterator for ListIter<'a, T> {
+    type Item = T::View;
+    fn next(&mut self) -> Option<T::View> {
+        self.left = self.left.checked_sub(1)?;
+        T::unpack_view(&mut self.u)
+    }
+}
+
+/// A list ([`super::Packer::begin_list`]) as a [`List`]: stepped over, read later.
+pub fn list<'a, T: View<'a>>(u: &mut Unpacker<'a>) -> Option<List<'a, T>> {
+    let (len, end) = u.list()?;
+    let at = u.position();
+    u.skip_to(end)?;
+    Some(List { u: u.fork(at), len, item: PhantomData })
 }
 
 impl<'a> View<'a> for bool {
     type View = bool;
-    type ListView = Vec<bool>;
+    type ListView = List<'a, bool>;
     fn unpack_view(u: &mut Unpacker<'a>) -> Option<bool> {
         u.get_bool()
     }
-    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Vec<bool>> {
-        list_of::<bool>(u)
+    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Self::ListView> {
+        list(u)
     }
 }
 
 impl<'a> View<'a> for String {
     type View = &'a str;
-    type ListView = Vec<&'a str>;
+    type ListView = List<'a, Self>;
     fn unpack_view(u: &mut Unpacker<'a>) -> Option<&'a str> {
         u.get_str()
     }
-    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Vec<&'a str>> {
-        list_of::<String>(u)
+    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Self::ListView> {
+        list(u)
     }
 }
 
 impl<'a> View<'a> for Box<str> {
     type View = &'a str;
-    type ListView = Vec<&'a str>;
+    type ListView = List<'a, Self>;
     fn unpack_view(u: &mut Unpacker<'a>) -> Option<&'a str> {
         u.get_str()
     }
-    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Vec<&'a str>> {
-        list_of::<Box<str>>(u)
+    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Self::ListView> {
+        list(u)
     }
 }
 
 impl<'a> View<'a> for crate::Atom {
     type View = crate::Atom;
-    type ListView = Vec<crate::Atom>;
+    type ListView = List<'a, crate::Atom>;
     fn unpack_view(u: &mut Unpacker<'a>) -> Option<crate::Atom> {
         <crate::Atom as crate::Schema>::unpack(u)
     }
-    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Vec<crate::Atom>> {
-        list_of::<crate::Atom>(u)
+    fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Self::ListView> {
+        list(u)
     }
 }
 
 impl<'a, T: View<'a>> View<'a> for Option<T> {
     type View = Option<T::View>;
-    type ListView = Vec<Option<T::View>>;
+    type ListView = List<'a, Option<T>>;
     fn unpack_view(u: &mut Unpacker<'a>) -> Option<Option<T::View>> {
         if u.get_bool()? { T::unpack_view(u).map(Some) } else { Some(None) }
     }
     fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Self::ListView> {
-        list_of::<Option<T>>(u)
+        list(u)
     }
 }
 
@@ -113,12 +166,12 @@ impl<'a, T: View<'a>> View<'a> for Box<T> {
 
 impl<'a, T: View<'a>> View<'a> for Vec<T> {
     type View = T::ListView;
-    type ListView = Vec<T::ListView>;
+    type ListView = List<'a, Vec<T>>;
     fn unpack_view(u: &mut Unpacker<'a>) -> Option<T::ListView> {
         T::unpack_list_view(u)
     }
     fn unpack_list_view(u: &mut Unpacker<'a>) -> Option<Self::ListView> {
-        list_of::<Vec<T>>(u)
+        list(u)
     }
 }
 
@@ -132,9 +185,6 @@ pub struct Ints<'a, T> {
     item: PhantomData<fn() -> T>,
 }
 
-/// Bytes a packed int may span (64 bits starting anywhere in a byte).
-const INT_SPAN: usize = 9;
-const BYTE_BITS: usize = 8;
 
 impl<T: TryFrom<i128>> Ints<'_, T> {
     pub fn len(&self) -> usize {
@@ -145,18 +195,12 @@ impl<T: TryFrom<i128>> Ints<'_, T> {
         self.len == 0
     }
 
-    /// Item `i`, if there's one.
+    /// Item `i`, if there's one: read in place, O(1).
     pub fn get(&self, i: usize) -> Option<T> {
         if i >= self.len {
             return None;
         }
-        let bit = i * self.bits as usize;
-        let (byte, shift) = (bit / BYTE_BITS, bit % BYTE_BITS);
-        let mut window = [0u8; 16];
-        let end = (byte + INT_SPAN).min(self.bytes.len());
-        window[..end - byte].copy_from_slice(&self.bytes[byte..end]);
-        let mask = u128::from(u64::MAX) >> (u64::BITS - self.bits);
-        let raw = ((u128::from_le_bytes(window) >> shift) & mask) as u64;
+        let raw = super::lanes::get(self.bytes, self.len, self.bits, i);
         let n = if self.signed { i128::from(crate::binary::unzigzag(raw)) } else { i128::from(raw) };
         T::try_from(n).ok()
     }

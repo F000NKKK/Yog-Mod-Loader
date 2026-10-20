@@ -8,7 +8,7 @@ use yog_data::schema::StructShape;
 use crate::ServiceInfo;
 
 use super::frames;
-use super::types::java_type;
+use super::types::{TYPES, java_type};
 use super::{Entry, Out, class_name, field, file, name, target};
 
 /// The class it writes.
@@ -36,6 +36,14 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
         frames::unpack(&s.reply, 0),
         frames::missing(&s.reply)
     );
+    if let Shape::Struct(r) = &s.reply {
+        let _ = write!(
+            body,
+            "\n\n    /** {{@link #call}}'s reply read where it is (valid until this thread's next bus call); null when no one answered. */\n    public {TYPES}.{n}.View callView() {{\n        YogMessage r = YogBus.call({}, packedFrame());\n        if (!r.ok() || r.isEmpty()) return null;\n        try {{\n            return new {TYPES}.{n}.View(r.frame());\n        }} catch (YogData.DecodeException e) {{\n            return null;\n        }}\n    }}",
+            target(s.address, s.key, "AT"),
+            n = r.name
+        );
+    }
     if s.host.is_some() {
         body.push_str(&serve(s, &mut o.records));
         let _ = write!(
@@ -59,7 +67,7 @@ fn serve(s: &ServiceInfo, records: &mut Vec<StructShape>) -> String {
     let classes: String = args.iter().map(|(_, java)| format!(", {}", class_of(java))).collect();
     let exprs: Vec<&str> = args.iter().map(|(expr, _)| expr.as_str()).collect();
     format!(
-        "\n\n    private static final class HostMethod {{\n        static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class{classes}));\n    }}\n\n    /** Answers the action: the request out of its frame, the host method called, the reply packed. */\n    public static int serve(YogMessage in, YogBus.Out sink) {{\n        if (HostMethod.H == null) return YogBus.NO_HANDLER;\n        try {{\n            {name} r = fromFrame(in);\n            Object out = (Object) HostMethod.H.invokeExact({});\n            reply(dev.yog.YogHostServices.none(out), sink.frame());\n            return YogBus.OK;\n        }} catch (YogData.DecodeException e) {{\n            return YogBus.BAD_PAYLOAD;\n        }} catch (Throwable t) {{\n            return dev.yog.YogHostServices.failed(ADDRESS, t);\n        }}\n    }}",
+        "\n\n    private static final class HostMethod {{\n        static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class{classes}));\n    }}\n\n    /** Answers the action: the request out of its frame, the host method called, the reply packed. */\n    public static int serve(YogMessage in, YogBus.Out sink) {{\n        if (HostMethod.H == null) return YogBus.NO_HANDLER;\n        try {{\n            {name}.View r = new {name}.View(in.frame());\n            Object out = (Object) HostMethod.H.invokeExact({});\n            reply(dev.yog.YogHostServices.none(out), sink.frame());\n            return YogBus.OK;\n        }} catch (YogData.DecodeException e) {{\n            return YogBus.BAD_PAYLOAD;\n        }} catch (Throwable t) {{\n            return dev.yog.YogHostServices.failed(ADDRESS, t);\n        }}\n    }}",
         exprs.join(", "),
         name = s.name
     )

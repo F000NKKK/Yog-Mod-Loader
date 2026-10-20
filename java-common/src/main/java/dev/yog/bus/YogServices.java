@@ -79,6 +79,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Grant} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String id() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceAdvancement.GRANT);
             }
@@ -110,7 +137,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Grant r = fromFrame(in);
+                    Grant.View r = new Grant.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.id());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -189,6 +216,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Done} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String id() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceAdvancement.DONE);
             }
@@ -220,7 +274,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Done r = fromFrame(in);
+                    Done.View r = new Done.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.id());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -319,6 +373,73 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Insert} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+                private final int o5;
+                private final int o6;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                    if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                    if (u.more(end)) { o6 = u.position(); u.skip(1); } else { o6 = -1; }
+                    u.leave(end);
+                }
+
+                public String blockId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String dimension() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public String itemId() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+
+                public long count() {
+                    if (o4 < 0) return 0L;
+                    u.seek(o4);
+                    return u.getI();
+                }
+
+                public String nbt() {
+                    if (o5 < 0) return "";
+                    u.seek(o5);
+                    return u.getStr();
+                }
+
+                public boolean simulate() {
+                    if (o6 < 0) return false;
+                    u.seek(o6);
+                    return u.getBool();
+                }
+            }
+
             public boolean call() {
                 YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceBlock.INSERT, blockId), packedFrame());
                 if (r.ok() && !r.isEmpty()) {
@@ -396,6 +517,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Nbt} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.NBT);
             }
@@ -427,7 +575,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Nbt r = fromFrame(in);
+                    Nbt.View r = new Nbt.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -509,6 +657,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetNbt} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String snbt() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.SET_NBT);
             }
@@ -540,7 +723,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetNbt r = fromFrame(in);
+                    SetNbt.View r = new SetNbt.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.snbt());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -619,6 +802,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code State} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.STATE);
             }
@@ -650,7 +860,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    State r = fromFrame(in);
+                    State.View r = new State.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -732,6 +942,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetState} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String state() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.SET_STATE);
             }
@@ -763,7 +1008,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetState r = fromFrame(in);
+                    SetState.View r = new SetState.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.state());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -842,6 +1087,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Info} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.INFO);
             }
@@ -873,7 +1145,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Info r = fromFrame(in);
+                    Info.View r = new Info.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -958,6 +1230,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Destroy} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public boolean drop() {
+                    if (o2 < 0) return false;
+                    u.seek(o2);
+                    return u.getBool();
+                }
+
+                public String breaker() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.DESTROY);
             }
@@ -989,7 +1304,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Destroy r = fromFrame(in);
+                    Destroy.View r = new Destroy.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.drop(), r.breaker());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1068,6 +1383,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Bonemeal} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.BONEMEAL);
             }
@@ -1099,7 +1441,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Bonemeal r = fromFrame(in);
+                    Bonemeal.View r = new Bonemeal.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1187,6 +1529,57 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code UseItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public int face() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+
+                public String item() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+
+                public String player() {
+                    if (o4 < 0) return "";
+                    u.seek(o4);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.USE_ITEM);
             }
@@ -1218,7 +1611,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    UseItem r = fromFrame(in);
+                    UseItem.View r = new UseItem.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.face(), r.item(), r.player());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1300,6 +1693,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code PourFluid} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String bucket() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.POUR_FLUID);
             }
@@ -1331,7 +1759,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PourFluid r = fromFrame(in);
+                    PourFluid.View r = new PourFluid.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.bucket());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1410,6 +1838,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code RedstonePower} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.REDSTONE_POWER);
             }
@@ -1441,7 +1896,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RedstonePower r = fromFrame(in);
+                    RedstonePower.View r = new RedstonePower.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1520,6 +1975,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code RedstoneSignal} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.REDSTONE_SIGNAL);
             }
@@ -1551,7 +2033,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RedstoneSignal r = fromFrame(in);
+                    RedstoneSignal.View r = new RedstoneSignal.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1633,6 +2115,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetRedstoneOutput} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public int level() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.SET_REDSTONE_OUTPUT);
             }
@@ -1664,7 +2181,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetRedstoneOutput r = fromFrame(in);
+                    SetRedstoneOutput.View r = new SetRedstoneOutput.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.level());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1746,6 +2263,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code InventorySlot} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public long slot() {
+                    if (o2 < 0) return 0L;
+                    u.seek(o2);
+                    return u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.INVENTORY_SLOT);
             }
@@ -1777,7 +2329,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    InventorySlot r = fromFrame(in);
+                    InventorySlot.View r = new InventorySlot.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.slot());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1868,6 +2420,65 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetInventorySlot} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+                private final int o5;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                    if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public long slot() {
+                    if (o2 < 0) return 0L;
+                    u.seek(o2);
+                    return u.getI();
+                }
+
+                public String item() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+
+                public long count() {
+                    if (o4 < 0) return 0L;
+                    u.seek(o4);
+                    return u.getI();
+                }
+
+                public String snbt() {
+                    if (o5 < 0) return "";
+                    u.seek(o5);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.SET_INVENTORY_SLOT);
             }
@@ -1899,7 +2510,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetInventorySlot r = fromFrame(in);
+                    SetInventorySlot.View r = new SetInventorySlot.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.slot(), r.item(), r.count(), r.snbt());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -1989,6 +2600,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Create} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String title() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public String color() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public String style() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.CREATE);
             }
@@ -2020,7 +2674,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Create r = fromFrame(in);
+                    Create.View r = new Create.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.title(), r.color(), r.style());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -2096,6 +2750,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Remove} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.REMOVE);
             }
@@ -2127,7 +2800,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Remove r = fromFrame(in);
+                    Remove.View r = new Remove.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -2206,6 +2879,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetTitle} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String title() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.SET_TITLE);
             }
@@ -2237,7 +2937,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetTitle r = fromFrame(in);
+                    SetTitle.View r = new SetTitle.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.title());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -2316,6 +3016,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetProgress} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public float progress() {
+                    if (o1 < 0) return 0.0f;
+                    u.seek(o1);
+                    return u.getF32();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.SET_PROGRESS);
             }
@@ -2347,7 +3074,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetProgress r = fromFrame(in);
+                    SetProgress.View r = new SetProgress.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.progress());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -2426,6 +3153,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetColor} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String color() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.SET_COLOR);
             }
@@ -2457,7 +3211,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetColor r = fromFrame(in);
+                    SetColor.View r = new SetColor.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.color());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -2536,6 +3290,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code AddPlayer} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String player() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.ADD_PLAYER);
             }
@@ -2567,7 +3348,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AddPlayer r = fromFrame(in);
+                    AddPlayer.View r = new AddPlayer.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.player());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -2646,6 +3427,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code RemovePlayer} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String player() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.REMOVE_PLAYER);
             }
@@ -2677,7 +3485,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RemovePlayer r = fromFrame(in);
+                    RemovePlayer.View r = new RemovePlayer.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.player());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -2756,6 +3564,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetVisible} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean visible() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.SET_VISIBLE);
             }
@@ -2787,7 +3622,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetVisible r = fromFrame(in);
+                    SetVisible.View r = new SetVisible.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id(), r.visible());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -2839,7 +3674,7 @@ public final class YogServices {
                 p.putStr(this.doc);
                 p.putTagged(this.shape);
                 p.putBool(this.reply != null); if (this.reply != null) { p.putTagged(this.reply); }
-                p.putU(this.interfaces.size()); for (var e0 : this.interfaces) { p.putStr(e0); }
+                { int l0 = p.beginList(this.interfaces.size()); for (var e0 : this.interfaces) { p.putStr(e0); } p.end(l0); }
                 p.end(at);
             }
 
@@ -2881,6 +3716,65 @@ public final class YogServices {
                 Descriptor v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Descriptor} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+                private final int o5;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skipBytes(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); if (u.getBool()) { u.skipBytes(); } } else { o4 = -1; }
+                    if (u.more(end)) { o5 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o5 = -1; }
+                    u.leave(end);
+                }
+
+                public String address() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String kind() {
+                    if (o1 < 0) return "event";
+                    u.seek(o1);
+                    return switch ((int) u.getU()) { case 0 -> "event"; case 1 -> "service"; default -> ""; };
+                }
+
+                public String doc() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public Object shape() {
+                    if (o3 < 0) return null;
+                    u.seek(o3);
+                    return u.getTagged();
+                }
+
+                public Object reply() {
+                    if (o4 < 0) return null;
+                    u.seek(o4);
+                    return (u.getBool() ? u.getTagged() : null);
+                }
+
+                public java.util.List<String> interfaces() {
+                    if (o5 < 0) return java.util.List.of();
+                    u.seek(o5);
+                    return YogFrame.list(u, () -> u.getStr());
+                }
             }
 
             private static final class Address {
@@ -2961,6 +3855,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Describe} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String address() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBus.DESCRIBE);
             }
@@ -3039,6 +3952,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code List} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String prefix() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBus.LIST);
             }
@@ -3115,6 +4047,25 @@ public final class YogServices {
                 Find v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Find} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String interface_() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
             }
 
             private static final class Address {
@@ -3200,6 +4151,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Broadcast} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String message() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.BROADCAST);
             }
@@ -3231,7 +4201,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Broadcast r = fromFrame(in);
+                    Broadcast.View r = new Broadcast.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.message());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -3310,6 +4280,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Tellraw} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String json() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.TELLRAW);
             }
@@ -3341,7 +4338,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Tellraw r = fromFrame(in);
+                    Tellraw.View r = new Tellraw.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.json());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -3432,6 +4429,65 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Title} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+                private final int o5;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                    if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String title() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public String subtitle() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public int fadeIn() {
+                    if (o3 < 0) return 0;
+                    u.seek(o3);
+                    return (int) u.getI();
+                }
+
+                public int stay() {
+                    if (o4 < 0) return 0;
+                    u.seek(o4);
+                    return (int) u.getI();
+                }
+
+                public int fadeOut() {
+                    if (o5 < 0) return 0;
+                    u.seek(o5);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.TITLE);
             }
@@ -3463,7 +4519,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Title r = fromFrame(in);
+                    Title.View r = new Title.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.title(), r.subtitle(), r.fadeIn(), r.stay(), r.fadeOut());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -3542,6 +4598,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Actionbar} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String message() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.ACTIONBAR);
             }
@@ -3573,7 +4656,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Actionbar r = fromFrame(in);
+                    Actionbar.View r = new Actionbar.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.message());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -3652,6 +4735,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code ActionbarJson} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String json() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.ACTIONBAR_JSON);
             }
@@ -3683,7 +4793,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    ActionbarJson r = fromFrame(in);
+                    ActionbarJson.View r = new ActionbarJson.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.json());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -3765,6 +4875,33 @@ public final class YogServices {
                 EntityData v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code EntityData} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String key() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
             }
 
             private static final class Address {
@@ -3854,6 +4991,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code PlaySound} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String sound() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public float volume() {
+                    if (o1 < 0) return 0.0f;
+                    u.seek(o1);
+                    return u.getF32();
+                }
+
+                public float pitch() {
+                    if (o2 < 0) return 0.0f;
+                    u.seek(o2);
+                    return u.getF32();
+                }
+
+                public boolean looping() {
+                    if (o3 < 0) return false;
+                    u.seek(o3);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.PLAY_SOUND);
             }
@@ -3885,7 +5065,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlaySound r = fromFrame(in);
+                    PlaySound.View r = new PlaySound.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.sound(), r.volume(), r.pitch(), r.looping());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -3961,6 +5141,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code StopSound} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public int handle() {
+                    if (o0 < 0) return 0;
+                    u.seek(o0);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.STOP_SOUND);
             }
@@ -3992,7 +5191,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    StopSound r = fromFrame(in);
+                    StopSound.View r = new StopSound.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.handle());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4068,6 +5267,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code HeldItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.skip(1); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public boolean offHand() {
+                    if (o0 < 0) return false;
+                    u.seek(o0);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.HELD_ITEM);
             }
@@ -4099,7 +5317,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HeldItem r = fromFrame(in);
+                    HeldItem.View r = new HeldItem.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.offHand());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4181,6 +5399,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetBlockTint} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public int color() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.SET_BLOCK_TINT);
             }
@@ -4212,7 +5465,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetBlockTint r = fromFrame(in);
+                    SetBlockTint.View r = new SetBlockTint.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.color());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4285,6 +5538,17 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code ScreenSlots} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.SCREEN_SLOTS);
             }
@@ -4316,7 +5580,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    ScreenSlots r = fromFrame(in);
+                    ScreenSlots.View r = new ScreenSlots.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact();
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4330,7 +5594,7 @@ public final class YogServices {
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.ScreenSlot> v = (java.util.List<YogTypes.ScreenSlot>) out;
-                p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
             }
         }
 
@@ -4392,6 +5656,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code KeyDown} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public int key() {
+                    if (o0 < 0) return 0;
+                    u.seek(o0);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.KEY_DOWN);
             }
@@ -4423,7 +5706,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    KeyDown r = fromFrame(in);
+                    KeyDown.View r = new KeyDown.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.key());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4499,6 +5782,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code AttributeValue} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String attribute() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.ATTRIBUTE_VALUE);
             }
@@ -4530,7 +5832,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AttributeValue r = fromFrame(in);
+                    AttributeValue.View r = new AttributeValue.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.attribute());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4606,6 +5908,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code AdvancementDone} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.ADVANCEMENT_DONE);
             }
@@ -4637,7 +5958,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AdvancementDone r = fromFrame(in);
+                    AdvancementDone.View r = new AdvancementDone.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.id());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4716,6 +6037,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code BodyTrack} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean on() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.BODY_TRACK);
             }
@@ -4747,7 +6095,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    BodyTrack r = fromFrame(in);
+                    BodyTrack.View r = new BodyTrack.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.on());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4826,6 +6174,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code BodyTrackType} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String entityType() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean on() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.BODY_TRACK_TYPE);
             }
@@ -4857,7 +6232,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    BodyTrackType r = fromFrame(in);
+                    BodyTrackType.View r = new BodyTrackType.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.on());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -4942,6 +6317,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetDimensions} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skip(4); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public float width() {
+                    if (o1 < 0) return 0.0f;
+                    u.seek(o1);
+                    return u.getF32();
+                }
+
+                public float height() {
+                    if (o2 < 0) return 0.0f;
+                    u.seek(o2);
+                    return u.getF32();
+                }
+
+                public float eye() {
+                    if (o3 < 0) return 0.0f;
+                    u.seek(o3);
+                    return u.getF32();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.SET_DIMENSIONS);
             }
@@ -4973,7 +6391,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetDimensions r = fromFrame(in);
+                    SetDimensions.View r = new SetDimensions.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.width(), r.height(), r.eye());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -5068,6 +6486,65 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Drive} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+                    private final int o3;
+                    private final int o4;
+                    private final int o5;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.skip(4); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                        if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                        if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                        if (u.more(end)) { o5 = u.position(); u.skip(1); } else { o5 = -1; }
+                        u.leave(end);
+                    }
+
+                    public float forward() {
+                        if (o0 < 0) return 0.0f;
+                        u.seek(o0);
+                        return u.getF32();
+                    }
+
+                    public float strafe() {
+                        if (o1 < 0) return 0.0f;
+                        u.seek(o1);
+                        return u.getF32();
+                    }
+
+                    public boolean jump() {
+                        if (o2 < 0) return false;
+                        u.seek(o2);
+                        return u.getBool();
+                    }
+
+                    public boolean sneak() {
+                        if (o3 < 0) return false;
+                        u.seek(o3);
+                        return u.getBool();
+                    }
+
+                    public boolean sprint() {
+                        if (o4 < 0) return false;
+                        u.seek(o4);
+                        return u.getBool();
+                    }
+
+                    public boolean useItem() {
+                        if (o5 < 0) return false;
+                        u.seek(o5);
+                        return u.getBool();
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.DRIVE);
                 }
@@ -5099,7 +6576,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Drive r = fromFrame(in);
+                        Drive.View r = new Drive.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.forward(), r.strafe(), r.jump(), r.sneak(), r.sprint(), r.useItem());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -5172,6 +6649,17 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Release} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        u.leave(end);
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.RELEASE);
                 }
@@ -5203,7 +6691,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Release r = fromFrame(in);
+                        Release.View r = new Release.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact();
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -5282,6 +6770,33 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Look} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.skip(4); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public float yaw() {
+                        if (o0 < 0) return 0.0f;
+                        u.seek(o0);
+                        return u.getF32();
+                    }
+
+                    public float pitch() {
+                        if (o1 < 0) return 0.0f;
+                        u.seek(o1);
+                        return u.getF32();
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.LOOK);
                 }
@@ -5313,7 +6828,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Look r = fromFrame(in);
+                        Look.View r = new Look.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.yaw(), r.pitch());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -5389,6 +6904,25 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Attack} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); if (u.getBool()) { u.getU(); } } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String entity() {
+                        if (o0 < 0) return null;
+                        u.seek(o0);
+                        return (u.getBool() ? u.getStr() : null);
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.ATTACK);
                 }
@@ -5420,7 +6954,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Attack r = fromFrame(in);
+                        Attack.View r = new Attack.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.entity());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -5496,6 +7030,25 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code UseItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.skip(1); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public boolean offHand() {
+                        if (o0 < 0) return false;
+                        u.seek(o0);
+                        return u.getBool();
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.USE_ITEM);
                 }
@@ -5527,7 +7080,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        UseItem r = fromFrame(in);
+                        UseItem.View r = new UseItem.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.offHand());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -5606,6 +7159,33 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Mine} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public YogTypes.BlockPos.View pos() {
+                        if (o0 < 0) return null;
+                        u.seek(o0);
+                        return new YogTypes.BlockPos.View(u);
+                    }
+
+                    public String face() {
+                        if (o1 < 0) return "down";
+                        u.seek(o1);
+                        return switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; };
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.MINE);
                 }
@@ -5637,7 +7217,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Mine r = fromFrame(in);
+                        Mine.View r = new Mine.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.pos().x(), r.pos().y(), r.pos().z(), r.face());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -5710,6 +7290,17 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code StopMining} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        u.leave(end);
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.STOP_MINING);
                 }
@@ -5741,7 +7332,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        StopMining r = fromFrame(in);
+                        StopMining.View r = new StopMining.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact();
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -5820,6 +7411,33 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Place} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public YogTypes.BlockPos.View pos() {
+                        if (o0 < 0) return null;
+                        u.seek(o0);
+                        return new YogTypes.BlockPos.View(u);
+                    }
+
+                    public String face() {
+                        if (o1 < 0) return "down";
+                        u.seek(o1);
+                        return switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; };
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.PLACE);
                 }
@@ -5851,7 +7469,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Place r = fromFrame(in);
+                        Place.View r = new Place.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.pos().x(), r.pos().y(), r.pos().z(), r.face());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -5927,6 +7545,25 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code SelectSlot} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public long slot() {
+                        if (o0 < 0) return 0L;
+                        u.seek(o0);
+                        return u.getI();
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.SELECT_SLOT);
                 }
@@ -5958,7 +7595,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        SelectSlot r = fromFrame(in);
+                        SelectSlot.View r = new SelectSlot.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.slot());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -6040,6 +7677,41 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Click} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public int slot() {
+                        if (o0 < 0) return 0;
+                        u.seek(o0);
+                        return (int) u.getI();
+                    }
+
+                    public int button() {
+                        if (o1 < 0) return 0;
+                        u.seek(o1);
+                        return (int) u.getI();
+                    }
+
+                    public String mode() {
+                        if (o2 < 0) return "pickup";
+                        u.seek(o2);
+                        return switch ((int) u.getU()) { case 0 -> "pickup"; case 1 -> "quick_move"; case 2 -> "swap"; case 3 -> "clone"; case 4 -> "throw"; case 5 -> "quick_craft"; case 6 -> "pickup_all"; default -> ""; };
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.CLICK);
                 }
@@ -6071,7 +7743,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Click r = fromFrame(in);
+                        Click.View r = new Click.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.slot(), r.button(), r.mode());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -6147,6 +7819,25 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Chat} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String text() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.CHAT);
                 }
@@ -6178,7 +7869,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Chat r = fromFrame(in);
+                        Chat.View r = new Chat.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.text());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -6256,6 +7947,17 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code State} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        u.leave(end);
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.STATE);
                 }
@@ -6287,7 +7989,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        State r = fromFrame(in);
+                        State.View r = new State.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact();
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -6360,6 +8062,17 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Inventory} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        u.leave(end);
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.INVENTORY);
                 }
@@ -6391,7 +8104,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Inventory r = fromFrame(in);
+                        Inventory.View r = new Inventory.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact();
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -6405,7 +8118,7 @@ public final class YogServices {
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     java.util.List<YogTypes.SlotStack> v = (java.util.List<YogTypes.SlotStack>) out;
-                    p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
                 }
             }
 
@@ -6432,7 +8145,7 @@ public final class YogServices {
                     int at = p.begin();
                     this.min.pack(p);
                     this.max.pack(p);
-                    p.putU(this.ids.size()); for (var e0 : this.ids) { p.putStr(e0); }
+                    { int l0 = p.beginList(this.ids.size()); for (var e0 : this.ids) { p.putStr(e0); } p.end(l0); }
                     p.end(at);
                 }
 
@@ -6473,6 +8186,41 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Scan} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+                    private final int o2;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                        if (u.more(end)) { o2 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o2 = -1; }
+                        u.leave(end);
+                    }
+
+                    public YogTypes.BlockPos.View min() {
+                        if (o0 < 0) return null;
+                        u.seek(o0);
+                        return new YogTypes.BlockPos.View(u);
+                    }
+
+                    public YogTypes.BlockPos.View max() {
+                        if (o1 < 0) return null;
+                        u.seek(o1);
+                        return new YogTypes.BlockPos.View(u);
+                    }
+
+                    public java.util.List<String> ids() {
+                        if (o2 < 0) return java.util.List.of();
+                        u.seek(o2);
+                        return YogFrame.list(u, () -> u.getStr());
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.SCAN);
                 }
@@ -6504,7 +8252,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Scan r = fromFrame(in);
+                        Scan.View r = new Scan.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z(), r.ids());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -6518,7 +8266,7 @@ public final class YogServices {
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     java.util.List<YogTypes.PlacedBlock> v = (java.util.List<YogTypes.PlacedBlock>) out;
-                    p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
                 }
             }
 
@@ -6583,6 +8331,33 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Area} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+                    private final int o1;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                        u.leave(end);
+                    }
+
+                    public YogTypes.BlockPos.View min() {
+                        if (o0 < 0) return null;
+                        u.seek(o0);
+                        return new YogTypes.BlockPos.View(u);
+                    }
+
+                    public YogTypes.BlockPos.View max() {
+                        if (o1 < 0) return null;
+                        u.seek(o1);
+                        return new YogTypes.BlockPos.View(u);
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.AREA);
                 }
@@ -6614,7 +8389,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Area r = fromFrame(in);
+                        Area.View r = new Area.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -6690,6 +8465,25 @@ public final class YogServices {
                     return v;
                 }
 
+                /** {@code Entities} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.skip(8); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public double radius() {
+                        if (o0 < 0) return 0.0;
+                        u.seek(o0);
+                        return u.getF64();
+                    }
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.ENTITIES);
                 }
@@ -6721,7 +8515,7 @@ public final class YogServices {
                 public static int serve(YogMessage in, YogBus.Out sink) {
                     if (HostMethod.H == null) return YogBus.NO_HANDLER;
                     try {
-                        Entities r = fromFrame(in);
+                        Entities.View r = new Entities.View(in.frame());
                         Object out = (Object) HostMethod.H.invokeExact(r.radius());
                         reply(dev.yog.YogHostServices.none(out), sink.frame());
                         return YogBus.OK;
@@ -6735,7 +8529,7 @@ public final class YogServices {
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     java.util.List<YogTypes.NearbyEntity> v = (java.util.List<YogTypes.NearbyEntity>) out;
-                    p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
                 }
             }
         }
@@ -6804,6 +8598,33 @@ public final class YogServices {
                 CommandSpec v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code CommandSpec} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); if (u.getBool()) { u.getU(); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String name() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String schema() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return (u.getBool() ? u.getStr() : null);
+                }
             }
 
             private static final class Address {
@@ -6879,6 +8700,17 @@ public final class YogServices {
                 Declared v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Declared} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
             }
 
             private static final class Address {
@@ -6970,6 +8802,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Register} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skipBytes(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String kind() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String id() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public byte[] data() {
+                    if (o2 < 0) return new byte[0];
+                    u.seek(o2);
+                    return u.getBytes();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceContent.REGISTER);
             }
@@ -7054,6 +8921,33 @@ public final class YogServices {
                 Data v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Data} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String key() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
             }
 
             private static final class Address {
@@ -7143,6 +9037,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetData} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String key() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public YogTypes.DataValue value() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return (u.getBool() ? YogTypes.DataValue.unpack(u) : null);
+                }
+
+                public boolean persist() {
+                    if (o3 < 0) return false;
+                    u.seek(o3);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_DATA);
             }
@@ -7164,17 +9101,17 @@ public final class YogServices {
         }
 
         /** The entity's size, `[width, height, eye height]` — `None`: vanilla's — on the server and on every client that sees it. */
-        public record SetDimensions(String uuid, java.util.List<Float> size) {
+        public record SetDimensions(String uuid, float[] size) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
-                if (size != null) m.put("size", size);
+                if (size != null) m.put("size", YogData.listOf(size));
                 return m;
             }
 
             public static SetDimensions fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new SetDimensions(YogData.str(m.get("uuid"), ""), (m.get("size") == null ? null : YogData.list(m.get("size")).stream().map(e0 -> (float) YogData.number(e0, 0)).toList()));
+                return new SetDimensions(YogData.str(m.get("uuid"), ""), (m.get("size") == null ? null : YogData.floats(m.get("size"))));
             }
 
             public static SetDimensions fromBytes(byte[] bytes) {
@@ -7191,7 +9128,7 @@ public final class YogServices {
             public static SetDimensions unpack(YogFrame.Unpacker u) {
                 int end = u.begin();
                 String f_uuid = u.more(end) ? u.getStr() : "";
-                java.util.List<Float> f_size = u.more(end) ? (u.getBool() ? u.getF32s() : null) : null;
+                float[] f_size = u.more(end) ? (u.getBool() ? u.getF32s() : null) : null;
                 u.leave(end);
                 return new SetDimensions(f_uuid, f_size);
             }
@@ -7222,6 +9159,33 @@ public final class YogServices {
                 SetDimensions v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code SetDimensions} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); if (u.getBool()) { u.skip(u.count() * 4); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public float[] size() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return (u.getBool() ? u.getF32s() : null);
+                }
             }
 
             private static final class Address {
@@ -7305,6 +9269,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Teleport} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.TELEPORT);
             }
@@ -7336,7 +9327,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Teleport r = fromFrame(in);
+                    Teleport.View r = new Teleport.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -7418,6 +9409,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code TeleportToDim} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String dim() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.TELEPORT_TO_DIM);
             }
@@ -7449,7 +9475,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    TeleportToDim r = fromFrame(in);
+                    TeleportToDim.View r = new TeleportToDim.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -7525,6 +9551,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Position} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.POSITION);
             }
@@ -7556,7 +9601,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Position r = fromFrame(in);
+                    Position.View r = new Position.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -7632,6 +9677,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Rotation} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ROTATION);
             }
@@ -7663,7 +9727,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Rotation r = fromFrame(in);
+                    Rotation.View r = new Rotation.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -7739,6 +9803,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Velocity} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.VELOCITY);
             }
@@ -7770,7 +9853,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Velocity r = fromFrame(in);
+                    Velocity.View r = new Velocity.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -7849,6 +9932,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetVelocity} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View velocity() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_VELOCITY);
             }
@@ -7880,7 +9990,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetVelocity r = fromFrame(in);
+                    SetVelocity.View r = new SetVelocity.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.velocity().x(), r.velocity().y(), r.velocity().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -7959,6 +10069,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code AddVelocity} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View velocity() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ADD_VELOCITY);
             }
@@ -7990,7 +10127,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AddVelocity r = fromFrame(in);
+                    AddVelocity.View r = new AddVelocity.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.velocity().x(), r.velocity().y(), r.velocity().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8066,6 +10203,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Health} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.HEALTH);
             }
@@ -8097,7 +10253,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Health r = fromFrame(in);
+                    Health.View r = new Health.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8176,6 +10332,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetHealth} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(8); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public double health() {
+                    if (o1 < 0) return 0.0;
+                    u.seek(o1);
+                    return u.getF64();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_HEALTH);
             }
@@ -8207,7 +10390,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetHealth r = fromFrame(in);
+                    SetHealth.View r = new SetHealth.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.health());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8283,6 +10466,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Kill} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.KILL);
             }
@@ -8314,7 +10516,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Kill r = fromFrame(in);
+                    Kill.View r = new Kill.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8396,6 +10598,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Spawn} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String entityType() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String dim() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SPAWN);
             }
@@ -8427,7 +10664,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Spawn r = fromFrame(in);
+                    Spawn.View r = new Spawn.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8515,6 +10752,57 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code AddEffect} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String effect() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public int duration() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+
+                public int amplifier() {
+                    if (o3 < 0) return 0;
+                    u.seek(o3);
+                    return (int) u.getI();
+                }
+
+                public boolean particles() {
+                    if (o4 < 0) return false;
+                    u.seek(o4);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ADD_EFFECT);
             }
@@ -8546,7 +10834,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AddEffect r = fromFrame(in);
+                    AddEffect.View r = new AddEffect.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.effect(), r.duration(), r.amplifier(), r.particles());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8625,6 +10913,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code RemoveEffect} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String effect() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.REMOVE_EFFECT);
             }
@@ -8656,7 +10971,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RemoveEffect r = fromFrame(in);
+                    RemoveEffect.View r = new RemoveEffect.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.effect());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8732,6 +11047,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code ClearEffects} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.CLEAR_EFFECTS);
             }
@@ -8763,7 +11097,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    ClearEffects r = fromFrame(in);
+                    ClearEffects.View r = new ClearEffects.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8839,6 +11173,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Nbt} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.NBT);
             }
@@ -8870,7 +11223,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Nbt r = fromFrame(in);
+                    Nbt.View r = new Nbt.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -8949,6 +11302,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetNbt} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String snbt() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_NBT);
             }
@@ -8980,7 +11360,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetNbt r = fromFrame(in);
+                    SetNbt.View r = new SetNbt.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.snbt());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9059,6 +11439,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code AttributeBase} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String attribute() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ATTRIBUTE_BASE);
             }
@@ -9090,7 +11497,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AttributeBase r = fromFrame(in);
+                    AttributeBase.View r = new AttributeBase.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9172,6 +11579,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetAttributeBase} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(8); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String attribute() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public double value() {
+                    if (o2 < 0) return 0.0;
+                    u.seek(o2);
+                    return u.getF64();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_ATTRIBUTE_BASE);
             }
@@ -9203,7 +11645,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetAttributeBase r = fromFrame(in);
+                    SetAttributeBase.View r = new SetAttributeBase.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute(), r.value());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9282,6 +11724,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code AttributeValue} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String attribute() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ATTRIBUTE_VALUE);
             }
@@ -9313,7 +11782,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AttributeValue r = fromFrame(in);
+                    AttributeValue.View r = new AttributeValue.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9389,6 +11858,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Info} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.INFO);
             }
@@ -9420,7 +11908,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Info r = fromFrame(in);
+                    Info.View r = new Info.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9505,6 +11993,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Damage} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public float amount() {
+                    if (o1 < 0) return 0.0f;
+                    u.seek(o1);
+                    return u.getF32();
+                }
+
+                public String damageType() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public String attacker() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.DAMAGE);
             }
@@ -9536,7 +12067,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Damage r = fromFrame(in);
+                    Damage.View r = new Damage.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.amount(), r.damageType(), r.attacker());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9615,6 +12146,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetFireTicks} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public int ticks() {
+                    if (o1 < 0) return 0;
+                    u.seek(o1);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_FIRE_TICKS);
             }
@@ -9646,7 +12204,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetFireTicks r = fromFrame(in);
+                    SetFireTicks.View r = new SetFireTicks.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.ticks());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9722,6 +12280,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Vehicle} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.VEHICLE);
             }
@@ -9753,7 +12330,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Vehicle r = fromFrame(in);
+                    Vehicle.View r = new Vehicle.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9829,6 +12406,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Passengers} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.PASSENGERS);
             }
@@ -9860,7 +12456,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Passengers r = fromFrame(in);
+                    Passengers.View r = new Passengers.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -9874,7 +12470,7 @@ public final class YogServices {
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
-                p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
+                { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
             }
         }
 
@@ -9942,6 +12538,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Mount} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String rider() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String vehicle() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public boolean force() {
+                    if (o2 < 0) return false;
+                    u.seek(o2);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.MOUNT);
             }
@@ -9973,7 +12604,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Mount r = fromFrame(in);
+                    Mount.View r = new Mount.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.rider(), r.vehicle(), r.force());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -10049,6 +12680,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Dismount} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.DISMOUNT);
             }
@@ -10080,7 +12730,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Dismount r = fromFrame(in);
+                    Dismount.View r = new Dismount.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -10159,6 +12809,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetFallDistance} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public float distance() {
+                    if (o1 < 0) return 0.0f;
+                    u.seek(o1);
+                    return u.getF32();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_FALL_DISTANCE);
             }
@@ -10190,7 +12867,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetFallDistance r = fromFrame(in);
+                    SetFallDistance.View r = new SetFallDistance.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.distance());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -10266,6 +12943,17 @@ public final class YogServices {
                 Mods v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Mods} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
             }
 
             private static final class Address {
@@ -10346,6 +13034,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code ModLoaded} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.MOD_LOADED);
             }
@@ -10421,6 +13128,17 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Dir} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.DIR);
             }
@@ -10452,7 +13170,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Dir r = fromFrame(in);
+                    Dir.View r = new Dir.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact();
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -10525,6 +13243,17 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code WorldDir} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.WORLD_DIR);
             }
@@ -10556,7 +13285,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    WorldDir r = fromFrame(in);
+                    WorldDir.View r = new WorldDir.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact();
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -10632,6 +13361,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Translate} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String key() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.TRANSLATE);
             }
@@ -10663,7 +13411,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Translate r = fromFrame(in);
+                    Translate.View r = new Translate.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.key());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -10736,6 +13484,17 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code PlatformMods} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.PLATFORM_MODS);
             }
@@ -10767,7 +13526,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlatformMods r = fromFrame(in);
+                    PlatformMods.View r = new PlatformMods.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact();
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -10781,7 +13540,7 @@ public final class YogServices {
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.ModInfo> v = (java.util.List<YogTypes.ModInfo>) out;
-                p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
             }
         }
     }
@@ -10849,6 +13608,33 @@ public final class YogServices {
                 Text v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Text} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String item() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String snbt() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
             }
 
             public YogTypes.Shown call() {
@@ -10928,12 +13714,39 @@ public final class YogServices {
                 return v;
             }
 
-            public java.util.List<Float> call() {
+            /** {@code Picture} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String item() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String snbt() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
+            public float[] call() {
                 YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.PICTURE, item), packedFrame());
                 if (r.ok() && !r.isEmpty()) {
                     try {
                         YogFrame.Unpacker u = r.frame();
-                        java.util.List<Float> v = (u.getBool() ? u.getF32s() : null);
+                        float[] v = (u.getBool() ? u.getF32s() : null);
                         u.finish();
                         return v;
                     } catch (YogData.DecodeException e) {
@@ -11017,6 +13830,65 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SpawnItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+                private final int o5;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                    if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public YogTypes.Point.View velocity() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public String item() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+
+                public long count() {
+                    if (o4 < 0) return 0L;
+                    u.seek(o4);
+                    return u.getI();
+                }
+
+                public String snbt() {
+                    if (o5 < 0) return "";
+                    u.seek(o5);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceItem.SPAWN);
             }
@@ -11048,7 +13920,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SpawnItem r = fromFrame(in);
+                    SpawnItem.View r = new SpawnItem.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.velocity().x(), r.velocity().y(), r.velocity().z(), r.item(), r.count(), r.snbt());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -11124,6 +13996,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code EntityStack} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceItem.ENTITY_STACK);
             }
@@ -11155,7 +14046,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    EntityStack r = fromFrame(in);
+                    EntityStack.View r = new EntityStack.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -11240,6 +14131,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetEntityStack} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String uuid() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String item() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public long count() {
+                    if (o2 < 0) return 0L;
+                    u.seek(o2);
+                    return u.getI();
+                }
+
+                public String snbt() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceItem.SET_ENTITY_STACK);
             }
@@ -11271,7 +14205,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetEntityStack r = fromFrame(in);
+                    SetEntityStack.View r = new SetEntityStack.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.item(), r.count(), r.snbt());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -11347,6 +14281,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Block} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String item() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceItem.BLOCK);
             }
@@ -11378,7 +14331,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Block r = fromFrame(in);
+                    Block.View r = new Block.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.item());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -11422,7 +14375,7 @@ public final class YogServices {
             public void pack(YogFrame.Packer p) {
                 int at = p.begin();
                 p.putStr(this.expr);
-                p.putU(this.args.size()); for (var e0 : this.args) { p.putTagged(e0); }
+                { int l0 = p.beginList(this.args.size()); for (var e0 : this.args) { p.putTagged(e0); } p.end(l0); }
                 p.end(at);
             }
 
@@ -11462,6 +14415,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Call} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String expr() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public java.util.List<Object> args() {
+                    if (o1 < 0) return java.util.List.of();
+                    u.seek(o1);
+                    return YogFrame.list(u, () -> u.getTagged());
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceJvm.CALL);
             }
@@ -11493,7 +14473,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Call r = fromFrame(in);
+                    Call.View r = new Call.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.expr(), r.args());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -11580,6 +14560,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code KeyBindingSpec} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String name() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public int defaultKey() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceKeyBinding.DECLARE);
             }
@@ -11653,6 +14668,17 @@ public final class YogServices {
                 Declared v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Declared} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
             }
 
             private static final class Address {
@@ -11741,6 +14767,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code MenuEntry} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String label() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String uiId() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceMenu.DECLARE);
             }
@@ -11814,6 +14867,17 @@ public final class YogServices {
                 Declared v = unpack(u);
                 u.finish();
                 return v;
+            }
+
+            /** {@code Declared} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
             }
 
             private static final class Address {
@@ -11905,6 +14969,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SendToPlayer} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skipBytes(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String channel() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public byte[] payload() {
+                    if (o2 < 0) return new byte[0];
+                    u.seek(o2);
+                    return u.getBytes();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceNet.SEND_TO_PLAYER);
             }
@@ -11936,7 +15035,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SendToPlayer r = fromFrame(in);
+                    SendToPlayer.View r = new SendToPlayer.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.channel(), r.payload());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12015,6 +15114,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SendToServer} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String channel() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public byte[] payload() {
+                    if (o1 < 0) return new byte[0];
+                    u.seek(o1);
+                    return u.getBytes();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceNet.SEND_TO_SERVER);
             }
@@ -12046,7 +15172,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SendToServer r = fromFrame(in);
+                    SendToServer.View r = new SendToServer.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.channel(), r.payload());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12142,6 +15268,65 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SpawnParticles} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+                private final int o5;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o4 = -1; }
+                    if (u.more(end)) { o5 = u.position(); u.skip(8); } else { o5 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public String particle() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public int count() {
+                    if (o3 < 0) return 0;
+                    u.seek(o3);
+                    return (int) u.getI();
+                }
+
+                public YogTypes.Point.View spread() {
+                    if (o4 < 0) return null;
+                    u.seek(o4);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public double speed() {
+                    if (o5 < 0) return 0.0;
+                    u.seek(o5);
+                    return u.getF64();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceParticle.SPAWN);
             }
@@ -12173,7 +15358,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SpawnParticles r = fromFrame(in);
+                    SpawnParticles.View r = new SpawnParticles.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.particle(), r.count(), r.spread().x(), r.spread().y(), r.spread().z(), r.speed());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12260,6 +15445,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code GiveItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String item() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public long count() {
+                    if (o2 < 0) return 0L;
+                    u.seek(o2);
+                    return u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.GIVE_ITEM);
             }
@@ -12291,7 +15511,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    GiveItem r = fromFrame(in);
+                    GiveItem.View r = new GiveItem.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.item(), r.count());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12370,6 +15590,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Teleport} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.TELEPORT);
             }
@@ -12401,7 +15648,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Teleport r = fromFrame(in);
+                    Teleport.View r = new Teleport.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12483,6 +15730,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code TeleportToDim} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String dim() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.TELEPORT_TO_DIM);
             }
@@ -12514,7 +15796,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    TeleportToDim r = fromFrame(in);
+                    TeleportToDim.View r = new TeleportToDim.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12593,6 +15875,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Kick} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String reason() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.KICK);
             }
@@ -12624,7 +15933,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Kick r = fromFrame(in);
+                    Kick.View r = new Kick.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.reason());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12703,6 +16012,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetGamemode} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String mode() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_GAMEMODE);
             }
@@ -12734,7 +16070,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetGamemode r = fromFrame(in);
+                    SetGamemode.View r = new SetGamemode.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.mode());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12810,6 +16146,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Inventory} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.INVENTORY);
             }
@@ -12841,7 +16196,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Inventory r = fromFrame(in);
+                    Inventory.View r = new Inventory.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -12855,7 +16210,7 @@ public final class YogServices {
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.SlotStack> v = (java.util.List<YogTypes.SlotStack>) out;
-                p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
             }
         }
 
@@ -12926,6 +16281,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetSlot} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public long slot() {
+                    if (o1 < 0) return 0L;
+                    u.seek(o1);
+                    return u.getI();
+                }
+
+                public String item() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public long count() {
+                    if (o3 < 0) return 0L;
+                    u.seek(o3);
+                    return u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_SLOT);
             }
@@ -12957,7 +16355,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetSlot r = fromFrame(in);
+                    SetSlot.View r = new SetSlot.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.item(), r.count());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13033,6 +16431,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code HeldItemNbt} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.HELD_ITEM_NBT);
             }
@@ -13064,7 +16481,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HeldItemNbt r = fromFrame(in);
+                    HeldItemNbt.View r = new HeldItemNbt.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13143,6 +16560,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetHeldItemNbt} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String snbt() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_HELD_ITEM_NBT);
             }
@@ -13174,7 +16618,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetHeldItemNbt r = fromFrame(in);
+                    SetHeldItemNbt.View r = new SetHeldItemNbt.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.snbt());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13250,6 +16694,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code OffhandItemNbt} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.OFFHAND_ITEM_NBT);
             }
@@ -13281,7 +16744,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    OffhandItemNbt r = fromFrame(in);
+                    OffhandItemNbt.View r = new OffhandItemNbt.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13360,6 +16823,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetOffhandItemNbt} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String snbt() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_OFFHAND_ITEM_NBT);
             }
@@ -13391,7 +16881,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetOffhandItemNbt r = fromFrame(in);
+                    SetOffhandItemNbt.View r = new SetOffhandItemNbt.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.snbt());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13470,6 +16960,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SlotItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public long slot() {
+                    if (o1 < 0) return 0L;
+                    u.seek(o1);
+                    return u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SLOT_ITEM);
             }
@@ -13501,7 +17018,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SlotItem r = fromFrame(in);
+                    SlotItem.View r = new SlotItem.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13589,6 +17106,57 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetSlotItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public long slot() {
+                    if (o1 < 0) return 0L;
+                    u.seek(o1);
+                    return u.getI();
+                }
+
+                public String item() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public long count() {
+                    if (o3 < 0) return 0L;
+                    u.seek(o3);
+                    return u.getI();
+                }
+
+                public String snbt() {
+                    if (o4 < 0) return "";
+                    u.seek(o4);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_SLOT_ITEM);
             }
@@ -13620,7 +17188,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetSlotItem r = fromFrame(in);
+                    SetSlotItem.View r = new SetSlotItem.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.item(), r.count(), r.snbt());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13699,6 +17267,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code AddXp} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public int amount() {
+                    if (o1 < 0) return 0;
+                    u.seek(o1);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.ADD_XP);
             }
@@ -13730,7 +17325,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    AddXp r = fromFrame(in);
+                    AddXp.View r = new AddXp.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.amount());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13809,6 +17404,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetMayFly} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean mayFly() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_MAY_FLY);
             }
@@ -13840,7 +17462,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetMayFly r = fromFrame(in);
+                    SetMayFly.View r = new SetMayFly.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.mayFly());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -13916,6 +17538,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Info} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.INFO);
             }
@@ -13947,7 +17588,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Info r = fromFrame(in);
+                    Info.View r = new Info.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14029,6 +17670,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetItemCooldown} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String item() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public int ticks() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_ITEM_COOLDOWN);
             }
@@ -14060,7 +17736,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetItemCooldown r = fromFrame(in);
+                    SetItemCooldown.View r = new SetItemCooldown.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.item(), r.ticks());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14145,6 +17821,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code PlaceBlockFromSlot} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public long slot() {
+                    if (o1 < 0) return 0L;
+                    u.seek(o1);
+                    return u.getI();
+                }
+
+                public String dim() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o3 < 0) return null;
+                    u.seek(o3);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.PLACE_BLOCK_FROM_SLOT);
             }
@@ -14176,7 +17895,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlaceBlockFromSlot r = fromFrame(in);
+                    PlaceBlockFromSlot.View r = new PlaceBlockFromSlot.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14249,6 +17968,17 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Online} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    u.leave(end);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.ONLINE);
             }
@@ -14280,7 +18010,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Online r = fromFrame(in);
+                    Online.View r = new Online.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact();
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14294,7 +18024,7 @@ public final class YogServices {
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
-                p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
+                { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
             }
         }
     }
@@ -14364,6 +18094,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Get} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String objective() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String player() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceScoreboard.GET);
             }
@@ -14395,7 +18152,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Get r = fromFrame(in);
+                    Get.View r = new Get.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14477,6 +18234,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Set} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String objective() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String player() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public int score() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceScoreboard.SET);
             }
@@ -14508,7 +18300,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Set r = fromFrame(in);
+                    Set.View r = new Set.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player(), r.score());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14590,6 +18382,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Add} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String objective() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String player() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public int delta() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceScoreboard.ADD);
             }
@@ -14621,7 +18448,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Add r = fromFrame(in);
+                    Add.View r = new Add.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player(), r.delta());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14714,6 +18541,57 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Play} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skip(4); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public String sound() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public float volume() {
+                    if (o3 < 0) return 0.0f;
+                    u.seek(o3);
+                    return u.getF32();
+                }
+
+                public float pitch() {
+                    if (o4 < 0) return 0.0f;
+                    u.seek(o4);
+                    return u.getF32();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceSound.PLAY);
             }
@@ -14745,7 +18623,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Play r = fromFrame(in);
+                    Play.View r = new Play.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.sound(), r.volume(), r.pitch());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14830,6 +18708,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code PlayToPlayer} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skip(4); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String player() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String sound() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public float volume() {
+                    if (o2 < 0) return 0.0f;
+                    u.seek(o2);
+                    return u.getF32();
+                }
+
+                public float pitch() {
+                    if (o3 < 0) return 0.0f;
+                    u.seek(o3);
+                    return u.getF32();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceSound.PLAY_TO_PLAYER);
             }
@@ -14861,7 +18782,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlayToPlayer r = fromFrame(in);
+                    PlayToPlayer.View r = new PlayToPlayer.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.player(), r.sound(), r.volume(), r.pitch());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -14945,6 +18866,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code HasItem} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String item() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String tag() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceTag.HAS_ITEM);
             }
@@ -14976,7 +18924,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HasItem r = fromFrame(in);
+                    HasItem.View r = new HasItem.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.item(), r.tag());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15055,6 +19003,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code HasBlock} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String block() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String tag() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceTag.HAS_BLOCK);
             }
@@ -15086,7 +19061,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HasBlock r = fromFrame(in);
+                    HasBlock.View r = new HasBlock.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.block(), r.tag());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15165,6 +19140,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code HasEntity} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String entityType() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String tag() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceTag.HAS_ENTITY);
             }
@@ -15196,7 +19198,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    HasEntity r = fromFrame(in);
+                    HasEntity.View r = new HasEntity.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.tag());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15272,6 +19274,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Items} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String tag() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceTag.ITEMS);
             }
@@ -15303,7 +19324,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Items r = fromFrame(in);
+                    Items.View r = new Items.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.tag());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15317,7 +19338,7 @@ public final class YogServices {
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
-                p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
+                { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
             }
         }
     }
@@ -15390,6 +19411,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Open} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String uiId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean modal() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+
+                public boolean pause() {
+                    if (o2 < 0) return false;
+                    u.seek(o2);
+                    return u.getBool();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceUi.OPEN);
             }
@@ -15421,7 +19477,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Open r = fromFrame(in);
+                    Open.View r = new Open.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uiId(), r.modal(), r.pause());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15500,6 +19556,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code OpenWithFlags} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String uiId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public int flags() {
+                    if (o1 < 0) return 0;
+                    u.seek(o1);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceUi.OPEN_WITH_FLAGS);
             }
@@ -15531,7 +19614,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    OpenWithFlags r = fromFrame(in);
+                    OpenWithFlags.View r = new OpenWithFlags.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uiId(), r.flags());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15607,6 +19690,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Close} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String uiId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceUi.CLOSE);
             }
@@ -15638,7 +19740,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Close r = fromFrame(in);
+                    Close.View r = new Close.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.uiId());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15722,6 +19824,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code GetBlock} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.GET_BLOCK);
             }
@@ -15753,7 +19882,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    GetBlock r = fromFrame(in);
+                    GetBlock.View r = new GetBlock.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15835,6 +19964,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetBlock} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String block() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_BLOCK);
             }
@@ -15866,7 +20030,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetBlock r = fromFrame(in);
+                    SetBlock.View r = new SetBlock.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.block());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -15942,6 +20106,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Time} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.TIME);
             }
@@ -15973,7 +20156,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Time r = fromFrame(in);
+                    Time.View r = new Time.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16052,6 +20235,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetTime} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public long time() {
+                    if (o1 < 0) return 0L;
+                    u.seek(o1);
+                    return u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_TIME);
             }
@@ -16083,7 +20293,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetTime r = fromFrame(in);
+                    SetTime.View r = new SetTime.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.time());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16159,6 +20369,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code IsRaining} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.IS_RAINING);
             }
@@ -16190,7 +20419,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    IsRaining r = fromFrame(in);
+                    IsRaining.View r = new IsRaining.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16272,6 +20501,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetWeather} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean raining() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+
+                public int duration() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_WEATHER);
             }
@@ -16303,7 +20567,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetWeather r = fromFrame(in);
+                    SetWeather.View r = new SetWeather.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.raining(), r.duration());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16379,6 +20643,25 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code IsThundering} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.IS_THUNDERING);
             }
@@ -16410,7 +20693,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    IsThundering r = fromFrame(in);
+                    IsThundering.View r = new IsThundering.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16492,6 +20775,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code SetThunder} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean thundering() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+
+                public int duration() {
+                    if (o2 < 0) return 0;
+                    u.seek(o2);
+                    return (int) u.getI();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_THUNDER);
             }
@@ -16523,7 +20841,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    SetThunder r = fromFrame(in);
+                    SetThunder.View r = new SetThunder.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.thundering(), r.duration());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16608,6 +20926,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code FillRegion} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View from() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public YogTypes.BlockPos.View to() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String state() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.FILL_REGION);
             }
@@ -16639,7 +21000,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    FillRegion r = fromFrame(in);
+                    FillRegion.View r = new FillRegion.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z(), r.state());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16721,6 +21082,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code ScanRegion} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View from() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public YogTypes.BlockPos.View to() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.BlockPos.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SCAN_REGION);
             }
@@ -16752,7 +21148,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    ScanRegion r = fromFrame(in);
+                    ScanRegion.View r = new ScanRegion.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16766,7 +21162,7 @@ public final class YogServices {
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.PlacedBlock> v = (java.util.List<YogTypes.PlacedBlock>) out;
-                p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
             }
         }
 
@@ -16834,6 +21230,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code PlaceFeature} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.BlockPos.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.BlockPos.View(u);
+                }
+
+                public String feature() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.PLACE_FEATURE);
             }
@@ -16865,7 +21296,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    PlaceFeature r = fromFrame(in);
+                    PlaceFeature.View r = new PlaceFeature.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.feature());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -16953,6 +21384,57 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code Explode} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public float power() {
+                    if (o2 < 0) return 0.0f;
+                    u.seek(o2);
+                    return u.getF32();
+                }
+
+                public boolean fire() {
+                    if (o3 < 0) return false;
+                    u.seek(o3);
+                    return u.getBool();
+                }
+
+                public String source() {
+                    if (o4 < 0) return "";
+                    u.seek(o4);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.EXPLODE);
             }
@@ -16984,7 +21466,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    Explode r = fromFrame(in);
+                    Explode.View r = new Explode.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.power(), r.fire(), r.source());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -17066,6 +21548,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code DropLoot} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String table() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String dim() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View pos() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.DROP_LOOT);
             }
@@ -17097,7 +21614,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    DropLoot r = fromFrame(in);
+                    DropLoot.View r = new DropLoot.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.table(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -17176,6 +21693,33 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code EntityCount} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String entityType() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.ENTITY_COUNT);
             }
@@ -17207,7 +21751,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    EntityCount r = fromFrame(in);
+                    EntityCount.View r = new EntityCount.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.entityType());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -17289,6 +21833,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code EntitiesInBox} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View min() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public YogTypes.Point.View max() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.ENTITIES_IN_BOX);
             }
@@ -17320,7 +21899,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    EntitiesInBox r = fromFrame(in);
+                    EntitiesInBox.View r = new EntitiesInBox.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -17334,7 +21913,7 @@ public final class YogServices {
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
-                p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
+                { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
             }
         }
 
@@ -17402,6 +21981,41 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code RaycastBlock} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View from() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public YogTypes.Point.View to() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.Point.View(u);
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.RAYCAST_BLOCK);
             }
@@ -17433,7 +22047,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RaycastBlock r = fromFrame(in);
+                    RaycastBlock.View r = new RaycastBlock.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
@@ -17518,6 +22132,49 @@ public final class YogServices {
                 return v;
             }
 
+            /** {@code RaycastEntity} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String dim() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Point.View from() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public YogTypes.Point.View to() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return new YogTypes.Point.View(u);
+                }
+
+                public String exclude() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.RAYCAST_ENTITY);
             }
@@ -17549,7 +22206,7 @@ public final class YogServices {
             public static int serve(YogMessage in, YogBus.Out sink) {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
-                    RaycastEntity r = fromFrame(in);
+                    RaycastEntity.View r = new RaycastEntity.View(in.frame());
                     Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z(), r.exclude());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;

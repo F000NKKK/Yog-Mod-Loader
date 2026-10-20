@@ -45,7 +45,7 @@ public final class YogLootHook {
         YogEvents.World.Loot.Roll roll = new YogEvents.World.Loot.Roll(
                 id,
                 ctx.getLevel().dimension().identifier().toString(),
-                origin == null ? null : List.of(origin.x, origin.y, origin.z),
+                origin == null ? null : new double[] {origin.x, origin.y, origin.z},
                 entity == null ? null : entity.getUUID().toString(),
                 killer == null ? null : killer.getUUID().toString(),
                 tool == null || tool.isEmpty() ? null : stack(tool),

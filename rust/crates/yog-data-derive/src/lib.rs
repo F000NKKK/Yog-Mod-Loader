@@ -475,7 +475,7 @@ fn view_items(input: &DeriveInput, fields: &[NamedField]) -> syn::Result<Tokens>
 
         impl<'a> #krate::frame::View<'a> for #name {
             type View = #view<'a>;
-            type ListView = ::std::vec::Vec<#view<'a>>;
+            type ListView = #krate::frame::List<'a, Self>;
             fn unpack_view(__yog_u: &mut #krate::frame::Unpacker<'a>) -> ::std::option::Option<#view<'a>> {
                 let __yog_end = __yog_u.begin()?;
                 #(#reads)*
@@ -483,12 +483,7 @@ fn view_items(input: &DeriveInput, fields: &[NamedField]) -> syn::Result<Tokens>
                 ::std::option::Option::Some(#view { #(#idents,)* _frame: ::std::marker::PhantomData })
             }
             fn unpack_list_view(__yog_u: &mut #krate::frame::Unpacker<'a>) -> ::std::option::Option<Self::ListView> {
-                let n = __yog_u.count()?;
-                let mut out = ::std::vec::Vec::with_capacity(n);
-                for _ in 0..n {
-                    out.push(<Self as #krate::frame::View<'a>>::unpack_view(__yog_u)?);
-                }
-                ::std::option::Option::Some(out)
+                #krate::frame::list(__yog_u)
             }
         }
     })

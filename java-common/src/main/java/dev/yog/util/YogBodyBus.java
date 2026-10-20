@@ -2,7 +2,6 @@ package dev.yog.util;
 
 import dev.yog.bus.YogEvents;
 import dev.yog.bus.YogTypes;
-import java.util.List;
 
 /**
  * Bodies, the camera and the travel step through the bus ({@code
@@ -24,7 +23,7 @@ public final class YogBodyBus {
 
     /** {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} the mods make of this frame's camera. */
     public static float[] camera(String uuid, float partial, double x, double y, double z, float yaw, float pitch, boolean detached, int flags) {
-        YogTypes.CameraFrame frame = new YogTypes.CameraFrame(uuid, partial, List.of(x, y, z), yaw, pitch, detached, flags);
+        YogTypes.CameraFrame frame = new YogTypes.CameraFrame(uuid, partial, new double[] {x, y, z}, yaw, pitch, detached, flags);
         YogTypes.CameraOut o = new YogEvents.Client.Render.Camera(frame, new YogTypes.CameraOut(ZERO, ZERO, 0, 0, 0, 0)).emitChanged().out();
         return new float[] {
             (float) o.localOffset().x(), (float) o.localOffset().y(), (float) o.localOffset().z(),

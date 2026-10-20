@@ -64,7 +64,7 @@ fn floats() -> Floats {
 }
 
 macro_rules! compare {
-    ($c:expr, $name:literal, $value:expr, $ty:ty) => {{
+    ($c:expr, $name:literal, $value:expr, $ty:ty, |$view:ident| $ours:expr, |$arch:ident| $theirs:expr) => {{
         let v: $ty = $value;
         let yog = yog_data::to_bytes(&v);
         let frame = yog_data::frame::to_frame(&v);
@@ -86,16 +86,29 @@ macro_rules! compare {
         g.bench_function("json decode", |b| b.iter(|| serde_json::from_slice::<$ty>(black_box(&json)).unwrap()));
         g.bench_function("rkyv decode", |b| b.iter(|| rkyv::from_bytes::<$ty, rkyv::rancor::Error>(black_box(&rk)).unwrap()));
         g.bench_function("rkyv access in place", |b| b.iter(|| rkyv::access::<rkyv::Archived<$ty>, rkyv::rancor::Error>(black_box(&rk)).map(|_| ()).unwrap()));
+        // One value read out of the bytes, opening included: what a call does.
+        g.bench_function("frame view + one value", |b| {
+            b.iter(|| {
+                let $view = yog_data::frame::read_view::<$ty>(black_box(&frame)).unwrap();
+                black_box($ours)
+            })
+        });
+        g.bench_function("rkyv access + one value", |b| {
+            b.iter(|| {
+                let $arch = rkyv::access::<rkyv::Archived<$ty>, rkyv::rancor::Error>(black_box(&rk)).unwrap();
+                black_box($theirs)
+            })
+        });
         g.finish();
     }};
 }
 
 fn bench(c: &mut Criterion) {
-    compare!(c, "entity_info", entity(), EntityInfo);
-    compare!(c, "inventory", inventory(), Inventory);
-    compare!(c, "area_32", area(), Area);
-    compare!(c, "placed_10k", placements(), Placements);
-    compare!(c, "floats_10k", floats(), Floats);
+    compare!(c, "entity_info", entity(), EntityInfo, |v| v.pos.x, |a| a.pos.x.to_native());
+    compare!(c, "inventory", inventory(), Inventory, |v| v.stacks.get(40).map(|s| s.stack.count), |a| a.stacks[40].stack.count.to_native());
+    compare!(c, "area_32", area(), Area, |v| v.blocks.get(30_000), |a| a.blocks[30_000].to_native());
+    compare!(c, "placed_10k", placements(), Placements, |v| v.items.get(9_999).map(|p| p.count), |a| a.items[9_999].count.to_native());
+    compare!(c, "floats_10k", floats(), Floats, |v| v.items.get(9_999), |a| a.items[9_999].to_native());
 }
 
 criterion_group!(benches, bench);

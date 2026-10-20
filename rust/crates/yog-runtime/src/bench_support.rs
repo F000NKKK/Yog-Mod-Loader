@@ -30,3 +30,7 @@ pub fn dispatch(n: usize) -> impl FnMut() -> YogStatus {
     let reply = YogReply::discard();
     move || router.emit(event, &payload, &reply, no_java)
 }
+
+
+/// The bus with a real JVM: `benches/bus_calls.rs`.
+pub mod jvm;

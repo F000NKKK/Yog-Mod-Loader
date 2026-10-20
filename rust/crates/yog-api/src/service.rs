@@ -104,13 +104,13 @@ impl Registry {
 }
 
 fn call_on<S: Service>(api: &YogApi, request: &S) -> Option<S::Reply> {
-    let reply = request.with_bytes(|payload| call_bytes(api, &request.target(), payload))?;
+    let reply = request.with_bytes(|payload| call_bytes(api, request.address(), payload))?;
     S::Reply::from_bytes(&reply)
 }
 
 /// Calls `address`'s provider with `payload`: its reply's bytes, `None`
 /// when no one answers (or this mod isn't registered yet).
-pub(crate) fn call_at(address: &str, payload: &[u8]) -> Option<Vec<u8>> {
+pub(crate) fn call_at(address: yog_event::Address, payload: &[u8]) -> Option<Vec<u8>> {
     let api = global_api();
     if api.is_null() {
         return None;
@@ -134,13 +134,10 @@ fn atom_name(n: u32) -> Option<&'static str> {
     (!s.ptr.is_null()).then(|| unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(s.ptr, s.len as usize)) })
 }
 
-fn call_bytes(api: &YogApi, address: &str, payload: &[u8]) -> Option<Vec<u8>> {
+fn call_bytes(api: &YogApi, address: yog_event::Address, payload: &[u8]) -> Option<Vec<u8>> {
     let bus = unsafe { &*api.bus };
     let mut out = Vec::new();
-    let st = unsafe {
-        let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
-        (bus.call)(bus.ctx, at, YogBytes::new(payload), &YogReply::to_vec(&mut out))
-    };
+    let st = unsafe { (bus.call)(bus.ctx, address, YogBytes::new(payload), &YogReply::to_vec(&mut out)) };
     (st == status::OK).then_some(out)
 }
 

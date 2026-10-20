@@ -7,30 +7,14 @@ use std::os::raw::c_void;
 use std::path::{Path, PathBuf};
 
 use jni::objects::{JByteArray, JValue};
-use jni::{JNIEnv, NativeMethod};
+use jni::JNIEnv;
 use yog_abi::{YogBytes, YogReply, YogStatus, status};
 use yog_data::Schema;
 use yog_data::frame::{read_frame, to_frame};
 
 use super::arena::{self, BYTES};
-use super::{Handler, ROUTER, java};
-
-/// `YogBus`'s natives: their names, signatures and the runtime's functions.
-fn natives() -> Vec<NativeMethod> {
-    let n = |name: &str, sig: &str, f: *mut c_void| NativeMethod { name: name.into(), sig: sig.into(), fn_ptr: f };
-    vec![
-        n("nativeResolve", "(Ljava/lang/String;)I", java::Java_dev_yog_YogBus_nativeResolve as *mut c_void),
-        n("nativeCall", "(I[B)[B", java::Java_dev_yog_YogBus_nativeCall as *mut c_void),
-        n("nativeEmit", "(I[B)[B", java::Java_dev_yog_YogBus_nativeEmit as *mut c_void),
-        n("nativeProvide", "(II)Z", java::Java_dev_yog_YogBus_nativeProvide as *mut c_void),
-        n("nativeOn", "(III)V", java::Java_dev_yog_YogBus_nativeOn as *mut c_void),
-        n("nativeHeard", "(I)Z", java::Java_dev_yog_YogBus_nativeHeard as *mut c_void),
-        n("nativeArena", "()Ljava/nio/ByteBuffer;", arena::Java_dev_yog_YogBus_nativeArena as *mut c_void),
-        n("nativeCallAt", "(III)J", arena::Java_dev_yog_YogBus_nativeCallAt as *mut c_void),
-        n("nativeEmitAt", "(III)J", arena::Java_dev_yog_YogBus_nativeEmitAt as *mut c_void),
-        n("nativeTakeReply", "()[B", arena::Java_dev_yog_YogBus_nativeTakeReply as *mut c_void),
-    ]
-}
+use super::jvm_support::provide_native;
+use super::{ROUTER, java};
 
 /// A Rust service: the payload twice.
 unsafe extern "C" fn twice(_ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus {
@@ -77,10 +61,6 @@ fn java_greet(env: &mut JNIEnv, address: &str, name: &str, n: i64) -> String {
     env.get_string(&out.into()).unwrap().into()
 }
 
-fn provide_native(address: &str, f: yog_abi::YogHandlerFn) {
-    ROUTER.provide(ROUTER.resolve(address), Handler::Native { owner: None, ud: 0, f });
-}
-
 /// Java's `ArenaProbe.call(address, payload)`: the status, then the reply.
 fn java_call(env: &mut JNIEnv, address: &str, payload: &[u8]) -> (YogStatus, Vec<u8>) {
     let a = env.new_string(address).unwrap();
@@ -118,13 +98,7 @@ fn calls_cross_the_arena_both_ways() {
     let vm = crate::test_jvm::start(&jdk, &classes);
     let _ = crate::JAVA_VM.set(unsafe { jni::JavaVM::from_raw(vm.get_java_vm_pointer()) }.unwrap());
     let mut env = vm.attach_current_thread().unwrap();
-    env.register_native_methods("dev/yog/YogBus", &natives()).unwrap();
-    let n = |name: &str, sig: &str, f: *mut c_void| NativeMethod { name: name.into(), sig: sig.into(), fn_ptr: f };
-    let atoms = [
-        n("nativeAtom", "(Ljava/lang/String;)I", java::Java_dev_yog_YogAtoms_nativeAtom as *mut c_void),
-        n("nativeAtomName", "(I)Ljava/lang/String;", java::Java_dev_yog_YogAtoms_nativeAtomName as *mut c_void),
-    ];
-    env.register_native_methods("dev/yog/YogAtoms", &atoms).unwrap();
+    super::jvm_support::register_natives(&mut env).unwrap();
 
     // Rust → Java: in the arena, and a payload too big for it.
     let name = env.new_string("test:echo").unwrap();

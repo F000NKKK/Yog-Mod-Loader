@@ -37,21 +37,44 @@ public final class YogFrame {
     private static final int MAX_DEPTH = YogData.MAX_DEPTH;
     /** What a writer reserves to start with. */
     private static final int START_BYTES = 256;
+    /**
+     * Numbers packed in blocks ({@code yog_data::frame::lanes}): a block is
+     * LANES lanes of 32-bit words, ROWS numbers each; number j of a block in
+     * lane j % LANES, the (j / LANES)-th; word k of lane l the block's
+     * (k * LANES + l)-th. Up to 32 bits a number; the rest of the list after
+     * the blocks, one after another.
+     */
+    private static final int LANES = 8;
+    private static final int ROWS = 32;
+    private static final int BLOCK = LANES * ROWS;
+    private static final int WORD_BITS = 32;
+    private static final int WORD_BYTES = 4;
 
     /** {@code n} zigzagged: small negative numbers stay small. */
     static long zigzag(long n) {
         return (n << 1) ^ (n >> (LONG_BITS - 1));
     }
 
-    static long unzigzag(long z) {
+    public static long unzigzag(long z) {
         return (z >>> 1) ^ -(z & 1);
     }
 
-    /** A list of {@code item}s read one after another. */
+    /** The bytes {@code n} numbers {@code bits} wide take bit-packed: blocks, then the rest. */
+    public static int packedBytes(int n, int bits) {
+        int blocks = bits <= WORD_BITS ? n / BLOCK : 0;
+        long rest = n - (long) blocks * BLOCK;
+        long bytes = (long) blocks * LANES * bits * WORD_BYTES + (rest * bits + BYTE_BITS - 1) / BYTE_BITS;
+        if (n < 0 || bits < 1 || bits > LONG_BITS || bytes > Integer.MAX_VALUE) throw new YogData.DecodeException("packed numbers past the end", 0);
+        return (int) bytes;
+    }
+
+    /** A list of {@code item}s read one after another ({@link Packer#beginList}). */
     public static <T> List<T> list(Unpacker u, Supplier<T> item) {
         int n = u.count();
+        int end = u.listEnd();
         List<T> out = new ArrayList<>(n);
         for (int k = 0; k < n; k++) out.add(item.get());
+        u.skipTo(end);
         return out;
     }
 
@@ -173,57 +196,88 @@ public final class YogFrame {
         }
 
         /** Floats: four bytes each when every one is a {@code float} exactly. */
-        public void putF64s(List<? extends Number> items) {
-            putU(items.size());
+        public void putF64s(double[] items) {
+            putU(items.length);
             boolean narrow = true;
-            for (Number x : items) {
-                double d = x.doubleValue();
+            for (double d : items) {
                 if (Double.doubleToRawLongBits((double) (float) d) != Double.doubleToRawLongBits(d)) {
                     narrow = false;
                     break;
                 }
             }
             putBool(narrow);
-            for (Number x : items) {
-                if (narrow) putF32((float) x.doubleValue());
-                else putF64(x.doubleValue());
+            for (double d : items) {
+                if (narrow) putF32((float) d);
+                else putF64(d);
             }
         }
 
-        public void putF32s(List<? extends Number> items) {
-            putU(items.size());
-            for (Number x : items) putF32(x.floatValue());
+        public void putF32s(float[] items) {
+            putU(items.length);
+            for (float f : items) putF32(f);
         }
 
-        /** Numbers bit-packed: as many bits each as the biggest needs (one at least). */
-        public void putUints(List<? extends Number> items, boolean signed) {
-            putU(items.size());
+        public void putInts(int[] items, boolean signed) {
+            putPacked(items.length, k -> items[k], signed);
+        }
+
+        public void putLongs(long[] items, boolean signed) {
+            putPacked(items.length, k -> items[k], signed);
+        }
+
+        /**
+         * {@code n} numbers ({@code at} the k-th) bit-packed: as many bits each
+         * as the biggest needs (one at least), in blocks then one after another.
+         */
+        private void putPacked(int n, java.util.function.IntToLongFunction at, boolean signed) {
+            putU(n);
             long max = 0;
-            for (Number x : items) {
-                long v = signed ? zigzag(x.longValue()) : x.longValue();
+            for (int k = 0; k < n; k++) {
+                long v = signed ? zigzag(at.applyAsLong(k)) : at.applyAsLong(k);
                 if (Long.compareUnsigned(v, max) > 0) max = v;
             }
             int bits = Math.max(1, LONG_BITS - Long.numberOfLeadingZeros(max));
             put(bits);
-            long acc = 0;
+            int blocks = bits <= WORD_BITS ? n / BLOCK : 0;
+            int[] acc = new int[LANES];
+            for (int blk = 0; blk < blocks; blk++) {
+                int filled = 0;
+                Arrays.fill(acc, 0);
+                for (int r = 0; r < ROWS; r++) {
+                    int row = blk * BLOCK + r * LANES;
+                    for (int l = 0; l < LANES; l++) acc[l] |= (int) packed(at, row + l, signed) << filled;
+                    filled += bits;
+                    if (filled >= WORD_BITS) {
+                        for (int l = 0; l < LANES; l++) putFixed(acc[l] & 0xFFFFFFFFL, WORD_BYTES);
+                        filled -= WORD_BITS;
+                        for (int l = 0; l < LANES; l++) acc[l] = filled == 0 ? 0 : (int) packed(at, row + l, signed) >>> (bits - filled);
+                    }
+                }
+            }
+            long acc1 = 0;
             int have = 0;
-            for (Number x : items) {
-                long v = signed ? zigzag(x.longValue()) : x.longValue();
+            for (int k = blocks * BLOCK; k < n; k++) {
+                long v = packed(at, k, signed);
                 int left = bits;
                 while (left > 0) {
                     int take = Math.min(left, BYTE_BITS - have);
-                    acc |= (v & ((1L << take) - 1)) << have;
+                    acc1 |= (v & ((1L << take) - 1)) << have;
                     have += take;
                     v >>>= take;
                     left -= take;
                     if (have == BYTE_BITS) {
-                        put((int) acc);
-                        acc = 0;
+                        put((int) acc1);
+                        acc1 = 0;
                         have = 0;
                     }
                 }
             }
-            if (have > 0) put((int) acc);
+            if (have > 0) put((int) acc1);
+        }
+
+        private static long packed(java.util.function.IntToLongFunction at, int k, boolean signed) {
+            long v = at.applyAsLong(k);
+            return signed ? zigzag(v) : v;
         }
 
         /** A string: its index in the table, which gets it the first time. */
@@ -257,6 +311,16 @@ public final class YogFrame {
         /** A value it doesn't pack, in its binary form. */
         public void putTagged(Object value) {
             putBytes(YogData.encodeBody(value));
+        }
+
+        /**
+         * A list of {@code n} items packed one by one starts: its count, then
+         * its length in bytes like a record's ({@link #end} writes it), so a
+         * reader can step over it.
+         */
+        public int beginList(int n) {
+            putU(n);
+            return begin();
         }
 
         /** A record starts: where its length goes. */
@@ -412,32 +476,76 @@ public final class YogFrame {
             return (int) n;
         }
 
-        public List<Double> getF64s() {
+        public double[] getF64s() {
             int n = count();
             boolean narrow = getBool();
-            List<Double> out = new ArrayList<>(n);
-            for (int k = 0; k < n; k++) out.add(narrow ? (double) getF32() : getF64());
+            double[] out = new double[n];
+            for (int k = 0; k < n; k++) out[k] = narrow ? getF32() : getF64();
             return out;
         }
 
-        public List<Float> getF32s() {
+        public float[] getF32s() {
             int n = count();
-            List<Float> out = new ArrayList<>(n);
-            for (int k = 0; k < n; k++) out.add(getF32());
+            float[] out = new float[n];
+            for (int k = 0; k < n; k++) out[k] = getF32();
             return out;
         }
 
-        /** Bit-packed numbers ({@link Packer#putUints}). */
-        public List<Long> getUints(boolean signed) {
-            long n = getU();
+        /** Bit-packed numbers ({@link Packer#putInts}). */
+        public int[] getInts(boolean signed) {
+            int[][] out = new int[1][];
+            getPacked(n -> out[0] = new int[n], (k, v) -> out[0][k] = (int) v, signed);
+            return out[0];
+        }
+
+        /** Bit-packed numbers ({@link Packer#putLongs}). */
+        public long[] getLongs(boolean signed) {
+            long[][] out = new long[1][];
+            getPacked(n -> out[0] = new long[n], (k, v) -> out[0][k] = v, signed);
+            return out[0];
+        }
+
+        /** Where unpacked numbers go: the k-th is {@code v}. */
+        @FunctionalInterface
+        private interface Sink {
+            void set(int k, long v);
+        }
+
+        private void getPacked(java.util.function.IntConsumer size, Sink sink, boolean signed) {
+            long count = getU();
             int bits = u8(bodyEnd);
-            if (bits < 1 || bits > LONG_BITS || n < 0 || n > (long) (bodyEnd - i) * BYTE_BITS / bits) {
+            if (bits < 1 || bits > LONG_BITS || count < 0 || count > (long) (bodyEnd - i) * BYTE_BITS / bits) {
                 throw new YogData.DecodeException("packed numbers past the end", i);
             }
-            List<Long> out = new ArrayList<>((int) n);
+            int n = (int) count;
+            size.accept(n);
+            int blocks = bits <= WORD_BITS ? n / BLOCK : 0;
+            if ((long) blocks * LANES * bits * WORD_BYTES > bodyEnd - i) throw new YogData.DecodeException("packed numbers past the end", i);
+            long mask = bits == LONG_BITS ? -1L : (1L << bits) - 1;
+            for (int blk = 0; blk < blocks; blk++) {
+                int base = i;
+                for (int l = 0; l < LANES; l++) {
+                    int k = 0;
+                    int used = 0;
+                    long cur = word(base, k, l);
+                    for (int r = 0; r < ROWS; r++) {
+                        long v = cur >>> used;
+                        if (used + bits > WORD_BITS) v |= word(base, k + 1, l) << (WORD_BITS - used);
+                        v &= mask;
+                        sink.set(blk * BLOCK + r * LANES + l, signed ? unzigzag(v) : v);
+                        used += bits;
+                        if (used >= WORD_BITS) {
+                            used -= WORD_BITS;
+                            k++;
+                            if (k < bits) cur = word(base, k, l);
+                        }
+                    }
+                }
+                i += LANES * bits * WORD_BYTES;
+            }
             long acc = 0;
             int have = 0;
-            for (long k = 0; k < n; k++) {
+            for (int k = blocks * BLOCK; k < n; k++) {
                 long v = 0;
                 int got = 0;
                 while (got < bits) {
@@ -451,9 +559,16 @@ public final class YogFrame {
                     have -= take;
                     got += take;
                 }
-                out.add(signed ? unzigzag(v) : v);
+                sink.set(k, signed ? unzigzag(v) : v);
             }
-            return out;
+        }
+
+        /** Word {@code k} of lane {@code lane} of the block at {@code base}, unsigned. */
+        private long word(int base, int k, int lane) {
+            int at = base + (k * LANES + lane) * WORD_BYTES;
+            long w = 0;
+            for (int x = 0; x < WORD_BYTES; x++) w |= (long) (b.get(at + x) & 0xFF) << (BYTE_BITS * x);
+            return w;
         }
 
         /** A string: the table read as far as it's needed. */
@@ -495,6 +610,97 @@ public final class YogFrame {
         /** A value held in its binary form. */
         public Object getTagged() {
             return YogData.decodeBody(getBytes());
+        }
+
+        // ── Reading in place (the records' views) ───────────────────────
+
+        /** Where it's read up to. */
+        public int position() {
+            return i;
+        }
+
+        /** Reads from {@code at} next (a place it has been). */
+        public void seek(int at) {
+            if (at < 0 || at > bodyEnd) throw new YogData.DecodeException("a place outside the body", at);
+            i = at;
+        }
+
+        /** Steps over {@code n} bytes. */
+        public void skip(int n) {
+            if (n < 0 || n > bodyEnd - i) throw new YogData.DecodeException("unexpected end", i);
+            i += n;
+        }
+
+        /** Steps over a length and that many bytes. */
+        public void skipBytes() {
+            skip(count());
+        }
+
+        /** One byte, unsigned. */
+        public int getByte() {
+            return u8(bodyEnd);
+        }
+
+        /** The 32-bit float at {@code at}. */
+        public float f32At(int at) {
+            int keep = i;
+            seek(at);
+            float f = getF32();
+            i = keep;
+            return f;
+        }
+
+        /** The 64-bit float at {@code at}. */
+        public double f64At(int at) {
+            int keep = i;
+            seek(at);
+            double d = getF64();
+            i = keep;
+            return d;
+        }
+
+        /**
+         * Number {@code k} of {@code n} bit-packed ones {@code bits} wide whose
+         * bytes start at {@code at} (blocks, then the rest): O(1), unsigned.
+         */
+        public long packedAt(int at, int n, int bits, int k) {
+            if (k < 0 || k >= n) throw new IndexOutOfBoundsException(k);
+            if (at < 0 || at + packedBytes(n, bits) > bodyEnd) throw new YogData.DecodeException("packed numbers past the end", at);
+            long mask = bits == LONG_BITS ? -1L : (1L << bits) - 1;
+            int blocks = bits <= WORD_BITS ? n / BLOCK : 0;
+            if (k < blocks * BLOCK) {
+                int j = k % BLOCK;
+                int base = at + (k / BLOCK) * LANES * bits * WORD_BYTES;
+                int lane = j % LANES;
+                int bit = (j / LANES) * bits;
+                int word = bit / WORD_BITS;
+                int shift = bit % WORD_BITS;
+                long v = word(base, word, lane) >>> shift;
+                if (shift + bits > WORD_BITS) v |= word(base, word + 1, lane) << (WORD_BITS - shift);
+                return v & mask;
+            }
+            long bit = (long) (k - blocks * BLOCK) * bits;
+            int byteAt = at + blocks * LANES * bits * WORD_BYTES + (int) (bit / BYTE_BITS);
+            int shift = (int) (bit % BYTE_BITS);
+            long v = 0;
+            int got = -shift;
+            for (int x = byteAt; got < bits && x < bodyEnd; x++, got += BYTE_BITS) {
+                long by = b.get(x) & 0xFF;
+                v |= got >= 0 ? by << got : by >>> -got;
+            }
+            return v & mask;
+        }
+
+        /** A list's length in bytes ({@link Packer#beginList}): where it ends. */
+        public int listEnd() {
+            int len = count();
+            return i + len;
+        }
+
+        /** Steps to {@code end} (a list's), past what's left of it. */
+        public void skipTo(int end) {
+            if (i > end || end > bodyEnd) throw new YogData.DecodeException("a list read past its end", i);
+            i = end;
         }
 
         /** A record starts: where it ends. */

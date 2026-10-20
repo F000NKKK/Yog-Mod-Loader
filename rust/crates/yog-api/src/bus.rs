@@ -121,18 +121,16 @@ pub fn emit<E: Event>(event: &E) -> bool {
         return true;
     }
     let bus = unsafe { &*(*api).bus };
-    let bytes = event.to_bytes();
-    let send = |address: &str| unsafe {
-        let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
-        (bus.emit)(bus.ctx, at, YogBytes::new(&bytes), std::ptr::null())
-    };
-    if let Some(pre) = event.pre_target()
-        && send(&pre) == status::CANCELLED
-    {
-        return false;
-    }
-    send(&event.target());
-    true
+    event.with_bytes(|bytes| {
+        let send = |at| unsafe { (bus.emit)(bus.ctx, at, YogBytes::new(bytes), std::ptr::null()) };
+        if let Some(pre) = event.pre_address()
+            && send(pre) == status::CANCELLED
+        {
+            return false;
+        }
+        send(event.address());
+        true
+    })
 }
 
 impl Registry {

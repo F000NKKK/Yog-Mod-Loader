@@ -56,7 +56,7 @@ pub unsafe fn __yog_serve<A: Schema, R: Schema>(payload: YogBytes, reply: *const
 /// Calls mod `mod_id`'s export `name` with `args`: its answer, `None` when
 /// it isn't there (the mod isn't loaded) or failed.
 pub fn call_export<A: Schema, R: Schema>(mod_id: &str, name: &str, args: &A) -> Option<R> {
-    R::from_bytes(&call_at(&export_address(mod_id, name), &args.to_bytes())?)
+    R::from_bytes(&call_at(yog_event::resolve(&export_address(mod_id, name)), &args.to_bytes())?)
 }
 
 /// What an import does: [`call_export`], a failure reported where unwinding is safe.

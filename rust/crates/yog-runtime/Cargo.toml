@@ -74,3 +74,8 @@ harness = false
 name = "dispatch"
 harness = false
 required-features = ["bench"]
+
+[[bench]]
+name = "bus_calls"
+harness = false
+required-features = ["bench"]

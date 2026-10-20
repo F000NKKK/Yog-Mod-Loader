@@ -9,7 +9,7 @@ use yog_data::Shape;
 use yog_data::schema::{EnumShape, StructShape};
 
 use super::field;
-use super::types::{F32_BITS, TYPES, fits_int, from_data, java_type, to_data};
+use super::types::{F32_BITS, TYPES, fits_int, from_data, java_type, number_array, to_data};
 
 
 /// `pack`, `unpack`, `toFrame` and `fromFrame` for record `name` of `s`, indented by `pad`.
@@ -67,10 +67,14 @@ pub(super) fn pack(shape: &Shape, value: &str, depth: usize) -> String {
         Shape::Bytes => format!("p.putBytes({value});"),
         Shape::Optional(inner) => format!("p.putBool({value} != null); if ({value} != null) {{ {} }}", pack(&inner(), value, depth)),
         Shape::List(item) => match item() {
-            Shape::Int { min, .. } => format!("p.putUints({value}, {});", min < 0),
+            Shape::Int { min, max } if fits_int(min, max) => format!("p.putInts({value}, {});", min < 0),
+            Shape::Int { min, .. } => format!("p.putLongs({value}, {});", min < 0),
             Shape::Float { bits } if bits == F32_BITS => format!("p.putF32s({value});"),
             Shape::Float { .. } => format!("p.putF64s({value});"),
-            item => format!("p.putU({value}.size()); for (var {e} : {value}) {{ {} }}", pack(&item, &e, depth + 1)),
+            item => format!(
+                "{{ int l{depth} = p.beginList({value}.size()); for (var {e} : {value}) {{ {} }} p.end(l{depth}); }}",
+                pack(&item, &e, depth + 1)
+            ),
         },
         Shape::Struct(_) => format!("{value}.pack(p);"),
         Shape::Enum(en) if en.tag.is_none() => format!("p.putU(switch ({value}) {{ {} default -> 0; }});", name_cases(en)),
@@ -91,8 +95,8 @@ pub(super) fn unpack(shape: &Shape, depth: usize) -> String {
         Shape::Bytes => "u.getBytes()".into(),
         Shape::Optional(inner) => format!("(u.getBool() ? {} : null)", boxed(&inner(), depth)),
         Shape::List(item) => match item() {
-            Shape::Int { min, max } if fits_int(min, max) => format!("u.getUints({}).stream().map(Long::intValue).toList()", min < 0),
-            Shape::Int { min, .. } => format!("u.getUints({})", min < 0),
+            Shape::Int { min, max } if fits_int(min, max) => format!("u.getInts({})", min < 0),
+            Shape::Int { min, .. } => format!("u.getLongs({})", min < 0),
             Shape::Float { bits } if bits == F32_BITS => "u.getF32s()".into(),
             Shape::Float { .. } => "u.getF64s()".into(),
             item => format!("YogFrame.list(u, () -> {})", boxed(&item, depth + 1)),
@@ -149,6 +153,7 @@ pub(super) fn missing(shape: &Shape) -> String {
         Shape::Float { bits } if *bits == F32_BITS => "0.0f".into(),
         Shape::Float { .. } => "0.0".into(),
         Shape::Bytes => "new byte[0]".into(),
+        Shape::List(f) if let Some(array) = number_array(&f()) => format!("new {}0]", array.trim_end_matches(']')),
         Shape::List(_) => "java.util.List.of()".into(),
         Shape::Map(_) => "java.util.Map.of()".into(),
         Shape::Enum(en) if en.tag.is_none() => format!("{:?}", en.variants.first().map_or("", |v| v.name)),

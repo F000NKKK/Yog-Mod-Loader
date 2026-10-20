@@ -24,6 +24,9 @@ pub trait Service: Message {
     fn target(&self) -> String {
         crate::message::target(Self::ADDRESS, self.key())
     }
+
+    /// [`Service::target`]'s number — the type's own address cached.
+    fn address(&self) -> crate::Address;
 }
 
 /// A service's descriptor: its domain and name, address and shapes.
@@ -71,6 +74,11 @@ macro_rules! services {
 
             fn key(&self) -> Option<&str> {
                 key_value!(self, $($key)?)
+            }
+
+            fn address(&self) -> crate::Address {
+                static AT: crate::Cached = crate::Cached::new();
+                crate::address::of(&AT, $address, self.key())
             }
         })*
 

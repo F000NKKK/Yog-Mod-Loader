@@ -406,7 +406,7 @@ impl<'b> Decoder<'b> {
     /// (Written narrow when they fit: widened back.)
     pub fn floats(&mut self) -> Option<Vec<f64>> {
         if self.next_is(tag::FLOATS32).is_some() {
-            return Some(self.packed_floats::<F32_BYTES>().ok()?.map(|f| f64::from(f32::from_le_bytes(*f))).collect());
+            return Some(crate::frame::floats::widen(self.packed_floats::<F32_BYTES>().ok()?.as_slice().as_flattened()));
         }
         self.next_is(tag::FLOATS)?;
         Some(self.packed_floats::<F64_BYTES>().ok()?.map(|f| f64::from_le_bytes(*f)).collect())

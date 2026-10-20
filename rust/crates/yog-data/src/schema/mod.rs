@@ -77,19 +77,21 @@ pub trait Schema: Sized {
 
     /// A list of these packed: a count, then each one (floats raw).
     fn pack_list(items: &[Self], p: &mut Packer) {
-        p.put_u(items.len() as u64);
+        let at = p.begin_list(items.len());
         for item in items {
             item.pack(p);
         }
+        p.end(at);
     }
 
     /// A list of these out of a frame.
     fn unpack_list(u: &mut Unpacker<'_>) -> Option<Vec<Self>> {
-        let n = u.count()?;
+        let (n, end) = u.list()?;
         let mut out = Vec::with_capacity(n);
         for _ in 0..n {
             out.push(Self::unpack(u)?);
         }
+        u.skip_to(end)?;
         Some(out)
     }
 

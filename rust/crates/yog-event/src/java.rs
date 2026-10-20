@@ -7,6 +7,7 @@ mod events;
 mod frames;
 mod services;
 mod types;
+mod views;
 
 use std::fmt::Write;
 
@@ -108,6 +109,7 @@ fn record(o: &mut Out, pad: &str, name: &str, s: &StructShape, body: &str) {
     );
     let _ = write!(out, "{pad}    public static {name} fromBytes(byte[] bytes) {{\n{pad}        return fromData(YogData.decode(bytes));\n{pad}    }}");
     out.push_str(&frames::codec(name, s, pad));
+    out.push_str(&views::view(name, s, pad));
     let body = body.replace('\n', &format!("\n{pad}"));
     let _ = writeln!(out, "{body}\n{pad}}}");
 }

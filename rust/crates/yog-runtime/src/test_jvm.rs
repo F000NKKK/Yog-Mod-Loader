@@ -14,18 +14,18 @@ use jni::sys::{JNI_OK, JNI_VERSION_1_8, JNIEnv as RawEnv, JavaVM as RawVm, JavaV
 const DEFAULT_JDK: &str = "/usr/lib/jvm/java-21-openjdk-amd64";
 
 /// The JDK to use, if there's one.
-pub(crate) fn jdk() -> Option<PathBuf> {
+pub fn jdk() -> Option<PathBuf> {
     let home = std::env::var_os("JAVA_HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from(DEFAULT_JDK));
     home.join("bin/javac").is_file().then_some(home)
 }
 
 /// Compiles `sources` into `out`; whether javac succeeded.
-pub(crate) fn javac(jdk: &Path, out: &Path, sources: &[PathBuf]) -> bool {
+pub fn javac(jdk: &Path, out: &Path, sources: &[PathBuf]) -> bool {
     Command::new(jdk.join("bin/javac")).arg("-d").arg(out).args(sources).status().is_ok_and(|s| s.success())
 }
 
 /// Starts the JVM from `jdk`'s `libjvm` with `classpath` (the library is leaked: the JVM lives as long as the process).
-pub(crate) fn start(jdk: &Path, classpath: &Path) -> JavaVM {
+pub fn start(jdk: &Path, classpath: &Path) -> JavaVM {
     let lib = Box::leak(Box::new(unsafe { libloading::Library::new(jdk.join("lib/server/libjvm.so")) }.expect("load libjvm")));
     type CreateVm = unsafe extern "system" fn(*mut *mut RawVm, *mut *mut c_void, *mut c_void) -> jint;
     let create: libloading::Symbol<CreateVm> = unsafe { lib.get(b"JNI_CreateJavaVM\0") }.expect("JNI_CreateJavaVM");

@@ -181,7 +181,7 @@ impl LoadedModule {
     /// mod's registered callback should wrap that call in one of these (the
     /// integration point with `yog-runtime`'s existing `catch_unwind`-based
     /// `guard()` helper).
-    pub fn enter(&self) -> Option<CallGuard> {
+    pub fn enter(&self) -> Option<CallGuard<'_>> {
         // Lock-free: count the call in, then check the module is still
         // there (see `try_unload` for the ordering that makes this safe).
         self.0.active.fetch_add(1, Ordering::SeqCst);
@@ -191,7 +191,7 @@ impl LoadedModule {
             try_unload(&self.0);
             return None;
         }
-        Some(CallGuard(self.0.clone()))
+        Some(CallGuard(&self.0))
     }
 
     /// Marks this module retiring: no new [`enter`](Self::enter) calls will
@@ -208,13 +208,14 @@ impl LoadedModule {
 
 /// RAII guard marking one in-flight call into a [`LoadedModule`]. Dropping
 /// it may trigger that module's deferred hard-unload if it was retired
-/// while this guard was outstanding and this was the last one.
-pub struct CallGuard(Arc<Inner>);
+/// while this guard was outstanding and this was the last one. It borrows
+/// the module (no reference count taken: the call is already holding it).
+pub struct CallGuard<'a>(&'a Inner);
 
-impl Drop for CallGuard {
+impl Drop for CallGuard<'_> {
     fn drop(&mut self) {
         self.0.active.fetch_sub(1, Ordering::SeqCst);
-        try_unload(&self.0);
+        try_unload(self.0);
     }
 }
 

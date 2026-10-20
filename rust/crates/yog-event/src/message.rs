@@ -116,6 +116,11 @@ macro_rules! actions {
                 fn key(&self) -> Option<&str> {
                     None
                 }
+
+                fn address(&self) -> $crate::Address {
+                    static AT: $crate::Cached = $crate::Cached::new();
+                    AT.get($address)
+                }
             }
 
             pastey::paste! {

@@ -116,5 +116,14 @@ fn java_records_read_and_write_rust_frames() {
         palette: vec![kind("minecraft:stone"), kind("minecraft:lava")],
         blocks: (0..4096).map(|i| (i % 2) as u16).collect(),
     });
+    // Packed in blocks and a tail, at widths that split across words.
+    for (span, n) in [(1000u32, 4096 + 77), (u32::from(u16::MAX), 300)] {
+        through_java(&dir, "BlockArea", &BlockArea {
+            min: BlockPos::new(0, 0, 0),
+            max: BlockPos::new(1, 1, 1),
+            palette: vec![kind("minecraft:stone")],
+            blocks: (0..n).map(|i: u32| (i.wrapping_mul(2_654_435_761) % (span + 1)) as u16).collect(),
+        });
+    }
     let _ = std::fs::remove_dir_all(&dir);
 }

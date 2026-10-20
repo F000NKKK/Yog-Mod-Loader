@@ -47,6 +47,29 @@ fn a_keyed_service_goes_to_its_keys_branch() {
     assert!(services().iter().any(|s| s.domain == "block" && s.name == "Insert"));
 }
 
+/// A message's address is its target's atom: an unkeyed type's kept once,
+/// a keyed one's its branch's, every time.
+#[test]
+fn addresses_are_their_targets_atoms() {
+    let insert = |block: &str| block::Insert {
+        block_id: block.into(),
+        pos: BlockPos { x: 0, y: 64, z: 0 },
+        dimension: "minecraft:overworld".into(),
+        item_id: "minecraft:stone".into(),
+        count: 1,
+        nbt: String::new(),
+        simulate: true,
+    };
+    for block in ["mymod:crate", "mymod:barrel"] {
+        let i = insert(block);
+        assert_eq!(i.address(), crate::resolve(&i.target()));
+    }
+    assert_ne!(insert("mymod:crate").address(), insert("mymod:barrel").address());
+    let give = crate::player::GiveItem { player: "Steve".into(), item: "minecraft:diamond".into(), count: 1 };
+    assert_eq!((give.address(), give.address()), (crate::resolve(&give.target()), crate::resolve(&give.target())));
+    assert_eq!(crate::resolve(""), crate::NO_ADDRESS);
+}
+
 /// With no bus reached, actions answer their replies' defaults — through a
 /// function or a handle alike.
 #[test]

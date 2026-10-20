@@ -19,8 +19,8 @@
 //! | string | varint index into the table |
 //! | bytes | varint length, the bytes |
 //! | `Option` | a byte, 0 (none) or 1, then the value |
-//! | list | varint count, the values |
-//! | list of ints | varint count, bits each (a byte), the values bit-packed (signed ones zigzagged) |
+//! | list | varint count, varint byte length (a reader steps over it), the values |
+//! | list of ints | varint count, bits each (a byte), the values bit-packed in lanes ([`lanes`]; signed ones zigzagged) |
 //! | list of floats | varint count, `f32`-exact (a byte), the values raw — 4 bytes each if they all are `f32`s |
 //! | unit enum | varint variant index (variants only appended) |
 //! | anything else | its binary form ([`crate::binary`]), as bytes |
@@ -38,11 +38,13 @@
 //! assert_eq!(yog_data::frame::read_frame::<Hit>(&frame), Some(hit));
 //! ```
 
+pub mod floats;
+pub mod lanes;
 mod shaped;
 mod view;
 
 pub use shaped::{read_shaped, unpack_shaped};
-pub use view::{Floats, FromF64, Ints, View, read_view};
+pub use view::{Floats, FromF64, Ints, List, ListIter, View, list, read_view};
 
 use std::sync::Arc;
 
@@ -144,45 +146,28 @@ impl Packer {
     /// is one exactly — half the bytes), then each one's bytes.
     pub fn put_f64s(&mut self, items: &[f64]) {
         self.put_u(items.len() as u64);
-        let narrow = items.iter().all(|f| f64::from(*f as f32).to_bits() == f.to_bits());
+        let narrow = floats::fits_f32(items);
         self.put_bool(narrow);
-        for f in items {
-            if narrow {
-                self.put_f32(*f as f32);
-            } else {
-                self.put_f64(*f);
-            }
+        if narrow {
+            floats::put_narrow(&mut self.out, items);
+        } else {
+            floats::put_wide(&mut self.out, items);
         }
     }
 
     /// Unsigned numbers bit-packed: a count, how many bits each takes (the
-    /// biggest one's, one at least), then the bits, little-endian.
+    /// biggest one's, one at least), then the bits ([`lanes`]).
     pub fn put_uints(&mut self, len: usize, items: impl Iterator<Item = u64> + Clone) {
         self.put_u(len as u64);
         let max = items.clone().fold(0, u64::max);
         let bits = (u64::BITS - max.leading_zeros()).max(1);
         self.out.push(bits as u8);
-        let mut acc: u128 = 0;
-        let mut have = 0u32;
-        for v in items {
-            acc |= u128::from(v) << have;
-            have += bits;
-            while have >= u8::BITS {
-                self.out.push(acc as u8);
-                acc >>= u8::BITS;
-                have -= u8::BITS;
-            }
-        }
-        if have > 0 {
-            self.out.push(acc as u8);
-        }
+        lanes::pack(&mut self.out, len, bits, items);
     }
 
     pub fn put_f32s(&mut self, items: &[f32]) {
         self.put_u(items.len() as u64);
-        for f in items {
-            self.put_f32(*f);
-        }
+        floats::put_f32s(&mut self.out, items);
     }
 
     /// A string: its index in the table, which gets it the first time.
@@ -219,7 +204,15 @@ impl Packer {
         at
     }
 
-    /// The record begun at `at` ends: its length written.
+    /// A list of `len` items packed one by one: its count, then its length
+    /// in bytes like a record's ([`Packer::end`] writes it), so a reader
+    /// can step over it.
+    pub fn begin_list(&mut self, len: usize) -> usize {
+        self.put_u(len as u64);
+        self.begin()
+    }
+
+    /// The record (or list) begun at `at` ends: its length written.
     pub fn end(&mut self, at: usize) {
         let len = self.out.len() - at - LENGTH_RESERVED;
         if len <= ONE_BYTE_MAX {
@@ -368,7 +361,7 @@ impl<'b> Unpacker<'b> {
     pub fn get_f64s(&mut self) -> Option<Vec<f64>> {
         let (_, narrow, raw) = self.packed_floats(true)?;
         Some(if narrow {
-            raw.as_chunks::<F32_BYTES>().0.iter().map(|b| f64::from(f32::from_le_bytes(*b))).collect()
+            floats::widen(raw)
         } else {
             raw.as_chunks::<F64_BYTES>().0.iter().map(|b| f64::from_le_bytes(*b)).collect()
         })
@@ -377,20 +370,13 @@ impl<'b> Unpacker<'b> {
     /// Bit-packed numbers ([`Packer::put_uints`]), each made a `T` by `of`.
     pub fn get_uints<T>(&mut self, of: impl Fn(u64) -> Option<T>) -> Option<Vec<T>> {
         let (n, bits, raw) = self.packed_ints()?;
-        let mask = u128::from(u64::MAX) >> (u64::BITS - bits);
-        let mut bytes = raw.iter();
-        let (mut acc, mut have) = (0u128, 0u32);
         let mut out = Vec::with_capacity(n);
-        for _ in 0..n {
-            while have < bits {
-                acc |= u128::from(*bytes.next()?) << have;
-                have += u8::BITS;
-            }
-            out.push(of((acc & mask) as u64)?);
-            acc >>= bits;
-            have -= bits;
-        }
-        Some(out)
+        let mut ok = true;
+        lanes::unpack(raw, n, bits, |v| match of(v) {
+            Some(t) if ok => out.push(t),
+            _ => ok = false,
+        });
+        ok.then_some(out)
     }
 
     pub fn get_f32s(&mut self) -> Option<Vec<f32>> {
@@ -405,7 +391,7 @@ impl<'b> Unpacker<'b> {
         if !(1..=u64::BITS).contains(&bits) || n > (self.body.len() - self.i) * u8::BITS as usize / bits as usize {
             return None;
         }
-        let bytes = self.take((n * bits as usize).div_ceil(u8::BITS as usize))?;
+        let bytes = self.take(lanes::packed_bytes(n, bits)?)?;
         Some((n, bits, bytes))
     }
 
@@ -474,6 +460,28 @@ impl<'b> Unpacker<'b> {
         let len = self.count()?;
         self.depth += 1;
         (self.depth <= MAX_DEPTH).then_some(self.i + len)
+    }
+
+    /// A list ([`Packer::begin_list`]): how many items, and where it ends.
+    pub fn list(&mut self) -> Option<(usize, usize)> {
+        let n = self.count()?;
+        let len = self.count()?;
+        Some((n, self.i + len))
+    }
+
+    /// Steps to `end` (a list's), past what's left of it.
+    pub fn skip_to(&mut self, end: usize) -> Option<()> {
+        (self.i <= end && end <= self.body.len()).then(|| self.i = end)
+    }
+
+    /// Where it's read up to.
+    pub fn position(&self) -> usize {
+        self.i
+    }
+
+    /// A reader of the same frame from `at`, with a string cache of its own.
+    pub fn fork(&self, at: usize) -> Unpacker<'b> {
+        Unpacker { body: self.body, i: at, table: self.table, table_at: 0, strings: Strings::new(), shared: Vec::new(), depth: self.depth }
     }
 
     /// Whether the record ending at `end` has more fields.

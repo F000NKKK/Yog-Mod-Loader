@@ -170,16 +170,17 @@ public final class YogClientOps {
         if (volume > MAX_BLOCKS) return null;
         Map<BlockState, Integer> index = new HashMap<>();
         List<YogTypes.BlockKind> palette = new ArrayList<>();
-        List<Integer> blocks = new ArrayList<>((int) volume);
+        int[] blocks = new int[(int) volume];
+        int next = 0;
         for (int y = b[0].getY(); y <= b[1].getY(); y++)
             for (int z = b[0].getZ(); z <= b[1].getZ(); z++)
                 for (int x = b[0].getX(); x <= b[1].getX(); x++) {
                     BlockPos at = new BlockPos(x, y, z);
                     BlockState st = w.getChunkSource().hasChunk(x >> SECTION_SHIFT, z >> SECTION_SHIFT) ? w.getBlockState(at) : Blocks.BEDROCK.defaultBlockState();
-                    blocks.add(index.computeIfAbsent(st, s -> {
+                    blocks[next++] = index.computeIfAbsent(st, s -> {
                         palette.add(kind(w, at, s));
                         return palette.size() - 1;
-                    }));
+                    });
                 }
         return new YogTypes.BlockArea(YogQueries.blockPos(b[0]), YogQueries.blockPos(b[1]), palette, blocks);
     }

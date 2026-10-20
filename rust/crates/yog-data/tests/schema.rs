@@ -638,7 +638,7 @@ mod frames {
 /// Views: a frame read without copying.
 mod views {
     use yog_data::Schema;
-    use yog_data::frame::{read_view, to_frame};
+    use yog_data::frame::{read_frame, read_view, to_frame};
 
     #[derive(Schema, Debug, PartialEq)]
     #[data(view)]
@@ -677,7 +677,34 @@ mod views {
         assert_eq!(v.blocks.iter().collect::<Vec<i16>>(), [-3, 0, 900]);
         assert_eq!(v.blocks.get(2), Some(900));
         assert_eq!(v.blocks.get(3), None);
-        assert_eq!(v.tags, ["a", "b"]);
+        // A list read lazily, item by item.
+        assert_eq!(v.tags.iter().collect::<Vec<&str>>(), ["a", "b"]);
+        assert_eq!((v.tags.len(), v.tags.get(1), v.tags.get(2)), (2, Some("b"), None));
         assert_eq!(v.inner.map(|i| i.name), Some("in"));
+    }
+
+    #[derive(Schema, Debug, PartialEq)]
+    #[data(view)]
+    struct Shelf {
+        rows: Vec<Vec<Inner>>,
+        after: u32,
+    }
+
+    #[test]
+    fn lists_are_stepped_over_and_read_lazily() {
+        let shelf = Shelf {
+            rows: vec![vec![Inner { name: "a".into() }, Inner { name: "b".into() }], vec![], vec![Inner { name: "c".into() }]],
+            after: 42,
+        };
+        let frame = to_frame(&shelf);
+        let v = read_view::<Shelf>(&frame).unwrap();
+        // The field after the lists is reached without reading them.
+        assert_eq!(v.after, 42);
+        assert_eq!(v.rows.len(), 3);
+        let names: Vec<Vec<&str>> = v.rows.iter().map(|row| row.iter().map(|i| i.name).collect()).collect();
+        assert_eq!(names, [vec!["a", "b"], vec![], vec!["c"]]);
+        assert_eq!(v.rows.get(2).and_then(|r| r.get(0)).map(|i| i.name), Some("c"));
+        assert!(v.rows.get(3).is_none());
+        assert_eq!(read_frame::<Shelf>(&frame), Some(shelf));
     }
 }

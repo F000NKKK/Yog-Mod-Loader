@@ -9,6 +9,7 @@
 
 #[macro_use]
 mod message;
+mod address;
 mod call;
 mod event;
 mod handles;
@@ -44,6 +45,7 @@ pub mod tag;
 pub mod ui;
 pub mod world;
 
+pub use address::{Address, Cached, NO_ADDRESS, resolve};
 pub use call::{Caller, call, set_caller};
 pub use handles::{Entity, Player, World};
 pub use event::{Event, EventInfo, all};

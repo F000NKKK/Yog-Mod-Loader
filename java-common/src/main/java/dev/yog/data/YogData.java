@@ -444,4 +444,59 @@ public final class YogData {
     public static boolean bool(Object v, boolean def) {
         return v instanceof Boolean b ? b : def;
     }
+
+    // ── Number arrays (a record's list of numbers) as values and back ────
+
+    public static List<Object> listOf(int[] a) {
+        List<Object> out = new ArrayList<>(a.length);
+        for (int x : a) out.add((long) x);
+        return out;
+    }
+
+    public static List<Object> listOf(long[] a) {
+        List<Object> out = new ArrayList<>(a.length);
+        for (long x : a) out.add(x);
+        return out;
+    }
+
+    public static List<Object> listOf(float[] a) {
+        List<Object> out = new ArrayList<>(a.length);
+        for (float x : a) out.add((double) x);
+        return out;
+    }
+
+    public static List<Object> listOf(double[] a) {
+        List<Object> out = new ArrayList<>(a.length);
+        for (double x : a) out.add(x);
+        return out;
+    }
+
+    /** {@code v} (a list of numbers) as an array; what isn't a number is 0. */
+    public static int[] ints(Object v) {
+        List<Object> l = list(v);
+        int[] out = new int[l.size()];
+        for (int k = 0; k < out.length; k++) out[k] = (int) integer(l.get(k), 0);
+        return out;
+    }
+
+    public static long[] longs(Object v) {
+        List<Object> l = list(v);
+        long[] out = new long[l.size()];
+        for (int k = 0; k < out.length; k++) out[k] = integer(l.get(k), 0);
+        return out;
+    }
+
+    public static float[] floats(Object v) {
+        List<Object> l = list(v);
+        float[] out = new float[l.size()];
+        for (int k = 0; k < out.length; k++) out[k] = (float) number(l.get(k), 0);
+        return out;
+    }
+
+    public static double[] doubles(Object v) {
+        List<Object> l = list(v);
+        double[] out = new double[l.size()];
+        for (int k = 0; k < out.length; k++) out[k] = number(l.get(k), 0);
+        return out;
+    }
 }

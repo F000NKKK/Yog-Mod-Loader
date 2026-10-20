@@ -73,6 +73,41 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code BlockPos} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public int x() {
+                if (o0 < 0) return 0;
+                u.seek(o0);
+                return (int) u.getI();
+            }
+
+            public int y() {
+                if (o1 < 0) return 0;
+                u.seek(o1);
+                return (int) u.getI();
+            }
+
+            public int z() {
+                if (o2 < 0) return 0;
+                u.seek(o2);
+                return (int) u.getI();
+            }
+        }
     }
 
     /** A stack of items: its id, how many, and its custom data (SNBT, `{}` for none). */
@@ -137,6 +172,41 @@ public final class YogTypes {
             LootStack v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code LootStack} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public long count() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public String nbt() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
         }
     }
 
@@ -227,6 +297,105 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code TravelFrame} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+            private final int o9;
+            private final int o10;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(4); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(4); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.skip(4); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(1); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.skip(1); } else { o8 = -1; }
+                if (u.more(end)) { o9 = u.position(); u.skip(4); } else { o9 = -1; }
+                if (u.more(end)) { o10 = u.position(); u.getU(); } else { o10 = -1; }
+                u.leave(end);
+            }
+
+            public String uuid() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public YogTypes.Vec3.View velocity() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return new YogTypes.Vec3.View(u);
+            }
+
+            public YogTypes.Vec3.View look() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return new YogTypes.Vec3.View(u);
+            }
+
+            public float yaw() {
+                if (o3 < 0) return 0.0f;
+                u.seek(o3);
+                return u.getF32();
+            }
+
+            public float pitch() {
+                if (o4 < 0) return 0.0f;
+                u.seek(o4);
+                return u.getF32();
+            }
+
+            public float forward() {
+                if (o5 < 0) return 0.0f;
+                u.seek(o5);
+                return u.getF32();
+            }
+
+            public float strafe() {
+                if (o6 < 0) return 0.0f;
+                u.seek(o6);
+                return u.getF32();
+            }
+
+            public boolean jumping() {
+                if (o7 < 0) return false;
+                u.seek(o7);
+                return u.getBool();
+            }
+
+            public boolean sneaking() {
+                if (o8 < 0) return false;
+                u.seek(o8);
+                return u.getBool();
+            }
+
+            public float gravity() {
+                if (o9 < 0) return 0.0f;
+                u.seek(o9);
+                return u.getF32();
+            }
+
+            public long flags() {
+                if (o10 < 0) return 0L;
+                u.seek(o10);
+                return u.getI();
+            }
+        }
     }
     public record Vec3(float x, float y, float z) {
         public java.util.Map<String, Object> toData() {
@@ -290,15 +459,50 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code Vec3} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skip(4); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public float x() {
+                if (o0 < 0) return 0.0f;
+                u.seek(o0);
+                return u.getF32();
+            }
+
+            public float y() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+
+            public float z() {
+                if (o2 < 0) return 0.0f;
+                u.seek(o2);
+                return u.getF32();
+            }
+        }
     }
 
     /** The camera as vanilla placed it this frame. */
-    public record CameraFrame(String uuid, float partial, java.util.List<Double> pos, float yaw, float pitch, boolean detached, long flags) {
+    public record CameraFrame(String uuid, float partial, double[] pos, float yaw, float pitch, boolean detached, long flags) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("uuid", uuid);
             m.put("partial", partial);
-            m.put("pos", pos);
+            m.put("pos", YogData.listOf(pos));
             m.put("yaw", yaw);
             m.put("pitch", pitch);
             m.put("detached", detached);
@@ -308,7 +512,7 @@ public final class YogTypes {
 
         public static CameraFrame fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new CameraFrame(YogData.str(m.get("uuid"), ""), (float) YogData.number(m.get("partial"), 0), YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList(), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), YogData.bool(m.get("detached"), false), YogData.integer(m.get("flags"), 0));
+            return new CameraFrame(YogData.str(m.get("uuid"), ""), (float) YogData.number(m.get("partial"), 0), YogData.doubles(m.get("pos")), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), YogData.bool(m.get("detached"), false), YogData.integer(m.get("flags"), 0));
         }
 
         public static CameraFrame fromBytes(byte[] bytes) {
@@ -331,7 +535,7 @@ public final class YogTypes {
             int end = u.begin();
             String f_uuid = u.more(end) ? u.getStr() : "";
             float f_partial = u.more(end) ? u.getF32() : 0.0f;
-            java.util.List<Double> f_pos = u.more(end) ? u.getF64s() : java.util.List.of();
+            double[] f_pos = u.more(end) ? u.getF64s() : new double[0];
             float f_yaw = u.more(end) ? u.getF32() : 0.0f;
             float f_pitch = u.more(end) ? u.getF32() : 0.0f;
             boolean f_detached = u.more(end) ? u.getBool() : false;
@@ -366,6 +570,84 @@ public final class YogTypes {
             CameraFrame v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code CameraFrame} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int h2, n2, b2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                if (u.more(end)) { h2 = u.position(); n2 = u.count(); b2 = u.getBool() ? 1 : 0; o2 = u.position(); u.skip(n2 * (b2 != 0 ? 4 : 8)); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(4); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(1); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
+                u.leave(end);
+            }
+
+            public String uuid() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public float partial() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+
+            public double[] pos() {
+                if (o2 < 0) return new double[0];
+                u.seek(h2);
+                return u.getF64s();
+            }
+
+            public int posLength() {
+                return n2;
+            }
+
+            /** Item {@code i}, read in place. */
+            public double pos(int i) {
+                if (i < 0 || i >= n2) throw new IndexOutOfBoundsException(i);
+                return b2 != 0 ? (double) u.f32At(o2 + 4 * i) : u.f64At(o2 + 8 * i);
+            }
+
+            public float yaw() {
+                if (o3 < 0) return 0.0f;
+                u.seek(o3);
+                return u.getF32();
+            }
+
+            public float pitch() {
+                if (o4 < 0) return 0.0f;
+                u.seek(o4);
+                return u.getF32();
+            }
+
+            public boolean detached() {
+                if (o5 < 0) return false;
+                u.seek(o5);
+                return u.getBool();
+            }
+
+            public long flags() {
+                if (o6 < 0) return 0L;
+                u.seek(o6);
+                return u.getI();
+            }
         }
     }
 
@@ -440,6 +722,65 @@ public final class YogTypes {
             CameraOut v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code CameraOut} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(4); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(4); } else { o5 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.Vec3.View localOffset() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return new YogTypes.Vec3.View(u);
+            }
+
+            public YogTypes.Vec3.View worldOffset() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return new YogTypes.Vec3.View(u);
+            }
+
+            public float yaw() {
+                if (o2 < 0) return 0.0f;
+                u.seek(o2);
+                return u.getF32();
+            }
+
+            public float pitch() {
+                if (o3 < 0) return 0.0f;
+                u.seek(o3);
+                return u.getF32();
+            }
+
+            public float roll() {
+                if (o4 < 0) return 0.0f;
+                u.seek(o4);
+                return u.getF32();
+            }
+
+            public float fov() {
+                if (o5 < 0) return 0.0f;
+                u.seek(o5);
+                return u.getF32();
+            }
         }
     }
 
@@ -521,6 +862,81 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code BlockInfo} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); if (u.getBool()) { u.getU(); } } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(1); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(1); } else { o7 = -1; }
+                u.leave(end);
+            }
+
+            public String state() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getAtom();
+            }
+
+            public float hardness() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+
+            public boolean replaceable() {
+                if (o2 < 0) return false;
+                u.seek(o2);
+                return u.getBool();
+            }
+
+            public boolean air() {
+                if (o3 < 0) return false;
+                u.seek(o3);
+                return u.getBool();
+            }
+
+            public String fluid() {
+                if (o4 < 0) return null;
+                u.seek(o4);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public boolean fluidSource() {
+                if (o5 < 0) return false;
+                u.seek(o5);
+                return u.getBool();
+            }
+
+            public int redstone() {
+                if (o6 < 0) return 0;
+                u.seek(o6);
+                return (int) u.getI();
+            }
+
+            public boolean inWorld() {
+                if (o7 < 0) return false;
+                u.seek(o7);
+                return u.getBool();
+            }
+        }
     }
 
     /** A stack of items: what it is, how many, its data (SNBT). */
@@ -586,6 +1002,41 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code Stack} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String item() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getAtom();
+            }
+
+            public long count() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public String snbt() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
+        }
     }
 
     /** An address's descriptor. */
@@ -617,7 +1068,7 @@ public final class YogTypes {
             p.putStr(this.doc);
             p.putTagged(this.shape);
             p.putBool(this.reply != null); if (this.reply != null) { p.putTagged(this.reply); }
-            p.putU(this.interfaces.size()); for (var e0 : this.interfaces) { p.putStr(e0); }
+            { int l0 = p.beginList(this.interfaces.size()); for (var e0 : this.interfaces) { p.putStr(e0); } p.end(l0); }
             p.end(at);
         }
 
@@ -659,6 +1110,65 @@ public final class YogTypes {
             Descriptor v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code Descriptor} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skipBytes(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); if (u.getBool()) { u.skipBytes(); } } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o5 = -1; }
+                u.leave(end);
+            }
+
+            public String address() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String kind() {
+                if (o1 < 0) return "event";
+                u.seek(o1);
+                return switch ((int) u.getU()) { case 0 -> "event"; case 1 -> "service"; default -> ""; };
+            }
+
+            public String doc() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
+
+            public Object shape() {
+                if (o3 < 0) return null;
+                u.seek(o3);
+                return u.getTagged();
+            }
+
+            public Object reply() {
+                if (o4 < 0) return null;
+                u.seek(o4);
+                return (u.getBool() ? u.getTagged() : null);
+            }
+
+            public java.util.List<String> interfaces() {
+                if (o5 < 0) return java.util.List.of();
+                u.seek(o5);
+                return YogFrame.list(u, () -> u.getStr());
+            }
         }
     }
 
@@ -718,6 +1228,25 @@ public final class YogTypes {
             DataValue v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code DataValue} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                u.leave(end);
+            }
+
+            public byte[] bytes() {
+                if (o0 < 0) return new byte[0];
+                u.seek(o0);
+                return u.getBytes();
+            }
         }
     }
 
@@ -783,6 +1312,41 @@ public final class YogTypes {
             ScreenSlot v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code ScreenSlot} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.Stack stack() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return (u.getBool() ? YogTypes.Stack.unpack(u) : null);
+            }
+
+            public int x() {
+                if (o1 < 0) return 0;
+                u.seek(o1);
+                return (int) u.getI();
+            }
+
+            public int y() {
+                if (o2 < 0) return 0;
+                u.seek(o2);
+                return (int) u.getI();
+            }
         }
     }
 
@@ -876,6 +1440,113 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code LocalState} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+            private final int o9;
+            private final int o10;
+            private final int o11;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(1); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.skip(8); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(4); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.getU(); } else { o8 = -1; }
+                if (u.more(end)) { o9 = u.position(); u.getU(); } else { o9 = -1; }
+                if (u.more(end)) { o10 = u.position(); u.getU(); } else { o10 = -1; }
+                if (u.more(end)) { o11 = u.position(); u.skip(4); } else { o11 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.Point.View pos() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return new YogTypes.Point.View(u);
+            }
+
+            public float yaw() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+
+            public float pitch() {
+                if (o2 < 0) return 0.0f;
+                u.seek(o2);
+                return u.getF32();
+            }
+
+            public YogTypes.Point.View velocity() {
+                if (o3 < 0) return null;
+                u.seek(o3);
+                return new YogTypes.Point.View(u);
+            }
+
+            public boolean onGround() {
+                if (o4 < 0) return false;
+                u.seek(o4);
+                return u.getBool();
+            }
+
+            public boolean inWater() {
+                if (o5 < 0) return false;
+                u.seek(o5);
+                return u.getBool();
+            }
+
+            public double eyeHeight() {
+                if (o6 < 0) return 0.0;
+                u.seek(o6);
+                return u.getF64();
+            }
+
+            public float health() {
+                if (o7 < 0) return 0.0f;
+                u.seek(o7);
+                return u.getF32();
+            }
+
+            public int food() {
+                if (o8 < 0) return 0;
+                u.seek(o8);
+                return (int) u.getI();
+            }
+
+            public String dimension() {
+                if (o9 < 0) return "";
+                u.seek(o9);
+                return u.getAtom();
+            }
+
+            public long slot() {
+                if (o10 < 0) return 0L;
+                u.seek(o10);
+                return u.getI();
+            }
+
+            public float attackStrength() {
+                if (o11 < 0) return 0.0f;
+                u.seek(o11);
+                return u.getF32();
+            }
+        }
     }
 
     /** A stack in an inventory slot. */
@@ -937,6 +1608,33 @@ public final class YogTypes {
             SlotStack v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code SlotStack} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public long slot() {
+                if (o0 < 0) return 0L;
+                u.seek(o0);
+                return u.getI();
+            }
+
+            public YogTypes.Stack.View stack() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return new YogTypes.Stack.View(u);
+            }
         }
     }
 
@@ -1000,22 +1698,49 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code PlacedBlock} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.BlockPos.View pos() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return new YogTypes.BlockPos.View(u);
+            }
+
+            public String state() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getAtom();
+            }
+        }
     }
 
     /** The blocks between `min` and `max` (what isn't loaded reads as bedrock): a palette and an index into it per block, x fastest, then z, then y. */
-    public record BlockArea(YogTypes.BlockPos min, YogTypes.BlockPos max, java.util.List<YogTypes.BlockKind> palette, java.util.List<Integer> blocks) {
+    public record BlockArea(YogTypes.BlockPos min, YogTypes.BlockPos max, java.util.List<YogTypes.BlockKind> palette, int[] blocks) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("min", min.toData());
             m.put("max", max.toData());
             m.put("palette", palette.stream().map(e0 -> e0.toData()).toList());
-            m.put("blocks", blocks);
+            m.put("blocks", YogData.listOf(blocks));
             return m;
         }
 
         public static BlockArea fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new BlockArea(YogTypes.BlockPos.fromData(m.get("min")), YogTypes.BlockPos.fromData(m.get("max")), YogData.list(m.get("palette")).stream().map(e0 -> YogTypes.BlockKind.fromData(e0)).toList(), YogData.list(m.get("blocks")).stream().map(e0 -> (int) YogData.integer(e0, 0)).toList());
+            return new BlockArea(YogTypes.BlockPos.fromData(m.get("min")), YogTypes.BlockPos.fromData(m.get("max")), YogData.list(m.get("palette")).stream().map(e0 -> YogTypes.BlockKind.fromData(e0)).toList(), YogData.ints(m.get("blocks")));
         }
 
         public static BlockArea fromBytes(byte[] bytes) {
@@ -1026,8 +1751,8 @@ public final class YogTypes {
             int at = p.begin();
             this.min.pack(p);
             this.max.pack(p);
-            p.putU(this.palette.size()); for (var e0 : this.palette) { e0.pack(p); }
-            p.putUints(this.blocks, false);
+            { int l0 = p.beginList(this.palette.size()); for (var e0 : this.palette) { e0.pack(p); } p.end(l0); }
+            p.putInts(this.blocks, false);
             p.end(at);
         }
 
@@ -1036,7 +1761,7 @@ public final class YogTypes {
             YogTypes.BlockPos f_min = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
             YogTypes.BlockPos f_max = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
             java.util.List<YogTypes.BlockKind> f_palette = u.more(end) ? YogFrame.list(u, () -> YogTypes.BlockKind.unpack(u)) : java.util.List.of();
-            java.util.List<Integer> f_blocks = u.more(end) ? u.getUints(false).stream().map(Long::intValue).toList() : java.util.List.of();
+            int[] f_blocks = u.more(end) ? u.getInts(false) : new int[0];
             u.leave(end);
             return new BlockArea(f_min, f_max, f_palette, f_blocks);
         }
@@ -1067,6 +1792,76 @@ public final class YogTypes {
             BlockArea v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code BlockArea} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int h2, n2, b2;
+            private final int o3;
+            private final int h3, n3, b3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                if (u.more(end)) { h2 = u.position(); n2 = u.count(); int e2 = u.listEnd(); b2 = 0; o2 = u.position(); u.skipTo(e2); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                if (u.more(end)) { h3 = u.position(); n3 = (int) u.getU(); b3 = u.getByte(); o3 = u.position(); u.skip(YogFrame.packedBytes(n3, b3)); } else { h3 = n3 = b3 = 0; o3 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.BlockPos.View min() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return new YogTypes.BlockPos.View(u);
+            }
+
+            public YogTypes.BlockPos.View max() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return new YogTypes.BlockPos.View(u);
+            }
+
+            public java.util.List<YogTypes.BlockKind> palette() {
+                if (o2 < 0) return java.util.List.of();
+                u.seek(h2);
+                return YogFrame.list(u, () -> YogTypes.BlockKind.unpack(u));
+            }
+
+            public int paletteLength() {
+                return n2;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachPalette(java.util.function.Consumer<YogTypes.BlockKind.View> each) {
+                int at = o2;
+                for (int j = 0; j < n2; j++) {
+                    u.seek(at);
+                    YogTypes.BlockKind.View v = new YogTypes.BlockKind.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public int[] blocks() {
+                if (o3 < 0) return new int[0];
+                u.seek(h3);
+                return u.getInts(false);
+            }
+
+            public int blocksLength() {
+                return n3;
+            }
+
+            /** Item {@code i}, read in place. */
+            public int blocks(int i) {
+                long v = u.packedAt(o3, n3, b3, i);
+                return (int) v;
+            }
         }
     }
 
@@ -1148,6 +1943,81 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code NearbyEntity} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(8); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); if (u.getBool()) { u.skip(4); } } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); if (u.getBool()) { u.getU(); } } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(1); } else { o7 = -1; }
+                u.leave(end);
+            }
+
+            public String uuid() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String entityType() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getAtom();
+            }
+
+            public YogTypes.Point.View pos() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return new YogTypes.Point.View(u);
+            }
+
+            public double eyeHeight() {
+                if (o3 < 0) return 0.0;
+                u.seek(o3);
+                return u.getF64();
+            }
+
+            public YogTypes.Point.View velocity() {
+                if (o4 < 0) return null;
+                u.seek(o4);
+                return new YogTypes.Point.View(u);
+            }
+
+            public Float health() {
+                if (o5 < 0) return null;
+                u.seek(o5);
+                return (u.getBool() ? Float.valueOf(u.getF32()) : null);
+            }
+
+            public String name() {
+                if (o6 < 0) return null;
+                u.seek(o6);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public boolean hostile() {
+                if (o7 < 0) return false;
+                u.seek(o7);
+                return u.getBool();
+            }
+        }
     }
 
     /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
@@ -1209,6 +2079,33 @@ public final class YogTypes {
             CommandSpec v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code CommandSpec} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); if (u.getBool()) { u.getU(); } } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String name() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String schema() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return (u.getBool() ? u.getStr() : null);
+            }
         }
     }
 
@@ -1275,6 +2172,41 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code Point} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skip(8); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(8); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(8); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public double x() {
+                if (o0 < 0) return 0.0;
+                u.seek(o0);
+                return u.getF64();
+            }
+
+            public double y() {
+                if (o1 < 0) return 0.0;
+                u.seek(o1);
+                return u.getF64();
+            }
+
+            public double z() {
+                if (o2 < 0) return 0.0;
+                u.seek(o2);
+                return u.getF64();
+            }
+        }
     }
 
     /** Which way an entity faces, in degrees. */
@@ -1336,6 +2268,33 @@ public final class YogTypes {
             Rotation v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code Rotation} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skip(4); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public float yaw() {
+                if (o0 < 0) return 0.0f;
+                u.seek(o0);
+                return u.getF32();
+            }
+
+            public float pitch() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
         }
     }
 
@@ -1417,6 +2376,81 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code EntityInfo} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(8); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(8); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(8); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
+                u.leave(end);
+            }
+
+            public String typeId() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getAtom();
+            }
+
+            public String dimension() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getAtom();
+            }
+
+            public YogTypes.Point.View pos() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return new YogTypes.Point.View(u);
+            }
+
+            public double eyeHeight() {
+                if (o3 < 0) return 0.0;
+                u.seek(o3);
+                return u.getF64();
+            }
+
+            public double width() {
+                if (o4 < 0) return 0.0;
+                u.seek(o4);
+                return u.getF64();
+            }
+
+            public double height() {
+                if (o5 < 0) return 0.0;
+                u.seek(o5);
+                return u.getF64();
+            }
+
+            public long flags() {
+                if (o6 < 0) return 0L;
+                u.seek(o6);
+                return u.getI();
+            }
+
+            public String name() {
+                if (o7 < 0) return "";
+                u.seek(o7);
+                return u.getStr();
+            }
+        }
     }
 
     /** An installed mod. */
@@ -1491,6 +2525,65 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code ModInfo} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                u.leave(end);
+            }
+
+            public String source() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String id() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public String name() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
+
+            public String version() {
+                if (o3 < 0) return "";
+                u.seek(o3);
+                return u.getStr();
+            }
+
+            public String authors() {
+                if (o4 < 0) return "";
+                u.seek(o4);
+                return u.getStr();
+            }
+
+            public String description() {
+                if (o5 < 0) return "";
+                u.seek(o5);
+                return u.getStr();
+            }
+        }
     }
 
     /** What a stack shows instead of its item's own name and description. */
@@ -1514,7 +2607,7 @@ public final class YogTypes {
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
             p.putBool(this.name != null); if (this.name != null) { p.putStr(this.name); }
-            p.putU(this.lines.size()); for (var e0 : this.lines) { p.putStr(e0); }
+            { int l0 = p.beginList(this.lines.size()); for (var e0 : this.lines) { p.putStr(e0); } p.end(l0); }
             p.end(at);
         }
 
@@ -1552,6 +2645,33 @@ public final class YogTypes {
             Shown v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code Shown} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); if (u.getBool()) { u.getU(); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String name() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public java.util.List<String> lines() {
+                if (o1 < 0) return java.util.List.of();
+                u.seek(o1);
+                return YogFrame.list(u, () -> u.getStr());
+            }
         }
     }
 
@@ -1621,6 +2741,49 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code CategorizedBinding} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String name() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public int defaultKey() {
+                if (o2 < 0) return 0;
+                u.seek(o2);
+                return (int) u.getI();
+            }
+
+            public String category() {
+                if (o3 < 0) return "";
+                u.seek(o3);
+                return u.getStr();
+            }
+        }
     }
 
     /** A button (the `menu/declare` service) the host shows on the title screen (the mod list on Forge and NeoForge), opening a mod's screen. */
@@ -1682,6 +2845,33 @@ public final class YogTypes {
             MenuEntry v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code MenuEntry} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String label() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String uiId() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
         }
     }
 
@@ -1763,6 +2953,81 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code PlayerInfo} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.skip(1); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(1); } else { o7 = -1; }
+                u.leave(end);
+            }
+
+            public String uuid() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String gamemode() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getAtom();
+            }
+
+            public long selectedSlot() {
+                if (o2 < 0) return 0L;
+                u.seek(o2);
+                return u.getI();
+            }
+
+            public int xpLevel() {
+                if (o3 < 0) return 0;
+                u.seek(o3);
+                return (int) u.getI();
+            }
+
+            public int xpTotal() {
+                if (o4 < 0) return 0;
+                u.seek(o4);
+                return (int) u.getI();
+            }
+
+            public int air() {
+                if (o5 < 0) return 0;
+                u.seek(o5);
+                return (int) u.getI();
+            }
+
+            public boolean mayFly() {
+                if (o6 < 0) return false;
+                u.seek(o6);
+                return u.getBool();
+            }
+
+            public boolean flying() {
+                if (o7 < 0) return false;
+                u.seek(o7);
+                return u.getBool();
+            }
+        }
     }
 
     /** A block a ray stopped at. */
@@ -1827,6 +3092,41 @@ public final class YogTypes {
             BlockHit v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code BlockHit} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.BlockPos.View pos() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return new YogTypes.BlockPos.View(u);
+            }
+
+            public String face() {
+                if (o1 < 0) return "down";
+                u.seek(o1);
+                return switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; };
+            }
+
+            public YogTypes.Point.View hit() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return new YogTypes.Point.View(u);
+            }
         }
     }
 
@@ -1899,6 +3199,57 @@ public final class YogTypes {
             u.finish();
             return v;
         }
+
+        /** {@code Hanging} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                u.leave(end);
+            }
+
+            public String facing() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public long width() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public long height() {
+                if (o2 < 0) return 0L;
+                u.seek(o2);
+                return u.getI();
+            }
+
+            public String item() {
+                if (o3 < 0) return "";
+                u.seek(o3);
+                return u.getStr();
+            }
+
+            public String nbt() {
+                if (o4 < 0) return "";
+                u.seek(o4);
+                return u.getStr();
+            }
+        }
     }
 
     /** One kind of block in a [`BlockArea`]: how it is to walk through. */
@@ -1969,6 +3320,57 @@ public final class YogTypes {
             BlockKind v = unpack(u);
             u.finish();
             return v;
+        }
+
+        /** {@code BlockKind} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getAtom();
+            }
+
+            public boolean solid() {
+                if (o1 < 0) return false;
+                u.seek(o1);
+                return u.getBool();
+            }
+
+            public boolean liquid() {
+                if (o2 < 0) return false;
+                u.seek(o2);
+                return u.getBool();
+            }
+
+            public boolean climbable() {
+                if (o3 < 0) return false;
+                u.seek(o3);
+                return u.getBool();
+            }
+
+            public boolean harmful() {
+                if (o4 < 0) return false;
+                u.seek(o4);
+                return u.getBool();
+            }
         }
     }
 }

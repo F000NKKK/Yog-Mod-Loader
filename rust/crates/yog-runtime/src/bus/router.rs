@@ -1,13 +1,12 @@
 //! The bus's router: addresses by name, who provides each, who listens to
 //! each event — and running a call or an event through them.
 
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::os::raw::c_void;
 use std::sync::{Arc, RwLock};
 
 use yog_abi::{YogAddress, YogBytes, YogHandlerFn, YogReply, YogStatus, status};
-use yog_hot_reload::{LoadedModule, ModuleGeneration};
+use yog_hot_reload::{CallGuard, LoadedModule, ModuleGeneration};
 use yog_sync::ReadWrite;
 
 /// Who handles a message.
@@ -26,12 +25,6 @@ struct Subscriber {
     handler: Handler,
 }
 
-#[derive(Default)]
-struct Names {
-    by_name: HashMap<String, YogAddress>,
-    names: Vec<String>,
-}
-
 /// Runs a Java handler: its status, its reply written to `reply`.
 pub(crate) type JavaRunner = fn(handler: i32, payload: &[u8], reply: &YogReply) -> YogStatus;
 
@@ -40,28 +33,15 @@ pub(crate) type JavaRunner = fn(handler: i32, payload: &[u8], reply: &YogReply) 
 /// takes a snapshot without copying a handler or a list.
 #[derive(Default)]
 pub(crate) struct Router {
-    names: RwLock<Names>,
     providers: RwLock<Arc<HashMap<YogAddress, Handler>>>,
     subscribers: RwLock<HashMap<YogAddress, Arc<Vec<Subscriber>>>>,
 }
 
 impl Router {
-    /// `name`'s address, made on first sight.
+    /// `name`'s address, made on first sight: its atom (`yog_event::resolve`),
+    /// the number every binary of the process gives it.
     pub(crate) fn resolve(&self, name: &str) -> YogAddress {
-        if name.is_empty() {
-            return yog_abi::NO_ADDRESS;
-        }
-        if let Some(&a) = self.names.read_locked().by_name.get(name) {
-            return a;
-        }
-        let mut names = self.names.write_locked();
-        if let Some(&a) = names.by_name.get(name) {
-            return a;
-        }
-        let a = names.names.len() as YogAddress;
-        names.names.push(name.to_owned());
-        names.by_name.insert(name.to_owned(), a);
-        a
+        yog_event::resolve(name)
     }
 
     /// Makes `handler` the provider of `address`; `false` if there is one.
@@ -95,13 +75,12 @@ impl Router {
     /// channels of `…/net/packet/<channel>`), sorted.
     pub(crate) fn listened_keys(&self, address: &str) -> Vec<String> {
         let branch = yog_event::keyed(address, "");
-        let names = self.names.read_locked();
         let mut keys: Vec<String> = self
             .subscribers
             .read_locked()
             .iter()
             .filter(|(_, list)| !list.is_empty())
-            .filter_map(|(at, _)| names.names.get(*at as usize)?.strip_prefix(branch.as_str()).map(str::to_owned))
+            .filter_map(|(at, _)| yog_data::atom::local::name(*at)?.strip_prefix(branch.as_str()).map(str::to_owned))
             .collect();
         keys.sort();
         keys
@@ -123,21 +102,43 @@ impl Router {
         let Some(subs) = self.subscribers.read_locked().get(&event).cloned() else {
             return status::OK;
         };
-        let mut current = Cow::Borrowed(payload);
-        let mut next = Vec::new();
+        // The event as it stands and the next handler's reply: two buffers
+        // traded, never made again.
+        let (mut current, mut next) = (Vec::new(), Vec::new());
+        let mut changed = false;
         let mut st = status::OK;
+        // A mod's handlers one after another are entered once.
+        let mut entered: Option<(ModuleGeneration, CallGuard<'_>)> = None;
         for s in subs.iter() {
+            let payload_now = if changed { current.as_slice() } else { payload };
             next.clear();
-            st = run(&s.handler, &current, &YogReply::to_vec(&mut next), java);
+            let out = YogReply::to_vec(&mut next);
+            st = match &s.handler {
+                Handler::Java(id) => java(*id, payload_now, &out),
+                Handler::Native { owner: None, ud, f } => unsafe { f(*ud as *mut c_void, YogBytes::new(payload_now), &out) },
+                Handler::Native { owner: Some(m), ud, f } => {
+                    if entered.as_ref().is_none_or(|(g, _)| *g != m.generation()) {
+                        entered = None;
+                        match m.enter() {
+                            Some(guard) => entered = Some((m.generation(), guard)),
+                            // Gone: as if it weren't there.
+                            None => continue,
+                        }
+                    }
+                    unsafe { f(*ud as *mut c_void, YogBytes::new(payload_now), &out) }
+                }
+            };
             if !next.is_empty() {
-                current = Cow::Owned(std::mem::take(&mut next));
+                std::mem::swap(&mut current, &mut next);
+                changed = true;
             }
             if st == status::CANCELLED {
                 break;
             }
         }
-        if let Cow::Owned(changed) = &current {
-            unsafe { YogReply::send(reply, changed) };
+        drop(entered);
+        if changed {
+            unsafe { YogReply::send(reply, &current) };
         }
         if st == status::CANCELLED { st } else { status::OK }
     }

@@ -8,7 +8,7 @@ use crate::{Message, Service};
 
 /// Sends `payload` to `address`'s provider: its reply's bytes, `None` when
 /// no one answers.
-pub type Caller = fn(address: &str, payload: &[u8]) -> Option<Vec<u8>>;
+pub type Caller = fn(address: crate::Address, payload: &[u8]) -> Option<Vec<u8>>;
 
 static CALLER: OnceLock<Caller> = OnceLock::new();
 
@@ -21,6 +21,6 @@ pub fn set_caller(caller: Caller) {
 /// bus isn't reached yet).
 pub fn call<S: Service>(request: &S) -> Option<S::Reply> {
     let caller = CALLER.get()?;
-    let reply = request.with_bytes(|payload| caller(&request.target(), payload))?;
+    let reply = request.with_bytes(|payload| caller(request.address(), payload))?;
     S::Reply::from_bytes(&reply)
 }
