@@ -19,7 +19,10 @@ pub enum Shape {
         min: i64,
         max: i64,
     },
-    Float,
+    /// A number with a fraction, `bits` wide (32 or 64): how a frame packs it.
+    Float {
+        bits: u32,
+    },
     /// Plain text.
     Str,
     /// Yog text, a `@Set.key` resource, or `@kind:id` (that content's name).
@@ -133,7 +136,11 @@ impl Shape {
                 m.insert("max", Value::Int(*max));
                 m
             }
-            Shape::Float => kind("float"),
+            Shape::Float { bits } => {
+                let mut m = kind("float");
+                m.insert("bits", Value::Int(i64::from(*bits)));
+                m
+            }
             Shape::Str => kind("string"),
             Shape::Text => kind("text"),
             Shape::Image => kind("image"),

@@ -31,6 +31,10 @@ json = ["dep:serde", "dep:serde_json"]
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
 serde_json = { workspace = true }
+# benches/versus: the formats yog-data replaced.
+serde = { workspace = true }
+rkyv = { workspace = true }
+postcard = { workspace = true }
 
 [[bench]]
 name = "data"
@@ -38,4 +42,8 @@ harness = false
 
 [[bench]]
 name = "messages"
+harness = false
+
+[[bench]]
+name = "versus"
 harness = false

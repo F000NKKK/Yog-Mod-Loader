@@ -5,16 +5,17 @@ use std::sync::Arc;
 
 use bumpalo::Bump;
 
-use super::{DecodeError, MAGIC, MAX_DEPTH, NEW_STRING, STREAM_LEN_BYTES, VARINT_BITS, VARINT_MORE, VARINT_SHIFT, VERSION, tag, unzigzag};
+use super::{DecodeError, MAGIC, MAX_DEPTH, NEW_STRING, STREAM_LEN_BYTES, VERSION, read_varint, tag, unzigzag};
 use crate::borrowed::{MapRef, ValueRef};
 use crate::value::{Map, Ref, Res, Value};
+
+/// Strings a decoder makes room for at once: a message's keys and values.
+const STRINGS_START: usize = 16;
 
 /// Bytes of a float, and of a 32-bit one.
 const F64_BYTES: usize = 8;
 const F32_BYTES: usize = 4;
 
-/// The bits a varint can hold.
-const VARINT_MAX_SHIFT: u32 = 64;
 /// Bytes a map entry takes at least: its key and its value's tag.
 const MAP_ENTRY_MIN: usize = 2;
 
@@ -34,7 +35,7 @@ pub struct Decoder<'b> {
 impl<'b> Decoder<'b> {
     /// After the header: the root value next.
     pub fn open(bytes: &'b [u8]) -> Result<Self, DecodeError> {
-        let mut d = Decoder { b: bytes, i: 0, strings: Vec::new(), keys: Vec::new(), depth: 0 };
+        let mut d = Decoder { b: bytes, i: 0, strings: Vec::with_capacity(STRINGS_START), keys: Vec::new(), depth: 0 };
         if !bytes.starts_with(MAGIC) {
             return Err(d.error("not Yog Data (no `YOGD` header)"));
         }
@@ -48,7 +49,7 @@ impl<'b> Decoder<'b> {
 
     /// A stream's body ([`crate::Stream`]): its count and values, its strings its own.
     pub(crate) fn body(bytes: &'b [u8]) -> Self {
-        Decoder { b: bytes, i: 0, strings: Vec::new(), keys: Vec::new(), depth: 0 }
+        Decoder { b: bytes, i: 0, strings: Vec::with_capacity(STRINGS_START), keys: Vec::new(), depth: 0 }
     }
 
     /// A stream's body: its bytes, read past.
@@ -90,17 +91,7 @@ impl<'b> Decoder<'b> {
     }
 
     fn varint(&mut self) -> Result<u64, DecodeError> {
-        let mut n = 0u64;
-        let mut shift = 0;
-        while shift < VARINT_MAX_SHIFT {
-            let b = self.byte()?;
-            n |= (u64::from(b) & VARINT_BITS) << shift;
-            if b & VARINT_MORE == 0 {
-                return Ok(n);
-            }
-            shift += VARINT_SHIFT;
-        }
-        Err(self.error("varint longer than 64 bits"))
+        read_varint(self.b, &mut self.i).ok_or_else(|| self.error("a varint cut short or longer than 64 bits"))
     }
 
     /// A length, checked against what's left: each of the `count` things takes at least `min` bytes.

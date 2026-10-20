@@ -41,10 +41,16 @@ impl Schema for bool {
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         d.bool()
     }
+    fn pack(&self, p: &mut Packer) {
+        p.put_bool(*self);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        u.get_bool()
+    }
 }
 
 macro_rules! int_schema {
-    ($($t:ty),*) => {$(
+    ($($t:ty => $to_bits:ident, $of_bits:ident);*) => {$(
         impl Schema for $t {
             fn shape() -> Shape {
                 Shape::Int { min: <$t>::MIN as i64, max: (<$t>::MAX as u64).min(i64::MAX as u64) as i64 }
@@ -68,6 +74,18 @@ macro_rules! int_schema {
             fn decode(d: &mut Decoder<'_>) -> Option<Self> {
                 d.int().and_then(|n| <$t>::try_from(n).ok())
             }
+            fn pack(&self, p: &mut Packer) {
+                p.put_i(*self as i64);
+            }
+            fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+                u.get_i().and_then(|n| <$t>::try_from(n).ok())
+            }
+            fn pack_list(items: &[Self], p: &mut Packer) {
+                p.put_uints(items.len(), items.iter().map(|&n| $to_bits(n as i128)));
+            }
+            fn unpack_list(u: &mut Unpacker<'_>) -> Option<Vec<Self>> {
+                u.get_uints(|v| <$t>::try_from($of_bits(v)).ok())
+            }
             fn encode_list(items: &[Self], w: &mut Writer) {
                 w.ints(items.iter().map(|&n| n as i64));
             }
@@ -82,13 +100,35 @@ macro_rules! int_schema {
         }
     )*};
 }
-int_schema!(i8, i16, i32, i64, u8, u16, u32, u64, usize);
+int_schema!(
+    i8 => signed_bits, signed_of; i16 => signed_bits, signed_of; i32 => signed_bits, signed_of; i64 => signed_bits, signed_of;
+    u8 => unsigned_bits, unsigned_of; u16 => unsigned_bits, unsigned_of; u32 => unsigned_bits, unsigned_of;
+    u64 => unsigned_bits, unsigned_of; usize => unsigned_bits, unsigned_of
+);
+
+/// A signed number as a bit-packed list's bits: zigzagged, small either way.
+fn signed_bits(n: i128) -> u64 {
+    crate::binary::zigzag(n as i64)
+}
+
+fn signed_of(v: u64) -> i128 {
+    i128::from(crate::binary::unzigzag(v))
+}
+
+/// An unsigned number as a bit-packed list's bits: itself.
+fn unsigned_bits(n: i128) -> u64 {
+    n as u64
+}
+
+fn unsigned_of(v: u64) -> i128 {
+    i128::from(v)
+}
 
 macro_rules! float_schema {
-    ($($t:ty => $one:ident, $many:ident, $read_many:ident);*) => {$(
+    ($($t:ty => $one:ident, $many:ident, $read_many:ident, $put:ident, $get:ident, $puts:ident, $gets:ident);*) => {$(
         impl Schema for $t {
             fn shape() -> Shape {
-                Shape::Float
+                Shape::Float { bits: u8::BITS * std::mem::size_of::<$t>() as u32 }
             }
             fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
                 v.as_f64().map(|f| f as $t).or_else(|| {
@@ -111,10 +151,25 @@ macro_rules! float_schema {
             fn decode_list(d: &mut Decoder<'_>) -> Option<Vec<Self>> {
                 d.$read_many()
             }
+            fn pack(&self, p: &mut Packer) {
+                p.$put(*self);
+            }
+            fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+                u.$get()
+            }
+            fn pack_list(items: &[Self], p: &mut Packer) {
+                p.$puts(items);
+            }
+            fn unpack_list(u: &mut Unpacker<'_>) -> Option<Vec<Self>> {
+                u.$gets()
+            }
         }
     )*};
 }
-float_schema!(f32 => float32, floats32, floats32; f64 => float, floats, floats);
+float_schema!(
+    f32 => float32, floats32, floats32, put_f32, get_f32, put_f32s, get_f32s;
+    f64 => float, floats, floats, put_f64, get_f64, put_f64s, get_f64s
+);
 
 impl Schema for String {
     fn shape() -> Shape {
@@ -154,6 +209,12 @@ impl Schema for String {
         // A typed value (`@…`) is the slow way's to tell apart.
         d.str().filter(|s| !s.starts_with(typed_mark())).map(str::to_owned)
     }
+    fn pack(&self, p: &mut Packer) {
+        p.put_str(self);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        u.get_str().map(str::to_owned)
+    }
 }
 
 impl<T: Schema> Schema for Option<T> {
@@ -181,6 +242,15 @@ impl<T: Schema> Schema for Option<T> {
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         if d.null() { Some(None) } else { T::decode(d).map(Some) }
     }
+    fn pack(&self, p: &mut Packer) {
+        p.put_bool(self.is_some());
+        if let Some(v) = self {
+            v.pack(p);
+        }
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        if u.get_bool()? { T::unpack(u).map(Some) } else { Some(None) }
+    }
     fn absent() -> Option<Self> {
         Some(None)
     }
@@ -204,6 +274,12 @@ impl<T: Schema> Schema for Box<T> {
     }
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         T::decode(d).map(Box::new)
+    }
+    fn pack(&self, p: &mut Packer) {
+        (**self).pack(p);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        T::unpack(u).map(Box::new)
     }
     fn absent() -> Option<Self> {
         T::absent().map(Box::new)
@@ -241,6 +317,12 @@ impl<T: Schema> Schema for Vec<T> {
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         T::decode_list(d)
     }
+    fn pack(&self, p: &mut Packer) {
+        T::pack_list(self, p);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        T::unpack_list(u)
+    }
 }
 
 /// A string that won't change: a pointer and a length, no spare capacity
@@ -261,6 +343,12 @@ impl Schema for Box<str> {
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         String::decode(d).map(String::into_boxed_str)
     }
+    fn pack(&self, p: &mut Packer) {
+        p.put_str(self);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        u.get_str().map(Into::into)
+    }
 }
 
 /// A string shared without copying.
@@ -280,6 +368,12 @@ impl Schema for std::sync::Arc<str> {
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         String::decode(d).map(Into::into)
     }
+    fn pack(&self, p: &mut Packer) {
+        p.put_str(self);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        u.get_shared_str()
+    }
 }
 
 /// A list that won't change: no spare capacity.
@@ -298,6 +392,12 @@ impl<T: Schema> Schema for Box<[T]> {
     }
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         T::decode_list(d).map(Vec::into_boxed_slice)
+    }
+    fn pack(&self, p: &mut Packer) {
+        T::pack_list(self, p);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        T::unpack_list(u).map(Vec::into_boxed_slice)
     }
 }
 
@@ -321,6 +421,12 @@ impl<T: Schema, const N: usize> Schema for [T; N] {
     }
     fn decode(d: &mut Decoder<'_>) -> Option<Self> {
         T::decode_list(d)?.try_into().ok()
+    }
+    fn pack(&self, p: &mut Packer) {
+        T::pack_list(self, p);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        T::unpack_list(u)?.try_into().ok()
     }
 }
 

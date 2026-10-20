@@ -21,6 +21,7 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
+use crate::frame::{Packer, Unpacker};
 use crate::borrowed::ValueRef;
 use crate::schema::{Reader, Schema, Shape};
 use crate::value::{Seg, Value};
@@ -152,5 +153,12 @@ impl<T: Schema> Schema for Stream<T> {
         let mut body = Decoder::body(d.stream()?);
         let len = body.stream_count()?;
         Some(Stream { items: body.rest().to_vec(), len, item: PhantomData })
+    }
+    /// In a frame it's a list, as its shape says.
+    fn pack(&self, p: &mut Packer) {
+        T::pack_list(&self.to_vec(), p);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        T::unpack_list(u).map(Stream::from)
     }
 }

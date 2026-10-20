@@ -7,6 +7,7 @@ use crate::{BlockPos, Point};
 
 /// This client's player: where it is and looks, how it moves and fares.
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct LocalState {
     pub pos: Point,
     /// Degrees: yaw 0 looks south (+z), 90 west; pitch 90 looks down.
@@ -35,6 +36,7 @@ impl LocalState {
 
 /// One kind of block in a [`BlockArea`]: how it is to walk through.
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct BlockKind {
     pub id: String,
     /// Can be stood on and can't be walked through.
@@ -50,6 +52,7 @@ pub struct BlockKind {
 /// bedrock): a palette and an index into it per block, x fastest, then z,
 /// then y.
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct BlockArea {
     pub min: BlockPos,
     pub max: BlockPos,
@@ -70,6 +73,7 @@ impl BlockArea {
 
 /// An entity near this client's player.
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct NearbyEntity {
     pub uuid: String,
     pub entity_type: String,

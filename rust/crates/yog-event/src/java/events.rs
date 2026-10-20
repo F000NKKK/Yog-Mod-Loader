@@ -24,16 +24,16 @@ fn event_body(e: &EventInfo) -> String {
     }
     let _ = write!(
         body,
-        "\n\n    public YogBus.Reply emit() {{\n        return YogBus.emit({}, YogData.encode(toData()));\n    }}",
+        "\n\n    public YogBus.Reply emit() {{\n        return YogBus.emit({}, toFrame());\n    }}",
         target(e.address, e.key, "POST")
     );
     body.push_str("\n\n    /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */\n    public ");
     body.push_str(e.name);
-    body.push_str(" emitChanged() {\n        YogBus.Reply r = emit();\n        if (r.status() != YogBus.OK) return this;\n        try {\n            return fromBytes(r.bytes());\n        } catch (RuntimeException e) {\n            return this;\n        }\n    }");
+    body.push_str(" emitChanged() {\n        YogBus.Reply r = emit();\n        if (r.status() != YogBus.OK) return this;\n        try {\n            return fromFrame(r.bytes());\n        } catch (RuntimeException e) {\n            return this;\n        }\n    }");
     if let Some(p) = e.pre {
         let _ = write!(
             body,
-            "\n\n    public boolean emitPre() {{\n        return YogBus.emit({}, YogData.encode(toData())).status() != YogBus.CANCELLED;\n    }}",
+            "\n\n    public boolean emitPre() {{\n        return YogBus.emit({}, toFrame()).status() != YogBus.CANCELLED;\n    }}",
             target(p, e.key, "PRE")
         );
     }

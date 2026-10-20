@@ -3,6 +3,7 @@
 //! directly, and an import with no bus to call reports it.
 
 use yog_api::yog_data::Schema;
+use yog_api::yog_data::frame::{Packer, read_frame};
 use yog_api::{YogBytes, YogReply, import, yog_export};
 
 #[yog_export]
@@ -36,18 +37,22 @@ import! {
     }
 }
 
-/// Runs export `name`'s provider on `args` (a map of its parameters): its status and reply.
-fn serve(name: &str, args: &yog_api::yog_data::Value) -> (u32, Vec<u8>) {
+/// Runs export `name`'s provider on `payload` (a frame of its arguments): its status and reply.
+fn serve(name: &str, payload: &[u8]) -> (u32, Vec<u8>) {
     let exports = yog_api::__yog_export_registry().lock().unwrap();
     let entry = exports.iter().find(|e| e.name == name).expect("the export registered itself");
-    let payload = yog_api::yog_data::binary::encode(args);
     let mut out = Vec::new();
-    let st = unsafe { (entry.handler)(std::ptr::null_mut(), YogBytes::new(&payload), &YogReply::to_vec(&mut out)) };
+    let st = unsafe { (entry.handler)(std::ptr::null_mut(), YogBytes::new(payload), &YogReply::to_vec(&mut out)) };
     (st, out)
 }
 
-fn args(fields: &[(&str, yog_api::yog_data::Value)]) -> yog_api::yog_data::Value {
-    yog_api::yog_data::Value::Map(fields.iter().map(|(k, v)| ((*k).to_owned(), v.clone())).collect())
+/// An export's arguments as a frame: a record of them, in order.
+fn args(put: impl FnOnce(&mut Packer)) -> Vec<u8> {
+    let mut p = Packer::new();
+    let at = p.begin();
+    put(&mut p);
+    p.end(at);
+    p.finish()
 }
 
 #[test]
@@ -61,19 +66,25 @@ fn exports_register_themselves_when_the_library_loads() {
 
 #[test]
 fn an_export_answers_its_arguments_by_name() {
-    let (st, out) = serve("scale", &args(&[("v", 21i32.write()), ("by", 2i32.write())]));
+    let (st, out) = serve("scale", &args(|p| {
+        21i32.pack(p);
+        2i32.pack(p);
+    }));
     assert_eq!(st, yog_abi::status::OK);
-    assert_eq!(yog_api::yog_data::read_bytes::<i32>(&out).ok(), Some(42));
+    assert_eq!(read_frame::<i32>(&out), Some(42));
     let pipe = Pipe { id: 7, name: "old".into() };
-    let (_, out) = serve("rename", &args(&[("pipe", pipe.write()), ("name", "new".to_owned().write())]));
-    assert_eq!(yog_api::yog_data::read_bytes::<Pipe>(&out).ok(), Some(Pipe { id: 7, name: "new".into() }));
+    let (_, out) = serve("rename", &args(|p| {
+        pipe.pack(p);
+        "new".to_owned().pack(p);
+    }));
+    assert_eq!(read_frame::<Pipe>(&out), Some(Pipe { id: 7, name: "new".into() }));
 }
 
 #[test]
 fn a_panic_in_the_export_is_a_failed_call() {
-    let (st, _) = serve("explode", &args(&[("code", 1u32.write())]));
+    let (st, _) = serve("explode", &args(|p| 1u32.pack(p)));
     assert_eq!(st, yog_abi::status::FAILED);
-    let (st, _) = serve("scale", &args(&[("v", 1i32.write())]));
+    let (st, _) = serve("scale", &args(|p| 1i32.pack(p)));
     assert_eq!(st, yog_abi::status::BAD_PAYLOAD, "a missing argument");
 }
 

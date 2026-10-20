@@ -4,6 +4,7 @@ package dev.yog.bus;
 import dev.yog.YogBus;
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
+import dev.yog.data.YogFrame;
 
 /** The bus's services: a record per call; {@code call} asks whoever provides it. */
 public final class YogServices {
@@ -34,6 +35,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.id);
+                p.end(at);
+            }
+
+            public static Grant unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_id = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Grant(f_uuid, f_id);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Grant fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Grant v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceAdvancement.GRANT);
             }
@@ -43,16 +72,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceAdvancement.GRANT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -74,6 +113,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.id);
+                p.end(at);
+            }
+
+            public static Done unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_id = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Done(f_uuid, f_id);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Done fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Done v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceAdvancement.DONE);
             }
@@ -83,16 +150,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceAdvancement.DONE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -124,17 +201,57 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.blockId);
+                this.pos.pack(p);
+                p.putStr(this.dimension);
+                p.putStr(this.itemId);
+                p.putI(this.count);
+                p.putStr(this.nbt);
+                p.putBool(this.simulate);
+                p.end(at);
+            }
+
+            public static Insert unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_blockId = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_dimension = u.more(end) ? u.getStr() : "";
+                String f_itemId = u.more(end) ? u.getStr() : "";
+                long f_count = u.more(end) ? u.getI() : 0L;
+                String f_nbt = u.more(end) ? u.getStr() : "";
+                boolean f_simulate = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new Insert(f_blockId, f_pos, f_dimension, f_itemId, f_count, f_nbt, f_simulate);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Insert fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Insert v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             public boolean call() {
-                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceBlock.INSERT, blockId), YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceBlock.INSERT, blockId), toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
 
@@ -156,6 +273,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static Nbt unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new Nbt(f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Nbt fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Nbt v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.NBT);
             }
@@ -165,16 +310,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.NBT;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -197,6 +352,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static SetNbt unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetNbt(f_dim, f_pos, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetNbt fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetNbt v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.SET_NBT);
             }
@@ -206,16 +391,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.SET_NBT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -237,6 +432,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static State unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new State(f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static State fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                State v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.STATE);
             }
@@ -246,16 +469,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.STATE;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -278,6 +511,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putStr(this.state);
+                p.end(at);
+            }
+
+            public static SetState unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_state = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetState(f_dim, f_pos, f_state);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetState fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetState v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.SET_STATE);
             }
@@ -287,16 +550,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.SET_STATE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -318,6 +591,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static Info unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new Info(f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Info fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Info v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.INFO);
             }
@@ -327,16 +628,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.INFO;
 
             public YogTypes.BlockInfo call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.BlockInfo v = (u.getBool() ? YogTypes.BlockInfo.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.BlockInfo.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.BlockInfo v = (out == null ? null : (YogTypes.BlockInfo) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -360,6 +671,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putBool(this.drop);
+                p.putStr(this.breaker);
+                p.end(at);
+            }
+
+            public static Destroy unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                boolean f_drop = u.more(end) ? u.getBool() : false;
+                String f_breaker = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Destroy(f_dim, f_pos, f_drop, f_breaker);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Destroy fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Destroy v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.DESTROY);
             }
@@ -369,16 +712,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.DESTROY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -400,6 +753,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static Bonemeal unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new Bonemeal(f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Bonemeal fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Bonemeal v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.BONEMEAL);
             }
@@ -409,16 +790,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.BONEMEAL;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -443,6 +834,40 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putI(this.face);
+                p.putStr(this.item);
+                p.putStr(this.player);
+                p.end(at);
+            }
+
+            public static UseItem unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                int f_face = u.more(end) ? (int) u.getI() : 0;
+                String f_item = u.more(end) ? u.getStr() : "";
+                String f_player = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new UseItem(f_dim, f_pos, f_face, f_item, f_player);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static UseItem fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                UseItem v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.USE_ITEM);
             }
@@ -452,16 +877,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.USE_ITEM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -484,6 +919,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putStr(this.bucket);
+                p.end(at);
+            }
+
+            public static PourFluid unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_bucket = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new PourFluid(f_dim, f_pos, f_bucket);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static PourFluid fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                PourFluid v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.POUR_FLUID);
             }
@@ -493,16 +958,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.POUR_FLUID;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -524,6 +999,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static RedstonePower unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new RedstonePower(f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static RedstonePower fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                RedstonePower v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.REDSTONE_POWER);
             }
@@ -533,16 +1036,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.REDSTONE_POWER;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : (int) YogData.integer(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+                return p.finish();
             }
         }
 
@@ -564,6 +1077,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static RedstoneSignal unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new RedstoneSignal(f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static RedstoneSignal fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                RedstoneSignal v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.REDSTONE_SIGNAL);
             }
@@ -573,16 +1114,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.REDSTONE_SIGNAL;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : (int) YogData.integer(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+                return p.finish();
             }
         }
 
@@ -605,6 +1156,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putI(this.level);
+                p.end(at);
+            }
+
+            public static SetRedstoneOutput unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                int f_level = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new SetRedstoneOutput(f_dim, f_pos, f_level);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetRedstoneOutput fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetRedstoneOutput v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.SET_REDSTONE_OUTPUT);
             }
@@ -614,16 +1195,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.SET_REDSTONE_OUTPUT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -646,6 +1237,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putI(this.slot);
+                p.end(at);
+            }
+
+            public static InventorySlot unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                long f_slot = u.more(end) ? u.getI() : 0L;
+                u.leave(end);
+                return new InventorySlot(f_dim, f_pos, f_slot);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static InventorySlot fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                InventorySlot v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.INVENTORY_SLOT);
             }
@@ -655,16 +1276,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.INVENTORY_SLOT;
 
             public YogTypes.Stack call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Stack v = (u.getBool() ? YogTypes.Stack.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Stack.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.Stack v = (out == null ? null : (YogTypes.Stack) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -690,6 +1321,42 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putI(this.slot);
+                p.putStr(this.item);
+                p.putI(this.count);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static SetInventorySlot unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                long f_slot = u.more(end) ? u.getI() : 0L;
+                String f_item = u.more(end) ? u.getStr() : "";
+                long f_count = u.more(end) ? u.getI() : 0L;
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetInventorySlot(f_dim, f_pos, f_slot, f_item, f_count, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetInventorySlot fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetInventorySlot v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBlock.SET_INVENTORY_SLOT);
             }
@@ -699,16 +1366,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBlock.SET_INVENTORY_SLOT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -737,6 +1414,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putStr(this.title);
+                p.putStr(this.color);
+                p.putStr(this.style);
+                p.end(at);
+            }
+
+            public static Create unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                String f_title = u.more(end) ? u.getStr() : "";
+                String f_color = u.more(end) ? u.getStr() : "";
+                String f_style = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Create(f_id, f_title, f_color, f_style);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Create fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Create v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.CREATE);
             }
@@ -746,16 +1455,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.CREATE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -776,6 +1495,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.end(at);
+            }
+
+            public static Remove unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Remove(f_id);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Remove fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Remove v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.REMOVE);
             }
@@ -785,16 +1530,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.REMOVE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -816,6 +1571,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putStr(this.title);
+                p.end(at);
+            }
+
+            public static SetTitle unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                String f_title = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetTitle(f_id, f_title);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetTitle fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetTitle v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.SET_TITLE);
             }
@@ -825,16 +1608,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_TITLE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -856,6 +1649,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putF32((float) (double) this.progress);
+                p.end(at);
+            }
+
+            public static SetProgress unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                double f_progress = u.more(end) ? (double) u.getF32() : 0.0;
+                u.leave(end);
+                return new SetProgress(f_id, f_progress);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetProgress fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetProgress v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.SET_PROGRESS);
             }
@@ -865,16 +1686,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_PROGRESS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -896,6 +1727,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putStr(this.color);
+                p.end(at);
+            }
+
+            public static SetColor unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                String f_color = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetColor(f_id, f_color);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetColor fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetColor v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.SET_COLOR);
             }
@@ -905,16 +1764,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_COLOR;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -936,6 +1805,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putStr(this.player);
+                p.end(at);
+            }
+
+            public static AddPlayer unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                String f_player = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new AddPlayer(f_id, f_player);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static AddPlayer fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                AddPlayer v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.ADD_PLAYER);
             }
@@ -945,16 +1842,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.ADD_PLAYER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -976,6 +1883,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putStr(this.player);
+                p.end(at);
+            }
+
+            public static RemovePlayer unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                String f_player = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new RemovePlayer(f_id, f_player);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static RemovePlayer fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                RemovePlayer v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.REMOVE_PLAYER);
             }
@@ -985,16 +1920,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.REMOVE_PLAYER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1016,6 +1961,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putBool(this.visible);
+                p.end(at);
+            }
+
+            public static SetVisible unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                boolean f_visible = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new SetVisible(f_id, f_visible);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetVisible fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetVisible v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBossbar.SET_VISIBLE);
             }
@@ -1025,16 +1998,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_VISIBLE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -1065,21 +2048,59 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.address);
+                p.putU(switch (this.kind) { case "event" -> 0; case "service" -> 1; default -> 0; });
+                p.putStr(this.doc);
+                p.putTagged(this.shape);
+                p.putBool(this.reply != null); if (this.reply != null) { p.putTagged(this.reply); }
+                p.putU(this.interfaces.size()); for (var e0 : this.interfaces) { p.putStr(e0); }
+                p.end(at);
+            }
+
+            public static Descriptor unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_address = u.more(end) ? u.getStr() : "";
+                String f_kind = u.more(end) ? switch ((int) u.getU()) { case 0 -> "event"; case 1 -> "service"; default -> ""; } : "event";
+                String f_doc = u.more(end) ? u.getStr() : "";
+                Object f_shape = u.more(end) ? u.getTagged() : null;
+                Object f_reply = u.more(end) ? (u.getBool() ? u.getTagged() : null) : null;
+                java.util.List<String> f_interfaces = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+                u.leave(end);
+                return new Descriptor(f_address, f_kind, f_doc, f_shape, f_reply, f_interfaces);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Descriptor fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Descriptor v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBus.DECLARE);
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
 
@@ -1100,21 +2121,49 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.address);
+                p.end(at);
+            }
+
+            public static Describe unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_address = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Describe(f_address);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Describe fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Describe v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBus.DESCRIBE);
             }
 
             public YogTypes.Descriptor call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Descriptor v = (u.getBool() ? YogTypes.Descriptor.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Descriptor.fromData(v));
+                return null;
             }
         }
 
@@ -1135,21 +2184,49 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.prefix);
+                p.end(at);
+            }
+
+            public static List unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_prefix = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new List(f_prefix);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static List fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                List v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBus.LIST);
             }
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogData.str(e0, "")).toList();
+                return java.util.List.of();
             }
         }
 
@@ -1170,21 +2247,49 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.interface_);
+                p.end(at);
+            }
+
+            public static Find unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_interface_ = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Find(f_interface_);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Find fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Find v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceBus.FIND);
             }
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogData.str(e0, "")).toList();
+                return java.util.List.of();
             }
         }
     }
@@ -1210,6 +2315,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.message);
+                p.end(at);
+            }
+
+            public static Broadcast unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_message = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Broadcast(f_message);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Broadcast fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Broadcast v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.BROADCAST);
             }
@@ -1219,16 +2350,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.BROADCAST;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1250,6 +2391,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.json);
+                p.end(at);
+            }
+
+            public static Tellraw unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_json = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Tellraw(f_player, f_json);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Tellraw fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Tellraw v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.TELLRAW);
             }
@@ -1259,16 +2428,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.TELLRAW;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1294,6 +2473,42 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.title);
+                p.putStr(this.subtitle);
+                p.putI(this.fadeIn);
+                p.putI(this.stay);
+                p.putI(this.fadeOut);
+                p.end(at);
+            }
+
+            public static Title unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_title = u.more(end) ? u.getStr() : "";
+                String f_subtitle = u.more(end) ? u.getStr() : "";
+                int f_fadeIn = u.more(end) ? (int) u.getI() : 0;
+                int f_stay = u.more(end) ? (int) u.getI() : 0;
+                int f_fadeOut = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new Title(f_player, f_title, f_subtitle, f_fadeIn, f_stay, f_fadeOut);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Title fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Title v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.TITLE);
             }
@@ -1303,16 +2518,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.TITLE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1334,6 +2559,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.message);
+                p.end(at);
+            }
+
+            public static Actionbar unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_message = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Actionbar(f_player, f_message);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Actionbar fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Actionbar v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.ACTIONBAR);
             }
@@ -1343,16 +2596,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.ACTIONBAR;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1374,6 +2637,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.json);
+                p.end(at);
+            }
+
+            public static ActionbarJson unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_json = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new ActionbarJson(f_player, f_json);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static ActionbarJson fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                ActionbarJson v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceChat.ACTIONBAR_JSON);
             }
@@ -1383,16 +2674,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceChat.ACTIONBAR_JSON;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -1419,21 +2720,51 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.key);
+                p.end(at);
+            }
+
+            public static EntityData unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_key = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new EntityData(f_uuid, f_key);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static EntityData fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                EntityData v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.ENTITY_DATA);
             }
 
             public YogTypes.DataValue call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.DataValue v = (u.getBool() ? YogTypes.DataValue.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.DataValue.fromData(v));
+                return null;
             }
         }
 
@@ -1457,6 +2788,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.sound);
+                p.putF32((float) (double) this.volume);
+                p.putF32((float) (double) this.pitch);
+                p.putBool(this.looping);
+                p.end(at);
+            }
+
+            public static PlaySound unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_sound = u.more(end) ? u.getStr() : "";
+                double f_volume = u.more(end) ? (double) u.getF32() : 0.0;
+                double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                boolean f_looping = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new PlaySound(f_sound, f_volume, f_pitch, f_looping);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static PlaySound fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                PlaySound v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.PLAY_SOUND);
             }
@@ -1466,16 +2829,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.PLAY_SOUND;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : (int) YogData.integer(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+                return p.finish();
             }
         }
 
@@ -1496,6 +2869,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putI(this.handle);
+                p.end(at);
+            }
+
+            public static StopSound unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                int f_handle = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new StopSound(f_handle);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static StopSound fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                StopSound v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.STOP_SOUND);
             }
@@ -1505,16 +2904,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.STOP_SOUND;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1535,6 +2944,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putBool(this.offHand);
+                p.end(at);
+            }
+
+            public static HeldItem unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                boolean f_offHand = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new HeldItem(f_offHand);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static HeldItem fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                HeldItem v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.HELD_ITEM);
             }
@@ -1544,16 +2979,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.HELD_ITEM;
 
             public YogTypes.Stack call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Stack v = (u.getBool() ? YogTypes.Stack.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Stack.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.Stack v = (out == null ? null : (YogTypes.Stack) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -1576,6 +3021,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putI(this.color);
+                p.end(at);
+            }
+
+            public static SetBlockTint unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                int f_color = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new SetBlockTint(f_dim, f_pos, f_color);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetBlockTint fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetBlockTint v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.SET_BLOCK_TINT);
             }
@@ -1585,16 +3060,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.SET_BLOCK_TINT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1614,6 +3099,30 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static ScreenSlots unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new ScreenSlots();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static ScreenSlots fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                ScreenSlots v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.SCREEN_SLOTS);
             }
@@ -1623,16 +3132,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.SCREEN_SLOTS;
 
             public java.util.List<YogTypes.ScreenSlot> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<YogTypes.ScreenSlot> v = YogFrame.list(u, () -> YogTypes.ScreenSlot.unpack(u));
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.ScreenSlot.fromData(e0)).toList();
+                return java.util.List.of();
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                java.util.List<YogTypes.ScreenSlot> v = (java.util.List<YogTypes.ScreenSlot>) out;
+                p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                return p.finish();
             }
         }
 
@@ -1653,6 +3172,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putI(this.key);
+                p.end(at);
+            }
+
+            public static KeyDown unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                int f_key = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new KeyDown(f_key);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static KeyDown fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                KeyDown v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.KEY_DOWN);
             }
@@ -1662,16 +3207,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.KEY_DOWN;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1692,6 +3247,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.attribute);
+                p.end(at);
+            }
+
+            public static AttributeValue unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_attribute = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new AttributeValue(f_attribute);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static AttributeValue fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                AttributeValue v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.ATTRIBUTE_VALUE);
             }
@@ -1701,16 +3282,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.ATTRIBUTE_VALUE;
 
             public Double call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Double v = (u.getBool() ? Double.valueOf(u.getF64()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.number(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
+                p.putBool(v != null); if (v != null) { p.putF64(v); }
+                return p.finish();
             }
         }
 
@@ -1731,6 +3322,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.end(at);
+            }
+
+            public static AdvancementDone unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new AdvancementDone(f_id);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static AdvancementDone fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                AdvancementDone v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.ADVANCEMENT_DONE);
             }
@@ -1740,16 +3357,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.ADVANCEMENT_DONE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1771,6 +3398,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putBool(this.on);
+                p.end(at);
+            }
+
+            public static BodyTrack unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                boolean f_on = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new BodyTrack(f_uuid, f_on);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static BodyTrack fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                BodyTrack v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.BODY_TRACK);
             }
@@ -1780,16 +3435,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.BODY_TRACK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1811,6 +3476,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.entityType);
+                p.putBool(this.on);
+                p.end(at);
+            }
+
+            public static BodyTrackType unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_entityType = u.more(end) ? u.getStr() : "";
+                boolean f_on = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new BodyTrackType(f_entityType, f_on);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static BodyTrackType fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                BodyTrackType v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.BODY_TRACK_TYPE);
             }
@@ -1820,16 +3513,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.BODY_TRACK_TYPE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1853,6 +3556,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putF32((float) (double) this.width);
+                p.putF32((float) (double) this.height);
+                p.putF32((float) (double) this.eye);
+                p.end(at);
+            }
+
+            public static SetDimensions unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                double f_width = u.more(end) ? (double) u.getF32() : 0.0;
+                double f_height = u.more(end) ? (double) u.getF32() : 0.0;
+                double f_eye = u.more(end) ? (double) u.getF32() : 0.0;
+                u.leave(end);
+                return new SetDimensions(f_uuid, f_width, f_height, f_eye);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetDimensions fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetDimensions v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceClient.SET_DIMENSIONS);
             }
@@ -1862,16 +3597,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceClient.SET_DIMENSIONS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -1901,6 +3646,42 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putF32((float) (double) this.forward);
+                    p.putF32((float) (double) this.strafe);
+                    p.putBool(this.jump);
+                    p.putBool(this.sneak);
+                    p.putBool(this.sprint);
+                    p.putBool(this.useItem);
+                    p.end(at);
+                }
+
+                public static Drive unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    double f_forward = u.more(end) ? (double) u.getF32() : 0.0;
+                    double f_strafe = u.more(end) ? (double) u.getF32() : 0.0;
+                    boolean f_jump = u.more(end) ? u.getBool() : false;
+                    boolean f_sneak = u.more(end) ? u.getBool() : false;
+                    boolean f_sprint = u.more(end) ? u.getBool() : false;
+                    boolean f_useItem = u.more(end) ? u.getBool() : false;
+                    u.leave(end);
+                    return new Drive(f_forward, f_strafe, f_jump, f_sneak, f_sprint, f_useItem);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Drive fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Drive v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.DRIVE);
                 }
@@ -1910,16 +3691,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.DRIVE;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -1939,6 +3730,30 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.end(at);
+                }
+
+                public static Release unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    u.leave(end);
+                    return new Release();
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Release fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Release v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.RELEASE);
                 }
@@ -1948,16 +3763,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.RELEASE;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -1979,6 +3804,34 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putF32((float) (double) this.yaw);
+                    p.putF32((float) (double) this.pitch);
+                    p.end(at);
+                }
+
+                public static Look unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
+                    double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                    u.leave(end);
+                    return new Look(f_yaw, f_pitch);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Look fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Look v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.LOOK);
                 }
@@ -1988,16 +3841,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.LOOK;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -2018,6 +3881,32 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putBool(this.entity != null); if (this.entity != null) { p.putStr(this.entity); }
+                    p.end(at);
+                }
+
+                public static Attack unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_entity = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+                    u.leave(end);
+                    return new Attack(f_entity);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Attack fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Attack v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.ATTACK);
                 }
@@ -2027,16 +3916,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.ATTACK;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -2057,6 +3956,32 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putBool(this.offHand);
+                    p.end(at);
+                }
+
+                public static UseItem unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    boolean f_offHand = u.more(end) ? u.getBool() : false;
+                    u.leave(end);
+                    return new UseItem(f_offHand);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static UseItem fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    UseItem v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.USE_ITEM);
                 }
@@ -2066,16 +3991,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.USE_ITEM;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -2097,6 +4032,34 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    this.pos.pack(p);
+                    p.putU(switch (this.face) { case "down" -> 0; case "up" -> 1; case "north" -> 2; case "south" -> 3; case "west" -> 4; case "east" -> 5; default -> 0; });
+                    p.end(at);
+                }
+
+                public static Mine unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                    String f_face = u.more(end) ? switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; } : "down";
+                    u.leave(end);
+                    return new Mine(f_pos, f_face);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Mine fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Mine v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.MINE);
                 }
@@ -2106,16 +4069,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.MINE;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -2135,6 +4108,30 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.end(at);
+                }
+
+                public static StopMining unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    u.leave(end);
+                    return new StopMining();
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static StopMining fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    StopMining v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.STOP_MINING);
                 }
@@ -2144,16 +4141,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.STOP_MINING;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -2175,6 +4182,34 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    this.pos.pack(p);
+                    p.putU(switch (this.face) { case "down" -> 0; case "up" -> 1; case "north" -> 2; case "south" -> 3; case "west" -> 4; case "east" -> 5; default -> 0; });
+                    p.end(at);
+                }
+
+                public static Place unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                    String f_face = u.more(end) ? switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; } : "down";
+                    u.leave(end);
+                    return new Place(f_pos, f_face);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Place fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Place v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.PLACE);
                 }
@@ -2184,16 +4219,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.PLACE;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -2214,6 +4259,32 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putI(this.slot);
+                    p.end(at);
+                }
+
+                public static SelectSlot unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    long f_slot = u.more(end) ? u.getI() : 0L;
+                    u.leave(end);
+                    return new SelectSlot(f_slot);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static SelectSlot fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    SelectSlot v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.SELECT_SLOT);
                 }
@@ -2223,16 +4294,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.SELECT_SLOT;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -2255,6 +4336,36 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putI(this.slot);
+                    p.putI(this.button);
+                    p.putU(switch (this.mode) { case "pickup" -> 0; case "quick_move" -> 1; case "swap" -> 2; case "clone" -> 3; case "throw" -> 4; case "quick_craft" -> 5; case "pickup_all" -> 6; default -> 0; });
+                    p.end(at);
+                }
+
+                public static Click unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    int f_slot = u.more(end) ? (int) u.getI() : 0;
+                    int f_button = u.more(end) ? (int) u.getI() : 0;
+                    String f_mode = u.more(end) ? switch ((int) u.getU()) { case 0 -> "pickup"; case 1 -> "quick_move"; case 2 -> "swap"; case 3 -> "clone"; case 4 -> "throw"; case 5 -> "quick_craft"; case 6 -> "pickup_all"; default -> ""; } : "pickup";
+                    u.leave(end);
+                    return new Click(f_slot, f_button, f_mode);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Click fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Click v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.CLICK);
                 }
@@ -2264,16 +4375,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.CLICK;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
 
@@ -2294,6 +4415,32 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.text);
+                    p.end(at);
+                }
+
+                public static Chat unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_text = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Chat(f_text);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Chat fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Chat v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientControl.CHAT);
                 }
@@ -2303,16 +4450,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientControl.CHAT;
 
                 public boolean call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            boolean v = u.getBool();
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.bool(v, false);
+                    return false;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    boolean v = (Boolean) out;
+                    p.putBool(v);
+                    return p.finish();
                 }
             }
         }
@@ -2337,6 +4494,30 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.end(at);
+                }
+
+                public static State unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    u.leave(end);
+                    return new State();
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static State fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    State v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.STATE);
                 }
@@ -2346,16 +4527,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.STATE;
 
                 public YogTypes.LocalState call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogTypes.LocalState v = (u.getBool() ? YogTypes.LocalState.unpack(u) : null);
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return (v == null ? null : YogTypes.LocalState.fromData(v));
+                    return null;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    YogTypes.LocalState v = (out == null ? null : (YogTypes.LocalState) out);
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return p.finish();
                 }
             }
 
@@ -2375,6 +4566,30 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.end(at);
+                }
+
+                public static Inventory unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    u.leave(end);
+                    return new Inventory();
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Inventory fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Inventory v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.INVENTORY);
                 }
@@ -2384,16 +4599,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.INVENTORY;
 
                 public java.util.List<YogTypes.SlotStack> call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            java.util.List<YogTypes.SlotStack> v = YogFrame.list(u, () -> YogTypes.SlotStack.unpack(u));
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.list(v).stream().map(e0 -> YogTypes.SlotStack.fromData(e0)).toList();
+                    return java.util.List.of();
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    java.util.List<YogTypes.SlotStack> v = (java.util.List<YogTypes.SlotStack>) out;
+                    p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                    return p.finish();
                 }
             }
 
@@ -2416,6 +4641,36 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    this.min.pack(p);
+                    this.max.pack(p);
+                    p.putU(this.ids.size()); for (var e0 : this.ids) { p.putStr(e0); }
+                    p.end(at);
+                }
+
+                public static Scan unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    YogTypes.BlockPos f_min = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                    YogTypes.BlockPos f_max = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                    java.util.List<String> f_ids = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+                    u.leave(end);
+                    return new Scan(f_min, f_max, f_ids);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Scan fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Scan v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.SCAN);
                 }
@@ -2425,16 +4680,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.SCAN;
 
                 public java.util.List<YogTypes.PlacedBlock> call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            java.util.List<YogTypes.PlacedBlock> v = YogFrame.list(u, () -> YogTypes.PlacedBlock.unpack(u));
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.list(v).stream().map(e0 -> YogTypes.PlacedBlock.fromData(e0)).toList();
+                    return java.util.List.of();
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    java.util.List<YogTypes.PlacedBlock> v = (java.util.List<YogTypes.PlacedBlock>) out;
+                    p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                    return p.finish();
                 }
             }
 
@@ -2456,6 +4721,34 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    this.min.pack(p);
+                    this.max.pack(p);
+                    p.end(at);
+                }
+
+                public static Area unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    YogTypes.BlockPos f_min = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                    YogTypes.BlockPos f_max = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                    u.leave(end);
+                    return new Area(f_min, f_max);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Area fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Area v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.AREA);
                 }
@@ -2465,16 +4758,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.AREA;
 
                 public YogTypes.BlockArea call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            YogTypes.BlockArea v = (u.getBool() ? YogTypes.BlockArea.unpack(u) : null);
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return (v == null ? null : YogTypes.BlockArea.fromData(v));
+                    return null;
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    YogTypes.BlockArea v = (out == null ? null : (YogTypes.BlockArea) out);
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return p.finish();
                 }
             }
 
@@ -2495,6 +4798,32 @@ public final class YogServices {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putF64(this.radius);
+                    p.end(at);
+                }
+
+                public static Entities unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    double f_radius = u.more(end) ? u.getF64() : 0.0;
+                    u.leave(end);
+                    return new Entities(f_radius);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Entities fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Entities v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int AT = YogBus.resolve(YogNames.ServiceClientLocal.ENTITIES);
                 }
@@ -2504,16 +4833,26 @@ public final class YogServices {
                 public static final String ADDRESS = YogNames.ServiceClientLocal.ENTITIES;
 
                 public java.util.List<YogTypes.NearbyEntity> call() {
-                    YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                    Object v = null;
+                    YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                     if (r.status() == YogBus.OK && r.bytes().length > 0) {
                         try {
-                            v = YogData.decode(r.bytes());
+                            YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                            java.util.List<YogTypes.NearbyEntity> v = YogFrame.list(u, () -> YogTypes.NearbyEntity.unpack(u));
+                            u.finish();
+                            return v;
                         } catch (YogData.DecodeException e) {
-                            v = null;
+                            // Not a reply: as if no one answered.
                         }
                     }
-                    return YogData.list(v).stream().map(e0 -> YogTypes.NearbyEntity.fromData(e0)).toList();
+                    return java.util.List.of();
+                }
+
+                /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+                public static byte[] replyFrame(Object out) {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    java.util.List<YogTypes.NearbyEntity> v = (java.util.List<YogTypes.NearbyEntity>) out;
+                    p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                    return p.finish();
                 }
             }
         }
@@ -2541,21 +4880,51 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.name);
+                p.putBool(this.schema != null); if (this.schema != null) { p.putStr(this.schema); }
+                p.end(at);
+            }
+
+            public static CommandSpec unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_name = u.more(end) ? u.getStr() : "";
+                String f_schema = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+                u.leave(end);
+                return new CommandSpec(f_name, f_schema);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static CommandSpec fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                CommandSpec v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceCommand.DECLARE);
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
 
@@ -2575,21 +4944,47 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static Declared unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new Declared();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Declared fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Declared v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceCommand.DECLARED);
             }
 
             public java.util.List<YogTypes.CommandSpec> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<YogTypes.CommandSpec> v = YogFrame.list(u, () -> YogTypes.CommandSpec.unpack(u));
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.CommandSpec.fromData(e0)).toList();
+                return java.util.List.of();
             }
         }
     }
@@ -2617,21 +5012,53 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.kind);
+                p.putStr(this.id);
+                p.putBytes(this.data);
+                p.end(at);
+            }
+
+            public static Register unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_kind = u.more(end) ? u.getStr() : "";
+                String f_id = u.more(end) ? u.getStr() : "";
+                byte[] f_data = u.more(end) ? u.getBytes() : new byte[0];
+                u.leave(end);
+                return new Register(f_kind, f_id, f_data);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Register fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Register v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceContent.REGISTER);
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
     }
@@ -2658,21 +5085,51 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.key);
+                p.end(at);
+            }
+
+            public static Data unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_key = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Data(f_uuid, f_key);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Data fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Data v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.DATA);
             }
 
             public YogTypes.DataValue call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.DataValue v = (u.getBool() ? YogTypes.DataValue.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.DataValue.fromData(v));
+                return null;
             }
         }
 
@@ -2696,21 +5153,55 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.key);
+                p.putBool(this.value != null); if (this.value != null) { this.value.pack(p); }
+                p.putBool(this.persist);
+                p.end(at);
+            }
+
+            public static SetData unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_key = u.more(end) ? u.getStr() : "";
+                YogTypes.DataValue f_value = u.more(end) ? (u.getBool() ? YogTypes.DataValue.unpack(u) : null) : null;
+                boolean f_persist = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new SetData(f_uuid, f_key, f_value, f_persist);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetData fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetData v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_DATA);
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
 
@@ -2732,21 +5223,51 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putBool(this.size != null); if (this.size != null) { p.putF32s(this.size); }
+                p.end(at);
+            }
+
+            public static SetDimensions unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                java.util.List<Double> f_size = u.more(end) ? (u.getBool() ? u.getF32s() : null) : null;
+                u.leave(end);
+                return new SetDimensions(f_uuid, f_size);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetDimensions fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetDimensions v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_DIMENSIONS);
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
 
@@ -2768,6 +5289,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static Teleport unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new Teleport(f_uuid, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Teleport fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Teleport v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.TELEPORT);
             }
@@ -2777,16 +5326,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.TELEPORT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -2809,6 +5368,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static TeleportToDim unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new TeleportToDim(f_uuid, f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static TeleportToDim fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                TeleportToDim v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.TELEPORT_TO_DIM);
             }
@@ -2818,16 +5407,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.TELEPORT_TO_DIM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -2848,6 +5447,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Position unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Position(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Position fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Position v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.POSITION);
             }
@@ -2857,16 +5482,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.POSITION;
 
             public YogTypes.Point call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Point v = (u.getBool() ? YogTypes.Point.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Point.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.Point v = (out == null ? null : (YogTypes.Point) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -2887,6 +5522,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Rotation unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Rotation(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Rotation fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Rotation v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ROTATION);
             }
@@ -2896,16 +5557,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ROTATION;
 
             public YogTypes.Rotation call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Rotation v = (u.getBool() ? YogTypes.Rotation.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Rotation.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.Rotation v = (out == null ? null : (YogTypes.Rotation) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -2926,6 +5597,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Velocity unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Velocity(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Velocity fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Velocity v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.VELOCITY);
             }
@@ -2935,16 +5632,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.VELOCITY;
 
             public YogTypes.Point call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Point v = (u.getBool() ? YogTypes.Point.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Point.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.Point v = (out == null ? null : (YogTypes.Point) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -2966,6 +5673,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                this.velocity.pack(p);
+                p.end(at);
+            }
+
+            public static SetVelocity unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_velocity = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new SetVelocity(f_uuid, f_velocity);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetVelocity fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetVelocity v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_VELOCITY);
             }
@@ -2975,16 +5710,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_VELOCITY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3006,6 +5751,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                this.velocity.pack(p);
+                p.end(at);
+            }
+
+            public static AddVelocity unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_velocity = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new AddVelocity(f_uuid, f_velocity);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static AddVelocity fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                AddVelocity v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ADD_VELOCITY);
             }
@@ -3015,16 +5788,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ADD_VELOCITY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3045,6 +5828,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Health unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Health(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Health fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Health v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.HEALTH);
             }
@@ -3054,16 +5863,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.HEALTH;
 
             public Double call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Double v = (u.getBool() ? Double.valueOf(u.getF64()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.number(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
+                p.putBool(v != null); if (v != null) { p.putF64(v); }
+                return p.finish();
             }
         }
 
@@ -3085,6 +5904,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putF64(this.health);
+                p.end(at);
+            }
+
+            public static SetHealth unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                double f_health = u.more(end) ? u.getF64() : 0.0;
+                u.leave(end);
+                return new SetHealth(f_uuid, f_health);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetHealth fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetHealth v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_HEALTH);
             }
@@ -3094,16 +5941,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_HEALTH;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3124,6 +5981,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Kill unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Kill(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Kill fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Kill v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.KILL);
             }
@@ -3133,16 +6016,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.KILL;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3165,6 +6058,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.entityType);
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static Spawn unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_entityType = u.more(end) ? u.getStr() : "";
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new Spawn(f_entityType, f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Spawn fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Spawn v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SPAWN);
             }
@@ -3174,16 +6097,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SPAWN;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -3208,6 +6141,40 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.effect);
+                p.putI(this.duration);
+                p.putI(this.amplifier);
+                p.putBool(this.particles);
+                p.end(at);
+            }
+
+            public static AddEffect unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_effect = u.more(end) ? u.getStr() : "";
+                int f_duration = u.more(end) ? (int) u.getI() : 0;
+                int f_amplifier = u.more(end) ? (int) u.getI() : 0;
+                boolean f_particles = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new AddEffect(f_uuid, f_effect, f_duration, f_amplifier, f_particles);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static AddEffect fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                AddEffect v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ADD_EFFECT);
             }
@@ -3217,16 +6184,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ADD_EFFECT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3248,6 +6225,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.effect);
+                p.end(at);
+            }
+
+            public static RemoveEffect unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_effect = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new RemoveEffect(f_uuid, f_effect);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static RemoveEffect fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                RemoveEffect v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.REMOVE_EFFECT);
             }
@@ -3257,16 +6262,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.REMOVE_EFFECT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3287,6 +6302,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static ClearEffects unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new ClearEffects(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static ClearEffects fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                ClearEffects v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.CLEAR_EFFECTS);
             }
@@ -3296,16 +6337,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.CLEAR_EFFECTS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3326,6 +6377,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Nbt unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Nbt(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Nbt fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Nbt v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.NBT);
             }
@@ -3335,16 +6412,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.NBT;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -3366,6 +6453,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static SetNbt unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetNbt(f_uuid, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetNbt fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetNbt v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_NBT);
             }
@@ -3375,16 +6490,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_NBT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3406,6 +6531,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.attribute);
+                p.end(at);
+            }
+
+            public static AttributeBase unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_attribute = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new AttributeBase(f_uuid, f_attribute);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static AttributeBase fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                AttributeBase v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ATTRIBUTE_BASE);
             }
@@ -3415,16 +6568,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ATTRIBUTE_BASE;
 
             public Double call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Double v = (u.getBool() ? Double.valueOf(u.getF64()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.number(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
+                p.putBool(v != null); if (v != null) { p.putF64(v); }
+                return p.finish();
             }
         }
 
@@ -3447,6 +6610,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.attribute);
+                p.putF64(this.value);
+                p.end(at);
+            }
+
+            public static SetAttributeBase unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_attribute = u.more(end) ? u.getStr() : "";
+                double f_value = u.more(end) ? u.getF64() : 0.0;
+                u.leave(end);
+                return new SetAttributeBase(f_uuid, f_attribute, f_value);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetAttributeBase fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetAttributeBase v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_ATTRIBUTE_BASE);
             }
@@ -3456,16 +6649,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_ATTRIBUTE_BASE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3487,6 +6690,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.attribute);
+                p.end(at);
+            }
+
+            public static AttributeValue unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_attribute = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new AttributeValue(f_uuid, f_attribute);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static AttributeValue fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                AttributeValue v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.ATTRIBUTE_VALUE);
             }
@@ -3496,16 +6727,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.ATTRIBUTE_VALUE;
 
             public Double call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Double v = (u.getBool() ? Double.valueOf(u.getF64()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.number(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
+                p.putBool(v != null); if (v != null) { p.putF64(v); }
+                return p.finish();
             }
         }
 
@@ -3526,6 +6767,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Info unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Info(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Info fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Info v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.INFO);
             }
@@ -3535,16 +6802,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.INFO;
 
             public YogTypes.EntityInfo call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.EntityInfo v = (u.getBool() ? YogTypes.EntityInfo.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.EntityInfo.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.EntityInfo v = (out == null ? null : (YogTypes.EntityInfo) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -3568,6 +6845,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putF32((float) (double) this.amount);
+                p.putStr(this.damageType);
+                p.putStr(this.attacker);
+                p.end(at);
+            }
+
+            public static Damage unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                double f_amount = u.more(end) ? (double) u.getF32() : 0.0;
+                String f_damageType = u.more(end) ? u.getStr() : "";
+                String f_attacker = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Damage(f_uuid, f_amount, f_damageType, f_attacker);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Damage fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Damage v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.DAMAGE);
             }
@@ -3577,16 +6886,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.DAMAGE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3608,6 +6927,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putI(this.ticks);
+                p.end(at);
+            }
+
+            public static SetFireTicks unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                int f_ticks = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new SetFireTicks(f_uuid, f_ticks);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetFireTicks fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetFireTicks v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_FIRE_TICKS);
             }
@@ -3617,16 +6964,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_FIRE_TICKS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3647,6 +7004,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Vehicle unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Vehicle(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Vehicle fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Vehicle v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.VEHICLE);
             }
@@ -3656,16 +7039,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.VEHICLE;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -3686,6 +7079,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Passengers unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Passengers(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Passengers fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Passengers v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.PASSENGERS);
             }
@@ -3695,16 +7114,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.PASSENGERS;
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogData.str(e0, "")).toList();
+                return java.util.List.of();
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                java.util.List<String> v = (java.util.List<String>) out;
+                p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
+                return p.finish();
             }
         }
 
@@ -3727,6 +7156,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.rider);
+                p.putStr(this.vehicle);
+                p.putBool(this.force);
+                p.end(at);
+            }
+
+            public static Mount unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_rider = u.more(end) ? u.getStr() : "";
+                String f_vehicle = u.more(end) ? u.getStr() : "";
+                boolean f_force = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new Mount(f_rider, f_vehicle, f_force);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Mount fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Mount v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.MOUNT);
             }
@@ -3736,16 +7195,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.MOUNT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3766,6 +7235,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static Dismount unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Dismount(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Dismount fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Dismount v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.DISMOUNT);
             }
@@ -3775,16 +7270,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.DISMOUNT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -3806,6 +7311,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putF32((float) (double) this.distance);
+                p.end(at);
+            }
+
+            public static SetFallDistance unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                double f_distance = u.more(end) ? (double) u.getF32() : 0.0;
+                u.leave(end);
+                return new SetFallDistance(f_uuid, f_distance);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetFallDistance fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetFallDistance v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceEntity.SET_FALL_DISTANCE);
             }
@@ -3815,16 +7348,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceEntity.SET_FALL_DISTANCE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -3849,21 +7392,47 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static Mods unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new Mods();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Mods fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Mods v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.MODS);
             }
 
             public java.util.List<YogTypes.ModInfo> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<YogTypes.ModInfo> v = YogFrame.list(u, () -> YogTypes.ModInfo.unpack(u));
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.ModInfo.fromData(e0)).toList();
+                return java.util.List.of();
             }
         }
 
@@ -3884,21 +7453,49 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.end(at);
+            }
+
+            public static ModLoaded unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new ModLoaded(f_id);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static ModLoaded fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                ModLoaded v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.MOD_LOADED);
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
 
@@ -3918,6 +7515,30 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static Dir unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new Dir();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Dir fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Dir v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.DIR);
             }
@@ -3927,16 +7548,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceGame.DIR;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -3956,6 +7587,30 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static WorldDir unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new WorldDir();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static WorldDir fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                WorldDir v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.WORLD_DIR);
             }
@@ -3965,16 +7620,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceGame.WORLD_DIR;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -3995,6 +7660,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.key);
+                p.end(at);
+            }
+
+            public static Translate unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_key = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Translate(f_key);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Translate fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Translate v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.TRANSLATE);
             }
@@ -4004,16 +7695,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceGame.TRANSLATE;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -4033,6 +7734,30 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static PlatformMods unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new PlatformMods();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static PlatformMods fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                PlatformMods v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.PLATFORM_MODS);
             }
@@ -4042,16 +7767,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceGame.PLATFORM_MODS;
 
             public java.util.List<YogTypes.ModInfo> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<YogTypes.ModInfo> v = YogFrame.list(u, () -> YogTypes.ModInfo.unpack(u));
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.ModInfo.fromData(e0)).toList();
+                return java.util.List.of();
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                java.util.List<YogTypes.ModInfo> v = (java.util.List<YogTypes.ModInfo>) out;
+                p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                return p.finish();
             }
         }
     }
@@ -4078,17 +7813,47 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.item);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static Text unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_item = u.more(end) ? u.getStr() : "";
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Text(f_item, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Text fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Text v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             public YogTypes.Shown call() {
-                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.TEXT, item), YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.TEXT, item), toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Shown v = (u.getBool() ? YogTypes.Shown.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Shown.fromData(v));
+                return null;
             }
         }
 
@@ -4110,17 +7875,47 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.item);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static Picture unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_item = u.more(end) ? u.getStr() : "";
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Picture(f_item, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Picture fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Picture v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             public java.util.List<Double> call() {
-                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.PICTURE, item), YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.PICTURE, item), toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<Double> v = (u.getBool() ? u.getF32s() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.list(v).stream().map(e0 -> YogData.number(e0, 0)).toList());
+                return null;
             }
         }
 
@@ -4146,6 +7941,42 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                this.velocity.pack(p);
+                p.putStr(this.item);
+                p.putI(this.count);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static SpawnItem unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                YogTypes.Point f_velocity = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                String f_item = u.more(end) ? u.getStr() : "";
+                long f_count = u.more(end) ? u.getI() : 0L;
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SpawnItem(f_dim, f_pos, f_velocity, f_item, f_count, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SpawnItem fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SpawnItem v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceItem.SPAWN);
             }
@@ -4155,16 +7986,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceItem.SPAWN;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -4185,6 +8026,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.end(at);
+            }
+
+            public static EntityStack unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new EntityStack(f_uuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static EntityStack fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                EntityStack v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceItem.ENTITY_STACK);
             }
@@ -4194,16 +8061,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceItem.ENTITY_STACK;
 
             public YogTypes.Stack call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Stack v = (u.getBool() ? YogTypes.Stack.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Stack.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.Stack v = (out == null ? null : (YogTypes.Stack) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -4227,6 +8104,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uuid);
+                p.putStr(this.item);
+                p.putI(this.count);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static SetEntityStack unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uuid = u.more(end) ? u.getStr() : "";
+                String f_item = u.more(end) ? u.getStr() : "";
+                long f_count = u.more(end) ? u.getI() : 0L;
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetEntityStack(f_uuid, f_item, f_count, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetEntityStack fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetEntityStack v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceItem.SET_ENTITY_STACK);
             }
@@ -4236,16 +8145,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceItem.SET_ENTITY_STACK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -4266,6 +8185,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.item);
+                p.end(at);
+            }
+
+            public static Block unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_item = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Block(f_item);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Block fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Block v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceItem.BLOCK);
             }
@@ -4275,16 +8220,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceItem.BLOCK;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
     }
@@ -4311,6 +8266,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.expr);
+                p.putU(this.args.size()); for (var e0 : this.args) { p.putTagged(e0); }
+                p.end(at);
+            }
+
+            public static Call unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_expr = u.more(end) ? u.getStr() : "";
+                java.util.List<Object> f_args = u.more(end) ? YogFrame.list(u, () -> u.getTagged()) : java.util.List.of();
+                u.leave(end);
+                return new Call(f_expr, f_args);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Call fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Call v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceJvm.CALL);
             }
@@ -4320,16 +8303,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceJvm.CALL;
 
             public Object call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Object v = (u.getBool() ? u.getTagged() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : v);
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Object v = (out == null ? null : (Object) out);
+                p.putBool(v != null); if (v != null) { p.putTagged(v); }
+                return p.finish();
             }
         }
     }
@@ -4357,21 +8350,53 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putStr(this.name);
+                p.putI(this.defaultKey);
+                p.end(at);
+            }
+
+            public static KeyBindingSpec unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                String f_name = u.more(end) ? u.getStr() : "";
+                int f_defaultKey = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new KeyBindingSpec(f_id, f_name, f_defaultKey);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static KeyBindingSpec fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                KeyBindingSpec v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceKeyBinding.DECLARE);
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
 
@@ -4391,21 +8416,47 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static Declared unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new Declared();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Declared fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Declared v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceKeyBinding.DECLARED);
             }
 
             public java.util.List<YogTypes.CategorizedBinding> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<YogTypes.CategorizedBinding> v = YogFrame.list(u, () -> YogTypes.CategorizedBinding.unpack(u));
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.CategorizedBinding.fromData(e0)).toList();
+                return java.util.List.of();
             }
         }
     }
@@ -4432,21 +8483,51 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.label);
+                p.putStr(this.uiId);
+                p.end(at);
+            }
+
+            public static MenuEntry unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_label = u.more(end) ? u.getStr() : "";
+                String f_uiId = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new MenuEntry(f_label, f_uiId);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static MenuEntry fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                MenuEntry v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceMenu.DECLARE);
             }
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
             }
         }
 
@@ -4466,21 +8547,47 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static Declared unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new Declared();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Declared fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Declared v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceMenu.DECLARED);
             }
 
             public java.util.List<YogTypes.MenuEntry> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<YogTypes.MenuEntry> v = YogFrame.list(u, () -> YogTypes.MenuEntry.unpack(u));
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.MenuEntry.fromData(e0)).toList();
+                return java.util.List.of();
             }
         }
     }
@@ -4508,6 +8615,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.channel);
+                p.putBytes(this.payload);
+                p.end(at);
+            }
+
+            public static SendToPlayer unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_channel = u.more(end) ? u.getStr() : "";
+                byte[] f_payload = u.more(end) ? u.getBytes() : new byte[0];
+                u.leave(end);
+                return new SendToPlayer(f_player, f_channel, f_payload);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SendToPlayer fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SendToPlayer v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceNet.SEND_TO_PLAYER);
             }
@@ -4517,16 +8654,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceNet.SEND_TO_PLAYER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -4548,6 +8695,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.channel);
+                p.putBytes(this.payload);
+                p.end(at);
+            }
+
+            public static SendToServer unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_channel = u.more(end) ? u.getStr() : "";
+                byte[] f_payload = u.more(end) ? u.getBytes() : new byte[0];
+                u.leave(end);
+                return new SendToServer(f_channel, f_payload);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SendToServer fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SendToServer v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceNet.SEND_TO_SERVER);
             }
@@ -4557,16 +8732,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceNet.SEND_TO_SERVER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -4597,6 +8782,42 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putStr(this.particle);
+                p.putI(this.count);
+                this.spread.pack(p);
+                p.putF64(this.speed);
+                p.end(at);
+            }
+
+            public static SpawnParticles unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                String f_particle = u.more(end) ? u.getStr() : "";
+                int f_count = u.more(end) ? (int) u.getI() : 0;
+                YogTypes.Point f_spread = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                double f_speed = u.more(end) ? u.getF64() : 0.0;
+                u.leave(end);
+                return new SpawnParticles(f_dim, f_pos, f_particle, f_count, f_spread, f_speed);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SpawnParticles fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SpawnParticles v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceParticle.SPAWN);
             }
@@ -4606,16 +8827,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceParticle.SPAWN;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -4643,6 +8874,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.item);
+                p.putI(this.count);
+                p.end(at);
+            }
+
+            public static GiveItem unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_item = u.more(end) ? u.getStr() : "";
+                long f_count = u.more(end) ? u.getI() : 0L;
+                u.leave(end);
+                return new GiveItem(f_player, f_item, f_count);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static GiveItem fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                GiveItem v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.GIVE_ITEM);
             }
@@ -4652,16 +8913,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.GIVE_ITEM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -4683,6 +8954,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static Teleport unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new Teleport(f_player, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Teleport fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Teleport v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.TELEPORT);
             }
@@ -4692,16 +8991,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.TELEPORT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -4724,6 +9033,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static TeleportToDim unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new TeleportToDim(f_player, f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static TeleportToDim fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                TeleportToDim v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.TELEPORT_TO_DIM);
             }
@@ -4733,16 +9072,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.TELEPORT_TO_DIM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -4764,6 +9113,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.reason);
+                p.end(at);
+            }
+
+            public static Kick unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_reason = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Kick(f_player, f_reason);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Kick fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Kick v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.KICK);
             }
@@ -4773,16 +9150,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.KICK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -4804,6 +9191,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.mode);
+                p.end(at);
+            }
+
+            public static SetGamemode unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_mode = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetGamemode(f_player, f_mode);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetGamemode fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetGamemode v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_GAMEMODE);
             }
@@ -4813,16 +9228,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_GAMEMODE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -4843,6 +9268,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.end(at);
+            }
+
+            public static Inventory unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Inventory(f_player);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Inventory fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Inventory v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.INVENTORY);
             }
@@ -4852,16 +9303,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.INVENTORY;
 
             public java.util.List<YogTypes.SlotStack> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<YogTypes.SlotStack> v = YogFrame.list(u, () -> YogTypes.SlotStack.unpack(u));
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.SlotStack.fromData(e0)).toList();
+                return java.util.List.of();
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                java.util.List<YogTypes.SlotStack> v = (java.util.List<YogTypes.SlotStack>) out;
+                p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                return p.finish();
             }
         }
 
@@ -4885,6 +9346,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putI(this.slot);
+                p.putStr(this.item);
+                p.putI(this.count);
+                p.end(at);
+            }
+
+            public static SetSlot unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                long f_slot = u.more(end) ? u.getI() : 0L;
+                String f_item = u.more(end) ? u.getStr() : "";
+                long f_count = u.more(end) ? u.getI() : 0L;
+                u.leave(end);
+                return new SetSlot(f_player, f_slot, f_item, f_count);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetSlot fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetSlot v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_SLOT);
             }
@@ -4894,16 +9387,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_SLOT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -4924,6 +9427,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.end(at);
+            }
+
+            public static HeldItemNbt unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new HeldItemNbt(f_player);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static HeldItemNbt fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                HeldItemNbt v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.HELD_ITEM_NBT);
             }
@@ -4933,16 +9462,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.HELD_ITEM_NBT;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -4964,6 +9503,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static SetHeldItemNbt unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetHeldItemNbt(f_player, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetHeldItemNbt fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetHeldItemNbt v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_HELD_ITEM_NBT);
             }
@@ -4973,16 +9540,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_HELD_ITEM_NBT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5003,6 +9580,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.end(at);
+            }
+
+            public static OffhandItemNbt unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new OffhandItemNbt(f_player);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static OffhandItemNbt fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                OffhandItemNbt v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.OFFHAND_ITEM_NBT);
             }
@@ -5012,16 +9615,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.OFFHAND_ITEM_NBT;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -5043,6 +9656,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static SetOffhandItemNbt unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetOffhandItemNbt(f_player, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetOffhandItemNbt fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetOffhandItemNbt v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_OFFHAND_ITEM_NBT);
             }
@@ -5052,16 +9693,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_OFFHAND_ITEM_NBT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5083,6 +9734,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putI(this.slot);
+                p.end(at);
+            }
+
+            public static SlotItem unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                long f_slot = u.more(end) ? u.getI() : 0L;
+                u.leave(end);
+                return new SlotItem(f_player, f_slot);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SlotItem fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SlotItem v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SLOT_ITEM);
             }
@@ -5092,16 +9771,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SLOT_ITEM;
 
             public YogTypes.Stack call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.Stack v = (u.getBool() ? YogTypes.Stack.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.Stack.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.Stack v = (out == null ? null : (YogTypes.Stack) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -5126,6 +9815,40 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putI(this.slot);
+                p.putStr(this.item);
+                p.putI(this.count);
+                p.putStr(this.snbt);
+                p.end(at);
+            }
+
+            public static SetSlotItem unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                long f_slot = u.more(end) ? u.getI() : 0L;
+                String f_item = u.more(end) ? u.getStr() : "";
+                long f_count = u.more(end) ? u.getI() : 0L;
+                String f_snbt = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetSlotItem(f_player, f_slot, f_item, f_count, f_snbt);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetSlotItem fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetSlotItem v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_SLOT_ITEM);
             }
@@ -5135,16 +9858,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_SLOT_ITEM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5166,6 +9899,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putI(this.amount);
+                p.end(at);
+            }
+
+            public static AddXp unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                int f_amount = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new AddXp(f_player, f_amount);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static AddXp fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                AddXp v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.ADD_XP);
             }
@@ -5175,16 +9936,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.ADD_XP;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5206,6 +9977,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putBool(this.mayFly);
+                p.end(at);
+            }
+
+            public static SetMayFly unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                boolean f_mayFly = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new SetMayFly(f_player, f_mayFly);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetMayFly fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetMayFly v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_MAY_FLY);
             }
@@ -5215,16 +10014,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_MAY_FLY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5245,6 +10054,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.end(at);
+            }
+
+            public static Info unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Info(f_player);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Info fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Info v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.INFO);
             }
@@ -5254,16 +10089,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.INFO;
 
             public YogTypes.PlayerInfo call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.PlayerInfo v = (u.getBool() ? YogTypes.PlayerInfo.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.PlayerInfo.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.PlayerInfo v = (out == null ? null : (YogTypes.PlayerInfo) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -5286,6 +10131,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.item);
+                p.putI(this.ticks);
+                p.end(at);
+            }
+
+            public static SetItemCooldown unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_item = u.more(end) ? u.getStr() : "";
+                int f_ticks = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new SetItemCooldown(f_player, f_item, f_ticks);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetItemCooldown fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetItemCooldown v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.SET_ITEM_COOLDOWN);
             }
@@ -5295,16 +10170,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.SET_ITEM_COOLDOWN;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5328,6 +10213,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putI(this.slot);
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static PlaceBlockFromSlot unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                long f_slot = u.more(end) ? u.getI() : 0L;
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new PlaceBlockFromSlot(f_player, f_slot, f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static PlaceBlockFromSlot fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                PlaceBlockFromSlot v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.PLACE_BLOCK_FROM_SLOT);
             }
@@ -5337,16 +10254,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.PLACE_BLOCK_FROM_SLOT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5366,6 +10293,30 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.end(at);
+            }
+
+            public static Online unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                u.leave(end);
+                return new Online();
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Online fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Online v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServicePlayer.ONLINE);
             }
@@ -5375,16 +10326,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServicePlayer.ONLINE;
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogData.str(e0, "")).toList();
+                return java.util.List.of();
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                java.util.List<String> v = (java.util.List<String>) out;
+                p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
+                return p.finish();
             }
         }
     }
@@ -5411,6 +10372,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.objective);
+                p.putStr(this.player);
+                p.end(at);
+            }
+
+            public static Get unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_objective = u.more(end) ? u.getStr() : "";
+                String f_player = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Get(f_objective, f_player);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Get fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Get v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceScoreboard.GET);
             }
@@ -5420,16 +10409,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceScoreboard.GET;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : (int) YogData.integer(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+                return p.finish();
             }
         }
 
@@ -5452,6 +10451,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.objective);
+                p.putStr(this.player);
+                p.putI(this.score);
+                p.end(at);
+            }
+
+            public static Set unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_objective = u.more(end) ? u.getStr() : "";
+                String f_player = u.more(end) ? u.getStr() : "";
+                int f_score = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new Set(f_objective, f_player, f_score);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Set fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Set v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceScoreboard.SET);
             }
@@ -5461,16 +10490,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceScoreboard.SET;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5493,6 +10532,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.objective);
+                p.putStr(this.player);
+                p.putI(this.delta);
+                p.end(at);
+            }
+
+            public static Add unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_objective = u.more(end) ? u.getStr() : "";
+                String f_player = u.more(end) ? u.getStr() : "";
+                int f_delta = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new Add(f_objective, f_player, f_delta);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Add fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Add v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceScoreboard.ADD);
             }
@@ -5502,16 +10571,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceScoreboard.ADD;
 
             public Integer call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Integer v = (u.getBool() ? Integer.valueOf((int) u.getI()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : (int) YogData.integer(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+                return p.finish();
             }
         }
     }
@@ -5541,6 +10620,40 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putStr(this.sound);
+                p.putF32((float) (double) this.volume);
+                p.putF32((float) (double) this.pitch);
+                p.end(at);
+            }
+
+            public static Play unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                String f_sound = u.more(end) ? u.getStr() : "";
+                double f_volume = u.more(end) ? (double) u.getF32() : 0.0;
+                double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                u.leave(end);
+                return new Play(f_dim, f_pos, f_sound, f_volume, f_pitch);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Play fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Play v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceSound.PLAY);
             }
@@ -5550,16 +10663,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceSound.PLAY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5583,6 +10706,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.player);
+                p.putStr(this.sound);
+                p.putF32((float) (double) this.volume);
+                p.putF32((float) (double) this.pitch);
+                p.end(at);
+            }
+
+            public static PlayToPlayer unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_player = u.more(end) ? u.getStr() : "";
+                String f_sound = u.more(end) ? u.getStr() : "";
+                double f_volume = u.more(end) ? (double) u.getF32() : 0.0;
+                double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                u.leave(end);
+                return new PlayToPlayer(f_player, f_sound, f_volume, f_pitch);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static PlayToPlayer fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                PlayToPlayer v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceSound.PLAY_TO_PLAYER);
             }
@@ -5592,16 +10747,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceSound.PLAY_TO_PLAYER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -5628,6 +10793,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.item);
+                p.putStr(this.tag);
+                p.end(at);
+            }
+
+            public static HasItem unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_item = u.more(end) ? u.getStr() : "";
+                String f_tag = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new HasItem(f_item, f_tag);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static HasItem fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                HasItem v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceTag.HAS_ITEM);
             }
@@ -5637,16 +10830,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceTag.HAS_ITEM;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5668,6 +10871,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.block);
+                p.putStr(this.tag);
+                p.end(at);
+            }
+
+            public static HasBlock unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_block = u.more(end) ? u.getStr() : "";
+                String f_tag = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new HasBlock(f_block, f_tag);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static HasBlock fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                HasBlock v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceTag.HAS_BLOCK);
             }
@@ -5677,16 +10908,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceTag.HAS_BLOCK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5708,6 +10949,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.entityType);
+                p.putStr(this.tag);
+                p.end(at);
+            }
+
+            public static HasEntity unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_entityType = u.more(end) ? u.getStr() : "";
+                String f_tag = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new HasEntity(f_entityType, f_tag);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static HasEntity fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                HasEntity v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceTag.HAS_ENTITY);
             }
@@ -5717,16 +10986,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceTag.HAS_ENTITY;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5747,6 +11026,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.tag);
+                p.end(at);
+            }
+
+            public static Items unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_tag = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Items(f_tag);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Items fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Items v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceTag.ITEMS);
             }
@@ -5756,16 +11061,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceTag.ITEMS;
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogData.str(e0, "")).toList();
+                return java.util.List.of();
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                java.util.List<String> v = (java.util.List<String>) out;
+                p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
+                return p.finish();
             }
         }
     }
@@ -5793,6 +11108,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uiId);
+                p.putBool(this.modal);
+                p.putBool(this.pause);
+                p.end(at);
+            }
+
+            public static Open unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uiId = u.more(end) ? u.getStr() : "";
+                boolean f_modal = u.more(end) ? u.getBool() : false;
+                boolean f_pause = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new Open(f_uiId, f_modal, f_pause);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Open fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Open v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceUi.OPEN);
             }
@@ -5802,16 +11147,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceUi.OPEN;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5833,6 +11188,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uiId);
+                p.putI(this.flags);
+                p.end(at);
+            }
+
+            public static OpenWithFlags unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uiId = u.more(end) ? u.getStr() : "";
+                int f_flags = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new OpenWithFlags(f_uiId, f_flags);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static OpenWithFlags fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                OpenWithFlags v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceUi.OPEN_WITH_FLAGS);
             }
@@ -5842,16 +11225,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceUi.OPEN_WITH_FLAGS;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5872,6 +11265,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.uiId);
+                p.end(at);
+            }
+
+            public static Close unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_uiId = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Close(f_uiId);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Close fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Close v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceUi.CLOSE);
             }
@@ -5881,16 +11300,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceUi.CLOSE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
     }
@@ -5917,6 +11346,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static GetBlock unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new GetBlock(f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static GetBlock fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                GetBlock v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.GET_BLOCK);
             }
@@ -5926,16 +11383,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.GET_BLOCK;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
 
@@ -5958,6 +11425,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putStr(this.block);
+                p.end(at);
+            }
+
+            public static SetBlock unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_block = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new SetBlock(f_dim, f_pos, f_block);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetBlock fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetBlock v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_BLOCK);
             }
@@ -5967,16 +11464,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SET_BLOCK;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -5997,6 +11504,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                p.end(at);
+            }
+
+            public static Time unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Time(f_dim);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Time fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Time v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.TIME);
             }
@@ -6006,16 +11539,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.TIME;
 
             public Long call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Long v = (u.getBool() ? Long.valueOf(u.getI()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.integer(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+                return p.finish();
             }
         }
 
@@ -6037,6 +11580,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                p.putI(this.time);
+                p.end(at);
+            }
+
+            public static SetTime unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                long f_time = u.more(end) ? u.getI() : 0L;
+                u.leave(end);
+                return new SetTime(f_dim, f_time);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetTime fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetTime v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_TIME);
             }
@@ -6046,16 +11617,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SET_TIME;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -6076,6 +11657,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                p.end(at);
+            }
+
+            public static IsRaining unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new IsRaining(f_dim);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static IsRaining fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                IsRaining v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.IS_RAINING);
             }
@@ -6085,16 +11692,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.IS_RAINING;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -6117,6 +11734,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                p.putBool(this.raining);
+                p.putI(this.duration);
+                p.end(at);
+            }
+
+            public static SetWeather unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                boolean f_raining = u.more(end) ? u.getBool() : false;
+                int f_duration = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new SetWeather(f_dim, f_raining, f_duration);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetWeather fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetWeather v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_WEATHER);
             }
@@ -6126,16 +11773,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SET_WEATHER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -6156,6 +11813,32 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                p.end(at);
+            }
+
+            public static IsThundering unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new IsThundering(f_dim);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static IsThundering fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                IsThundering v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.IS_THUNDERING);
             }
@@ -6165,16 +11848,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.IS_THUNDERING;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -6197,6 +11890,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                p.putBool(this.thundering);
+                p.putI(this.duration);
+                p.end(at);
+            }
+
+            public static SetThunder unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                boolean f_thundering = u.more(end) ? u.getBool() : false;
+                int f_duration = u.more(end) ? (int) u.getI() : 0;
+                u.leave(end);
+                return new SetThunder(f_dim, f_thundering, f_duration);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static SetThunder fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                SetThunder v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SET_THUNDER);
             }
@@ -6206,16 +11929,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SET_THUNDER;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -6239,6 +11972,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.from.pack(p);
+                this.to.pack(p);
+                p.putStr(this.state);
+                p.end(at);
+            }
+
+            public static FillRegion unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_from = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                YogTypes.BlockPos f_to = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_state = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new FillRegion(f_dim, f_from, f_to, f_state);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static FillRegion fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                FillRegion v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.FILL_REGION);
             }
@@ -6248,16 +12013,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.FILL_REGION;
 
             public Long call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Long v = (u.getBool() ? Long.valueOf(u.getI()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.integer(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+                return p.finish();
             }
         }
 
@@ -6280,6 +12055,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.from.pack(p);
+                this.to.pack(p);
+                p.end(at);
+            }
+
+            public static ScanRegion unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_from = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                YogTypes.BlockPos f_to = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                u.leave(end);
+                return new ScanRegion(f_dim, f_from, f_to);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static ScanRegion fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                ScanRegion v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.SCAN_REGION);
             }
@@ -6289,16 +12094,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.SCAN_REGION;
 
             public java.util.List<YogTypes.PlacedBlock> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<YogTypes.PlacedBlock> v = YogFrame.list(u, () -> YogTypes.PlacedBlock.unpack(u));
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogTypes.PlacedBlock.fromData(e0)).toList();
+                return java.util.List.of();
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                java.util.List<YogTypes.PlacedBlock> v = (java.util.List<YogTypes.PlacedBlock>) out;
+                p.putU(v.size()); for (var e0 : v) { e0.pack(p); }
+                return p.finish();
             }
         }
 
@@ -6321,6 +12136,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putStr(this.feature);
+                p.end(at);
+            }
+
+            public static PlaceFeature unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_feature = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new PlaceFeature(f_dim, f_pos, f_feature);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static PlaceFeature fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                PlaceFeature v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.PLACE_FEATURE);
             }
@@ -6330,16 +12175,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.PLACE_FEATURE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -6364,6 +12219,40 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.putF32((float) (double) this.power);
+                p.putBool(this.fire);
+                p.putStr(this.source);
+                p.end(at);
+            }
+
+            public static Explode unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                double f_power = u.more(end) ? (double) u.getF32() : 0.0;
+                boolean f_fire = u.more(end) ? u.getBool() : false;
+                String f_source = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Explode(f_dim, f_pos, f_power, f_fire, f_source);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Explode fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Explode v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.EXPLODE);
             }
@@ -6373,16 +12262,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.EXPLODE;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -6405,6 +12304,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.table);
+                p.putStr(this.dim);
+                this.pos.pack(p);
+                p.end(at);
+            }
+
+            public static DropLoot unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_table = u.more(end) ? u.getStr() : "";
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new DropLoot(f_table, f_dim, f_pos);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static DropLoot fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                DropLoot v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.DROP_LOOT);
             }
@@ -6414,16 +12343,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.DROP_LOOT;
 
             public boolean call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.bool(v, false);
+                return false;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                boolean v = (Boolean) out;
+                p.putBool(v);
+                return p.finish();
             }
         }
 
@@ -6445,6 +12384,34 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                p.putStr(this.entityType);
+                p.end(at);
+            }
+
+            public static EntityCount unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                String f_entityType = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new EntityCount(f_dim, f_entityType);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static EntityCount fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                EntityCount v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.ENTITY_COUNT);
             }
@@ -6454,16 +12421,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.ENTITY_COUNT;
 
             public Long call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        Long v = (u.getBool() ? Long.valueOf(u.getI()) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.integer(v, 0));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+                return p.finish();
             }
         }
 
@@ -6486,6 +12463,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.min.pack(p);
+                this.max.pack(p);
+                p.end(at);
+            }
+
+            public static EntitiesInBox unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_min = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                YogTypes.Point f_max = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new EntitiesInBox(f_dim, f_min, f_max);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static EntitiesInBox fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                EntitiesInBox v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.ENTITIES_IN_BOX);
             }
@@ -6495,16 +12502,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.ENTITIES_IN_BOX;
 
             public java.util.List<String> call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return YogData.list(v).stream().map(e0 -> YogData.str(e0, "")).toList();
+                return java.util.List.of();
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                java.util.List<String> v = (java.util.List<String>) out;
+                p.putU(v.size()); for (var e0 : v) { p.putStr(e0); }
+                return p.finish();
             }
         }
 
@@ -6527,6 +12544,36 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.from.pack(p);
+                this.to.pack(p);
+                p.end(at);
+            }
+
+            public static RaycastBlock unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_from = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                YogTypes.Point f_to = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                u.leave(end);
+                return new RaycastBlock(f_dim, f_from, f_to);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static RaycastBlock fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                RaycastBlock v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.RAYCAST_BLOCK);
             }
@@ -6536,16 +12583,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.RAYCAST_BLOCK;
 
             public YogTypes.BlockHit call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        YogTypes.BlockHit v = (u.getBool() ? YogTypes.BlockHit.unpack(u) : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogTypes.BlockHit.fromData(v));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                YogTypes.BlockHit v = (out == null ? null : (YogTypes.BlockHit) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+                return p.finish();
             }
         }
 
@@ -6569,6 +12626,38 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dim);
+                this.from.pack(p);
+                this.to.pack(p);
+                p.putStr(this.exclude);
+                p.end(at);
+            }
+
+            public static RaycastEntity unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dim = u.more(end) ? u.getStr() : "";
+                YogTypes.Point f_from = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                YogTypes.Point f_to = u.more(end) ? YogTypes.Point.unpack(u) : null;
+                String f_exclude = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new RaycastEntity(f_dim, f_from, f_to, f_exclude);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static RaycastEntity fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                RaycastEntity v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int AT = YogBus.resolve(YogNames.ServiceWorld.RAYCAST_ENTITY);
             }
@@ -6578,16 +12667,26 @@ public final class YogServices {
             public static final String ADDRESS = YogNames.ServiceWorld.RAYCAST_ENTITY;
 
             public String call() {
-                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
-                Object v = null;
+                YogBus.Reply r = YogBus.call(Address.AT, toFrame());
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
                     try {
-                        v = YogData.decode(r.bytes());
+                        YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());
+                        String v = (u.getBool() ? u.getStr() : null);
+                        u.finish();
+                        return v;
                     } catch (YogData.DecodeException e) {
-                        v = null;
+                        // Not a reply: as if no one answered.
                     }
                 }
-                return (v == null ? null : YogData.str(v, ""));
+                return null;
+            }
+
+            /** The host method's result {@code out} (its "none" already null) as the reply's frame. */
+            public static byte[] replyFrame(Object out) {
+                YogFrame.Packer p = new YogFrame.Packer();
+                String v = (out == null ? null : (String) out);
+                p.putBool(v != null); if (v != null) { p.putStr(v); }
+                return p.finish();
             }
         }
     }

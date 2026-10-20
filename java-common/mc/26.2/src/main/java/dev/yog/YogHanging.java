@@ -2,7 +2,6 @@ package dev.yog;
 
 import dev.yog.data.YogContent;
 import dev.yog.bus.YogTypes;
-import dev.yog.data.YogData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -78,9 +77,9 @@ public class YogHanging extends HangingEntity {
     public void share() {
         if (level().isClientSide() || getDirection() == null) return;
         ItemStack item = item();
-        NativeBridge.nativeEntityDataSet(getStringUUID(), YogNames.Yog.HANGING, YogData.encode(new YogTypes.Hanging(getDirection().getSerializedName(),
+        NativeBridge.nativeEntityDataSet(getStringUUID(), YogNames.Yog.HANGING, new YogTypes.Hanging(getDirection().getSerializedName(),
                 entityData.get(WIDTH), entityData.get(HEIGHT), BuiltInRegistries.ITEM.getKey(item.getItem()).toString(),
-                NativeBridge.stackSnbt(item)).toData()));
+                NativeBridge.stackSnbt(item)).toFrame());
     }
 
     /** As a painting's: on the wall, a pixel thick, centred on its blocks. */

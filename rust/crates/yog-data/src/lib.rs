@@ -15,6 +15,7 @@ extern crate self as yog_data;
 
 pub mod binary;
 mod borrowed;
+pub mod frame;
 #[cfg(feature = "json")]
 pub mod json;
 pub mod patch;

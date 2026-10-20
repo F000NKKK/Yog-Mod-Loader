@@ -157,12 +157,87 @@ nanites).
 ## Shared memory between Rust and Java
 
 Rust and Java live in one process, so a message needn't be copied into a
-`byte[]`. Each thread gets a **shared buffer**: memory the runtime owns,
-seen by Java as a direct `ByteBuffer` (`NewDirectByteBuffer`). A call
-writes its payload there, passes offset and length, and the reply comes
-back in the same buffer — no allocation, no copy on either side. Mod ↔ mod
-calls pass pointers already. The transport changes underneath the same
-`call`/`emit`; nothing above it notices.
+`byte[]`, boxed into a `Map`, or dispatched by reflection.
+
+* **An arena per thread.** The runtime owns it (64 KB to start, grown with
+  a version number in its header); Java sees it once per thread as a direct
+  `ByteBuffer` (a `MemorySegment` on Java 22+). A call writes its payload
+  there and crosses with primitives only — address id, offset, length —
+  the cheapest JNI call there is; the reply is written in place and read
+  in place (views, see *The format* below). Nested calls (Java → Rust →
+  Java) take frames like a stack, its top in the header: no region is
+  written while someone still reads it.
+* **Generated dispatch.** Java answers through a generated `switch` on the
+  address id calling the host method directly — no `MethodHandle`, no
+  record spread by reflection, and javac checks every host method.
+* **Per Java version.** 26.2 (Java 25) fires events into Rust with FFM
+  critical downcalls (no thread-state change); 1.20 / 1.21 (Java 17 / 21)
+  use JNI natives with primitives.
+* **Atoms.** Ids and keys that repeat (`minecraft:stone`, field names,
+  live entities' uuids) go as `u32` through a table in shared memory; Java
+  keeps one `String` per atom — no UTF-8, no allocation per call.
+* **No allocation on the hot path**: reused buffers; SPSC rings between
+  the render, client and server threads.
+* **Batches.** Changes (`set_block`, particles, effects) go into a ring the
+  host drains once a tick — `ChunkWriter`'s way, for every kind.
+
+### Mirrors: hot data, declared
+
+Data read every tick (entities' positions, a mod's pipe flows) needn't be
+asked for at all: a **mirror** keeps it in shared memory, written by its
+provider at the rate asked, read by anyone in a few nanoseconds. Nothing is
+written that no one declared.
+
+```rust
+#[yog_mirror(keys = EntityKeys)]            // yog:mirror/<mod>/threat
+pub struct Threat {
+    #[fact(yog_ids::fact::ENTITY_POS)]      // the host writes it already: linked, not copied
+    pos: Point,
+    level: f32,                             // its own
+}
+
+registry.provide_mirror::<Threat>(|w| for e in hostiles() { w.row(e.id).level(|| e.threat()); });
+
+let near = Threat::declare(ThreatFields::POS | ThreatFields::LEVEL, Rate::Ticks(1));
+for t in near.iter() { draw(t.pos(), t.level()); }   // drop(near) stops what only it asked for
+```
+
+* **Columns are inodes.** A column is one fact (`yog_ids::fact::*`, one
+  source) in one key space (entities by network id, players, blocks): one
+  buffer, one writer, a reference count. A mirror is a directory — field →
+  column, plus its rows (a bitmap its writer keeps). Declaring links each
+  field to the column of its fact if there is one, else makes it; the last
+  release frees it and stops its writing. However many mods look at a fact,
+  it's stored and written once.
+* **One writer a column**: the host first, then the first provider; a
+  provider's writer isn't called for a field someone else writes or no one
+  asked for (its values are closures). A provider leaving hands its columns
+  on or leaves them waiting; a declaration made before its provider loads
+  waits too (optional integrations).
+* **Demand is merged per column**: fields OR, the most frequent rate, the
+  scopes listed (a mirror's own `scope` type; the provider decides what to
+  write). Rate: every tick, every *n*, or on change (a changed-since bitmap).
+* **Layout**: columns, a shared key → row index per key space, a seqlock
+  (small) or two buffers flipped (big); readers never block the writer.
+* **Generated** by `#[yog_mirror]`: layout, lazy writer, field flags, view,
+  handle released on `drop`, bus descriptor, yog-exports entry (other mods
+  `import!` it typed), Java record, writer and view. The host's mirrors
+  are declared the same way: one mechanism for host, mods and Java mods.
+* Key spaces inherit (a player is an entity): `player.pos` links to
+  `entity.pos` through the player → entity map.
+
+### The format on the bus
+
+Yog Data's binary form, made for the bus (see the `versus` and `messages`
+benches in `yog-data`): records positional and untagged (both sides are
+generated from one schema; fields only appended, a shape fingerprint
+catches reordering; files keep tagged self-describing records), frames
+without the `YOGD` header, a string table on the stack, `Arc<str>` /
+`Box<str>` reused by table index, int lists bit-packed or raw by what
+saves more, float lists in `f32` when exact, a record's `f64`s that fit in
+`f32` marked in a bitmask, zero-copy views (`XxxView<'a>`) derived next to
+`Schema`, typed Java codecs per record. The goal: beat rkyv, postcard and
+serde_json in size and speed.
 
 ## Versions without ABI bumps
 
@@ -173,12 +248,39 @@ ABI major bumps once, for this; after it, features are data.
 
 ## Performance
 
-* Addresses resolve to a `u32` once (`resolve` at registration, cached in a
-  `static` by the derive); dispatch is an array index.
-* Payloads are the binary form with a string table — a few bytes for a
-  typical call; replies reuse the caller's sink buffer.
-* Hot reads that are called per tick per entity can batch (`call` with a
-  list payload) or move to a direct table like `gfx` if measured to matter.
+Estimates on paper (±50 %), to be replaced by the benches at each step
+(`yog-data/benches/{messages,versus}.rs`, `yog-runtime/benches/{jni_calls,dispatch}.rs`):
+
+| Path | Before | Format (F1) | + transport (F2) | + mirrors, batches (F3) |
+|---|---|---|---|---|
+| Host action, Rust → Java → reply | 1.5–2 µs | 0.6–0.8 µs | 100–130 ns | same |
+| Event, Java → Rust | ~1 µs | ~0.4 µs | 30–50 ns (26.2), 45–60 ns | same |
+| Hot read (a position) | 1.5–2 µs | ~0.7 µs | ~110 ns | 1–5 ns |
+| Bulk changes | 1.5 µs × N | 0.7 µs × N | 110 ns × N | 10–20 ns × N + one call |
+| Allocations a call | 4–6 | 2–3 | 0 | 0 |
+
+A mod making 1000 queries and getting 200 events a tick: ~3.9 % of the
+tick before, ~0.26 % after F2, ~0.03 % with mirrors.
+
+## The plan
+
+* **F0** (when builds are allowed): commit the bench and decoder work; take
+  the baselines.
+* **F1 — format**: positional untagged records; headerless frames; stack
+  string table, `Arc<str>`/`Box<str>` reuse; bit-packed / raw int lists,
+  `f32` float lists, `f32` bitmask; short-string hash and per-field cache;
+  zero-copy views; Java typed codecs (with F2.1); a decoder by `Shape` for
+  tools.
+* **F2 — transport**: generated Java dispatch; per-thread arenas with
+  stacked frames; FFM critical downcalls on 26.2; atoms; no allocation on
+  the hot path, SPSC rings; batches.
+* **F3 — mirrors**: facts in `yog-ids`; the column store (inodes, key
+  spaces, directories, merged demand, writer hand-over); `#[yog_mirror]`;
+  its Java side; the host's mirrors (entities, players, block areas); Pipes'
+  `Flow` as the first mod mirror; key-space inheritance.
+* **F4** — the mods move: VLSI, Pipes (`bridge.rs`), Hex, Modlist, Argus;
+  their hot data into mirrors.
+* **F5** — stage 5 below (nanites); **F6** — stage 6; **F7** — stage 7.
 
 ## Migration (one major release, staged on master)
 

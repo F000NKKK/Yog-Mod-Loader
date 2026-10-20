@@ -490,3 +490,180 @@ fn compact_types_round_trip() {
     assert_eq!(yog_data::read_bytes::<Compact>(&bytes).unwrap(), c);
     assert_eq!(yog_data::from_text::<Compact>(&yog_data::to_text(&c)).unwrap().value, c);
 }
+
+/// Frames: packed by position for the bus.
+mod frames {
+    use yog_data::Schema;
+    use yog_data::frame::{read_frame, to_frame};
+
+    use super::{Area, Compact, Message, Mode, Placed};
+
+    #[test]
+    fn every_kind_of_field_round_trips() {
+        let m = Message {
+            name: "ruby".into(),
+            count: 3,
+            ratio: 0.5,
+            tags: vec!["a".into(), "b".into(), "a".into()],
+            mode: Mode::Smelting,
+            note: Some("n".into()),
+            extra: -7,
+            bytes: vec![1, 2, 3],
+        };
+        let frame = to_frame(&m);
+        assert_eq!(read_frame::<Message>(&frame), Some(m.clone()));
+        // Smaller than the self-describing form: no keys, no tags.
+        assert!(frame.len() < yog_data::to_bytes(&m).len(), "{} vs {}", frame.len(), yog_data::to_bytes(&m).len());
+        let c = Compact { name: "a".into(), shared: "a".into(), ids: vec![1, 2].into_boxed_slice(), weights: vec![0.5, 1.25], scale: 2.5 };
+        assert_eq!(read_frame::<Compact>(&to_frame(&c)), Some(c));
+        // A stream goes as its binary form inside the frame.
+        let blocks: yog_data::Stream<Placed> = (0..10).map(|i| Placed { id: "minecraft:stone".into(), count: i }).collect();
+        let area = Area { name: "pit".into(), palette: vec!["minecraft:stone".into()], blocks, after: "x".into() };
+        assert_eq!(read_frame::<Area>(&to_frame(&area)), Some(area));
+    }
+
+    #[test]
+    fn repeated_strings_are_stored_once() {
+        let tags: Vec<String> = (0..100).map(|_| "minecraft:stone".to_owned()).collect();
+        let frame = to_frame(&tags);
+        assert_eq!(frame.windows(15).filter(|w| w == b"minecraft:stone").count(), 1);
+        assert_eq!(read_frame::<Vec<String>>(&frame), Some(tags));
+    }
+
+    #[derive(Schema, Debug, PartialEq)]
+    struct Old {
+        a: u32,
+        b: String,
+    }
+
+    #[derive(Schema, Debug, PartialEq)]
+    struct New {
+        a: u32,
+        b: String,
+        #[data(default)]
+        c: Vec<String>,
+        d: Option<f64>,
+    }
+
+    #[derive(Schema, Debug, PartialEq)]
+    struct Holds<T: Schema> {
+        inner: T,
+        after: String,
+    }
+
+    #[test]
+    fn fields_are_appended_and_read_both_ways() {
+        // A newer writer's fields (with strings of their own) are skipped by an older reader…
+        let new = Holds { inner: New { a: 1, b: "x".into(), c: vec!["only new".into()], d: Some(2.0) }, after: "y".into() };
+        let old: Holds<Old> = read_frame(&to_frame(&new)).unwrap();
+        assert_eq!(old, Holds { inner: Old { a: 1, b: "x".into() }, after: "y".into() });
+        // …and an older writer's record takes a newer reader's defaults.
+        let back: Holds<New> = read_frame(&to_frame(&old)).unwrap();
+        assert_eq!(back.inner, New { a: 1, b: "x".into(), c: Vec::new(), d: None });
+    }
+
+    #[test]
+    fn numbers_pack_tight() {
+        // Palette indices 0..=2: two bits each.
+        let blocks: Vec<u16> = (0..32768).map(|i| (i % 3) as u16).collect();
+        let frame = to_frame(&blocks);
+        assert!(frame.len() < 32768 / 4 + 16, "{} bytes", frame.len());
+        assert_eq!(read_frame::<Vec<u16>>(&frame), Some(blocks));
+        let signed = vec![0i32, -1, 1, i32::MIN, i32::MAX];
+        assert_eq!(read_frame::<Vec<i32>>(&to_frame(&signed)), Some(signed));
+        let wide = vec![u64::MAX, 0, 1 << 63];
+        assert_eq!(read_frame::<Vec<u64>>(&to_frame(&wide)), Some(wide));
+        let zeros = vec![0u8; 100];
+        assert_eq!(read_frame::<Vec<u8>>(&to_frame(&zeros)), Some(zeros));
+        // Floats that are `f32`s take four bytes; one that isn't keeps them all eight.
+        let halves: Vec<f64> = (0..1000).map(|i| f64::from(i) * 0.5).collect();
+        assert!(to_frame(&halves).len() < 1000 * 4 + 16);
+        assert_eq!(read_frame::<Vec<f64>>(&to_frame(&halves)), Some(halves));
+        let exact = vec![0.1f64, 2.0];
+        assert_eq!(read_frame::<Vec<f64>>(&to_frame(&exact)), Some(exact));
+    }
+
+    /// What a tool (and the Java codecs) read by the shape alone is the value itself.
+    #[test]
+    fn a_frame_reads_by_its_shape_alone() {
+        use yog_data::frame::read_shaped;
+        let m = Message {
+            name: "ruby".into(),
+            count: 3,
+            ratio: 0.5,
+            tags: vec!["a".into(), "b".into()],
+            mode: Mode::Smelting,
+            note: None,
+            extra: -7,
+            bytes: vec![1, 2, 3],
+        };
+        let value = read_shaped(&to_frame(&m), &Message::shape()).unwrap();
+        assert_eq!(yog_data::read_value::<Message>(&value).unwrap(), m);
+        let blocks: yog_data::Stream<Placed> = (0..3).map(|i| Placed { id: "minecraft:stone".into(), count: i }).collect();
+        let area = Area { name: "pit".into(), palette: vec!["minecraft:stone".into()], blocks, after: "x".into() };
+        let value = read_shaped(&to_frame(&area), &Area::shape()).unwrap();
+        assert_eq!(yog_data::read_value::<Area>(&value).unwrap(), area);
+        let c = Compact { name: "a".into(), shared: "a".into(), ids: vec![1, 2].into_boxed_slice(), weights: vec![0.5, 1.25], scale: 2.5 };
+        let value = read_shaped(&to_frame(&c), &Compact::shape()).unwrap();
+        assert_eq!(yog_data::read_value::<Compact>(&value).unwrap(), c);
+    }
+
+    #[test]
+    fn malformed_frames_are_none() {
+        let frame = to_frame(&Holds { inner: New { a: 1, b: "x".into(), c: vec!["c".into()], d: None }, after: "y".into() });
+        for len in 0..frame.len() {
+            assert!(read_frame::<Holds<New>>(&frame[..len]).is_none(), "cut at {len}");
+        }
+        // A count bigger than the bytes left is refused before anything is allocated.
+        let mut p = yog_data::frame::Packer::new();
+        p.put_u(u64::MAX >> 1);
+        assert!(read_frame::<Vec<u32>>(&p.finish()).is_none());
+    }
+}
+
+/// Views: a frame read without copying.
+mod views {
+    use yog_data::Schema;
+    use yog_data::frame::{read_view, to_frame};
+
+    #[derive(Schema, Debug, PartialEq)]
+    #[data(view)]
+    struct Hit {
+        id: String,
+        count: u32,
+        weights: Vec<f64>,
+        blocks: Vec<i16>,
+        tags: Vec<String>,
+        inner: Option<Inner>,
+    }
+
+    #[derive(Schema, Debug, PartialEq)]
+    #[data(view)]
+    struct Inner {
+        name: String,
+    }
+
+    #[test]
+    fn a_view_borrows_and_reads_in_place() {
+        let hit = Hit {
+            id: "minecraft:stone".into(),
+            count: 7,
+            weights: vec![0.5, 0.25],
+            blocks: vec![-3, 0, 900],
+            tags: vec!["a".into(), "b".into()],
+            inner: Some(Inner { name: "in".into() }),
+        };
+        let frame = to_frame(&hit);
+        let v = read_view::<Hit>(&frame).unwrap();
+        assert_eq!(v.id, "minecraft:stone");
+        // The string points into the frame: nothing copied.
+        assert!(frame.as_ptr_range().contains(&v.id.as_ptr()));
+        assert_eq!(v.count, 7);
+        assert_eq!(v.weights.iter().collect::<Vec<f64>>(), [0.5, 0.25]);
+        assert_eq!(v.blocks.iter().collect::<Vec<i16>>(), [-3, 0, 900]);
+        assert_eq!(v.blocks.get(2), Some(900));
+        assert_eq!(v.blocks.get(3), None);
+        assert_eq!(v.tags, ["a", "b"]);
+        assert_eq!(v.inner.map(|i| i.name), Some("in"));
+    }
+}

@@ -41,6 +41,7 @@ pub mod entity_flags {
 
 /// A loaded entity (`entity::Info`).
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct EntityInfo {
     /// Registry id of its type, e.g. `"minecraft:zombie"`.
     pub type_id: String,
@@ -115,6 +116,7 @@ impl Face {
 
 /// A block a ray stopped at.
 #[derive(Debug, Clone, Copy, PartialEq, Schema)]
+#[data(view)]
 pub struct BlockHit {
     pub pos: BlockPos,
     /// The face the ray entered through.
@@ -125,6 +127,7 @@ pub struct BlockHit {
 
 /// A block's properties (`block::Info`).
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct BlockInfo {
     /// Full block state, e.g. `"minecraft:oak_log[axis=y]"`.
     pub state: String,
@@ -153,6 +156,7 @@ impl BlockInfo {
 
 /// An online player's state (`player::Info`).
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct PlayerInfo {
     pub uuid: String,
     /// `"survival"`, `"creative"`, `"adventure"` or `"spectator"`.
@@ -177,6 +181,7 @@ impl PlayerInfo {
 
 /// A stack of items: what it is, how many, its data (SNBT).
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct Stack {
     pub item: String,
     pub count: u32,
@@ -186,6 +191,7 @@ pub struct Stack {
 
 /// A stack in an inventory slot.
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct SlotStack {
     pub slot: u32,
     pub stack: Stack,
@@ -194,6 +200,7 @@ pub struct SlotStack {
 /// A slot of an open inventory screen: what it holds, where it's drawn
 /// (GUI pixels from the screen's corner).
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct ScreenSlot {
     pub stack: Option<Stack>,
     pub x: i32,
@@ -202,6 +209,7 @@ pub struct ScreenSlot {
 
 /// Which way an entity faces, in degrees.
 #[derive(Debug, Clone, Copy, PartialEq, Default, Schema)]
+#[data(view)]
 pub struct Rotation {
     pub yaw: f32,
     pub pitch: f32,
@@ -209,6 +217,7 @@ pub struct Rotation {
 
 /// A block found in the world: where, and its state.
 #[derive(Debug, Clone, PartialEq, Schema)]
+#[data(view)]
 pub struct PlacedBlock {
     pub pos: BlockPos,
     /// Full block state, e.g. `"minecraft:oak_log[axis=y]"`.

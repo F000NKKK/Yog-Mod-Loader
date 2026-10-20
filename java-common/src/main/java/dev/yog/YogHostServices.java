@@ -1,8 +1,6 @@
 package dev.yog;
 
 import dev.yog.bus.YogServices;
-import dev.yog.bus.YogTypes;
-import dev.yog.data.YogData;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -19,7 +17,7 @@ import java.util.List;
  * spreads into — one provider for all of them.
  * The request's components are laid out in order (a nested record spreads
  * into its own), converted to the method's parameter types, and its result
- * is the reply: a {@code YogTypes} record as its data, {@code NaN},
+ * is the reply, packed by the action's {@code replyFrame}: {@code NaN},
  * {@link Long#MIN_VALUE}, {@link Integer#MIN_VALUE} and {@code null} as
  * none, a {@code void} method as done.
  */
@@ -42,13 +40,14 @@ public final class YogHostServices {
         String address = (String) action.getField("ADDRESS").get(null);
         Method method = hostMethod(host, arity(action));
         MethodHandle handle = MethodHandles.publicLookup().unreflect(method);
-        Method fromBytes = action.getMethod("fromBytes", byte[].class);
+        Method fromFrame = action.getMethod("fromFrame", byte[].class);
+        Method replyFrame = action.getMethod("replyFrame", Object.class);
         Class<?>[] types = method.getParameterTypes();
         boolean done = method.getReturnType() == void.class;
         YogBus.provide(YogBus.resolve(address), payload -> {
             try {
                 List<Object> args = new ArrayList<>();
-                spread(fromBytes.invoke(null, (Object) payload), args);
+                spread(fromFrame.invoke(null, (Object) payload), args);
                 if (args.size() != types.length) {
                     YogLog.warn(address + ": " + args.size() + " arguments for " + host + "/" + types.length);
                     return YogBus.Reply.of(YogBus.BAD_PAYLOAD);
@@ -56,7 +55,7 @@ public final class YogHostServices {
                 Object[] call = new Object[types.length];
                 for (int i = 0; i < types.length; i++) call[i] = convert(args.get(i), types[i]);
                 Object out = handle.invokeWithArguments(call);
-                return YogBus.Reply.ok(YogData.encode(done ? Boolean.TRUE : reply(out)));
+                return YogBus.Reply.ok((byte[]) replyFrame.invoke(null, done ? Boolean.TRUE : reply(out)));
             } catch (Throwable t) {
                 YogLog.error(address + " failed", t);
                 return YogBus.Reply.of(YogBus.FAILED);
@@ -108,17 +107,8 @@ public final class YogHostServices {
         return value;
     }
 
-    /**
-     * A host method's result as the reply: its "none" values as null, a
-     * {@link YogTypes} record (or a list of them) as its data.
-     */
-    private static Object reply(Object out) throws ReflectiveOperationException {
-        if (out instanceof Record r) return r.getClass().getMethod("toData").invoke(r);
-        if (out instanceof List<?> list) {
-            List<Object> data = new ArrayList<>(list.size());
-            for (Object o : list) data.add(reply(o));
-            return data;
-        }
+    /** A host method's result as the reply: its "none" values as null. */
+    private static Object reply(Object out) {
         if (out instanceof Double d && d.isNaN()) return null;
         if (out instanceof Float f && f.isNaN()) return null;
         if (out instanceof Long l && l == Long.MIN_VALUE) return null;

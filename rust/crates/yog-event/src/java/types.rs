@@ -13,7 +13,7 @@ pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String
         Shape::Bool => "boolean".into(),
         Shape::Int { min, max } if fits_int(*min, *max) => "int".into(),
         Shape::Int { .. } => "long".into(),
-        Shape::Float => "double".into(),
+        Shape::Float { .. } => "double".into(),
         Shape::Bytes => "byte[]".into(),
         Shape::Any => "Object".into(),
         Shape::List(f) => format!("java.util.List<{}>", boxed(&java_type(&f(), records))),
@@ -29,7 +29,7 @@ pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String
     }
 }
 
-fn fits_int(min: i64, max: i64) -> bool {
+pub(super) fn fits_int(min: i64, max: i64) -> bool {
     min >= i64::from(i32::MIN) && max <= i64::from(i32::MAX)
 }
 
@@ -84,7 +84,7 @@ pub(super) fn from_data(shape: &Shape, value: &str, depth: usize) -> String {
         Shape::Bool => format!("YogData.bool({value}, false)"),
         Shape::Int { min, max } if fits_int(*min, *max) => format!("(int) YogData.integer({value}, 0)"),
         Shape::Int { .. } => format!("YogData.integer({value}, 0)"),
-        Shape::Float => format!("YogData.number({value}, 0)"),
+        Shape::Float { .. } => format!("YogData.number({value}, 0)"),
         Shape::Bytes => format!("({value} instanceof byte[] {e} ? {e} : new byte[0])"),
         Shape::Any => value.into(),
         Shape::List(f) => format!("YogData.list({value}).stream().map({e} -> {}).toList()", from_data(&f(), &e, depth + 1)),

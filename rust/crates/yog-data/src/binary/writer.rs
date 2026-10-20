@@ -1,19 +1,11 @@
 //! Writing the binary form: one buffer, strings written where first used.
 
-use std::collections::HashMap;
-use std::hash::{BuildHasherDefault, Hasher};
-
+use super::interner::Interner;
 use super::{MAGIC, NEW_STRING, VERSION, tag, varint, zigzag};
 use crate::value::Value;
 
-/// Slots of the writer's cache of recent strings (a power of two).
-const RECENT: usize = 64;
-
 /// What a writer reserves to start with: most messages fit.
-const START_BYTES: usize = 256;
-/// Up to this many strings are looked up by comparing them all; past it, a
-/// hash index is built — a small message pays for no hashing at all.
-const LINEAR_STRINGS: usize = 16;
+pub(crate) const START_BYTES: usize = 256;
 
 /// Writes the binary form piece by piece, from data that isn't a [`Value`]
 /// — nothing is built or copied on the way. A map or list is given its
@@ -27,19 +19,8 @@ const LINEAR_STRINGS: usize = 16;
 /// ```
 pub struct Writer {
     out: Vec<u8>,
-    /// Each string written: where its bytes are in `out`, and how long.
-    strings: Vec<(usize, usize)>,
-    /// Once there are many strings: their index.
-    index: Option<Box<Index>>,
-}
-
-/// The strings of a writer that has many.
-struct Index {
-    /// By hash.
-    by_hash: HashMap<u64, u32, BuildHasherDefault<Fx>>,
-    /// The last string found at each slot, by where its `&str` points (a
-    /// struct's keys are the same `&'static str` every time): its index + 1.
-    recent: [u32; RECENT],
+    /// The strings written, by where they are in `out`.
+    strings: Interner,
 }
 
 impl Default for Writer {
@@ -53,7 +34,7 @@ impl Writer {
         let mut out = Vec::with_capacity(START_BYTES);
         out.extend_from_slice(MAGIC);
         out.push(VERSION);
-        Writer { out, strings: Vec::with_capacity(LINEAR_STRINGS), index: None }
+        Writer { out, strings: Interner::new() }
     }
 
     pub fn null(&mut self) -> &mut Self {
@@ -150,7 +131,7 @@ impl Writer {
 
     /// A writer of a stream's body alone (no header).
     pub(crate) fn body() -> Self {
-        Writer { out: Vec::with_capacity(START_BYTES), strings: Vec::with_capacity(LINEAR_STRINGS), index: None }
+        Writer { out: Vec::with_capacity(START_BYTES), strings: Interner::new() }
     }
 
     /// A map of `len` entries, each a [`Writer::key`] and a value.
@@ -224,101 +205,13 @@ impl Writer {
 
     /// `s`: a reference if it was written before, else itself.
     fn string(&mut self, s: &str) {
-        let slot = recent_slot(s);
-        if let Some(i) = self.find(s, slot) {
-            if let Some(index) = &mut self.index {
-                index.recent[slot] = i as u32 + 1;
-            }
+        if let Some(i) = self.strings.find(&self.out, s) {
             varint(&mut self.out, (i as u64) << 1);
             return;
         }
         varint(&mut self.out, ((s.len() as u64) << 1) | NEW_STRING);
         let at = self.out.len();
         self.out.extend_from_slice(s.as_bytes());
-        let i = self.strings.len();
-        self.strings.push((at, s.len()));
-        match &mut self.index {
-            Some(index) => {
-                index.by_hash.entry(hash(s)).or_insert(i as u32);
-                index.recent[slot] = i as u32 + 1;
-            }
-            None if self.strings.len() > LINEAR_STRINGS => {
-                let mut by_hash = HashMap::default();
-                for (n, &(at, len)) in self.strings.iter().enumerate() {
-                    by_hash.entry(hash_bytes(&self.out[at..at + len])).or_insert(n as u32);
-                }
-                self.index = Some(Box::new(Index { by_hash, recent: [0; RECENT] }));
-            }
-            None => {}
-        }
-    }
-
-    /// Which string written before `s` is, if one is: compared with each
-    /// while they're few; else the one last found at its `slot` if it's
-    /// the same, else looked up by hash.
-    fn find(&self, s: &str, slot: usize) -> Option<usize> {
-        let is = |&(at, len): &(usize, usize)| len == s.len() && &self.out[at..at + len] == s.as_bytes();
-        let Some(index) = &self.index else {
-            return self.strings.iter().position(is);
-        };
-        let recent = index.recent[slot] as usize;
-        if recent > 0 && is(&self.strings[recent - 1]) {
-            return Some(recent - 1);
-        }
-        index.by_hash.get(&hash(s)).map(|&i| i as usize).filter(|&i| is(&self.strings[i]))
-    }
-}
-
-/// `s`'s slot in the cache of recent strings: where it points, and how long.
-fn recent_slot(s: &str) -> usize {
-    /// The low bits of an address that alignment leaves alike.
-    const ADDRESS_SHIFT: u32 = 3;
-    ((s.as_ptr() as usize >> ADDRESS_SHIFT) ^ s.len()) & (RECENT - 1)
-}
-
-fn hash(s: &str) -> u64 {
-    hash_bytes(s.as_bytes())
-}
-
-fn hash_bytes(b: &[u8]) -> u64 {
-    let mut h = Fx::default();
-    h.write(b);
-    h.finish()
-}
-
-/// rustc's Fx hash — the strings are short and not adversarial.
-#[derive(Default)]
-struct Fx(u64);
-
-/// Fx's multiplier.
-const FX_SEED: u64 = 0x51_7c_c1_b7_27_22_0a_95;
-const FX_ROTATE: u32 = 5;
-const WORD: usize = 8;
-
-impl Fx {
-    fn add(&mut self, word: u64) {
-        self.0 = (self.0.rotate_left(FX_ROTATE) ^ word).wrapping_mul(FX_SEED);
-    }
-}
-
-impl Hasher for Fx {
-    fn write(&mut self, bytes: &[u8]) {
-        let (words, rest) = bytes.as_chunks::<WORD>();
-        for w in words {
-            self.add(u64::from_le_bytes(*w));
-        }
-        if !rest.is_empty() {
-            let mut b = [0u8; WORD];
-            b[..rest.len()].copy_from_slice(rest);
-            self.add(u64::from_le_bytes(b));
-        }
-    }
-
-    fn write_u64(&mut self, n: u64) {
-        self.add(n);
-    }
-
-    fn finish(&self) -> u64 {
-        self.0
+        self.strings.add(&self.out, s, at);
     }
 }

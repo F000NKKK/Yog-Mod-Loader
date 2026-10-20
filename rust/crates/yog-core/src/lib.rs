@@ -14,6 +14,7 @@ pub use state::{PROPERTY_IS, PROPERTY_SEP, join_state, split_state};
 
 /// A block position in the world.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, yog_data::Schema)]
+#[data(view)]
 pub struct BlockPos {
     pub x: i32,
     pub y: i32,
@@ -22,6 +23,7 @@ pub struct BlockPos {
 
 /// A point in a world (blocks, fractional).
 #[derive(Debug, Clone, Copy, PartialEq, Default, yog_data::Schema)]
+#[data(view)]
 pub struct Point {
     pub x: f64,
     pub y: f64,

@@ -114,6 +114,9 @@ proc-macro2 = "1"
 serde = { version = "1", features = ["derive"] }
 linkme = "0.3"
 serde_json = "1"
+# What yog-data's benchmarks measure it against (dev only).
+rkyv = "0.8"
+postcard = { version = "1", features = ["alloc"] }
 semver = "1"
 png = "0.18"
 base64 = "0.23"

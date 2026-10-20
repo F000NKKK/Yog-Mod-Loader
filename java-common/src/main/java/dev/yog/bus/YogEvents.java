@@ -4,6 +4,7 @@ package dev.yog.bus;
 import dev.yog.YogBus;
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
+import dev.yog.data.YogFrame;
 
 /** The bus's events: a record per event; {@code emit} after the game did it, {@code emitPre} before (false: a handler cancelled it). */
 public final class YogEvents {
@@ -31,6 +32,34 @@ public final class YogEvents {
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putI(this.level);
+                p.putStr(this.message);
+                p.end(at);
+            }
+
+            public static Record unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                long f_level = u.more(end) ? u.getI() : 0L;
+                String f_message = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Record(f_level, f_message);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Record fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Record v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventLog.RECORD);
             }
@@ -41,7 +70,7 @@ public final class YogEvents {
             }
 
             public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, YogData.encode(toData()));
+                return YogBus.emit(Address.POST, toFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -49,7 +78,7 @@ public final class YogEvents {
                 YogBus.Reply r = emit();
                 if (r.status() != YogBus.OK) return this;
                 try {
-                    return fromBytes(r.bytes());
+                    return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
                     return this;
                 }
@@ -84,6 +113,36 @@ public final class YogEvents {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.uuid);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Join unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Join(f_playerName, f_uuid, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Join fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Join v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerSession.JOIN);
                 }
@@ -94,7 +153,7 @@ public final class YogEvents {
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -102,7 +161,7 @@ public final class YogEvents {
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -128,6 +187,36 @@ public final class YogEvents {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.uuid);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Leave unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Leave(f_playerName, f_uuid, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Leave fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Leave v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerSession.LEAVE);
                 }
@@ -138,7 +227,7 @@ public final class YogEvents {
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -146,7 +235,7 @@ public final class YogEvents {
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -180,6 +269,38 @@ public final class YogEvents {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.uuid);
+                    p.putStr(this.source);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Death unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    String f_source = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Death(f_playerName, f_uuid, f_source, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Death fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Death v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerLife.DEATH);
                     static final int PRE = YogBus.resolve(YogNames.EventPlayerLife.DEATH_PRE);
@@ -191,7 +312,7 @@ public final class YogEvents {
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -199,14 +320,14 @@ public final class YogEvents {
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -230,6 +351,38 @@ public final class YogEvents {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.uuid);
+                    p.putBool(this.atAnchor);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Respawn unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    boolean f_atAnchor = u.more(end) ? u.getBool() : false;
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Respawn(f_playerName, f_uuid, f_atAnchor, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Respawn fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Respawn v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerLife.RESPAWN);
                 }
@@ -240,7 +393,7 @@ public final class YogEvents {
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -248,7 +401,7 @@ public final class YogEvents {
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -279,6 +432,36 @@ public final class YogEvents {
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.message);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Message unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_message = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Message(f_playerName, f_message, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Message fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Message v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerChat.MESSAGE);
                     static final int PRE = YogBus.resolve(YogNames.EventPlayerChat.MESSAGE_PRE);
@@ -290,7 +473,7 @@ public final class YogEvents {
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -298,14 +481,14 @@ public final class YogEvents {
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -340,6 +523,46 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.playerUuid);
+                    p.putF64(this.x);
+                    p.putF64(this.y);
+                    p.putF64(this.z);
+                    p.putF32((float) (double) this.yaw);
+                    p.putF32((float) (double) this.pitch);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Move unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_playerUuid = u.more(end) ? u.getStr() : "";
+                    double f_x = u.more(end) ? u.getF64() : 0.0;
+                    double f_y = u.more(end) ? u.getF64() : 0.0;
+                    double f_z = u.more(end) ? u.getF64() : 0.0;
+                    double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
+                    double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Move(f_playerName, f_playerUuid, f_x, f_y, f_z, f_yaw, f_pitch, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Move fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Move v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.MOVE);
                 }
@@ -350,7 +573,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -358,7 +581,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -385,6 +608,38 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.itemId);
+                    p.putBool(this.sneaking);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static UseItem unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_itemId = u.more(end) ? u.getStr() : "";
+                    boolean f_sneaking = u.more(end) ? u.getBool() : false;
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new UseItem(f_playerName, f_itemId, f_sneaking, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static UseItem fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    UseItem v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.USE_ITEM);
                     static final int PRE = YogBus.resolve(YogNames.EventPlayerAction.USE_ITEM_PRE);
@@ -396,7 +651,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -404,14 +659,14 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -435,6 +690,38 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.targetType);
+                    p.putStr(this.targetUuid);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Attack unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_targetType = u.more(end) ? u.getStr() : "";
+                    String f_targetUuid = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Attack(f_playerName, f_targetType, f_targetUuid, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Attack fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Attack v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.ATTACK);
                 }
@@ -445,7 +732,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -453,7 +740,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -484,6 +771,42 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.playerUuid);
+                    p.putStr(this.entityType);
+                    p.putStr(this.entityUuid);
+                    p.putStr(this.hand);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Interact unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_playerUuid = u.more(end) ? u.getStr() : "";
+                    String f_entityType = u.more(end) ? u.getStr() : "";
+                    String f_entityUuid = u.more(end) ? u.getStr() : "";
+                    String f_hand = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Interact(f_playerName, f_playerUuid, f_entityType, f_entityUuid, f_hand, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Interact fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Interact v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.INTERACT);
                     static final int PRE = YogBus.resolve(YogNames.EventPlayerAction.INTERACT_PRE);
@@ -495,7 +818,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -503,14 +826,14 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -535,6 +858,40 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.playerUuid);
+                    p.putStr(this.resultItem);
+                    p.putI(this.resultCount);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Craft unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_playerUuid = u.more(end) ? u.getStr() : "";
+                    String f_resultItem = u.more(end) ? u.getStr() : "";
+                    long f_resultCount = u.more(end) ? u.getI() : 0L;
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Craft(f_playerName, f_playerUuid, f_resultItem, f_resultCount, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Craft fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Craft v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.CRAFT);
                 }
@@ -545,7 +902,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -553,7 +910,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -584,6 +941,42 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.playerUuid);
+                    p.putStr(this.itemId);
+                    p.putI(this.itemCount);
+                    p.putStr(this.entityUuid);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Pickup unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_playerUuid = u.more(end) ? u.getStr() : "";
+                    String f_itemId = u.more(end) ? u.getStr() : "";
+                    long f_itemCount = u.more(end) ? u.getI() : 0L;
+                    String f_entityUuid = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Pickup(f_playerName, f_playerUuid, f_itemId, f_itemCount, f_entityUuid, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Pickup fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Pickup v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerAction.PICKUP);
                     static final int PRE = YogBus.resolve(YogNames.EventPlayerAction.PICKUP_PRE);
@@ -595,7 +988,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -603,14 +996,14 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -639,6 +1032,38 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.playerName);
+                    p.putStr(this.uuid);
+                    p.putStr(this.advancementId);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Advancement unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_playerName = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    String f_advancementId = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Advancement(f_playerName, f_uuid, f_advancementId, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Advancement fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Advancement v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventPlayerProgress.ADVANCEMENT);
                 }
@@ -649,7 +1074,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -657,7 +1082,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -690,6 +1115,38 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.playerName);
+                p.putStr(this.blockId);
+                this.pos.pack(p);
+                p.putStr(this.dimension);
+                p.end(at);
+            }
+
+            public static Break unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_playerName = u.more(end) ? u.getStr() : "";
+                String f_blockId = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_dimension = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Break(f_playerName, f_blockId, f_pos, f_dimension);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Break fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Break v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventBlock.BREAK);
                 static final int PRE = YogBus.resolve(YogNames.EventBlock.BREAK_PRE);
@@ -701,7 +1158,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
             }
 
             public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, YogData.encode(toData()));
+                return YogBus.emit(Address.POST, toFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -709,14 +1166,14 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 YogBus.Reply r = emit();
                 if (r.status() != YogBus.OK) return this;
                 try {
-                    return fromBytes(r.bytes());
+                    return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
             }
         }
 
@@ -743,6 +1200,40 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.playerName);
+                p.putStr(this.blockId);
+                this.pos.pack(p);
+                p.putStr(this.dimension);
+                p.putBool(this.sneaking);
+                p.end(at);
+            }
+
+            public static Place unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_playerName = u.more(end) ? u.getStr() : "";
+                String f_blockId = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_dimension = u.more(end) ? u.getStr() : "";
+                boolean f_sneaking = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new Place(f_playerName, f_blockId, f_pos, f_dimension, f_sneaking);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Place fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Place v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventBlock.PLACE);
                 static final int PRE = YogBus.resolve(YogNames.EventBlock.PLACE_PRE);
@@ -754,7 +1245,7 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
             }
 
             public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, YogData.encode(toData()));
+                return YogBus.emit(Address.POST, toFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -762,14 +1253,14 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 YogBus.Reply r = emit();
                 if (r.status() != YogBus.OK) return this;
                 try {
-                    return fromBytes(r.bytes());
+                    return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
             }
         }
 
@@ -794,6 +1285,40 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.playerName);
+                p.putStr(this.blockId);
+                this.pos.pack(p);
+                p.putStr(this.dimension);
+                p.putBool(this.sneaking);
+                p.end(at);
+            }
+
+            public static Use unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_playerName = u.more(end) ? u.getStr() : "";
+                String f_blockId = u.more(end) ? u.getStr() : "";
+                YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                String f_dimension = u.more(end) ? u.getStr() : "";
+                boolean f_sneaking = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new Use(f_playerName, f_blockId, f_pos, f_dimension, f_sneaking);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Use fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Use v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventBlock.USE);
                 static final int PRE = YogBus.resolve(YogNames.EventBlock.USE_PRE);
@@ -805,7 +1330,7 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
             }
 
             public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, YogData.encode(toData()));
+                return YogBus.emit(Address.POST, toFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -813,14 +1338,14 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
                 YogBus.Reply r = emit();
                 if (r.status() != YogBus.OK) return this;
                 try {
-                    return fromBytes(r.bytes());
+                    return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
             }
         }
     }
@@ -854,6 +1379,36 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.entityType);
+                    p.putStr(this.uuid);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Spawn unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_entityType = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Spawn(f_entityType, f_uuid, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Spawn fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Spawn v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventEntityLife.SPAWN);
                     static final int PRE = YogBus.resolve(YogNames.EventEntityLife.SPAWN_PRE);
@@ -865,7 +1420,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -873,14 +1428,14 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -904,6 +1459,38 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.entityType);
+                    p.putStr(this.uuid);
+                    p.putStr(this.source);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Death unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_entityType = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    String f_source = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Death(f_entityType, f_uuid, f_source, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Death fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Death v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventEntityLife.DEATH);
                 }
@@ -914,7 +1501,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -922,7 +1509,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -955,6 +1542,40 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.entityType);
+                    p.putStr(this.uuid);
+                    p.putF32((float) (double) this.amount);
+                    p.putStr(this.source);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static Damage unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_entityType = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    double f_amount = u.more(end) ? (double) u.getF32() : 0.0;
+                    String f_source = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Damage(f_entityType, f_uuid, f_amount, f_source, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Damage fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Damage v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventEntityCombat.DAMAGE);
                     static final int PRE = YogBus.resolve(YogNames.EventEntityCombat.DAMAGE_PRE);
@@ -966,7 +1587,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -974,14 +1595,14 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -1012,6 +1633,48 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.projectileType);
+                    p.putStr(this.projectileUuid);
+                    p.putStr(this.shooterUuid);
+                    p.putStr(this.hitType);
+                    p.putStr(this.hitEntityUuid);
+                    p.putF64(this.x);
+                    p.putF64(this.y);
+                    p.putF64(this.z);
+                    p.putStr(this.dimension);
+                    p.end(at);
+                }
+
+                public static ProjectileHit unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_projectileType = u.more(end) ? u.getStr() : "";
+                    String f_projectileUuid = u.more(end) ? u.getStr() : "";
+                    String f_shooterUuid = u.more(end) ? u.getStr() : "";
+                    String f_hitType = u.more(end) ? u.getStr() : "";
+                    String f_hitEntityUuid = u.more(end) ? u.getStr() : "";
+                    double f_x = u.more(end) ? u.getF64() : 0.0;
+                    double f_y = u.more(end) ? u.getF64() : 0.0;
+                    double f_z = u.more(end) ? u.getF64() : 0.0;
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new ProjectileHit(f_projectileType, f_projectileUuid, f_shooterUuid, f_hitType, f_hitEntityUuid, f_x, f_y, f_z, f_dimension);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static ProjectileHit fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    ProjectileHit v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventEntityCombat.PROJECTILE_HIT);
                     static final int PRE = YogBus.resolve(YogNames.EventEntityCombat.PROJECTILE_HIT_PRE);
@@ -1023,7 +1686,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1031,14 +1694,14 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -1065,8 +1728,36 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.entityType);
+                    p.putStr(this.uuid);
+                    p.end(at);
+                }
+
+                public static Tick unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_entityType = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Tick(f_entityType, f_uuid);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Tick fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Tick v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventEntityGame.TICK, entityType), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventEntityGame.TICK, entityType), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1074,7 +1765,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1111,6 +1802,42 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.dimension);
+                p.putF64(this.x);
+                p.putF64(this.y);
+                p.putF64(this.z);
+                p.putF32((float) (double) this.power);
+                p.putStr(this.causeUuid);
+                p.end(at);
+            }
+
+            public static Explosion unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_dimension = u.more(end) ? u.getStr() : "";
+                double f_x = u.more(end) ? u.getF64() : 0.0;
+                double f_y = u.more(end) ? u.getF64() : 0.0;
+                double f_z = u.more(end) ? u.getF64() : 0.0;
+                double f_power = u.more(end) ? (double) u.getF32() : 0.0;
+                String f_causeUuid = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Explosion(f_dimension, f_x, f_y, f_z, f_power, f_causeUuid);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Explosion fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Explosion v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventWorld.EXPLOSION);
                 static final int PRE = YogBus.resolve(YogNames.EventWorld.EXPLOSION_PRE);
@@ -1122,7 +1849,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
 
             public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, YogData.encode(toData()));
+                return YogBus.emit(Address.POST, toFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1130,14 +1857,14 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 YogBus.Reply r = emit();
                 if (r.status() != YogBus.OK) return this;
                 try {
-                    return fromBytes(r.bytes());
+                    return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
             }
         }
 
@@ -1168,8 +1895,46 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.generator);
+                    p.putI(this.chunkX);
+                    p.putI(this.chunkZ);
+                    p.putI(this.minY);
+                    p.putI(this.height);
+                    p.putU(this.palette.size()); for (var e0 : this.palette) { p.putStr(e0); }
+                    p.putBytes(this.cells);
+                    p.end(at);
+                }
+
+                public static Chunk unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_generator = u.more(end) ? u.getStr() : "";
+                    int f_chunkX = u.more(end) ? (int) u.getI() : 0;
+                    int f_chunkZ = u.more(end) ? (int) u.getI() : 0;
+                    int f_minY = u.more(end) ? (int) u.getI() : 0;
+                    int f_height = u.more(end) ? (int) u.getI() : 0;
+                    java.util.List<String> f_palette = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+                    byte[] f_cells = u.more(end) ? u.getBytes() : new byte[0];
+                    u.leave(end);
+                    return new Chunk(f_generator, f_chunkX, f_chunkZ, f_minY, f_height, f_palette, f_cells);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Chunk fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Chunk v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventWorldGeneration.CHUNK, generator), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventWorldGeneration.CHUNK, generator), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1177,7 +1942,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1213,6 +1978,46 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.table);
+                    p.putStr(this.dimension);
+                    p.putBool(this.pos != null); if (this.pos != null) { p.putF64s(this.pos); }
+                    p.putBool(this.entity != null); if (this.entity != null) { p.putStr(this.entity); }
+                    p.putBool(this.killer != null); if (this.killer != null) { p.putStr(this.killer); }
+                    p.putBool(this.tool != null); if (this.tool != null) { this.tool.pack(p); }
+                    p.putU(this.enchantments.size()); for (var e0 : this.enchantments) { p.putU(e0.size()); for (var e1 : e0) { p.putTagged(e1); } }
+                    p.putU(this.items.size()); for (var e0 : this.items) { e0.pack(p); }
+                    p.end(at);
+                }
+
+                public static Roll unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_table = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    java.util.List<Double> f_pos = u.more(end) ? (u.getBool() ? u.getF64s() : null) : null;
+                    String f_entity = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+                    String f_killer = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+                    YogTypes.LootStack f_tool = u.more(end) ? (u.getBool() ? YogTypes.LootStack.unpack(u) : null) : null;
+                    java.util.List<java.util.List<Object>> f_enchantments = u.more(end) ? YogFrame.list(u, () -> YogFrame.list(u, () -> u.getTagged())) : java.util.List.of();
+                    java.util.List<YogTypes.LootStack> f_items = u.more(end) ? YogFrame.list(u, () -> YogTypes.LootStack.unpack(u)) : java.util.List.of();
+                    u.leave(end);
+                    return new Roll(f_table, f_dimension, f_pos, f_entity, f_killer, f_tool, f_enchantments, f_items);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Roll fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Roll v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventWorldLoot.ROLL);
                 }
@@ -1223,7 +2028,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1231,7 +2036,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1266,6 +2071,38 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.playerName);
+                p.putStr(this.playerUuid);
+                p.putStr(this.containerType);
+                p.putStr(this.dimension);
+                p.end(at);
+            }
+
+            public static Open unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_playerName = u.more(end) ? u.getStr() : "";
+                String f_playerUuid = u.more(end) ? u.getStr() : "";
+                String f_containerType = u.more(end) ? u.getStr() : "";
+                String f_dimension = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Open(f_playerName, f_playerUuid, f_containerType, f_dimension);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Open fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Open v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventContainer.OPEN);
                 static final int PRE = YogBus.resolve(YogNames.EventContainer.OPEN_PRE);
@@ -1277,7 +2114,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
 
             public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, YogData.encode(toData()));
+                return YogBus.emit(Address.POST, toFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1285,14 +2122,14 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 YogBus.Reply r = emit();
                 if (r.status() != YogBus.OK) return this;
                 try {
-                    return fromBytes(r.bytes());
+                    return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
                     return this;
                 }
             }
 
             public boolean emitPre() {
-                return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
             }
         }
 
@@ -1315,6 +2152,36 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 return fromData(YogData.decode(bytes));
             }
 
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.playerName);
+                p.putStr(this.playerUuid);
+                p.putStr(this.dimension);
+                p.end(at);
+            }
+
+            public static Close unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_playerName = u.more(end) ? u.getStr() : "";
+                String f_playerUuid = u.more(end) ? u.getStr() : "";
+                String f_dimension = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Close(f_playerName, f_playerUuid, f_dimension);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            public static Close fromFrame(byte[] bytes) {
+                YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                Close v = unpack(u);
+                u.finish();
+                return v;
+            }
+
             private static final class Address {
                 static final int POST = YogBus.resolve(YogNames.EventContainer.CLOSE);
             }
@@ -1325,7 +2192,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
 
             public YogBus.Reply emit() {
-                return YogBus.emit(Address.POST, YogData.encode(toData()));
+                return YogBus.emit(Address.POST, toFrame());
             }
 
             /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1333,7 +2200,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 YogBus.Reply r = emit();
                 if (r.status() != YogBus.OK) return this;
                 try {
-                    return fromBytes(r.bytes());
+                    return fromFrame(r.bytes());
                 } catch (RuntimeException e) {
                     return this;
                 }
@@ -1369,6 +2236,48 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.machine);
+                    p.putStr(this.kind);
+                    p.putStr(this.recipe);
+                    p.putStr(this.resultItem);
+                    p.putI(this.resultCount);
+                    p.putStr(this.values);
+                    this.pos.pack(p);
+                    p.putStr(this.dimension);
+                    p.putStr(this.player);
+                    p.end(at);
+                }
+
+                public static Craft unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_machine = u.more(end) ? u.getStr() : "";
+                    String f_kind = u.more(end) ? u.getStr() : "";
+                    String f_recipe = u.more(end) ? u.getStr() : "";
+                    String f_resultItem = u.more(end) ? u.getStr() : "";
+                    long f_resultCount = u.more(end) ? u.getI() : 0L;
+                    String f_values = u.more(end) ? u.getStr() : "";
+                    YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    String f_player = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Craft(f_machine, f_kind, f_recipe, f_resultItem, f_resultCount, f_values, f_pos, f_dimension, f_player);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Craft fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Craft v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventContainerMachine.CRAFT);
                     static final int PRE = YogBus.resolve(YogNames.EventContainerMachine.CRAFT_PRE);
@@ -1380,7 +2289,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1388,14 +2297,14 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -1425,6 +2334,30 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.end(at);
+                }
+
+                public static Tick unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    u.leave(end);
+                    return new Tick();
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Tick fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Tick v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventServerGame.TICK);
                 }
@@ -1435,7 +2368,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1443,7 +2376,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1472,6 +2405,32 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.worldDir);
+                    p.end(at);
+                }
+
+                public static Started unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_worldDir = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Started(f_worldDir);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Started fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Started v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventServerLife.STARTED);
                 }
@@ -1482,7 +2441,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1490,7 +2449,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1513,6 +2472,30 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.end(at);
+                }
+
+                public static Stopping unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    u.leave(end);
+                    return new Stopping();
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Stopping fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Stopping v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventServerLife.STOPPING);
                 }
@@ -1523,7 +2506,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1531,7 +2514,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1565,8 +2548,44 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.name);
+                    p.putU(this.args.size()); for (var e0 : this.args) { p.putStr(e0); }
+                    p.putStr(this.source);
+                    p.putStr(this.uuid);
+                    p.putStr(this.dimension);
+                    p.putBool(this.reply != null); if (this.reply != null) { p.putStr(this.reply); }
+                    p.end(at);
+                }
+
+                public static Run unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_name = u.more(end) ? u.getStr() : "";
+                    java.util.List<String> f_args = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+                    String f_source = u.more(end) ? u.getStr() : "";
+                    String f_uuid = u.more(end) ? u.getStr() : "";
+                    String f_dimension = u.more(end) ? u.getStr() : "";
+                    String f_reply = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+                    u.leave(end);
+                    return new Run(f_name, f_args, f_source, f_uuid, f_dimension, f_reply);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Run fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Run v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventServerCommand.RUN, name), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventServerCommand.RUN, name), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1574,7 +2593,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1605,8 +2624,38 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.channel);
+                    p.putStr(this.player);
+                    p.putBytes(this.payload);
+                    p.end(at);
+                }
+
+                public static Packet unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_channel = u.more(end) ? u.getStr() : "";
+                    String f_player = u.more(end) ? u.getStr() : "";
+                    byte[] f_payload = u.more(end) ? u.getBytes() : new byte[0];
+                    u.leave(end);
+                    return new Packet(f_channel, f_player, f_payload);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Packet fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Packet v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventServerNet.PACKET, channel), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventServerNet.PACKET, channel), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1614,7 +2663,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1647,6 +2696,30 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.end(at);
+                }
+
+                public static Tick unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    u.leave(end);
+                    return new Tick();
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Tick fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Tick v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientGame.TICK);
                 }
@@ -1657,7 +2730,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1665,7 +2738,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1690,6 +2763,34 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    this.frame.pack(p);
+                    p.putBool(this.velocity != null); if (this.velocity != null) { this.velocity.pack(p); }
+                    p.end(at);
+                }
+
+                public static Travel unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    YogTypes.TravelFrame f_frame = u.more(end) ? YogTypes.TravelFrame.unpack(u) : null;
+                    YogTypes.Vec3 f_velocity = u.more(end) ? (u.getBool() ? YogTypes.Vec3.unpack(u) : null) : null;
+                    u.leave(end);
+                    return new Travel(f_frame, f_velocity);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Travel fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Travel v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientGame.TRAVEL);
                 }
@@ -1700,7 +2801,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1708,7 +2809,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1742,6 +2843,38 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putI(this.keyCode);
+                    p.putI(this.scanCode);
+                    p.putI(this.action);
+                    p.putI(this.modifiers);
+                    p.end(at);
+                }
+
+                public static Key unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    int f_keyCode = u.more(end) ? (int) u.getI() : 0;
+                    int f_scanCode = u.more(end) ? (int) u.getI() : 0;
+                    int f_action = u.more(end) ? (int) u.getI() : 0;
+                    int f_modifiers = u.more(end) ? (int) u.getI() : 0;
+                    u.leave(end);
+                    return new Key(f_keyCode, f_scanCode, f_action, f_modifiers);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Key fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Key v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientInput.KEY);
                     static final int PRE = YogBus.resolve(YogNames.EventClientInput.KEY_PRE);
@@ -1753,7 +2886,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1761,14 +2894,14 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(Address.PRE, toFrame()).status() != YogBus.CANCELLED;
                 }
             }
 
@@ -1789,8 +2922,34 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.id);
+                    p.end(at);
+                }
+
+                public static Binding unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_id = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Binding(f_id);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Binding fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Binding v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientInput.BINDING, id), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientInput.BINDING, id), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1798,7 +2957,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1827,6 +2986,32 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.screenClass);
+                    p.end(at);
+                }
+
+                public static Open unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_screenClass = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Open(f_screenClass);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Open fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Open v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientUi.OPEN);
                 }
@@ -1837,7 +3022,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1845,7 +3030,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1869,6 +3054,32 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.screenClass);
+                    p.end(at);
+                }
+
+                public static Close unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_screenClass = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Close(f_screenClass);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Close fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Close v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientUi.CLOSE);
                 }
@@ -1879,7 +3090,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1887,7 +3098,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1912,8 +3123,36 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.uiId);
+                    p.putStr(this.event);
+                    p.end(at);
+                }
+
+                public static Input unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_uiId = u.more(end) ? u.getStr() : "";
+                    String f_event = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Input(f_uiId, f_event);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Input fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Input v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT, uiId), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT, uiId), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1921,14 +3160,14 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
                 }
 
                 public boolean emitPre() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT_PRE, uiId), YogData.encode(toData())).status() != YogBus.CANCELLED;
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT_PRE, uiId), toFrame()).status() != YogBus.CANCELLED;
                 }
             }
         }
@@ -1954,6 +3193,32 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putF32((float) (double) this.deltaTick);
+                    p.end(at);
+                }
+
+                public static Hud unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    double f_deltaTick = u.more(end) ? (double) u.getF32() : 0.0;
+                    u.leave(end);
+                    return new Hud(f_deltaTick);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Hud fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Hud v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientRender.HUD);
                 }
@@ -1964,7 +3229,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -1972,7 +3237,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -1996,6 +3261,32 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putF32((float) (double) this.deltaTick);
+                    p.end(at);
+                }
+
+                public static World unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    double f_deltaTick = u.more(end) ? (double) u.getF32() : 0.0;
+                    u.leave(end);
+                    return new World(f_deltaTick);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static World fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    World v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientRender.WORLD);
                 }
@@ -2006,7 +3297,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -2014,7 +3305,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2038,8 +3329,34 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.uiId);
+                    p.end(at);
+                }
+
+                public static Ui unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_uiId = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Ui(f_uiId);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Ui fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Ui v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.UI, uiId), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.UI, uiId), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -2047,7 +3364,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2073,8 +3390,38 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.item);
+                    p.putStr(this.snbt);
+                    p.putF32s(this.rect);
+                    p.end(at);
+                }
+
+                public static Tooltip unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_item = u.more(end) ? u.getStr() : "";
+                    String f_snbt = u.more(end) ? u.getStr() : "";
+                    java.util.List<Double> f_rect = u.more(end) ? u.getF32s() : java.util.List.of();
+                    u.leave(end);
+                    return new Tooltip(f_item, f_snbt, f_rect);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Tooltip fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Tooltip v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.TOOLTIP, item), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.TOOLTIP, item), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -2082,7 +3429,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2108,8 +3455,38 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.drawer);
+                    p.putTagged(this.data);
+                    p.putF32s(this.rect);
+                    p.end(at);
+                }
+
+                public static Page unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_drawer = u.more(end) ? u.getStr() : "";
+                    Object f_data = u.more(end) ? u.getTagged() : null;
+                    java.util.List<Double> f_rect = u.more(end) ? u.getF32s() : java.util.List.of();
+                    u.leave(end);
+                    return new Page(f_drawer, f_data, f_rect);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Page fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Page v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.PAGE, drawer), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientRender.PAGE, drawer), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -2117,7 +3494,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2142,6 +3519,34 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    this.frame.pack(p);
+                    this.out.pack(p);
+                    p.end(at);
+                }
+
+                public static Camera unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    YogTypes.CameraFrame f_frame = u.more(end) ? YogTypes.CameraFrame.unpack(u) : null;
+                    YogTypes.CameraOut f_out = u.more(end) ? YogTypes.CameraOut.unpack(u) : null;
+                    u.leave(end);
+                    return new Camera(f_frame, f_out);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Camera fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Camera v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientRender.CAMERA);
                 }
@@ -2152,7 +3557,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -2160,7 +3565,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2185,6 +3590,34 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putBytes(this.frame);
+                    p.putBytes(this.ops);
+                    p.end(at);
+                }
+
+                public static Body unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    byte[] f_frame = u.more(end) ? u.getBytes() : new byte[0];
+                    byte[] f_ops = u.more(end) ? u.getBytes() : new byte[0];
+                    u.leave(end);
+                    return new Body(f_frame, f_ops);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Body fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Body v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 private static final class Address {
                     static final int POST = YogBus.resolve(YogNames.EventClientRender.BODY);
                 }
@@ -2195,7 +3628,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public YogBus.Reply emit() {
-                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                    return YogBus.emit(Address.POST, toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -2203,7 +3636,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }
@@ -2233,8 +3666,36 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     return fromData(YogData.decode(bytes));
                 }
 
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.channel);
+                    p.putBytes(this.payload);
+                    p.end(at);
+                }
+
+                public static Packet unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_channel = u.more(end) ? u.getStr() : "";
+                    byte[] f_payload = u.more(end) ? u.getBytes() : new byte[0];
+                    u.leave(end);
+                    return new Packet(f_channel, f_payload);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                public static Packet fromFrame(byte[] bytes) {
+                    YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+                    Packet v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
                 public YogBus.Reply emit() {
-                    return YogBus.emit(YogBus.keyed(YogNames.EventClientNet.PACKET, channel), YogData.encode(toData()));
+                    return YogBus.emit(YogBus.keyed(YogNames.EventClientNet.PACKET, channel), toFrame());
                 }
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
@@ -2242,7 +3703,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {
-                        return fromBytes(r.bytes());
+                        return fromFrame(r.bytes());
                     } catch (RuntimeException e) {
                         return this;
                     }

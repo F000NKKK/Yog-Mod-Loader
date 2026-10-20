@@ -46,7 +46,8 @@
 //! tree on the way.
 
 mod decoder;
-mod writer;
+pub(crate) mod interner;
+pub(crate) mod writer;
 #[cfg(test)]
 mod tests;
 
@@ -101,9 +102,9 @@ pub(crate) const STREAM_LEN_BYTES: usize = 4;
 const NEW_STRING: u64 = 1;
 
 /// The low seven bits of a varint byte, and the bit saying more follow.
-const VARINT_BITS: u64 = 0x7F;
-const VARINT_MORE: u8 = 0x80;
-const VARINT_SHIFT: u32 = 7;
+pub(crate) const VARINT_BITS: u64 = 0x7F;
+pub(crate) const VARINT_MORE: u8 = 0x80;
+pub(crate) const VARINT_SHIFT: u32 = 7;
 
 pub(crate) fn varint(out: &mut Vec<u8>, mut n: u64) {
     while n > VARINT_BITS {
@@ -111,6 +112,25 @@ pub(crate) fn varint(out: &mut Vec<u8>, mut n: u64) {
         n >>= VARINT_SHIFT;
     }
     out.push(n as u8);
+}
+
+/// The bits a varint can hold.
+pub(crate) const VARINT_MAX_SHIFT: u32 = 64;
+
+/// The varint at `*i` in `b`, `*i` moved past it; `None` cut short or longer than 64 bits.
+pub(crate) fn read_varint(b: &[u8], i: &mut usize) -> Option<u64> {
+    let mut n = 0u64;
+    let mut shift = 0;
+    while shift < VARINT_MAX_SHIFT {
+        let byte = *b.get(*i)?;
+        *i += 1;
+        n |= (u64::from(byte) & VARINT_BITS) << shift;
+        if byte & VARINT_MORE == 0 {
+            return Some(n);
+        }
+        shift += VARINT_SHIFT;
+    }
+    None
 }
 
 /// `n` zigzagged: small negative numbers stay small varints.

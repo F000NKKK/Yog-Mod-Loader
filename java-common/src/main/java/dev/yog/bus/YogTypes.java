@@ -3,6 +3,7 @@ package dev.yog.bus;
 
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
+import dev.yog.data.YogFrame;
 
 /** The records the bus's messages share. */
 public final class YogTypes {
@@ -26,6 +27,36 @@ public final class YogTypes {
         public static BlockPos fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putI(this.x);
+            p.putI(this.y);
+            p.putI(this.z);
+            p.end(at);
+        }
+
+        public static BlockPos unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            int f_x = u.more(end) ? (int) u.getI() : 0;
+            int f_y = u.more(end) ? (int) u.getI() : 0;
+            int f_z = u.more(end) ? (int) u.getI() : 0;
+            u.leave(end);
+            return new BlockPos(f_x, f_y, f_z);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static BlockPos fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            BlockPos v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** A stack of items: its id, how many, and its custom data (SNBT, `{}` for none). */
@@ -45,6 +76,36 @@ public final class YogTypes {
 
         public static LootStack fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putI(this.count);
+            p.putStr(this.nbt);
+            p.end(at);
+        }
+
+        public static LootStack unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            long f_count = u.more(end) ? u.getI() : 0L;
+            String f_nbt = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new LootStack(f_id, f_count, f_nbt);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static LootStack fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            LootStack v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -74,6 +135,52 @@ public final class YogTypes {
         public static TravelFrame fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.uuid);
+            this.velocity.pack(p);
+            this.look.pack(p);
+            p.putF32((float) (double) this.yaw);
+            p.putF32((float) (double) this.pitch);
+            p.putF32((float) (double) this.forward);
+            p.putF32((float) (double) this.strafe);
+            p.putBool(this.jumping);
+            p.putBool(this.sneaking);
+            p.putF32((float) (double) this.gravity);
+            p.putI(this.flags);
+            p.end(at);
+        }
+
+        public static TravelFrame unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_uuid = u.more(end) ? u.getStr() : "";
+            YogTypes.Vec3 f_velocity = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
+            YogTypes.Vec3 f_look = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
+            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_forward = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_strafe = u.more(end) ? (double) u.getF32() : 0.0;
+            boolean f_jumping = u.more(end) ? u.getBool() : false;
+            boolean f_sneaking = u.more(end) ? u.getBool() : false;
+            double f_gravity = u.more(end) ? (double) u.getF32() : 0.0;
+            long f_flags = u.more(end) ? u.getI() : 0L;
+            u.leave(end);
+            return new TravelFrame(f_uuid, f_velocity, f_look, f_yaw, f_pitch, f_forward, f_strafe, f_jumping, f_sneaking, f_gravity, f_flags);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static TravelFrame fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            TravelFrame v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
     public record Vec3(double x, double y, double z) {
         public java.util.Map<String, Object> toData() {
@@ -91,6 +198,36 @@ public final class YogTypes {
 
         public static Vec3 fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putF32((float) (double) this.x);
+            p.putF32((float) (double) this.y);
+            p.putF32((float) (double) this.z);
+            p.end(at);
+        }
+
+        public static Vec3 unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            double f_x = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_y = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_z = u.more(end) ? (double) u.getF32() : 0.0;
+            u.leave(end);
+            return new Vec3(f_x, f_y, f_z);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static Vec3 fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            Vec3 v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -116,6 +253,44 @@ public final class YogTypes {
         public static CameraFrame fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.uuid);
+            p.putF32((float) (double) this.partial);
+            p.putF64s(this.pos);
+            p.putF32((float) (double) this.yaw);
+            p.putF32((float) (double) this.pitch);
+            p.putBool(this.detached);
+            p.putI(this.flags);
+            p.end(at);
+        }
+
+        public static CameraFrame unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_uuid = u.more(end) ? u.getStr() : "";
+            double f_partial = u.more(end) ? (double) u.getF32() : 0.0;
+            java.util.List<Double> f_pos = u.more(end) ? u.getF64s() : java.util.List.of();
+            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+            boolean f_detached = u.more(end) ? u.getBool() : false;
+            long f_flags = u.more(end) ? u.getI() : 0L;
+            u.leave(end);
+            return new CameraFrame(f_uuid, f_partial, f_pos, f_yaw, f_pitch, f_detached, f_flags);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static CameraFrame fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            CameraFrame v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** What mods change; each handler gets the last one's result and adds to it. */
@@ -138,6 +313,42 @@ public final class YogTypes {
 
         public static CameraOut fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            this.localOffset.pack(p);
+            this.worldOffset.pack(p);
+            p.putF32((float) (double) this.yaw);
+            p.putF32((float) (double) this.pitch);
+            p.putF32((float) (double) this.roll);
+            p.putF32((float) (double) this.fov);
+            p.end(at);
+        }
+
+        public static CameraOut unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.Vec3 f_localOffset = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
+            YogTypes.Vec3 f_worldOffset = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
+            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_roll = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_fov = u.more(end) ? (double) u.getF32() : 0.0;
+            u.leave(end);
+            return new CameraOut(f_localOffset, f_worldOffset, f_yaw, f_pitch, f_roll, f_fov);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static CameraOut fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            CameraOut v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -164,6 +375,46 @@ public final class YogTypes {
         public static BlockInfo fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.state);
+            p.putF32((float) (double) this.hardness);
+            p.putBool(this.replaceable);
+            p.putBool(this.air);
+            p.putBool(this.fluid != null); if (this.fluid != null) { p.putStr(this.fluid); }
+            p.putBool(this.fluidSource);
+            p.putI(this.redstone);
+            p.putBool(this.inWorld);
+            p.end(at);
+        }
+
+        public static BlockInfo unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_state = u.more(end) ? u.getStr() : "";
+            double f_hardness = u.more(end) ? (double) u.getF32() : 0.0;
+            boolean f_replaceable = u.more(end) ? u.getBool() : false;
+            boolean f_air = u.more(end) ? u.getBool() : false;
+            String f_fluid = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            boolean f_fluidSource = u.more(end) ? u.getBool() : false;
+            int f_redstone = u.more(end) ? (int) u.getI() : 0;
+            boolean f_inWorld = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new BlockInfo(f_state, f_hardness, f_replaceable, f_air, f_fluid, f_fluidSource, f_redstone, f_inWorld);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static BlockInfo fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            BlockInfo v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** A stack of items: what it is, how many, its data (SNBT). */
@@ -183,6 +434,36 @@ public final class YogTypes {
 
         public static Stack fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.item);
+            p.putI(this.count);
+            p.putStr(this.snbt);
+            p.end(at);
+        }
+
+        public static Stack unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_item = u.more(end) ? u.getStr() : "";
+            long f_count = u.more(end) ? u.getI() : 0L;
+            String f_snbt = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new Stack(f_item, f_count, f_snbt);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static Stack fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            Stack v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -207,6 +488,42 @@ public final class YogTypes {
         public static Descriptor fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.address);
+            p.putU(switch (this.kind) { case "event" -> 0; case "service" -> 1; default -> 0; });
+            p.putStr(this.doc);
+            p.putTagged(this.shape);
+            p.putBool(this.reply != null); if (this.reply != null) { p.putTagged(this.reply); }
+            p.putU(this.interfaces.size()); for (var e0 : this.interfaces) { p.putStr(e0); }
+            p.end(at);
+        }
+
+        public static Descriptor unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_address = u.more(end) ? u.getStr() : "";
+            String f_kind = u.more(end) ? switch ((int) u.getU()) { case 0 -> "event"; case 1 -> "service"; default -> ""; } : "event";
+            String f_doc = u.more(end) ? u.getStr() : "";
+            Object f_shape = u.more(end) ? u.getTagged() : null;
+            Object f_reply = u.more(end) ? (u.getBool() ? u.getTagged() : null) : null;
+            java.util.List<String> f_interfaces = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            u.leave(end);
+            return new Descriptor(f_address, f_kind, f_doc, f_shape, f_reply, f_interfaces);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static Descriptor fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            Descriptor v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** Bytes a mod keeps on an entity under a key. */
@@ -224,6 +541,32 @@ public final class YogTypes {
 
         public static DataValue fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putBytes(this.bytes);
+            p.end(at);
+        }
+
+        public static DataValue unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            byte[] f_bytes = u.more(end) ? u.getBytes() : new byte[0];
+            u.leave(end);
+            return new DataValue(f_bytes);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static DataValue fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            DataValue v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -244,6 +587,36 @@ public final class YogTypes {
 
         public static ScreenSlot fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putBool(this.stack != null); if (this.stack != null) { this.stack.pack(p); }
+            p.putI(this.x);
+            p.putI(this.y);
+            p.end(at);
+        }
+
+        public static ScreenSlot unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.Stack f_stack = u.more(end) ? (u.getBool() ? YogTypes.Stack.unpack(u) : null) : null;
+            int f_x = u.more(end) ? (int) u.getI() : 0;
+            int f_y = u.more(end) ? (int) u.getI() : 0;
+            u.leave(end);
+            return new ScreenSlot(f_stack, f_x, f_y);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static ScreenSlot fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            ScreenSlot v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -274,6 +647,54 @@ public final class YogTypes {
         public static LocalState fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            this.pos.pack(p);
+            p.putF32((float) (double) this.yaw);
+            p.putF32((float) (double) this.pitch);
+            this.velocity.pack(p);
+            p.putBool(this.onGround);
+            p.putBool(this.inWater);
+            p.putF64(this.eyeHeight);
+            p.putF32((float) (double) this.health);
+            p.putI(this.food);
+            p.putStr(this.dimension);
+            p.putI(this.slot);
+            p.putF32((float) (double) this.attackStrength);
+            p.end(at);
+        }
+
+        public static LocalState unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+            YogTypes.Point f_velocity = u.more(end) ? YogTypes.Point.unpack(u) : null;
+            boolean f_onGround = u.more(end) ? u.getBool() : false;
+            boolean f_inWater = u.more(end) ? u.getBool() : false;
+            double f_eyeHeight = u.more(end) ? u.getF64() : 0.0;
+            double f_health = u.more(end) ? (double) u.getF32() : 0.0;
+            int f_food = u.more(end) ? (int) u.getI() : 0;
+            String f_dimension = u.more(end) ? u.getStr() : "";
+            long f_slot = u.more(end) ? u.getI() : 0L;
+            double f_attackStrength = u.more(end) ? (double) u.getF32() : 0.0;
+            u.leave(end);
+            return new LocalState(f_pos, f_yaw, f_pitch, f_velocity, f_onGround, f_inWater, f_eyeHeight, f_health, f_food, f_dimension, f_slot, f_attackStrength);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static LocalState fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            LocalState v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** A stack in an inventory slot. */
@@ -293,6 +714,34 @@ public final class YogTypes {
         public static SlotStack fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putI(this.slot);
+            this.stack.pack(p);
+            p.end(at);
+        }
+
+        public static SlotStack unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            long f_slot = u.more(end) ? u.getI() : 0L;
+            YogTypes.Stack f_stack = u.more(end) ? YogTypes.Stack.unpack(u) : null;
+            u.leave(end);
+            return new SlotStack(f_slot, f_stack);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static SlotStack fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            SlotStack v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** A block found in the world: where, and its state. */
@@ -311,6 +760,34 @@ public final class YogTypes {
 
         public static PlacedBlock fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            this.pos.pack(p);
+            p.putStr(this.state);
+            p.end(at);
+        }
+
+        public static PlacedBlock unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+            String f_state = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new PlacedBlock(f_pos, f_state);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static PlacedBlock fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            PlacedBlock v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -332,6 +809,38 @@ public final class YogTypes {
 
         public static BlockArea fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            this.min.pack(p);
+            this.max.pack(p);
+            p.putU(this.palette.size()); for (var e0 : this.palette) { e0.pack(p); }
+            p.putUints(this.blocks, false);
+            p.end(at);
+        }
+
+        public static BlockArea unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.BlockPos f_min = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+            YogTypes.BlockPos f_max = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+            java.util.List<YogTypes.BlockKind> f_palette = u.more(end) ? YogFrame.list(u, () -> YogTypes.BlockKind.unpack(u)) : java.util.List.of();
+            java.util.List<Integer> f_blocks = u.more(end) ? u.getUints(false).stream().map(Long::intValue).toList() : java.util.List.of();
+            u.leave(end);
+            return new BlockArea(f_min, f_max, f_palette, f_blocks);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static BlockArea fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            BlockArea v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -358,6 +867,46 @@ public final class YogTypes {
         public static NearbyEntity fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.uuid);
+            p.putStr(this.entityType);
+            this.pos.pack(p);
+            p.putF64(this.eyeHeight);
+            this.velocity.pack(p);
+            p.putBool(this.health != null); if (this.health != null) { p.putF32((float) (double) this.health); }
+            p.putBool(this.name != null); if (this.name != null) { p.putStr(this.name); }
+            p.putBool(this.hostile);
+            p.end(at);
+        }
+
+        public static NearbyEntity unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_uuid = u.more(end) ? u.getStr() : "";
+            String f_entityType = u.more(end) ? u.getStr() : "";
+            YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+            double f_eyeHeight = u.more(end) ? u.getF64() : 0.0;
+            YogTypes.Point f_velocity = u.more(end) ? YogTypes.Point.unpack(u) : null;
+            Double f_health = u.more(end) ? (u.getBool() ? Double.valueOf((double) u.getF32()) : null) : null;
+            String f_name = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            boolean f_hostile = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new NearbyEntity(f_uuid, f_entityType, f_pos, f_eyeHeight, f_velocity, f_health, f_name, f_hostile);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static NearbyEntity fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            NearbyEntity v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
@@ -376,6 +925,34 @@ public final class YogTypes {
 
         public static CommandSpec fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.name);
+            p.putBool(this.schema != null); if (this.schema != null) { p.putStr(this.schema); }
+            p.end(at);
+        }
+
+        public static CommandSpec unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_name = u.more(end) ? u.getStr() : "";
+            String f_schema = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            u.leave(end);
+            return new CommandSpec(f_name, f_schema);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static CommandSpec fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            CommandSpec v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -397,6 +974,36 @@ public final class YogTypes {
         public static Point fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putF64(this.x);
+            p.putF64(this.y);
+            p.putF64(this.z);
+            p.end(at);
+        }
+
+        public static Point unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            double f_x = u.more(end) ? u.getF64() : 0.0;
+            double f_y = u.more(end) ? u.getF64() : 0.0;
+            double f_z = u.more(end) ? u.getF64() : 0.0;
+            u.leave(end);
+            return new Point(f_x, f_y, f_z);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static Point fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            Point v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** Which way an entity faces, in degrees. */
@@ -415,6 +1022,34 @@ public final class YogTypes {
 
         public static Rotation fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putF32((float) (double) this.yaw);
+            p.putF32((float) (double) this.pitch);
+            p.end(at);
+        }
+
+        public static Rotation unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            double f_yaw = u.more(end) ? (double) u.getF32() : 0.0;
+            double f_pitch = u.more(end) ? (double) u.getF32() : 0.0;
+            u.leave(end);
+            return new Rotation(f_yaw, f_pitch);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static Rotation fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            Rotation v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -441,6 +1076,46 @@ public final class YogTypes {
         public static EntityInfo fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.typeId);
+            p.putStr(this.dimension);
+            this.pos.pack(p);
+            p.putF64(this.eyeHeight);
+            p.putF64(this.width);
+            p.putF64(this.height);
+            p.putI(this.flags);
+            p.putStr(this.name);
+            p.end(at);
+        }
+
+        public static EntityInfo unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_typeId = u.more(end) ? u.getStr() : "";
+            String f_dimension = u.more(end) ? u.getStr() : "";
+            YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
+            double f_eyeHeight = u.more(end) ? u.getF64() : 0.0;
+            double f_width = u.more(end) ? u.getF64() : 0.0;
+            double f_height = u.more(end) ? u.getF64() : 0.0;
+            long f_flags = u.more(end) ? u.getI() : 0L;
+            String f_name = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new EntityInfo(f_typeId, f_dimension, f_pos, f_eyeHeight, f_width, f_height, f_flags, f_name);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static EntityInfo fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            EntityInfo v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** An installed mod. */
@@ -464,6 +1139,42 @@ public final class YogTypes {
         public static ModInfo fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.source);
+            p.putStr(this.id);
+            p.putStr(this.name);
+            p.putStr(this.version);
+            p.putStr(this.authors);
+            p.putStr(this.description);
+            p.end(at);
+        }
+
+        public static ModInfo unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_source = u.more(end) ? u.getStr() : "";
+            String f_id = u.more(end) ? u.getStr() : "";
+            String f_name = u.more(end) ? u.getStr() : "";
+            String f_version = u.more(end) ? u.getStr() : "";
+            String f_authors = u.more(end) ? u.getStr() : "";
+            String f_description = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new ModInfo(f_source, f_id, f_name, f_version, f_authors, f_description);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static ModInfo fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            ModInfo v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** What a stack shows instead of its item's own name and description. */
@@ -482,6 +1193,34 @@ public final class YogTypes {
 
         public static Shown fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putBool(this.name != null); if (this.name != null) { p.putStr(this.name); }
+            p.putU(this.lines.size()); for (var e0 : this.lines) { p.putStr(e0); }
+            p.end(at);
+        }
+
+        public static Shown unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_name = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            java.util.List<String> f_lines = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            u.leave(end);
+            return new Shown(f_name, f_lines);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static Shown fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            Shown v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -504,6 +1243,38 @@ public final class YogTypes {
         public static CategorizedBinding fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putStr(this.name);
+            p.putI(this.defaultKey);
+            p.putStr(this.category);
+            p.end(at);
+        }
+
+        public static CategorizedBinding unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            String f_name = u.more(end) ? u.getStr() : "";
+            int f_defaultKey = u.more(end) ? (int) u.getI() : 0;
+            String f_category = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new CategorizedBinding(f_id, f_name, f_defaultKey, f_category);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static CategorizedBinding fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            CategorizedBinding v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** A button (the `menu/declare` service) the host shows on the title screen (the mod list on Forge and NeoForge), opening a mod's screen. */
@@ -522,6 +1293,34 @@ public final class YogTypes {
 
         public static MenuEntry fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.label);
+            p.putStr(this.uiId);
+            p.end(at);
+        }
+
+        public static MenuEntry unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_label = u.more(end) ? u.getStr() : "";
+            String f_uiId = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new MenuEntry(f_label, f_uiId);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static MenuEntry fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            MenuEntry v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -548,6 +1347,46 @@ public final class YogTypes {
         public static PlayerInfo fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.uuid);
+            p.putStr(this.gamemode);
+            p.putI(this.selectedSlot);
+            p.putI(this.xpLevel);
+            p.putI(this.xpTotal);
+            p.putI(this.air);
+            p.putBool(this.mayFly);
+            p.putBool(this.flying);
+            p.end(at);
+        }
+
+        public static PlayerInfo unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_uuid = u.more(end) ? u.getStr() : "";
+            String f_gamemode = u.more(end) ? u.getStr() : "";
+            long f_selectedSlot = u.more(end) ? u.getI() : 0L;
+            int f_xpLevel = u.more(end) ? (int) u.getI() : 0;
+            int f_xpTotal = u.more(end) ? (int) u.getI() : 0;
+            int f_air = u.more(end) ? (int) u.getI() : 0;
+            boolean f_mayFly = u.more(end) ? u.getBool() : false;
+            boolean f_flying = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new PlayerInfo(f_uuid, f_gamemode, f_selectedSlot, f_xpLevel, f_xpTotal, f_air, f_mayFly, f_flying);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static PlayerInfo fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            PlayerInfo v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** A block a ray stopped at. */
@@ -567,6 +1406,36 @@ public final class YogTypes {
 
         public static BlockHit fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            this.pos.pack(p);
+            p.putU(switch (this.face) { case "down" -> 0; case "up" -> 1; case "north" -> 2; case "south" -> 3; case "west" -> 4; case "east" -> 5; default -> 0; });
+            this.hit.pack(p);
+            p.end(at);
+        }
+
+        public static BlockHit unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+            String f_face = u.more(end) ? switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; } : "down";
+            YogTypes.Point f_hit = u.more(end) ? YogTypes.Point.unpack(u) : null;
+            u.leave(end);
+            return new BlockHit(f_pos, f_face, f_hit);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static BlockHit fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            BlockHit v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 
@@ -590,6 +1459,40 @@ public final class YogTypes {
         public static Hanging fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.facing);
+            p.putI(this.width);
+            p.putI(this.height);
+            p.putStr(this.item);
+            p.putStr(this.nbt);
+            p.end(at);
+        }
+
+        public static Hanging unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_facing = u.more(end) ? u.getStr() : "";
+            long f_width = u.more(end) ? u.getI() : 0L;
+            long f_height = u.more(end) ? u.getI() : 0L;
+            String f_item = u.more(end) ? u.getStr() : "";
+            String f_nbt = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new Hanging(f_facing, f_width, f_height, f_item, f_nbt);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static Hanging fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            Hanging v = unpack(u);
+            u.finish();
+            return v;
+        }
     }
 
     /** One kind of block in a [`BlockArea`]: how it is to walk through. */
@@ -611,6 +1514,40 @@ public final class YogTypes {
 
         public static BlockKind fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putBool(this.solid);
+            p.putBool(this.liquid);
+            p.putBool(this.climbable);
+            p.putBool(this.harmful);
+            p.end(at);
+        }
+
+        public static BlockKind unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            boolean f_solid = u.more(end) ? u.getBool() : false;
+            boolean f_liquid = u.more(end) ? u.getBool() : false;
+            boolean f_climbable = u.more(end) ? u.getBool() : false;
+            boolean f_harmful = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new BlockKind(f_id, f_solid, f_liquid, f_climbable, f_harmful);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        public static BlockKind fromFrame(byte[] bytes) {
+            YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+            BlockKind v = unpack(u);
+            u.finish();
+            return v;
         }
     }
 }

@@ -4,16 +4,17 @@
 use yog_data::Schema;
 use yog_ids as ids;
 
-/// A message the bus carries; its payload is `Self` in Yog Data's binary form.
+/// A message the bus carries; its payload is `Self` as a frame
+/// (`yog_data::frame`: packed by position — both sides have the schema).
 pub trait Message: Schema + Sized {
     /// The payload's bytes.
     fn to_bytes(&self) -> Vec<u8> {
-        yog_data::to_bytes(self)
+        yog_data::frame::to_frame(self)
     }
 
     /// The message read from a payload; `None` if it isn't one.
     fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        yog_data::read_bytes(bytes).ok()
+        yog_data::frame::read_frame(bytes)
     }
 }
 

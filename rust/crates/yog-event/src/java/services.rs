@@ -6,7 +6,8 @@ use yog_data::schema::StructShape;
 
 use crate::ServiceInfo;
 
-use super::types::{from_data, java_type};
+use super::frames;
+use super::types::java_type;
 use super::{Entry, Out, class_name, file, name, target};
 
 /// The class it writes.
@@ -29,10 +30,19 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
     let reply = java_type(&s.reply, &mut o.records);
     let _ = write!(
         body,
-        "\n\n    public {reply} call() {{\n        YogBus.Reply r = YogBus.call({}, YogData.encode(toData()));\n        Object v = null;\n        if (r.status() == YogBus.OK && r.bytes().length > 0) {{\n            try {{\n                v = YogData.decode(r.bytes());\n            }} catch (YogData.DecodeException e) {{\n                v = null;\n            }}\n        }}\n        return {};\n    }}",
+        "\n\n    public {reply} call() {{\n        YogBus.Reply r = YogBus.call({}, toFrame());\n        if (r.status() == YogBus.OK && r.bytes().length > 0) {{\n            try {{\n                YogFrame.Unpacker u = new YogFrame.Unpacker(r.bytes());\n                {reply} v = {};\n                u.finish();\n                return v;\n            }} catch (YogData.DecodeException e) {{\n                // Not a reply: as if no one answered.\n            }}\n        }}\n        return {};\n    }}",
         target(s.address, s.key, "AT"),
-        from_data(&s.reply, "v", 0)
+        frames::unpack(&s.reply, 0),
+        frames::missing(&s.reply)
     );
+    if s.host.is_some() {
+        let _ = write!(
+            body,
+            "\n\n    /** The host method's result {{@code out}} (its \"none\" already null) as the reply's frame. */\n    public static byte[] replyFrame(Object out) {{\n        YogFrame.Packer p = new YogFrame.Packer();\n        {reply} v = {};\n        {}\n        return p.finish();\n    }}",
+            frames::from_host(&s.reply, "out"),
+            frames::pack(&s.reply, "v", 0)
+        );
+    }
     body
 }
 

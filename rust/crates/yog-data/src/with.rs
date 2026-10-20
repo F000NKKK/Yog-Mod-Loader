@@ -20,6 +20,7 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
+use crate::frame::{Packer, Unpacker};
 use crate::borrowed::ValueRef;
 use crate::schema::{Kinds, Reader, Schema, Shape, Text, is_metadata_key, read_ref};
 use crate::value::{Map, Ref, Seg, Value};
@@ -50,6 +51,19 @@ pub trait With<F> {
         let mut cx = Reader::new();
         let f = Self::read(&v, &mut cx)?;
         cx.problems.is_empty().then_some(f)
+    }
+    /// The field packed into a frame: its binary form as bytes unless the
+    /// codec knows better.
+    fn pack(f: &F, p: &mut Packer) {
+        let mut w = Writer::body();
+        Self::encode(f, &mut w);
+        p.put_bytes(&w.finish());
+    }
+    /// The field out of a frame.
+    fn unpack(u: &mut Unpacker<'_>) -> Option<F> {
+        let mut d = Decoder::body(u.get_bytes()?);
+        let f = Self::decode(&mut d)?;
+        d.at_end().then_some(f)
     }
 }
 
@@ -208,6 +222,12 @@ impl<F: Schema> With<F> for Plain {
     fn decode(d: &mut Decoder<'_>) -> Option<F> {
         F::decode(d)
     }
+    fn pack(f: &F, p: &mut Packer) {
+        f.pack(p);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<F> {
+        F::unpack(u)
+    }
 }
 
 /// Bytes as they are (`Vec<u8>`): a payload a format doesn't look into.
@@ -242,6 +262,12 @@ impl With<Vec<u8>> for Raw {
     }
     fn decode(d: &mut Decoder<'_>) -> Option<Vec<u8>> {
         d.bytes().map(<[u8]>::to_vec)
+    }
+    fn pack(f: &Vec<u8>, p: &mut Packer) {
+        p.put_bytes(f);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Vec<u8>> {
+        u.get_bytes().map(<[u8]>::to_vec)
     }
     fn absent() -> Option<Vec<u8>> {
         Some(Vec::new())

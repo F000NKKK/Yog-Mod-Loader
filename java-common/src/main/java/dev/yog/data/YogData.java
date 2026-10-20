@@ -89,6 +89,14 @@ public final class YogData {
         return v;
     }
 
+    /** A value's binary form without the header: what a frame holds of a value it doesn't pack ({@link YogFrame}). */
+    public static Object decodeBody(byte[] bytes) {
+        Reader r = new Reader(bytes);
+        Object v = r.value(0);
+        if (r.i != bytes.length) throw new DecodeException("bytes after the value", r.i);
+        return v;
+    }
+
     private static final class Reader {
         final byte[] b;
         int i;
@@ -229,6 +237,13 @@ public final class YogData {
         Writer w = new Writer();
         w.body.writeBytes(MAGIC);
         w.body.write(VERSION);
+        w.value(value);
+        return w.body.toByteArray();
+    }
+
+    /** {@code value}'s binary form without the header ({@link #decodeBody}). */
+    public static byte[] encodeBody(Object value) {
+        Writer w = new Writer();
         w.value(value);
         return w.body.toByteArray();
     }

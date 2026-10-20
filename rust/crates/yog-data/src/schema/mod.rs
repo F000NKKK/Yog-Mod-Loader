@@ -23,6 +23,7 @@ use crate::typed;
 use crate::borrowed::{MapRef, ValueRef};
 use crate::value::{Map, Path, Ref, Res, Seg, Value};
 use crate::binary::{Decoder, Writer};
+use crate::frame::{Packer, Unpacker};
 
 /// A Yog Data format.
 pub trait Schema: Sized {
@@ -60,6 +61,36 @@ pub trait Schema: Sized {
         let arena = bumpalo::Bump::new();
         let v = d.value_ref(&arena).ok()?;
         read_ref_value(&v).ok()
+    }
+
+    /// Packs itself into a frame ([`crate::frame`]): its binary form as
+    /// bytes, unless the type packs itself (derived ones and plain types do).
+    fn pack(&self, p: &mut Packer) {
+        p.put_tagged(self);
+    }
+
+    /// Reads itself out of a frame; `None` if the bytes aren't what
+    /// [`Schema::pack`] writes.
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        u.get_tagged()
+    }
+
+    /// A list of these packed: a count, then each one (floats raw).
+    fn pack_list(items: &[Self], p: &mut Packer) {
+        p.put_u(items.len() as u64);
+        for item in items {
+            item.pack(p);
+        }
+    }
+
+    /// A list of these out of a frame.
+    fn unpack_list(u: &mut Unpacker<'_>) -> Option<Vec<Self>> {
+        let n = u.count()?;
+        let mut out = Vec::with_capacity(n);
+        for _ in 0..n {
+            out.push(Self::unpack(u)?);
+        }
+        Some(out)
     }
 
     /// A list of these written straight (numbers pack theirs).
