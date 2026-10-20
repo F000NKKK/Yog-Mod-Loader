@@ -1,0 +1,21 @@
+//! Mods' commands run.
+
+use yog_data::Schema;
+
+/// A mod's command run; keyed by its name. Its handlers (subcommands of
+/// different shapes) are tried in order — the first to answer sets `reply`,
+/// what the source is told.
+#[derive(Debug, Clone, Schema)]
+pub struct Run {
+    /// The command, without the slash.
+    pub name: String,
+    /// Its arguments, separated by `yog_command::ARG_SEP`.
+    pub args: String,
+    /// Who ran it: a player's name, or the console.
+    pub source: String,
+    /// The running entity's uuid; empty for the console.
+    pub uuid: String,
+    /// Where it ran; empty for the console.
+    pub dimension: String,
+    pub reply: Option<String>,
+}

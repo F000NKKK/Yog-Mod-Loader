@@ -40,31 +40,8 @@ fn json(text: &str) -> yog_data::Value {
     yog_data::json::from_json_text(text).unwrap()
 }
 
-unsafe extern "C" fn no_command(
-    _: *mut c_void,
-    _: *const YogServer,
-    _: *const yog_abi::YogCommandEvent,
-    _: *mut u8,
-    _: u32,
-    _: *mut u32,
-) {
-}
-
 unsafe extern "C" fn count_task(ud: *mut c_void, _: *const YogServer) {
     unsafe { (*(ud as *const AtomicUsize)).fetch_add(1, Ordering::SeqCst) };
-}
-
-#[test]
-fn commands_keep_every_registration_under_one_name() {
-    let h = registering(|ctx| unsafe {
-        api_register_command(ctx, YogStr::from_str("hex"), std::ptr::null_mut(), no_command);
-        api_register_typed_command(ctx, YogStr::from_str("hex"), YogStr::from_str("int"), std::ptr::null_mut(), no_command);
-    });
-    let h = h.read_locked();
-    let entries = &h.commands["hex"];
-    assert_eq!(entries.len(), 2, "a second registration doesn't replace the first");
-    assert_eq!(entries[0].1, None);
-    assert_eq!(entries[1].1.as_deref(), Some("int"));
 }
 
 #[test]

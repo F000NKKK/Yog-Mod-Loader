@@ -1459,8 +1459,6 @@ public final class NativeBridge {
     // (same as Fabric — JNI stubs implemented in Rust)
 
     public static native void nativeInit(String modsDir);
-    public static native String nativeCommandNames();
-    public static native String nativeTypedCommandSchemas();
     /**
      * Ask the mod-registered generator type {@code generatorTypeId} to fill
      * chunk ({@code chunkX}, {@code chunkZ}). Blocks until the native
@@ -1517,7 +1515,6 @@ public final class NativeBridge {
     public static native String nativeMenuEntries();
     /** The mods' key bindings (ABI 3.10): {@code id\tname key\tdefault key\tmod name} a line. */
     public static native String nativeKeyBindings();
-    public static native String nativeOnCommand(String name, String args, String source, String uuid, String dimension);
 
     /** Everything registered — items, blocks, inventories — as one Yog Data blob ({@code YogContent}). */
     public static native byte[] nativeContent();

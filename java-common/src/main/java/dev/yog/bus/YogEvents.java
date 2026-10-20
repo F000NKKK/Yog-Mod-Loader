@@ -1450,6 +1450,49 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
         }
 
+        /** `command`. */
+        public static final class Command {
+            private Command() {}
+
+            /** A mod's command run; keyed by its name. Its handlers (subcommands of different shapes) are tried in order — the first to answer sets `reply`, what the source is told. */
+            public record Run(String name, String args, String source, String uuid, String dimension, String reply) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("name", name);
+                    m.put("args", args);
+                    m.put("source", source);
+                    m.put("uuid", uuid);
+                    m.put("dimension", dimension);
+                    if (reply != null) m.put("reply", reply);
+                    return m;
+                }
+
+                public static Run fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Run(YogData.str(m.get("name"), ""), YogData.str(m.get("args"), ""), YogData.str(m.get("source"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""), (m.get("reply") == null ? null : YogData.str(m.get("reply"), "")));
+                }
+
+                public static Run fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(YogBus.keyed(YogNames.EventServerCommand.RUN, name), YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Run emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+        }
+
         /** `net`. */
         public static final class Net {
             private Net() {}

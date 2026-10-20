@@ -138,6 +138,13 @@ names! {
         INSERT = concatcp!(DOMAIN, "insert"),
     }
 
+    /// `yog:command/…`: the commands mods declare (provided by the runtime).
+    service_command {
+        DOMAIN = concatcp!(service::PREFIX, "command", sep::PATH),
+        DECLARE = concatcp!(DOMAIN, "declare"),
+        DECLARED = concatcp!(DOMAIN, "declared"),
+    }
+
     /// `yog:event/player/session/…`.
     event_player_session {
         PLANE = concatcp!(event::PREFIX, "player", sep::PATH, "session", sep::PATH),
@@ -253,6 +260,12 @@ names! {
         PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "life", sep::PATH),
         STARTED = concatcp!(PLANE, "started"),
         STOPPING = concatcp!(PLANE, "stopping"),
+    }
+
+    /// `yog:event/server/command/…`; keyed by the command's name.
+    event_server_command {
+        PLANE = concatcp!(event::PREFIX, "server", sep::PATH, "command", sep::PATH),
+        RUN = concatcp!(PLANE, "run"),
     }
 
     /// `yog:event/server/net/…`; keyed by channel.

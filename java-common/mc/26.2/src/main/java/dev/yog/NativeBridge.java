@@ -1557,12 +1557,6 @@ public final class NativeBridge {
 
     public static native void nativeInit(String modsDir);
 
-    /** Names of mod-registered commands, one per line. */
-    public static native String nativeCommandNames();
-
-    /** Typed command schemas: `name\tschema` per line (only typed commands). */
-    public static native String nativeTypedCommandSchemas();
-
     /** Recipe JSONs: `namespace\tname\tJSON` per line. */
 
     /**
@@ -1625,8 +1619,6 @@ public final class NativeBridge {
     public static native String nativeMenuEntries();
     /** The mods' key bindings (ABI 3.10): {@code id\tname key\tdefault key\tmod name} a line. */
     public static native String nativeKeyBindings();
-    /** Run a registered command; returns the reply (empty string if none). */
-    public static native String nativeOnCommand(String name, String args, String source, String uuid, String dimension);
 
     /** Everything registered — items, blocks, inventories — as one Yog Data blob ({@code YogContent}). */
     public static native byte[] nativeContent();

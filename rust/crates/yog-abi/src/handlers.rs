@@ -14,15 +14,6 @@ use super::*;
 // the render thread and have no server context.
 
 
-/// Command handler.
-pub type YogCommandFn = unsafe extern "C" fn(
-    ud: *mut c_void,
-    srv: *const YogServer,
-    ev: *const YogCommandEvent,
-    reply_buf: *mut u8,
-    reply_cap: u32,
-    reply_len: *mut u32,
-);
 /// Scheduler handler (once or repeating).
 pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 

@@ -19,6 +19,7 @@ mod tests;
 
 pub mod block;
 pub mod client;
+pub mod command;
 pub mod container;
 pub mod entity;
 pub mod player;

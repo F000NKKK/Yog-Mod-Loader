@@ -5,6 +5,7 @@ import dev.yog.YogBus;
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** The bus's services: a record per call; {@code call} asks whoever provides it. */
@@ -49,6 +50,81 @@ public final class YogServices {
                     }
                 }
                 return YogData.bool(v, false);
+            }
+        }
+    }
+
+    /** `command`. */
+    public static final class Command {
+        private Command() {}
+
+        /** A command a mod handles: its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
+        public record Declare(String name, String schema) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("name", name);
+                if (schema != null) m.put("schema", schema);
+                return m;
+            }
+
+            public static Declare fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Declare(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
+            }
+
+            public static Declare fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceCommand.DECLARE);
+            }
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+
+        /** Every declared command, for the host to register. */
+        public record Declared() {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                return m;
+            }
+
+            public static Declared fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Declared();
+            }
+
+            public static Declared fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceCommand.DECLARED);
+            }
+
+            public List<YogTypes.Declare> call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.list(v).stream().map(e0 -> YogTypes.Declare.fromData(e0)).toList();
             }
         }
     }

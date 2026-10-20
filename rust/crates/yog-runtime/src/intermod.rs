@@ -46,8 +46,6 @@ pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *cons
         size: std::mem::size_of::<YogApi>() as u32,
         ctx: ctx as *mut c_void,
         server,
-        register_command: api_register_command,
-        register_typed_command: api_register_typed_command,
         register_content: api_register_content,
         schedule_once: api_schedule_once,
         schedule_repeating: api_schedule_repeating,

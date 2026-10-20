@@ -1,6 +1,9 @@
 package dev.yog;
 
 import com.mojang.brigadier.Command;
+import dev.yog.bus.YogEvents;
+import dev.yog.bus.YogServices;
+import dev.yog.bus.YogTypes;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -28,23 +31,15 @@ public final class YogCommands {
         // literal name into one command-tree node, so this produces one
         // root node with a sibling branch per distinct arg shape, instead
         // of collapsing them all down to whichever schema was seen last.
-        String schemaLines = NativeBridge.nativeTypedCommandSchemas();
-        if (schemaLines != null) {
-            for (String line : typedSchemaOrder(schemaLines)) {
-                if (line.isBlank()) continue;
-                int tab = line.indexOf('\t');
-                if (tab <= 0) continue;
-                String name   = line.substring(0, tab);
-                String schema = line.substring(tab + 1);
-                dispatcher.register(buildTypedCommand(name, schema.split("\\s+")));
-            }
+        java.util.List<YogTypes.Declare> declared = new YogServices.Command.Declared().call();
+        for (YogTypes.Declare d : typedSchemaOrder(declared)) {
+            if (d.schema() != null) dispatcher.register(buildTypedCommand(d.name(), d.schema().trim().isEmpty() ? new String[0] : d.schema().trim().split("\\s+")));
         }
 
         // Plain commands: greedy-string arg (or no args).
-        String names = NativeBridge.nativeCommandNames();
-        if (names == null || names.isBlank()) return;
-        for (String name : names.split("\n")) {
-            if (name.isBlank()) continue;
+        java.util.Set<String> plain = new java.util.LinkedHashSet<>();
+        for (YogTypes.Declare d : declared) if (d.schema() == null) plain.add(d.name());
+        for (String name : plain) {
             dispatcher.register(Commands.literal(name)
                     .executes(ctx -> runCommand(name, "", ctx))
                     .then(Commands.argument("args", StringArgumentType.greedyString())
@@ -84,10 +79,10 @@ public final class YogCommands {
         return "arg_" + index + "_" + type;
     }
 
-    /** Schema lines with greedy `string` args last: Brigadier tries a command's branches in registration order, so word chains go first. */
-    private static java.util.List<String> typedSchemaOrder(String lines) {
-        java.util.List<String> out = new java.util.ArrayList<>(java.util.Arrays.asList(lines.split("\n")));
-        out.sort(java.util.Comparator.comparing(l -> l.contains("string")));
+    /** Typed commands with greedy `string` args last: Brigadier tries a command's branches in registration order, so word chains go first. */
+    private static java.util.List<YogTypes.Declare> typedSchemaOrder(java.util.List<YogTypes.Declare> declared) {
+        java.util.List<YogTypes.Declare> out = new java.util.ArrayList<>(declared);
+        out.sort(java.util.Comparator.comparing(d -> d.schema() != null && d.schema().contains("string")));
         return out;
     }
 
@@ -139,7 +134,7 @@ public final class YogCommands {
         net.minecraft.world.entity.Entity entity = src.getEntity();
         String uuid = entity != null ? entity.getStringUUID() : "";
         String dim = src.getLevel().dimension().identifier().toString();
-        String reply = NativeBridge.nativeOnCommand(name, args, src.getTextName(), uuid, dim);
+        String reply = new YogEvents.Server.Command.Run(name, args, src.getTextName(), uuid, dim, null).emitChanged().reply();
         if (reply != null && !reply.isEmpty()) {
             src.sendSuccess(() -> Component.literal(reply), false);
         }

@@ -27,7 +27,7 @@ use libloading::Symbol;
 use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry};
 
 use yog_abi::{
-    ABI_VERSION, YogApi, YogBlockPos, YogCommandFn, YogGfxApi, YogHudRenderFn, YogOwnedStr,
+    ABI_VERSION, YogApi, YogBlockPos, YogGfxApi, YogHudRenderFn, YogOwnedStr,
     YogScheduledFn, YogServer, YogStr, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, ItemDef};

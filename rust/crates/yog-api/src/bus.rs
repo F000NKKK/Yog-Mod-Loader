@@ -152,7 +152,13 @@ impl Registry {
     /// Lets `handler` change every `E` before it's used (a loot table's
     /// items); each handler sees the one before's result.
     pub fn change<E: Event + 'static>(&mut self, handler: impl Fn(&mut E, &EventCx) + Send + Sync + 'static) {
-        self.changing::<E, _>(Arc::new(handler));
+        self.changing::<E, _>(E::ADDRESS, DEFAULT_PRIORITY, Arc::new(handler));
+    }
+
+    /// [`Registry::change`] for a keyed event's `key` only, at `priority`
+    /// among its handlers (higher first).
+    pub(crate) fn change_key_at<E: Event + 'static>(&mut self, key: &str, priority: i32, handler: impl Fn(&mut E, &EventCx) + Send + Sync + 'static) {
+        self.changing::<E, _>(&keyed(E::ADDRESS, key), priority, Arc::new(handler));
     }
 
     /// `handler` at `pre` (if any) and `post`.
@@ -177,20 +183,24 @@ impl Registry {
         self.subscribe::<E, F>(address, phase, handler, on_event::<E, F, R>);
     }
 
-    fn changing<E: Event + 'static, F>(&mut self, handler: Arc<F>)
+    fn changing<E: Event + 'static, F>(&mut self, address: &str, priority: i32, handler: Arc<F>)
     where
         F: Fn(&mut E, &EventCx) + Send + Sync + 'static,
     {
-        self.subscribe::<E, F>(E::ADDRESS, EventPhase::Post, handler, on_change::<E, F>);
+        self.subscribe_at::<E, F>(address, priority, EventPhase::Post, handler, on_change::<E, F>);
     }
 
     fn subscribe<E: 'static, F: Send + Sync + 'static>(&mut self, address: &str, phase: EventPhase, handler: Arc<F>, run: YogHandlerFn) {
+        self.subscribe_at::<E, F>(address, DEFAULT_PRIORITY, phase, handler, run);
+    }
+
+    fn subscribe_at<E: 'static, F: Send + Sync + 'static>(&mut self, address: &str, priority: i32, phase: EventPhase, handler: Arc<F>, run: YogHandlerFn) {
         let api = self.api();
         let bus = unsafe { &*api.bus };
         let sub = Box::into_raw(Box::new(Subscription { handler, server: api.server, phase, event: PhantomData::<fn(&E)> }));
         unsafe {
             let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
-            (bus.on)(bus.ctx, at, DEFAULT_PRIORITY, sub.cast::<c_void>(), run);
+            (bus.on)(bus.ctx, at, priority, sub.cast::<c_void>(), run);
         }
     }
 }

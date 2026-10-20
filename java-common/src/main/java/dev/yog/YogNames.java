@@ -105,6 +105,14 @@ public final class YogNames {
         public static final String INSERT = "yog:block/insert";
     }
 
+    public static final class ServiceCommand {
+        private ServiceCommand() {}
+
+        public static final String DOMAIN = "yog:command/";
+        public static final String DECLARE = "yog:command/declare";
+        public static final String DECLARED = "yog:command/declared";
+    }
+
     public static final class EventPlayerSession {
         private EventPlayerSession() {}
 
@@ -235,6 +243,13 @@ public final class YogNames {
         public static final String PLANE = "yog:event/server/life/";
         public static final String STARTED = "yog:event/server/life/started";
         public static final String STOPPING = "yog:event/server/life/stopping";
+    }
+
+    public static final class EventServerCommand {
+        private EventServerCommand() {}
+
+        public static final String PLANE = "yog:event/server/command/";
+        public static final String RUN = "yog:event/server/command/run";
     }
 
     public static final class EventServerNet {

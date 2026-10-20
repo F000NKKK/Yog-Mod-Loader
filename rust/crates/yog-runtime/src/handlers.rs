@@ -18,7 +18,6 @@ pub struct UiLayer {
 /// A tooltip picture's mod, user data, size and draw callbacks.
 pub(super) type TooltipEntry = (LoadedModule, *mut c_void, yog_abi::YogTooltipSizeFn, yog_abi::YogTooltipDrawFn);
 pub(super) type ItemTextEntry = (LoadedModule, *mut c_void, yog_abi::YogItemTextFn);
-pub(super) type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCommandFn);
 
 // Every callback table below is tagged with the `LoadedModule` that
 // registered it (see `current_registration()`), so a hot-reload's dispatch
@@ -37,16 +36,6 @@ pub(super) struct RuntimeHandlers {
     pub(super) camera: Vec<(LoadedModule, *mut c_void, yog_abi::YogCameraFn)>,
     pub(super) travel: Vec<(LoadedModule, *mut c_void, yog_abi::YogTravelFn)>,
     pub(super) world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
-    /// All handlers registered under one command name, in registration order.
-    /// `schema` is `None` for a plain `on_command` (bare, zero-argument)
-    /// registration and `Some(schema)` for `on_typed_command`. Kept as a
-    /// `Vec` (not a single slot) so a mod can register several subcommands —
-    /// e.g. differing arg counts, or several bare/typed registrations sharing
-    /// one top-level name — without later registrations silently clobbering
-    /// earlier ones (see `nativeOnCommand`, which tries each entry whose
-    /// schema's arg count matches the actual invocation, in order, until one
-    /// produces a reply).
-    pub(super) commands: HashMap<String, Vec<CommandEntry>>,
     /// (namespace, name, the recipe in Yog's own format).
     pub(super) recipes: Vec<(String, String, yog_data::Value)>,
     pub(super) items: Vec<ItemDef>,
@@ -215,9 +204,6 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         let h = &mut *h;
         for_each_handler_list!(h, |list| list
             .retain(|(m, ..)| m.generation() != generation));
-        for entries in h.commands.values_mut() {
-            entries.retain(|(m, ..)| m.generation() != generation);
-        }
         h.chunk_generators
             .retain(|_, (m, ..)| m.generation() != generation);
         h.ui_handlers

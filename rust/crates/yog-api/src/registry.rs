@@ -10,7 +10,7 @@
 use std::os::raw::c_void;
 
 use yog_abi::{
-    YogApi, YogCommandEvent, YogGfxApi,
+    YogApi, YogGfxApi,
     YogServer,
     YogStr, };
 use yog_formats::book::Book;
@@ -1251,40 +1251,6 @@ pub(crate) fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
 // Closures are Box::into_raw'd in Registry methods — they are INTENTIONALLY
 // leaked and live for the process lifetime.
 
-unsafe extern "C" fn trampoline_command<F>(
-    ud: *mut c_void,
-    srv: *const YogServer,
-    ev: *const YogCommandEvent,
-    reply_buf: *mut u8,
-    reply_cap: u32,
-    reply_len: *mut u32,
-) where
-    F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        let ev = &*ev;
-        let ctx = CommandContext {
-            name: ev.name.as_str().to_owned(),
-            args: ev.args.as_str().to_owned(),
-            source: ev.source.as_str().to_owned(),
-            uuid: ev.uuid.as_str().to_owned(),
-            dimension: ev.dimension.as_str().to_owned(),
-        };
-        *reply_len = 0;
-        if let Some(reply) = guard(None, || f(&ctx, &CServer(srv))) {
-            let bytes = reply.as_bytes();
-            // As much as fits, cut between characters (it's read as UTF-8).
-            let mut n = bytes.len().min(reply_cap as usize);
-            while !reply.is_char_boundary(n) {
-                n -= 1;
-            }
-            std::ptr::copy_nonoverlapping(bytes.as_ptr(), reply_buf, n);
-            *reply_len = n as u32;
-        }
-    }
-}
-
 unsafe extern "C" fn trampoline_scheduled<F>(ud: *mut c_void, srv: *const YogServer)
 where
     F: Fn(&dyn Server) + Send + Sync,
@@ -1643,9 +1609,7 @@ impl Registry {
     where
         F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
     {
-        let name_ys = YogStr::from_str(name.as_ref());
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).register_command)(self.ctx(), name_ys, ud, trampoline_command::<F>) }
+        self.command(name.as_ref(), None, handler);
     }
 
     /// Register a command with Brigadier-typed arguments.
@@ -1654,25 +1618,35 @@ impl Registry {
     /// `int`, `float`, `word`, `string` (greedy, must be last), `player`, `blockpos`.
     ///
     /// In the handler use `ctx.arg_int(0)`, `ctx.arg_blockpos(1)`, etc.
-    pub fn on_typed_command<F>(
-        &mut self,
-        name: impl AsRef<str>,
-        schema: impl AsRef<str>,
-        handler: F,
-    ) where
+    pub fn on_typed_command<F>(&mut self, name: impl AsRef<str>, schema: impl AsRef<str>, handler: F)
+    where
         F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
     {
-        let name_ys = YogStr::from_str(name.as_ref());
-        let schema_ys = YogStr::from_str(schema.as_ref());
-        let ud = Self::leak(handler);
-        unsafe {
-            ((*self.api).register_typed_command)(
-                self.ctx(),
-                name_ys,
-                schema_ys,
-                ud,
-                trampoline_command::<F>,
-            );
+        self.command(name.as_ref(), Some(schema.as_ref()), handler);
+    }
+
+    /// Declares command `name` with `schema` to the host, and answers its
+    /// runs that fit it — each way it takes arguments ranked as
+    /// [`yog_command::Fit::ORDER`] says, the first answer winning.
+    fn command<F>(&mut self, name: &str, schema: Option<&str>, handler: F)
+    where
+        F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync + 'static,
+    {
+        let declare = yog_event::command::Declare { name: name.to_owned(), schema: schema.map(str::to_owned) };
+        if self.call(&declare) != Some(true) {
+            crate::error!("command {name}: the host wasn't told of it");
+        }
+        let handler = std::sync::Arc::new(handler);
+        for &fit in yog_command::Fit::ways(schema) {
+            let (handler, schema) = (std::sync::Arc::clone(&handler), declare.schema.clone());
+            self.change_key_at::<yog_event::server::command::Run>(name, fit.rank() as i32, move |run, cx| {
+                if run.reply.is_some() {
+                    return;
+                }
+                let Some(args) = fit.take(schema.as_deref(), &run.args) else { return };
+                let ctx = CommandContext { name: run.name.clone(), args, source: run.source.clone(), uuid: run.uuid.clone(), dimension: run.dimension.clone() };
+                run.reply = handler(&ctx, cx.server());
+            });
         }
     }
 
@@ -2221,36 +2195,4 @@ unsafe extern "C" fn trampoline_chunk_generator<F>(
 /// Implemented by every Yog mod. Called once at startup to register handlers.
 pub trait Mod {
     fn register(registry: &mut Registry);
-}
-
-#[cfg(test)]
-mod trampoline_tests {
-    use super::*;
-    use yog_abi::YogCommandEvent;
-
-    fn ud<F>(f: &F) -> *mut c_void {
-        f as *const F as *mut c_void
-    }
-
-    fn command<F: Fn(&CommandContext, &dyn Server) -> Option<String> + Send + Sync>(f: &F, ev: &YogCommandEvent, buf: &mut [u8]) -> u32 {
-        let mut len = 99u32;
-        unsafe { trampoline_command::<F>(ud(f), std::ptr::null(), ev, buf.as_mut_ptr(), buf.len() as u32, &mut len) };
-        len
-    }
-
-    #[test]
-    fn command_replies_fit_the_buffer_whole_characters_only() {
-        let handler = |c: &CommandContext, _: &dyn Server| Some(format!("{}: привет", c.args));
-        let ev = YogCommandEvent {
-            name: YogStr::from_str("hex"),
-            args: YogStr::from_str("x"),
-            source: YogStr::from_str("Dev"),
-            uuid: YogStr::EMPTY,
-            dimension: YogStr::EMPTY,
-        };
-        let mut buf = [0u8; 6];
-        let len = command(&handler, &ev, &mut buf);
-        // "x: п" is 5 bytes; "пр" wouldn't fit whole in 6.
-        assert_eq!(std::str::from_utf8(&buf[..len as usize]), Ok("x: п"));
-    }
 }

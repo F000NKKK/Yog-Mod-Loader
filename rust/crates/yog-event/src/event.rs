@@ -80,6 +80,7 @@ events! {
     server::game::Tick => ids::event_server_game::TICK, None;
     server::life::Started => ids::event_server_life::STARTED, None;
     server::life::Stopping => ids::event_server_life::STOPPING, None;
+    server::command::Run => ids::event_server_command::RUN, None, key = name;
     server::net::Packet => ids::event_server_net::PACKET, None, key = channel;
     client::game::Tick => ids::event_client_game::TICK, None;
     client::input::Key => ids::event_client_input::KEY, Some(ids::event_client_input::KEY_PRE);

@@ -4,6 +4,10 @@
 //! `/<name> <args>`, its handler receives a [`CommandContext`] and may return a
 //! reply string sent back to the source.
 
+mod fit;
+
+pub use fit::{ARG_SEP, Fit, GREEDY};
+
 /// Details of a command invocation.
 #[derive(Debug, Clone)]
 pub struct CommandContext {
@@ -35,7 +39,7 @@ impl CommandContext {
         if self.args.is_empty() {
             vec![]
         } else {
-            self.args.split('\t').collect()
+            self.args.split(ARG_SEP).collect()
         }
     }
 
@@ -44,7 +48,7 @@ impl CommandContext {
         if self.args.is_empty() {
             return None;
         }
-        self.args.split('\t').nth(idx)
+        self.args.split(ARG_SEP).nth(idx)
     }
 
     /// Typed argument `idx` parsed as `i32`, or `None`.

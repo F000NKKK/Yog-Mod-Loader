@@ -49,4 +49,23 @@ public final class YogTypes {
             return fromData(YogData.decode(bytes));
         }
     }
+
+    /** A command a mod handles: its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
+    public record Declare(String name, String schema) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("name", name);
+            if (schema != null) m.put("schema", schema);
+            return m;
+        }
+
+        public static Declare fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new Declare(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
+        }
+
+        public static Declare fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
 }

@@ -17,8 +17,6 @@ use std::os::raw::c_void;
 
 mod primitives;
 pub use primitives::*;
-mod events;
-pub use events::*;
 mod handlers;
 pub use handlers::*;
 mod gfx;

@@ -22,41 +22,6 @@ macro_rules! api_event {
 api_event!(api_on_hud_render, hud_render, YogHudRenderFn);
 api_event!(api_on_world_render, world_render, YogWorldRenderFn);
 
-pub(super) unsafe extern "C" fn api_register_command(
-    ctx: *mut c_void,
-    name: YogStr,
-    ud: *mut c_void,
-    h: YogCommandFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        handlers
-            .commands
-            .entry(name.as_str().to_owned())
-            .or_default()
-            .push((current_registration(), None, ud, h));
-    }
-}
-
-pub(super) unsafe extern "C" fn api_register_typed_command(
-    ctx: *mut c_void,
-    name: YogStr,
-    schema: YogStr,
-    ud: *mut c_void,
-    h: YogCommandFn,
-) {
-    unsafe {
-        let mut handlers = handlers_mut(ctx);
-        let n = name.as_str().to_owned();
-        handlers.commands.entry(n).or_default().push((
-            current_registration(),
-            Some(schema.as_str().to_owned()),
-            ud,
-            h,
-        ));
-    }
-}
-
 /// The handlers a registration call writes into: `ctx` is the
 /// `RwLock<RuntimeHandlers>` the runtime handed the mod's `yog_mod_register`.
 /// A poisoned lock (a mod panicked mid-registration) is taken as it is —

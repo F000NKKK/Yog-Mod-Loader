@@ -4,7 +4,7 @@
 use std::os::raw::c_void;
 use std::sync::Arc;
 
-use yog_abi::{YogBytes, YogReply, YogStatus, YogStr, status};
+use yog_abi::{YogApi, YogBytes, YogReply, YogStatus, YogStr, status};
 use yog_event::{EventPhase, Message, Service, keyed};
 
 use crate::bus::{EventCx, Subscription};
@@ -65,7 +65,18 @@ pub fn call<S: Service>(request: &S) -> Option<S::Reply> {
     if api.is_null() {
         return None;
     }
-    let bus = unsafe { &*(*api).bus };
+    call_on(unsafe { &*api }, request)
+}
+
+impl Registry {
+    /// [`call`] while registering.
+    pub fn call<S: Service>(&self, request: &S) -> Option<S::Reply> {
+        call_on(self.api(), request)
+    }
+}
+
+fn call_on<S: Service>(api: &YogApi, request: &S) -> Option<S::Reply> {
+    let bus = unsafe { &*api.bus };
     let mut out = Vec::new();
     let st = unsafe {
         let at = (bus.resolve)(bus.ctx, YogStr::from_str(&request.target()));

@@ -20,17 +20,6 @@ pub struct YogApi {
     /// Stable server action table — pass to handlers.
     pub server: *const YogServer,
 
-    // ── commands ─────────────────────────────────────────────────────────────
-    pub register_command:
-        unsafe extern "C" fn(ctx: *mut c_void, name: YogStr, ud: *mut c_void, h: YogCommandFn),
-    pub register_typed_command: unsafe extern "C" fn(
-        ctx: *mut c_void,
-        name: YogStr,
-        schema: YogStr,
-        ud: *mut c_void,
-        h: YogCommandFn,
-    ),
-
     // ── content ──────────────────────────────────────────────────────────────
     /// Register content of `kind` (`item`, `block`, `inventory`, `recipe`,
     /// `book`, `dimension`, `startup_grant`) named `id`: its definition as
