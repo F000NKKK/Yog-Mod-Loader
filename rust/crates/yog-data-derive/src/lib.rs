@@ -325,6 +325,44 @@ fn decode_fields(fields: &[NamedField], ctor: Tokens) -> Option<Tokens> {
     })
 }
 
+/// A struct with named fields: an object.
+fn expand_named(named: &syn::FieldsNamed, shape_name: &str, doc: &str) -> syn::Result<Tokens> {
+    let krate = krate();
+    let fields = named_fields(named)?;
+    let shapes = field_shapes(&fields);
+    let read = read_fields(&fields, quote! { Self });
+    let idents: Vec<_> = fields.iter().map(|f| &f.ident).collect();
+    let write = write_fields(&fields);
+    let encode = encode_fields(&fields);
+    let decode = decode_fields(&fields, quote! { Self }).map(|body| quote! {
+        fn decode(__yog_d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
+            #body
+        }
+    });
+    Ok(quote! {
+        #[allow(unused_variables)]
+        fn encode(&self, __yog_w: &mut #krate::binary::Writer) {
+            let Self { #(#idents),* } = self;
+            #encode
+        }
+        #decode
+        fn shape() -> #krate::Shape {
+            #krate::Shape::Struct(#krate::schema::StructShape { name: #shape_name, doc: #doc, fields: #shapes })
+        }
+        fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
+            let map = cx.map(v)?;
+            #read
+        }
+        #[allow(unused_variables)]
+        fn write(&self) -> #krate::Value {
+            let Self { #(#idents),* } = self;
+            let mut m = #krate::Map::new();
+            #write
+            #krate::Value::Map(m)
+        }
+    })
+}
+
 fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
     let krate = krate();
     let name = &input.ident;
@@ -334,41 +372,7 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
     let doc = docs(&input.attrs);
     let body = match &input.data {
         Data::Struct(s) => match &s.fields {
-            Fields::Named(named) => {
-                let fields = named_fields(named)?;
-                let shapes = field_shapes(&fields);
-                let read = read_fields(&fields, quote! { Self });
-                let idents: Vec<_> = fields.iter().map(|f| &f.ident).collect();
-                let write = write_fields(&fields);
-                let encode = encode_fields(&fields);
-                let decode = decode_fields(&fields, quote! { Self }).map(|body| quote! {
-                    fn decode(__yog_d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
-                        #body
-                    }
-                });
-                quote! {
-                    #[allow(unused_variables)]
-                    fn encode(&self, __yog_w: &mut #krate::binary::Writer) {
-                        let Self { #(#idents),* } = self;
-                        #encode
-                    }
-                    #decode
-                    fn shape() -> #krate::Shape {
-                        #krate::Shape::Struct(#krate::schema::StructShape { name: #shape_name, doc: #doc, fields: #shapes })
-                    }
-                    fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
-                        let map = cx.map(v)?;
-                        #read
-                    }
-                    #[allow(unused_variables)]
-                    fn write(&self) -> #krate::Value {
-                        let Self { #(#idents),* } = self;
-                        let mut m = #krate::Map::new();
-                        #write
-                        #krate::Value::Map(m)
-                    }
-                }
-            }
+            Fields::Named(named) => expand_named(named, &shape_name, &doc)?,
             Fields::Unnamed(u) if u.unnamed.len() == 1 => {
                 let ty = &u.unnamed[0].ty;
                 quote! {
@@ -405,6 +409,42 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
             #body
         }
     })
+}
+
+/// An enum of unit variants (`names`: each one's ident and key): a string.
+fn expand_unit_enum(names: &[(&Ident, &String)], shape: Tokens) -> Tokens {
+    let krate = krate();
+    let keys = names.iter().map(|(_, key)| key);
+    let reads: Vec<_> = names.iter().map(|(ident, key)| quote! { #key => ::std::option::Option::Some(Self::#ident), }).collect();
+    let writes: Vec<_> = names.iter().map(|(ident, key)| quote! { Self::#ident => #key, }).collect();
+    quote! {
+        #shape
+        fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
+            let #krate::ValueRef::Str(s) = v else {
+                cx.expected("a name", v);
+                return ::std::option::Option::None;
+            };
+            match *s {
+                #(#reads)*
+                other => {
+                    cx.unknown_name(other, &[#(#keys),*]);
+                    ::std::option::Option::None
+                }
+            }
+        }
+        fn write(&self) -> #krate::Value {
+            #krate::Value::Str(::std::string::String::from(match self { #(#writes)* }))
+        }
+        fn encode(&self, w: &mut #krate::binary::Writer) {
+            w.str(match self { #(#writes)* });
+        }
+        fn decode(d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
+            match d.str()? {
+                #(#reads)*
+                _ => ::std::option::Option::None,
+            }
+        }
+    }
 }
 
 fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> syn::Result<Tokens> {
@@ -490,46 +530,8 @@ fn expand_enum(e: &syn::DataEnum, top: &Attrs, shape_name: &str, doc: &str) -> s
     };
 
     let Some(tag) = &top.tag else {
-        let reads = vs.iter().map(|v| {
-            let (ident, key) = (&v.ident, &v.key);
-            quote! { #key => ::std::option::Option::Some(Self::#ident), }
-        });
-        let writes: Vec<_> = vs.iter().map(|v| {
-            let (ident, key) = (&v.ident, &v.key);
-            quote! { Self::#ident => #key, }
-        }).collect();
-        let decodes = vs.iter().map(|v| {
-            let (ident, key) = (&v.ident, &v.key);
-            quote! { #key => ::std::option::Option::Some(Self::#ident), }
-        });
-        return Ok(quote! {
-            #shape
-            fn read(v: &#krate::ValueRef<'_>, cx: &mut #krate::Reader) -> ::std::option::Option<Self> {
-                let #krate::ValueRef::Str(s) = v else {
-                    cx.expected("a name", v);
-                    return ::std::option::Option::None;
-                };
-                match *s {
-                    #(#reads)*
-                    other => {
-                        cx.unknown_name(other, &[#(#keys),*]);
-                        ::std::option::Option::None
-                    }
-                }
-            }
-            fn write(&self) -> #krate::Value {
-                #krate::Value::Str(::std::string::String::from(match self { #(#writes)* }))
-            }
-            fn encode(&self, w: &mut #krate::binary::Writer) {
-                w.str(match self { #(#writes)* });
-            }
-            fn decode(d: &mut #krate::binary::Decoder<'_>) -> ::std::option::Option<Self> {
-                match d.str()? {
-                    #(#decodes)*
-                    _ => ::std::option::Option::None,
-                }
-            }
-        });
+        let names: Vec<(&Ident, &String)> = vs.iter().map(|v| (&v.ident, &v.key)).collect();
+        return Ok(expand_unit_enum(&names, shape));
     };
 
     let reads = vs.iter().map(|v| {

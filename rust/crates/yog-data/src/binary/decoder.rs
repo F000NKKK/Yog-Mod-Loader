@@ -269,13 +269,13 @@ impl<'b> Decoder<'b> {
     // ── Step by step, for a schema reading itself ───────────────────────────
 
     /// The next tag, if it's `t`: read.
-    fn expect(&mut self, t: u8) -> Option<()> {
+    fn next_is(&mut self, t: u8) -> Option<()> {
         (self.b.get(self.i) == Some(&t)).then(|| self.i += 1)
     }
 
     /// Whether a null is next: read if it is.
     pub fn null(&mut self) -> bool {
-        self.expect(tag::NULL).is_some()
+        self.next_is(tag::NULL).is_some()
     }
 
     pub fn bool(&mut self) -> Option<bool> {
@@ -289,7 +289,7 @@ impl<'b> Decoder<'b> {
     }
 
     pub fn int(&mut self) -> Option<i64> {
-        self.expect(tag::INT)?;
+        self.next_is(tag::INT)?;
         self.varint().ok().map(unzigzag)
     }
 
@@ -306,18 +306,18 @@ impl<'b> Decoder<'b> {
     }
 
     pub fn str(&mut self) -> Option<&'b str> {
-        self.expect(tag::STR)?;
+        self.next_is(tag::STR)?;
         self.string().ok()
     }
 
     pub fn bytes(&mut self) -> Option<&'b [u8]> {
-        self.expect(tag::BYTES)?;
+        self.next_is(tag::BYTES)?;
         self.length_bytes().ok()
     }
 
     /// A list next: how many values; [`Decoder::leave`] after them.
     pub fn list(&mut self) -> Option<usize> {
-        self.expect(tag::LIST)?;
+        self.next_is(tag::LIST)?;
         let n = self.count(1).ok()?;
         self.deeper().ok()?;
         Some(n)
@@ -325,7 +325,7 @@ impl<'b> Decoder<'b> {
 
     /// A packed list of ints next ([`Decoder::packed_int`] each): how many.
     pub fn ints(&mut self) -> Option<usize> {
-        self.expect(tag::INTS)?;
+        self.next_is(tag::INTS)?;
         self.count(1).ok()
     }
 
@@ -337,7 +337,7 @@ impl<'b> Decoder<'b> {
     /// A map next: how many entries, each a [`Decoder::key`] and a value;
     /// [`Decoder::leave`] after them.
     pub fn map(&mut self) -> Option<usize> {
-        self.expect(tag::MAP)?;
+        self.next_is(tag::MAP)?;
         let n = self.count(MAP_ENTRY_MIN).ok()?;
         self.deeper().ok()?;
         Some(n)
