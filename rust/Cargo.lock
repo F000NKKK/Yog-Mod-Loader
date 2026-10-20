@@ -1742,6 +1742,7 @@ dependencies = [
  "yog-player",
  "yog-registry",
  "yog-storage",
+ "yog-sync",
  "yog-ui",
  "yog-world",
 ]

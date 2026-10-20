@@ -28,7 +28,7 @@ fn layout_fingerprint() -> u64 {
 #[test]
 #[cfg(target_pointer_width = "64")]
 fn the_layout_matches_its_version() {
-    assert_eq!((ABI_VERSION, layout_fingerprint()), (40000, 0xce33_87fa_2b37_64eb), "layout fingerprint: {:#x}", layout_fingerprint());
+    assert_eq!((ABI_VERSION, layout_fingerprint()), (40000, 0xb4b7_eeff_426f_277b), "layout fingerprint: {:#x}", layout_fingerprint());
 }
 
 #[test]

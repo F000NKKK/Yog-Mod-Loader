@@ -12,10 +12,7 @@ use yog_sync::Locked;
 
 use super::{Handler, ROUTER};
 
-/// Before every mod's handler.
-const FIRST: i32 = i32::MAX;
-/// After every mod's handler.
-const LAST: i32 = i32::MIN;
+use yog_abi::priority::{FIRST, LAST};
 
 /// Runs the `fn(&E)` in `ud` on the payload.
 unsafe extern "C" fn run<E: Event>(ud: *mut c_void, payload: YogBytes, _reply: *const YogReply) -> YogStatus {

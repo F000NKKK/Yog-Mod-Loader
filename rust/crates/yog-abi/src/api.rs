@@ -29,19 +29,6 @@ pub struct YogApi {
     /// content — new kinds need no new ABI.
     pub register_content: unsafe extern "C" fn(ctx: *mut c_void, kind: YogStr, id: YogStr, data: *const u8, len: usize),
 
-    // ── scheduler ────────────────────────────────────────────────────────────
-    pub schedule_once: unsafe extern "C" fn(
-        ctx: *mut c_void,
-        delay_ticks: u64,
-        ud: *mut c_void,
-        h: YogScheduledFn,
-    ),
-    pub schedule_repeating: unsafe extern "C" fn(
-        ctx: *mut c_void,
-        period_ticks: u64,
-        ud: *mut c_void,
-        h: YogScheduledFn,
-    ),
 
     // ── ABI minor 10 — client-side events ────────────────────────────────────
     pub on_hud_render: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogHudRenderFn),

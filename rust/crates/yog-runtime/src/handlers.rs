@@ -85,64 +85,11 @@ pub(super) struct RuntimeHandlers {
     /// Granting happens on a server tick after join — giving items directly in
     /// the join callback fails for the host of a freshly created world.
     pub(super) pending_grants: Mutex<Vec<(String, String, u32)>>,
-    pub(super) scheduler: Mutex<SchedulerState>,
 }
 
 // All fn ptrs are C-ABI; ud pointers are from Box::into_raw of Send+Sync closures.
 unsafe impl Send for RuntimeHandlers {}
 unsafe impl Sync for RuntimeHandlers {}
-
-#[derive(Default)]
-pub(super) struct SchedulerState {
-    pub(super) once_tasks: Vec<OnceTask>,
-    pub(super) repeating_tasks: Vec<RepeatingTask>,
-}
-
-impl SchedulerState {
-    /// One server tick: the tasks due now — once tasks whose delay ran out
-    /// (`schedule_once(d)`: `d` ticks later, 0 and 1 meaning the next tick),
-    /// repeating ones whose period came round (`schedule_repeating(p)`:
-    /// every `p` ticks, 0 meaning every tick). Once tasks fired are gone.
-    pub(super) fn due(&mut self) -> Vec<(LoadedModule, *mut c_void, YogScheduledFn)> {
-        let mut out = Vec::new();
-        self.once_tasks.retain_mut(|t| {
-            if t.delay_remaining <= 1 {
-                out.push((t.module.clone(), t.ud, t.f));
-                false
-            } else {
-                t.delay_remaining -= 1;
-                true
-            }
-        });
-        for t in &mut self.repeating_tasks {
-            t.ticks_left = t.ticks_left.saturating_sub(1);
-            if t.ticks_left == 0 {
-                out.push((t.module.clone(), t.ud, t.f));
-                t.ticks_left = t.period.max(1);
-            }
-        }
-        out
-    }
-}
-
-pub(super) struct OnceTask {
-    pub(super) module: LoadedModule,
-    pub(super) delay_remaining: u64,
-    pub(super) ud: *mut c_void,
-    pub(super) f: YogScheduledFn,
-}
-pub(super) struct RepeatingTask {
-    pub(super) module: LoadedModule,
-    pub(super) period: u64,
-    pub(super) ticks_left: u64,
-    pub(super) ud: *mut c_void,
-    pub(super) f: YogScheduledFn,
-}
-
-unsafe impl Send for SchedulerState {}
-unsafe impl Sync for SchedulerState {}
-unsafe impl Send for OnceTask {}
-unsafe impl Send for RepeatingTask {}
 
 /// A mod callback, tagged with the module that registered it.
 pub(super) type Entry<F> = (LoadedModule, *mut c_void, F);
@@ -219,13 +166,5 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         for entries in h.item_tooltips.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }
-        h.scheduler
-            .locked()
-            .once_tasks
-            .retain(|t| t.module.generation() != generation);
-        h.scheduler
-            .locked()
-            .repeating_tasks
-            .retain(|t| t.module.generation() != generation);
     }
 }

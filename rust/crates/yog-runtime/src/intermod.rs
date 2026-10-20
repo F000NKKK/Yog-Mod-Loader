@@ -47,8 +47,6 @@ pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *cons
         ctx: ctx as *mut c_void,
         server,
         register_content: api_register_content,
-        schedule_once: api_schedule_once,
-        schedule_repeating: api_schedule_repeating,
         on_hud_render: api_on_hud_render,
         on_world_render: api_on_world_render,
         register_ui: api_register_ui,

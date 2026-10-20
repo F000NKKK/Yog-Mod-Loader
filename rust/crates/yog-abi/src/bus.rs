@@ -77,6 +77,19 @@ unsafe extern "C" fn append_to_vec(sink: *mut c_void, data: *const u8, len: usiz
     unsafe { (*sink.cast::<Vec<u8>>()).extend_from_slice(std::slice::from_raw_parts(data, len)) }
 }
 
+/// Where a subscriber runs among an event's (higher first; equal ones in
+/// the order they subscribed).
+pub mod priority {
+    /// Before every other handler (the runtime's cleanup for a new world).
+    pub const FIRST: i32 = i32::MAX;
+    /// Where a mod's handlers run unless they say otherwise.
+    pub const DEFAULT: i32 = 0;
+    /// After the mods' handlers (what they scheduled for the tick).
+    pub const LATE: i32 = i32::MIN + 1;
+    /// After everything (the runtime's flush of what the tick queued).
+    pub const LAST: i32 = i32::MIN;
+}
+
 /// How a call, an emit or a handler ended.
 pub type YogStatus = u32;
 

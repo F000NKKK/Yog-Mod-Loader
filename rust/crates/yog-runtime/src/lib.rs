@@ -28,7 +28,7 @@ use yog_hot_reload::{HotReloader, LoadedModule, ModuleGeneration, ModuleRegistry
 
 use yog_abi::{
     ABI_VERSION, YogApi, YogBlockPos, YogGfxApi, YogHudRenderFn, YogOwnedStr,
-    YogScheduledFn, YogServer, YogStr, YogVec3, YogWorldRenderFn,
+    YogServer, YogStr, YogVec3, YogWorldRenderFn,
 };
 use yog_registry::{BlockDef, ItemDef};
 use yog_sync::{Locked, ReadWrite};
@@ -68,7 +68,8 @@ use intermod::*;
 mod mod_loading;
 use mod_loading::*;
 mod jni_init;
-use jni_init::*;
+#[cfg(feature = "dev")]
+use jni_init::trigger_hot_reload;
 mod ticks;
 mod jni_server;
 mod jni_client;

@@ -2,14 +2,6 @@
 
 use super::*;
 
-// ── Dispatcher helpers ────────────────────────────────────────────────────────
-
-pub(super) fn srv_ptr() -> *const YogServer {
-    SERVER.get().expect("yog: SERVER not initialised") as *const YogServer
-}
-
-// ── JNI entry points ──────────────────────────────────────────────────────────
-
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     mut env: JNIEnv<'l>,

@@ -1251,16 +1251,6 @@ pub(crate) fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
 // Closures are Box::into_raw'd in Registry methods — they are INTENTIONALLY
 // leaked and live for the process lifetime.
 
-unsafe extern "C" fn trampoline_scheduled<F>(ud: *mut c_void, srv: *const YogServer)
-where
-    F: Fn(&dyn Server) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        guard((), || f(&CServer(srv)));
-    }
-}
-
 // ── ABI minor 10 — client-side trampolines ────────────────────────────────────
 
 unsafe extern "C" fn trampoline_hud_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
@@ -1906,33 +1896,6 @@ impl Registry {
         let id = YogStr::from_str(ui_id);
         let empty = YogStr::from_str("{}");
         unsafe { ((*self.api).register_ui)(self.ctx(), id, empty, ud, trampoline_ui_event::<F, R>) }
-    }
-
-    // ── scheduler ────────────────────────────────────────────────────────────
-
-    pub fn schedule_once<F>(&self, delay_ticks: u64, handler: F)
-    where
-        F: Fn(&dyn Server) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe {
-            ((*self.api).schedule_once)(self.ctx(), delay_ticks, ud, trampoline_scheduled::<F>);
-        }
-    }
-
-    pub fn schedule_repeating<F>(&self, period_ticks: u64, handler: F)
-    where
-        F: Fn(&dyn Server) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe {
-            ((*self.api).schedule_repeating)(
-                self.ctx(),
-                period_ticks,
-                ud,
-                trampoline_scheduled::<F>,
-            );
-        }
     }
 
     // ── client-side hooks (ABI minor 10) ─────────────────────────────────────

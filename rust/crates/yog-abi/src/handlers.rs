@@ -14,8 +14,6 @@ use super::*;
 // the render thread and have no server context.
 
 
-/// Scheduler handler (once or repeating).
-pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 
 // ── ABI minor 10 — client-side function pointer types ────────────────────────
 

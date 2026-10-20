@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use std::os::raw::c_void;
 use std::sync::Arc;
 
-use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogServer, YogStatus, YogStr, status};
+use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogServer, YogStatus, YogStr, priority, status};
 use yog_event::{Event, EventPhase, keyed};
 
 use crate::registry::{CServer, Registry, guard};
@@ -75,8 +75,6 @@ pub(crate) struct Subscription<E, F> {
     event: PhantomData<fn(&E)>,
 }
 
-/// The default order among an event's handlers.
-const DEFAULT_PRIORITY: i32 = 0;
 
 /// The bus's handler for subscription `ud`: the payload read as `E`, the
 /// mod's handler run; a cancel before the event stops it.
@@ -149,10 +147,18 @@ impl Registry {
         self.at::<E, _, R>(E::ADDRESS, EventPhase::Post, Arc::new(handler));
     }
 
+    /// [`Registry::after`] at `priority` among `E`'s handlers (higher first).
+    pub(crate) fn after_at<E: Event + 'static, R: IntoFlow + 'static, F>(&self, priority: i32, handler: F)
+    where
+        F: Fn(&E, &EventCx) -> R + Send + Sync + 'static,
+    {
+        self.subscribe_at::<E, F>(E::ADDRESS, priority, EventPhase::Post, Arc::new(handler), on_event::<E, F, R>);
+    }
+
     /// Lets `handler` change every `E` before it's used (a loot table's
     /// items); each handler sees the one before's result.
     pub fn change<E: Event + 'static>(&mut self, handler: impl Fn(&mut E, &EventCx) + Send + Sync + 'static) {
-        self.changing::<E, _>(E::ADDRESS, DEFAULT_PRIORITY, Arc::new(handler));
+        self.changing::<E, _>(E::ADDRESS, priority::DEFAULT, Arc::new(handler));
     }
 
     /// [`Registry::change`] for a keyed event's `key` only, at `priority`
@@ -191,10 +197,10 @@ impl Registry {
     }
 
     fn subscribe<E: 'static, F: Send + Sync + 'static>(&mut self, address: &str, phase: EventPhase, handler: Arc<F>, run: YogHandlerFn) {
-        self.subscribe_at::<E, F>(address, DEFAULT_PRIORITY, phase, handler, run);
+        self.subscribe_at::<E, F>(address, priority::DEFAULT, phase, handler, run);
     }
 
-    fn subscribe_at<E: 'static, F: Send + Sync + 'static>(&mut self, address: &str, priority: i32, phase: EventPhase, handler: Arc<F>, run: YogHandlerFn) {
+    fn subscribe_at<E: 'static, F: Send + Sync + 'static>(&self, address: &str, priority: i32, phase: EventPhase, handler: Arc<F>, run: YogHandlerFn) {
         let api = self.api();
         let bus = unsafe { &*api.bus };
         let sub = Box::into_raw(Box::new(Subscription { handler, server: api.server, phase, event: PhantomData::<fn(&E)> }));

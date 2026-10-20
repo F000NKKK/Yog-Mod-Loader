@@ -19,6 +19,7 @@ pub use service::call;
 mod interop;
 mod lang;
 mod registry;
+mod scheduler;
 mod service;
 
 pub use interop::Interop;

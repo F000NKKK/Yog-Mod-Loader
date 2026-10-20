@@ -187,52 +187,6 @@ pub(super) fn register_content(h: &mut RuntimeHandlers, kind: &str, id: String, 
 
 
 
-pub(super) unsafe extern "C" fn api_schedule_once(
-    ctx: *mut c_void,
-    delay_ticks: u64,
-    ud: *mut c_void,
-    h: YogScheduledFn,
-) {
-    unsafe {
-        let handlers = handlers_mut(ctx);
-        handlers
-            .scheduler
-            .locked()
-            .once_tasks
-            .push(OnceTask {
-                module: current_registration(),
-                delay_remaining: delay_ticks,
-                ud,
-                f: h,
-            });
-    }
-}
-
-pub(super) unsafe extern "C" fn api_schedule_repeating(
-    ctx: *mut c_void,
-    period_ticks: u64,
-    ud: *mut c_void,
-    h: YogScheduledFn,
-) {
-    unsafe {
-        let handlers = handlers_mut(ctx);
-        handlers
-            .scheduler
-            .locked()
-            .repeating_tasks
-            .push(RepeatingTask {
-                module: current_registration(),
-                period: period_ticks,
-                ticks_left: period_ticks.max(1),
-                ud,
-                f: h,
-            });
-    }
-}
-
-
-
-
 pub(super) unsafe extern "C" fn api_register_chunk_generator(
     ctx: *mut c_void,
     id: YogStr,

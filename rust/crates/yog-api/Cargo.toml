@@ -16,6 +16,7 @@ yog-data = { workspace = true, features = ["json"] }
 yog-abi = { workspace = true }
 yog-core = { workspace = true }
 yog-event = { workspace = true }
+yog-sync = { workspace = true }
 yog-world = { workspace = true }
 yog-entity = { workspace = true }
 yog-player = { workspace = true }

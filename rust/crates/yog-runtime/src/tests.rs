@@ -6,7 +6,7 @@ use std::ffi::c_void;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, RwLock};
 
-use yog_abi::{YogServer, YogStr};
+use yog_abi::YogStr;
 use yog_data::Schema;
 use yog_hot_reload::{GenerationAllocator, LoadedModule};
 
@@ -38,10 +38,6 @@ unsafe fn content(ctx: *mut c_void, kind: &str, id: &str, def: &yog_data::Value)
 
 fn json(text: &str) -> yog_data::Value {
     yog_data::json::from_json_text(text).unwrap()
-}
-
-unsafe extern "C" fn count_task(ud: *mut c_void, _: *const YogServer) {
-    unsafe { (*(ud as *const AtomicUsize)).fetch_add(1, Ordering::SeqCst) };
 }
 
 #[test]
@@ -111,27 +107,6 @@ fn blocks_and_inventories_arrive_as_their_definitions() {
     assert_eq!(h.blocks[0].shape, Some([0.0, 0.0, 0.0, 16.0, 8.0, 16.0]));
     assert_eq!(h.blocks[0].inventory_id.as_deref(), Some("mymod:box"));
     assert_eq!((h.inventories[0].slot_count, h.inventories[0].background_size), (3, Some((176.0, 120.0))));
-}
-
-#[test]
-fn scheduled_tasks_run_when_due() {
-    let fired = Box::new(AtomicUsize::new(0));
-    let ud = &*fired as *const AtomicUsize as *mut c_void;
-    let h = registering(|ctx| unsafe {
-        api_schedule_once(ctx, 0, ud, count_task);
-        api_schedule_once(ctx, 3, ud, count_task);
-        api_schedule_repeating(ctx, 2, ud, count_task);
-        api_schedule_repeating(ctx, 0, ud, count_task);
-    });
-    let h = h.read_locked();
-    let mut per_tick = Vec::new();
-    for _ in 0..6 {
-        let due = h.scheduler.locked().due();
-        per_tick.push(due.len());
-    }
-    // tick 1: once(0), every tick; 2: every 2, every tick; 3: once(3), every tick; …
-    assert_eq!(per_tick, [2, 2, 2, 2, 1, 2]);
-    assert!(h.scheduler.locked().once_tasks.is_empty(), "once tasks are gone once run");
 }
 
 type Ping = unsafe extern "C" fn(*mut c_void) -> bool;

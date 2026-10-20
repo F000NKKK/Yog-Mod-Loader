@@ -24,17 +24,6 @@ pub(crate) fn queue_startup_grants(player: &str, uuid: &str) {
 pub(crate) fn after_tick() {
     guard("startup_grants", process_pending_grants);
     guard("entity data", entity_data::flush);
-    let srv = srv_ptr();
-    let due = handlers().scheduler.locked().due();
-    for (module, ud, f) in due {
-        if module.is_retiring() {
-            continue;
-        }
-        let Some(_call) = module.enter() else {
-            continue;
-        };
-        guard("scheduled task", || unsafe { f(ud, srv) });
-    }
 }
 
 /// Try to fulfil pending startup grants. Called each server tick; a grant is
