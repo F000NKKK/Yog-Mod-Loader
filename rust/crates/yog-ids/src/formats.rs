@@ -92,6 +92,12 @@ pub fn model_file(path: &str) -> String {
     format!("{}{path}{}", res::MODELS, res::JSON)
 }
 
+/// Item `path`'s definition (1.21.4+): `apple` → `items/apple.json`.
+#[must_use]
+pub fn item_definition_file(path: &str) -> String {
+    format!("{}{path}{}", res::ITEM_DEFINITIONS, res::JSON)
+}
+
 /// Block `path`'s states' file: `stone` → `blockstates/stone.json`.
 #[must_use]
 pub fn blockstate_file(path: &str) -> String {

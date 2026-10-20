@@ -576,7 +576,7 @@ Yog-Mod-Loader/rust/crates/yog-runtime/benches/java/bus/dev/yog/BusProbe.java		t
 Yog-Mod-Loader/rust/crates/yog-runtime/benches/java/dev/yog/NativeBridge.java		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/benches/java/dev/yog/NativeDraw.java		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/benches/jni_calls.rs		todo
-Yog-Mod-Loader/rust/crates/yog-runtime/src/api_fns.rs	glob_imports:1	todo
+Yog-Mod-Loader/rust/crates/yog-runtime/src/api_fns.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/bench_support.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/bench_support/jvm.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/bus/arena.rs		todo
@@ -601,6 +601,7 @@ Yog-Mod-Loader/rust/crates/yog-runtime/src/gl_context.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/globals.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/gpu.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/handlers.rs		todo
+Yog-Mod-Loader/rust/crates/yog-runtime/src/hot_reload.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/images.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/intermod.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/jcall.rs		todo
@@ -608,7 +609,7 @@ Yog-Mod-Loader/rust/crates/yog-runtime/src/jni_client.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/jni_init.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/jni_server.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/jni_util.rs		todo
-Yog-Mod-Loader/rust/crates/yog-runtime/src/lib.rs	glob_imports:11	todo
+Yog-Mod-Loader/rust/crates/yog-runtime/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/logging.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/machine.rs		todo
 Yog-Mod-Loader/rust/crates/yog-runtime/src/machine_api.rs		todo

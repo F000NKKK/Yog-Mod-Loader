@@ -212,6 +212,20 @@ def functions(lines, lang):
     return out
 
 
+def const_fn_lines(lines):
+    """Lines inside Rust `const fn`s: a panic there is a compile error, not a runtime one."""
+    out, depth, inside = set(), 0, False
+    for i, l in enumerate(lines):
+        if not inside and re.search(r"\bconst\s+fn\b", l):
+            inside, depth = True, 0
+        if inside:
+            out.add(i)
+            depth += l.count("{") - l.count("}")
+            if depth <= 0 and "}" in l:
+                inside = False
+    return out
+
+
 def check(path, text):
     lang = path.rsplit(".", 1)[1]
     lang = "ts" if lang in ("ts", "tsx") else lang
@@ -225,11 +239,12 @@ def check(path, text):
             f.long_fns.append(f"{name}@{line}({length})")
         if params > MAX_PARAMS and "extern" not in lines[line - 1]:
             f.many_params.append(f"{name}@{line}({params})")
+    in_const_fn = const_fn_lines(lines) if lang == "rs" else set()
     for i, l in enumerate(lines[:tests]):
         code = l.split("//")[0] if lang != "java" or "//" in l else l
         if SILENCE.search(l) and "//" not in l and (i == 0 or "//" not in lines[i - 1]):
             f.silenced += 1
-        if lang == "rs" and PANIC.search(code):
+        if lang == "rs" and PANIC.search(code) and i not in in_const_fn:
             f.panics += 1
         # A command line tool's output is what it's for (CODE_STANDARDS: CLI output is exempt).
         if PRINT.search(code) and not CLI_OUTPUT.search(path):

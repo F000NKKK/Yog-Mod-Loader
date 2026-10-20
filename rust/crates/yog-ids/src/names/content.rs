@@ -298,6 +298,59 @@ names! {
         HUMANOID_LEGGINGS = "humanoid_leggings",
     }
 
+    /// The game's block state properties Yog's blocks get, and their values.
+    block_state {
+        /// The way a block faces: the four sides, or up and down too.
+        FACING = "facing",
+        NORTH = "north",
+        EAST = "east",
+        SOUTH = "south",
+        WEST = "west",
+        UP = "up",
+        DOWN = "down",
+        /// What an attached block hangs on.
+        FACE = "face",
+        FLOOR = "floor",
+        WALL = "wall",
+        CEILING = "ceiling",
+        /// Whether it stands in water.
+        WATERLOGGED = "waterlogged",
+        /// A yes/no property's values.
+        FALSE = "false",
+        TRUE = "true",
+    }
+
+    /// The fields and kinds of the game's loot tables (`data/<ns>/loot_table/…`).
+    loot {
+        TYPE = "type",
+        POOLS = "pools",
+        ROLLS = "rolls",
+        ENTRIES = "entries",
+        NAME = "name",
+        CONDITIONS = "conditions",
+        CONDITION = "condition",
+        FUNCTIONS = "functions",
+        FUNCTION = "function",
+        COUNT = "count",
+        MIN = "min",
+        MAX = "max",
+        BLOCK = "block",
+        PROPERTIES = "properties",
+        /// A block's table, and one nothing uses the way of.
+        BLOCK_TABLE = crate::id!(crate::ns::MINECRAFT, "block"),
+        GENERIC_TABLE = crate::id!(crate::ns::MINECRAFT, "generic"),
+        /// An entry of an item.
+        ITEM_ENTRY = crate::id!(crate::ns::MINECRAFT, "item"),
+        /// A number between `min` and `max`.
+        UNIFORM = crate::id!(crate::ns::MINECRAFT, "uniform"),
+        SET_COUNT = crate::id!(crate::ns::MINECRAFT, "set_count"),
+        EXPLOSION_DECAY = crate::id!(crate::ns::MINECRAFT, "explosion_decay"),
+        SURVIVES_EXPLOSION = crate::id!(crate::ns::MINECRAFT, "survives_explosion"),
+        BLOCK_STATE_PROPERTY = crate::id!(crate::ns::MINECRAFT, "block_state_property"),
+        /// Where blocks' tables are: `loot_table/blocks/<path>`.
+        BLOCKS = crate::concatcp!("blocks", crate::sep::PATH),
+    }
+
     /// The fields of a dimension as the build hands it to the runtime and
     /// the runtime to the host.
     dimension_field {
@@ -378,6 +431,23 @@ names! {
         APPLY = "apply",
         OR = "OR",
         AND = "AND",
+        /// How a block's model is drawn (Forge/NeoForge read it; Fabric ignores it).
+        RENDER_TYPE = "render_type",
+        /// An item sprite's layers: `layer0`, `layer1`, …
+        LAYER = "layer",
+        SHADE = "shade",
+        CULLFACE = "cullface",
+        TINTINDEX = "tintindex",
+        AMBIENT_OCCLUSION = "ambientocclusion",
+        GUI_LIGHT = "gui_light",
+        TRANSLATION = "translation",
+        SCALE = "scale",
+        /// The parent a block model of its own elements takes: how it's held and shown in a slot.
+        BLOCK_PARENT = crate::id!(crate::ns::MINECRAFT, "block/block"),
+        X = "x",
+        Y = "y",
+        UVLOCK = "uvlock",
+        WEIGHT = "weight",
     }
 
     /// The fields of Yog's content files (`.yblock`, `.yitem`, `.ydef`) the tools read directly.

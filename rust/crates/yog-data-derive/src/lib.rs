@@ -537,11 +537,34 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
         }
     };
     let view = view_of(input, &top)?;
+    let fields = fields_of(input)?;
     Ok(quote! {
         impl #impl_g #krate::Schema for #name #ty_g #where_g {
             #body
         }
         #view
+        #fields
+    })
+}
+
+/// A struct's fields by their Rust names, as files write them (`field!`).
+fn fields_of(input: &DeriveInput) -> syn::Result<Tokens> {
+    let krate = krate();
+    let name = &input.ident;
+    let (impl_g, ty_g, where_g) = input.generics.split_for_impl();
+    let Data::Struct(syn::DataStruct { fields: Fields::Named(named), .. }) = &input.data else {
+        return Ok(quote! {});
+    };
+    let pairs = named_fields(named)?.into_iter().map(|f| {
+        let ident = f.ident.to_string();
+        let ident = ident.trim_start_matches("r#");
+        let key = &f.key;
+        quote! { (#ident, #key) }
+    });
+    Ok(quote! {
+        impl #impl_g #krate::schema::Fields for #name #ty_g #where_g {
+            const FIELDS: &'static [(&'static str, &'static str)] = &[#(#pairs),*];
+        }
     })
 }
 

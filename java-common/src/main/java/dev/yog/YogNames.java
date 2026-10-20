@@ -860,6 +860,53 @@ public final class YogNames {
         public static final String HUMANOID_LEGGINGS = "humanoid_leggings";
     }
 
+    public static final class BlockState {
+        private BlockState() {}
+
+        public static final String FACING = "facing";
+        public static final String NORTH = "north";
+        public static final String EAST = "east";
+        public static final String SOUTH = "south";
+        public static final String WEST = "west";
+        public static final String UP = "up";
+        public static final String DOWN = "down";
+        public static final String FACE = "face";
+        public static final String FLOOR = "floor";
+        public static final String WALL = "wall";
+        public static final String CEILING = "ceiling";
+        public static final String WATERLOGGED = "waterlogged";
+        public static final String FALSE = "false";
+        public static final String TRUE = "true";
+    }
+
+    public static final class Loot {
+        private Loot() {}
+
+        public static final String TYPE = "type";
+        public static final String POOLS = "pools";
+        public static final String ROLLS = "rolls";
+        public static final String ENTRIES = "entries";
+        public static final String NAME = "name";
+        public static final String CONDITIONS = "conditions";
+        public static final String CONDITION = "condition";
+        public static final String FUNCTIONS = "functions";
+        public static final String FUNCTION = "function";
+        public static final String COUNT = "count";
+        public static final String MIN = "min";
+        public static final String MAX = "max";
+        public static final String BLOCK = "block";
+        public static final String PROPERTIES = "properties";
+        public static final String BLOCK_TABLE = "minecraft:block";
+        public static final String GENERIC_TABLE = "minecraft:generic";
+        public static final String ITEM_ENTRY = "minecraft:item";
+        public static final String UNIFORM = "minecraft:uniform";
+        public static final String SET_COUNT = "minecraft:set_count";
+        public static final String EXPLOSION_DECAY = "minecraft:explosion_decay";
+        public static final String SURVIVES_EXPLOSION = "minecraft:survives_explosion";
+        public static final String BLOCK_STATE_PROPERTY = "minecraft:block_state_property";
+        public static final String BLOCKS = "blocks/";
+    }
+
     public static final class DimensionField {
         private DimensionField() {}
 
@@ -934,6 +981,20 @@ public final class YogNames {
         public static final String APPLY = "apply";
         public static final String OR = "OR";
         public static final String AND = "AND";
+        public static final String RENDER_TYPE = "render_type";
+        public static final String LAYER = "layer";
+        public static final String SHADE = "shade";
+        public static final String CULLFACE = "cullface";
+        public static final String TINTINDEX = "tintindex";
+        public static final String AMBIENT_OCCLUSION = "ambientocclusion";
+        public static final String GUI_LIGHT = "gui_light";
+        public static final String TRANSLATION = "translation";
+        public static final String SCALE = "scale";
+        public static final String BLOCK_PARENT = "minecraft:block/block";
+        public static final String X = "x";
+        public static final String Y = "y";
+        public static final String UVLOCK = "uvlock";
+        public static final String WEIGHT = "weight";
     }
 
     public static final class ContentField {

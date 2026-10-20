@@ -4,11 +4,13 @@
 //! check, and describes itself ([`Shape`]) for Yog-IDLE's editors and the
 //! docs.
 
+mod fields;
 mod plain;
 mod reader;
 mod shape;
 mod typed_values;
 
+pub use fields::{Fields, field_name};
 pub use plain::*;
 pub use reader::*;
 pub use shape::*;
