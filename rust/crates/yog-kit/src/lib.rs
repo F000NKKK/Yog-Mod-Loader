@@ -153,7 +153,7 @@ pub enum ViewEvent {
 /// A compiled screen — implemented by `.yui` codegen only.
 ///
 /// The host owns the content tree; paths are child-index paths from its
-/// root ([`Widget::at_path`]).
+/// root ([`Widget::get_path`]).
 pub trait View: Sized + Send + 'static {
     type Vm: ViewModel;
     const META: ScreenMeta;

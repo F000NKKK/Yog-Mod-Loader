@@ -586,45 +586,46 @@ impl ::yog_kit::View for View {
     #[allow(unused_variables)]
     fn update(&mut self, root: &mut ::yog_api::ui::Widget, vm: &ModListVm, u: &mut ::yog_kit::Update) {
         // @yui mod_list.yui:15 text="@Strings.screen.title"
-        if let ::std::option::Option::Some(__v) = self.b0.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.screen.title")))) { root.at_path_mut(&[0, 0, 0]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+        if let ::std::option::Option::Some(__v) = self.b0.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.screen.title")))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 0, 0]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
         // @yui mod_list.yui:17 text="{x:Bind count_text()}"
-        if let ::std::option::Option::Some(__v) = self.b1.changed(::yog_kit::bind::text(&(vm.count_text()))) { root.at_path_mut(&[0, 0, 2]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+        if let ::std::option::Option::Some(__v) = self.b1.changed(::yog_kit::bind::text(&(vm.count_text()))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 0, 2]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
         // @yui mod_list.yui:27 text="{x:Bind search, Mode=TwoWay}"
         if let ::std::option::Option::Some(__v) = self.b2.changed(::yog_kit::bind::text(&(vm.search))) { u.set_text_box(0, __v); }
         // @yui mod_list.yui:27 placeholder="@Strings.search.placeholder"
-        if let ::std::option::Option::Some(__v) = self.b3.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.search.placeholder")))) { ::yog_kit::bind::set_placeholder(root.at_path_mut(&[0, 1, 0]), __v); u.repaint(); }
+        if let ::std::option::Option::Some(__v) = self.b3.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.search.placeholder")))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 0]) { ::yog_kit::bind::set_placeholder(__w, __v); u.repaint(); }
         // @yui mod_list.yui:32 text="@Strings.filter.all"
-        if let ::std::option::Option::Some(__v) = self.b4.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.all")))) { root.at_path_mut(&[0, 1, 1, 0]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+        if let ::std::option::Option::Some(__v) = self.b4.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.all")))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 1, 0]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
         // @yui mod_list.yui:32 checked="{x:Bind filter == Filter::All}"
-        if let ::std::option::Option::Some(__v) = self.b5.changed(::yog_kit::bind::flag(vm.filter == Filter::All)) { ::yog_kit::bind::set_checked(root.at_path_mut(&[0, 1, 1, 0]), *__v); u.repaint(); }
+        if let ::std::option::Option::Some(__v) = self.b5.changed(::yog_kit::bind::flag(vm.filter == Filter::All)) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 1, 0]) { ::yog_kit::bind::set_checked(__w, *__v); u.repaint(); }
         // @yui mod_list.yui:37 text="@Strings.filter.yog"
-        if let ::std::option::Option::Some(__v) = self.b6.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.yog")))) { root.at_path_mut(&[0, 1, 1, 1]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+        if let ::std::option::Option::Some(__v) = self.b6.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.yog")))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 1, 1]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
         // @yui mod_list.yui:37 checked="{x:Bind filter == Filter::Yog}"
-        if let ::std::option::Option::Some(__v) = self.b7.changed(::yog_kit::bind::flag(vm.filter == Filter::Yog)) { ::yog_kit::bind::set_checked(root.at_path_mut(&[0, 1, 1, 1]), *__v); u.repaint(); }
+        if let ::std::option::Option::Some(__v) = self.b7.changed(::yog_kit::bind::flag(vm.filter == Filter::Yog)) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 1, 1]) { ::yog_kit::bind::set_checked(__w, *__v); u.repaint(); }
         // @yui mod_list.yui:37 enabled="{x:Bind has(Filter::Yog)}"
-        if let ::std::option::Option::Some(__v) = self.b8.changed(::yog_kit::bind::flag(vm.has(Filter::Yog))) { root.at_path_mut(&[0, 1, 1, 1]).enabled = *__v; u.repaint(); }
+        if let ::std::option::Option::Some(__v) = self.b8.changed(::yog_kit::bind::flag(vm.has(Filter::Yog))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 1, 1]) { __w.enabled = *__v; u.repaint(); }
         // @yui mod_list.yui:43 text="@Strings.filter.platform"
-        if let ::std::option::Option::Some(__v) = self.b9.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.platform")))) { root.at_path_mut(&[0, 1, 1, 2]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+        if let ::std::option::Option::Some(__v) = self.b9.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.filter.platform")))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 1, 2]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
         // @yui mod_list.yui:43 checked="{x:Bind filter == Filter::Platform}"
-        if let ::std::option::Option::Some(__v) = self.b10.changed(::yog_kit::bind::flag(vm.filter == Filter::Platform)) { ::yog_kit::bind::set_checked(root.at_path_mut(&[0, 1, 1, 2]), *__v); u.repaint(); }
+        if let ::std::option::Option::Some(__v) = self.b10.changed(::yog_kit::bind::flag(vm.filter == Filter::Platform)) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 1, 2]) { ::yog_kit::bind::set_checked(__w, *__v); u.repaint(); }
         // @yui mod_list.yui:43 enabled="{x:Bind has(Filter::Platform)}"
-        if let ::std::option::Option::Some(__v) = self.b11.changed(::yog_kit::bind::flag(vm.has(Filter::Platform))) { root.at_path_mut(&[0, 1, 1, 2]).enabled = *__v; u.repaint(); }
+        if let ::std::option::Option::Some(__v) = self.b11.changed(::yog_kit::bind::flag(vm.has(Filter::Platform))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1, 1, 2]) { __w.enabled = *__v; u.repaint(); }
         // @yui mod_list.yui:51 items="{x:Bind visible()}"
         {
             let __sel = vm.selected_id();
-            let mut __it = self.l1.begin(root, u);
+            if let ::std::option::Option::Some(mut __it) = self.l1.begin(root, u) {
             for (index, item) in ::std::iter::IntoIterator::into_iter(vm.visible()).enumerate() {
                 let _ = (&index, &item);
                 let ::std::option::Option::Some(__row) = __it.next(::yog_kit::bind::key(&(item.id)), ::yog_kit::bind::is_selected(&__sel, &(item.id)), __T0::build) else { continue };
                 let ::yog_kit::items::Item { inst, w, u } = __row;
                 // @yui mod_list.yui:68 text="{x:Bind name}"
-                if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[0]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[0]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
                 // @yui mod_list.yui:73 text="{x:Bind subtitle()}"
-                if let ::std::option::Option::Some(__v) = inst.b1.changed(::yog_kit::bind::text(&(item.subtitle()))) { w.at_path_mut(&[1]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b1.changed(::yog_kit::bind::text(&(item.subtitle()))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[1]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
             }
             if let ::std::option::Option::Some((w, u)) = __it.finish(::std::option::Option::Some(__E0)) {
                 // @yui mod_list.yui:81 text="{x:Bind empty_text()}"
-                if let ::std::option::Option::Some(__v) = self.b12.changed(::yog_kit::bind::text(&(vm.empty_text()))) { w.at_path_mut(&[]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = self.b12.changed(::yog_kit::bind::text(&(vm.empty_text()))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+            }
             }
         }
         // @yui mod_list.yui:51 scroll_key="{x:Bind list_scope()}"
@@ -633,33 +634,34 @@ impl ::yog_kit::View for View {
         if self.b14.set(::yog_kit::bind::key(&(vm.selected_id()))) { u.reset_scroll(1); }
         // @yui mod_list.yui:89 content="{x:Bind selected()}"
         {
-            let mut __it = self.l2.begin(root, u);
+            if let ::std::option::Option::Some(mut __it) = self.l2.begin(root, u) {
             for (index, item) in ::std::iter::IntoIterator::into_iter(vm.selected()).enumerate() {
                 let _ = (&index, &item);
                 let ::std::option::Option::Some(__row) = __it.next(::yog_kit::bind::key(&(index)), false, __T1::build) else { continue };
                 let ::yog_kit::items::Item { inst, w, u } = __row;
                 // @yui mod_list.yui:92 text="{x:Bind name}"
-                if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[0]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[0]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
                 // @yui mod_list.yui:93 text="{x:Bind Strings::details_version(version)}"
-                if let ::std::option::Option::Some(__v) = inst.b1.changed(::yog_kit::bind::text(&(Strings::details_version(&item.version)))) { w.at_path_mut(&[1]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b1.changed(::yog_kit::bind::text(&(Strings::details_version(&item.version)))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[1]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
                 // @yui mod_list.yui:94 text="{x:Bind source.label()}"
-                if let ::std::option::Option::Some(__v) = inst.b2.changed(::yog_kit::bind::text(&(item.source.label()))) { w.at_path_mut(&[2]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b2.changed(::yog_kit::bind::text(&(item.source.label()))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[2]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
                 // @yui mod_list.yui:94 color="{x:Bind source.color()}"
-                if let ::std::option::Option::Some(__v) = inst.b3.changed(::yog_kit::bind::color(item.source.color())) { w.at_path_mut(&[2]).style.color = *__v; u.repaint(); }
+                if let ::std::option::Option::Some(__v) = inst.b3.changed(::yog_kit::bind::color(item.source.color())) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[2]) { __w.style.color = *__v; u.repaint(); }
                 // @yui mod_list.yui:95 text="{x:Bind authors_text()}"
-                if let ::std::option::Option::Some(__v) = inst.b4.changed(::yog_kit::bind::text(&(item.authors_text()))) { w.at_path_mut(&[3]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b4.changed(::yog_kit::bind::text(&(item.authors_text()))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[3]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
                 // @yui mod_list.yui:96 text="{x:Bind Strings::details_id(id)}"
-                if let ::std::option::Option::Some(__v) = inst.b5.changed(::yog_kit::bind::text(&(Strings::details_id(&item.id)))) { w.at_path_mut(&[4]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b5.changed(::yog_kit::bind::text(&(Strings::details_id(&item.id)))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[4]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
                 // @yui mod_list.yui:98 text="{x:Bind description_text()}"
-                if let ::std::option::Option::Some(__v) = inst.b6.changed(::yog_kit::bind::text(&(item.description_text()))) { w.at_path_mut(&[6]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b6.changed(::yog_kit::bind::text(&(item.description_text()))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[6]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
             }
             if let ::std::option::Option::Some((w, u)) = __it.finish(::std::option::Option::Some(__E1)) {
                 // @yui mod_list.yui:102 text="@Strings.details.none_selected"
-                if let ::std::option::Option::Some(__v) = self.b15.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.details.none_selected")))) { w.at_path_mut(&[]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = self.b15.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.details.none_selected")))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+            }
             }
         }
         // @yui mod_list.yui:107 text="@Strings.screen.done"
-        if let ::std::option::Option::Some(__v) = self.b16.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.screen.done")))) { root.at_path_mut(&[0, 2]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+        if let ::std::option::Option::Some(__v) = self.b16.changed(::yog_kit::bind::text(&(::yog_api::tr("gm.screen.done")))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 2]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
     }
 
     #[allow(unused_variables, clippy::let_unit_value, clippy::single_match, clippy::match_single_binding)]

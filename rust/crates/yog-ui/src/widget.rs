@@ -594,17 +594,6 @@ impl Widget {
         }
         Some(w)
     }
-    /// The descendant at `path`. Panics on a bad path — for generated code,
-    /// whose paths are fixed when it's generated.
-    pub fn at_path(&self, path: &[u16]) -> &Widget {
-        self.get_path(path)
-            .unwrap_or_else(|| panic!("yog-ui: no widget at path {path:?}"))
-    }
-    /// [`Self::at_path`], mutably.
-    pub fn at_path_mut(&mut self, path: &[u16]) -> &mut Widget {
-        self.get_path_mut(path)
-            .unwrap_or_else(|| panic!("yog-ui: no widget at path {path:?}"))
-    }
 
     /// Whether clicking it does something (an [`Action`] or `on_click`).
     pub fn is_interactive(&self) -> bool {

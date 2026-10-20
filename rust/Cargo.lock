@@ -2173,6 +2173,7 @@ version = "0.45.0"
 dependencies = [
  "criterion",
  "yog-abi",
+ "yog-data",
  "yog-gfx",
  "yog-ids",
  "yog-sync",

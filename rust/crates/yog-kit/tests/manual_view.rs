@@ -170,15 +170,19 @@ impl yog_kit::View for View {
     }
 
     fn update(&mut self, root: &mut Widget, vm: &Vm, u: &mut Update) {
-        if let Some(v) = self.b0.changed(bind::text(&vm.count_text())) {
-            root.at_path_mut(&[0, 0]).set_text(v.clone());
+        if let Some(v) = self.b0.changed(bind::text(&vm.count_text()))
+            && let Some(w) = root.get_path_mut(&[0, 0])
+        {
+            w.set_text(v.clone());
             u.relayout();
         }
         if let Some(v) = self.b1.changed(bind::text(&vm.search)) {
             u.set_text_box(0, v);
         }
-        if let Some(v) = self.b2.changed(bind::flag(vm.only_even)) {
-            bind::set_checked(root.at_path_mut(&[2]), *v);
+        if let Some(v) = self.b2.changed(bind::flag(vm.only_even))
+            && let Some(w) = root.get_path_mut(&[2])
+        {
+            bind::set_checked(w, *v);
             u.repaint();
         }
         if self.b3.set(bind::key(&(vm.only_even, vm.search.as_str()))) {
@@ -186,14 +190,18 @@ impl yog_kit::View for View {
         }
         {
             let sel = vm.selected_id();
-            let mut it = self.l0.begin(root, u);
+            let Some(mut it) = self.l0.begin(root, u) else {
+                return;
+            };
             for item in vm.visible() {
                 let selected = bind::is_selected(&sel, &item.0);
                 let Some(row) = it.next(bind::key(&item.0), selected, T0::build) else {
                     continue;
                 };
-                if let Some(v) = row.inst.b0.changed(bind::text(&item.0)) {
-                    row.w.at_path_mut(&[0]).set_text(v.clone());
+                if let Some(v) = row.inst.b0.changed(bind::text(&item.0))
+                    && let Some(w) = row.w.get_path_mut(&[0])
+                {
+                    w.set_text(v.clone());
                     row.u.relayout();
                 }
             }
@@ -203,7 +211,9 @@ impl yog_kit::View for View {
             }
         }
         {
-            let mut it = self.l1.begin(root, u);
+            let Some(mut it) = self.l1.begin(root, u) else {
+                return;
+            };
             for item in ::std::iter::IntoIterator::into_iter(vm.selected()) {
                 let Some(row) = it.next(bind::key(&item.0), false, T1::build) else {
                     continue;

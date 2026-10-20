@@ -139,31 +139,33 @@ impl ::yog_kit::View for View {
     #[allow(unused_variables)]
     fn update(&mut self, root: &mut ::yog_api::ui::Widget, vm: &Vm, u: &mut ::yog_kit::Update) {
         // @yui grid.yui:10 text="{x:Bind count_text()}"
-        if let ::std::option::Option::Some(__v) = self.b0.changed(::yog_kit::bind::text(&(vm.count_text()))) { root.at_path_mut(&[0, 0]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+        if let ::std::option::Option::Some(__v) = self.b0.changed(::yog_kit::bind::text(&(vm.count_text()))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 0]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
         // @yui grid.yui:11 items="{x:Bind visible()}"
         {
             let __sel = vm.selected_id();
-            let mut __it = self.l1.begin(root, u);
+            if let ::std::option::Option::Some(mut __it) = self.l1.begin(root, u) {
             for (index, item) in ::std::iter::IntoIterator::into_iter(vm.visible()).enumerate() {
                 let _ = (&index, &item);
                 let ::std::option::Option::Some(__row) = __it.next(::yog_kit::bind::key(&(item.name)), ::yog_kit::bind::is_selected(&__sel, &(item.name)), __T0::build) else { continue };
                 let ::yog_kit::items::Item { inst, w, u } = __row;
                 // @yui grid.yui:16 text="{x:Bind name}"
-                if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[0]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[0]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
             }
             __it.finish(::std::option::Option::None);
+            }
         }
         // @yui grid.yui:22 content="{x:Bind selected()}"
         {
-            let mut __it = self.l2.begin(root, u);
+            if let ::std::option::Option::Some(mut __it) = self.l2.begin(root, u) {
             for (index, item) in ::std::iter::IntoIterator::into_iter(vm.selected()).enumerate() {
                 let _ = (&index, &item);
                 let ::std::option::Option::Some(__row) = __it.next(::yog_kit::bind::key(&(index)), false, __T1::build) else { continue };
                 let ::yog_kit::items::Item { inst, w, u } = __row;
                 // @yui grid.yui:24 text="{x:Bind name}"
-                if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[]).set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
+                if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[]) { __w.set_text(::std::clone::Clone::clone(__v)); u.relayout(); }
             }
             __it.finish(::std::option::Option::None);
+            }
         }
     }
 

@@ -1,14 +1,14 @@
 //! Text wrapping utilities shared by layout (measuring) and render (drawing).
 //!
-//! Widths use Minecraft's default (ASCII) font advance table so that
-//! wrapping and centering match what the MC text renderer actually draws.
-//! Other fonts (`Style::font`: a Yog font, or a game font by Yog's alias
-//! such as `"yog:font/uniform"`) are measured by the host's text renderer once [`use_host_metrics`]
-//! has been called (`UiRoot::render` does it); before that, and outside a
-//! game, they fall back to the default font's table.
+//! Every font (`Style::font`: the game's default, a Yog font, or a game
+//! font by Yog's alias such as `"yog:font/uniform"`) is measured by the
+//! host's text renderer once [`use_host_metrics`] has been called
+//! (`UiRoot::render` does it) — what the game draws, resource packs and
+//! all. Before that, and outside a game, the default font's advances
+//! (`data/glyph_widths.ydata`, generated from the game's font) stand in.
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 use yog_gfx::{GfxContext, TextWidthFn};
 
@@ -22,28 +22,32 @@ pub const LINE_GAP: f32 = 1.0;
 /// Yog's alias of the game's default font — what an empty `Style::font` means.
 pub use yog_ids::yog::DEFAULT_FONT;
 
+/// The game's default font's advances, from [`FIRST_GLYPH`] to `'~'`.
+static GLYPH_WIDTHS: LazyLock<Vec<f32>> = LazyLock::new(|| {
+    yog_data::built_in("yog-ui's glyph widths", include_str!("../data/glyph_widths.ydata"))
+});
+/// The first character of [`GLYPH_WIDTHS`].
+const FIRST_GLYPH: char = ' ';
+
 /// Advance width in pixels (including 1px inter-glyph spacing) of one char
-/// in Minecraft's default ASCII font at GUI scale 1.
+/// in Minecraft's default font at GUI scale 1, as the game's font has it;
+/// beyond ASCII (glyphs vary) [`CHAR_W`].
 pub fn char_width(c: char) -> f32 {
-    match c {
-        ' ' => 4.0,
-        '!' | ',' | '.' | ':' | ';' | '|' | '\'' => 2.0,
-        'i' => 2.0,
-        'l' => 3.0,
-        '`' => 3.0,
-        '(' | ')' | '*' | '<' | '>' | '{' | '}' => 5.0,
-        'f' | 'k' => 5.0,
-        '"' => 5.0,
-        't' | '[' | ']' | 'I' => 4.0,
-        '@' | '~' => 7.0,
-        c if c.is_ascii() => 6.0,
-        _ => 6.0, // non-ASCII: MC unicode glyphs vary; 6 is a fair average
-    }
+    (c as usize)
+        .checked_sub(FIRST_GLYPH as usize)
+        .and_then(|i| GLYPH_WIDTHS.get(i))
+        .copied()
+        .unwrap_or(CHAR_W)
 }
 
 /// Whether `font` means the game's default font (empty or `yog:font/default`).
 pub fn is_default_font(font: &str) -> bool {
     font.is_empty() || font == DEFAULT_FONT
+}
+
+/// The font the host measures `font` in: the default by Yog's alias.
+fn host_font(font: &str) -> &str {
+    if font.is_empty() { DEFAULT_FONT } else { font }
 }
 
 /// Most `(font, char)` advances cached before the cache starts over.
@@ -91,7 +95,7 @@ static HOST: Mutex<HostMetrics> = Mutex::new(HostMetrics {
     cached: 0,
 });
 
-/// Lets non-default fonts be measured by the host's text renderer (see the
+/// Lets every font be measured by the host's text renderer (see the
 /// module docs). Called by `UiRoot::render`; call it yourself before the
 /// first layout to get exact metrics from the very first frame.
 pub fn use_host_metrics(ctx: &GfxContext) {
@@ -100,12 +104,10 @@ pub fn use_host_metrics(ctx: &GfxContext) {
     }
 }
 
-/// Advance width of `c` in `font` at scale 1 — the default font's table, or
-/// the host's measurement (cached) for any other font.
+/// Advance width of `c` in `font` at scale 1 — the host's measurement
+/// (cached), else the default font's table.
 pub fn char_width_in(c: char, font: &str) -> f32 {
-    if is_default_font(font) {
-        return char_width(c);
-    }
+    let font = host_font(font);
     HOST.lock()
         .ok()
         .and_then(|mut h| h.advance(c, font))
@@ -119,9 +121,7 @@ pub fn str_width(s: &str, font_scale: f32) -> f32 {
 
 /// [`str_width`] in `font` (see [`char_width_in`]).
 pub fn str_width_in(s: &str, font_scale: f32, font: &str) -> f32 {
-    if is_default_font(font) {
-        return str_width(s, font_scale);
-    }
+    let font = host_font(font);
     let Ok(mut h) = HOST.lock() else {
         return str_width(s, font_scale);
     };
@@ -328,10 +328,16 @@ mod tests {
             "a span's opening stays whole"
         );
         assert_eq!(
-            wrap_text("{{m}}{{m}}", 15.0, 1.0),
+            wrap_text("{{m}}{{m}}", 13.0, 1.0),
             ["{{m", "}}{{", "m}}"],
             "escaped braces are characters"
         );
+    }
+
+    #[test]
+    fn the_glyph_widths_read_whole() {
+        assert_eq!(GLYPH_WIDTHS.len(), '~' as usize - FIRST_GLYPH as usize + 1);
+        assert_eq!(char_width('i'), 2.0);
     }
 
     #[test]

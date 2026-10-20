@@ -569,6 +569,9 @@ struct VmGen<'a> {
     cmd_slots: HashMap<u16, u16>,
 }
 
+/// What generated code calls the widget a binding sets.
+const WIDGET: &str = "__w";
+
 fn path_lit(path: &[u16]) -> String {
     format!(
         "&[{}]",
@@ -760,7 +763,7 @@ impl VmGen<'_> {
         };
         let slot = self.slot(ctx, ty);
         let f = format!("{}{slot}", ctx.fields);
-        let w = format!("{}.at_path_mut({})", ctx.tree, path_lit(path));
+        let w = WIDGET;
         let apply = match t {
             Target::Text if kind == yog_ids::yui::TEXT_BOX => {
                 let Some(tb) = text_box else {
@@ -793,9 +796,19 @@ impl VmGen<'_> {
                 format!("u.reset_scroll({s});")
             }
         };
+        // What sets the widget reaches it by its path, there while the tree is as built.
+        let reach = if apply.contains(WIDGET) {
+            format!(
+                " && let ::std::option::Option::Some({WIDGET}) = {}.get_path_mut({})",
+                ctx.tree,
+                path_lit(path)
+            )
+        } else {
+            String::new()
+        };
         let _ = write!(
             ctx.update,
-            "        // @yui {}:{} {key}=\"{}\"\n        {} {{ {apply} }}\n",
+            "        // @yui {}:{} {key}=\"{}\"\n        {}{reach} {{ {apply} }}\n",
             self.file,
             el.line,
             b.raw.replace('\n', " "),
@@ -1257,7 +1270,7 @@ impl VmGen<'_> {
         let marker = format!("\u{1}resets{}\u{1}", self.n_slots);
         let _ = write!(
             ctx.update,
-            "        let mut __props = false;\n{sets}        if __props {{\n            #[allow(unused_imports)]\n            {UI_USE}\n            *{}.at_path_mut({}) = {expr};\n            u.relayout();{marker}\n        }}\n",
+            "        let mut __props = false;\n{sets}        if __props {{\n            #[allow(unused_imports)]\n            {UI_USE}\n            if let ::std::option::Option::Some({WIDGET}) = {}.get_path_mut({}) {{ *{WIDGET} = {expr}; }}\n            u.relayout();{marker}\n        }}\n",
             ctx.tree,
             path_lit(path),
         );
@@ -1437,7 +1450,7 @@ impl VmGen<'_> {
             }
             None => "false".into(),
         };
-        let _ = writeln!(u, "            let mut __it = self.{field}.begin(root, u);");
+        let _ = writeln!(u, "            if let ::std::option::Option::Some(mut __it) = self.{field}.begin(root, u) {{");
         let _ = writeln!(
             u,
             "            for (index, item) in ::std::iter::IntoIterator::into_iter({items}).enumerate() {{"
@@ -1471,7 +1484,7 @@ impl VmGen<'_> {
             }
             u.push_str("            }\n");
         }
-        u.push_str("        }\n");
+        u.push_str("            }\n        }\n");
         ctx.update.push_str(&u);
 
         // Selection write-back.
@@ -1868,13 +1881,13 @@ mod tests {
             ".color(::yog_api::ui::Color(0xFFFFD700))",
             r#".id("count")"#,
             "pub const COUNT: &str = \"count\";",
-            "if let ::std::option::Option::Some(__v) = self.b0.changed(::yog_kit::bind::text(&(vm.count_text()))) { root.at_path_mut(&[0, 0]).set_text(",
+            "if let ::std::option::Option::Some(__v) = self.b0.changed(::yog_kit::bind::text(&(vm.count_text()))) && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 0]) { __w.set_text(",
             r#"::yog_kit::bind::text(&(::yog_api::tr("mymod.title")))"#,
             ".state_style(::yog_api::ui::StateFlags::HOVER, ::yog_api::ui::StylePatch { bg: ::std::option::Option::Some(::yog_api::ui::Color(0xFF444444)), ..::std::default::Default::default() })",
             ".state_style(::yog_api::ui::StateFlags::CHECKED",
             ".action(::yog_api::ui::Action { owner: 0, slot: 0, index: 0 })",
             ".action(::yog_api::ui::Action { owner: 0, slot: 1, index: 0 })",
-            "::yog_kit::bind::set_checked(root.at_path_mut(&[0, 3]), *__v)",
+            " && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 3]) { ::yog_kit::bind::set_checked(__w, *__v)",
             "::yog_kit::bind::flag(vm.filter == Filter::Yog)",
             "slot: 0, .. }) => {\n                cx.close();",
             "slot: 1, .. }) => {\n                vm.set_filter(Filter::Yog);",
@@ -1910,8 +1923,8 @@ mod tests {
         for want in [
             r#"widget::surface("yog:none")"#,
             r#"widget::image("item:air")"#,
-            "::yog_kit::bind::set_source(root.at_path_mut(&[0, 0]), ",
-            "::yog_kit::bind::set_source(root.at_path_mut(&[0, 1]), ",
+            " && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 0]) { ::yog_kit::bind::set_source(__w, ",
+            " && let ::std::option::Option::Some(__w) = root.get_path_mut(&[0, 1]) { ::yog_kit::bind::set_source(__w, ",
         ] {
             assert!(code.contains(want), "missing {want}\n{code}");
         }
@@ -1975,7 +1988,7 @@ mod tests {
             "let __sel = vm.selected_id();",
             "for (index, item) in ::std::iter::IntoIterator::into_iter(vm.visible()).enumerate() {",
             "__it.next(::yog_kit::bind::key(&(item.id)), ::yog_kit::bind::is_selected(&__sel, &(item.id)), __T0::build)",
-            "if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) { w.at_path_mut(&[0]).set_text(",
+            "if let ::std::option::Option::Some(__v) = inst.b0.changed(::yog_kit::bind::text(&(item.name))) && let ::std::option::Option::Some(__w) = w.get_path_mut(&[0]) { __w.set_text(",
             "if let ::std::option::Option::Some((w, u)) = __it.finish(::std::option::Option::Some(__E0)) {",
             "self.b0.changed(::yog_kit::bind::text(&(vm.empty_text())))",
             ".action(::yog_api::ui::Action { owner: 1, slot: 0, index: 0 })",

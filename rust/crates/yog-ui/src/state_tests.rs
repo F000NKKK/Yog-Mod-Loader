@@ -50,10 +50,10 @@ fn deeper_actions_win_and_disabled_is_not_hit() {
     // Elsewhere in the row: the row itself.
     assert_eq!(hit_path(&node, 90.0, 15.0), Some(vec![1]));
     assert_eq!(hit_path(&node, 90.0, 90.0), None);
-    t.at_path_mut(&[1, 1]).enabled = false;
+    t.get_path_mut(&[1, 1]).unwrap().enabled = false;
     let node = layout::compute(&t, 400.0, 400.0);
     assert_eq!(hit_path(&node, btn.x + 1.0, btn.y + 1.0), Some(vec![1]));
-    t.at_path_mut(&[1]).visible = false;
+    t.get_path_mut(&[1]).unwrap().visible = false;
     let node = layout::compute(&t, 400.0, 400.0);
     assert_eq!(hit_path(&node, 90.0, 15.0), None);
 }

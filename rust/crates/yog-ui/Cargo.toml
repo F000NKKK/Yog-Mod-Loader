@@ -10,6 +10,7 @@ description = "Yog UI framework — flexbox and WPF-style grid layout + GPU rend
 [dependencies]
 yog-sync = { workspace = true }
 yog-ids = { workspace = true }
+yog-data = { workspace = true }
 yog-gfx = { workspace = true }
 yog-abi = { workspace = true }
 

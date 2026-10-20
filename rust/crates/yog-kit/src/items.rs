@@ -6,13 +6,16 @@
 //! Generated code drives it like this:
 //!
 //! ```ignore
-//! let mut it = self.l0.begin(root, u);
-//! for (index, item) in vm.visible().enumerate() {
-//!     let selected = bind::is_selected(&sel, &item.id);
-//!     let Some(row) = it.next(bind::key(&item.id), selected, __T0::build) else { continue };
-//!     if row.inst.b0.set(bind::text(&item.name)) { row.w.at_path_mut(&[0]).set_text(...); row.u.relayout(); }
+//! if let Some(mut it) = self.l0.begin(root, u) {
+//!     for (index, item) in vm.visible().enumerate() {
+//!         let selected = bind::is_selected(&sel, &item.id);
+//!         let Some(row) = it.next(bind::key(&item.id), selected, __T0::build) else { continue };
+//!         if let Some(v) = row.inst.b0.changed(bind::text(&item.name)) {
+//!             if let Some(w) = row.w.get_path_mut(&[0]) { w.set_text(v.clone()); row.u.relayout(); }
+//!         }
+//!     }
+//!     if let Some((w, u)) = it.finish(Some(__E0)) { /* empty-state bindings */ }
 //! }
-//! if let Some((w, u)) = it.finish(Some(__E0)) { /* empty-state bindings */ }
 //! ```
 
 use std::collections::HashMap;
@@ -68,9 +71,9 @@ impl<T> ItemsHost<T> {
     }
 
     /// Starts an update of the items under `root` (the tree `path` is
-    /// relative to).
-    pub fn begin<'a>(&'a mut self, root: &'a mut Widget, u: &'a mut Update) -> ItemsCursor<'a, T> {
-        let container = root.at_path_mut(self.path);
+    /// relative to); none when `root` has no widget there.
+    pub fn begin<'a>(&'a mut self, root: &'a mut Widget, u: &'a mut Update) -> Option<ItemsCursor<'a, T>> {
+        let container = root.get_path_mut(self.path)?;
         let mut old_children = std::mem::take(&mut container.children);
         if self.showing_empty {
             self.empty = old_children.pop();
@@ -98,7 +101,7 @@ impl<T> ItemsHost<T> {
         for ((key, inst), w) in self.insts.drain(..).zip(old_children) {
             old.entry(key).or_insert((inst, w));
         }
-        ItemsCursor {
+        Some(ItemsCursor {
             owner: self.owner,
             selectable: self.selectable,
             item_height: self.item_height,
@@ -114,7 +117,7 @@ impl<T> ItemsHost<T> {
             first_built: None,
             last_built: 0,
             selected: None,
-        }
+        })
     }
 }
 
@@ -273,7 +276,9 @@ mod tests {
         sel: u64,
     ) -> u32 {
         let mut built = 0;
-        let mut it = host.begin(root, u);
+        let Some(mut it) = host.begin(root, u) else {
+            return 0;
+        };
         for &k in keys {
             if let Some(item) = it.next(k, k == sel, row) {
                 let Row = item.inst;
