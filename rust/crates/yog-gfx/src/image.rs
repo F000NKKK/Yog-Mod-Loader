@@ -19,7 +19,6 @@
 //! This module is the shared definition (the runtime and Yog-IDLE's designer
 //! resolve with it); mods normally only pass strings.
 
-
 use std::sync::LazyLock;
 
 use yog_graphics::{Rect, Vec2};
@@ -199,7 +198,12 @@ impl Sprite {
         if let Some(a) = &self.atlas {
             out.push(SpriteSource::Atlas(yog_ids::qualify(a)));
         }
-        out.extend(self.legacy.iter().chain(&self.own).map(SpriteSource::Region));
+        out.extend(
+            self.legacy
+                .iter()
+                .chain(&self.own)
+                .map(SpriteSource::Region),
+        );
         out
     }
 }
@@ -216,10 +220,22 @@ pub enum SpriteSource<'a> {
 /// Yog's own assets (`yog:textures/gui/…`, `yog:models/item/…`), shipped in this crate's `res/`
 /// (a resource pack's layout: the hosts take the folder as resources).
 const OWN: &[(&str, &[u8])] = &[
-    ("textures/gui/panel.png", include_bytes!("../res/assets/yog/textures/gui/panel.png")),
-    ("models/item/spawn_egg.json", include_bytes!("../res/assets/yog/models/item/spawn_egg.json")),
-    ("textures/item/spawn_egg.png", include_bytes!("../res/assets/yog/textures/item/spawn_egg.png")),
-    ("textures/item/spawn_egg_overlay.png", include_bytes!("../res/assets/yog/textures/item/spawn_egg_overlay.png")),
+    (
+        "textures/gui/panel.png",
+        include_bytes!("../res/assets/yog/textures/gui/panel.png"),
+    ),
+    (
+        "models/item/spawn_egg.json",
+        include_bytes!("../res/assets/yog/models/item/spawn_egg.json"),
+    ),
+    (
+        "textures/item/spawn_egg.png",
+        include_bytes!("../res/assets/yog/textures/item/spawn_egg.png"),
+    ),
+    (
+        "textures/item/spawn_egg_overlay.png",
+        include_bytes!("../res/assets/yog/textures/item/spawn_egg_overlay.png"),
+    ),
 ];
 
 /// The bytes of Yog's own asset `path` (`textures/gui/panel.png`, `models/item/spawn_egg.json`), if it has one.
@@ -240,7 +256,10 @@ pub fn sprite_by_atlas(atlas: &str) -> Option<&'static Sprite> {
 /// The texture of GUI-atlas sprite `atlas` of namespace `ns`:
 /// `minecraft:textures/gui/sprites/<atlas>.png`.
 pub fn atlas_texture(ns: &str, atlas: &str) -> String {
-    yog_ids::join(ns, &yog_ids::texture_file(&format!("{}{atlas}", yog_ids::res::GUI_SPRITES)))
+    yog_ids::join(
+        ns,
+        &yog_ids::texture_file(&format!("{}{atlas}", yog_ids::res::GUI_SPRITES)),
+    )
 }
 
 /// A sprite as `assets/sprites.ydata` writes it.
@@ -267,7 +286,11 @@ struct LegacyDef {
 fn region(l: LegacyDef) -> LegacyRegion {
     let [u, v, w, h] = l.region;
     let side = l.texture_size.unwrap_or(LEGACY_TEX_SIZE);
-    LegacyRegion { texture: l.texture, region: Rect::new(u, v, w, h), texture_size: Vec2::new(side, side) }
+    LegacyRegion {
+        texture: l.texture,
+        region: Rect::new(u, v, w, h),
+        texture_size: Vec2::new(side, side),
+    }
 }
 
 /// Yog's GUI sprite names (`assets/sprites.ydata`).
@@ -301,6 +324,33 @@ pub enum Stretch {
     Uniform = 2,
     /// Covers the box, aspect ratio kept, centered; the overflow is cut.
     UniformToFill = 3,
+}
+
+impl Stretch {
+    /// Every stretch, with its name in `.yui` (`stretch="Fill"`).
+    pub const ALL: [(Stretch, &'static str); 4] = [
+        (Stretch::None, "None"),
+        (Stretch::Fill, "Fill"),
+        (Stretch::Uniform, "Uniform"),
+        (Stretch::UniformToFill, "UniformToFill"),
+    ];
+
+    /// Its name in `.yui`.
+    pub fn name(self) -> &'static str {
+        Self::ALL
+            .iter()
+            .find(|(s, _)| *s == self)
+            .map_or("", |(_, n)| n)
+    }
+
+    /// A stretch by its name, case and `_` ignored (`fill`, `uniform_to_fill`).
+    pub fn parse(name: &str) -> Option<Stretch> {
+        let wanted = name.trim().replace('_', "");
+        Self::ALL
+            .iter()
+            .find(|(_, n)| n.eq_ignore_ascii_case(&wanted))
+            .map(|(s, _)| *s)
+    }
 }
 
 /// Where an image of size `natural` goes in the box `bx` under `stretch`:
@@ -421,7 +471,10 @@ mod tests {
             sprite("hotbar_selection").unwrap().size(false),
             Vec2::new(24.0, 24.0)
         );
-        assert_eq!(sprite("hotbar_selection").unwrap().size(true), Vec2::new(24.0, 23.0));
+        assert_eq!(
+            sprite("hotbar_selection").unwrap().size(true),
+            Vec2::new(24.0, 23.0)
+        );
     }
 
     #[test]
@@ -430,14 +483,27 @@ mod tests {
         let bx = Rect::new(0.0, 0.0, 156.0, 29.0);
         let whole = Rect::new(0.0, 0.0, 1.0, 1.0);
         // 16×16 into 156×29.
-        assert_eq!(fit(Stretch::Uniform, icon, bx), (Rect::new(63.0, 0.0, 29.0, 29.0), whole));
-        assert_eq!(fit(Stretch::Fill, icon, Rect::new(1.0, 2.0, 156.0, 29.0)).0, Rect::new(1.0, 2.0, 156.0, 29.0));
-        assert_eq!(fit(Stretch::None, icon, bx).0, Rect::new(70.0, 6.0, 16.0, 16.0));
+        assert_eq!(
+            fit(Stretch::Uniform, icon, bx),
+            (Rect::new(63.0, 0.0, 29.0, 29.0), whole)
+        );
+        assert_eq!(
+            fit(Stretch::Fill, icon, Rect::new(1.0, 2.0, 156.0, 29.0)).0,
+            Rect::new(1.0, 2.0, 156.0, 29.0)
+        );
+        assert_eq!(
+            fit(Stretch::None, icon, bx).0,
+            Rect::new(70.0, 6.0, 16.0, 16.0)
+        );
         let (d, s) = fit(Stretch::UniformToFill, icon, bx);
         assert_eq!(d, bx);
         assert!((s.y - (156.0 - 29.0) / 2.0 / 156.0).abs() < 1e-5, "{s:?}");
         // None, bigger than the box: cut to it.
-        let (d, s) = fit(Stretch::None, Vec2::new(40.0, 10.0), Rect::new(0.0, 0.0, 20.0, 10.0));
+        let (d, s) = fit(
+            Stretch::None,
+            Vec2::new(40.0, 10.0),
+            Rect::new(0.0, 0.0, 20.0, 10.0),
+        );
         assert_eq!(d, Rect::new(0.0, 0.0, 20.0, 10.0));
         assert_eq!(s, Rect::new(0.25, 0.0, 0.5, 1.0));
     }

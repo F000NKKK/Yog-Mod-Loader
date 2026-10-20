@@ -122,7 +122,10 @@ impl Schema for CustomPage {
         for (k, x) in map.iter().filter(|(k, _)| *k != "type") {
             fields.insert(k, x.to_value());
         }
-        Some(CustomPage { kind: kind.to_string(), fields })
+        Some(CustomPage {
+            kind: kind.to_string(),
+            fields,
+        })
     }
 
     fn write(&self) -> Value {
@@ -160,7 +163,13 @@ pub fn present(v: &Value) -> bool {
 impl PageType {
     /// Field `name` of `page`, else the property's default.
     pub fn field<'a>(&'a self, page: &'a CustomPage, name: &str) -> Option<&'a Value> {
-        page.fields.get(name).or_else(|| self.properties.iter().find(|p| p.name == name)?.default.as_ref())
+        page.fields.get(name).or_else(|| {
+            self.properties
+                .iter()
+                .find(|p| p.name == name)?
+                .default
+                .as_ref()
+        })
     }
 
     /// `attr` with its bindings (`{x:Bind name}`) replaced by `page`'s words.
@@ -189,14 +198,19 @@ impl PageType {
         if let Some(name) = t.strip_prefix("{x:Bind ").and_then(|r| r.strip_suffix('}'))
             && !name.contains('{')
         {
-            return self.field(page, name.trim()).cloned().unwrap_or(Value::Null);
+            return self
+                .field(page, name.trim())
+                .cloned()
+                .unwrap_or(Value::Null);
         }
         Value::Str(self.text(page, attr))
     }
 
     /// Whether an element with `visible` shows on `page`.
     pub fn visible(&self, page: &CustomPage, visible: &Option<String>) -> bool {
-        visible.as_ref().is_none_or(|v| present(&self.value(page, v)))
+        visible
+            .as_ref()
+            .is_none_or(|v| present(&self.value(page, v)))
     }
 }
 
@@ -238,8 +252,13 @@ fn bindings(attr: &str) -> Vec<&str> {
 
 fn number(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> {
     match el.attr(key) {
-        Some(v) => v.trim().parse::<f32>().or_else(|_| err(el, format_args!("{key}=\"{v}\": a number of book pixels"))),
-        None => default.map(Ok).unwrap_or_else(|| err(el, format_args!("needs {key}=\"…\""))),
+        Some(v) => v
+            .trim()
+            .parse::<f32>()
+            .or_else(|_| err(el, format_args!("{key}=\"{v}\": a number of book pixels"))),
+        None => default
+            .map(Ok)
+            .unwrap_or_else(|| err(el, format_args!("needs {key}=\"…\""))),
     }
 }
 
@@ -247,7 +266,11 @@ fn number(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> 
 /// namespace, for a `book_page` written without one.
 pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
     let id = root.attr("book_page").unwrap_or_default().trim();
-    let id = if id.contains(':') { id.to_string() } else { format!("{ns}:{id}") };
+    let id = if id.contains(':') {
+        id.to_string()
+    } else {
+        format!("{ns}:{id}")
+    };
     let mut properties: Vec<PageProperty> = Vec::new();
     let mut body = Vec::new();
     // The elements may sit in one <Column>, as a component's body does.
@@ -262,7 +285,11 @@ pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
     for el in children {
         let attr = |k: &str| el.attr(k).map(str::to_string);
         let visible = attr("visible");
-        let text = || attr("text").map(Ok).unwrap_or_else(|| err(el, "needs text=\"…\""));
+        let text = || {
+            attr("text")
+                .map(Ok)
+                .unwrap_or_else(|| err(el, "needs text=\"…\""))
+        };
         let element = match el.name.as_str() {
             "Property" => {
                 let name = attr("name").unwrap_or_default();
@@ -270,7 +297,10 @@ pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
                     return err(el, format_args!("name=\"{name}\": empty or declared twice"));
                 }
                 if name == "type" || name == "anchor" {
-                    return err(el, format_args!("`{name}` is every page's own field — pick another name"));
+                    return err(
+                        el,
+                        format_args!("`{name}` is every page's own field — pick another name"),
+                    );
                 }
                 let ty = attr("type").unwrap_or_else(|| "text".into());
                 let Some((_, kind)) = KINDS.iter().find(|(k, _)| *k == ty) else {
@@ -279,31 +309,62 @@ pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
                 };
                 let default = match (attr("default"), kind) {
                     (None, _) => None,
-                    (Some(d), PropKind::Data | PropKind::Number | PropKind::Bool) => Some(
-                        yog_data::text::parse_value(&d).map_err(|e| format!("line {}: <Property> default=\"{d}\": {}", el.line, e.message))?,
-                    ),
+                    (Some(d), PropKind::Data | PropKind::Number | PropKind::Bool) => {
+                        Some(yog_data::text::parse_value(&d).map_err(|e| {
+                            format!(
+                                "line {}: <Property> default=\"{d}\": {}",
+                                el.line, e.message
+                            )
+                        })?)
+                    }
                     (Some(d), _) => Some(yog_data::Value::Str(d)),
                 };
-                properties.push(PageProperty { name, kind: *kind, default });
+                properties.push(PageProperty {
+                    name,
+                    kind: *kind,
+                    default,
+                });
                 continue;
             }
-            "BookHeader" => PageElement::Header { text: text()?, visible },
-            "BookText" => PageElement::Text { text: text()?, visible },
-            "BookItem" => PageElement::Item { item: attr("item").map(Ok).unwrap_or_else(|| err(el, "needs item=\"…\""))?, visible },
+            "BookHeader" => PageElement::Header {
+                text: text()?,
+                visible,
+            },
+            "BookText" => PageElement::Text {
+                text: text()?,
+                visible,
+            },
+            "BookItem" => PageElement::Item {
+                item: attr("item")
+                    .map(Ok)
+                    .unwrap_or_else(|| err(el, "needs item=\"…\""))?,
+                visible,
+            },
             "Image" => PageElement::Image {
-                image: attr("src").map(Ok).unwrap_or_else(|| err(el, "needs src=\"…\""))?,
+                image: attr("src")
+                    .map(Ok)
+                    .unwrap_or_else(|| err(el, "needs src=\"…\""))?,
                 height: number(el, "h", None)?,
                 visible,
             },
             "Drawn" => PageElement::Drawn {
-                drawer: attr("drawer").map(Ok).unwrap_or_else(|| err(el, "needs drawer=\"mymod:…\" (Registry::on_book_page)"))?,
+                drawer: attr("drawer").map(Ok).unwrap_or_else(|| {
+                    err(el, "needs drawer=\"mymod:…\" (Registry::on_book_page)")
+                })?,
                 height: number(el, "h", None)?,
                 data: attr("data").unwrap_or_default(),
                 visible,
             },
-            "Spacer" => PageElement::Spacer { height: number(el, "h", Some(4.0))? },
+            "Spacer" => PageElement::Spacer {
+                height: number(el, "h", Some(4.0))?,
+            },
             other => {
-                return err(el, format_args!("not a book page's element (`{other}`) — BookHeader, BookText, BookItem, Image, Drawn, Spacer"));
+                return err(
+                    el,
+                    format_args!(
+                        "not a book page's element (`{other}`) — BookHeader, BookText, BookItem, Image, Drawn, Spacer"
+                    ),
+                );
             }
         };
         body.push((el, element));
@@ -313,12 +374,19 @@ pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
         for (key, value) in &el.attrs {
             for name in bindings(value) {
                 if !properties.iter().any(|p| p.name == name) {
-                    return err(el, format_args!("{key}: `{name}` isn't a property of this page"));
+                    return err(
+                        el,
+                        format_args!("{key}: `{name}` isn't a property of this page"),
+                    );
                 }
             }
         }
     }
-    Ok(PageType { id, properties, body: body.into_iter().map(|(_, e)| e).collect() })
+    Ok(PageType {
+        id,
+        properties,
+        body: body.into_iter().map(|(_, e)| e).collect(),
+    })
 }
 
 #[cfg(test)]
@@ -335,20 +403,37 @@ mod tests {
         let t = PageType {
             id: "m:p".into(),
             properties: vec![
-                PageProperty { name: "input".into(), kind: PropKind::Text, default: Some(Value::from("")) },
-                PageProperty { name: "patterns".into(), kind: PropKind::Data, default: Some(Value::List(vec![])) },
+                PageProperty {
+                    name: "input".into(),
+                    kind: PropKind::Text,
+                    default: Some(Value::from("")),
+                },
+                PageProperty {
+                    name: "patterns".into(),
+                    kind: PropKind::Data,
+                    default: Some(Value::List(vec![])),
+                },
             ],
             body: vec![],
         };
         let p = page(r#"{"type":"m:p","input":"entity","patterns":[{"startdir":"EAST"}]}"#);
         assert_eq!(p.kind, "m:p");
-        assert_eq!(t.text(&p, "{u|{x:Bind input}} → {u|{x:Bind output}}"), "{u|entity} → {u|}");
+        assert_eq!(
+            t.text(&p, "{u|{x:Bind input}} → {u|{x:Bind output}}"),
+            "{u|entity} → {u|}"
+        );
         assert!(matches!(t.value(&p, "{x:Bind patterns}"), Value::List(l) if l.len() == 1));
         assert!(t.visible(&p, &Some("{x:Bind patterns}".into())));
         let bare = page(r#"{"type":"m:p"}"#);
-        assert!(!t.visible(&bare, &Some("{x:Bind patterns}".into())), "the default: an empty list");
+        assert!(
+            !t.visible(&bare, &Some("{x:Bind patterns}".into())),
+            "the default: an empty list"
+        );
         assert!(!t.visible(&bare, &Some("{x:Bind input}{x:Bind output}".into())));
-        let e = yog_data::read_value::<CustomPage>(&yog_data::json::from_json_text(r#"{"type":"nope"}"#).unwrap()).unwrap_err();
+        let e = yog_data::read_value::<CustomPage>(
+            &yog_data::json::from_json_text(r#"{"type":"nope"}"#).unwrap(),
+        )
+        .unwrap_err();
         assert!(e[0].message.contains("unknown page type `nope`"), "{e:?}");
     }
     #[test]
@@ -370,9 +455,20 @@ mod tests {
         assert_eq!(t.properties[1].default, Some(yog_data::Value::List(vec![])));
         assert!(matches!(&t.body[1], PageElement::Drawn { height, .. } if *height == 64.0));
 
-        let bad = crate::yui::parse(r#"<Component book_page="p"><BookText text="{x:Bind nope}"/></Component>"#).unwrap();
-        assert!(compile(&bad, "m").unwrap_err().contains("`nope` isn't a property"));
+        let bad = crate::yui::parse(
+            r#"<Component book_page="p"><BookText text="{x:Bind nope}"/></Component>"#,
+        )
+        .unwrap();
+        assert!(
+            compile(&bad, "m")
+                .unwrap_err()
+                .contains("`nope` isn't a property")
+        );
         let bad = crate::yui::parse(r#"<Component book_page="p"><Row/></Component>"#).unwrap();
-        assert!(compile(&bad, "m").unwrap_err().contains("not a book page's element"));
+        assert!(
+            compile(&bad, "m")
+                .unwrap_err()
+                .contains("not a book page's element")
+        );
     }
 }

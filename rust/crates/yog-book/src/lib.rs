@@ -11,7 +11,9 @@ pub mod theme;
 
 use yog_formats::book::BookEntry;
 
-pub use renderer::{BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG, PageDrawer};
+pub use renderer::{
+    BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG, PageDrawer,
+};
 pub use state::BookViewState;
 pub use theme::BookTheme;
 
@@ -50,5 +52,9 @@ pub fn ingredient_items(ingredient: &[String]) -> Vec<String> {
 /// Whether `entry` shows in the book's lists: not secret, and its
 /// advancement (if it waits for one) had.
 pub fn shown(entry: &BookEntry) -> bool {
-    !entry.secret && entry.advancement.as_deref().is_none_or(|a| UNLOCKED.get().is_none_or(|check| check(a)))
+    !entry.secret
+        && entry
+            .advancement
+            .as_deref()
+            .is_none_or(|a| UNLOCKED.get().is_none_or(|check| check(a)))
 }

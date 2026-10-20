@@ -10,7 +10,8 @@
 //! }
 //! ```
 
-use yog_core::{BlockPos, PROPERTY_IS, PROPERTY_SEP, join_state, split_state};
+use yog_core::{BlockPos, join_state, split_state};
+use yog_ids::sep::{PROPERTY_IS, PROPERTY_SEP};
 
 /// An entity, by its uuid: every action whose first field is `uuid`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -59,16 +60,24 @@ impl World {
     /// Property `name` of the block at `pos` (`"energized"` → `"true"`).
     pub fn property(&self, pos: BlockPos, name: &str) -> Option<String> {
         let state = self.state(pos)?;
-        split_state(&state).1.into_iter().find(|(k, _)| *k == name).map(|(_, v)| v.to_owned())
+        split_state(&state)
+            .1
+            .into_iter()
+            .find(|(k, _)| *k == name)
+            .map(|(_, v)| v.to_owned())
     }
 
     /// Sets some properties of the block at `pos` (`"energized=true,powered=false"`),
     /// keeping the rest; `false` if there's no block or the state doesn't take.
     pub fn set_properties(&self, pos: BlockPos, properties: &str) -> bool {
-        let Some(state) = self.state(pos) else { return false };
+        let Some(state) = self.state(pos) else {
+            return false;
+        };
         let (id, mut props) = split_state(&state);
         for pair in properties.split(PROPERTY_SEP).filter(|p| !p.is_empty()) {
-            let Some((k, v)) = pair.split_once(PROPERTY_IS) else { return false };
+            let Some((k, v)) = pair.split_once(PROPERTY_IS) else {
+                return false;
+            };
             match props.iter_mut().find(|(n, _)| *n == k) {
                 Some(p) => p.1 = v,
                 None => props.push((k, v)),

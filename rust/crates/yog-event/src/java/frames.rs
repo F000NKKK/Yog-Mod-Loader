@@ -11,26 +11,44 @@ use yog_data::schema::{EnumShape, StructShape};
 use super::field;
 use super::types::{F32_BITS, TYPES, fits_int, from_data, java_type, number_array, to_data};
 
-
 /// `pack`, `unpack`, `toFrame` and `fromFrame` for record `name` of `s`, indented by `pad`.
 pub(super) fn codec(name: &str, s: &StructShape, pad: &str) -> String {
     let mut out = String::new();
-    let _ = writeln!(out, "\n\n{pad}    public void pack(YogFrame.Packer p) {{\n{pad}        int at = p.begin();");
+    let _ = writeln!(
+        out,
+        "\n\n{pad}    public void pack(YogFrame.Packer p) {{\n{pad}        int at = p.begin();"
+    );
     for f in &s.fields {
-        let _ = writeln!(out, "{pad}        {}", pack(&(f.shape)(), &format!("this.{}", field(f.name)), 0));
+        let _ = writeln!(
+            out,
+            "{pad}        {}",
+            pack(&(f.shape)(), &format!("this.{}", field(f.name)), 0)
+        );
     }
     let _ = writeln!(out, "{pad}        p.end(at);\n{pad}    }}\n");
-    let _ = writeln!(out, "{pad}    public static {name} unpack(YogFrame.Unpacker u) {{\n{pad}        int end = u.begin();");
+    let _ = writeln!(
+        out,
+        "{pad}    public static {name} unpack(YogFrame.Unpacker u) {{\n{pad}        int end = u.begin();"
+    );
     let mut args = Vec::new();
     for f in &s.fields {
         let shape = (f.shape)();
         let local = format!("f_{}", field(f.name));
         // The field's own type: an empty list or a null takes it from there.
         let java = java_type(&shape, &mut Vec::new());
-        let _ = writeln!(out, "{pad}        {java} {local} = u.more(end) ? {} : {};", unpack(&shape, 0), missing(&shape));
+        let _ = writeln!(
+            out,
+            "{pad}        {java} {local} = u.more(end) ? {} : {};",
+            unpack(&shape, 0),
+            missing(&shape)
+        );
         args.push(local);
     }
-    let _ = writeln!(out, "{pad}        u.leave(end);\n{pad}        return new {name}({});\n{pad}    }}\n", args.join(", "));
+    let _ = writeln!(
+        out,
+        "{pad}        u.leave(end);\n{pad}        return new {name}({});\n{pad}    }}\n",
+        args.join(", ")
+    );
     let _ = writeln!(
         out,
         "{pad}    public byte[] toFrame() {{\n{pad}        YogFrame.Packer p = new YogFrame.Packer();\n{pad}        pack(p);\n{pad}        return p.finish();\n{pad}    }}\n"
@@ -65,9 +83,14 @@ pub(super) fn pack(shape: &Shape, value: &str, depth: usize) -> String {
         Shape::Str => format!("p.putStr({value});"),
         Shape::Atom => format!("p.putAtom({value});"),
         Shape::Bytes => format!("p.putBytes({value});"),
-        Shape::Optional(inner) => format!("p.putBool({value} != null); if ({value} != null) {{ {} }}", pack(&inner(), value, depth)),
+        Shape::Optional(inner) => format!(
+            "p.putBool({value} != null); if ({value} != null) {{ {} }}",
+            pack(&inner(), value, depth)
+        ),
         Shape::List(item) => match item() {
-            Shape::Int { min, max } if fits_int(min, max) => format!("p.putInts({value}, {});", min < 0),
+            Shape::Int { min, max } if fits_int(min, max) => {
+                format!("p.putInts({value}, {});", min < 0)
+            }
             Shape::Int { min, .. } => format!("p.putLongs({value}, {});", min < 0),
             Shape::Float { bits } if bits == F32_BITS => format!("p.putF32s({value});"),
             Shape::Float { .. } => format!("p.putF64s({value});"),
@@ -77,7 +100,10 @@ pub(super) fn pack(shape: &Shape, value: &str, depth: usize) -> String {
             ),
         },
         Shape::Struct(_) => format!("{value}.pack(p);"),
-        Shape::Enum(en) if en.tag.is_none() => format!("p.putU(switch ({value}) {{ {} default -> 0; }});", name_cases(en)),
+        Shape::Enum(en) if en.tag.is_none() => format!(
+            "p.putU(switch ({value}) {{ {} default -> 0; }});",
+            name_cases(en)
+        ),
         other => format!("p.putTagged({});", to_data(other, value, depth)),
     }
 }
@@ -102,7 +128,10 @@ pub(super) fn unpack(shape: &Shape, depth: usize) -> String {
             item => format!("YogFrame.list(u, () -> {})", boxed(&item, depth + 1)),
         },
         Shape::Struct(s) => format!("{TYPES}.{}.unpack(u)", s.name),
-        Shape::Enum(en) if en.tag.is_none() => format!("switch ((int) u.getU()) {{ {} default -> \"\"; }}", index_cases(en)),
+        Shape::Enum(en) if en.tag.is_none() => format!(
+            "switch ((int) u.getU()) {{ {} default -> \"\"; }}",
+            index_cases(en)
+        ),
         other => from_data(other, "u.getTagged()", depth),
     }
 }
@@ -111,9 +140,13 @@ pub(super) fn unpack(shape: &Shape, depth: usize) -> String {
 fn boxed(shape: &Shape, depth: usize) -> String {
     match shape {
         Shape::Bool => format!("Boolean.valueOf({})", unpack(shape, depth)),
-        Shape::Int { min, max } if fits_int(*min, *max) => format!("Integer.valueOf({})", unpack(shape, depth)),
+        Shape::Int { min, max } if fits_int(*min, *max) => {
+            format!("Integer.valueOf({})", unpack(shape, depth))
+        }
         Shape::Int { .. } => format!("Long.valueOf({})", unpack(shape, depth)),
-        Shape::Float { bits } if *bits == F32_BITS => format!("Float.valueOf({})", unpack(shape, depth)),
+        Shape::Float { bits } if *bits == F32_BITS => {
+            format!("Float.valueOf({})", unpack(shape, depth))
+        }
         Shape::Float { .. } => format!("Double.valueOf({})", unpack(shape, depth)),
         _ => unpack(shape, depth),
     }
@@ -136,9 +169,13 @@ pub(super) fn from_host(shape: &Shape, out: &str) -> String {
 /// [`from_host`] as an object.
 fn boxed_host(shape: &Shape, out: &str) -> String {
     match shape {
-        Shape::Int { min, max } if fits_int(*min, *max) => format!("Integer.valueOf({})", from_host(shape, out)),
+        Shape::Int { min, max } if fits_int(*min, *max) => {
+            format!("Integer.valueOf({})", from_host(shape, out))
+        }
         Shape::Int { .. } => format!("Long.valueOf({})", from_host(shape, out)),
-        Shape::Float { bits } if *bits == F32_BITS => format!("Float.valueOf({})", from_host(shape, out)),
+        Shape::Float { bits } if *bits == F32_BITS => {
+            format!("Float.valueOf({})", from_host(shape, out))
+        }
         Shape::Float { .. } => format!("Double.valueOf({})", from_host(shape, out)),
         _ => from_host(shape, out),
     }
@@ -153,21 +190,37 @@ pub(super) fn missing(shape: &Shape) -> String {
         Shape::Float { bits } if *bits == F32_BITS => "0.0f".into(),
         Shape::Float { .. } => "0.0".into(),
         Shape::Bytes => "new byte[0]".into(),
-        Shape::List(f) if let Some(array) = number_array(&f()) => format!("new {}0]", array.trim_end_matches(']')),
+        Shape::List(f) if let Some(array) = number_array(&f()) => {
+            format!("new {}0]", array.trim_end_matches(']'))
+        }
         Shape::List(_) => "java.util.List.of()".into(),
         Shape::Map(_) => "java.util.Map.of()".into(),
-        Shape::Enum(en) if en.tag.is_none() => format!("{:?}", en.variants.first().map_or("", |v| v.name)),
-        Shape::Str | Shape::Atom | Shape::Text | Shape::Image | Shape::Color | Shape::Res => "\"\"".into(),
+        Shape::Enum(en) if en.tag.is_none() => {
+            format!("{:?}", en.variants.first().map_or("", |v| v.name))
+        }
+        Shape::Str | Shape::Atom | Shape::Text | Shape::Image | Shape::Color | Shape::Res => {
+            "\"\"".into()
+        }
         _ => "null".into(),
     }
 }
 
 /// `case "name" -> index;` for each variant.
 fn name_cases(en: &EnumShape) -> String {
-    en.variants.iter().enumerate().map(|(i, v)| format!("case {:?} -> {i};", v.name)).collect::<Vec<_>>().join(" ")
+    en.variants
+        .iter()
+        .enumerate()
+        .map(|(i, v)| format!("case {:?} -> {i};", v.name))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// `case index -> "name";` for each variant.
 fn index_cases(en: &EnumShape) -> String {
-    en.variants.iter().enumerate().map(|(i, v)| format!("case {i} -> {:?};", v.name)).collect::<Vec<_>>().join(" ")
+    en.variants
+        .iter()
+        .enumerate()
+        .map(|(i, v)| format!("case {i} -> {:?};", v.name))
+        .collect::<Vec<_>>()
+        .join(" ")
 }

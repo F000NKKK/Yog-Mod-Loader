@@ -228,4 +228,3 @@ pub fn parse(src: &str) -> Result<Element, String> {
     }
     Ok(root)
 }
-

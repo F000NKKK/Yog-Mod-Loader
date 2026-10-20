@@ -13,9 +13,9 @@ mod address;
 mod call;
 mod event;
 mod handles;
-mod service;
 pub mod java;
 mod phase;
+mod service;
 #[cfg(test)]
 mod tests;
 
@@ -26,8 +26,8 @@ pub mod bus;
 pub mod chat;
 pub mod client;
 pub mod command;
-pub mod content;
 pub mod container;
+pub mod content;
 pub mod entity;
 pub mod game;
 pub mod item;
@@ -47,9 +47,9 @@ pub mod world;
 
 pub use address::{Address, Cached, NO_ADDRESS, resolve};
 pub use call::{Caller, call, set_caller};
-pub use handles::{Entity, Player, World};
 pub use event::{Event, EventInfo, all};
+pub use handles::{Entity, Player, World};
 pub use message::{Message, keyed};
-pub use service::{Service, ServiceInfo, services};
 pub use phase::EventPhase;
+pub use service::{Service, ServiceInfo, services};
 pub use yog_core::Point;

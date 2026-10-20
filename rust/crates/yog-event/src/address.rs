@@ -13,7 +13,11 @@ pub const NO_ADDRESS: Address = u32::MAX;
 
 /// `name`'s address.
 pub fn resolve(name: &str) -> Address {
-    if name.is_empty() { NO_ADDRESS } else { yog_data::Atom::new(name).number() }
+    if name.is_empty() {
+        NO_ADDRESS
+    } else {
+        yog_data::Atom::new(name).number()
+    }
 }
 
 /// A message type's address, resolved the first time it's asked for.

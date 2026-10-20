@@ -4,8 +4,8 @@
 use yog_data::{Schema, Shape};
 use yog_ids as ids;
 
-use crate::{block, bus, client, command, content, entity, game, item, key_binding, menu};
 use crate::message::{Message, branch, last_segment};
+use crate::{block, bus, client, command, content, entity, game, item, key_binding, menu};
 
 /// A call the bus carries: its payload is `Self`, its answer a [`Service::Reply`].
 pub trait Service: Message {

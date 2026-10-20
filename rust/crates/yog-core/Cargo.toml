@@ -9,4 +9,5 @@ license = "MIT OR Apache-2.0"
 description = "Yog core types and handles shared across all API modules."
 
 [dependencies]
+yog-ids = { workspace = true }
 yog-data = { workspace = true }

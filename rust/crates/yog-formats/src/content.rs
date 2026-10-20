@@ -6,8 +6,8 @@ use yog_data::kinds::Item;
 use yog_data::with::{Opt, RefTo};
 use yog_data::{Ordered, Reader, Schema, Shape, Text, Value, ValueRef};
 
-use yog_registry::ToolLadder;
 use crate::def::{ArmorMaterialKind, LevelKind, SoundGroupKind, ToolMaterialKind};
+use yog_registry::ToolLadder;
 
 /// Registered by `yog_api::content!()` (`auto`), or by the mod's code.
 #[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -120,7 +120,10 @@ impl ToolProps {
             "hoe" => (0.0, -1.0),
             _ => (1.0, -2.8),
         };
-        (self.attack_damage.unwrap_or(d), self.attack_speed.unwrap_or(s))
+        (
+            self.attack_damage.unwrap_or(d),
+            self.attack_speed.unwrap_or(s),
+        )
     }
 }
 
@@ -188,7 +191,10 @@ impl MaterialKind for ToolMaterialKind {
         yog_registry::ToolMaterial::built_in(name).map(|m| m.id.clone())
     }
     fn names() -> Vec<String> {
-        yog_registry::ToolMaterial::built_ins().iter().map(|m| m.id.trim_start_matches("minecraft:").to_string()).collect()
+        yog_registry::ToolMaterial::built_ins()
+            .iter()
+            .map(|m| m.id.trim_start_matches("minecraft:").to_string())
+            .collect()
     }
 }
 
@@ -197,7 +203,10 @@ impl MaterialKind for ArmorMaterialKind {
         yog_registry::ArmorMaterial::built_in(name).map(|m| m.id.clone())
     }
     fn names() -> Vec<String> {
-        yog_registry::ArmorMaterial::built_ins().iter().map(|m| m.id.trim_start_matches("minecraft:").to_string()).collect()
+        yog_registry::ArmorMaterial::built_ins()
+            .iter()
+            .map(|m| m.id.trim_start_matches("minecraft:").to_string())
+            .collect()
     }
 }
 
@@ -208,7 +217,11 @@ impl<K: MaterialKind> yog_data::with::With<String> for MaterialRef<K> {
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
             ValueRef::Str(s) if !s.starts_with('@') => K::built_in(s).or_else(|| {
-                cx.problem(format!("`{s}`: one of the game's ({}) — or a mod's, `@{}:mymod:…` (a .ydef)", K::names().join(", "), K::NAME));
+                cx.problem(format!(
+                    "`{s}`: one of the game's ({}) — or a mod's, `@{}:mymod:…` (a .ydef)",
+                    K::names().join(", "),
+                    K::NAME
+                ));
                 None
             }),
             _ => yog_data::with::RefTo::<K>::read(v, cx),
@@ -283,14 +296,19 @@ impl yog_data::with::With<String> for LevelRef {
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
-            ValueRef::Str(s) if !s.starts_with(yog_ids::sep::TYPED) => match ToolLadder::game().level(s) {
-                Some(l) => Some(l.id.clone()),
-                None => {
-                    let names: Vec<&str> = ToolLadder::game().ids().map(|id| yog_ids::split(id).1).collect();
-                    cx.problem(format!("`{s}`: one of {} — or a level of the tool ladder, `@level:mymod:…` (a .ydef)", names.join(", ")));
-                    None
+            ValueRef::Str(s) if !s.starts_with(yog_ids::sep::TYPED) => {
+                match ToolLadder::game().level(s) {
+                    Some(l) => Some(l.id.clone()),
+                    None => {
+                        let names: Vec<&str> = ToolLadder::game()
+                            .ids()
+                            .map(|id| yog_ids::split(id).1)
+                            .collect();
+                        cx.problem(format!("`{s}`: one of {} — or a level of the tool ladder, `@level:mymod:…` (a .ydef)", names.join(", ")));
+                        None
+                    }
                 }
-            },
+            }
             _ => yog_data::with::RefTo::<LevelKind>::read(v, cx),
         }
     }
@@ -308,13 +326,15 @@ impl yog_data::with::With<String> for SoundRef {
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         match v {
-            ValueRef::Str(s) if !s.starts_with('@') => match yog_registry::SoundGroup::built_in(s) {
-                Some(g) => Some(g.id.clone()),
-                None => {
-                    cx.problem(format!("`{s}`: not one of the game's sound groups (stone, wood, metal, amethyst…) — a mod's is `@sound_group:mymod:…` (a .ydef)"));
-                    None
+            ValueRef::Str(s) if !s.starts_with('@') => {
+                match yog_registry::SoundGroup::built_in(s) {
+                    Some(g) => Some(g.id.clone()),
+                    None => {
+                        cx.problem(format!("`{s}`: not one of the game's sound groups (stone, wood, metal, amethyst…) — a mod's is `@sound_group:mymod:…` (a .ydef)"));
+                        None
+                    }
                 }
-            },
+            }
             _ => yog_data::with::RefTo::<SoundGroupKind>::read(v, cx),
         }
     }
@@ -658,8 +678,14 @@ impl yog_data::with::With<String> for KindRef {
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
         let s = String::read(v, cx)?;
         if BlockKind::built_in(&s).is_none() {
-            let names: Vec<&str> = BlockKind::built_ins().iter().map(|k| k.name.as_str()).collect();
-            cx.problem(format!("`{s}`: one of the game's kinds of block — {}", names.join(", ")));
+            let names: Vec<&str> = BlockKind::built_ins()
+                .iter()
+                .map(|k| k.name.as_str())
+                .collect();
+            cx.problem(format!(
+                "`{s}`: one of the game's kinds of block — {}",
+                names.join(", ")
+            ));
             return None;
         }
         Some(s)
@@ -695,20 +721,29 @@ impl Schema for Texture {
                 }
                 Some(Texture::Slot(s[SLOT_MARK.len_utf8()..].to_string()))
             }
-            ValueRef::Ref { kind, id } if *kind == yog_ids::kind::TEXTURE => Some(Texture::Ref(yog_ids::qualify(id))),
-            ValueRef::Str(s) if s.starts_with(yog_ids::sep::TYPED) => match yog_data::typed::classify(s) {
-                Ok(Value::Ref(r)) if r.kind == yog_ids::kind::TEXTURE => Some(Texture::Ref(yog_ids::qualify(&r.id))),
-                Ok(_) => {
-                    cx.problem(format!("`{s}`: a texture is `#slot` or `@texture:<ns>:<path>` (a .ytexture, or the game's)"));
-                    None
+            ValueRef::Ref { kind, id } if *kind == yog_ids::kind::TEXTURE => {
+                Some(Texture::Ref(yog_ids::qualify(id)))
+            }
+            ValueRef::Str(s) if s.starts_with(yog_ids::sep::TYPED) => {
+                match yog_data::typed::classify(s) {
+                    Ok(Value::Ref(r)) if r.kind == yog_ids::kind::TEXTURE => {
+                        Some(Texture::Ref(yog_ids::qualify(&r.id)))
+                    }
+                    Ok(_) => {
+                        cx.problem(format!("`{s}`: a texture is `#slot` or `@texture:<ns>:<path>` (a .ytexture, or the game's)"));
+                        None
+                    }
+                    Err(e) => {
+                        cx.problem(e);
+                        None
+                    }
                 }
-                Err(e) => {
-                    cx.problem(e);
-                    None
-                }
-            },
+            }
             other => {
-                cx.expected("a texture: `#slot` or `@texture:<ns>:<path>` (a .ytexture, or the game's)", other);
+                cx.expected(
+                    "a texture: `#slot` or `@texture:<ns>:<path>` (a .ytexture, or the game's)",
+                    other,
+                );
                 None
             }
         }
@@ -1037,15 +1072,33 @@ mod tests {
         let kinds = BlockKind::built_ins();
         assert_eq!(kinds.len(), 8);
         for k in kinds {
-            let names = k.variants.0.iter().map(|(_, m)| m).chain(k.multipart.iter().map(|p| &p.apply)).map(|m| m.model.as_str());
+            let names = k
+                .variants
+                .0
+                .iter()
+                .map(|(_, m)| m)
+                .chain(k.multipart.iter().map(|p| &p.apply))
+                .map(|m| m.model.as_str());
             for name in names.chain(k.item.as_deref()) {
-                assert!(name == "base" && k.takes("base") || k.models.0.iter().any(|(n, _)| n == name), "{}: no model `{name}`", k.name);
+                assert!(
+                    name == "base" && k.takes("base") || k.models.0.iter().any(|(n, _)| n == name),
+                    "{}: no model `{name}`",
+                    k.name
+                );
             }
             for (n, _) in &k.models.0 {
                 assert_ne!(n, "base", "{}: `base` is block.base's model", k.name);
             }
-            assert!(k.takes.iter().all(|t| KIND_FIELDS.contains(&t.as_str())), "{}", k.name);
-            assert!(k.variants.0.is_empty() != k.multipart.is_empty(), "{}: variants or multipart", k.name);
+            assert!(
+                k.takes.iter().all(|t| KIND_FIELDS.contains(&t.as_str())),
+                "{}",
+                k.name
+            );
+            assert!(
+                k.variants.0.is_empty() != k.multipart.is_empty(),
+                "{}: variants or multipart",
+                k.name
+            );
         }
     }
 }

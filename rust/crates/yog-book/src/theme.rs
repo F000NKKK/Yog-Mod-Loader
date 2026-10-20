@@ -28,33 +28,47 @@ pub struct BookTheme {
     pub divider: Color,
 }
 
+/// The book's colours by default — Patchouli's where it has them
+/// (`textColor`, `headerColor`, `nameplateColor`).
+const FRAME: Color = Color(0xFF_2A1A08);
+const PARCHMENT: Color = Color(0xFF_F5E6C8);
+const PARCHMENT_GOLDEN: Color = Color(0xFF_EECF9A);
+const TEXT: Color = Color(0xFF_000000);
+const HEADER: Color = Color(0xFF_333333);
+const NAV: Color = Color(0xFF_5C4020);
+const AMBER: Color = Color(0xFF_C87820);
+const AMBER_TINT: Color = Color(0x50_C87820);
+const SPINE: Color = Color(0xFF_5C3A10);
+const NAMEPLATE: Color = Color(0xFF_FFDD98);
+
 impl Default for BookTheme {
     fn default() -> Self {
         Self {
-            // Patchouli defaults: textColor=000000, headerColor=333333,
-            // nameplateColor=FFDD98.
-            bg: Color(0xFF_2A1A08),              // dark brown outer frame
-            page_bg: Color(0xFF_F5E6C8),         // left page: warm cream parchment
-            page_bg_right: Color(0xFF_EECF9A),   // right page: slightly golden parchment
-            text: Color(0xFF_000000),            // body text (Patchouli textColor)
-            title: Color(0xFF_333333),           // headers (Patchouli headerColor)
-            nav: Color(0xFF_5C4020),             // nav links (unselected)
-            nav_selected: Color(0xFF_C87820),    // nav links (selected, amber)
-            nav_selected_bg: Color(0x50_C87820), // selected row tint (semi-transparent amber)
-            border: Color(0xFF_5C3A10),          // spine + divider lines
-            nameplate: Color(0xFF_FFDD98),       // book title color (Patchouli nameplateColor)
-            divider: Color(0xFF_333333),         // section headers ("Categories" etc.)
+            bg: FRAME,
+            page_bg: PARCHMENT,
+            page_bg_right: PARCHMENT_GOLDEN,
+            text: TEXT,
+            title: HEADER,
+            nav: NAV,
+            nav_selected: AMBER,
+            nav_selected_bg: AMBER_TINT,
+            border: SPINE,
+            nameplate: NAMEPLATE,
+            divider: HEADER,
         }
     }
 }
+
+/// What a hex colour starts with.
+const HASH: char = '#';
 
 impl BookTheme {
     /// Override nameplate color from the book's hex string (e.g. "0066cc").
     /// Like Patchouli, this only affects the nameplate text — headers keep
     /// their own headerColor.
     pub fn with_nameplate(mut self, hex: &str) -> Self {
-        if let Some(c) = Color::parse(&format!("#{}", hex.trim_start_matches('#'))) {
-            self.nameplate = c.with_alpha(0xff);
+        if let Some(c) = Color::parse(&format!("{HASH}{}", hex.trim_start_matches(HASH))) {
+            self.nameplate = c.with_alpha(u8::MAX);
         }
         self
     }

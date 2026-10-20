@@ -66,12 +66,7 @@ pub fn resolve_mod(source: &str) -> String {
 
 /// `stretch` attribute → [`Stretch`] (case-insensitive, like `yog build`).
 pub fn stretch(v: &str) -> Stretch {
-    match v.trim().to_ascii_lowercase().as_str() {
-        "none" => Stretch::None,
-        "fill" => Stretch::Fill,
-        "uniformtofill" | "uniform_to_fill" => Stretch::UniformToFill,
-        _ => Stretch::Uniform,
-    }
+    Stretch::parse(v).unwrap_or_default()
 }
 
 /// `uv="u v w h"`.

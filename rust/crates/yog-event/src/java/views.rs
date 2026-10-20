@@ -35,8 +35,13 @@ enum Kept<'a> {
 fn kept<'a>(shape: &'a Shape, item: &'a Option<Shape>) -> Kept<'a> {
     match (shape, item) {
         (Shape::Struct(s), _) => Kept::Record(s),
-        (Shape::List(_), Some(Shape::Int { min, max })) => Kept::Ints { signed: *min < 0, wide: !fits_int(*min, *max) },
-        (Shape::List(_), Some(Shape::Float { bits })) => Kept::Floats { f32: *bits == F32_BITS },
+        (Shape::List(_), Some(Shape::Int { min, max })) => Kept::Ints {
+            signed: *min < 0,
+            wide: !fits_int(*min, *max),
+        },
+        (Shape::List(_), Some(Shape::Float { bits })) => Kept::Floats {
+            f32: *bits == F32_BITS,
+        },
         (Shape::List(_), Some(Shape::Struct(s))) => Kept::Records(s),
         _ => Kept::Decoded,
     }
@@ -49,7 +54,11 @@ pub(super) fn view(name: &str, s: &StructShape, pad: &str) -> String {
         .iter()
         .map(|f| {
             let shape = (f.shape)();
-            let item = if let Shape::List(i) = &shape { Some(i()) } else { None };
+            let item = if let Shape::List(i) = &shape {
+                Some(i())
+            } else {
+                None
+            };
             (field(f.name), shape, item)
         })
         .collect();
@@ -60,11 +69,17 @@ pub(super) fn view(name: &str, s: &StructShape, pad: &str) -> String {
     );
     for (k, (_, shape, item)) in fields.iter().enumerate() {
         let _ = write!(out, "\n{pad}        private final int o{k};");
-        if matches!(kept(shape, item), Kept::Ints { .. } | Kept::Floats { .. } | Kept::Records(_)) {
+        if matches!(
+            kept(shape, item),
+            Kept::Ints { .. } | Kept::Floats { .. } | Kept::Records(_)
+        ) {
             let _ = write!(out, "\n{pad}        private final int h{k}, n{k}, b{k};");
         }
     }
-    let _ = write!(out, "\n\n{pad}        public View(YogFrame.Unpacker u) {{\n{pad}            this.u = u;\n{pad}            int end = u.begin();");
+    let _ = write!(
+        out,
+        "\n\n{pad}        public View(YogFrame.Unpacker u) {{\n{pad}            this.u = u;\n{pad}            int end = u.begin();"
+    );
     for (k, (_, shape, item)) in fields.iter().enumerate() {
         let _ = write!(out, "\n{pad}            {}", step(k, shape, item));
     }
@@ -85,7 +100,11 @@ fn step(k: usize, shape: &Shape, item: &Option<Shape>) -> String {
             );
         }
         Kept::Floats { f32 } => {
-            let narrow = if f32 { "1".to_owned() } else { "u.getBool() ? 1 : 0".to_owned() };
+            let narrow = if f32 {
+                "1".to_owned()
+            } else {
+                "u.getBool() ? 1 : 0".to_owned()
+            };
             return format!(
                 "if (u.more(end)) {{ h{k} = u.position(); n{k} = u.count(); b{k} = {narrow}; o{k} = u.position(); u.skip(n{k} * (b{k} != 0 ? 4 : 8)); }} else {{ h{k} = n{k} = b{k} = 0; o{k} = -1; }}"
             );
@@ -111,9 +130,13 @@ fn skip(shape: &Shape, depth: usize) -> String {
         Shape::Optional(inner) => format!("if (u.getBool()) {{ {} }}", skip(&inner(), depth + 1)),
         Shape::Struct(_) => format!("{{ int r{depth} = u.begin(); u.leave(r{depth}); }}"),
         Shape::List(item) => match item() {
-            Shape::Int { .. } => format!("{{ int c{depth} = (int) u.getU(); int w{depth} = u.getByte(); u.skip(YogFrame.packedBytes(c{depth}, w{depth})); }}"),
+            Shape::Int { .. } => format!(
+                "{{ int c{depth} = (int) u.getU(); int w{depth} = u.getByte(); u.skip(YogFrame.packedBytes(c{depth}, w{depth})); }}"
+            ),
             Shape::Float { bits } if bits == F32_BITS => "u.skip(u.count() * 4);".into(),
-            Shape::Float { .. } => format!("{{ int c{depth} = u.count(); u.skip(c{depth} * (u.getBool() ? 4 : 8)); }}"),
+            Shape::Float { .. } => {
+                format!("{{ int c{depth} = u.count(); u.skip(c{depth} * (u.getBool() ? 4 : 8)); }}")
+            }
             _ => "{ u.count(); u.skipTo(u.listEnd()); }".into(),
         },
         // Bytes, and what goes as its binary form.
@@ -144,7 +167,10 @@ fn accessors(k: usize, f: &str, shape: &Shape, item: &Option<Shape>, pad: &str) 
         }
         Kept::Ints { signed, wide } => {
             decoded(&mut out, &format!("h{k}"));
-            let (t, raw) = (if wide { "long" } else { "int" }, if signed { "YogFrame.unzigzag(v)" } else { "v" });
+            let (t, raw) = (
+                if wide { "long" } else { "int" },
+                if signed { "YogFrame.unzigzag(v)" } else { "v" },
+            );
             let _ = write!(
                 out,
                 "\n\n{pad}        public int {f}Length() {{\n{pad}            return n{k};\n{pad}        }}\n\n{pad}        /** Item {{@code i}}, read in place. */\n{pad}        public {t} {f}(int i) {{\n{pad}            long v = u.packedAt(o{k}, n{k}, b{k}, i);\n{pad}            return ({t}) {raw};\n{pad}        }}"
@@ -155,7 +181,10 @@ fn accessors(k: usize, f: &str, shape: &Shape, item: &Option<Shape>, pad: &str) 
             let (t, read) = if f32 {
                 ("float", format!("u.f32At(o{k} + 4 * i)"))
             } else {
-                ("double", format!("b{k} != 0 ? (double) u.f32At(o{k} + 4 * i) : u.f64At(o{k} + 8 * i)"))
+                (
+                    "double",
+                    format!("b{k} != 0 ? (double) u.f32At(o{k} + 4 * i) : u.f64At(o{k} + 8 * i)"),
+                )
             };
             let _ = write!(
                 out,

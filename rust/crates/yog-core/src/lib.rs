@@ -9,8 +9,11 @@ mod query;
 mod state;
 
 pub use local::{BlockArea, BlockKind, ClickMode, LocalState, NearbyEntity};
-pub use query::{BlockHit, BlockInfo, EntityInfo, Face, PlacedBlock, PlayerInfo, Rotation, ScreenSlot, SlotStack, Stack, entity_flags};
-pub use state::{PROPERTY_IS, PROPERTY_SEP, join_state, split_state};
+pub use query::{
+    BlockHit, BlockInfo, EntityInfo, Face, PlacedBlock, PlayerInfo, Rotation, ScreenSlot,
+    SlotStack, Stack, entity_flags,
+};
+pub use state::{join_state, split_state};
 
 /// A block position in the world.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, yog_data::Schema)]
@@ -51,6 +54,10 @@ impl From<(f64, f64, f64)> for Point {
 impl From<BlockPos> for Point {
     /// The block's corner (its lowest x, y, z).
     fn from(p: BlockPos) -> Self {
-        Self { x: f64::from(p.x), y: f64::from(p.y), z: f64::from(p.z) }
+        Self {
+            x: f64::from(p.x),
+            y: f64::from(p.y),
+            z: f64::from(p.z),
+        }
     }
 }

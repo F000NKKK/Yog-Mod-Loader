@@ -19,7 +19,11 @@ pub(super) const CLASS: &str = "YogServices";
 fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
     let mut body = String::new();
     if s.key.is_none() {
-        let _ = write!(body, "\n\n    private static final class Address {{\n        static final int AT = YogBus.resolve({});\n    }}", name(s.address));
+        let _ = write!(
+            body,
+            "\n\n    private static final class Address {{\n        static final int AT = YogBus.resolve({});\n    }}",
+            name(s.address)
+        );
     }
     if let Some(host) = s.host {
         let _ = write!(
@@ -64,7 +68,10 @@ fn serve(s: &ServiceInfo, records: &mut Vec<StructShape>) -> String {
     if let Shape::Struct(request) = &s.shape {
         spread(request, "r", &mut args, records);
     }
-    let classes: String = args.iter().map(|(_, java)| format!(", {}", class_of(java))).collect();
+    let classes: String = args
+        .iter()
+        .map(|(_, java)| format!(", {}", class_of(java)))
+        .collect();
     let exprs: Vec<&str> = args.iter().map(|(expr, _)| expr.as_str()).collect();
     format!(
         "\n\n    private static final class HostMethod {{\n        static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class{classes}));\n    }}\n\n    /** Answers the action: the request out of its frame, the host method called, the reply packed. */\n    public static int serve(YogMessage in, YogBus.Out sink) {{\n        if (HostMethod.H == null) return YogBus.NO_HANDLER;\n        try {{\n            {name}.View r = new {name}.View(in.frame());\n            Object out = (Object) HostMethod.H.invokeExact({});\n            reply(dev.yog.YogHostServices.none(out), sink.frame());\n            return YogBus.OK;\n        }} catch (YogData.DecodeException e) {{\n            return YogBus.BAD_PAYLOAD;\n        }} catch (Throwable t) {{\n            return dev.yog.YogHostServices.failed(ADDRESS, t);\n        }}\n    }}",
@@ -75,7 +82,12 @@ fn serve(s: &ServiceInfo, records: &mut Vec<StructShape>) -> String {
 
 /// The arguments record `s` (reached by `at`) spreads into, each with its
 /// Java type: a nested record's components in its place.
-fn spread(s: &StructShape, at: &str, out: &mut Vec<(String, String)>, records: &mut Vec<StructShape>) {
+fn spread(
+    s: &StructShape,
+    at: &str,
+    out: &mut Vec<(String, String)>,
+    records: &mut Vec<StructShape>,
+) {
     for f in &s.fields {
         let shape = (f.shape)();
         let expr = format!("{at}.{}()", field(f.name));
@@ -93,7 +105,12 @@ fn class_of(java: &str) -> String {
 
 /// `World.SetBlock`: a service's record, from `YogServices`.
 fn record_path(domain: &str, name: &str) -> String {
-    domain.split('/').map(class_name).chain([name.to_owned()]).collect::<Vec<_>>().join(".")
+    domain
+        .split('/')
+        .map(class_name)
+        .chain([name.to_owned()])
+        .collect::<Vec<_>>()
+        .join(".")
 }
 
 /// `dev.yog.bus.YogServices`.
@@ -102,15 +119,34 @@ pub(super) fn services(package: &str) -> (String, Vec<StructShape>) {
     let mut services = crate::services();
     // A domain's services together: one class each.
     services.sort_by_key(|s| s.domain);
-    let hosted: Vec<String> = services.iter().filter(|s| s.host.is_some()).map(|s| record_path(s.domain, s.name)).collect();
+    let hosted: Vec<String> = services
+        .iter()
+        .filter(|s| s.host.is_some())
+        .map(|s| record_path(s.domain, s.name))
+        .collect();
     let _ = write!(
         o.members,
         "\n    /** The actions the host answers, by address ({{@code YogHostServices}}). */\n    public static final java.util.List<java.util.Map.Entry<String, YogBus.Handler>> HOSTED = java.util.List.of({});\n",
-        hosted.iter().map(|r| format!("java.util.Map.entry({r}.ADDRESS, {r}::serve)")).collect::<Vec<_>>().join(", ")
+        hosted
+            .iter()
+            .map(|r| format!("java.util.Map.entry({r}.ADDRESS, {r}::serve)"))
+            .collect::<Vec<_>>()
+            .join(", ")
     );
     let entries: Vec<Entry> = services
         .into_iter()
-        .map(|s| Entry { path: s.domain, name: s.name, body: service_body(&s, &mut o), shape: s.shape })
+        .map(|s| Entry {
+            path: s.domain,
+            name: s.name,
+            body: service_body(&s, &mut o),
+            shape: s.shape,
+        })
         .collect();
-    file(package, CLASS, "The bus's services: a record per call; {@code call} asks whoever provides it.", o, &entries)
+    file(
+        package,
+        CLASS,
+        "The bus's services: a record per call; {@code call} asks whoever provides it.",
+        o,
+        &entries,
+    )
 }

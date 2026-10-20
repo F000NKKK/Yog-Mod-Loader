@@ -50,17 +50,72 @@ fn camel(snake: &str) -> String {
 
 /// Java's reserved words: a field named like one gets a `_` after it.
 const JAVA_KEYWORDS: &[&str] = &[
-    "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double",
-    "else", "enum", "extends", "final", "finally", "float", "for", "goto", "if", "implements", "import", "instanceof", "int", "interface",
-    "long", "native", "new", "package", "private", "protected", "public", "return", "short", "static", "strictfp", "super", "switch",
-    "synchronized", "this", "throw", "throws", "transient", "try", "void", "volatile", "while", "true", "false", "null", "record", "var",
+    "abstract",
+    "assert",
+    "boolean",
+    "break",
+    "byte",
+    "case",
+    "catch",
+    "char",
+    "class",
+    "const",
+    "continue",
+    "default",
+    "do",
+    "double",
+    "else",
+    "enum",
+    "extends",
+    "final",
+    "finally",
+    "float",
+    "for",
+    "goto",
+    "if",
+    "implements",
+    "import",
+    "instanceof",
+    "int",
+    "interface",
+    "long",
+    "native",
+    "new",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "return",
+    "short",
+    "static",
+    "strictfp",
+    "super",
+    "switch",
+    "synchronized",
+    "this",
+    "throw",
+    "throws",
+    "transient",
+    "try",
+    "void",
+    "volatile",
+    "while",
+    "true",
+    "false",
+    "null",
+    "record",
+    "var",
     "yield",
 ];
 
 /// A payload field's Java name: `player_name` → `playerName`, `interface` → `interface_`.
 fn field(snake: &str) -> String {
     let name = camel(snake);
-    if JAVA_KEYWORDS.contains(&name.as_str()) { format!("{name}_") } else { name }
+    if JAVA_KEYWORDS.contains(&name.as_str()) {
+        format!("{name}_")
+    } else {
+        name
+    }
 }
 
 /// `key_binding` → `KeyBinding`.
@@ -84,30 +139,50 @@ struct Out {
 /// A record with `s`'s fields: `toData()` builds the payload, `fromData` /
 /// `fromBytes` read one back; `body` adds the message's methods.
 fn record(o: &mut Out, pad: &str, name: &str, s: &StructShape, body: &str) {
-    let Out { text: out, records, .. } = o;
-    let params: Vec<String> = s.fields.iter().map(|f| format!("{} {}", java_type(&(f.shape)(), records), field(f.name))).collect();
+    let Out {
+        text: out, records, ..
+    } = o;
+    let params: Vec<String> = s
+        .fields
+        .iter()
+        .map(|f| format!("{} {}", java_type(&(f.shape)(), records), field(f.name)))
+        .collect();
     if !s.doc.is_empty() {
         let _ = writeln!(out, "\n{pad}/** {} */", s.doc);
     }
     let _ = writeln!(out, "{pad}public record {name}({}) {{", params.join(", "));
-    let _ = writeln!(out, "{pad}    public java.util.Map<String, Object> toData() {{\n{pad}        java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();");
+    let _ = writeln!(
+        out,
+        "{pad}    public java.util.Map<String, Object> toData() {{\n{pad}        java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();"
+    );
     for f in &s.fields {
         let shape = (f.shape)();
         let field = field(f.name);
         let line = match nullable(&shape) {
-            Some(inner) => format!("if ({field} != null) m.put(\"{}\", {});", f.name, to_data(&inner, &field, 0)),
+            Some(inner) => format!(
+                "if ({field} != null) m.put(\"{}\", {});",
+                f.name,
+                to_data(&inner, &field, 0)
+            ),
             None => format!("m.put(\"{}\", {});", f.name, to_data(&shape, &field, 0)),
         };
         let _ = writeln!(out, "{pad}        {line}");
     }
     let _ = writeln!(out, "{pad}        return m;\n{pad}    }}\n");
-    let args: Vec<String> = s.fields.iter().map(|f| from_data(&(f.shape)(), &format!("m.get(\"{}\")", f.name), 0)).collect();
+    let args: Vec<String> = s
+        .fields
+        .iter()
+        .map(|f| from_data(&(f.shape)(), &format!("m.get(\"{}\")", f.name), 0))
+        .collect();
     let _ = writeln!(
         out,
         "{pad}    public static {name} fromData(Object data) {{\n{pad}        java.util.Map<String, Object> m = YogData.map(data);\n{pad}        return new {name}({});\n{pad}    }}\n",
         args.join(", ")
     );
-    let _ = write!(out, "{pad}    public static {name} fromBytes(byte[] bytes) {{\n{pad}        return fromData(YogData.decode(bytes));\n{pad}    }}");
+    let _ = write!(
+        out,
+        "{pad}    public static {name} fromBytes(byte[] bytes) {{\n{pad}        return fromData(YogData.decode(bytes));\n{pad}    }}"
+    );
     out.push_str(&frames::codec(name, s, pad));
     out.push_str(&views::view(name, s, pad));
     let body = body.replace('\n', &format!("\n{pad}"));
@@ -117,7 +192,8 @@ fn record(o: &mut Out, pad: &str, name: &str, s: &StructShape, body: &str) {
 /// `address` in Java: its name in the hosts' `YogNames` (one source), or the
 /// string itself if no name has it.
 fn name(address: &str) -> String {
-    yog_ids::export::java_ref(yog_ids::export::JAVA_CLASS, address).unwrap_or_else(|| format!("{address:?}"))
+    yog_ids::export::java_ref(yog_ids::export::JAVA_CLASS, address)
+        .unwrap_or_else(|| format!("{address:?}"))
 }
 
 /// Where a message goes: its own address (`Address.<constant>`, resolved
@@ -146,8 +222,17 @@ fn close(out: &mut String, open: &mut Vec<String>, keep: usize) {
 }
 
 /// Class `class` (documented `doc`) in `package`: `entries` nested by their paths.
-fn file(package: &str, class: &str, doc: &str, mut o: Out, entries: &[Entry]) -> (String, Vec<StructShape>) {
-    let _ = writeln!(o.text, "\n/** {doc} */\npublic final class {class} {{\n    private {class}() {{}}");
+fn file(
+    package: &str,
+    class: &str,
+    doc: &str,
+    mut o: Out,
+    entries: &[Entry],
+) -> (String, Vec<StructShape>) {
+    let _ = writeln!(
+        o.text,
+        "\n/** {doc} */\npublic final class {class} {{\n    private {class}() {{}}"
+    );
     let members = std::mem::take(&mut o.members);
     o.text.push_str(&members);
     // The class path open now (`Player`, `Session`), closed and opened as the paths go.
@@ -160,16 +245,27 @@ fn file(package: &str, class: &str, doc: &str, mut o: Out, entries: &[Entry]) ->
         for (depth, seg) in path.iter().enumerate().skip(common) {
             // A class opened again would be a second class of one name.
             let whole = path[..=depth].join("/");
-            assert!(!opened.contains(&whole), "the entries of `{whole}` aren't together");
+            assert!(
+                !opened.contains(&whole),
+                "the entries of `{whole}` aren't together"
+            );
             opened.push(whole);
             let pad = INDENT.repeat(open.len() + 1);
             let class = class_name(seg);
-            let _ = writeln!(o.text, "\n{pad}/** `{seg}`. */\n{pad}public static final class {class} {{\n{pad}    private {class}() {{}}");
+            let _ = writeln!(
+                o.text,
+                "\n{pad}/** `{seg}`. */\n{pad}public static final class {class} {{\n{pad}    private {class}() {{}}"
+            );
             open.push((*seg).to_owned());
         }
         let Shape::Struct(s) = &e.shape else { continue };
         // Java refuses a member type named like a class around it.
-        assert!(open.iter().all(|seg| class_name(seg) != e.name), "{} is named like the class around it ({}): rename it", e.name, e.path);
+        assert!(
+            open.iter().all(|seg| class_name(seg) != e.name),
+            "{} is named like the class around it ({}): rename it",
+            e.name,
+            e.path
+        );
         record(&mut o, &INDENT.repeat(open.len() + 1), e.name, s, &e.body);
     }
     close(&mut o.text, &mut open, 0);
@@ -178,8 +274,14 @@ fn file(package: &str, class: &str, doc: &str, mut o: Out, entries: &[Entry]) ->
 
 /// `class` holding `records` — and the records they hold in turn.
 fn types_file(package: &str, records: Vec<StructShape>) -> String {
-    let mut o = Out { records, ..Out::default() };
-    let _ = writeln!(o.text, "\n/** The records the bus's messages share. */\npublic final class {TYPES} {{\n    private {TYPES}() {{}}");
+    let mut o = Out {
+        records,
+        ..Out::default()
+    };
+    let _ = writeln!(
+        o.text,
+        "\n/** The records the bus's messages share. */\npublic final class {TYPES} {{\n    private {TYPES}() {{}}"
+    );
     let mut done = 0;
     while done < o.records.len() {
         let s = o.records[done].clone();
@@ -194,13 +296,31 @@ fn types_file(package: &str, records: Vec<StructShape>) -> String {
 fn finish(package: &str, mut o: Out) -> (String, Vec<StructShape>) {
     o.text.push_str("}\n");
     let out = o.text;
-    let names = format!("{}.{}", yog_ids::export::JAVA_PACKAGE, yog_ids::export::JAVA_CLASS);
-    let mut imports: Vec<String> = IMPORTS.iter().filter(|(used, _)| out.contains(used)).map(|(_, class)| (*class).to_owned()).collect();
+    let names = format!(
+        "{}.{}",
+        yog_ids::export::JAVA_PACKAGE,
+        yog_ids::export::JAVA_CLASS
+    );
+    let mut imports: Vec<String> = IMPORTS
+        .iter()
+        .filter(|(used, _)| out.contains(used))
+        .map(|(_, class)| (*class).to_owned())
+        .collect();
     imports.push(names);
     imports.sort();
-    let imports: String = imports.iter().map(|class| format!("import {class};\n")).collect();
+    let imports: String = imports
+        .iter()
+        .map(|class| format!("import {class};\n"))
+        .collect();
     let text = format!("// {HEADER}\npackage {package};\n\n{imports}{out}");
-    (text.lines().map(str::trim_end).collect::<Vec<_>>().join("\n") + "\n", o.records)
+    (
+        text.lines()
+            .map(str::trim_end)
+            .collect::<Vec<_>>()
+            .join("\n")
+            + "\n",
+        o.records,
+    )
 }
 
 /// Panics when two different payload structs share a record name — they'd
@@ -208,7 +328,11 @@ fn finish(package: &str, mut o: Out) -> (String, Vec<StructShape>) {
 fn unique(records: &[StructShape]) {
     for (i, a) in records.iter().enumerate() {
         for b in &records[i + 1..] {
-            assert!(a.name != b.name || same(a, b), "two payload structs are named {}: rename one", a.name);
+            assert!(
+                a.name != b.name || same(a, b),
+                "two payload structs are named {}: rename one",
+                a.name
+            );
         }
     }
 }
@@ -227,13 +351,19 @@ pub fn files(package: &str) -> [(&'static str, String); 3] {
         }
     }
     for payload in PAYLOADS {
-        let Shape::Struct(r) = payload() else { continue };
+        let Shape::Struct(r) = payload() else {
+            continue;
+        };
         if !records.iter().any(|have| same(have, &r)) {
             records.push(r);
         }
     }
     unique(&records);
-    [(events::CLASS, events), (services::CLASS, services), (TYPES, types_file(package, records))]
+    [
+        (events::CLASS, events),
+        (services::CLASS, services),
+        (TYPES, types_file(package, records)),
+    ]
 }
 
 #[cfg(test)]
@@ -257,7 +387,9 @@ mod tests {
     }
 
     fn shape<T: Schema>() -> yog_data::schema::StructShape {
-        let Shape::Struct(s) = T::shape() else { unreachable!("a derived struct") };
+        let Shape::Struct(s) = T::shape() else {
+            unreachable!("a derived struct")
+        };
         s
     }
 

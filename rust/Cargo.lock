@@ -1922,6 +1922,7 @@ name = "yog-core"
 version = "0.6.0"
 dependencies = [
  "yog-data",
+ "yog-ids",
 ]
 
 [[package]]

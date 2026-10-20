@@ -3,7 +3,6 @@
 use yog_core::BlockPos;
 use yog_data::Schema;
 
-
 /// A machine and the recipe its slots make. Pre: whether it may — the
 /// result shows only if every handler allows it (a workbench short of a
 /// resource says no); `player` empty. Post: a player took the result — the
@@ -19,7 +18,7 @@ pub struct Craft {
     pub result_count: u32,
     /// The recipe's values (`{ "energy": 4 }`), as JSON.
     pub values: String,
-        pub pos: BlockPos,
+    pub pos: BlockPos,
     pub dimension: String,
     /// Who took the result; empty before.
     pub player: String,

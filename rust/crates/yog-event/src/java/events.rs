@@ -16,9 +16,17 @@ fn event_body(e: &EventInfo) -> String {
     let mut body = String::new();
     // A keyed event's addresses are its key's branches, resolved as they come.
     if e.key.is_none() {
-        let _ = write!(body, "\n\n    private static final class Address {{\n        static final int POST = YogBus.resolve({});", name(e.address));
+        let _ = write!(
+            body,
+            "\n\n    private static final class Address {{\n        static final int POST = YogBus.resolve({});",
+            name(e.address)
+        );
         if let Some(p) = e.pre {
-            let _ = write!(body, "\n        static final int PRE = YogBus.resolve({});", name(p));
+            let _ = write!(
+                body,
+                "\n        static final int PRE = YogBus.resolve({});",
+                name(p)
+            );
         }
         body.push_str("\n    }\n\n    /** Whether anyone listens — skip building an event no one hears. */\n    public static boolean heard() {\n        return YogBus.heard(Address.POST);\n    }");
     }
@@ -42,7 +50,15 @@ fn event_body(e: &EventInfo) -> String {
 
 /// `dev.yog.bus.YogEvents`.
 pub(super) fn events(package: &str) -> (String, Vec<StructShape>) {
-    let entries: Vec<Entry> = crate::all().into_iter().map(|e| Entry { path: e.plane, name: e.name, body: event_body(&e), shape: e.shape }).collect();
+    let entries: Vec<Entry> = crate::all()
+        .into_iter()
+        .map(|e| Entry {
+            path: e.plane,
+            name: e.name,
+            body: event_body(&e),
+            shape: e.shape,
+        })
+        .collect();
     file(
         package,
         CLASS,

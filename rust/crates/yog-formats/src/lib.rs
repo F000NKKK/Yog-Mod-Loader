@@ -50,7 +50,11 @@ pub fn shape_of(name: &str) -> Option<Shape> {
 
 /// The names [`shape_of`] knows: every format with a shape, and the manifest.
 pub fn names() -> impl Iterator<Item = &'static str> {
-    Format::ALL.iter().filter(|f| shape(**f).is_some()).map(|f| f.ext()).chain([file::MANIFEST])
+    Format::ALL
+        .iter()
+        .filter(|f| shape(**f).is_some())
+        .map(|f| f.ext())
+        .chain([file::MANIFEST])
 }
 
 #[cfg(test)]

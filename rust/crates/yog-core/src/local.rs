@@ -30,7 +30,10 @@ pub struct LocalState {
 impl LocalState {
     /// Where its eyes are.
     pub fn eye_pos(&self) -> Point {
-        Point { y: self.pos.y + self.eye_height, ..self.pos }
+        Point {
+            y: self.pos.y + self.eye_height,
+            ..self.pos
+        }
     }
 }
 
@@ -65,8 +68,12 @@ impl BlockArea {
     pub fn at(&self, pos: BlockPos) -> Option<&BlockKind> {
         let (w, d) = (self.max.x - self.min.x + 1, self.max.z - self.min.z + 1);
         let (x, y, z) = (pos.x - self.min.x, pos.y - self.min.y, pos.z - self.min.z);
-        let inside = (0..w).contains(&x) && (0..d).contains(&z) && (0..=self.max.y - self.min.y).contains(&y);
-        let index = inside.then(|| self.blocks.get(((y * d + z) * w + x) as usize)).flatten()?;
+        let inside = (0..w).contains(&x)
+            && (0..d).contains(&z)
+            && (0..=self.max.y - self.min.y).contains(&y);
+        let index = inside
+            .then(|| self.blocks.get(((y * d + z) * w + x) as usize))
+            .flatten()?;
         self.palette.get(usize::from(*index))
     }
 }
@@ -106,10 +113,27 @@ mod tests {
 
     #[test]
     fn an_area_finds_its_blocks() {
-        let kind = |id: &str| BlockKind { id: id.into(), solid: true, liquid: false, climbable: false, harmful: false };
-        let area = BlockArea { min: BlockPos::new(0, 0, 0), max: BlockPos::new(1, 1, 0), palette: vec![kind("a"), kind("b")], blocks: vec![0, 1, 1, 0] };
-        assert_eq!(area.at(BlockPos::new(1, 0, 0)).map(|k| k.id.as_str()), Some("b"));
-        assert_eq!(area.at(BlockPos::new(0, 1, 0)).map(|k| k.id.as_str()), Some("b"));
+        let kind = |id: &str| BlockKind {
+            id: id.into(),
+            solid: true,
+            liquid: false,
+            climbable: false,
+            harmful: false,
+        };
+        let area = BlockArea {
+            min: BlockPos::new(0, 0, 0),
+            max: BlockPos::new(1, 1, 0),
+            palette: vec![kind("a"), kind("b")],
+            blocks: vec![0, 1, 1, 0],
+        };
+        assert_eq!(
+            area.at(BlockPos::new(1, 0, 0)).map(|k| k.id.as_str()),
+            Some("b")
+        );
+        assert_eq!(
+            area.at(BlockPos::new(0, 1, 0)).map(|k| k.id.as_str()),
+            Some("b")
+        );
         assert_eq!(area.at(BlockPos::new(2, 0, 0)), None);
     }
 }

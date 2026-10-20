@@ -29,7 +29,7 @@ use super::Book;
 
 /// The id without a block state: `minecraft:furnace[facing=north]` → `minecraft:furnace`.
 pub fn bare(id: &str) -> &str {
-    id.split('[').next().unwrap_or(id)
+    id.split(yog_ids::sep::STATE_OPEN).next().unwrap_or(id)
 }
 
 /// Every `{link=…|` in `text` (the target as written).

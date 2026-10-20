@@ -3,8 +3,8 @@
 //! vocabulary is a closed list: the game's values are built-in definitions
 //! of the same kinds.
 
-use yog_data::Schema;
 use yog_data::Ordered;
+use yog_data::Schema;
 use yog_data::with::{Opt, RefTo};
 pub use yog_registry::{ArmorMaterial, SoundGroup, ToolMaterial};
 
@@ -198,7 +198,6 @@ pub struct WeightedBlock {
     #[data(default = "one")]
     pub weight: u32,
 }
-
 
 /// `{ kind: "tag", of: "entity", id: "sticky_teleporters", values:
 /// ["@entity:minecraft:pig", "@tag:entity:c:bosses"], optional:
@@ -472,10 +471,19 @@ mod tests {
     #[test]
     fn every_kind_of_definition_is_a_kind_of_content() {
         use yog_data::{Schema, Shape};
-        let Shape::Enum(e) = super::Def::shape() else { panic!("a definition is an enum by its kind") };
-        let kinds = yog_ids::groups().find(|(g, _)| *g == "kind").expect("yog-ids has kinds").1;
+        let Shape::Enum(e) = super::Def::shape() else {
+            panic!("a definition is an enum by its kind")
+        };
+        let kinds = yog_ids::groups()
+            .find(|(g, _)| *g == "kind")
+            .expect("yog-ids has kinds")
+            .1;
         for v in &e.variants {
-            assert!(kinds.iter().any(|(_, k)| *k == v.name), "`{}` isn't in yog_ids::kind", v.name);
+            assert!(
+                kinds.iter().any(|(_, k)| *k == v.name),
+                "`{}` isn't in yog_ids::kind",
+                v.name
+            );
         }
     }
 }

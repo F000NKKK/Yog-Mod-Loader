@@ -5,11 +5,13 @@
 
 use yog_data::schema::{Field, StructShape, read_both};
 use yog_data::with::RefTo;
-use yog_data::{ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value, ValueRef};
+use yog_data::{
+    ItemId, ItemIdOrTag, OneOrTag, Ordered, Reader, Schema, Seg, Shape, Value, ValueRef,
+};
 
+use yog_registry::recipe_kinds::ids;
 /// The game's recipe types (the registry's kinds).
 pub use yog_registry::recipe_kinds::ids::ALL as TYPES;
-use yog_registry::recipe_kinds::ids;
 
 /// What every recipe has.
 #[derive(Schema)]
@@ -167,7 +169,8 @@ impl Body {
 }
 
 /// Most ingredients a shapeless recipe takes: a crafting grid's places.
-pub const MAX_SHAPELESS: usize = yog_registry::recipe_kinds::GRID_SIDE * yog_registry::recipe_kinds::GRID_SIDE;
+pub const MAX_SHAPELESS: usize =
+    yog_registry::recipe_kinds::GRID_SIDE * yog_registry::recipe_kinds::GRID_SIDE;
 /// The experience a cooking recipe may give (the game's codec's bound).
 pub const EXPERIENCE: std::ops::RangeInclusive<f64> = 0.0..=1000.0;
 /// The ticks a cooking recipe may take (the game's codec's bound).
@@ -234,8 +237,9 @@ impl Schema for RecipeFile {
                     .map(|(c, b)| (c, Body::Stonecutting(b)))?,
                 ids::SMITHING => read_both::<Common, Smithing>(v, cx, also)
                     .map(|(c, b)| (c, Body::Smithing(b)))?,
-                ids::BREWING => read_both::<Common, Brewing>(v, cx, also)
-                    .map(|(c, b)| (c, Body::Brewing(b)))?,
+                ids::BREWING => {
+                    read_both::<Common, Brewing>(v, cx, also).map(|(c, b)| (c, Body::Brewing(b)))?
+                }
                 own if own.contains(':') => read_both::<Common, Custom>(v, cx, also)
                     .map(|(c, b)| (c, Body::Custom(ty.clone(), b)))?,
                 other => {
@@ -276,7 +280,9 @@ mod tests {
 
     #[test]
     fn item_reference_round_trips() {
-        let item = yog_data::from_text::<ItemId>(r#""@item:minecraft:stick""#).unwrap().value;
+        let item = yog_data::from_text::<ItemId>(r#""@item:minecraft:stick""#)
+            .unwrap()
+            .value;
         assert_eq!(item.id, "minecraft:stick");
         let encoded = yog_data::text::to_string(&item.write());
         assert_eq!(encoded, r#""@item:minecraft:stick""#);

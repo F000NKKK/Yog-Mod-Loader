@@ -38,13 +38,28 @@ pub fn pieces(layout: &RecipeLayout) -> Vec<Piece<'_>> {
         match part {
             LayoutPart::Image { source, uv, at } => {
                 let [u, v, w, h] = *uv;
-                out.push(Piece::Image { source, uv: Rect::new(u, v, w, h), at: Rect::new(at[0], at[1], w, h) });
+                out.push(Piece::Image {
+                    source,
+                    uv: Rect::new(u, v, w, h),
+                    at: Rect::new(at[0], at[1], w, h),
+                });
             }
-            LayoutPart::Slots { at, frame: true, .. } => out.extend(at.iter().map(|a| frame(*a))),
+            LayoutPart::Slots {
+                at, frame: true, ..
+            } => out.extend(at.iter().map(|a| frame(*a))),
             LayoutPart::Result { at, frame: true } => out.push(frame(*at)),
-            LayoutPart::Item { item, at } => out.push(Piece::Item { item, at: Rect::new(at[0], at[1], ICON_PX, ICON_PX) }),
-            LayoutPart::Block { block, at, size } => out.push(Piece::Block { block, at: Rect::new(at[0], at[1], *size, *size) }),
-            LayoutPart::Slots { .. } | LayoutPart::Result { .. } | LayoutPart::Count { .. } | LayoutPart::Text { .. } => {}
+            LayoutPart::Item { item, at } => out.push(Piece::Item {
+                item,
+                at: Rect::new(at[0], at[1], ICON_PX, ICON_PX),
+            }),
+            LayoutPart::Block { block, at, size } => out.push(Piece::Block {
+                block,
+                at: Rect::new(at[0], at[1], *size, *size),
+            }),
+            LayoutPart::Slots { .. }
+            | LayoutPart::Result { .. }
+            | LayoutPart::Count { .. }
+            | LayoutPart::Text { .. } => {}
         }
     }
     out
@@ -58,6 +73,9 @@ mod tests {
     fn frames_sit_around_their_items() {
         let l = yog_formats::book::layout::find(&[], "smelting").expect("a built-in layout");
         let p = pieces(l);
-        assert!(p.iter().any(|p| matches!(p, Piece::Image { source, .. } if *source == CRAFTING_SHEET)));
+        assert!(
+            p.iter()
+                .any(|p| matches!(p, Piece::Image { source, .. } if *source == CRAFTING_SHEET))
+        );
     }
 }

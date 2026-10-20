@@ -11,7 +11,12 @@ pub const JAVA_PACKAGE: &str = "dev.yog";
 /// The Java expression naming `value` in class `class`
 /// (`YogNames.EventBlock.BREAK`), if a name has it.
 pub fn java_ref(class: &str, value: &str) -> Option<String> {
-    groups().find_map(|(group, names)| names.iter().find(|(_, v)| *v == value).map(|(name, _)| format!("{class}.{}.{name}", pascal(group))))
+    groups().find_map(|(group, names)| {
+        names
+            .iter()
+            .find(|(_, v)| *v == value)
+            .map(|(name, _)| format!("{class}.{}.{name}", pascal(group)))
+    })
 }
 
 /// A TypeScript module: one `as const` object per group.
@@ -24,9 +29,16 @@ pub fn typescript() -> String {
         }
         out.push_str("} as const;\n");
     }
-    out.push_str("\n/** Yog's file formats: extension and noun (`Format`). */\nexport const formats = {\n");
+    out.push_str(
+        "\n/** Yog's file formats: extension and noun (`Format`). */\nexport const formats = {\n",
+    );
     for f in crate::Format::ALL {
-        out.push_str(&format!("  {}: {{ ext: {:?}, noun: {:?} }},\n", camel(&format!("{f:?}").to_lowercase()), f.ext(), f.noun()));
+        out.push_str(&format!(
+            "  {}: {{ ext: {:?}, noun: {:?} }},\n",
+            camel(&format!("{f:?}").to_lowercase()),
+            f.ext(),
+            f.noun()
+        ));
     }
     out.push_str("} as const;\n");
     out
@@ -34,24 +46,38 @@ pub fn typescript() -> String {
 
 /// A Java class (`package`): a nested class of constants per group.
 pub fn java(package: &str, class: &str) -> String {
-    let mut out = format!("// {HEADER}\npackage {package};\n\n/** The names Yog's code shares (yog-ids). */\npublic final class {class} {{\n    private {class}() {{}}\n");
+    let mut out = format!(
+        "// {HEADER}\npackage {package};\n\n/** The names Yog's code shares (yog-ids). */\npublic final class {class} {{\n    private {class}() {{}}\n"
+    );
     for (group, names) in groups() {
-        out.push_str(&format!("\n    public static final class {} {{\n        private {}() {{}}\n\n", pascal(group), pascal(group)));
+        out.push_str(&format!(
+            "\n    public static final class {} {{\n        private {}() {{}}\n\n",
+            pascal(group),
+            pascal(group)
+        ));
         for (name, value) in *names {
-            out.push_str(&format!("        public static final String {name} = {value:?};\n"));
+            out.push_str(&format!(
+                "        public static final String {name} = {value:?};\n"
+            ));
         }
         out.push_str("    }\n");
     }
     out.push_str("\n    /** Yog's file formats' extensions (`Format`). */\n    public static final class Ext {\n        private Ext() {}\n\n");
     for f in crate::Format::ALL {
-        out.push_str(&format!("        public static final String {} = {:?};\n", format!("{f:?}").to_uppercase(), f.ext()));
+        out.push_str(&format!(
+            "        public static final String {} = {:?};\n",
+            format!("{f:?}").to_uppercase(),
+            f.ext()
+        ));
     }
     out.push_str("    }\n}\n");
     out
 }
 
 fn pascal(s: &str) -> String {
-    s.split('_').map(|w| w[..1].to_uppercase() + &w[1..]).collect()
+    s.split('_')
+        .map(|w| w[..1].to_uppercase() + &w[1..])
+        .collect()
 }
 
 fn camel(s: &str) -> String {

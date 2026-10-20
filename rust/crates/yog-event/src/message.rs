@@ -43,12 +43,14 @@ pub(crate) fn target(address: &str, key: Option<&str>) -> String {
 /// under `yog:event/` → `player/session`.
 pub(crate) fn branch(address: &'static str, prefix: &str) -> &'static str {
     let path = address.strip_prefix(prefix).unwrap_or(address);
-    path.rsplit_once(ids::sep::PATH).map_or("", |(branch, _)| branch)
+    path.rsplit_once(ids::sep::PATH)
+        .map_or("", |(branch, _)| branch)
 }
 
 /// A type path's last segment: `client::ui::Open` → `Open`.
 pub(crate) fn last_segment(path: &'static str) -> &'static str {
-    path.rfind(':').map_or(path, |i| path.split_at(i + 1).1.trim())
+    path.rfind(':')
+        .map_or(path, |i| path.split_at(i + 1).1.trim())
 }
 
 /// The key field's name, if an entry gives one.
@@ -70,7 +72,6 @@ macro_rules! key_value {
         Some(&$self.$key)
     };
 }
-
 
 /// An action's method on the handle its first field binds — `uuid` an
 /// [`crate::Entity`], `player` a [`crate::Player`], `dim` a [`crate::World`]:

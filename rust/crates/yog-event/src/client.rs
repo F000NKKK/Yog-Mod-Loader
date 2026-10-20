@@ -1,12 +1,12 @@
 //! The client.
 
+pub mod control;
 pub mod game;
 pub mod input;
-pub mod ui;
-pub mod render;
-pub mod net;
 pub mod local;
-pub mod control;
+pub mod net;
+pub mod render;
+pub mod ui;
 
 mod actions;
 pub use actions::*;

@@ -27,7 +27,16 @@ impl<'ctx> Draw2D<'ctx> {
     /// [`Self::text`] in the font `font` (empty: the default one).
     pub fn text_font(&self, text: &str, font: &str, at: Vec2, color: Color, shadow: bool) {
         let a = self.0.api();
-        unsafe { (a.draw2d_text_font)(YogStr::from_str(text), YogStr::from_str(font), at.x, at.y, color.0, shadow) }
+        unsafe {
+            (a.draw2d_text_font)(
+                YogStr::from_str(text),
+                YogStr::from_str(font),
+                at.x,
+                at.y,
+                color.0,
+                shadow,
+            )
+        }
     }
 
     /// Width in GUI pixels of `text` in `font` (empty = default), measured by
@@ -72,7 +81,20 @@ impl<'ctx> Draw2D<'ctx> {
     pub fn image_region(&self, source: &str, r: Rect, region: Option<Rect>, tint: Color) {
         let a = self.0.api();
         let src = region.unwrap_or_default();
-        unsafe { (a.draw2d_image)(YogStr::from_str(source), r.x, r.y, r.w, r.h, src.x, src.y, src.w, src.h, tint.0) }
+        unsafe {
+            (a.draw2d_image)(
+                YogStr::from_str(source),
+                r.x,
+                r.y,
+                r.w,
+                r.h,
+                src.x,
+                src.y,
+                src.w,
+                src.h,
+                tint.0,
+            )
+        }
     }
 
     /// Draws the SVG document `data` scaled into `r` (sharp at any GUI
@@ -85,9 +107,27 @@ impl<'ctx> Draw2D<'ctx> {
     }
 
     /// [`Self::text_font`] `scale` times its size (1 = the font's own).
-    pub fn text_scaled(&self, text: &str, font: &str, at: Vec2, scale: f32, color: Color, shadow: bool) {
+    pub fn text_scaled(
+        &self,
+        text: &str,
+        font: &str,
+        at: Vec2,
+        scale: f32,
+        color: Color,
+        shadow: bool,
+    ) {
         let a = self.0.api();
-        unsafe { (a.draw2d_text_scaled)(YogStr::from_str(text), YogStr::from_str(font), at.x, at.y, scale, color.0, shadow) }
+        unsafe {
+            (a.draw2d_text_scaled)(
+                YogStr::from_str(text),
+                YogStr::from_str(font),
+                at.x,
+                at.y,
+                scale,
+                color.0,
+                shadow,
+            )
+        }
     }
 
     /// Draws blocks in 3D, as big as fits in `r` — a multiblock structure,

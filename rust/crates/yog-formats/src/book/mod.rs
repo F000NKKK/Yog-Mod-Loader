@@ -18,7 +18,6 @@ use yog_data::with::{List, Opt, RefTo, Values};
 
 use refs::{BookText, Icon};
 
-
 /// A [`yog_data::Value`] in a book's JSON form.
 mod value_json {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -28,7 +27,9 @@ mod value_json {
     }
 
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<yog_data::Value, D::Error> {
-        Ok(yog_data::json::from_json(&serde_json::Value::deserialize(d)?))
+        Ok(yog_data::json::from_json(&serde_json::Value::deserialize(
+            d,
+        )?))
     }
 }
 
@@ -352,7 +353,12 @@ impl Book {
                         opt(text);
                     }
                     BookPage::Recipe { text, .. } | BookPage::Relations { text, .. } => opt(text),
-                    BookPage::Drawn { title, caption, text, .. } => {
+                    BookPage::Drawn {
+                        title,
+                        caption,
+                        text,
+                        ..
+                    } => {
                         opt(title);
                         opt(caption);
                         opt(text);
@@ -360,8 +366,15 @@ impl Book {
                     BookPage::Empty => {}
                     // A mod's page: its texts, as its type says.
                     BookPage::Custom(c) => {
-                        let Some(t) = types.iter().find(|t| t.id == c.kind) else { continue };
-                        for prop in t.properties.iter().filter(|p| matches!(p.kind, page_type::PropKind::Text | page_type::PropKind::BookText)) {
+                        let Some(t) = types.iter().find(|t| t.id == c.kind) else {
+                            continue;
+                        };
+                        for prop in t.properties.iter().filter(|p| {
+                            matches!(
+                                p.kind,
+                                page_type::PropKind::Text | page_type::PropKind::BookText
+                            )
+                        }) {
                             if let Some(yog_data::Value::Str(s)) = c.fields.get_mut(&prop.name) {
                                 *s = tr(s);
                             }

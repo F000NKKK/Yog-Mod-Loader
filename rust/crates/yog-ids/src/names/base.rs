@@ -22,6 +22,12 @@ names! {
         TAG_SHOWN = "#",
         /// What joins an ingredient's alternatives where it's shown: `a | b`.
         ALTERNATIVES = "|",
+        /// A block state's properties: `ns:id[k=v,...]` — what opens and
+        /// closes them, separates them, and a property's name from its value.
+        STATE_OPEN = "[",
+        STATE_CLOSE = "]",
+        PROPERTY_SEP = ",",
+        PROPERTY_IS = "=",
     }
 
     /// The kinds of content: what a reference names (`@item:…`), what a

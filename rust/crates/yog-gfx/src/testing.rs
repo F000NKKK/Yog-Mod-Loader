@@ -57,7 +57,16 @@ unsafe extern "C" fn image(
 ) {
 }
 unsafe extern "C" fn draw2d_svg(_: YogStr, _: f32, _: f32, _: f32, _: f32) {}
-unsafe extern "C" fn draw2d_text_scaled(_: YogStr, _: YogStr, _: f32, _: f32, _: f32, _: u32, _: bool) {}
+unsafe extern "C" fn draw2d_text_scaled(
+    _: YogStr,
+    _: YogStr,
+    _: f32,
+    _: f32,
+    _: f32,
+    _: u32,
+    _: bool,
+) {
+}
 unsafe extern "C" fn draw2d_blocks(_: YogStr, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32) {}
 unsafe extern "C" fn draw2d_entity(_: YogStr, _: f32, _: f32, _: f32, _: f32, _: f32, _: f32) {}
 unsafe extern "C" fn image_size(_: YogStr, _: *mut f32, _: *mut f32) -> bool {

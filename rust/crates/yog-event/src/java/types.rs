@@ -37,7 +37,10 @@ pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String
         Shape::Bytes => "byte[]".into(),
         Shape::Any => "Object".into(),
         Shape::List(f) => format!("java.util.List<{}>", boxed(&java_type(&f(), records))),
-        Shape::Map(f) => format!("java.util.Map<String, {}>", boxed(&java_type(&f(), records))),
+        Shape::Map(f) => format!(
+            "java.util.Map<String, {}>",
+            boxed(&java_type(&f(), records))
+        ),
         Shape::Optional(f) => boxed(&java_type(&f(), records)),
         Shape::Struct(s) => {
             if !records.iter().any(|r| same(r, s)) {
@@ -55,7 +58,11 @@ pub(super) fn fits_int(min: i64, max: i64) -> bool {
 
 /// Whether `a` and `b` are one payload struct: its name and fields.
 pub(super) fn same(a: &StructShape, b: &StructShape) -> bool {
-    a.name == b.name && a.fields.iter().map(|f| f.name).eq(b.fields.iter().map(|f| f.name))
+    a.name == b.name
+        && a.fields
+            .iter()
+            .map(|f| f.name)
+            .eq(b.fields.iter().map(|f| f.name))
 }
 
 /// The object type standing for a primitive (in a list, or nullable).
@@ -90,7 +97,10 @@ pub(super) fn to_data(shape: &Shape, value: &str, depth: usize) -> String {
     match shape {
         Shape::Struct(_) => format!("{value}.toData()"),
         Shape::List(f) if number_array(&f()).is_some() => format!("YogData.listOf({value})"),
-        Shape::List(f) => format!("{value}.stream().map({e} -> {}).toList()", to_data(&f(), &e, depth + 1)),
+        Shape::List(f) => format!(
+            "{value}.stream().map({e} -> {}).toList()",
+            to_data(&f(), &e, depth + 1)
+        ),
         Shape::Map(f) => format!(
             "{value}.entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, {e} -> {}))",
             to_data(&f(), &format!("{e}.getValue()"), depth + 1)
@@ -105,19 +115,29 @@ pub(super) fn from_data(shape: &Shape, value: &str, depth: usize) -> String {
     let e = format!("e{depth}");
     match shape {
         Shape::Bool => format!("YogData.bool({value}, false)"),
-        Shape::Int { min, max } if fits_int(*min, *max) => format!("(int) YogData.integer({value}, 0)"),
+        Shape::Int { min, max } if fits_int(*min, *max) => {
+            format!("(int) YogData.integer({value}, 0)")
+        }
         Shape::Int { .. } => format!("YogData.integer({value}, 0)"),
         Shape::Float { bits } if *bits == F32_BITS => format!("(float) YogData.number({value}, 0)"),
         Shape::Float { .. } => format!("YogData.number({value}, 0)"),
         Shape::Bytes => format!("({value} instanceof byte[] {e} ? {e} : new byte[0])"),
         Shape::Any => value.into(),
-        Shape::List(f) if let Some(array) = number_array(&f()) => format!("YogData.{}({value})", array_reader(array)),
-        Shape::List(f) => format!("YogData.list({value}).stream().map({e} -> {}).toList()", from_data(&f(), &e, depth + 1)),
+        Shape::List(f) if let Some(array) = number_array(&f()) => {
+            format!("YogData.{}({value})", array_reader(array))
+        }
+        Shape::List(f) => format!(
+            "YogData.list({value}).stream().map({e} -> {}).toList()",
+            from_data(&f(), &e, depth + 1)
+        ),
         Shape::Map(f) => format!(
             "YogData.map({value}).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, {e} -> {}))",
             from_data(&f(), &format!("{e}.getValue()"), depth + 1)
         ),
-        Shape::Optional(f) => format!("({value} == null ? null : {})", from_data(&f(), value, depth)),
+        Shape::Optional(f) => format!(
+            "({value} == null ? null : {})",
+            from_data(&f(), value, depth)
+        ),
         Shape::Struct(s) => format!("{TYPES}.{}.fromData({value})", s.name),
         _ => format!("YogData.str({value}, \"\")"),
     }

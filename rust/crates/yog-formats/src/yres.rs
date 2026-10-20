@@ -49,7 +49,9 @@ pub struct EntryObject {
 
 /// `resources/.../Strings.ru_ru.yres` → `("Strings", Some("ru_ru"))`.
 pub fn split_file_name(file_name: &str) -> Option<(&str, Option<&str>)> {
-    let stem = file_name.strip_suffix(yog_ids::Format::Res.ext())?.strip_suffix('.')?;
+    let stem = file_name
+        .strip_suffix(yog_ids::Format::Res.ext())?
+        .strip_suffix('.')?;
     Some(match stem.split_once('.') {
         Some((set, locale)) => (set, Some(locale)),
         None => (stem, None),
@@ -70,7 +72,6 @@ pub fn image_texture(rel: &str) -> Option<String> {
 use std::collections::HashMap;
 
 use yog_data::{Reader, Seg, Shape, ValueRef};
-
 
 /// The type of an entry that doesn't say, by its value — bytes by what they start with.
 pub fn kind_of(value: &Value) -> Kind {
@@ -124,12 +125,25 @@ impl Entry {
 
     /// An image entry named `name` holding the picture `bytes`.
     pub fn picture(name: &str, bytes: Vec<u8>) -> Entry {
-        Entry { name: name.to_string(), kind: Kind::Image, value: Value::Bytes(bytes), comment: None, key: None, event: None, subtitle: None, line: 0 }
+        Entry {
+            name: name.to_string(),
+            kind: Kind::Image,
+            value: Value::Bytes(bytes),
+            comment: None,
+            key: None,
+            event: None,
+            subtitle: None,
+            line: 0,
+        }
     }
 }
 
 /// What bytes are written as in text: `@bytes:<base64>`.
-const BYTES_PREFIX: &str = yog_ids::concatcp!(yog_ids::sep::TYPED, yog_ids::typed::BYTES, yog_ids::sep::NAMESPACE);
+const BYTES_PREFIX: &str = yog_ids::concatcp!(
+    yog_ids::sep::TYPED,
+    yog_ids::typed::BYTES,
+    yog_ids::sep::NAMESPACE
+);
 
 /// A whole `.yres` file: named entries in file order.
 struct YresFile(Vec<Entry>);
@@ -175,12 +189,17 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
     }
     let o = EntryObject::read(v, cx);
     // The value is checked even when another field is wrong: every problem at once.
-    let value = v.get("value").and_then(|val| cx.at(Seg::Key("value".into()), |cx| scalar(val, cx)));
+    let value = v
+        .get("value")
+        .and_then(|val| cx.at(Seg::Key("value".into()), |cx| scalar(val, cx)));
     let (o, value) = (o?, value?);
     let kind = o.kind.unwrap_or(kind_of(&value));
     let fits = matches!(
         (kind, &value),
-        (Kind::Number, Value::Num(_)) | (Kind::Bool, Value::Bool(_)) | (Kind::String | Kind::Color, Value::Str(_)) | (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_))
+        (Kind::Number, Value::Num(_))
+            | (Kind::Bool, Value::Bool(_))
+            | (Kind::String | Kind::Color, Value::Str(_))
+            | (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_))
     );
     if !fits {
         let needs = match kind {
@@ -189,19 +208,28 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
             Kind::Image | Kind::File | Kind::Sound => "bytes (`@bytes:…`)",
             _ => "string",
         };
-        cx.at(Seg::Key("value".into()), |cx| cx.problem(format!("a {} needs a {needs} value", kind.name())));
+        cx.at(Seg::Key("value".into()), |cx| {
+            cx.problem(format!("a {} needs a {needs} value", kind.name()))
+        });
         return None;
     }
-    let misplaced = [("key", o.key.is_some(), Kind::String), ("event", o.event.is_some(), Kind::Sound), ("subtitle", o.subtitle.is_some(), Kind::Sound)];
+    let misplaced = [
+        ("key", o.key.is_some(), Kind::String),
+        ("event", o.event.is_some(), Kind::Sound),
+        ("subtitle", o.subtitle.is_some(), Kind::Sound),
+    ];
     for (field, present, only) in misplaced {
         if present && kind != only {
-            cx.at(Seg::Key(field.into()), |cx| cx.problem(format!("only {} entries have a `{field}`", only.name())));
+            cx.at(Seg::Key(field.into()), |cx| {
+                cx.problem(format!("only {} entries have a `{field}`", only.name()))
+            });
             return None;
         }
     }
     entry.kind = kind;
     entry.value = value;
-    (entry.comment, entry.key, entry.event, entry.subtitle) = (o.comment, o.key, o.event, o.subtitle);
+    (entry.comment, entry.key, entry.event, entry.subtitle) =
+        (o.comment, o.key, o.event, o.subtitle);
     Some(entry)
 }
 
@@ -232,11 +260,18 @@ impl Schema for YresFile {
         for e in &self.0 {
             let value = match &e.value {
                 Value::Str(s) => yog_data::Value::Str(s.clone()),
-                Value::Num(n) => n.parse::<i64>().map(yog_data::Value::Int).unwrap_or_else(|_| yog_data::Value::Float(n.parse().unwrap_or_default())),
+                Value::Num(n) => n
+                    .parse::<i64>()
+                    .map(yog_data::Value::Int)
+                    .unwrap_or_else(|_| yog_data::Value::Float(n.parse().unwrap_or_default())),
                 Value::Bool(b) => yog_data::Value::Bool(*b),
                 Value::Bytes(b) => yog_data::Value::Bytes(b.clone()),
             };
-            let plain = e.kind == kind_of(&e.value) && e.comment.is_none() && e.key.is_none() && e.event.is_none() && e.subtitle.is_none();
+            let plain = e.kind == kind_of(&e.value)
+                && e.comment.is_none()
+                && e.key.is_none()
+                && e.event.is_none()
+                && e.subtitle.is_none();
             if plain {
                 map.insert(e.name.clone(), value);
                 continue;
@@ -259,7 +294,10 @@ impl Schema for YresFile {
 /// one per line; names aren't validated here (see [`valid_name`]).
 pub fn parse(text: &str) -> Result<Vec<Entry>, String> {
     let doc = yog_data::text::parse(text).map_err(|e| e.to_string())?;
-    let mut entries = yog_data::schema::from_doc::<YresFile>(text, &doc).map_err(|e| e.to_string())?.value.0;
+    let mut entries = yog_data::schema::from_doc::<YresFile>(text, &doc)
+        .map_err(|e| e.to_string())?
+        .value
+        .0;
     // Each name's line: the spans are in the same order as the names.
     let mut lines = HashMap::new();
     if let yog_data::Value::Map(map) = &doc.value {
@@ -267,7 +305,10 @@ pub fn parse(text: &str) -> Result<Vec<Entry>, String> {
         let mut at = 0;
         for ((name, _), spans) in map.iter().zip(&doc.spans.children) {
             let start = spans.key.unwrap_or(spans.span).start as usize;
-            line += text.as_bytes()[at..start].iter().filter(|&&b| b == b'\n').count();
+            line += text.as_bytes()[at..start]
+                .iter()
+                .filter(|&&b| b == b'\n')
+                .count();
             at = start;
             lines.insert(name, line);
         }
@@ -282,5 +323,3 @@ pub fn parse(text: &str) -> Result<Vec<Entry>, String> {
 pub fn write(entries: &[Entry]) -> String {
     yog_data::text::to_string_pretty(&YresFile(entries.to_vec()).write())
 }
-
-

@@ -51,11 +51,11 @@
 //! ```
 
 pub mod core;
-#[cfg(feature = "testing")]
-pub mod testing;
 pub mod draw2d;
 pub mod gl;
 pub mod image;
+#[cfg(feature = "testing")]
+pub mod testing;
 
 /// The graphics primitives every Yog crate shares.
 pub use yog_graphics as graphics;

@@ -32,26 +32,31 @@ macro_rules! names {
 mod names {
     pub mod base;
     pub mod bus;
-    pub mod services;
     pub mod content;
+    pub mod services;
 }
-mod formats;
 pub mod export;
-pub mod time;
+mod formats;
 #[cfg(test)]
 mod tests;
+pub mod time;
 
 pub use formats::*;
 pub use names::base::*;
 pub use names::bus::*;
-pub use names::services::*;
 pub use names::content::*;
+pub use names::services::*;
 
 /// A group of names: its name, and each name with its value.
 pub type Group = (&'static str, &'static [(&'static str, &'static str)]);
 
 /// Every name, file by file — what [`export`] writes.
-pub const ALL: &[&[Group]] = &[names::base::ALL, names::bus::ALL, names::services::ALL, names::content::ALL];
+pub const ALL: &[&[Group]] = &[
+    names::base::ALL,
+    names::bus::ALL,
+    names::services::ALL,
+    names::content::ALL,
+];
 
 /// Every group of names, in order.
 pub fn groups() -> impl Iterator<Item = &'static Group> {

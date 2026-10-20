@@ -1,8 +1,8 @@
 //! What happens to entities.
 
-pub mod life;
 pub mod combat;
 pub mod game;
+pub mod life;
 
 mod actions;
 mod data;

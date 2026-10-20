@@ -20,6 +20,10 @@ public final class YogNames {
         public static final String TYPED = "@";
         public static final String TAG_SHOWN = "#";
         public static final String ALTERNATIVES = "|";
+        public static final String STATE_OPEN = "[";
+        public static final String STATE_CLOSE = "]";
+        public static final String PROPERTY_SEP = ",";
+        public static final String PROPERTY_IS = "=";
     }
 
     public static final class Kind {

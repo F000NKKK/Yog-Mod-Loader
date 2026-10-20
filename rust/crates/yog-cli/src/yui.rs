@@ -24,7 +24,7 @@ use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use yog_gfx::image::ImageSource;
+use yog_gfx::image::{ImageSource, Stretch};
 
 // ── XML subset (yog-book's) ───────────────────────────────────────────────────
 
@@ -524,17 +524,8 @@ impl Gen {
         let source = image_source(el, "source", source, self.mod_id.as_deref())?;
         let mut expr = format!("widget::image({source:?})");
         if let Some(v) = el.attr(yog_ids::yui_attr::STRETCH) {
-            let s = match v.trim().to_ascii_lowercase().replace('_', "").as_str() {
-                "none" => "None",
-                "fill" => "Fill",
-                "uniform" => "Uniform",
-                "uniformtofill" => "UniformToFill",
-                _ => {
-                    return Err(format!(
-                        "line {line}: <Image> stretch=\"{v}\": expected None, Fill, Uniform or UniformToFill"
-                    ));
-                }
-            };
+            let names = || Stretch::ALL.map(|(_, n)| n).join(", ");
+            let s = Stretch::parse(v).map(Stretch::name).ok_or_else(|| format!("line {line}: <Image> stretch=\"{v}\": expected one of {}", names()))?;
             let _ = write!(expr, ".stretch(::yog_api::ui::Stretch::{s})");
         }
         if let Some(v) = el.attr(yog_ids::yui_attr::UV) {

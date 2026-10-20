@@ -67,7 +67,10 @@ impl EntityInfo {
 
     /// Eye position.
     pub fn eye_pos(&self) -> Point {
-        Point { y: self.pos.y + self.eye_height, ..self.pos }
+        Point {
+            y: self.pos.y + self.eye_height,
+            ..self.pos
+        }
     }
 }
 
@@ -244,7 +247,11 @@ mod tests {
         let e = EntityInfo {
             type_id: "minecraft:zombie".into(),
             dimension: "minecraft:overworld".into(),
-            pos: Point { x: 1.5, y: 64.0, z: -2.0 },
+            pos: Point {
+                x: 1.5,
+                y: 64.0,
+                z: -2.0,
+            },
             eye_height: 1.74,
             width: 0.6,
             height: 1.95,
@@ -254,14 +261,35 @@ mod tests {
         assert!(e.has(entity_flags::LIVING) && !e.has(entity_flags::PLAYER));
         assert_eq!(e.eye_pos().y, 65.74);
         assert_eq!(round_trip(&e), e);
-        let h = BlockHit { pos: BlockPos::new(1, 2, 3), face: Face::East, hit: Point { x: 1.0, y: 2.5, z: 3.5 } };
+        let h = BlockHit {
+            pos: BlockPos::new(1, 2, 3),
+            face: Face::East,
+            hit: Point {
+                x: 1.0,
+                y: 2.5,
+                z: 3.5,
+            },
+        };
         assert_eq!(round_trip(&h), h);
         assert_eq!(h.face.normal(), (1, 0, 0));
     }
 
     #[test]
     fn faces_are_named_as_the_game_names_them() {
-        let names: Vec<String> = Face::ALL.iter().map(|f| yog_data::text::to_string(&f.write())).collect();
-        assert_eq!(names, ["\"down\"", "\"up\"", "\"north\"", "\"south\"", "\"west\"", "\"east\""]);
+        let names: Vec<String> = Face::ALL
+            .iter()
+            .map(|f| yog_data::text::to_string(&f.write()))
+            .collect();
+        assert_eq!(
+            names,
+            [
+                "\"down\"",
+                "\"up\"",
+                "\"north\"",
+                "\"south\"",
+                "\"west\"",
+                "\"east\""
+            ]
+        );
     }
 }

@@ -2,6 +2,8 @@
 
 use yog_formats::book::Book;
 
+pub mod action;
+
 /// Max entries shown on the first list spread (right page only).
 pub const ENTRIES_FIRST: usize = 10;
 /// Max entries shown on each subsequent list spread (right page only).
@@ -10,10 +12,12 @@ pub const ENTRIES_PER: usize = 12;
 #[derive(Debug, Clone)]
 pub struct BookViewState {
     pub cat: usize,
-    pub entry: usize, // absolute index within entries_in_cat
+    /// The entry's index among its category's (all of them, not just the spread's).
+    pub entry: usize,
     pub page: usize,
     pub at_home: bool,
-    pub list_spread: usize, // which page of the entry list we're on
+    /// Which spread of the entry list is shown.
+    pub list_spread: usize,
 }
 
 impl Default for BookViewState {
@@ -31,12 +35,12 @@ impl Default for BookViewState {
 impl BookViewState {
     /// Handle a navigation event string. Returns true if state changed.
     pub fn handle(&mut self, ev: &str, book: &Book) -> bool {
-        if ev == "home" {
+        if ev == action::HOME {
             if !self.at_home {
                 self.at_home = true;
                 return true;
             }
-        } else if let Some(n) = ev.strip_prefix("cat:") {
+        } else if let Some(n) = ev.strip_prefix(action::CATEGORY) {
             if let Ok(i) = n.parse::<usize>()
                 && i < book.categories.len()
             {
@@ -48,7 +52,7 @@ impl BookViewState {
                 self.at_home = false;
                 return changed;
             }
-        } else if let Some(n) = ev.strip_prefix("entry:") {
+        } else if let Some(n) = ev.strip_prefix(action::ENTRY) {
             // N is the absolute index within entries_in_cat.
             if let Ok(i) = n.parse::<usize>() {
                 let total = self.entries_in_cat(book).len();
@@ -58,22 +62,22 @@ impl BookViewState {
                     return true;
                 }
             }
-        } else if ev == "prev_page" {
+        } else if ev == action::PREV_PAGE {
             if self.page > 0 {
                 self.page -= 1;
                 return true;
             }
-        } else if ev == "next_page" {
+        } else if ev == action::NEXT_PAGE {
             if self.page + 1 < self.page_count(book) {
                 self.page += 1;
                 return true;
             }
-        } else if ev == "prev_list" {
+        } else if ev == action::PREV_LIST {
             if self.list_spread > 0 {
                 self.list_spread -= 1;
                 return true;
             }
-        } else if ev == "next_list" && self.list_spread + 1 < self.list_spread_count(book) {
+        } else if ev == action::NEXT_LIST && self.list_spread + 1 < self.list_spread_count(book) {
             self.list_spread += 1;
             return true;
         }

@@ -110,7 +110,15 @@ pub fn registry_of(kind: &str) -> &str {
 }
 
 /// The kinds whose data and tag folders were plural before 1.21 (`items`, `loot_tables`).
-const PLURAL_BEFORE_1_21: &[&str] = &[kind::ITEM, kind::BLOCK, kind::ENTITY, kind::FLUID, kind::LOOT_TABLE, kind::ADVANCEMENT, kind::RECIPE];
+const PLURAL_BEFORE_1_21: &[&str] = &[
+    kind::ITEM,
+    kind::BLOCK,
+    kind::ENTITY,
+    kind::FLUID,
+    kind::LOOT_TABLE,
+    kind::ADVANCEMENT,
+    kind::RECIPE,
+];
 
 /// The folders of content `kind`'s data or tags, the current one first, then
 /// 1.20's plural one when it was named differently: `item` → `item`, `items`.
@@ -160,14 +168,20 @@ pub fn qualify(id: &str) -> String {
 
 /// `id` with a namespace: `ns` if it has none (what a mod writes bare is its own).
 pub fn qualify_in(ns: &str, id: &str) -> String {
-    if id.contains(sep::NAMESPACE) { id.to_string() } else { join(ns, id) }
+    if id.contains(sep::NAMESPACE) {
+        id.to_string()
+    } else {
+        join(ns, id)
+    }
 }
 
 /// The game font `font` stands for when it's Yog's alias of one
 /// (`yog:font/uniform` → `minecraft:uniform`).
 #[must_use]
 pub fn game_font_of(font: &str) -> Option<String> {
-    font.strip_prefix(yog::FONT_ALIAS).filter(|name| !name.is_empty()).map(|name| join(ns::MINECRAFT, name))
+    font.strip_prefix(yog::FONT_ALIAS)
+        .filter(|name| !name.is_empty())
+        .map(|name| join(ns::MINECRAFT, name))
 }
 
 /// Yog's alias of the game's font `name`: `yog:font/<name>`.
