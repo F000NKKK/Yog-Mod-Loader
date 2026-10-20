@@ -473,7 +473,7 @@ mod tests {
     fn every_kind_of_definition_is_a_kind_of_content() {
         use yog_data::{Schema, Shape};
         let Shape::Enum(e) = super::Def::shape() else { panic!("a definition is an enum by its kind") };
-        let kinds = yog_ids::ALL.iter().find(|(g, _)| *g == "kind").expect("yog-ids has kinds").1;
+        let kinds = yog_ids::groups().find(|(g, _)| *g == "kind").expect("yog-ids has kinds").1;
         for v in &e.variants {
             assert!(kinds.iter().any(|(_, k)| *k == v.name), "`{}` isn't in yog_ids::kind", v.name);
         }
