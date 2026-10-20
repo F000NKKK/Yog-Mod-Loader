@@ -11,6 +11,7 @@
 //!
 //! Methods: see [`dispatch`] and the designers' (`design::service`).
 
+use yog_ids::serve_param as P;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 
@@ -71,7 +72,7 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
     match method {
         // A file taken into a `.yres` entry: its value (`@bytes:…`) and the type its bytes are.
         "media.import" => {
-            let file = path_param(params, "file")?;
+            let file = path_param(params, P::FILE)?;
             let bytes = std::fs::read(&file).map_err(|e| json!(format!("{}: {e}", file.display())))?;
             let kind = yog_formats::yres::kind_of(&yog_formats::yres::Value::Bytes(bytes.clone()));
             Ok(json!({ "value": yog_data::typed::typed_string(&yog_data::Value::Bytes(bytes)), "type": kind.name() }))
@@ -80,44 +81,53 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
         "version" => Ok(json!(env!("CARGO_PKG_VERSION"))),
         // `.yres` text → its entries; media values as their text form (`@bytes:…`). With the
         // file's `set` and the `mod` id, a text's translation key too.
-        "yres.parse" => yres_parse(str_param(params, "text")?, params.get("set").and_then(Value::as_str).zip(params.get("mod").and_then(Value::as_str))),
+        "yres.parse" => yres_parse(str_param(params, P::TEXT)?, params.get(P::SET).and_then(Value::as_str).zip(params.get(P::MOD_ID).and_then(Value::as_str))),
         // Entries (as `yres.parse` gives them) → `.yres` text.
-        "yres.write" => yres_write(params.get("entries").ok_or_else(|| json!("missing `entries`"))?),
+        "yres.write" => yres_write(params.get(P::ENTRIES).ok_or_else(|| json!("missing `entries`"))?),
         // Yog Data text → its value as JSON text (maps in file order, typed values as written).
         "data.parse" => {
-            let value = yog_data::text::parse_value(str_param(params, "text")?)
+            let value = yog_data::text::parse_value(str_param(params, P::TEXT)?)
                 .map_err(|e| json!({ "message": e.to_string(), "line": e.at.line, "col": e.at.col }))?;
             Ok(json!(yog_data::patch::to_json(&value)))
         }
         // `text` changed to hold `next` (JSON text), comments and layout of the rest kept.
-        "data.patch" => Ok(json!(yog_data::patch::patch(str_param(params, "text")?, &data_param(params, "next")?))),
+        "data.patch" => Ok(json!(yog_data::patch::patch(str_param(params, P::TEXT)?, &data_param(params, P::NEXT)?))),
         // A value (JSON text) as Yog's editors write it, at indent `level`.
         "data.format" => {
-            let level = params.get("level").and_then(Value::as_u64).unwrap_or(0) as usize;
-            Ok(json!(yog_data::patch::format(&data_param(params, "value")?, level)))
+            let level = params.get(P::LEVEL).and_then(Value::as_u64).unwrap_or(0) as usize;
+            Ok(json!(yog_data::patch::format(&data_param(params, P::VALUE)?, level)))
         }
         // Strings as typed values (`@item:x`, `@tag:item:x`, `@Set.key`, `@image:…`, `@lang:…`,
         // `@@` escaped, else plain text): each `{t, …}` or `{error}`.
         "typed.classify" => {
-            let values = params.get("values").and_then(Value::as_array).ok_or_else(|| json!("missing list `values`"))?;
+            let values = params.get(P::VALUES).and_then(Value::as_array).ok_or_else(|| json!("missing list `values`"))?;
             Ok(Value::Array(values.iter().map(|v| typed_json(v.as_str().unwrap_or_default())).collect()))
         }
         // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
         "format.shape" => {
-            let name = str_param(params, "format")?;
+            let name = str_param(params, P::FORMAT)?;
             let shape = yog_formats::shape_of(name).ok_or_else(|| json!(format!("no format `{name}`")))?;
             Ok(yog_data::json::to_json(&shape.describe()))
         }
+        m if m.starts_with(MEDIA) || m == MOD_ID => media(m, params),
+        // The designers: drawing, pickers' choices, edits of a mod's files.
+        other => crate::design::service::dispatch(other, params).unwrap_or_else(|| Err(json!(format!("no method `{other}`")))),
+    }
+}
+
+/// The methods of a mod's media (textures, pictures, built assets) and its id.
+fn media(method: &str, params: &Value) -> Result<Value, Value> {
+    match method {
         // The id of the mod a file is in.
-        "mod.id" => Ok(json!(crate::media::mod_id(&mod_root(&path_param(params, "path")?)?))),
+        "mod.id" => Ok(json!(crate::media::mod_id(&mod_root(&path_param(params, P::PATH)?)?))),
         // The file the build makes at `assets/<ns>/<path>` (base64), or null.
         "media.built_asset" => {
-            let root = mod_root(&path_param(params, "path")?)?;
-            Ok(json!(crate::media::built_asset(&root, str_param(params, "ns")?, str_param(params, "asset")?).map(|b| base64(&b))))
+            let root = mod_root(&path_param(params, P::PATH)?)?;
+            Ok(json!(crate::media::built_asset(&root, str_param(params, P::NS)?, str_param(params, P::ASSET)?).map(|b| base64(&b))))
         }
         // The mod's textures: id, `.ytexture`, picture, atlas.
         "media.textures" => {
-            let root = mod_root(&path_param(params, "path")?)?;
+            let root = mod_root(&path_param(params, P::PATH)?)?;
             let list: Vec<Value> = crate::media::textures(&root)
                 .into_iter()
                 .map(|t| json!({ "id": t.id, "file": t.file, "image": format!("{}{}.{}", yog_ids::sep::TYPED, t.texture.image.set, t.texture.image.key), "atlas": t.texture.atlas }))
@@ -126,12 +136,12 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
         }
         // Whether texture `id` is the mod's own (it can be painted in place, or added).
         "media.is_own_texture" => {
-            let root = mod_root(&path_param(params, "path")?)?;
-            Ok(json!(crate::media::is_own_texture(&root, str_param(params, "id")?)))
+            let root = mod_root(&path_param(params, P::PATH)?)?;
+            Ok(json!(crate::media::is_own_texture(&root, str_param(params, P::ID)?)))
         }
         // The mod's pictures: set, name, path, file (no bytes).
         "media.pictures" => {
-            let root = mod_root(&path_param(params, "path")?)?;
+            let root = mod_root(&path_param(params, P::PATH)?)?;
             let list: Vec<Value> = crate::media::pictures(&root)
                 .into_iter()
                 .map(|p| json!({ "set": p.set, "name": p.name, "path": p.path(), "file": p.file }))
@@ -140,34 +150,51 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
         }
         // Paints texture `id`: `png` (base64) as its picture; the file written.
         "media.save_texture_picture" => {
-            let root = mod_root(&path_param(params, "path")?)?;
-            let png = base64::engine::general_purpose::STANDARD.decode(str_param(params, "png")?).map_err(|e| json!(e.to_string()))?;
-            crate::media::save_texture_picture(&root, str_param(params, "id")?, png).map(|f| json!(f)).map_err(Value::from)
+            let root = mod_root(&path_param(params, P::PATH)?)?;
+            let png = base64::engine::general_purpose::STANDARD.decode(str_param(params, P::PNG)?).map_err(|e| json!(e.to_string()))?;
+            crate::media::save_texture_picture(&root, str_param(params, P::ID)?, png).map(|f| json!(f)).map_err(Value::from)
         }
         // Sets texture `id`'s animation (the game's `.mcmeta` JSON, or null).
         "media.save_texture_animation" => {
-            let root = mod_root(&path_param(params, "path")?)?;
-            let animation = params.get("mcmeta").filter(|m| !m.is_null()).and_then(yog_formats::texture::Animation::from_mcmeta);
-            crate::media::save_texture_animation(&root, str_param(params, "id")?, animation).map(|f| json!(f)).map_err(Value::from)
+            let root = mod_root(&path_param(params, P::PATH)?)?;
+            let animation = params.get(P::MCMETA).filter(|m| !m.is_null()).and_then(yog_formats::texture::Animation::from_mcmeta);
+            crate::media::save_texture_animation(&root, str_param(params, P::ID)?, animation).map(|f| json!(f)).map_err(Value::from)
         }
-        // The designers: drawing, pickers' choices, edits of a mod's files.
-        other => crate::design::service::dispatch(other, params).unwrap_or_else(|| Err(json!(format!("no method `{other}`")))),
+        other => Err(json!(format!("no method `{other}`"))),
     }
 }
 
-/// A string as a typed value, the way a tool takes it.
+/// What the media methods' names start with, and the mod's id method.
+const MEDIA: &str = "media.";
+const MOD_ID: &str = "mod.id";
+
+/// A string as a typed value, the way a tool takes it: `{t, …}`.
+#[derive(serde::Serialize)]
+#[serde(tag = "t", rename_all = "lowercase")]
+enum Typed {
+    Ref { kind: String, id: String },
+    Tag { kind: String, id: String },
+    Res { set: String, key: String },
+    Image { source: String },
+    Lang { key: String },
+    Bytes,
+    Str { v: String },
+}
+
+/// `s` as a typed value; `{error}` when it isn't one.
 fn typed_json(s: &str) -> Value {
-    match yog_data::typed::classify(s) {
-        Ok(yog_data::Value::Ref(r)) => json!({ "t": "ref", "kind": r.kind, "id": r.id }),
-        Ok(yog_data::Value::Tag(r)) => json!({ "t": "tag", "kind": r.kind, "id": r.id }),
-        Ok(yog_data::Value::Res(r)) => json!({ "t": "res", "set": r.set, "key": r.key }),
-        Ok(yog_data::Value::Image(source)) => json!({ "t": "image", "source": source }),
-        Ok(yog_data::Value::Lang(key)) => json!({ "t": "lang", "key": key }),
-        Ok(yog_data::Value::Bytes(_)) => json!({ "t": "bytes" }),
-        Ok(yog_data::Value::Str(v)) => json!({ "t": "str", "v": v }),
-        Ok(other) => json!({ "t": "str", "v": yog_data::typed::typed_string(&other).unwrap_or_default() }),
-        Err(error) => json!({ "error": error }),
-    }
+    let typed = match yog_data::typed::classify(s) {
+        Ok(yog_data::Value::Ref(r)) => Typed::Ref { kind: r.kind, id: r.id },
+        Ok(yog_data::Value::Tag(r)) => Typed::Tag { kind: r.kind, id: r.id },
+        Ok(yog_data::Value::Res(r)) => Typed::Res { set: r.set, key: r.key },
+        Ok(yog_data::Value::Image(source)) => Typed::Image { source },
+        Ok(yog_data::Value::Lang(key)) => Typed::Lang { key },
+        Ok(yog_data::Value::Bytes(_)) => Typed::Bytes,
+        Ok(yog_data::Value::Str(v)) => Typed::Str { v },
+        Ok(other) => Typed::Str { v: yog_data::typed::typed_string(&other).unwrap_or_default() },
+        Err(error) => return json!({ "error": error }),
+    };
+    serde_json::to_value(typed).unwrap_or(Value::Null)
 }
 
 /// The mod a file is in (the folder with its manifest, up from it).

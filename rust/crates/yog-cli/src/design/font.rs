@@ -259,6 +259,8 @@ fn load_providers(res: &Resources, id: &str, depth: usize, out: &mut Vec<Provide
     }
 }
 
+/// The least a TrueType font is oversampled by.
+const MIN_OVERSAMPLE: f64 = 0.1;
 /// A TrueType provider's size when it gives none, and a bitmap one's height
 /// (the game's defaults); where the default font's baseline is, from a
 /// line's top.
@@ -271,7 +273,7 @@ fn ttf(res: &Resources, p: &Value) -> Option<TtfProvider> {
     let (ns, path) = yog_ids::split(file);
     let bytes = res.read(ns, &format!("font/{path}"))?;
     let size = p.get("size").and_then(Value::as_f64).unwrap_or(TTF_SIZE) as f32;
-    let oversample = p.get("oversample").and_then(Value::as_f64).unwrap_or(1.0).max(0.1) as f32;
+    let oversample = p.get("oversample").and_then(Value::as_f64).unwrap_or(1.0).max(MIN_OVERSAMPLE) as f32;
     let font = fontdue::Font::from_bytes(bytes, fontdue::FontSettings { scale: size * oversample, ..Default::default() }).ok()?;
     let shift = p
         .get("shift")

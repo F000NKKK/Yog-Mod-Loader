@@ -108,7 +108,7 @@ impl Vanilla {
                 let Ok(name) = name else { continue };
                 let Some(stem) = name
                     .strip_prefix("assets/minecraft/textures/")
-                    .and_then(|n| n.strip_suffix(".png"))
+                    .and_then(|n| n.strip_suffix(yog_ids::res::PNG))
                 else {
                     continue;
                 };

@@ -50,8 +50,8 @@ fn scalar(s: &str) -> Option<Scalar> {
         "string" => Scalar::Str,
         "text" => Scalar::Text,
         "color" => Scalar::Color,
-        "item" => Scalar::Item,
-        "block" => Scalar::Block,
+        yog_ids::kind::ITEM => Scalar::Item,
+        yog_ids::kind::BLOCK => Scalar::Block,
         _ => return None,
     })
 }
@@ -254,6 +254,7 @@ pub fn rust(t: &Table) -> String {
     for (_, v, _) in &t.rows {
         let _ = writeln!(code, "    {v},");
     }
+    // Generated for every table: a mod uses some of it, so what it doesn't is no warning.
     code.push_str("}\n\n#[allow(dead_code, clippy::all)]\nimpl ");
     let _ = writeln!(code, "{n} {{\n    /// Every row, in order.\n    pub const ALL: [{n}; {}] = [{}];\n", t.rows.len(), t.rows.iter().map(|(_, v, _)| format!("{n}::{v}")).collect::<Vec<_>>().join(", "));
     let arms = |f: &dyn Fn(usize, &TableRow) -> String| -> String {

@@ -8,9 +8,13 @@ use crate::content::Compiled;
 use crate::content::Ctx;
 use crate::content::EntityFile;
 use crate::content::FontFile;
+use crate::content::block_item::text_key;
 use crate::content::file::file_id;
-use crate::yres;
 
+
+/// A `.yentity`'s id and name.
+const ID: &str = yog_data::field!(yog_registry::EntityDef, id);
+const NAME: &str = yog_data::field!(yog_registry::EntityDef, name);
 
 /// Checks a `.yentity`: its id (the file's name by default), its name into
 /// the lang (`entity.<ns>.<path>`), the rest by `yog_registry::EntityDef`.
@@ -24,34 +28,25 @@ pub(super) fn compile_entity(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Opti
         }
     };
     let Value::Map(map) = &mut value else {
-        cx.err(1, "an entity is an object: { \"kind\": \"mob\", \"width\": 0.6, \"height\": 1.8, … }");
+        cx.err(1, "an entity is an object: { \"kind\": \"mob\", \"width\": …, \"height\": …, … }");
         return None;
     };
-    let given = map.get("id").and_then(Value::as_str).map(str::to_owned);
+    let given = map.get(ID).and_then(Value::as_str).map(str::to_owned);
     let (ns, p) = file_id(cx, 1, given.as_deref(), path, mod_ns)?;
-    let id = format!("{ns}:{p}");
-    map.insert("id", Value::from(id.as_str()));
+    let id = yog_ids::join(&ns, &p);
+    map.insert(ID, Value::from(id.as_str()));
     // The name → lang, as a block's or an item's.
-    if let Some(name) = map.remove("name") {
-        let key = format!("entity.{ns}.{}", p.replace('/', "."));
+    if let Some(name) = map.remove(NAME) {
+        let key = yog_ids::lang_key(yog_ids::kind::ENTITY, &id);
         match yog_data::from_value::<yog_data::Text>(&name) {
-            Ok(read) => match read.value {
-                yog_data::Text::Literal(s) => {
-                    out.lang.entry((ns.clone(), yres::NEUTRAL_LOCALE.to_string())).or_default().insert(key, s);
-                }
-                yog_data::Text::Lang(k) => out.lang_aliases.push((k, key)),
-                yog_data::Text::NameOf(r) => {
-                    let (rns, rp) = r.id.split_once(':').unwrap_or(("minecraft", &r.id));
-                    out.lang_aliases.push((format!("{}.{rns}.{}", r.kind, rp.replace('/', ".")), key));
-                }
-                yog_data::Text::Res(r) => match cx.refs.texts.get(&format!("{}.{}", r.set, r.key)) {
-                    Some((k, _)) => out.lang_aliases.push((k.clone(), key)),
-                    None => cx.err(1, format!("name `@{}.{}`: no text `{}.{}` in resources/*.yres", r.set, r.key, r.set, r.key)),
-                },
+            Ok(read) => match text_key(cx, &mut out.lang, &read.value, &ns, key.clone()) {
+                Ok(from) if from != key => out.lang_aliases.push((from, key)),
+                Ok(_) => {}
+                Err(e) => cx.err(1, format!("{NAME} {e}")),
             },
             Err(problems) => {
                 for pr in problems {
-                    cx.err(1, format!("name: {}", pr.message));
+                    cx.err(1, format!("{NAME}: {}", pr.message));
                 }
             }
         }
@@ -65,7 +60,7 @@ pub(super) fn compile_entity(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Opti
             return None;
         }
     };
-    let qualify = |s: &Option<String>| s.as_ref().map(|s| if s.contains(':') { s.clone() } else { format!("{ns}:{s}") });
+    let qualify = |s: &Option<String>| s.as_ref().map(|s| yog_ids::qualify_in(&ns, s));
     let mut def = def;
     if let Some(colors) = def.spawn_egg {
         super::looks::spawn_egg(cx.root, out, &ns, &p, colors);

@@ -298,6 +298,41 @@ names! {
         HUMANOID_LEGGINGS = "humanoid_leggings",
     }
 
+    /// The parameters of the CLI's service methods (`yog serve`, what the IDE calls).
+    serve_param {
+        PATH = "path",
+        NAME = "name",
+        TEXT = "text",
+        SIZE = "size",
+        TEXTURE = "texture",
+        PNG = "png",
+        ANIMATION = "animation",
+        KIND = "kind",
+        REGISTRY = "registry",
+        ID = "id",
+        ALIAS = "alias",
+        MODEL = "model",
+        SOURCE = "source",
+        FORCE = "force",
+        WIDTH = "width",
+        HEIGHT = "height",
+        TAG = "tag",
+        ARGS = "args",
+        EVENT = "event",
+        FILE = "file",
+        SET = "set",
+        MOD_ID = "mod",
+        ENTRIES = "entries",
+        NEXT = "next",
+        LEVEL = "level",
+        VALUE = "value",
+        VALUES = "values",
+        FORMAT = "format",
+        NS = "ns",
+        ASSET = "asset",
+        MCMETA = "mcmeta",
+    }
+
     /// The game's block state properties Yog's blocks get, and their values.
     block_state {
         /// The way a block faces: the four sides, or up and down too.

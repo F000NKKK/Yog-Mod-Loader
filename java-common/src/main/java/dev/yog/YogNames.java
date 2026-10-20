@@ -78,6 +78,7 @@ public final class YogNames {
         public static final String DIMENSION = "@dimension:";
         public static final String TEXTURE = "@texture:";
         public static final String MATERIAL = "@material:";
+        public static final String TAG = "@tag:";
     }
 
     public static final class Typed {
@@ -858,6 +859,42 @@ public final class YogNames {
         public static final String TEXTURE = "texture";
         public static final String HUMANOID = "humanoid";
         public static final String HUMANOID_LEGGINGS = "humanoid_leggings";
+    }
+
+    public static final class ServeParam {
+        private ServeParam() {}
+
+        public static final String PATH = "path";
+        public static final String NAME = "name";
+        public static final String TEXT = "text";
+        public static final String SIZE = "size";
+        public static final String TEXTURE = "texture";
+        public static final String PNG = "png";
+        public static final String ANIMATION = "animation";
+        public static final String KIND = "kind";
+        public static final String REGISTRY = "registry";
+        public static final String ID = "id";
+        public static final String ALIAS = "alias";
+        public static final String MODEL = "model";
+        public static final String SOURCE = "source";
+        public static final String FORCE = "force";
+        public static final String WIDTH = "width";
+        public static final String HEIGHT = "height";
+        public static final String TAG = "tag";
+        public static final String ARGS = "args";
+        public static final String EVENT = "event";
+        public static final String FILE = "file";
+        public static final String SET = "set";
+        public static final String MOD_ID = "mod";
+        public static final String ENTRIES = "entries";
+        public static final String NEXT = "next";
+        public static final String LEVEL = "level";
+        public static final String VALUE = "value";
+        public static final String VALUES = "values";
+        public static final String FORMAT = "format";
+        public static final String NS = "ns";
+        public static final String ASSET = "asset";
+        public static final String MCMETA = "mcmeta";
     }
 
     public static final class BlockState {

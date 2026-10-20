@@ -3,6 +3,9 @@
 
 use std::path::{Path, PathBuf};
 
+/// A mod's version when its `yog.toml` gives none.
+const DEFAULT_VERSION: &str = "0.1.0";
+
 /// The manifest's file name, in the project root.
 pub use yog_ids::file::MANIFEST;
 /// Where `yog build` generates the cargo project, under the project root.
@@ -199,7 +202,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     });
     Ok(YogToml {
         name: name.unwrap_or_else(|| m.id.clone()),
-        version: m.version.unwrap_or_else(|| "0.1.0".into()),
+        version: m.version.unwrap_or_else(|| DEFAULT_VERSION.into()),
         description: description.unwrap_or_default(),
         name_key: None,
         description_key: None,

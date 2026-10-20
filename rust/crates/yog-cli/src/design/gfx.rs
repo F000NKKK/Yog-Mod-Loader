@@ -90,6 +90,7 @@ unsafe extern "C" fn text_width(text: YogStr, font: YogStr) -> f32 {
     let (text, font) = unsafe { (string(text), string(font)) };
     super::font::Font::load(&super::images::resources(), &font).width(&text)
 }
+// The `YogGfxApi` entry's C signature: one parameter per argument.
 #[allow(clippy::too_many_arguments)]
 unsafe extern "C" fn image(
     source: YogStr,
@@ -114,6 +115,7 @@ unsafe extern "C" fn image(
         tint,
     });
 }
+// The `YogGfxApi` entry's C signature: one parameter per argument.
 #[allow(clippy::too_many_arguments)]
 unsafe extern "C" fn text_scaled(text: YogStr, font: YogStr, x: f32, y: f32, scale: f32, color: u32, shadow: bool) {
     let (text, font) = unsafe { (string(text), string(font)) };
@@ -163,6 +165,7 @@ unsafe extern "C" fn zero() -> u32 {
 unsafe extern "C" fn nop_u32(_: u32) {}
 unsafe extern "C" fn buf_data(_: u32, _: *const u8, _: u32, _: bool) {}
 unsafe extern "C" fn buf_subdata(_: u32, _: u32, _: *const u8, _: u32) {}
+// The `YogGfxApi` entry's C signature: one parameter per argument.
 #[allow(clippy::too_many_arguments)]
 unsafe extern "C" fn vao_attrib(_: u32, _: u32, _: u32, _: u8, _: u8, _: bool, _: u32, _: u32) {}
 unsafe extern "C" fn vao_set_ebo(_: u32, _: u32) {}

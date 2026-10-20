@@ -94,35 +94,32 @@ fn in_version(kind: RefKind, path: &str, version: &str) -> bool {
 
 /// Whether `id` is an item or block of some Minecraft version Yog knows.
 pub fn is_vanilla(id: &str) -> bool {
-    let Some(path) = id.strip_prefix("minecraft:") else { return false };
+    let Some(path) = yog_ids::game_path(id) else { return false };
     [RefKind::Item, RefKind::Block].iter().any(|k| VANILLA.ids.contains_key(&(*k, path.to_string())))
+}
+
+/// The game's potion Yog's alias `id` (`yog:potion/<name>`) stands for.
+fn potion_of(id: &str) -> Option<&str> {
+    bare(id).strip_prefix(yog_ids::yog::POTION_ALIAS)
 }
 
 /// Whether `id` is one of Yog's stable aliases for a vanilla potion item.
 pub fn is_vanilla_potion(id: &str) -> bool {
-    let id = bare(id);
-    let Some((ns, path)) = id.split_once(':') else { return false };
-    ns == "yog" && path.strip_prefix("potion/").is_some_and(|p| VANILLA.potion_aliases.contains_key(p))
+    potion_of(id).is_some_and(|p| VANILLA.potion_aliases.contains_key(p))
 }
 
 /// Whether a stable Yog alias names a potion registered by this Minecraft version.
 pub fn is_vanilla_potion_in(id: &str, version: &str) -> bool {
-    let id = bare(id);
-    let Some((ns, path)) = id.split_once(':') else { return false };
-    ns == "yog"
-        && path.strip_prefix("potion/").is_some_and(|p| {
-            VANILLA
-                .potion_aliases
-                .get(p)
-                .is_some_and(|versions| versions.as_ref().is_none_or(|versions| versions.iter().any(|v| v == version)))
-        })
+    potion_of(id)
+        .and_then(|p| VANILLA.potion_aliases.get(p))
+        .is_some_and(|versions| versions.as_ref().is_none_or(|versions| versions.iter().any(|v| v == version)))
 }
 
 /// What vanilla `id` (`minecraft:short_grass`) is on Minecraft `version`:
 /// itself, what it's called there (`minecraft:grass` on 1.20.1), or `None`
 /// when that version doesn't have it.
 pub fn equivalent(kind: RefKind, id: &str, version: &str) -> Option<String> {
-    let path = id.strip_prefix("minecraft:")?;
+    let path = yog_ids::game_path(id)?;
     // An item may be a block's item.
     let kinds: &[RefKind] = if kind == RefKind::Item { &[RefKind::Item, RefKind::Block] } else { std::slice::from_ref(&kind) };
     if kinds.iter().any(|k| in_version(*k, path, version)) {
@@ -188,7 +185,7 @@ impl Known {
         if !tags_known(ns) || tag_hosts(yog_ids::registry_of(kind), id).is_some() {
             return Ok(());
         }
-        Err(if ns == "yog" {
+        Err(if ns == yog_ids::ns::YOG {
             format!("no {kind} tag {id} among Yog's common tags")
         } else {
             format!("no {kind} tag {id} in Minecraft or its loaders")
@@ -206,7 +203,7 @@ impl Known {
         let what = kind.word();
         // Stable aliases for vanilla potion stacks; backends resolve these to
         // the version's Potion registry entry.
-        if kind == RefKind::Item && ns == "yog" && path.starts_with("potion/") {
+        if kind == RefKind::Item && potion_of(id).is_some() {
             return if is_vanilla_potion_in(id, &self.datapack) {
                 Ok(())
             } else if is_vanilla_potion(id) {
@@ -228,7 +225,7 @@ impl Known {
                 Err(format!("no {what} {id} in this mod"))
             };
         }
-        if ns == "minecraft" {
+        if ns == yog_ids::ns::MINECRAFT {
             let v = &*VANILLA;
             if !v.versions.contains(&self.datapack) {
                 return Err(format!("the mod's datapack is Minecraft {}, which Yog doesn't know ({})", self.datapack, v.versions.join(", ")));

@@ -11,6 +11,9 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
 
+/// The slots of a block model whose texture stands for it as an icon, best first.
+const ICON_SLOTS: [&str; 4] = ["all", "side", "top", yog_ids::model::TEXTURE];
+
 /// `[mod] id` of the mod at `root`.
 /// The id a content file's texture names: `@texture:<ns>:<path>`, or an id
 /// (`<ns>:<path>`; a bare path is the game's).
@@ -36,7 +39,7 @@ fn texture_bytes(file: &Path, texture: &str) -> Result<Vec<u8>, String> {
             };
             let sheet = texture_file(file, &yog_gfx::image::short_source(&legacy.texture), "png")?;
             let r = legacy.region;
-            crop_png(&sheet, r.x as u32, r.y as u32, r.w as u32, r.h as u32).map_err(|e| format!("{original}; the 1.20.1 sprite: {e}"))
+            crop_png(&sheet, r.x as u32, r.y as u32, r.w as u32, r.h as u32).map_err(|e| format!("{original}; the older versions' sprite sheet: {e}"))
         }
     }
 }
@@ -283,7 +286,7 @@ pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
         let textures = model_textures(root, &doc, yog_ids::content_field::MODEL);
         let tex = textures
             .get(yog_ids::model::LAYER0)
-            .or_else(|| ["all", "side", "top", "texture"].iter().find_map(|k| textures.get(*k)))
+            .or_else(|| ICON_SLOTS.iter().find_map(|k| textures.get(*k)))
             .or_else(|| textures.values().next())?
             .as_str()?;
         return texture_bytes(&file, tex).ok();

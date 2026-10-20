@@ -275,13 +275,15 @@ pub fn template(id: &str) -> String {
 /// A new kind's layout (`src/ui/<id>_layout.yui`), for the screen designer:
 /// the template's slots framed, the result, its time.
 pub fn layout_template(id: &str) -> String {
+    // What the designer shows in them: the game's ore and its ingot.
+    let (input, result) = (yog_ids::qualify("iron_ore"), yog_ids::qualify("iron_ingot"));
     format!(
         r#"<!-- How recipes of {id} are shown: in books and in the recipe editor. -->
 <Component recipe_layout="{id}" width="100" height="40">
-    <RecipeSlot slot="input" x="4" y="12" frame="true" d:item="minecraft:iron_ore"/>
+    <RecipeSlot slot="input" x="4" y="12" frame="true" d:item="{input}"/>
     <RecipeSlot slot="extra" x="30" y="4" frame="true"/>
     <RecipeSlot slot="extra" x="30" y="22" frame="true"/>
-    <RecipeResult x="78" y="12" frame="true" d:item="minecraft:iron_ingot"/>
+    <RecipeResult x="78" y="12" frame="true" d:item="{result}"/>
     <Label text="{{x:Bind time}} ticks" x="50" y="32"/>
 </Component>
 "#
