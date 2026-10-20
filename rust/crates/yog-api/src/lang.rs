@@ -8,17 +8,10 @@
 
 use std::fmt::{Display, Write as _};
 
-use yog_abi::YogStr;
-
 /// The text of translation `key` in the current language, unformatted —
 /// `None` when no lang file defines it (or before the mod registered).
 pub fn translation(key: &str) -> Option<String> {
-    let api = crate::registry::global_api();
-    if api.is_null() {
-        return None;
-    }
-    let owned = unsafe { ((*api).translate)((*api).ctx, YogStr::from_str(key)) };
-    crate::registry::take_owned(unsafe { (*api).free_str }, owned)
+    crate::call(&yog_event::game::Translate { key: key.to_owned() }).flatten()
 }
 
 /// The text of translation `key` in the current language, or `key` itself

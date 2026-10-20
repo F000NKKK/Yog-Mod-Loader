@@ -144,6 +144,24 @@ public final class YogTypes {
         }
     }
 
+    /** Bytes a mod keeps on an entity under a key. */
+    public record DataValue(byte[] bytes) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("bytes", bytes);
+            return m;
+        }
+
+        public static DataValue fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new DataValue((m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+        }
+
+        public static DataValue fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
     /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
     public record CommandSpec(String name, String schema) {
         public Map<String, Object> toData() {
@@ -163,20 +181,25 @@ public final class YogTypes {
         }
     }
 
-    /** Bytes a mod keeps on an entity under a key. */
-    public record DataValue(byte[] bytes) {
+    /** An installed mod. */
+    public record ModInfo(String source, String id, String name, String version, String authors, String description) {
         public Map<String, Object> toData() {
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("bytes", bytes);
+            m.put("source", source);
+            m.put("id", id);
+            m.put("name", name);
+            m.put("version", version);
+            m.put("authors", authors);
+            m.put("description", description);
             return m;
         }
 
-        public static DataValue fromData(Object data) {
+        public static ModInfo fromData(Object data) {
             Map<String, Object> m = YogData.map(data);
-            return new DataValue((m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+            return new ModInfo(YogData.str(m.get("source"), ""), YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), YogData.str(m.get("version"), ""), YogData.str(m.get("authors"), ""), YogData.str(m.get("description"), ""));
         }
 
-        public static DataValue fromBytes(byte[] bytes) {
+        public static ModInfo fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
     }

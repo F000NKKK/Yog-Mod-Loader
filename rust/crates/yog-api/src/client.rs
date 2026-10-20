@@ -14,18 +14,14 @@ pub(crate) mod op;
 pub mod player;
 pub mod world;
 
-use yog_abi::YogStr;
-pub use yog_abi::ui_flags;
+pub use yog_event::ui::flags as ui_flags;
+use yog_event::{client, ui};
 
-use crate::registry::global_api;
+use crate::call;
 
 /// Open the Yog UI `ui_id` with [`ui_flags`] bits.
 pub fn open_ui_flags(ui_id: &str, flags: u32) {
-    let api = global_api();
-    if api.is_null() {
-        return;
-    }
-    unsafe { ((*api).ui_open_flags)((*api).ctx, YogStr::from_str(ui_id), flags) }
+    call(&ui::OpenWithFlags { ui_id: ui_id.to_owned(), flags: i32::try_from(flags).unwrap_or(i32::MAX) });
 }
 
 /// A sound started by [`play_sound`]; `SoundHandle(0)` is "none".
@@ -36,57 +32,34 @@ pub struct SoundHandle(pub u32);
 /// position; `looping` keeps it playing (following the player) until
 /// [`stop_sound`].
 pub fn play_sound(sound_id: &str, volume: f32, pitch: f32, looping: bool) -> SoundHandle {
-    let api = global_api();
-    if api.is_null() {
-        return SoundHandle(0);
-    }
-    SoundHandle(unsafe {
-        ((*api).client_play_sound)(
-            (*api).ctx,
-            YogStr::from_str(sound_id),
-            volume,
-            pitch,
-            looping,
-        )
-    })
+    let handle = call(&client::PlaySound { sound: sound_id.to_owned(), volume, pitch, looping }).flatten();
+    SoundHandle(handle.and_then(|h| u32::try_from(h).ok()).unwrap_or(0))
 }
 
 /// Stop a sound from [`play_sound`].
 pub fn stop_sound(handle: SoundHandle) {
-    let api = global_api();
-    if api.is_null() || handle.0 == 0 {
+    if handle.0 == 0 {
         return;
     }
-    unsafe { ((*api).client_stop_sound)((*api).ctx, handle.0) }
+    call(&client::StopSound { handle: i32::try_from(handle.0).unwrap_or(i32::MAX) });
 }
 
 /// Item id in the local player's main hand (or `off_hand`), `None` for an
 /// empty hand.
 pub fn held_item(off_hand: bool) -> Option<String> {
-    let api = global_api();
-    if api.is_null() {
-        return None;
-    }
-    let owned = unsafe { ((*api).client_held_item)((*api).ctx, off_hand) };
-    crate::registry::take_owned(unsafe { (*api).free_str }, owned)
+    call(&client::HeldItem { off_hand }).flatten()
 }
 
 /// Attribute `attribute_id`'s value on this client's player — its base
 /// changed by every modifier (effects, equipment); `None` without a player
 /// or such an attribute.
 pub fn attribute_value(attribute_id: &str) -> Option<f64> {
-    let api = global_api();
-    if api.is_null() {
-        return None;
-    }
-    let v = unsafe { ((*api).client_attribute_value)((*api).ctx, YogStr::from_str(attribute_id)) };
-    (!v.is_nan()).then_some(v)
+    call(&client::AttributeValue { attribute: attribute_id.to_owned() }).flatten()
 }
 
 /// Whether this client's player has advancement `id`.
 pub fn advancement_done(id: &str) -> bool {
-    let api = global_api();
-    !api.is_null() && unsafe { ((*api).client_advancement_done)((*api).ctx, YogStr::from_str(id)) }
+    call(&client::AdvancementDone { id: id.to_owned() }).unwrap_or(false)
 }
 
 /// Tints the block at `pos` in `dimension` on this client — the faces of
@@ -94,13 +67,10 @@ pub fn advancement_done(id: &str) -> bool {
 /// sends what to tint (its own packet); the tint lasts till cleared or the
 /// game closes.
 pub fn set_block_tint(dimension: &str, pos: yog_core::BlockPos, color: Option<u32>) {
-    let api = global_api();
-    if api.is_null() {
-        return;
-    }
-    let p = yog_abi::YogBlockPos { x: pos.x, y: pos.y, z: pos.z };
-    let c = color.map_or(-1, |c| (c & 0xFF_FFFF) as i64);
-    unsafe { ((*api).client_set_block_tint)((*api).ctx, YogStr::from_str(dimension), p, c) }
+    /// What the host reads as "no tint".
+    const CLEAR: i32 = -1;
+    let color = color.map_or(CLEAR, |c| (c & 0xFF_FFFF) as i32);
+    call(&client::SetBlockTint { dim: dimension.to_owned(), pos, color });
 }
 
 /// GLFW key codes for [`key_down`].
@@ -145,11 +115,7 @@ pub mod keys {
 
 /// Whether GLFW key `key` is held right now.
 pub fn key_down(key: i32) -> bool {
-    let api = global_api();
-    if api.is_null() {
-        return false;
-    }
-    unsafe { ((*api).client_key_down)((*api).ctx, key) }
+    call(&client::KeyDown { key }).unwrap_or(false)
 }
 
 /// Either Control key is held (Minecraft's `Screen.hasControlDown()`; on

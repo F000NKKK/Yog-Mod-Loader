@@ -109,11 +109,6 @@ fn blocks_and_inventories_arrive_as_their_definitions() {
 }
 
 #[test]
-fn tsv_values_cannot_break_lines() {
-    assert_eq!(tsv_clean("a\tb\nc\rd"), "a b c d");
-}
-
-#[test]
 fn the_hosts_get_content_as_one_yog_data_blob() {
     let h = registering(|ctx| unsafe {
         let def = yog_registry::ItemDef::new("mymod:apple").max_stack(16).name("Apple").tooltip("").fuel(200).food(yog_registry::FoodDef::new(4, 1.5).can_always_eat());

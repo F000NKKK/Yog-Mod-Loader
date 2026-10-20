@@ -4,7 +4,7 @@
 use yog_data::{Schema, Shape};
 use yog_ids as ids;
 
-use crate::{block, command, entity, item, key_binding, menu};
+use crate::{block, client, command, entity, game, item, key_binding, menu};
 use crate::message::{Message, branch, last_segment};
 
 /// A call the bus carries: its payload is `Self`, its answer a [`Service::Reply`].
@@ -45,6 +45,7 @@ const ACTIONS: &[fn() -> Vec<ServiceInfo>] = &[
     crate::block::actions,
     crate::bossbar::actions,
     crate::chat::actions,
+    crate::client::actions,
     crate::entity::actions,
     crate::game::actions,
     crate::item::actions,
@@ -54,6 +55,7 @@ const ACTIONS: &[fn() -> Vec<ServiceInfo>] = &[
     crate::scoreboard::actions,
     crate::sound::actions,
     crate::tag::actions,
+    crate::ui::actions,
     crate::world::actions,
 ];
 
@@ -106,4 +108,7 @@ services! {
     entity::Data => ids::service_entity::DATA, Option<entity::DataValue>;
     entity::SetData => ids::service_entity::SET_DATA, bool;
     entity::SetDimensions => ids::service_entity::SET_DIMENSIONS, bool;
+    client::EntityData => ids::service_client::ENTITY_DATA, Option<entity::DataValue>;
+    game::Mods => ids::service_game::MODS, Vec<game::ModInfo>;
+    game::ModLoaded => ids::service_game::MOD_LOADED, bool;
 }

@@ -28,6 +28,9 @@ pub struct SetData {
     pub persist: bool,
 }
 
+/// What the host reads as "vanilla's size again": a negative width.
+pub const VANILLA_SIZE: [f32; 3] = [-1.0, 0.0, 0.0];
+
 /// The entity's size, `[width, height, eye height]` — `None`: vanilla's —
 /// on the server and on every client that sees it.
 #[derive(Debug, Clone, Schema)]

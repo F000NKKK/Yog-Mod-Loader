@@ -21,11 +21,7 @@ use crate::registry::global_api;
 /// Forge's or NeoForge's mod list. Content and code for another mod —
 /// an optional integration — go behind it.
 pub fn mod_loaded(id: &str) -> bool {
-    let api = global_api();
-    if api.is_null() {
-        return false;
-    }
-    unsafe { ((*api).is_mod_loaded)((*api).ctx, YogStr::from_str(id)) }
+    crate::call(&yog_event::game::ModLoaded { id: id.to_owned() }).unwrap_or(false)
 }
 
 /// Calls a Java mod's API: `expr` is a chain from a class —

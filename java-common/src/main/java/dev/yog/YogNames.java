@@ -495,6 +495,36 @@ public final class YogNames {
         public static final String DOMAIN = "yog:game/";
         public static final String DIR = "yog:game/dir";
         public static final String WORLD_DIR = "yog:game/world_dir";
+        public static final String TRANSLATE = "yog:game/translate";
+        public static final String MODS = "yog:game/mods";
+        public static final String MOD_LOADED = "yog:game/mod_loaded";
+    }
+
+    public static final class ServiceClient {
+        private ServiceClient() {}
+
+        public static final String DOMAIN = "yog:client/";
+        public static final String PLAY_SOUND = "yog:client/play_sound";
+        public static final String STOP_SOUND = "yog:client/stop_sound";
+        public static final String HELD_ITEM = "yog:client/held_item";
+        public static final String SET_BLOCK_TINT = "yog:client/set_block_tint";
+        public static final String KEY_DOWN = "yog:client/key_down";
+        public static final String ATTRIBUTE_VALUE = "yog:client/attribute_value";
+        public static final String ADVANCEMENT_DONE = "yog:client/advancement_done";
+        public static final String OP = "yog:client/op";
+        public static final String BODY_TRACK = "yog:client/body_track";
+        public static final String BODY_TRACK_TYPE = "yog:client/body_track_type";
+        public static final String SET_DIMENSIONS = "yog:client/set_dimensions";
+        public static final String ENTITY_DATA = "yog:client/entity_data";
+    }
+
+    public static final class ServiceUi {
+        private ServiceUi() {}
+
+        public static final String DOMAIN = "yog:ui/";
+        public static final String OPEN = "yog:ui/open";
+        public static final String OPEN_WITH_FLAGS = "yog:ui/open_with_flags";
+        public static final String CLOSE = "yog:ui/close";
     }
 
     public static final class ServiceMenu {

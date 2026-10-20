@@ -9,38 +9,21 @@
 //! [`Registry::on_travel`]: crate::Registry::on_travel
 
 pub use yog_body::*;
-use yog_abi::YogStr;
+use yog_event::client;
+use yog_event::entity::VANILLA_SIZE;
 
-use crate::registry::global_api;
+use crate::call;
 
 /// Asks the body handlers about entity `uuid` each frame (`on`), or stops.
 pub fn track(uuid: &str, on: bool) {
-    let api = global_api();
-    if api.is_null() {
-        return;
-    }
-    unsafe { ((*api).client_body_track)((*api).ctx, YogStr::from_str(uuid), on) }
+    call(&client::BodyTrack { uuid: uuid.to_owned(), on });
 }
 
 /// What this client was told entity `uuid` keeps under `key`
 /// ([`yog_core::Server::set_entity_data`]); body frames carry it too
 /// ([`Frame::data`]).
 pub fn entity_data(uuid: &str, key: &str) -> Option<Vec<u8>> {
-    let api = global_api();
-    if api.is_null() {
-        return None;
-    }
-    let mut out = Vec::new();
-    let found = unsafe {
-        ((*api).client_entity_data)((*api).ctx, YogStr::from_str(uuid), YogStr::from_str(key), &mut out as *mut Vec<u8> as *mut std::os::raw::c_void, collect)
-    };
-    found.then_some(out)
-}
-
-/// A [`yog_abi::YogBytesSink`] into a `Vec<u8>`.
-pub(crate) unsafe extern "C" fn collect(sink: *mut std::os::raw::c_void, data: *const u8, len: usize) {
-    // SAFETY: `sink` is the `Vec<u8>` the caller passed; `data` is valid for the call.
-    unsafe { (*(sink as *mut Vec<u8>)).extend_from_slice(std::slice::from_raw_parts(data, len)) }
+    call(&client::EntityData { uuid: uuid.to_owned(), key: key.to_owned() }).flatten().map(|v| v.bytes)
 }
 
 /// This client's side of [`yog_core::Server::entity_set_dimensions`]: the
@@ -48,19 +31,11 @@ pub(crate) unsafe extern "C" fn collect(sink: *mut std::os::raw::c_void, data: *
 /// vanilla's again. The mod sends who has which (its own packet); the local
 /// player moves and collides with it.
 pub fn set_dimensions(uuid: &str, size: Option<(f32, f32, f32)>) {
-    let api = global_api();
-    if api.is_null() {
-        return;
-    }
-    let (w, h, e) = size.unwrap_or((-1.0, 0.0, 0.0));
-    unsafe { ((*api).client_set_dimensions)((*api).ctx, YogStr::from_str(uuid), w, h, e) }
+    let [width, height, eye] = size.map_or(VANILLA_SIZE, |(w, h, e)| [w, h, e]);
+    call(&client::SetDimensions { uuid: uuid.to_owned(), width, height, eye });
 }
 
 /// Asks the body handlers about every entity of `entity_type` (`on`), or stops.
 pub fn track_type(entity_type: &str, on: bool) {
-    let api = global_api();
-    if api.is_null() {
-        return;
-    }
-    unsafe { ((*api).client_body_track_type)((*api).ctx, YogStr::from_str(entity_type), on) }
+    call(&client::BodyTrackType { entity_type: entity_type.to_owned(), on });
 }

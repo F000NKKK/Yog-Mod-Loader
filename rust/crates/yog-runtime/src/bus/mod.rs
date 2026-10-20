@@ -2,6 +2,7 @@
 //! services between Yog mods, the runtime, the Java host and Java mods.
 
 mod declared;
+mod own;
 mod duties;
 mod java;
 mod router;

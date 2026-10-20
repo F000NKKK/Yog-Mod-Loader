@@ -68,13 +68,12 @@ mod jni_client;
 
 
 mod bus;
-mod body;
 // Hot reload: dev builds only (release ones are optimised past it).
 #[cfg(feature = "dev")]
 mod registrations;
 mod entity_data;
 mod client_api;
-use client_api::{api_client_attribute_value, client_advancement_done, client_tag_items};
+use client_api::{client_advancement_done, client_tag_items};
 mod content_blob;
 mod machine;
 #[cfg(feature = "dev")]

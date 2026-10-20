@@ -27,7 +27,7 @@ fn keep<T: Clone>(list: &Mutex<Vec<T>>, item: &T, same: impl Fn(&T, &T) -> bool)
 fn category(id: &str) -> String {
     let ns = id.split_once(':').map_or(id, |(ns, _)| ns);
     let infos = crate::MOD_INFOS.locked();
-    infos.iter().find(|m| m[0] == ns).map_or_else(|| ns.to_owned(), |m| crate::tsv_clean(&m[1]))
+    infos.iter().find(|m| m[0] == ns).map_or_else(|| ns.to_owned(), |m| m[1].clone())
 }
 
 /// The declaration services; once, at start.

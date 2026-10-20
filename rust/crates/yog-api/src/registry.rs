@@ -81,18 +81,7 @@ pub(crate) fn global_api() -> *mut YogApi {
     GLOBAL_API.load(std::sync::atomic::Ordering::Acquire)
 }
 
-/// Metadata of an installed mod, as reported by the loader.
-#[derive(Debug, Clone)]
-pub struct ModInfo {
-    /// `"yog"` for .yog mods, `"platform"` for loader (Java) mods.
-    pub source: String,
-    pub id: String,
-    pub name: String,
-    pub version: String,
-    /// Comma-separated author list (may be empty).
-    pub authors: String,
-    pub description: String,
-}
+pub use yog_event::game::ModInfo;
 
 /// All installed mods known to the loader: .yog mods plus, where the host
 /// exposes them, platform (Java) mods. Callable at any time after this mod's
@@ -100,38 +89,14 @@ pub struct ModInfo {
 /// `register()` mods that load after this one are not in the list yet; query
 /// lazily (e.g. on first render) for a complete view.
 pub fn installed_mods() -> Vec<ModInfo> {
-    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
-    if api.is_null() {
-        return Vec::new();
-    }
-    let owned = unsafe { ((*api).mods_list)((*api).ctx) };
-    let Some(text) = take_owned(unsafe { (*api).free_str }, owned) else {
-        return Vec::new();
-    };
-    text.lines()
-        .filter_map(|line| {
-            let mut f = line.split('\t');
-            Some(ModInfo {
-                source: f.next()?.to_string(),
-                id: f.next()?.to_string(),
-                name: f.next().unwrap_or_default().to_string(),
-                version: f.next().unwrap_or_default().to_string(),
-                authors: f.next().unwrap_or_default().to_string(),
-                description: f.next().unwrap_or_default().to_string(),
-            })
-        })
-        .collect()
+    crate::call(&yog_event::game::Mods {}).unwrap_or_default()
 }
 
 /// Open the Yog UI registered as `ui_id` (client side; no-op on dedicated
 /// servers). `modal` blocks game input, `pause` pauses singleplayer. Callable
 /// from any handler after registration — e.g. an `on_client_packet` handler.
 pub fn open_ui(ui_id: &str, modal: bool, pause: bool) {
-    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
-    if api.is_null() {
-        return;
-    }
-    unsafe { ((*api).ui_open)((*api).ctx, YogStr::from_str(ui_id), modal, pause) }
+    crate::call(&yog_event::ui::Open { ui_id: ui_id.to_owned(), modal, pause });
 }
 
 /// Close the Yog UI screen showing `ui_id` — e.g. from that screen's own
@@ -139,11 +104,7 @@ pub fn open_ui(ui_id: &str, modal: bool, pause: bool) {
 /// render thread, so the handler that calls it finishes first. Client side;
 /// a no-op on dedicated servers.
 pub fn close_ui(ui_id: &str) {
-    let api = GLOBAL_API.load(std::sync::atomic::Ordering::Acquire);
-    if api.is_null() {
-        return;
-    }
-    unsafe { ((*api).ui_close)((*api).ctx, YogStr::from_str(ui_id)) }
+    crate::call(&yog_event::ui::Close { ui_id: ui_id.to_owned() });
 }
 
 /// What a [`Registry::register_ui`] handler returns: `()` (never marks

@@ -104,10 +104,6 @@ pub(super) fn mod_loaded(id: &str) -> bool {
         || unsafe { bridge!("isModLoaded", [JArg::S(YogStr::from_str(id))]) }.unwrap_or(false)
 }
 
-pub(super) unsafe extern "C" fn api_is_mod_loaded(_ctx: *mut c_void, id: YogStr) -> bool {
-    unsafe { mod_loaded(id.as_str()) }
-}
-
 pub(super) unsafe extern "C" fn api_java_call(_ctx: *mut c_void, expr: YogStr, args: YogStr) -> YogOwnedStr {
     unsafe {
         let args = match yog_data::text::parse_value(args.as_str()) {
@@ -126,33 +122,6 @@ pub(super) unsafe extern "C" fn api_java_call(_ctx: *mut c_void, expr: YogStr, a
     }
 }
 
-/// Strip TSV separators so one mod can't corrupt the line format.
-pub(super) fn tsv_clean(v: &str) -> String {
-    v.replace(['\t', '\n', '\r'], " ")
-}
-
-pub(super) unsafe extern "C" fn api_ui_open(_ctx: *mut c_void, ui_id: YogStr, modal: bool, pause: bool) {
-    unsafe {
-        if ui_id.as_str().is_empty() {
-            return;
-        }
-        // Java side schedules onto the render thread; no-op on dedicated servers.
-        let _: Option<()> = bridge!("openUI", [S(ui_id), Z(modal), Z(pause)]);
-    }
-}
-
-pub(super) unsafe extern "C" fn api_ui_close(_ctx: *mut c_void, ui_id: YogStr) {
-    unsafe {
-        // Java side defers onto the render thread (after the current event) and
-        // checks the open screen is that Yog UI; no-op on dedicated servers.
-        let _: Option<()> = bridge!("closeUI", [S(ui_id)]);
-    }
-}
-
-pub(super) unsafe extern "C" fn api_translate(_ctx: *mut c_void, key: YogStr) -> YogOwnedStr {
-    unsafe { translate(key.as_str()).map_or(YogOwnedStr::NONE, YogOwnedStr::from_string) }
-}
-
 /// The game's text for translation `key` in the current language — `None`
 /// when no lang file has it (or there's no JVM).
 pub(super) fn translate(key: &str) -> Option<String> {
@@ -160,34 +129,5 @@ pub(super) fn translate(key: &str) -> Option<String> {
         return None;
     }
     unsafe { bridge!("translate", [S(YogStr::from_str(key))]) }
-}
-
-pub(super) unsafe extern "C" fn api_mods_list(_ctx: *mut c_void) -> YogOwnedStr {
-    unsafe {
-        let mut lines: Vec<String> = Vec::new();
-        let infos = MOD_INFOS.locked().clone();
-        for m in &infos {
-            // A `.yres` name/description shows in the player's language.
-            let localized = |text: &str, key: &str| {
-                translate(key).map_or_else(|| text.to_string(), |t| tsv_clean(&t))
-            };
-            lines.push(format!(
-                "yog\t{}\t{}\t{}\t{}\t{}",
-                m[0],
-                localized(&m[1], &m[5]),
-                m[2],
-                m[3],
-                localized(&m[4], &m[6])
-            ));
-        }
-        // Loader-side (Java) mods, if the host provides them.
-        let platform: Option<String> = bridge!("listPlatformMods", []);
-        for line in platform.iter().flat_map(|s| s.lines()) {
-            if !line.trim().is_empty() {
-                lines.push(format!("platform\t{line}"));
-            }
-        }
-        YogOwnedStr::from_string(lines.join("\n"))
-    }
 }
 

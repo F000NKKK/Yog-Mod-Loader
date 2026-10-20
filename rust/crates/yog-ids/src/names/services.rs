@@ -191,6 +191,34 @@ names! {
         DOMAIN = concatcp!(service::PREFIX, "game", sep::PATH),
         DIR = concatcp!(DOMAIN, "dir"),
         WORLD_DIR = concatcp!(DOMAIN, "world_dir"),
+        TRANSLATE = concatcp!(DOMAIN, "translate"),
+        MODS = concatcp!(DOMAIN, "mods"),
+        MOD_LOADED = concatcp!(DOMAIN, "mod_loaded"),
+    }
+
+    /// `yog:client/…`: this client's own actions (nothing on a server).
+    service_client {
+        DOMAIN = concatcp!(service::PREFIX, "client", sep::PATH),
+        PLAY_SOUND = concatcp!(DOMAIN, "play_sound"),
+        STOP_SOUND = concatcp!(DOMAIN, "stop_sound"),
+        HELD_ITEM = concatcp!(DOMAIN, "held_item"),
+        SET_BLOCK_TINT = concatcp!(DOMAIN, "set_block_tint"),
+        KEY_DOWN = concatcp!(DOMAIN, "key_down"),
+        ATTRIBUTE_VALUE = concatcp!(DOMAIN, "attribute_value"),
+        ADVANCEMENT_DONE = concatcp!(DOMAIN, "advancement_done"),
+        OP = concatcp!(DOMAIN, "op"),
+        BODY_TRACK = concatcp!(DOMAIN, "body_track"),
+        BODY_TRACK_TYPE = concatcp!(DOMAIN, "body_track_type"),
+        SET_DIMENSIONS = concatcp!(DOMAIN, "set_dimensions"),
+        ENTITY_DATA = concatcp!(DOMAIN, "entity_data"),
+    }
+
+    /// `yog:ui/…`: mods' screens.
+    service_ui {
+        DOMAIN = concatcp!(service::PREFIX, "ui", sep::PATH),
+        OPEN = concatcp!(DOMAIN, "open"),
+        OPEN_WITH_FLAGS = concatcp!(DOMAIN, "open_with_flags"),
+        CLOSE = concatcp!(DOMAIN, "close"),
     }
 
     /// `yog:menu/…`: the menu entries mods declare (provided by the runtime).

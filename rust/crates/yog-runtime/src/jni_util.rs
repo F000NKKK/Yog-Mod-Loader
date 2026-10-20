@@ -17,11 +17,6 @@ pub(super) fn get_env() -> Option<jni::AttachGuard<'static>> {
 
 
 
-/// A host string reply handed to a mod (`None`/`null` → [`YogOwnedStr::NONE`]).
-pub(super) fn owned(s: Option<String>) -> YogOwnedStr {
-    s.map_or(YogOwnedStr::NONE, YogOwnedStr::from_string)
-}
-
 /// The first `N` tab-separated values of a host reply.
 pub(super) fn parse_tsv<T: std::str::FromStr, const N: usize>(s: &str) -> Option<[T; N]> {
     let values: Vec<T> = s

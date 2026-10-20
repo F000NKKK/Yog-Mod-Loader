@@ -36,6 +36,7 @@ pub mod scoreboard;
 pub mod server;
 pub mod sound;
 pub mod tag;
+pub mod ui;
 pub mod world;
 
 pub use event::{Event, EventInfo, all};

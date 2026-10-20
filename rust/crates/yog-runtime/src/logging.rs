@@ -27,7 +27,3 @@ pub(super) fn host_log(level: yog_logging::Level, message: &str) {
 pub(super) unsafe extern "C" fn api_log(level: u32, message: YogStr) {
     host_log(yog_logging::Level::from_u32(level), unsafe { message.as_str() });
 }
-
-pub(super) unsafe extern "C" fn api_client_advancement_done(_ctx: *mut c_void, id: YogStr) -> bool {
-    client_advancement_done(unsafe { id.as_str() })
-}

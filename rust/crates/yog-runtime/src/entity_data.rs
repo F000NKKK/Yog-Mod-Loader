@@ -11,14 +11,13 @@
 //! of the entity, key and value empty). Strings are a u16 length and UTF-8.
 
 use std::collections::{BTreeMap, HashMap};
-use std::os::raw::c_void;
 use yog_sync::Locked;
 use std::sync::{LazyLock, Mutex};
 
 use jni::JNIEnv;
 use jni::objects::{JByteArray, JClass, JString};
 use jni::sys::jbyteArray;
-use yog_abi::{YogBytesSink, YogStr};
+use yog_abi::YogStr;
 
 pub(crate) use yog_ids::yog::{DIMENSIONS, ENTITY_DATA};
 
@@ -152,7 +151,7 @@ pub(crate) fn get(uuid: &str, key: &str) -> Option<Vec<u8>> {
 
 /// The entity services the runtime provides (it keeps the data); once, at start.
 pub(crate) fn register() {
-    use yog_event::entity::{Data, DataValue, SetData, SetDimensions};
+    use yog_event::entity::{Data, DataValue, SetData, SetDimensions, VANILLA_SIZE};
     crate::bus::serve::<Data>(|d| get(&d.uuid, &d.key).map(|bytes| DataValue { bytes }));
     crate::bus::serve::<SetData>(|d| {
         if d.uuid.is_empty() || d.key.is_empty() {
@@ -171,9 +170,6 @@ pub(crate) fn register() {
         found
     });
 }
-
-/// What the host reads as "back to vanilla's size" (a negative width).
-const VANILLA_SIZE: [f32; 3] = [-1.0, 0.0, 0.0];
 
 /// `byte[] nativeEntityDataFor(String uuid)`: everything about the entity,
 /// for a player who starts seeing it; null for nothing.
@@ -336,18 +332,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataClientReset<'l>
     CLIENT.locked().clear();
 }
 
-pub(crate) unsafe extern "C" fn api_client_entity_data(
-    _ctx: *mut c_void,
-    uuid: YogStr,
-    key: YogStr,
-    sink: *mut c_void,
-    write: YogBytesSink,
-) -> bool {
-    let (uuid, key) = unsafe { (uuid.as_str(), key.as_str()) };
-    let store = CLIENT.locked();
-    let Some(v) = store.get(uuid).and_then(|v| v.get(key)) else { return false };
-    unsafe { write(sink, v.as_ptr(), v.len()) };
-    true
+/// What this client was told entity `uuid` keeps under `key`.
+pub(crate) fn client_get(uuid: &str, key: &str) -> Option<Vec<u8>> {
+    CLIENT.locked().get(uuid).and_then(|v| v.get(key)).cloned()
 }
 
 /// Adds what this client knows of the frame's entity to a body frame

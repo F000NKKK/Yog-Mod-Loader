@@ -249,10 +249,10 @@ pub(super) fn read_mod_info(path: &Path) -> [String; 7] {
         let value = value.trim();
         let unquote = |v: &str| v.trim().trim_matches('"').to_string();
         match key {
-            "id" => info[0] = tsv_clean(&unquote(value)),
-            "name" => info[1] = tsv_clean(&unquote(value)),
-            "version" => info[2] = tsv_clean(&unquote(value)),
-            "description" => info[4] = tsv_clean(&unquote(value)),
+            "id" => info[0] = unquote(value),
+            "name" => info[1] = unquote(value),
+            "version" => info[2] = unquote(value),
+            "description" => info[4] = unquote(value),
             "name_key" => info[5] = unquote(value),
             "description_key" => info[6] = unquote(value),
             "authors" => {
@@ -262,7 +262,7 @@ pub(super) fn read_mod_info(path: &Path) -> [String; 7] {
                     .map(unquote)
                     .filter(|a| !a.is_empty())
                     .collect();
-                info[3] = tsv_clean(&authors.join(", "));
+                info[3] = authors.join(", ");
             }
             _ => {}
         }
