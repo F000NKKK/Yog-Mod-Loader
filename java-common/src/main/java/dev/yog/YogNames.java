@@ -105,6 +105,13 @@ public final class YogNames {
         public static final String INSERT = "yog:block/insert";
     }
 
+    public static final class ServiceItem {
+        private ServiceItem() {}
+
+        public static final String DOMAIN = "yog:item/";
+        public static final String TEXT = "yog:item/text";
+    }
+
     public static final class ServiceCommand {
         private ServiceCommand() {}
 

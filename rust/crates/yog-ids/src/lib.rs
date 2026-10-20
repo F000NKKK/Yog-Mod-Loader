@@ -138,6 +138,12 @@ names! {
         INSERT = concatcp!(DOMAIN, "insert"),
     }
 
+    /// `yog:item/…`.
+    service_item {
+        DOMAIN = concatcp!(service::PREFIX, "item", sep::PATH),
+        TEXT = concatcp!(DOMAIN, "text"),
+    }
+
     /// `yog:command/…`: the commands mods declare (provided by the runtime).
     service_command {
         DOMAIN = concatcp!(service::PREFIX, "command", sep::PATH),

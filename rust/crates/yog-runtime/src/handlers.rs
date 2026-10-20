@@ -17,7 +17,6 @@ pub struct UiLayer {
 /// user data and callback.
 /// A tooltip picture's mod, user data, size and draw callbacks.
 pub(super) type TooltipEntry = (LoadedModule, *mut c_void, yog_abi::YogTooltipSizeFn, yog_abi::YogTooltipDrawFn);
-pub(super) type ItemTextEntry = (LoadedModule, *mut c_void, yog_abi::YogItemTextFn);
 
 // Every callback table below is tagged with the `LoadedModule` that
 // registered it (see `current_registration()`), so a hot-reload's dispatch
@@ -74,8 +73,6 @@ pub(super) struct RuntimeHandlers {
     pub(super) page_drawers: HashMap<String, (LoadedModule, *mut c_void, yog_abi::YogPageDrawFn)>,
     /// Pictures in item tooltips, by item id: the first that answers draws.
     pub(super) item_tooltips: HashMap<String, Vec<TooltipEntry>>,
-    /// Stacks' own names and tooltip lines, by item.
-    pub(super) item_texts: HashMap<String, Vec<ItemTextEntry>>,
     pub(super) menu_entries: Vec<(String, String)>, // (label, ui_id) for vanilla screen buttons
     /// The mods' key bindings (ABI 3.10), once each by id: the game's controls show them.
     pub(super) key_bindings: Vec<KeyBinding>,
@@ -160,9 +157,6 @@ impl ModuleRegistry for RuntimeModuleRegistry {
         }
         h.page_drawers
             .retain(|_, (m, ..)| m.generation() != generation);
-        for entries in h.item_texts.values_mut() {
-            entries.retain(|(m, ..)| m.generation() != generation);
-        }
         for entries in h.item_tooltips.values_mut() {
             entries.retain(|(m, ..)| m.generation() != generation);
         }

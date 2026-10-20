@@ -1285,23 +1285,6 @@ where
     }
 }
 
-unsafe extern "C" fn trampoline_item_text<F>(ud: *mut c_void, item: YogStr, snbt: YogStr, sink: *mut c_void, write: yog_abi::YogTextSink) -> bool
-where
-    F: Fn(&str, &str) -> Option<(Option<String>, Vec<String>)> + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        let Some((name, lines)) = guard(None, || f(item.as_str(), snbt.as_str())) else { return false };
-        let mut text = name.unwrap_or_default();
-        for l in lines {
-            text.push('\n');
-            text.push_str(&l.replace('\n', " "));
-        }
-        write(sink, YogStr::from_str(&text));
-        true
-    }
-}
-
 unsafe extern "C" fn trampoline_body<F>(ud: *mut c_void, frame: *const u8, len: usize, sink: *mut c_void, write: yog_abi::YogBytesSink)
 where
     F: Fn(&yog_body::Frame, &mut yog_body::Ops) + Send + Sync,
@@ -1966,9 +1949,7 @@ impl Registry {
     where
         F: Fn(&str, &str) -> Option<(Option<String>, Vec<String>)> + Send + Sync + 'static,
     {
-        let ud = Self::leak(text);
-        let id = YogStr::from_str(item);
-        unsafe { ((*self.api).on_item_text)(self.ctx(), id, ud, trampoline_item_text::<F>) }
+        self.provide_key::<yog_event::item::Text>(item, move |t, _| text(&t.item, &t.snbt).map(|(name, lines)| yog_event::item::Shown { name, lines }));
     }
 
     /// A compiled `.ymodel` (the generated code calls this): found later by

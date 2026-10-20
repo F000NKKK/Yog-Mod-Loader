@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.bus.YogServices;
+import dev.yog.bus.YogTypes;
 import java.util.List;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
@@ -61,11 +63,15 @@ public class YogItem extends Item {
         return YogTooltipData.of(stack);
     }
 
-    /** A Yog mod's name (first) and tooltip lines for this stack ({@code Registry::on_item_text}), or null. */
+    /** A Yog mod's name (first) and tooltip lines for this stack ({@code Registry::on_item_text}, the {@code item/text} service), or null. */
     static String[] ownText(ItemStack stack) {
         try {
-            String t = NativeBridge.nativeItemText(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), NativeBridge.tooltipSnbt(stack));
-            return t == null ? null : t.split("\n", -1);
+            YogTypes.Shown shown = new YogServices.Item.Text(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), NativeBridge.tooltipSnbt(stack)).call();
+            if (shown == null) return null;
+            String[] out = new String[1 + shown.lines().size()];
+            out[0] = shown.name() == null ? "" : shown.name();
+            for (int i = 0; i < shown.lines().size(); i++) out[i + 1] = shown.lines().get(i);
+            return out;
         } catch (UnsatisfiedLinkError e) {
             return null;
         }

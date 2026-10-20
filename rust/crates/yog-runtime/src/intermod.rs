@@ -71,7 +71,6 @@ pub(super) fn build_api_table(ctx: *const RwLock<RuntimeHandlers>, server: *cons
         on_item_tooltip: api_on_item_tooltip,
         is_mod_loaded: api_is_mod_loaded,
         java_call: api_java_call,
-        on_item_text: api_on_item_text,
         client_body_track: body::api_client_body_track,
         client_body_track_type: body::api_client_body_track_type,
         client_set_dimensions: body::api_client_set_dimensions,

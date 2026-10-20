@@ -177,11 +177,6 @@ pub struct YogApi {
     /// Free with `free_str`.
     pub java_call: unsafe extern "C" fn(ctx: *mut c_void, expr: YogStr, args: YogStr) -> YogOwnedStr,
 
-    // ── ABI 2.4 — a stack's own name and tooltip ────────────────────────────
-    /// The name and tooltip lines of stacks of `item` from its custom data
-    /// (a written blueprint shows its design) — see [`YogItemTextFn`].
-    pub on_item_text: unsafe extern "C" fn(ctx: *mut c_void, item: YogStr, ud: *mut c_void, f: YogItemTextFn),
-
     // ── ABI 3.0 — bodies, camera, movement (yog-body) ───────────────────────
     /// Asks the mods about entity `uuid`'s body each frame (`on`) or not.
     pub client_body_track: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, on: bool),

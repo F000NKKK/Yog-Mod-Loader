@@ -22,6 +22,7 @@ pub mod client;
 pub mod command;
 pub mod container;
 pub mod entity;
+pub mod item;
 pub mod player;
 pub mod server;
 pub mod world;

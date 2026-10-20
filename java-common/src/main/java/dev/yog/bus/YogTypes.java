@@ -4,6 +4,7 @@ package dev.yog.bus;
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** The records the bus's messages share. */
@@ -46,6 +47,25 @@ public final class YogTypes {
         }
 
         public static LootStack fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** What a stack shows instead of its item's own name and description. */
+    public record Shown(String name, List<String> lines) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            if (name != null) m.put("name", name);
+            m.put("lines", lines);
+            return m;
+        }
+
+        public static Shown fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new Shown((m.get("name") == null ? null : YogData.str(m.get("name"), "")), YogData.list(m.get("lines")).stream().map(e0 -> YogData.str(e0, "")).toList());
+        }
+
+        public static Shown fromBytes(byte[] bytes) {
             return fromData(YogData.decode(bytes));
         }
     }

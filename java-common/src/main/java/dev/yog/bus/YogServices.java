@@ -54,6 +54,43 @@ public final class YogServices {
         }
     }
 
+    /** `item`. */
+    public static final class Item {
+        private Item() {}
+
+        /** A stack's own name and tooltip, from its custom data (a written blueprint shows its design) — keyed by the item, answered by its mod; `None`: the item's own. */
+        public record Text(String item, String snbt) {
+            public Map<String, Object> toData() {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("item", item);
+                m.put("snbt", snbt);
+                return m;
+            }
+
+            public static Text fromData(Object data) {
+                Map<String, Object> m = YogData.map(data);
+                return new Text(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""));
+            }
+
+            public static Text fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public YogTypes.Shown call() {
+                YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.TEXT, item), YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return (v == null ? null : YogTypes.Shown.fromData(v));
+            }
+        }
+    }
+
     /** `command`. */
     public static final class Command {
         private Command() {}

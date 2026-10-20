@@ -1588,9 +1588,6 @@ public final class NativeBridge {
 
     // ── Pictures in item tooltips (ABI 2.2) ─────────────────────────────────
 
-    /** {@code {w, h}} of the picture a mod gives a stack of {@code item} with custom data {@code snbt}, or null. */
-    /** A Yog mod's name and tooltip lines for a stack — `name\nline…` — or null (ABI 2.4). */
-    public static native String nativeItemText(String item, String snbt);
     /** yog-body: the ops for a tracked entity's body this frame, or null. */
     public static native byte[] nativeBodyPose(byte[] frame);
 

@@ -4,7 +4,7 @@
 use yog_data::{Schema, Shape};
 use yog_ids as ids;
 
-use crate::{block, command};
+use crate::{block, command, item};
 use crate::message::{Message, branch, last_segment};
 
 /// A call the bus carries: its payload is `Self`, its answer a [`Service::Reply`].
@@ -78,6 +78,7 @@ macro_rules! services {
 
 services! {
     block::Insert => ids::service_block::INSERT, bool, key = block_id;
+    item::Text => ids::service_item::TEXT, Option<item::Shown>, key = item;
     command::Declare => ids::service_command::DECLARE, bool;
     command::Declared => ids::service_command::DECLARED, Vec<command::Declare>;
 }
