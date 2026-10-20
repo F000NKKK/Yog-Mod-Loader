@@ -62,7 +62,11 @@ events! {
     ContainerCloseEvent => CONTAINER_CLOSE, None;
     ClientTickEvent => CLIENT_TICK, None;
     HudRenderEvent => HUD_RENDER, None;
-    KeyPressEvent => KEY_PRESS, None;
-    ScreenEvent => SCREEN, None;
+    KeyPressEvent => KEY_PRESS, Some(KEY_PRESS_PRE);
     ProjectileHitEvent => PROJECTILE_HIT, Some(PROJECTILE_HIT_PRE);
+    ScreenOpenEvent => SCREEN_OPEN, None;
+    ScreenCloseEvent => SCREEN_CLOSE, None;
+    ServerTickEvent => SERVER_TICK, None;
+    ServerStartedEvent => SERVER_STARTED, None;
+    ServerStoppingEvent => SERVER_STOPPING, None;
 }

@@ -320,12 +320,34 @@ pub struct KeyPressEvent {
     pub modifiers: i32,
 }
 
-/// Fired when a GUI screen opens or closes.
+/// Fired when a GUI screen opens.
 #[derive(Debug, Clone, Schema)]
-pub struct ScreenEvent {
+pub struct ScreenOpenEvent {
     /// Simple class name of the screen, e.g. `"InventoryScreen"`, `"ChestScreen"`.
     pub screen_class: String,
 }
+
+/// Fired when a GUI screen closes.
+#[derive(Debug, Clone, Schema)]
+pub struct ScreenCloseEvent {
+    /// Simple class name of the screen.
+    pub screen_class: String,
+}
+
+/// Fired every server tick (20 a second).
+#[derive(Debug, Clone, Schema)]
+pub struct ServerTickEvent {}
+
+/// Fired once the server has started.
+#[derive(Debug, Clone, Schema)]
+pub struct ServerStartedEvent {
+    /// The world's folder.
+    pub world_dir: String,
+}
+
+/// Fired as the server stops.
+#[derive(Debug, Clone, Schema)]
+pub struct ServerStoppingEvent {}
 
 /// Fired when a persistent projectile (arrow, trident, etc.) hits a target.
 ///

@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -21,9 +21,6 @@ public class CraftingMixin {
     private void yog$onCraft(Player player, ItemStack stack, CallbackInfo ci) {
         if (!(player instanceof ServerPlayer sp)) return;
         String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
-        NativeBridge.nativeOnItemCraft(
-            sp.getName().getString(), sp.getStringUUID(),
-            itemId, stack.getCount(),
-            sp.level().dimension().location().toString());
+        new YogEvents.Craft(sp.getName().getString(), sp.getStringUUID(), itemId, stack.getCount(), sp.level().dimension().location().toString()).emit();
     }
 }

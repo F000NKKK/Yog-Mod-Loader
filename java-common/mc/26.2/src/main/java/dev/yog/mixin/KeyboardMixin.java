@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.input.KeyEvent;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class KeyboardMixin {
     @Inject(method = "keyPress", at = @At("HEAD"), cancellable = true)
     private void yog$onKey(long window, int action, KeyEvent event, CallbackInfo ci) {
-        if (!NativeBridge.nativeOnKeyPress(event.key(), event.scancode(), action, event.modifiers())) {
+        if (!new YogEvents.KeyPress(event.key(), event.scancode(), action, event.modifiers()).emitPre()) {
             ci.cancel();
         }
     }

@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogEvents;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -35,7 +36,7 @@ public final class YogClientEvents {
     /** The end of a client tick: key presses, then the mods. */
     public static void tick() {
         dev.yog.util.YogKeyBindings.tick(NativeBridge::nativeOnKeyBinding);
-        NativeBridge.nativeOnClientTick();
+        new YogEvents.ClientTick().emit();
     }
 
     /** The HUD being extracted for this frame: the mods' 2-D draws go into it, their raw GL onto the main target. */
@@ -72,12 +73,12 @@ public final class YogClientEvents {
 
     public static void screenOpened(Screen screen) {
         if (screen instanceof YogUIScreen) return;
-        NativeBridge.nativeOnScreenOpen(screen.getClass().getSimpleName());
+        new YogEvents.ScreenOpen(screen.getClass().getSimpleName()).emit();
     }
 
     public static void screenClosed(Screen screen) {
         if (screen instanceof YogUIScreen) return;
-        NativeBridge.nativeOnScreenClose(screen.getClass().getSimpleName());
+        new YogEvents.ScreenClose(screen.getClass().getSimpleName()).emit();
     }
 
     /** The mods' menu entries as buttons for the title screen (none on other screens). */

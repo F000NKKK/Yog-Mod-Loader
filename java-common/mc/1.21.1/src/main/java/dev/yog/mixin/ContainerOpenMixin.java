@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,9 +23,7 @@ public class ContainerOpenMixin {
     private void yog$onContainerOpenPre(MenuProvider factory,
                                          CallbackInfoReturnable<OptionalInt> cir) {
         ServerPlayer sp = (ServerPlayer)(Object)this;
-        boolean allow = NativeBridge.nativeOnContainerOpenPre(
-                sp.getName().getString(), sp.getStringUUID(),
-                sp.level().dimension().location().toString());
+        boolean allow = new YogEvents.ContainerOpen(sp.getName().getString(), sp.getStringUUID(), "", sp.level().dimension().location().toString()).emitPre();
         if (!allow) cir.setReturnValue(OptionalInt.empty());
     }
 
@@ -39,8 +37,6 @@ public class ContainerOpenMixin {
         ServerPlayer sp = (ServerPlayer)(Object)this;
         ResourceLocation typeId = BuiltInRegistries.MENU.getKey(sp.containerMenu.getType());
         String containerType = typeId != null ? typeId.toString() : "";
-        NativeBridge.nativeOnContainerOpen(
-                sp.getName().getString(), sp.getStringUUID(), containerType,
-                sp.level().dimension().location().toString());
+        new YogEvents.ContainerOpen(sp.getName().getString(), sp.getStringUUID(), containerType, sp.level().dimension().location().toString()).emit();
     }
 }

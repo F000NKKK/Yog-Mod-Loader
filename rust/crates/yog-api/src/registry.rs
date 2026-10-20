@@ -10,17 +10,15 @@
 use std::os::raw::c_void;
 
 use yog_abi::{
-    YogApi, YogCommandEvent, YogContainerOpenEvent, YogCraftEvent,
-    YogGfxApi, YogItemInsertEvent, YogMachineCraftEvent,
-    YogKeyPressEvent, YogPacketEvent, YogServer,
+    YogApi, YogCommandEvent, YogGfxApi, YogItemInsertEvent, YogMachineCraftEvent,
+    YogPacketEvent, YogServer,
     YogStr, };
 use yog_formats::book::Book;
 use yog_command::CommandContext;
 use yog_core::Server;
 use yog_dimensions::{ChunkWriter, YogDimensionDef};
 use yog_event::{
-    ClientTickEvent,
-    ContainerOpenEvent, CraftEvent, EventPhase, ItemInsertEvent, KeyPressEvent, ScreenEvent, };
+    EventPhase, ItemInsertEvent, };
 use yog_gfx::GfxContext;
 use yog_network::{Packet, PacketEvent};
 use yog_registry::{ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial};
@@ -1285,16 +1283,6 @@ macro_rules! trampoline_phased {
     };
 }
 
-trampoline_phased!(trampoline_craft, YogCraftEvent, CraftEvent, |ev| {
-    CraftEvent {
-        player_name: ev.player.as_str().to_owned(),
-        player_uuid: ev.player_uuid.as_str().to_owned(),
-        result_item: ev.result_item.as_str().to_owned(),
-        result_count: ev.result_count,
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-});
-
 /// A machine — an inventory whose `.yui` has a `<RecipeArea kind="…">` —
 /// making a recipe of its kind, like a crafting table: the result shows as
 /// soon as its slots hold a recipe's ingredients, and taking it takes them.
@@ -1350,28 +1338,6 @@ trampoline_phased!(
         nbt: ev.nbt.as_str().to_owned(),
     }
 );
-
-trampoline_phased!(
-    trampoline_container_open,
-    YogContainerOpenEvent,
-    ContainerOpenEvent,
-    |ev| ContainerOpenEvent {
-        player_name: ev.player.as_str().to_owned(),
-        player_uuid: ev.player_uuid.as_str().to_owned(),
-        container_type: ev.container_type.as_str().to_owned(),
-        dimension: ev.dimension.as_str().to_owned(),
-    }
-);
-
-unsafe extern "C" fn trampoline_server_fn<F>(ud: *mut c_void, srv: *const YogServer)
-where
-    F: Fn(&dyn Server) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        guard((), || f(&CServer(srv)));
-    }
-}
 
 unsafe extern "C" fn trampoline_packet<F>(
     ud: *mut c_void,
@@ -1442,16 +1408,6 @@ where
 }
 
 // ── ABI minor 10 — client-side trampolines ────────────────────────────────────
-
-unsafe extern "C" fn trampoline_client_tick<F>(ud: *mut c_void)
-where
-    F: Fn(&ClientTickEvent) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        guard((), || f(&ClientTickEvent {}));
-    }
-}
 
 unsafe extern "C" fn trampoline_hud_render<F>(ud: *mut c_void, gfx: *const YogGfxApi)
 where
@@ -1653,18 +1609,6 @@ where
     }
 }
 
-unsafe extern "C" fn trampoline_key_press<F>(ud: *mut c_void, ev: *const YogKeyPressEvent) -> bool
-where
-    F: Fn(&KeyPressEvent) -> bool + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        let e = &*ev;
-        let ev = KeyPressEvent { key_code: e.key_code, scan_code: e.scan_code, action: e.action, modifiers: e.modifiers };
-        guard(false, || f(&ev))
-    }
-}
-
 unsafe extern "C" fn trampoline_key_binding<F>(ud: *mut c_void, id: YogStr)
 where
     F: Fn(&str) + Send + Sync,
@@ -1673,18 +1617,6 @@ where
         let f = &*(ud as *const F);
         let id = id.as_str();
         guard((), || f(id));
-    }
-}
-
-unsafe extern "C" fn trampoline_screen<F>(ud: *mut c_void, screen_class: YogStr) -> bool
-where
-    F: Fn(&ScreenEvent) + Send + Sync,
-{
-    unsafe {
-        let f = &*(ud as *const F);
-        let ev = ScreenEvent { screen_class: screen_class.as_str().to_owned() };
-        guard((), || f(&ev));
-        true
     }
 }
 
@@ -1870,14 +1802,6 @@ impl Registry {
     // In `Post` phase, the return value is ignored.
     // A single registration fires for BOTH phases.
 
-    pub fn on_item_craft<F>(&mut self, handler: F)
-    where
-        F: Fn(&CraftEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_item_craft)(self.ctx(), ud, trampoline_craft::<F>) }
-    }
-
     /// A machine making a recipe — see [`MachineCraftEvent`].
     pub fn on_machine_craft<F>(&mut self, handler: F)
     where
@@ -1896,38 +1820,6 @@ impl Registry {
     {
         let ud = Self::leak(handler);
         unsafe { ((*self.api).on_item_insert)(self.ctx(), ud, trampoline_item_insert::<F>) }
-    }
-
-    pub fn on_container_open<F>(&mut self, handler: F)
-    where
-        F: Fn(&ContainerOpenEvent, EventPhase, &dyn Server) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_container_open)(self.ctx(), ud, trampoline_container_open::<F>) }
-    }
-
-    pub fn on_tick<F>(&mut self, listener: F)
-    where
-        F: Fn(&dyn Server) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(listener);
-        unsafe { ((*self.api).on_server_tick)(self.ctx(), ud, trampoline_server_fn::<F>) }
-    }
-
-    pub fn on_server_started<F>(&mut self, listener: F)
-    where
-        F: Fn(&dyn Server) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(listener);
-        unsafe { ((*self.api).on_server_started)(self.ctx(), ud, trampoline_server_fn::<F>) }
-    }
-
-    pub fn on_server_stopping<F>(&mut self, listener: F)
-    where
-        F: Fn(&dyn Server) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(listener);
-        unsafe { ((*self.api).on_server_stopping)(self.ctx(), ud, trampoline_server_fn::<F>) }
     }
 
     // ── commands ─────────────────────────────────────────────────────────────
@@ -2268,15 +2160,6 @@ impl Registry {
 
     // ── client-side hooks (ABI minor 10) ─────────────────────────────────────
 
-    /// Register a handler called every client tick (render thread, no server).
-    pub fn on_client_tick<F>(&mut self, handler: F)
-    where
-        F: Fn(&ClientTickEvent) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_client_tick)(self.ctx(), ud, trampoline_client_tick::<F>) }
-    }
-
     /// Register a render callback for a specific UI screen (`ui_id`).
     ///
     /// Called from `YogUIScreen.render()` — i.e. AFTER `renderBackground()` darkens
@@ -2485,16 +2368,6 @@ impl Registry {
         unsafe { ((*self.api).on_world_render)(self.ctx(), ud, trampoline_world_render::<F>) }
     }
 
-    /// Register a handler for keyboard input (client-side).
-    /// Return `false` to prevent Minecraft from processing the key.
-    pub fn on_key_press<F>(&mut self, handler: F)
-    where
-        F: Fn(&KeyPressEvent) -> bool + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_key_press)(self.ctx(), ud, trampoline_key_press::<F>) }
-    }
-
     /// A key binding the player sees in the game's controls (under this
     /// mod's name) and can rebind there; the game keeps the key it's bound
     /// to. `id` names it (`mymod:xray`), `name` is its label's translation
@@ -2533,23 +2406,6 @@ impl Registry {
         unsafe { ((*self.api).on_key_binding)(self.ctx(), ud, trampoline_key_binding::<F>) }
     }
 
-    /// Register a handler called when a GUI screen is opened.
-    pub fn on_screen_open<F>(&mut self, handler: F)
-    where
-        F: Fn(&ScreenEvent) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_screen_open)(self.ctx(), ud, trampoline_screen::<F>) }
-    }
-
-    /// Register a handler called when a GUI screen is closed.
-    pub fn on_screen_close<F>(&mut self, handler: F)
-    where
-        F: Fn(&ScreenEvent) + Send + Sync + 'static,
-    {
-        let ud = Self::leak(handler);
-        unsafe { ((*self.api).on_screen_close)(self.ctx(), ud, trampoline_screen::<F>) }
-    }
 }
 
 unsafe extern "C" fn trampoline_ui_event<F, R>(

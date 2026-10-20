@@ -160,9 +160,14 @@ names! {
         CLIENT_TICK = concatcp!(PREFIX, "client_tick"),
         HUD_RENDER = concatcp!(PREFIX, "hud_render"),
         KEY_PRESS = concatcp!(PREFIX, "key_press"),
-        SCREEN = concatcp!(PREFIX, "screen"),
+        KEY_PRESS_PRE = concatcp!(KEY_PRESS, PRE),
         PROJECTILE_HIT = concatcp!(PREFIX, "projectile_hit"),
         PROJECTILE_HIT_PRE = concatcp!(PROJECTILE_HIT, PRE),
+        SCREEN_OPEN = concatcp!(PREFIX, "screen_open"),
+        SCREEN_CLOSE = concatcp!(PREFIX, "screen_close"),
+        SERVER_TICK = concatcp!(PREFIX, "server_tick"),
+        SERVER_STARTED = concatcp!(PREFIX, "server_started"),
+        SERVER_STOPPING = concatcp!(PREFIX, "server_stopping"),
     }
 
     /// A `.yres` entry's type (`{ "type": "sound", ... }`).

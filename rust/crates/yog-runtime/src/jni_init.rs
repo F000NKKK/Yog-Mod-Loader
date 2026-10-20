@@ -40,6 +40,7 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeInit<'l>(
     let handlers_ptr = handlers_lock as *const RwLock<RuntimeHandlers>;
 
     let api: &'static YogApi = API_TABLE.get_or_init(|| build_api_table(handlers_ptr, server_ptr));
+    crate::bus::register_duties();
 
     let _ = HOT_RELOADER.get_or_init(|| HotReloader::new(RuntimeModuleRegistry));
     // A book's entries an advancement unlocks wait for this client's player to have it.

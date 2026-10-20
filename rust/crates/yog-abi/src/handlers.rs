@@ -13,19 +13,13 @@ use super::*;
 // Client-side handlers (minor 10) do NOT receive a `YogServer*` — they run on
 // the render thread and have no server context.
 
-pub type YogCraftFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogCraftEvent, u8) -> bool;
 pub type YogMachineCraftFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogMachineCraftEvent, u8) -> bool;
 pub type YogItemInsertFn =
     unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogItemInsertEvent, u8) -> bool;
-pub type YogContainerOpenFn =
-    unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogContainerOpenEvent, u8) -> bool;
 
 /// Packet events — always Post, no phase.
 pub type YogPacketFn = unsafe extern "C" fn(*mut c_void, *const YogServer, *const YogPacketEvent);
-/// Server lifecycle / tick — no event struct, always fires.
-pub type YogServerFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 /// A loot table rolled (`yog_registry::Loot`, Yog Data's binary form):
 /// the handler writes the items it should give instead
 /// (`Vec<yog_registry::LootStack>`, the same form) to `sink`, or nothing
@@ -48,8 +42,6 @@ pub type YogScheduledFn = unsafe extern "C" fn(*mut c_void, *const YogServer);
 
 // ── ABI minor 10 — client-side function pointer types ────────────────────────
 
-/// Client tick — no event, no server context.
-pub type YogClientFn = unsafe extern "C" fn(ud: *mut c_void);
 /// UI event for a `register_ui` screen. `event_id` is one of
 /// `click:X:Y`, `drag:X:Y`, `release:X:Y`, `scroll:DY` and (ABI minor 33)
 /// `key:KEY:MODS` — a GLFW key code pressed or repeating, with GLFW modifier
@@ -154,10 +146,5 @@ pub type YogItemTextFn =
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
 /// Valid only for the call duration.
 pub type YogWorldRenderFn = unsafe extern "C" fn(ud: *mut c_void, gfx: *const YogGfxApi);
-/// Key press — return `false` to cancel (prevent Minecraft from processing the key).
-pub type YogKeyPressFn = unsafe extern "C" fn(ud: *mut c_void, ev: *const YogKeyPressEvent) -> bool;
 /// A mod's key binding pressed (ABI 3.10): `id`, as `register_key_binding` named it.
 pub type YogKeyBindingFn = unsafe extern "C" fn(ud: *mut c_void, id: YogStr);
-/// Screen event — `screen_class` is the simple class name (e.g. `"InventoryScreen"`).
-/// For `on_screen_open` return `false` to prevent the screen from opening.
-pub type YogScreenFn = unsafe extern "C" fn(ud: *mut c_void, screen_class: YogStr) -> bool;

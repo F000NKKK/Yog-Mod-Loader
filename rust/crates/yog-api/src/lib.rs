@@ -14,6 +14,7 @@ pub mod loot;
 pub mod control;
 pub mod vanilla;
 mod bus;
+pub use bus::{EventCx, Flow, IntoFlow};
 mod interop;
 mod lang;
 mod registry;
@@ -330,7 +331,7 @@ pub use yog_event::{
     ContainerCloseEvent, ContainerOpenEvent, CraftEvent, EntityDamageEvent, EntityDeathEvent,
     EntityInteractEvent, EntitySpawnEvent, EventPhase, ExplosionEvent, ItemInsertEvent, ItemPickupEvent,
     KeyPressEvent, PlaceBlockEvent, PlayerDeathEvent, PlayerJoinEvent, PlayerLeaveEvent,
-    PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenEvent, UseBlockEvent,
+    PlayerMoveEvent, PlayerRespawnEvent, ProjectileHitEvent, ScreenCloseEvent, ScreenOpenEvent, ServerStartedEvent, ServerStoppingEvent, ServerTickEvent, UseBlockEvent,
     UseItemEvent,
 };
 pub use yog_inventory::{InventoryDef, SlotLayout};

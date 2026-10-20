@@ -127,9 +127,14 @@ public final class YogNames {
         public static final String CLIENT_TICK = "yog:event/client_tick";
         public static final String HUD_RENDER = "yog:event/hud_render";
         public static final String KEY_PRESS = "yog:event/key_press";
-        public static final String SCREEN = "yog:event/screen";
+        public static final String KEY_PRESS_PRE = "yog:event/key_press/pre";
         public static final String PROJECTILE_HIT = "yog:event/projectile_hit";
         public static final String PROJECTILE_HIT_PRE = "yog:event/projectile_hit/pre";
+        public static final String SCREEN_OPEN = "yog:event/screen_open";
+        public static final String SCREEN_CLOSE = "yog:event/screen_close";
+        public static final String SERVER_TICK = "yog:event/server_tick";
+        public static final String SERVER_STARTED = "yog:event/server_started";
+        public static final String SERVER_STOPPING = "yog:event/server_stopping";
     }
 
     public static final class ResKind {

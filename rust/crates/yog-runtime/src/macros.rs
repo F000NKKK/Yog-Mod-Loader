@@ -11,23 +11,11 @@
 macro_rules! for_each_handler_list {
     ($h:expr_2021, |$list:ident| $body:expr_2021) => {{
         {
-            let $list = &mut $h.item_craft;
-            $body;
-        }
-        {
             let $list = &mut $h.machine_craft;
             $body;
         }
         {
             let $list = &mut $h.item_insert;
-            $body;
-        }
-        {
-            let $list = &mut $h.container_open;
-            $body;
-        }
-        {
-            let $list = &mut $h.client_tick;
             $body;
         }
         {
@@ -55,31 +43,7 @@ macro_rules! for_each_handler_list {
             $body;
         }
         {
-            let $list = &mut $h.key_press;
-            $body;
-        }
-        {
             let $list = &mut $h.key_binding;
-            $body;
-        }
-        {
-            let $list = &mut $h.screen_open;
-            $body;
-        }
-        {
-            let $list = &mut $h.screen_close;
-            $body;
-        }
-        {
-            let $list = &mut $h.server_tick;
-            $body;
-        }
-        {
-            let $list = &mut $h.server_started;
-            $body;
-        }
-        {
-            let $list = &mut $h.server_stopping;
             $body;
         }
     }};

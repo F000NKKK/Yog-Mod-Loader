@@ -587,27 +587,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
         private static final class Address {
             static final int POST = YogBus.resolve("yog:event/key_press");
+            static final int PRE = YogBus.resolve("yog:event/key_press/pre");
         }
 
         public YogBus.Reply emit() {
             return YogBus.emit(Address.POST, YogData.encode(toData()));
         }
-    }
 
-    /** Fired when a GUI screen opens or closes. */
-    public record Screen(String screenClass) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("screen_class", screenClass);
-            return m;
-        }
-
-        private static final class Address {
-            static final int POST = YogBus.resolve("yog:event/screen");
-        }
-
-        public YogBus.Reply emit() {
-            return YogBus.emit(Address.POST, YogData.encode(toData()));
+        public boolean emitPre() {
+            return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
         }
     }
 
@@ -640,6 +628,89 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
         public boolean emitPre() {
             return YogBus.emit(Address.PRE, YogData.encode(toData())).status() != YogBus.CANCELLED;
+        }
+    }
+
+    /** Fired when a GUI screen opens. */
+    public record ScreenOpen(String screenClass) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("screen_class", screenClass);
+            return m;
+        }
+
+        private static final class Address {
+            static final int POST = YogBus.resolve("yog:event/screen_open");
+        }
+
+        public YogBus.Reply emit() {
+            return YogBus.emit(Address.POST, YogData.encode(toData()));
+        }
+    }
+
+    /** Fired when a GUI screen closes. */
+    public record ScreenClose(String screenClass) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("screen_class", screenClass);
+            return m;
+        }
+
+        private static final class Address {
+            static final int POST = YogBus.resolve("yog:event/screen_close");
+        }
+
+        public YogBus.Reply emit() {
+            return YogBus.emit(Address.POST, YogData.encode(toData()));
+        }
+    }
+
+    /** Fired every server tick (20 a second). */
+    public record ServerTick() {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            return m;
+        }
+
+        private static final class Address {
+            static final int POST = YogBus.resolve("yog:event/server_tick");
+        }
+
+        public YogBus.Reply emit() {
+            return YogBus.emit(Address.POST, YogData.encode(toData()));
+        }
+    }
+
+    /** Fired once the server has started. */
+    public record ServerStarted(String worldDir) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("world_dir", worldDir);
+            return m;
+        }
+
+        private static final class Address {
+            static final int POST = YogBus.resolve("yog:event/server_started");
+        }
+
+        public YogBus.Reply emit() {
+            return YogBus.emit(Address.POST, YogData.encode(toData()));
+        }
+    }
+
+    /** Fired as the server stops. */
+    public record ServerStopping() {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            return m;
+        }
+
+        private static final class Address {
+            static final int POST = YogBus.resolve("yog:event/server_stopping");
+        }
+
+        public YogBus.Reply emit() {
+            return YogBus.emit(Address.POST, YogData.encode(toData()));
         }
     }
 

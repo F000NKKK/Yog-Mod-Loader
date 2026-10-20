@@ -23,14 +23,8 @@ pub struct YogApi {
     // ── events — all handlers receive (ud, srv, event, phase: u8) → bool ────────
     // phase 0 = Pre (return false to cancel), phase 1 = Post (return ignored).
     // ── ABI minor 8 ──────────────────────────────────────────────────────────
-    pub on_item_craft: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogCraftFn),
     // ── ABI minor 9 ──────────────────────────────────────────────────────────
     pub on_item_insert: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogItemInsertFn),
-    pub on_container_open:
-        unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogContainerOpenFn),
-    pub on_server_tick: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
-    pub on_server_started: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
-    pub on_server_stopping: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogServerFn),
 
     // ── networking ───────────────────────────────────────────────────────────
     pub on_packet:
@@ -73,11 +67,7 @@ pub struct YogApi {
     ),
 
     // ── ABI minor 10 — client-side events ────────────────────────────────────
-    pub on_client_tick: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogClientFn),
     pub on_hud_render: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogHudRenderFn),
-    pub on_key_press: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogKeyPressFn),
-    pub on_screen_open: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogScreenFn),
-    pub on_screen_close: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, h: YogScreenFn),
 
     // ── ABI minor 14 — world render ──────────────────────────────────────────
     /// Register a handler that fires after world geometry is rendered.

@@ -1,6 +1,7 @@
 //! The bus (`docs/design/bus.md`): one channel for calls, events and
 //! services between Yog mods, the runtime, the Java host and Java mods.
 
+mod duties;
 mod java;
 mod router;
 #[cfg(test)]
@@ -11,6 +12,7 @@ use std::sync::{LazyLock, OnceLock};
 
 use yog_abi::{ABI_VERSION, YogAddress, YogBus, YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, status};
 
+pub(crate) use duties::register as register_duties;
 pub(crate) use router::{Handler, Router};
 
 /// The runtime's one router.

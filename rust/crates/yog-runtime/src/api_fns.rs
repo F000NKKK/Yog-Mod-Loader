@@ -19,20 +19,11 @@ macro_rules! api_event {
     };
 }
 
-api_event!(api_on_item_craft, item_craft, YogCraftFn);
 api_event!(api_on_machine_craft, machine_craft, YogMachineCraftFn);
 api_event!(api_on_item_insert, item_insert, YogItemInsertFn);
-api_event!(api_on_container_open, container_open, YogContainerOpenFn);
-api_event!(api_on_client_tick, client_tick, YogClientFn);
 api_event!(api_on_hud_render, hud_render, YogHudRenderFn);
 api_event!(api_on_world_render, world_render, YogWorldRenderFn);
-api_event!(api_on_key_press, key_press, YogKeyPressFn);
 api_event!(api_on_key_binding, key_binding, YogKeyBindingFn);
-api_event!(api_on_screen_open, screen_open, YogScreenFn);
-api_event!(api_on_screen_close, screen_close, YogScreenFn);
-api_event!(api_on_server_tick, server_tick, YogServerFn);
-api_event!(api_on_server_started, server_started, YogServerFn);
-api_event!(api_on_server_stopping, server_stopping, YogServerFn);
 
 pub(super) unsafe extern "C" fn api_on_packet(
     ctx: *mut c_void,

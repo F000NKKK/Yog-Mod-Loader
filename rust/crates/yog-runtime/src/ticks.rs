@@ -1,4 +1,4 @@
-//! JNI: block, chat, player, item and entity events.
+//! The server tick's own work: startup grants, entity data sent, scheduled tasks.
 
 use super::*;
 
@@ -8,6 +8,33 @@ use super::*;
 /// singleplayer world's owner stays the same player).
 pub(super) fn grant_tag(id: &str) -> String {
     format!("yog.grant.{id}")
+}
+
+/// Queues `player`'s startup grants (given a few ticks after the join).
+pub(crate) fn queue_startup_grants(player: &str, uuid: &str) {
+    let h = handlers();
+    if !h.startup_grants.is_empty() {
+        h.pending_grants.locked().push((player.to_owned(), uuid.to_owned(), 0));
+    }
+}
+
+/// After the mods' tick: grants due, entity data changed this tick sent to
+/// who sees it, and the scheduler's tasks due (run outside its lock — a task
+/// may schedule more).
+pub(crate) fn after_tick() {
+    guard("startup_grants", process_pending_grants);
+    guard("entity data", entity_data::flush);
+    let srv = srv_ptr();
+    let due = handlers().scheduler.locked().due();
+    for (module, ud, f) in due {
+        if module.is_retiring() {
+            continue;
+        }
+        let Some(_call) = module.enter() else {
+            continue;
+        };
+        guard("scheduled task", || unsafe { f(ud, srv) });
+    }
 }
 
 /// Try to fulfil pending startup grants. Called each server tick; a grant is
@@ -58,57 +85,3 @@ pub(super) fn process_pending_grants() {
     *pending = still_pending;
 }
 
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnTick<'l>(
-    _env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) {
-    let h = handlers();
-    let srv = srv_ptr();
-    guard("on_tick", || {
-        each(&h.server_tick, |ud, f| unsafe { f(ud, srv) });
-    });
-
-    guard("startup_grants", process_pending_grants);
-
-    // Entity data changed this tick, to who sees it — after the mods' ticks.
-    guard("entity data", entity_data::flush);
-
-    // Scheduler: what's due this tick, run outside the lock (a task may schedule more).
-    let due = h.scheduler.locked().due();
-    for (module, ud, f) in due {
-        if module.is_retiring() {
-            continue;
-        }
-        let Some(_call) = module.enter() else {
-            continue;
-        };
-        guard("scheduled task", || unsafe { f(ud, srv) });
-    }
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStarted<'l>(
-    _env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    _world_dir: JString<'l>,
-) {
-    // Grants pending for a previous world's players are void.
-    handlers().pending_grants.locked().clear();
-    let srv = srv_ptr();
-    guard("on_server_started", || {
-        each(&handlers().server_started, |ud, f| unsafe { f(ud, srv) });
-    });
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnServerStopping<'l>(
-    _env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) {
-    let srv = srv_ptr();
-    guard("on_server_stopping", || {
-        each(&handlers().server_stopping, |ud, f| unsafe { f(ud, srv) });
-    });
-    entity_data::server_stopped();
-}

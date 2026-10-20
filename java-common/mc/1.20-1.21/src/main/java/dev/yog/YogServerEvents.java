@@ -59,11 +59,11 @@ public final class YogServerEvents {
 
     public static void serverStarted(MinecraftServer server) {
         NativeBridge.setServer(server);
-        NativeBridge.nativeOnServerStarted(server.getWorldPath(LevelResource.ROOT).toAbsolutePath().toString());
+        new YogEvents.ServerStarted(server.getWorldPath(LevelResource.ROOT).toAbsolutePath().toString()).emit();
     }
 
     public static void serverStopping() {
-        NativeBridge.nativeOnServerStopping();
+        new YogEvents.ServerStopping().emit();
     }
 
     /** The end of a server tick: joined players who are in the list now are announced, then the mods tick. */
@@ -84,7 +84,7 @@ public final class YogServerEvents {
             });
             done.forEach(PENDING_JOINS::remove);
         }
-        NativeBridge.nativeOnTick();
+        new YogEvents.ServerTick().emit();
     }
 
     /** A player connected: announced once the server lists them; their entity data sent. */

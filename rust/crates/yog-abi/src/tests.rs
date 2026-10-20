@@ -9,8 +9,8 @@ fn layout_fingerprint() -> u64 {
         ($($t:ty),* $(,)?) => { [$((stringify!($t), size_of::<$t>(), align_of::<$t>())),*] };
     }
     let all = layouts!(
-        YogStr, YogOwnedStr, YogBlockPos, YogVec3, YogCraftEvent, YogItemInsertEvent, YogContainerOpenEvent, YogPacketEvent, YogCommandEvent,
-        YogKeyPressEvent, YogGfxApi, YogServer, YogChunkWriterApi, YogApi, YogBytes, YogReply, YogBus,
+        YogStr, YogOwnedStr, YogBlockPos, YogVec3, YogItemInsertEvent, YogPacketEvent, YogCommandEvent,
+        YogGfxApi, YogServer, YogChunkWriterApi, YogApi, YogBytes, YogReply, YogBus,
     );
     // FNV-1a over (name, size, align).
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -28,7 +28,7 @@ fn layout_fingerprint() -> u64 {
 #[test]
 #[cfg(target_pointer_width = "64")]
 fn the_layout_matches_its_version() {
-    assert_eq!((ABI_VERSION, layout_fingerprint()), (40000, 0x46fa_20ac_3dc9_d3eb), "layout fingerprint: {:#x}", layout_fingerprint());
+    assert_eq!((ABI_VERSION, layout_fingerprint()), (40000, 0xc3ce_08b3_1364_6a87), "layout fingerprint: {:#x}", layout_fingerprint());
 }
 
 #[test]

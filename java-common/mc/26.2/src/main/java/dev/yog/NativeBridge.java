@@ -1557,13 +1557,6 @@ public final class NativeBridge {
 
     public static native void nativeInit(String modsDir);
 
-    public static native void nativeOnTick();
-
-    /** `worldDir` — absolute path of the world save folder (per-world storage). */
-    public static native void nativeOnServerStarted(String worldDir);
-
-    public static native void nativeOnServerStopping();
-
     /** Names of mod-registered commands, one per line. */
     public static native String nativeCommandNames();
 
@@ -1655,27 +1648,13 @@ public final class NativeBridge {
     /** Client-receiver packet channels, one per line. */
     public static native String nativeClientPacketChannels();
 
-    /** Player took a crafted item from a crafting table (Post only; no cancellation). */
-    public static native void nativeOnItemCraft(
-            String player, String playerUuid, String resultItem, int resultCount, String dimension);
-
     // ── ABI minor 9 ──────────────────────────────────────────────────────────
-
-    /** Player about to open a container — Pre phase; return false to prevent opening. */
-    public static native boolean nativeOnContainerOpenPre(String player, String playerUuid, String dimension);
-
-    /** Player opened a container — Post phase; containerType is the screen handler registry id. */
-    public static native void nativeOnContainerOpen(
-            String player, String playerUuid, String containerType, String dimension);
 
     // ── ABI minor 11 — held item NBT native declarations ─────────────────────
 
     // (no native entry points — Rust calls Java via JNI, not the other way around)
 
     // ── ABI minor 10 — client-side hooks ─────────────────────────────────────
-
-    /** Client tick — fired every tick on the render thread. */
-    public static native void nativeOnClientTick();
 
     // ── ABI minor 14 — low-level GL pipeline ─────────────────────────────────
 
@@ -1697,15 +1676,6 @@ public final class NativeBridge {
     public static long glProcAddress(String name) {
         return GLFW.glfwGetProcAddress(name);
     }
-
-    /** Key pressed/released/repeated — return false to cancel (suppress Minecraft processing). */
-    public static native boolean nativeOnKeyPress(int keyCode, int scanCode, int action, int modifiers);
-
-    /** A GUI screen was opened; screenClass is the simple class name (e.g. "InventoryScreen"). */
-    public static native void nativeOnScreenOpen(String screenClass);
-
-    /** A GUI screen was closed; screenClass is the simple class name. */
-    public static native void nativeOnScreenClose(String screenClass);
 
     // ── translations (consumed by the runtime's translate ABI) ─────────────
 

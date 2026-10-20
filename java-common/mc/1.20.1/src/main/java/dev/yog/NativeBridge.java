@@ -1456,9 +1456,6 @@ public final class NativeBridge {
     // (same as Fabric — JNI stubs implemented in Rust)
 
     public static native void nativeInit(String modsDir);
-    public static native void nativeOnTick();
-    public static native void nativeOnServerStarted(String worldDir);
-    public static native void nativeOnServerStopping();
     public static native String nativeCommandNames();
     public static native String nativeTypedCommandSchemas();
     /**
@@ -1527,17 +1524,9 @@ public final class NativeBridge {
     public static native void nativeOnClientPacket(String channel, byte[] payload);
     public static native String nativePacketChannels();
     public static native String nativeClientPacketChannels();
-    public static native void nativeOnItemCraft(String player, String playerUuid, String resultItem, int resultCount, String dimension);
-    public static native boolean nativeOnContainerOpenPre(String player, String playerUuid, String dimension);
-    public static native void nativeOnContainerOpen(String player, String playerUuid, String containerType, String dimension);
-    public static native void nativeOnClientTick();
     public static native void nativeGlInit();
     public static native void nativeOnHudRender(float deltaTick, int screenW, int screenH, float scaleFactor, float playerX, float playerY, float playerZ);
     public static native void nativeOnWorldRender(float deltaTick, int screenW, int screenH, float scaleFactor, float[] viewProj, float camX, float camY, float camZ, float playerX, float playerY, float playerZ);
-    public static native void nativeOnScreenOpen(String screenClass);
-    public static native void nativeOnScreenClose(String screenClass);
-    public static native boolean nativeOnKeyPress(int keyCode, int scanCode, int action, int modifiers);
-
     /** Resolve an OpenGL function pointer by name — used by yog-runtime via JNI. */
     public static long glProcAddress(String name) {
         return GLFW.glfwGetProcAddress(name);

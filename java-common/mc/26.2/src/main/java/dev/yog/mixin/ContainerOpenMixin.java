@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.NativeBridge;
+import dev.yog.bus.YogEvents;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -23,9 +23,7 @@ public class ContainerOpenMixin {
     private void yog$onContainerOpenPre(MenuProvider factory,
                                          CallbackInfoReturnable<OptionalInt> cir) {
         ServerPlayer sp = (ServerPlayer)(Object)this;
-        boolean allow = NativeBridge.nativeOnContainerOpenPre(
-                sp.getName().getString(), sp.getStringUUID(),
-                sp.level().dimension().identifier().toString());
+        boolean allow = new YogEvents.ContainerOpen(sp.getName().getString(), sp.getStringUUID(), "", sp.level().dimension().identifier().toString()).emitPre();
         if (!allow) cir.setReturnValue(OptionalInt.empty());
     }
 
@@ -39,8 +37,6 @@ public class ContainerOpenMixin {
         ServerPlayer sp = (ServerPlayer)(Object)this;
         Identifier typeId = BuiltInRegistries.MENU.getKey(sp.containerMenu.getType());
         String containerType = typeId != null ? typeId.toString() : "";
-        NativeBridge.nativeOnContainerOpen(
-                sp.getName().getString(), sp.getStringUUID(), containerType,
-                sp.level().dimension().identifier().toString());
+        new YogEvents.ContainerOpen(sp.getName().getString(), sp.getStringUUID(), containerType, sp.level().dimension().identifier().toString()).emit();
     }
 }

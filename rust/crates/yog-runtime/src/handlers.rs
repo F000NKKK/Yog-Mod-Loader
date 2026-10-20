@@ -32,24 +32,15 @@ pub(super) type CommandEntry = (LoadedModule, Option<String>, *mut c_void, YogCo
 // regardless of what this crate does.
 #[derive(Default)]
 pub(super) struct RuntimeHandlers {
-    pub(super) item_craft: Vec<(LoadedModule, *mut c_void, YogCraftFn)>,
     pub(super) machine_craft: Vec<(LoadedModule, *mut c_void, YogMachineCraftFn)>,
     pub(super) item_insert: Vec<(LoadedModule, *mut c_void, YogItemInsertFn)>,
-    pub(super) container_open: Vec<(LoadedModule, *mut c_void, YogContainerOpenFn)>,
-    pub(super) client_tick: Vec<(LoadedModule, *mut c_void, YogClientFn)>,
     pub(super) hud_render: Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>,
     pub(super) body: Vec<(LoadedModule, *mut c_void, yog_abi::YogBodyFn)>,
     pub(super) camera: Vec<(LoadedModule, *mut c_void, yog_abi::YogCameraFn)>,
     pub(super) travel: Vec<(LoadedModule, *mut c_void, yog_abi::YogTravelFn)>,
     pub(super) loot: Vec<(LoadedModule, *mut c_void, yog_abi::YogLootFn)>,
     pub(super) world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
-    pub(super) key_press: Vec<(LoadedModule, *mut c_void, YogKeyPressFn)>,
     pub(super) key_binding: Vec<(LoadedModule, *mut c_void, YogKeyBindingFn)>,
-    pub(super) screen_open: Vec<(LoadedModule, *mut c_void, YogScreenFn)>,
-    pub(super) screen_close: Vec<(LoadedModule, *mut c_void, YogScreenFn)>,
-    pub(super) server_tick: Vec<(LoadedModule, *mut c_void, YogServerFn)>,
-    pub(super) server_started: Vec<(LoadedModule, *mut c_void, YogServerFn)>,
-    pub(super) server_stopping: Vec<(LoadedModule, *mut c_void, YogServerFn)>,
     /// All handlers registered under one command name, in registration order.
     /// `schema` is `None` for a plain `on_command` (bare, zero-argument)
     /// registration and `Some(schema)` for `on_typed_command`. Kept as a

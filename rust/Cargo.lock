@@ -2027,6 +2027,7 @@ dependencies = [
  "yog-abi",
  "yog-book",
  "yog-data",
+ "yog-event",
  "yog-formats",
  "yog-gfx",
  "yog-hot-reload",

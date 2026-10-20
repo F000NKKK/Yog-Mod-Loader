@@ -4,20 +4,6 @@ use super::*;
 
 // ── ABI minor 10 — client-side JNI entry points ───────────────────────────────
 
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnClientTick<'l>(
-    _env: JNIEnv<'l>,
-    _class: JClass<'l>,
-) {
-    let h = handlers();
-    if h.client_tick.is_empty() {
-        return;
-    }
-    guard("on_client_tick", || {
-        each(&h.client_tick, |ud, f| unsafe { f(ud) });
-    });
-}
-
 /// The host's GL function pointer for `sym` (0 if it has none).
 pub(super) fn gl_proc_address(sym: &str) -> usize {
     let ptr: Option<i64> = unsafe { bridge!("glProcAddress", [S(YogStr::from_str(sym))]) };
@@ -138,66 +124,3 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
     });
 }
 
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnKeyPress<'l>(
-    _env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    key_code: jint,
-    scan_code: jint,
-    action: jint,
-    modifiers: jint,
-) -> jni::sys::jboolean {
-    let h = handlers();
-    if h.key_press.is_empty() {
-        return 1;
-    }
-    let ev = YogKeyPressEvent {
-        key_code,
-        scan_code,
-        action,
-        modifiers,
-    };
-    allowed(&h.key_press, |ud, f| unsafe { f(ud, &ev) }) as jni::sys::jboolean
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenOpen<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    screen_class: JString<'l>,
-) {
-    let h = handlers();
-    if h.screen_open.is_empty() {
-        return;
-    }
-    let sc = match env.get_string(&screen_class) {
-        Ok(s) => String::from(s),
-        Err(_) => return,
-    };
-    guard("on_screen_open", || {
-        each(&h.screen_open, |ud, f| unsafe {
-            f(ud, YogStr::from_str(&sc))
-        });
-    });
-}
-
-#[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnScreenClose<'l>(
-    mut env: JNIEnv<'l>,
-    _class: JClass<'l>,
-    screen_class: JString<'l>,
-) {
-    let h = handlers();
-    if h.screen_close.is_empty() {
-        return;
-    }
-    let sc = match env.get_string(&screen_class) {
-        Ok(s) => String::from(s),
-        Err(_) => return,
-    };
-    guard("on_screen_close", || {
-        each(&h.screen_close, |ud, f| unsafe {
-            f(ud, YogStr::from_str(&sc))
-        });
-    });
-}

@@ -4,16 +4,6 @@ use super::*;
 
 // ── Event structs (Java → Rust) ───────────────────────────────────────────────
 
-/// Fired when a player takes a crafted item from a crafting output slot (Post only).
-#[repr(C)]
-pub struct YogCraftEvent {
-    pub player: YogStr,
-    pub player_uuid: YogStr,
-    pub result_item: YogStr,
-    pub result_count: u32,
-    pub dimension: YogStr,
-}
-
 /// A machine (an inventory's `.yui` `<RecipeArea>`) and the recipe its
 /// slots make. Pre: whether it may — the result shows only if every
 /// handler allows it (a workbench short of a resource says no); `player`
@@ -50,17 +40,6 @@ pub struct YogItemInsertEvent {
     pub nbt: YogStr,
 }
 
-/// Fired when a player opens a container screen (Pre: cancellable; Post: informational).
-/// `container_type` is the screen handler registry id, e.g. `"minecraft:chest"`.
-/// Empty string if the type is not in the registry (e.g. the player inventory).
-#[repr(C)]
-pub struct YogContainerOpenEvent {
-    pub player: YogStr,
-    pub player_uuid: YogStr,
-    pub container_type: YogStr,
-    pub dimension: YogStr,
-}
-
 #[repr(C)]
 pub struct YogPacketEvent {
     pub channel: YogStr,
@@ -81,15 +60,3 @@ pub struct YogCommandEvent {
 
 // ── ABI minor 10 client event structs ─────────────────────────────────────────
 
-/// Key press / release / repeat from the keyboard (client-side only).
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct YogKeyPressEvent {
-    /// GLFW key code (e.g. `GLFW_KEY_E = 69`).
-    pub key_code: i32,
-    pub scan_code: i32,
-    /// 0 = release, 1 = press, 2 = repeat.
-    pub action: i32,
-    /// Modifier bitmask: 1=shift, 2=ctrl, 4=alt, 8=super.
-    pub modifiers: i32,
-}
