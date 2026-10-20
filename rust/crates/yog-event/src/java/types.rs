@@ -16,8 +16,8 @@ pub(super) fn java_type(shape: &Shape, records: &mut Vec<StructShape>) -> String
         Shape::Float => "double".into(),
         Shape::Bytes => "byte[]".into(),
         Shape::Any => "Object".into(),
-        Shape::List(f) => format!("List<{}>", boxed(&java_type(&f(), records))),
-        Shape::Map(f) => format!("Map<String, {}>", boxed(&java_type(&f(), records))),
+        Shape::List(f) => format!("java.util.List<{}>", boxed(&java_type(&f(), records))),
+        Shape::Map(f) => format!("java.util.Map<String, {}>", boxed(&java_type(&f(), records))),
         Shape::Optional(f) => boxed(&java_type(&f(), records)),
         Shape::Struct(s) => {
             if !records.iter().any(|r| same(r, s)) {
@@ -69,7 +69,7 @@ pub(super) fn to_data(shape: &Shape, value: &str, depth: usize) -> String {
         Shape::Struct(_) => format!("{value}.toData()"),
         Shape::List(f) => format!("{value}.stream().map({e} -> {}).toList()", to_data(&f(), &e, depth + 1)),
         Shape::Map(f) => format!(
-            "{value}.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, {e} -> {}))",
+            "{value}.entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, {e} -> {}))",
             to_data(&f(), &format!("{e}.getValue()"), depth + 1)
         ),
         Shape::Optional(f) => format!("({value} == null ? null : {})", to_data(&f(), value, depth)),
@@ -89,7 +89,7 @@ pub(super) fn from_data(shape: &Shape, value: &str, depth: usize) -> String {
         Shape::Any => value.into(),
         Shape::List(f) => format!("YogData.list({value}).stream().map({e} -> {}).toList()", from_data(&f(), &e, depth + 1)),
         Shape::Map(f) => format!(
-            "YogData.map({value}).entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, {e} -> {}))",
+            "YogData.map({value}).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, {e} -> {}))",
             from_data(&f(), &format!("{e}.getValue()"), depth + 1)
         ),
         Shape::Optional(f) => format!("({value} == null ? null : {})", from_data(&f(), value, depth)),

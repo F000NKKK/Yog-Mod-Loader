@@ -83,3 +83,19 @@ fn an_import_without_a_bus_says_so() {
     let msg = *r.expect_err("no runtime to call").downcast::<String>().expect("a message");
     assert!(msg.contains("other:scale") && msg.contains("didn't answer"), "{msg}");
 }
+
+/// Energy stored, in FE.
+#[yog_export(implements = "test:energy/storage")]
+pub fn stored() -> u64 {
+    0
+}
+
+#[test]
+fn an_export_carries_its_description() {
+    let exports = yog_api::__yog_export_registry().lock().unwrap();
+    let entry = exports.iter().find(|e| e.name == "stored").expect("registered");
+    assert_eq!(entry.doc, "Energy stored, in FE.");
+    assert_eq!(entry.implements, ["test:energy/storage"]);
+    let (_, answer) = (entry.shapes)();
+    assert!(matches!(answer, yog_api::yog_data::Shape::Int { .. }));
+}

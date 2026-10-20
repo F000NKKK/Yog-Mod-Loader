@@ -86,6 +86,7 @@ pub(crate) fn register() {
     after::<server::game::Tick>(LAST, |_| crate::ticks::after_tick());
     after::<server::life::Stopping>(LAST, |_| crate::entity_data::server_stopped());
     super::declared::register();
+    super::describe::register();
     super::own::register();
     crate::entity_data::register();
     // The camera's changes start from none (the defaults live in yog-body).

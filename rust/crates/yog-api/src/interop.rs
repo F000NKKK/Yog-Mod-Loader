@@ -16,6 +16,12 @@ use crate::service::call_at;
 pub struct YogExportEntry {
     pub name: &'static str,
     pub handler: YogHandlerFn,
+    /// Its doc comment.
+    pub doc: &'static str,
+    /// Its arguments' and its answer's shapes.
+    pub shapes: fn() -> (yog_data::Shape, yog_data::Shape),
+    /// The interfaces it implements (`#[yog_export(implements = "yog:energy/storage")]`).
+    pub implements: &'static [&'static str],
 }
 
 #[doc(hidden)]
@@ -63,6 +69,11 @@ impl crate::Registry {
     /// Provides `mod_id`'s export `entry` (what `export_mod!` does for each).
     #[doc(hidden)]
     pub fn provide_export(&mut self, mod_id: &str, entry: &YogExportEntry) {
-        self.provide_raw(&export_address(mod_id, entry.name), entry.handler);
+        let address = export_address(mod_id, entry.name);
+        if self.provide_raw(&address, entry.handler) {
+            let (args, answer) = (entry.shapes)();
+            let interfaces = entry.implements.iter().map(|i| (*i).to_owned()).collect();
+            self.declare(&address, entry.doc, &args, &answer, interfaces);
+        }
     }
 }

@@ -4,9 +4,6 @@ package dev.yog.bus;
 import dev.yog.YogBus;
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /** The bus's events: a record per event; {@code emit} after the game did it, {@code emitPre} before (false: a handler cancelled it). */
 public final class YogEvents {
@@ -18,15 +15,15 @@ public final class YogEvents {
 
         /** A record a mod wrote (`yog_api::info!`…): the runtime puts it in the game's log; anyone else may listen (a debugger's console). */
         public record Record(long level, String message) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("level", level);
                 m.put("message", message);
                 return m;
             }
 
             public static Record fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Record(YogData.integer(m.get("level"), 0), YogData.str(m.get("message"), ""));
             }
 
@@ -70,8 +67,8 @@ public final class YogEvents {
 
             /** Fired when a player joins the server. */
             public record Join(String playerName, String uuid, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("uuid", uuid);
                     m.put("dimension", dimension);
@@ -79,7 +76,7 @@ public final class YogEvents {
                 }
 
                 public static Join fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Join(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -114,8 +111,8 @@ public final class YogEvents {
 
             /** Fired when a player leaves the server. */
             public record Leave(String playerName, String uuid, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("uuid", uuid);
                     m.put("dimension", dimension);
@@ -123,7 +120,7 @@ public final class YogEvents {
                 }
 
                 public static Leave fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Leave(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -165,8 +162,8 @@ public final class YogEvents {
 
 - `Pre`  — fires before death is processed; return `false` to prevent death (entity survives at 0.5 HP). - `Post` — fires after the player has died. */
             public record Death(String playerName, String uuid, String source, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("uuid", uuid);
                     m.put("source", source);
@@ -175,7 +172,7 @@ public final class YogEvents {
                 }
 
                 public static Death fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Death(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("source"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -215,8 +212,8 @@ public final class YogEvents {
 
             /** Fired when a player respawns after death (Post only). */
             public record Respawn(String playerName, String uuid, boolean atAnchor, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("uuid", uuid);
                     m.put("at_anchor", atAnchor);
@@ -225,7 +222,7 @@ public final class YogEvents {
                 }
 
                 public static Respawn fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Respawn(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.bool(m.get("at_anchor"), false), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -265,8 +262,8 @@ public final class YogEvents {
 
             /** Fired when a player sends a chat message. */
             public record Message(String playerName, String message, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("message", message);
                     m.put("dimension", dimension);
@@ -274,7 +271,7 @@ public final class YogEvents {
                 }
 
                 public static Message fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Message(YogData.str(m.get("player_name"), ""), YogData.str(m.get("message"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -321,8 +318,8 @@ public final class YogEvents {
 
 Post-phase only. The fields reflect the *new* position the client claims. */
             public record Move(String playerName, String playerUuid, double x, double y, double z, double yaw, double pitch, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("player_uuid", playerUuid);
                     m.put("x", x);
@@ -335,7 +332,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public static Move fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Move(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -370,8 +367,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
             /** Fired when a player right-clicks with an item (server side). */
             public record UseItem(String playerName, String itemId, boolean sneaking, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("item_id", itemId);
                     m.put("sneaking", sneaking);
@@ -380,7 +377,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public static UseItem fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new UseItem(YogData.str(m.get("player_name"), ""), YogData.str(m.get("item_id"), ""), YogData.bool(m.get("sneaking"), false), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -420,8 +417,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
             /** Fired when a player attacks (left-clicks) an entity (server side). */
             public record Attack(String playerName, String targetType, String targetUuid, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("target_type", targetType);
                     m.put("target_uuid", targetUuid);
@@ -430,7 +427,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public static Attack fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Attack(YogData.str(m.get("player_name"), ""), YogData.str(m.get("target_type"), ""), YogData.str(m.get("target_uuid"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -467,8 +464,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
 - `Pre`  — fires before the interaction; return `false` to cancel. - `Post` — fires after the interaction. */
             public record Interact(String playerName, String playerUuid, String entityType, String entityUuid, String hand, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("player_uuid", playerUuid);
                     m.put("entity_type", entityType);
@@ -479,7 +476,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public static Interact fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Interact(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("entity_type"), ""), YogData.str(m.get("entity_uuid"), ""), YogData.str(m.get("hand"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -519,8 +516,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
             /** Fired when a player takes a crafted item from a crafting output slot (Post only). */
             public record Craft(String playerName, String playerUuid, String resultItem, long resultCount, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("player_uuid", playerUuid);
                     m.put("result_item", resultItem);
@@ -530,7 +527,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public static Craft fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Craft(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("result_item"), ""), YogData.integer(m.get("result_count"), 0), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -567,8 +564,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
 - `Pre`  — return `false` to prevent the pickup. - `Post` — item was successfully picked up. */
             public record Pickup(String playerName, String playerUuid, String itemId, long itemCount, String entityUuid, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("player_uuid", playerUuid);
                     m.put("item_id", itemId);
@@ -579,7 +576,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public static Pickup fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Pickup(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("item_id"), ""), YogData.integer(m.get("item_count"), 0), YogData.str(m.get("entity_uuid"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -624,8 +621,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
             /** Fired when a player earns an advancement (Post only). */
             public record Advancement(String playerName, String uuid, String advancementId, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("player_name", playerName);
                     m.put("uuid", uuid);
                     m.put("advancement_id", advancementId);
@@ -634,7 +631,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 }
 
                 public static Advancement fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Advancement(YogData.str(m.get("player_name"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("advancement_id"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -675,8 +672,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
         /** Fired when a player breaks a block (server side). */
         public record Break(String playerName, String blockId, YogTypes.BlockPos pos, String dimension) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player_name", playerName);
                 m.put("block_id", blockId);
                 m.put("pos", pos.toData());
@@ -685,7 +682,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
             }
 
             public static Break fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Break(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""));
             }
 
@@ -727,8 +724,8 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
 Passed to handlers registered via `Registry::on_player_place_block` with an [`EventPhase`] argument: - `Pre`  — fires before placement; return `false` to cancel. - `Post` — fires after the block has been placed. */
         public record Place(String playerName, String blockId, YogTypes.BlockPos pos, String dimension, boolean sneaking) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player_name", playerName);
                 m.put("block_id", blockId);
                 m.put("pos", pos.toData());
@@ -738,7 +735,7 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
             }
 
             public static Place fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Place(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("sneaking"), false));
             }
 
@@ -778,8 +775,8 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
 
         /** Fired when a player right-clicks a block (server side). */
         public record Use(String playerName, String blockId, YogTypes.BlockPos pos, String dimension, boolean sneaking) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player_name", playerName);
                 m.put("block_id", blockId);
                 m.put("pos", pos.toData());
@@ -789,7 +786,7 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
             }
 
             public static Use fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Use(YogData.str(m.get("player_name"), ""), YogData.str(m.get("block_id"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.bool(m.get("sneaking"), false));
             }
 
@@ -840,8 +837,8 @@ Passed to handlers registered via `Registry::on_player_place_block` with an [`Ev
 
 Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the entity immediately after loading (effective spawn cancellation). */
             public record Spawn(String entityType, String uuid, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("entity_type", entityType);
                     m.put("uuid", uuid);
                     m.put("dimension", dimension);
@@ -849,7 +846,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static Spawn fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Spawn(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -889,8 +886,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** Fired after a living entity dies (server side). */
             public record Death(String entityType, String uuid, String source, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("entity_type", entityType);
                     m.put("uuid", uuid);
                     m.put("source", source);
@@ -899,7 +896,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static Death fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Death(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("source"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -939,8 +936,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** Fired after a living entity takes damage (server side). */
             public record Damage(String entityType, String uuid, double amount, String source, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("entity_type", entityType);
                     m.put("uuid", uuid);
                     m.put("amount", amount);
@@ -950,7 +947,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static Damage fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Damage(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""), YogData.number(m.get("amount"), 0), YogData.str(m.get("source"), ""), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -992,8 +989,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
 - `Pre`  — return `false` to cancel the hit (projectile passes through). - `Post` — hit was processed. */
             public record ProjectileHit(String projectileType, String projectileUuid, String shooterUuid, String hitType, String hitEntityUuid, double x, double y, double z, String dimension) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("projectile_type", projectileType);
                     m.put("projectile_uuid", projectileUuid);
                     m.put("shooter_uuid", shooterUuid);
@@ -1007,7 +1004,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static ProjectileHit fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new ProjectileHit(YogData.str(m.get("projectile_type"), ""), YogData.str(m.get("projectile_uuid"), ""), YogData.str(m.get("shooter_uuid"), ""), YogData.str(m.get("hit_type"), ""), YogData.str(m.get("hit_entity_uuid"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), YogData.str(m.get("dimension"), ""));
                 }
 
@@ -1052,15 +1049,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** A tick of an entity of a mod's type (one with `ticks`); keyed by its type — handlers hear only their own type's. */
             public record Tick(String entityType, String uuid) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("entity_type", entityType);
                     m.put("uuid", uuid);
                     return m;
                 }
 
                 public static Tick fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Tick(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("uuid"), ""));
                 }
 
@@ -1094,8 +1091,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
 - `Pre`  — fires before block destruction; return `false` to cancel (blocks and entities are unaffected). - `Post` — fires after the explosion has taken effect. */
         public record Explosion(String dimension, double x, double y, double z, double power, String causeUuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dimension", dimension);
                 m.put("x", x);
                 m.put("y", y);
@@ -1106,7 +1103,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
 
             public static Explosion fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Explosion(YogData.str(m.get("dimension"), ""), YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0), YogData.number(m.get("power"), 0), YogData.str(m.get("cause_uuid"), ""));
             }
 
@@ -1149,9 +1146,9 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             private Generation() {}
 
             /** A chunk column a generator fills (the `world/generation/chunk` event, keyed by `generator`): where it is, and every block placed so far — a palette and a cell per block, like the game's chunk sections, so the host sets them a section at a time. Several handlers fill one column in turn (terrain, then a mod's ores). */
-            public record Chunk(String generator, int chunkX, int chunkZ, int minY, int height, List<String> palette, byte[] cells) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+            public record Chunk(String generator, int chunkX, int chunkZ, int minY, int height, java.util.List<String> palette, byte[] cells) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("generator", generator);
                     m.put("chunk_x", chunkX);
                     m.put("chunk_z", chunkZ);
@@ -1163,7 +1160,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static Chunk fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Chunk(YogData.str(m.get("generator"), ""), (int) YogData.integer(m.get("chunk_x"), 0), (int) YogData.integer(m.get("chunk_z"), 0), (int) YogData.integer(m.get("min_y"), 0), (int) YogData.integer(m.get("height"), 0), YogData.list(m.get("palette")).stream().map(e0 -> YogData.str(e0, "")).toList(), (m.get("cells") instanceof byte[] e0 ? e0 : new byte[0]));
                 }
 
@@ -1193,9 +1190,9 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             private Loot() {}
 
             /** A loot table rolled: where and for whom, and what it gave. Handlers change `items`; each sees the one before's result. */
-            public record Roll(String table, String dimension, List<Double> pos, String entity, String killer, YogTypes.LootStack tool, List<List<Object>> enchantments, List<YogTypes.LootStack> items) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+            public record Roll(String table, String dimension, java.util.List<Double> pos, String entity, String killer, YogTypes.LootStack tool, java.util.List<java.util.List<Object>> enchantments, java.util.List<YogTypes.LootStack> items) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("table", table);
                     m.put("dimension", dimension);
                     if (pos != null) m.put("pos", pos);
@@ -1208,7 +1205,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static Roll fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Roll(YogData.str(m.get("table"), ""), YogData.str(m.get("dimension"), ""), (m.get("pos") == null ? null : YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList()), (m.get("entity") == null ? null : YogData.str(m.get("entity"), "")), (m.get("killer") == null ? null : YogData.str(m.get("killer"), "")), (m.get("tool") == null ? null : YogTypes.LootStack.fromData(m.get("tool"))), YogData.list(m.get("enchantments")).stream().map(e0 -> YogData.list(e0).stream().map(e1 -> e1).toList()).toList(), YogData.list(m.get("items")).stream().map(e0 -> YogTypes.LootStack.fromData(e0)).toList());
                 }
 
@@ -1251,8 +1248,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
 - `Pre`  — return `false` to prevent the screen from opening. - `Post` — screen opened; `container_type` is set. */
         public record Open(String playerName, String playerUuid, String containerType, String dimension) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player_name", playerName);
                 m.put("player_uuid", playerUuid);
                 m.put("container_type", containerType);
@@ -1261,7 +1258,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
 
             public static Open fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Open(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("container_type"), ""), YogData.str(m.get("dimension"), ""));
             }
 
@@ -1301,8 +1298,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
         /** Fired when a player closes a container screen (Post only). */
         public record Close(String playerName, String playerUuid, String dimension) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player_name", playerName);
                 m.put("player_uuid", playerUuid);
                 m.put("dimension", dimension);
@@ -1310,7 +1307,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             }
 
             public static Close fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Close(YogData.str(m.get("player_name"), ""), YogData.str(m.get("player_uuid"), ""), YogData.str(m.get("dimension"), ""));
             }
 
@@ -1349,8 +1346,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** A machine and the recipe its slots make. Pre: whether it may — the result shows only if every handler allows it (a workbench short of a resource says no); `player` empty. Post: a player took the result — the mod takes its share (the host takes the ingredients). */
             public record Craft(String machine, String kind, String recipe, String resultItem, long resultCount, String values, YogTypes.BlockPos pos, String dimension, String player) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("machine", machine);
                     m.put("kind", kind);
                     m.put("recipe", recipe);
@@ -1364,7 +1361,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static Craft fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Craft(YogData.str(m.get("machine"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("recipe"), ""), YogData.str(m.get("result_item"), ""), YogData.integer(m.get("result_count"), 0), YogData.str(m.get("values"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("player"), ""));
                 }
 
@@ -1414,13 +1411,13 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** Fired every server tick (20 a second). */
             public record Tick() {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     return m;
                 }
 
                 public static Tick fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Tick();
                 }
 
@@ -1460,14 +1457,14 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** Fired once the server has started. */
             public record Started(String worldDir) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("world_dir", worldDir);
                     return m;
                 }
 
                 public static Started fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Started(YogData.str(m.get("world_dir"), ""));
                 }
 
@@ -1502,13 +1499,13 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** Fired as the server stops. */
             public record Stopping() {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     return m;
                 }
 
                 public static Stopping fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Stopping();
                 }
 
@@ -1548,8 +1545,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** A mod's command run; keyed by its name. Its handlers (subcommands of different shapes) are tried in order — the first to answer sets `reply`, what the source is told. */
             public record Run(String name, String args, String source, String uuid, String dimension, String reply) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("name", name);
                     m.put("args", args);
                     m.put("source", source);
@@ -1560,7 +1557,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static Run fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Run(YogData.str(m.get("name"), ""), YogData.str(m.get("args"), ""), YogData.str(m.get("source"), ""), YogData.str(m.get("uuid"), ""), YogData.str(m.get("dimension"), ""), (m.get("reply") == null ? null : YogData.str(m.get("reply"), "")));
                 }
 
@@ -1591,8 +1588,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** A packet a client sent on a mod's channel; keyed by the channel. */
             public record Packet(String channel, String player, byte[] payload) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("channel", channel);
                     m.put("player", player);
                     m.put("payload", payload);
@@ -1600,7 +1597,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 }
 
                 public static Packet fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Packet(YogData.str(m.get("channel"), ""), YogData.str(m.get("player"), ""), (m.get("payload") instanceof byte[] e0 ? e0 : new byte[0]));
                 }
 
@@ -1636,13 +1633,13 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** Fired every client tick on the render thread. */
             public record Tick() {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     return m;
                 }
 
                 public static Tick fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Tick();
                 }
 
@@ -1677,15 +1674,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
             /** The local player's travel step: the first handler to set `velocity` (blocks per tick, drag applied) moves it by that instead of vanilla's. */
             public record Travel(YogTypes.TravelFrame frame, YogTypes.Vec3 velocity) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("frame", frame.toData());
                     if (velocity != null) m.put("velocity", velocity.toData());
                     return m;
                 }
 
                 public static Travel fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Travel(YogTypes.TravelFrame.fromData(m.get("frame")), (m.get("velocity") == null ? null : YogTypes.Vec3.fromData(m.get("velocity"))));
                 }
 
@@ -1727,8 +1724,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
 Return `false` in the handler to prevent Minecraft from processing the key. */
             public record Key(int keyCode, int scanCode, int action, int modifiers) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("key_code", keyCode);
                     m.put("scan_code", scanCode);
                     m.put("action", action);
@@ -1737,7 +1734,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public static Key fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Key((int) YogData.integer(m.get("key_code"), 0), (int) YogData.integer(m.get("scan_code"), 0), (int) YogData.integer(m.get("action"), 0), (int) YogData.integer(m.get("modifiers"), 0));
                 }
 
@@ -1777,14 +1774,14 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** A mod's key binding pressed; keyed by its id (`mymod:xray`). */
             public record Binding(String id) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("id", id);
                     return m;
                 }
 
                 public static Binding fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Binding(YogData.str(m.get("id"), ""));
                 }
 
@@ -1815,14 +1812,14 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** Fired when a GUI screen opens. */
             public record Open(String screenClass) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("screen_class", screenClass);
                     return m;
                 }
 
                 public static Open fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Open(YogData.str(m.get("screen_class"), ""));
                 }
 
@@ -1857,14 +1854,14 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** Fired when a GUI screen closes. */
             public record Close(String screenClass) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("screen_class", screenClass);
                     return m;
                 }
 
                 public static Close fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Close(YogData.str(m.get("screen_class"), ""));
                 }
 
@@ -1899,15 +1896,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** Input on a mod's screen; keyed by the screen's id. `event` is `click:X:Y`, `drag:X:Y`, `release:X:Y`, `scroll:DY`, `key:KEY:MODS` (GLFW key code and modifier bits, on press and repeat) or `char:CODEPOINT`. Before: a handler that used a `key:`/`char:` cancels it — the host then skips its own handling (Esc closing the screen). */
             public record Input(String uiId, String event) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("ui_id", uiId);
                     m.put("event", event);
                     return m;
                 }
 
                 public static Input fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Input(YogData.str(m.get("ui_id"), ""), YogData.str(m.get("event"), ""));
                 }
 
@@ -1942,14 +1939,14 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** Fired every frame when the HUD is rendered. `delta_tick` is the partial-tick interpolation factor (0.0–1.0). */
             public record Hud(double deltaTick) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("delta_tick", deltaTick);
                     return m;
                 }
 
                 public static Hud fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Hud(YogData.number(m.get("delta_tick"), 0));
                 }
 
@@ -1984,14 +1981,14 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** Fired every frame at the end of world rendering (the frame's graphics carry the camera: `view_proj`, `camera_pos`). */
             public record World(double deltaTick) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("delta_tick", deltaTick);
                     return m;
                 }
 
                 public static World fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new World(YogData.number(m.get("delta_tick"), 0));
                 }
 
@@ -2026,14 +2023,14 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** A mod's screen drawn this frame (after its background); keyed by the screen's id. */
             public record Ui(String uiId) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("ui_id", uiId);
                     return m;
                 }
 
                 public static Ui fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Ui(YogData.str(m.get("ui_id"), ""));
                 }
 
@@ -2058,9 +2055,9 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
 
             /** A stack's tooltip picture drawn in `rect` (`[x, y, w, h]`, screen pixels); keyed by the item (`item::Picture` sized it). */
-            public record Tooltip(String item, String snbt, List<Double> rect) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+            public record Tooltip(String item, String snbt, java.util.List<Double> rect) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("item", item);
                     m.put("snbt", snbt);
                     m.put("rect", rect);
@@ -2068,7 +2065,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public static Tooltip fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Tooltip(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""), YogData.list(m.get("rect")).stream().map(e0 -> YogData.number(e0, 0)).toList());
                 }
 
@@ -2093,9 +2090,9 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
 
             /** The picture of a book page of type `drawn` drawn in `rect` (`[x, y, w, h]`, screen pixels), every frame the page is open; keyed by its `drawer`. */
-            public record Page(String drawer, Object data, List<Double> rect) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+            public record Page(String drawer, Object data, java.util.List<Double> rect) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("drawer", drawer);
                     m.put("data", data);
                     m.put("rect", rect);
@@ -2103,7 +2100,7 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
 
                 public static Page fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Page(YogData.str(m.get("drawer"), ""), m.get("data"), YogData.list(m.get("rect")).stream().map(e0 -> YogData.number(e0, 0)).toList());
                 }
 
@@ -2129,15 +2126,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** The camera this frame, as vanilla placed it, and what the mods make of it: each handler adds to `out`, seeing the one before's. */
             public record Camera(YogTypes.CameraFrame frame, YogTypes.CameraOut out) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("frame", frame.toData());
                     m.put("out", out.toData());
                     return m;
                 }
 
                 public static Camera fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Camera(YogTypes.CameraFrame.fromData(m.get("frame")), YogTypes.CameraOut.fromData(m.get("out")));
                 }
 
@@ -2172,15 +2169,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** A tracked entity's body this frame (`yog_body::wire`): each handler appends its ops to `ops` (pose vanilla parts, turn, draw meshes…). */
             public record Body(byte[] frame, byte[] ops) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("frame", frame);
                     m.put("ops", ops);
                     return m;
                 }
 
                 public static Body fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Body((m.get("frame") instanceof byte[] e0 ? e0 : new byte[0]), (m.get("ops") instanceof byte[] e0 ? e0 : new byte[0]));
                 }
 
@@ -2220,15 +2217,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
             /** A packet the server sent on a mod's channel; keyed by the channel. */
             public record Packet(String channel, byte[] payload) {
-                public Map<String, Object> toData() {
-                    Map<String, Object> m = new LinkedHashMap<>();
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("channel", channel);
                     m.put("payload", payload);
                     return m;
                 }
 
                 public static Packet fromData(Object data) {
-                    Map<String, Object> m = YogData.map(data);
+                    java.util.Map<String, Object> m = YogData.map(data);
                     return new Packet(YogData.str(m.get("channel"), ""), (m.get("payload") instanceof byte[] e0 ? e0 : new byte[0]));
                 }
 

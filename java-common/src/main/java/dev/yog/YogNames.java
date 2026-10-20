@@ -535,6 +535,16 @@ public final class YogNames {
         public static final String CLOSE = "yog:ui/close";
     }
 
+    public static final class ServiceBus {
+        private ServiceBus() {}
+
+        public static final String DOMAIN = "yog:bus/";
+        public static final String DECLARE = "yog:bus/declare";
+        public static final String DESCRIBE = "yog:bus/describe";
+        public static final String LIST = "yog:bus/list";
+        public static final String FIND = "yog:bus/find";
+    }
+
     public static final class ServiceContent {
         private ServiceContent() {}
 

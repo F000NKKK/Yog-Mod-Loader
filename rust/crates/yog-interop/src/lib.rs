@@ -76,8 +76,43 @@ fn output_type(sig: &syn::Signature) -> proc_macro2::TokenStream {
 
 /// Marks a function, struct or enum for other mods: a function becomes the
 /// service `mod_id:name`, a type gets the schema its values cross with.
+/// A function's doc comment, its lines joined.
+fn doc_of(attrs: &[syn::Attribute]) -> String {
+    let lines: Vec<String> = attrs
+        .iter()
+        .filter(|a| a.path().is_ident("doc"))
+        .filter_map(|a| match &a.meta {
+            syn::Meta::NameValue(nv) => match &nv.value {
+                syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Str(s), .. }) => Some(s.value().trim().to_owned()),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    lines.join(" ")
+}
+
+/// The interfaces an export says it implements: `implements = "a", implements = "b"`.
+fn implements_of(attr: TokenStream) -> syn::Result<Vec<String>> {
+    let mut out = Vec::new();
+    let parser = syn::meta::parser(|meta| {
+        if meta.path.is_ident("implements") {
+            out.push(meta.value()?.parse::<syn::LitStr>()?.value());
+            Ok(())
+        } else {
+            Err(meta.error("unknown `yog_export` argument (implements)"))
+        }
+    });
+    syn::parse::Parser::parse(parser, attr)?;
+    Ok(out)
+}
+
 #[proc_macro_attribute]
-pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn yog_export(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let implements = match implements_of(attr) {
+        Ok(i) => i,
+        Err(e) => return e.to_compile_error().into(),
+    };
     let tokens = proc_macro2::TokenStream::from(item.clone());
     if syn::parse2::<syn::ItemStruct>(tokens.clone()).is_ok() || syn::parse2::<syn::ItemEnum>(tokens.clone()).is_ok() {
         let derive = schema_derive();
@@ -92,6 +127,7 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let (args, args_def) = args_struct(name, &params);
     let output = output_type(&func.sig);
     let names: Vec<&syn::Ident> = params.iter().map(|(n, _)| n).collect();
+    let doc = doc_of(&func.attrs);
     // The exporting mod's own `Registry`, from the API it captured at load.
     let (setup, registry_arg) = if registry {
         (
@@ -125,7 +161,13 @@ pub fn yog_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #[doc(hidden)]
         fn #ctor_name() {
             ::yog_api::__yog_export_registry().lock().unwrap_or_else(|e| e.into_inner()).push(
-                ::yog_api::YogExportEntry { name: #name_str, handler: #serve_name }
+                ::yog_api::YogExportEntry {
+                    name: #name_str,
+                    handler: #serve_name,
+                    doc: #doc,
+                    shapes: || (<#args as ::yog_api::yog_data::Schema>::shape(), <#output as ::yog_api::yog_data::Schema>::shape()),
+                    implements: &[#(#implements),*],
+                }
             );
         }
     })

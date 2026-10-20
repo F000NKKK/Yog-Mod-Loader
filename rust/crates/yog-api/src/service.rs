@@ -5,6 +5,7 @@ use std::os::raw::c_void;
 use std::sync::Arc;
 
 use yog_abi::{YogApi, YogBytes, YogReply, YogStatus, YogStr, status};
+use yog_data::Schema;
 use yog_event::{EventPhase, Message, Service, keyed};
 
 use crate::bus::{EventCx, Subscription};
@@ -53,6 +54,14 @@ impl Registry {
         st == status::OK
     }
 
+    /// Describes service `address` on the bus (`bus/declare`): what
+    /// `bus/describe` answers, what `bus/find` finds by `interfaces`.
+    pub(crate) fn declare(&self, address: &str, doc: &str, shape: &yog_data::Shape, reply: &yog_data::Shape, interfaces: Vec<String>) {
+        use yog_event::bus::{AddressKind, Descriptor};
+        let d = Descriptor { address: address.to_owned(), kind: AddressKind::Service, doc: doc.to_owned(), shape: shape.describe(), reply: Some(reply.describe()), interfaces };
+        self.call(&d);
+    }
+
     fn providing<S: Service + 'static, F>(&mut self, address: &str, handler: Arc<F>) -> bool
     where
         F: Fn(&S, &EventCx) -> S::Reply + Send + Sync + 'static,
@@ -66,8 +75,14 @@ impl Registry {
         };
         if st != status::OK {
             crate::error!("{address}: someone provides it already");
+            return false;
         }
-        st == status::OK
+        let doc = match S::shape() {
+            yog_data::Shape::Struct(s) => s.doc,
+            _ => "",
+        };
+        self.declare(S::ADDRESS, doc, &S::shape(), &S::Reply::shape(), Vec::new());
+        true
     }
 }
 

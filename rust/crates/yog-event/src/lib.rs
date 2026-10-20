@@ -20,6 +20,7 @@ mod tests;
 pub mod advancement;
 pub mod block;
 pub mod bossbar;
+pub mod bus;
 pub mod chat;
 pub mod client;
 pub mod command;

@@ -4,16 +4,13 @@ package dev.yog.bus;
 import dev.yog.YogBus;
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /** The bus's services: a record per call; {@code call} asks whoever provides it. */
 public final class YogServices {
     private YogServices() {}
 
     /** The actions the host answers ({@code YogHostServices}). */
-    public static final List<Class<? extends Record>> HOSTED = List.of(Advancement.Grant.class, Advancement.Done.class, Block.Nbt.class, Block.SetNbt.class, Block.State.class, Block.SetState.class, Block.Info.class, Block.Destroy.class, Block.Bonemeal.class, Block.UseItem.class, Block.PourFluid.class, Block.RedstonePower.class, Block.RedstoneSignal.class, Block.SetRedstoneOutput.class, Block.InventorySlot.class, Block.SetInventorySlot.class, Bossbar.Create.class, Bossbar.Remove.class, Bossbar.SetTitle.class, Bossbar.SetProgress.class, Bossbar.SetColor.class, Bossbar.AddPlayer.class, Bossbar.RemovePlayer.class, Bossbar.SetVisible.class, Chat.Broadcast.class, Chat.Tellraw.class, Chat.Title.class, Chat.Actionbar.class, Chat.ActionbarJson.class, Client.PlaySound.class, Client.StopSound.class, Client.HeldItem.class, Client.SetBlockTint.class, Client.KeyDown.class, Client.AttributeValue.class, Client.AdvancementDone.class, Client.Op.class, Client.BodyTrack.class, Client.BodyTrackType.class, Client.SetDimensions.class, Entity.Teleport.class, Entity.TeleportToDim.class, Entity.Position.class, Entity.Rotation.class, Entity.Velocity.class, Entity.SetVelocity.class, Entity.AddVelocity.class, Entity.Health.class, Entity.SetHealth.class, Entity.Kill.class, Entity.Spawn.class, Entity.AddEffect.class, Entity.RemoveEffect.class, Entity.ClearEffects.class, Entity.Nbt.class, Entity.SetNbt.class, Entity.AttributeBase.class, Entity.SetAttributeBase.class, Entity.AttributeValue.class, Entity.Info.class, Entity.Damage.class, Entity.SetFireTicks.class, Entity.Vehicle.class, Entity.Passengers.class, Entity.Mount.class, Entity.Dismount.class, Entity.SetFallDistance.class, Game.Dir.class, Game.WorldDir.class, Game.Translate.class, Item.Spawn.class, Item.EntityStack.class, Item.SetEntityStack.class, Item.Block.class, Jvm.Call.class, Net.SendToPlayer.class, Net.SendToServer.class, Particle.Spawn.class, Player.GiveItem.class, Player.Teleport.class, Player.TeleportToDim.class, Player.Kick.class, Player.SetGamemode.class, Player.Inventory.class, Player.SetSlot.class, Player.HeldItemNbt.class, Player.SetHeldItemNbt.class, Player.OffhandItemNbt.class, Player.SetOffhandItemNbt.class, Player.SlotItem.class, Player.SetSlotItem.class, Player.AddXp.class, Player.SetMayFly.class, Player.Info.class, Player.SetItemCooldown.class, Player.PlaceBlockFromSlot.class, Player.Online.class, Scoreboard.Get.class, Scoreboard.Set.class, Scoreboard.Add.class, Sound.Play.class, Sound.PlayToPlayer.class, Tag.HasItem.class, Tag.HasBlock.class, Tag.HasEntity.class, Ui.Open.class, Ui.OpenWithFlags.class, Ui.Close.class, World.GetBlock.class, World.SetBlock.class, World.Time.class, World.SetTime.class, World.IsRaining.class, World.SetWeather.class, World.IsThundering.class, World.SetThunder.class, World.FillRegion.class, World.ScanRegion.class, World.PlaceFeature.class, World.Explode.class, World.DropLoot.class, World.EntityCount.class, World.EntitiesInBox.class, World.RaycastBlock.class, World.RaycastEntity.class);
+    public static final java.util.List<Class<? extends Record>> HOSTED = java.util.List.of(Advancement.Grant.class, Advancement.Done.class, Block.Nbt.class, Block.SetNbt.class, Block.State.class, Block.SetState.class, Block.Info.class, Block.Destroy.class, Block.Bonemeal.class, Block.UseItem.class, Block.PourFluid.class, Block.RedstonePower.class, Block.RedstoneSignal.class, Block.SetRedstoneOutput.class, Block.InventorySlot.class, Block.SetInventorySlot.class, Bossbar.Create.class, Bossbar.Remove.class, Bossbar.SetTitle.class, Bossbar.SetProgress.class, Bossbar.SetColor.class, Bossbar.AddPlayer.class, Bossbar.RemovePlayer.class, Bossbar.SetVisible.class, Chat.Broadcast.class, Chat.Tellraw.class, Chat.Title.class, Chat.Actionbar.class, Chat.ActionbarJson.class, Client.PlaySound.class, Client.StopSound.class, Client.HeldItem.class, Client.SetBlockTint.class, Client.KeyDown.class, Client.AttributeValue.class, Client.AdvancementDone.class, Client.Op.class, Client.BodyTrack.class, Client.BodyTrackType.class, Client.SetDimensions.class, Entity.Teleport.class, Entity.TeleportToDim.class, Entity.Position.class, Entity.Rotation.class, Entity.Velocity.class, Entity.SetVelocity.class, Entity.AddVelocity.class, Entity.Health.class, Entity.SetHealth.class, Entity.Kill.class, Entity.Spawn.class, Entity.AddEffect.class, Entity.RemoveEffect.class, Entity.ClearEffects.class, Entity.Nbt.class, Entity.SetNbt.class, Entity.AttributeBase.class, Entity.SetAttributeBase.class, Entity.AttributeValue.class, Entity.Info.class, Entity.Damage.class, Entity.SetFireTicks.class, Entity.Vehicle.class, Entity.Passengers.class, Entity.Mount.class, Entity.Dismount.class, Entity.SetFallDistance.class, Game.Dir.class, Game.WorldDir.class, Game.Translate.class, Item.Spawn.class, Item.EntityStack.class, Item.SetEntityStack.class, Item.Block.class, Jvm.Call.class, Net.SendToPlayer.class, Net.SendToServer.class, Particle.Spawn.class, Player.GiveItem.class, Player.Teleport.class, Player.TeleportToDim.class, Player.Kick.class, Player.SetGamemode.class, Player.Inventory.class, Player.SetSlot.class, Player.HeldItemNbt.class, Player.SetHeldItemNbt.class, Player.OffhandItemNbt.class, Player.SetOffhandItemNbt.class, Player.SlotItem.class, Player.SetSlotItem.class, Player.AddXp.class, Player.SetMayFly.class, Player.Info.class, Player.SetItemCooldown.class, Player.PlaceBlockFromSlot.class, Player.Online.class, Scoreboard.Get.class, Scoreboard.Set.class, Scoreboard.Add.class, Sound.Play.class, Sound.PlayToPlayer.class, Tag.HasItem.class, Tag.HasBlock.class, Tag.HasEntity.class, Ui.Open.class, Ui.OpenWithFlags.class, Ui.Close.class, World.GetBlock.class, World.SetBlock.class, World.Time.class, World.SetTime.class, World.IsRaining.class, World.SetWeather.class, World.IsThundering.class, World.SetThunder.class, World.FillRegion.class, World.ScanRegion.class, World.PlaceFeature.class, World.Explode.class, World.DropLoot.class, World.EntityCount.class, World.EntitiesInBox.class, World.RaycastBlock.class, World.RaycastEntity.class);
 
     /** `advancement`. */
     public static final class Advancement {
@@ -21,15 +18,15 @@ public final class YogServices {
 
         /** Grants advancement `id` to a player. */
         public record Grant(String uuid, String id) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("id", id);
                 return m;
             }
 
             public static Grant fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Grant(YogData.str(m.get("uuid"), ""), YogData.str(m.get("id"), ""));
             }
 
@@ -61,15 +58,15 @@ public final class YogServices {
 
         /** Whether a player has advancement `id`. */
         public record Done(String uuid, String id) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("id", id);
                 return m;
             }
 
             public static Done fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Done(YogData.str(m.get("uuid"), ""), YogData.str(m.get("id"), ""));
             }
 
@@ -106,8 +103,8 @@ public final class YogServices {
 
         /** A hopper or dropper offers an item to a block that accepts items (`block.accepts_items`): a service each such block provides (keyed by its id), answering whether it takes the item. */
         public record Insert(String blockId, YogTypes.BlockPos pos, String dimension, String itemId, long count, String nbt, boolean simulate) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("block_id", blockId);
                 m.put("pos", pos.toData());
                 m.put("dimension", dimension);
@@ -119,7 +116,7 @@ public final class YogServices {
             }
 
             public static Insert fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Insert(YogData.str(m.get("block_id"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("item_id"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("nbt"), ""), YogData.bool(m.get("simulate"), false));
             }
 
@@ -143,15 +140,15 @@ public final class YogServices {
 
         /** A block entity's data as SNBT. */
         public record Nbt(String dim, YogTypes.BlockPos pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static Nbt fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Nbt(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
             }
 
@@ -183,8 +180,8 @@ public final class YogServices {
 
         /** Merges `snbt` into a block entity's data. */
         public record SetNbt(String dim, YogTypes.BlockPos pos, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("snbt", snbt);
@@ -192,7 +189,7 @@ public final class YogServices {
             }
 
             public static SetNbt fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetNbt(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("snbt"), ""));
             }
 
@@ -224,15 +221,15 @@ public final class YogServices {
 
         /** The block state at `pos` (`minecraft:oak_log[axis=y]`). */
         public record State(String dim, YogTypes.BlockPos pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static State fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new State(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
             }
 
@@ -264,8 +261,8 @@ public final class YogServices {
 
         /** Sets the block state at `pos`. */
         public record SetState(String dim, YogTypes.BlockPos pos, String state) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("state", state);
@@ -273,7 +270,7 @@ public final class YogServices {
             }
 
             public static SetState fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetState(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("state"), ""));
             }
 
@@ -305,15 +302,15 @@ public final class YogServices {
 
         /** The block's state (`yog_core::BlockInfo`'s line). */
         public record Info(String dim, YogTypes.BlockPos pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static Info fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Info(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
             }
 
@@ -345,8 +342,8 @@ public final class YogServices {
 
         /** Breaks the block (dropping it or not). */
         public record Destroy(String dim, YogTypes.BlockPos pos, boolean drop, String breaker) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("drop", drop);
@@ -355,7 +352,7 @@ public final class YogServices {
             }
 
             public static Destroy fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Destroy(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.bool(m.get("drop"), false), YogData.str(m.get("breaker"), ""));
             }
 
@@ -387,15 +384,15 @@ public final class YogServices {
 
         /** Applies bone meal to the block. */
         public record Bonemeal(String dim, YogTypes.BlockPos pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static Bonemeal fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Bonemeal(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
             }
 
@@ -427,8 +424,8 @@ public final class YogServices {
 
         /** Uses `item` on a face of the block, as `player` would. */
         public record UseItem(String dim, YogTypes.BlockPos pos, int face, String item, String player) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("face", face);
@@ -438,7 +435,7 @@ public final class YogServices {
             }
 
             public static UseItem fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new UseItem(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), (int) YogData.integer(m.get("face"), 0), YogData.str(m.get("item"), ""), YogData.str(m.get("player"), ""));
             }
 
@@ -470,8 +467,8 @@ public final class YogServices {
 
         /** Empties a bucket at `pos`. */
         public record PourFluid(String dim, YogTypes.BlockPos pos, String bucket) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("bucket", bucket);
@@ -479,7 +476,7 @@ public final class YogServices {
             }
 
             public static PourFluid fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new PourFluid(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("bucket"), ""));
             }
 
@@ -511,15 +508,15 @@ public final class YogServices {
 
         /** The redstone power reaching the block. */
         public record RedstonePower(String dim, YogTypes.BlockPos pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static RedstonePower fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new RedstonePower(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
             }
 
@@ -551,15 +548,15 @@ public final class YogServices {
 
         /** The strongest signal around the block. */
         public record RedstoneSignal(String dim, YogTypes.BlockPos pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static RedstoneSignal fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new RedstoneSignal(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
             }
 
@@ -591,8 +588,8 @@ public final class YogServices {
 
         /** Sets a mod block's redstone output. */
         public record SetRedstoneOutput(String dim, YogTypes.BlockPos pos, int level) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("level", level);
@@ -600,7 +597,7 @@ public final class YogServices {
             }
 
             public static SetRedstoneOutput fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetRedstoneOutput(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), (int) YogData.integer(m.get("level"), 0));
             }
 
@@ -632,8 +629,8 @@ public final class YogServices {
 
         /** A container's slot: `item\tcount\tsnbt`. */
         public record InventorySlot(String dim, YogTypes.BlockPos pos, long slot) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("slot", slot);
@@ -641,7 +638,7 @@ public final class YogServices {
             }
 
             public static InventorySlot fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new InventorySlot(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.integer(m.get("slot"), 0));
             }
 
@@ -673,8 +670,8 @@ public final class YogServices {
 
         /** Sets a container's slot. */
         public record SetInventorySlot(String dim, YogTypes.BlockPos pos, long slot, String item, long count) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("slot", slot);
@@ -684,7 +681,7 @@ public final class YogServices {
             }
 
             public static SetInventorySlot fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetInventorySlot(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.integer(m.get("slot"), 0), YogData.str(m.get("item"), ""), YogData.integer(m.get("count"), 0));
             }
 
@@ -721,8 +718,8 @@ public final class YogServices {
 
         /** Creates boss bar `id`. */
         public record Create(String id, String title, String color, String style) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 m.put("title", title);
                 m.put("color", color);
@@ -731,7 +728,7 @@ public final class YogServices {
             }
 
             public static Create fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Create(YogData.str(m.get("id"), ""), YogData.str(m.get("title"), ""), YogData.str(m.get("color"), ""), YogData.str(m.get("style"), ""));
             }
 
@@ -763,14 +760,14 @@ public final class YogServices {
 
         /** Removes boss bar `id`. */
         public record Remove(String id) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 return m;
             }
 
             public static Remove fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Remove(YogData.str(m.get("id"), ""));
             }
 
@@ -802,15 +799,15 @@ public final class YogServices {
 
         /** Sets a boss bar's title. */
         public record SetTitle(String id, String title) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 m.put("title", title);
                 return m;
             }
 
             public static SetTitle fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetTitle(YogData.str(m.get("id"), ""), YogData.str(m.get("title"), ""));
             }
 
@@ -842,15 +839,15 @@ public final class YogServices {
 
         /** Sets a boss bar's progress (0–1). */
         public record SetProgress(String id, double progress) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 m.put("progress", progress);
                 return m;
             }
 
             public static SetProgress fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetProgress(YogData.str(m.get("id"), ""), YogData.number(m.get("progress"), 0));
             }
 
@@ -882,15 +879,15 @@ public final class YogServices {
 
         /** Sets a boss bar's color. */
         public record SetColor(String id, String color) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 m.put("color", color);
                 return m;
             }
 
             public static SetColor fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetColor(YogData.str(m.get("id"), ""), YogData.str(m.get("color"), ""));
             }
 
@@ -922,15 +919,15 @@ public final class YogServices {
 
         /** Shows a boss bar to `player`. */
         public record AddPlayer(String id, String player) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 m.put("player", player);
                 return m;
             }
 
             public static AddPlayer fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new AddPlayer(YogData.str(m.get("id"), ""), YogData.str(m.get("player"), ""));
             }
 
@@ -962,15 +959,15 @@ public final class YogServices {
 
         /** Stops showing a boss bar to `player`. */
         public record RemovePlayer(String id, String player) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 m.put("player", player);
                 return m;
             }
 
             public static RemovePlayer fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new RemovePlayer(YogData.str(m.get("id"), ""), YogData.str(m.get("player"), ""));
             }
 
@@ -1002,15 +999,15 @@ public final class YogServices {
 
         /** Shows or hides a boss bar. */
         public record SetVisible(String id, boolean visible) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 m.put("visible", visible);
                 return m;
             }
 
             public static SetVisible fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetVisible(YogData.str(m.get("id"), ""), YogData.bool(m.get("visible"), false));
             }
 
@@ -1041,20 +1038,170 @@ public final class YogServices {
         }
     }
 
+    /** `bus`. */
+    public static final class Bus {
+        private Bus() {}
+
+        /** An address's descriptor. */
+        public record Descriptor(String address, String kind, String doc, Object shape, Object reply, java.util.List<String> interfaces) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("address", address);
+                m.put("kind", kind);
+                m.put("doc", doc);
+                m.put("shape", shape);
+                if (reply != null) m.put("reply", reply);
+                m.put("interfaces", interfaces);
+                return m;
+            }
+
+            public static Descriptor fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Descriptor(YogData.str(m.get("address"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("doc"), ""), m.get("shape"), (m.get("reply") == null ? null : m.get("reply")), YogData.list(m.get("interfaces")).stream().map(e0 -> YogData.str(e0, "")).toList());
+            }
+
+            public static Descriptor fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceBus.DECLARE);
+            }
+
+            public boolean call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.bool(v, false);
+            }
+        }
+
+        /** An address's descriptor. */
+        public record Describe(String address) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("address", address);
+                return m;
+            }
+
+            public static Describe fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Describe(YogData.str(m.get("address"), ""));
+            }
+
+            public static Describe fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceBus.DESCRIBE);
+            }
+
+            public YogTypes.Descriptor call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return (v == null ? null : YogTypes.Descriptor.fromData(v));
+            }
+        }
+
+        /** Every address under `prefix` (`pipes:`, `yog:event/player/`; empty: all). */
+        public record List(String prefix) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("prefix", prefix);
+                return m;
+            }
+
+            public static List fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new List(YogData.str(m.get("prefix"), ""));
+            }
+
+            public static List fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceBus.LIST);
+            }
+
+            public java.util.List<String> call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.list(v).stream().map(e0 -> YogData.str(e0, "")).toList();
+            }
+        }
+
+        /** The addresses implementing `interface`. */
+        public record Find(String interface_) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("interface", interface_);
+                return m;
+            }
+
+            public static Find fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Find(YogData.str(m.get("interface"), ""));
+            }
+
+            public static Find fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceBus.FIND);
+            }
+
+            public java.util.List<String> call() {
+                YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
+                Object v = null;
+                if (r.status() == YogBus.OK && r.bytes().length > 0) {
+                    try {
+                        v = YogData.decode(r.bytes());
+                    } catch (YogData.DecodeException e) {
+                        v = null;
+                    }
+                }
+                return YogData.list(v).stream().map(e0 -> YogData.str(e0, "")).toList();
+            }
+        }
+    }
+
     /** `chat`. */
     public static final class Chat {
         private Chat() {}
 
         /** Sends `message` to every player. */
         public record Broadcast(String message) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("message", message);
                 return m;
             }
 
             public static Broadcast fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Broadcast(YogData.str(m.get("message"), ""));
             }
 
@@ -1086,15 +1233,15 @@ public final class YogServices {
 
         /** Sends `json` (a text component) to `player`'s chat. */
         public record Tellraw(String player, String json) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("json", json);
                 return m;
             }
 
             public static Tellraw fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Tellraw(YogData.str(m.get("player"), ""), YogData.str(m.get("json"), ""));
             }
 
@@ -1126,8 +1273,8 @@ public final class YogServices {
 
         /** Shows a title (and subtitle) to `player`; times in ticks. */
         public record Title(String player, String title, String subtitle, int fadeIn, int stay, int fadeOut) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("title", title);
                 m.put("subtitle", subtitle);
@@ -1138,7 +1285,7 @@ public final class YogServices {
             }
 
             public static Title fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Title(YogData.str(m.get("player"), ""), YogData.str(m.get("title"), ""), YogData.str(m.get("subtitle"), ""), (int) YogData.integer(m.get("fade_in"), 0), (int) YogData.integer(m.get("stay"), 0), (int) YogData.integer(m.get("fade_out"), 0));
             }
 
@@ -1170,15 +1317,15 @@ public final class YogServices {
 
         /** Shows `message` above `player`'s hotbar. */
         public record Actionbar(String player, String message) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("message", message);
                 return m;
             }
 
             public static Actionbar fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Actionbar(YogData.str(m.get("player"), ""), YogData.str(m.get("message"), ""));
             }
 
@@ -1210,15 +1357,15 @@ public final class YogServices {
 
         /** Shows a text component above `player`'s hotbar. */
         public record ActionbarJson(String player, String json) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("json", json);
                 return m;
             }
 
             public static ActionbarJson fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new ActionbarJson(YogData.str(m.get("player"), ""), YogData.str(m.get("json"), ""));
             }
 
@@ -1255,15 +1402,15 @@ public final class YogServices {
 
         /** What this client was told an entity keeps under `key` (the runtime keeps it). */
         public record EntityData(String uuid, String key) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("key", key);
                 return m;
             }
 
             public static EntityData fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new EntityData(YogData.str(m.get("uuid"), ""), YogData.str(m.get("key"), ""));
             }
 
@@ -1291,8 +1438,8 @@ public final class YogServices {
 
         /** Plays `sound` to this client's player; its handle (to stop it). */
         public record PlaySound(String sound, double volume, double pitch, boolean looping) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("sound", sound);
                 m.put("volume", volume);
                 m.put("pitch", pitch);
@@ -1301,7 +1448,7 @@ public final class YogServices {
             }
 
             public static PlaySound fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new PlaySound(YogData.str(m.get("sound"), ""), YogData.number(m.get("volume"), 0), YogData.number(m.get("pitch"), 0), YogData.bool(m.get("looping"), false));
             }
 
@@ -1333,14 +1480,14 @@ public final class YogServices {
 
         /** Stops a sound `PlaySound` started. */
         public record StopSound(int handle) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("handle", handle);
                 return m;
             }
 
             public static StopSound fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new StopSound((int) YogData.integer(m.get("handle"), 0));
             }
 
@@ -1372,14 +1519,14 @@ public final class YogServices {
 
         /** What this client's player holds: `item\tcount\tsnbt`. */
         public record HeldItem(boolean offHand) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("off_hand", offHand);
                 return m;
             }
 
             public static HeldItem fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new HeldItem(YogData.bool(m.get("off_hand"), false));
             }
 
@@ -1411,8 +1558,8 @@ public final class YogServices {
 
         /** Tints the block at `pos` on this client (`0xRRGGBB`; -1 clears it). */
         public record SetBlockTint(String dim, YogTypes.BlockPos pos, int color) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("color", color);
@@ -1420,7 +1567,7 @@ public final class YogServices {
             }
 
             public static SetBlockTint fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetBlockTint(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), (int) YogData.integer(m.get("color"), 0));
             }
 
@@ -1452,14 +1599,14 @@ public final class YogServices {
 
         /** Whether GLFW key `key` is held down. */
         public record KeyDown(int key) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("key", key);
                 return m;
             }
 
             public static KeyDown fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new KeyDown((int) YogData.integer(m.get("key"), 0));
             }
 
@@ -1491,14 +1638,14 @@ public final class YogServices {
 
         /** An attribute's value on this client's player. */
         public record AttributeValue(String attribute) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("attribute", attribute);
                 return m;
             }
 
             public static AttributeValue fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new AttributeValue(YogData.str(m.get("attribute"), ""));
             }
 
@@ -1530,14 +1677,14 @@ public final class YogServices {
 
         /** Whether this client's player has advancement `id`. */
         public record AdvancementDone(String id) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 return m;
             }
 
             public static AdvancementDone fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new AdvancementDone(YogData.str(m.get("id"), ""));
             }
 
@@ -1569,15 +1716,15 @@ public final class YogServices {
 
         /** An operation of `yog_ids::client_op` with `args` (JSON); its answer as JSON. */
         public record Op(String op, String args) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("op", op);
                 m.put("args", args);
                 return m;
             }
 
             public static Op fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Op(YogData.str(m.get("op"), ""), YogData.str(m.get("args"), ""));
             }
 
@@ -1609,15 +1756,15 @@ public final class YogServices {
 
         /** Asks the mods about entity `uuid`'s body each frame (`on`) or not. */
         public record BodyTrack(String uuid, boolean on) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("on", on);
                 return m;
             }
 
             public static BodyTrack fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new BodyTrack(YogData.str(m.get("uuid"), ""), YogData.bool(m.get("on"), false));
             }
 
@@ -1649,15 +1796,15 @@ public final class YogServices {
 
         /** The same for every entity of `entity_type`. */
         public record BodyTrackType(String entityType, boolean on) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("entity_type", entityType);
                 m.put("on", on);
                 return m;
             }
 
             public static BodyTrackType fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new BodyTrackType(YogData.str(m.get("entity_type"), ""), YogData.bool(m.get("on"), false));
             }
 
@@ -1689,8 +1836,8 @@ public final class YogServices {
 
         /** This client's side of an entity's size (`width` < 0: vanilla's). */
         public record SetDimensions(String uuid, double width, double height, double eye) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("width", width);
                 m.put("height", height);
@@ -1699,7 +1846,7 @@ public final class YogServices {
             }
 
             public static SetDimensions fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetDimensions(YogData.str(m.get("uuid"), ""), YogData.number(m.get("width"), 0), YogData.number(m.get("height"), 0), YogData.number(m.get("eye"), 0));
             }
 
@@ -1736,15 +1883,15 @@ public final class YogServices {
 
         /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
         public record CommandSpec(String name, String schema) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("name", name);
                 if (schema != null) m.put("schema", schema);
                 return m;
             }
 
             public static CommandSpec fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new CommandSpec(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
             }
 
@@ -1772,13 +1919,13 @@ public final class YogServices {
 
         /** Every declared command, for the host to register. */
         public record Declared() {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 return m;
             }
 
             public static Declared fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Declared();
             }
 
@@ -1790,7 +1937,7 @@ public final class YogServices {
                 static final int AT = YogBus.resolve(YogNames.ServiceCommand.DECLARED);
             }
 
-            public List<YogTypes.CommandSpec> call() {
+            public java.util.List<YogTypes.CommandSpec> call() {
                 YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
                 Object v = null;
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
@@ -1811,8 +1958,8 @@ public final class YogServices {
 
         /** Content of `kind` (`item`, `block`, `recipe`, `book`, … — `yog_ids::kind`) named `id`, its definition as Yog Data (binary): the runtime keeps it for the hosts. One service for every kind — new kinds need nothing new. */
         public record Register(String kind, String id, byte[] data) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("kind", kind);
                 m.put("id", id);
                 m.put("data", data);
@@ -1820,7 +1967,7 @@ public final class YogServices {
             }
 
             public static Register fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Register(YogData.str(m.get("kind"), ""), YogData.str(m.get("id"), ""), (m.get("data") instanceof byte[] e0 ? e0 : new byte[0]));
             }
 
@@ -1853,15 +2000,15 @@ public final class YogServices {
 
         /** What the entity keeps under `key`. */
         public record Data(String uuid, String key) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("key", key);
                 return m;
             }
 
             public static Data fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Data(YogData.str(m.get("uuid"), ""), YogData.str(m.get("key"), ""));
             }
 
@@ -1889,8 +2036,8 @@ public final class YogServices {
 
         /** Keeps `value` under `key` (`None` forgets it), synced to the clients that see the entity; `persist` saves it with the entity. */
         public record SetData(String uuid, String key, YogTypes.DataValue value, boolean persist) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("key", key);
                 if (value != null) m.put("value", value.toData());
@@ -1899,7 +2046,7 @@ public final class YogServices {
             }
 
             public static SetData fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetData(YogData.str(m.get("uuid"), ""), YogData.str(m.get("key"), ""), (m.get("value") == null ? null : YogTypes.DataValue.fromData(m.get("value"))), YogData.bool(m.get("persist"), false));
             }
 
@@ -1926,16 +2073,16 @@ public final class YogServices {
         }
 
         /** The entity's size, `[width, height, eye height]` — `None`: vanilla's — on the server and on every client that sees it. */
-        public record SetDimensions(String uuid, List<Double> size) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+        public record SetDimensions(String uuid, java.util.List<Double> size) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 if (size != null) m.put("size", size);
                 return m;
             }
 
             public static SetDimensions fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetDimensions(YogData.str(m.get("uuid"), ""), (m.get("size") == null ? null : YogData.list(m.get("size")).stream().map(e0 -> YogData.number(e0, 0)).toList()));
             }
 
@@ -1963,15 +2110,15 @@ public final class YogServices {
 
         /** Moves the entity in its dimension. */
         public record Teleport(String uuid, YogTypes.Point pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static Teleport fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Teleport(YogData.str(m.get("uuid"), ""), YogTypes.Point.fromData(m.get("pos")));
             }
 
@@ -2003,8 +2150,8 @@ public final class YogServices {
 
         /** Moves the entity to `pos` in `dim`. */
         public record TeleportToDim(String uuid, String dim, YogTypes.Point pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
@@ -2012,7 +2159,7 @@ public final class YogServices {
             }
 
             public static TeleportToDim fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new TeleportToDim(YogData.str(m.get("uuid"), ""), YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")));
             }
 
@@ -2044,14 +2191,14 @@ public final class YogServices {
 
         /** The entity's position: `x\ty\tz`. */
         public record Position(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Position fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Position(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2083,14 +2230,14 @@ public final class YogServices {
 
         /** The entity's yaw and pitch: `yaw\tpitch`. */
         public record Rotation(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Rotation fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Rotation(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2122,14 +2269,14 @@ public final class YogServices {
 
         /** The entity's velocity: `x\ty\tz`. */
         public record Velocity(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Velocity fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Velocity(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2161,15 +2308,15 @@ public final class YogServices {
 
         /** Sets the entity's velocity. */
         public record SetVelocity(String uuid, YogTypes.Point velocity) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("velocity", velocity.toData());
                 return m;
             }
 
             public static SetVelocity fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetVelocity(YogData.str(m.get("uuid"), ""), YogTypes.Point.fromData(m.get("velocity")));
             }
 
@@ -2201,15 +2348,15 @@ public final class YogServices {
 
         /** Adds to the entity's velocity. */
         public record AddVelocity(String uuid, YogTypes.Point velocity) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("velocity", velocity.toData());
                 return m;
             }
 
             public static AddVelocity fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new AddVelocity(YogData.str(m.get("uuid"), ""), YogTypes.Point.fromData(m.get("velocity")));
             }
 
@@ -2241,14 +2388,14 @@ public final class YogServices {
 
         /** A living entity's health. */
         public record Health(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Health fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Health(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2280,15 +2427,15 @@ public final class YogServices {
 
         /** Sets a living entity's health. */
         public record SetHealth(String uuid, double health) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("health", health);
                 return m;
             }
 
             public static SetHealth fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetHealth(YogData.str(m.get("uuid"), ""), YogData.number(m.get("health"), 0));
             }
 
@@ -2320,14 +2467,14 @@ public final class YogServices {
 
         /** Kills the entity. */
         public record Kill(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Kill fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Kill(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2359,8 +2506,8 @@ public final class YogServices {
 
         /** Spawns an entity of `entity_type`; its uuid. */
         public record Spawn(String entityType, String dim, YogTypes.Point pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("entity_type", entityType);
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
@@ -2368,7 +2515,7 @@ public final class YogServices {
             }
 
             public static Spawn fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Spawn(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")));
             }
 
@@ -2400,8 +2547,8 @@ public final class YogServices {
 
         /** Gives the entity a mob effect. */
         public record AddEffect(String uuid, String effect, int duration, int amplifier, boolean particles) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("effect", effect);
                 m.put("duration", duration);
@@ -2411,7 +2558,7 @@ public final class YogServices {
             }
 
             public static AddEffect fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new AddEffect(YogData.str(m.get("uuid"), ""), YogData.str(m.get("effect"), ""), (int) YogData.integer(m.get("duration"), 0), (int) YogData.integer(m.get("amplifier"), 0), YogData.bool(m.get("particles"), false));
             }
 
@@ -2443,15 +2590,15 @@ public final class YogServices {
 
         /** Takes a mob effect off the entity. */
         public record RemoveEffect(String uuid, String effect) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("effect", effect);
                 return m;
             }
 
             public static RemoveEffect fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new RemoveEffect(YogData.str(m.get("uuid"), ""), YogData.str(m.get("effect"), ""));
             }
 
@@ -2483,14 +2630,14 @@ public final class YogServices {
 
         /** Takes every mob effect off the entity. */
         public record ClearEffects(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static ClearEffects fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new ClearEffects(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2522,14 +2669,14 @@ public final class YogServices {
 
         /** The entity's data as SNBT. */
         public record Nbt(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Nbt fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Nbt(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2561,15 +2708,15 @@ public final class YogServices {
 
         /** Merges `snbt` into the entity's data. */
         public record SetNbt(String uuid, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("snbt", snbt);
                 return m;
             }
 
             public static SetNbt fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetNbt(YogData.str(m.get("uuid"), ""), YogData.str(m.get("snbt"), ""));
             }
 
@@ -2601,15 +2748,15 @@ public final class YogServices {
 
         /** An attribute's base value. */
         public record AttributeBase(String uuid, String attribute) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("attribute", attribute);
                 return m;
             }
 
             public static AttributeBase fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new AttributeBase(YogData.str(m.get("uuid"), ""), YogData.str(m.get("attribute"), ""));
             }
 
@@ -2641,8 +2788,8 @@ public final class YogServices {
 
         /** Sets an attribute's base value. */
         public record SetAttributeBase(String uuid, String attribute, double value) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("attribute", attribute);
                 m.put("value", value);
@@ -2650,7 +2797,7 @@ public final class YogServices {
             }
 
             public static SetAttributeBase fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetAttributeBase(YogData.str(m.get("uuid"), ""), YogData.str(m.get("attribute"), ""), YogData.number(m.get("value"), 0));
             }
 
@@ -2682,15 +2829,15 @@ public final class YogServices {
 
         /** An attribute's value with its modifiers. */
         public record AttributeValue(String uuid, String attribute) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("attribute", attribute);
                 return m;
             }
 
             public static AttributeValue fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new AttributeValue(YogData.str(m.get("uuid"), ""), YogData.str(m.get("attribute"), ""));
             }
 
@@ -2722,14 +2869,14 @@ public final class YogServices {
 
         /** The entity's state (`yog_core::EntityInfo`'s line). */
         public record Info(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Info fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Info(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2761,8 +2908,8 @@ public final class YogServices {
 
         /** Hurts the entity. */
         public record Damage(String uuid, double amount, String damageType, String attacker) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("amount", amount);
                 m.put("damage_type", damageType);
@@ -2771,7 +2918,7 @@ public final class YogServices {
             }
 
             public static Damage fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Damage(YogData.str(m.get("uuid"), ""), YogData.number(m.get("amount"), 0), YogData.str(m.get("damage_type"), ""), YogData.str(m.get("attacker"), ""));
             }
 
@@ -2803,15 +2950,15 @@ public final class YogServices {
 
         /** Sets the entity on fire for `ticks`. */
         public record SetFireTicks(String uuid, int ticks) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("ticks", ticks);
                 return m;
             }
 
             public static SetFireTicks fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetFireTicks(YogData.str(m.get("uuid"), ""), (int) YogData.integer(m.get("ticks"), 0));
             }
 
@@ -2843,14 +2990,14 @@ public final class YogServices {
 
         /** The uuid of what the entity rides. */
         public record Vehicle(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Vehicle fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Vehicle(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2882,14 +3029,14 @@ public final class YogServices {
 
         /** The uuids riding the entity, one a line. */
         public record Passengers(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Passengers fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Passengers(YogData.str(m.get("uuid"), ""));
             }
 
@@ -2921,8 +3068,8 @@ public final class YogServices {
 
         /** Makes `rider` ride `vehicle`. */
         public record Mount(String rider, String vehicle, boolean force) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("rider", rider);
                 m.put("vehicle", vehicle);
                 m.put("force", force);
@@ -2930,7 +3077,7 @@ public final class YogServices {
             }
 
             public static Mount fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Mount(YogData.str(m.get("rider"), ""), YogData.str(m.get("vehicle"), ""), YogData.bool(m.get("force"), false));
             }
 
@@ -2962,14 +3109,14 @@ public final class YogServices {
 
         /** Gets the entity off what it rides. */
         public record Dismount(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static Dismount fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Dismount(YogData.str(m.get("uuid"), ""));
             }
 
@@ -3001,15 +3148,15 @@ public final class YogServices {
 
         /** Sets how far the entity has fallen. */
         public record SetFallDistance(String uuid, double distance) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("distance", distance);
                 return m;
             }
 
             public static SetFallDistance fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetFallDistance(YogData.str(m.get("uuid"), ""), YogData.number(m.get("distance"), 0));
             }
 
@@ -3046,13 +3193,13 @@ public final class YogServices {
 
         /** Every installed mod: Yog's and the loader's (the runtime answers). */
         public record Mods() {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 return m;
             }
 
             public static Mods fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Mods();
             }
 
@@ -3064,7 +3211,7 @@ public final class YogServices {
                 static final int AT = YogBus.resolve(YogNames.ServiceGame.MODS);
             }
 
-            public List<YogTypes.ModInfo> call() {
+            public java.util.List<YogTypes.ModInfo> call() {
                 YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
                 Object v = null;
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
@@ -3080,14 +3227,14 @@ public final class YogServices {
 
         /** Whether mod `id` is loaded — a Yog mod or a Java one (the runtime answers). */
         public record ModLoaded(String id) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 return m;
             }
 
             public static ModLoaded fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new ModLoaded(YogData.str(m.get("id"), ""));
             }
 
@@ -3115,13 +3262,13 @@ public final class YogServices {
 
         /** The game's directory. */
         public record Dir() {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 return m;
             }
 
             public static Dir fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Dir();
             }
 
@@ -3153,13 +3300,13 @@ public final class YogServices {
 
         /** The current world's directory. */
         public record WorldDir() {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 return m;
             }
 
             public static WorldDir fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new WorldDir();
             }
 
@@ -3191,14 +3338,14 @@ public final class YogServices {
 
         /** The game's text for translation `key` in the current language. */
         public record Translate(String key) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("key", key);
                 return m;
             }
 
             public static Translate fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Translate(YogData.str(m.get("key"), ""));
             }
 
@@ -3235,15 +3382,15 @@ public final class YogServices {
 
         /** A stack's own name and tooltip, from its custom data (a written blueprint shows its design) — keyed by the item, answered by its mod; `None`: the item's own. */
         public record Text(String item, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("item", item);
                 m.put("snbt", snbt);
                 return m;
             }
 
             public static Text fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Text(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""));
             }
 
@@ -3267,15 +3414,15 @@ public final class YogServices {
 
         /** Whether a stack gets a picture under its tooltip (Hex Casting's scrolls show their pattern), and its size in GUI pixels — keyed by the item, answered by its mod; drawn on `client::render::Tooltip`. */
         public record Picture(String item, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("item", item);
                 m.put("snbt", snbt);
                 return m;
             }
 
             public static Picture fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Picture(YogData.str(m.get("item"), ""), YogData.str(m.get("snbt"), ""));
             }
 
@@ -3283,7 +3430,7 @@ public final class YogServices {
                 return fromData(YogData.decode(bytes));
             }
 
-            public List<Double> call() {
+            public java.util.List<Double> call() {
                 YogBus.Reply r = YogBus.call(YogBus.keyed(YogNames.ServiceItem.PICTURE, item), YogData.encode(toData()));
                 Object v = null;
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
@@ -3299,8 +3446,8 @@ public final class YogServices {
 
         /** Drops a stack into the world; the item entity's uuid. */
         public record Spawn(String dim, YogTypes.Point pos, YogTypes.Point velocity, String item, long count, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("velocity", velocity.toData());
@@ -3311,7 +3458,7 @@ public final class YogServices {
             }
 
             public static Spawn fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Spawn(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogTypes.Point.fromData(m.get("velocity")), YogData.str(m.get("item"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("snbt"), ""));
             }
 
@@ -3343,14 +3490,14 @@ public final class YogServices {
 
         /** An item entity's stack: `item\tcount\tsnbt`. */
         public record EntityStack(String uuid) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 return m;
             }
 
             public static EntityStack fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new EntityStack(YogData.str(m.get("uuid"), ""));
             }
 
@@ -3382,8 +3529,8 @@ public final class YogServices {
 
         /** Sets an item entity's stack. */
         public record SetEntityStack(String uuid, String item, long count, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("uuid", uuid);
                 m.put("item", item);
                 m.put("count", count);
@@ -3392,7 +3539,7 @@ public final class YogServices {
             }
 
             public static SetEntityStack fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetEntityStack(YogData.str(m.get("uuid"), ""), YogData.str(m.get("item"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("snbt"), ""));
             }
 
@@ -3424,14 +3571,14 @@ public final class YogServices {
 
         /** The block `item` places, if any. */
         public record Block(String item) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("item", item);
                 return m;
             }
 
             public static Block fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Block(YogData.str(m.get("item"), ""));
             }
 
@@ -3467,16 +3614,16 @@ public final class YogServices {
         private Jvm() {}
 
         /** A chain from a class (`virtuoel.pehkui.api.ScaleTypes.BASE.getScaleData($0).getScale()`) called with `args` (`$n`); its result (`None`: failed, or null). */
-        public record Call(String expr, List<Object> args) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+        public record Call(String expr, java.util.List<Object> args) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("expr", expr);
                 m.put("args", args);
                 return m;
             }
 
             public static Call fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Call(YogData.str(m.get("expr"), ""), YogData.list(m.get("args")).stream().map(e0 -> e0).toList());
             }
 
@@ -3513,8 +3660,8 @@ public final class YogServices {
 
         /** A key binding (the `key_binding/declare` service, declared while the mod registers; the game keeps the key). */
         public record KeyBindingSpec(String id, String name, int defaultKey) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("id", id);
                 m.put("name", name);
                 m.put("default_key", defaultKey);
@@ -3522,7 +3669,7 @@ public final class YogServices {
             }
 
             public static KeyBindingSpec fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new KeyBindingSpec(YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), (int) YogData.integer(m.get("default_key"), 0));
             }
 
@@ -3550,13 +3697,13 @@ public final class YogServices {
 
         /** Every declared key binding, for the host. */
         public record Declared() {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 return m;
             }
 
             public static Declared fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Declared();
             }
 
@@ -3568,7 +3715,7 @@ public final class YogServices {
                 static final int AT = YogBus.resolve(YogNames.ServiceKeyBinding.DECLARED);
             }
 
-            public List<YogTypes.CategorizedBinding> call() {
+            public java.util.List<YogTypes.CategorizedBinding> call() {
                 YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
                 Object v = null;
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
@@ -3589,15 +3736,15 @@ public final class YogServices {
 
         /** A button (the `menu/declare` service) the host shows on the title screen (the mod list on Forge and NeoForge), opening a mod's screen. */
         public record MenuEntry(String label, String uiId) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("label", label);
                 m.put("ui_id", uiId);
                 return m;
             }
 
             public static MenuEntry fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new MenuEntry(YogData.str(m.get("label"), ""), YogData.str(m.get("ui_id"), ""));
             }
 
@@ -3625,13 +3772,13 @@ public final class YogServices {
 
         /** Every declared menu entry, for the host. */
         public record Declared() {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 return m;
             }
 
             public static Declared fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Declared();
             }
 
@@ -3643,7 +3790,7 @@ public final class YogServices {
                 static final int AT = YogBus.resolve(YogNames.ServiceMenu.DECLARED);
             }
 
-            public List<YogTypes.MenuEntry> call() {
+            public java.util.List<YogTypes.MenuEntry> call() {
                 YogBus.Reply r = YogBus.call(Address.AT, YogData.encode(toData()));
                 Object v = null;
                 if (r.status() == YogBus.OK && r.bytes().length > 0) {
@@ -3664,8 +3811,8 @@ public final class YogServices {
 
         /** Sends `payload` on `channel` to `player` (server side). */
         public record SendToPlayer(String player, String channel, byte[] payload) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("channel", channel);
                 m.put("payload", payload);
@@ -3673,7 +3820,7 @@ public final class YogServices {
             }
 
             public static SendToPlayer fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SendToPlayer(YogData.str(m.get("player"), ""), YogData.str(m.get("channel"), ""), (m.get("payload") instanceof byte[] e0 ? e0 : new byte[0]));
             }
 
@@ -3705,15 +3852,15 @@ public final class YogServices {
 
         /** Sends `payload` on `channel` to the server (client side). */
         public record SendToServer(String channel, byte[] payload) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("channel", channel);
                 m.put("payload", payload);
                 return m;
             }
 
             public static SendToServer fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SendToServer(YogData.str(m.get("channel"), ""), (m.get("payload") instanceof byte[] e0 ? e0 : new byte[0]));
             }
 
@@ -3750,8 +3897,8 @@ public final class YogServices {
 
         /** Spawns `count` particles around `pos`. */
         public record Spawn(String dim, YogTypes.Point pos, String particle, int count, YogTypes.Point spread, double speed) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("particle", particle);
@@ -3762,7 +3909,7 @@ public final class YogServices {
             }
 
             public static Spawn fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Spawn(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.str(m.get("particle"), ""), (int) YogData.integer(m.get("count"), 0), YogTypes.Point.fromData(m.get("spread")), YogData.number(m.get("speed"), 0));
             }
 
@@ -3799,8 +3946,8 @@ public final class YogServices {
 
         /** Gives `player` `count` of `item`. */
         public record GiveItem(String player, String item, long count) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("item", item);
                 m.put("count", count);
@@ -3808,7 +3955,7 @@ public final class YogServices {
             }
 
             public static GiveItem fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new GiveItem(YogData.str(m.get("player"), ""), YogData.str(m.get("item"), ""), YogData.integer(m.get("count"), 0));
             }
 
@@ -3840,15 +3987,15 @@ public final class YogServices {
 
         /** Moves `player` in its dimension. */
         public record Teleport(String player, YogTypes.Point pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static Teleport fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Teleport(YogData.str(m.get("player"), ""), YogTypes.Point.fromData(m.get("pos")));
             }
 
@@ -3880,8 +4027,8 @@ public final class YogServices {
 
         /** Moves `player` to `pos` in `dim`. */
         public record TeleportToDim(String player, String dim, YogTypes.Point pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
@@ -3889,7 +4036,7 @@ public final class YogServices {
             }
 
             public static TeleportToDim fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new TeleportToDim(YogData.str(m.get("player"), ""), YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")));
             }
 
@@ -3921,15 +4068,15 @@ public final class YogServices {
 
         /** Disconnects `player`. */
         public record Kick(String player, String reason) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("reason", reason);
                 return m;
             }
 
             public static Kick fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Kick(YogData.str(m.get("player"), ""), YogData.str(m.get("reason"), ""));
             }
 
@@ -3961,15 +4108,15 @@ public final class YogServices {
 
         /** Sets `player`'s game mode (`survival`, `creative`, …). */
         public record SetGamemode(String player, String mode) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("mode", mode);
                 return m;
             }
 
             public static SetGamemode fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetGamemode(YogData.str(m.get("player"), ""), YogData.str(m.get("mode"), ""));
             }
 
@@ -4001,14 +4148,14 @@ public final class YogServices {
 
         /** `player`'s inventory: `slot\titem\tcount` a line. */
         public record Inventory(String player) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 return m;
             }
 
             public static Inventory fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Inventory(YogData.str(m.get("player"), ""));
             }
 
@@ -4040,8 +4187,8 @@ public final class YogServices {
 
         /** Sets inventory `slot` of `player`. */
         public record SetSlot(String player, long slot, String item, long count) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("slot", slot);
                 m.put("item", item);
@@ -4050,7 +4197,7 @@ public final class YogServices {
             }
 
             public static SetSlot fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetSlot(YogData.str(m.get("player"), ""), YogData.integer(m.get("slot"), 0), YogData.str(m.get("item"), ""), YogData.integer(m.get("count"), 0));
             }
 
@@ -4082,14 +4229,14 @@ public final class YogServices {
 
         /** The custom data (SNBT) of what `player` holds. */
         public record HeldItemNbt(String player) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 return m;
             }
 
             public static HeldItemNbt fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new HeldItemNbt(YogData.str(m.get("player"), ""));
             }
 
@@ -4121,15 +4268,15 @@ public final class YogServices {
 
         /** Sets the custom data of what `player` holds. */
         public record SetHeldItemNbt(String player, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("snbt", snbt);
                 return m;
             }
 
             public static SetHeldItemNbt fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetHeldItemNbt(YogData.str(m.get("player"), ""), YogData.str(m.get("snbt"), ""));
             }
 
@@ -4161,14 +4308,14 @@ public final class YogServices {
 
         /** The custom data (SNBT) of `player`'s offhand stack. */
         public record OffhandItemNbt(String player) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 return m;
             }
 
             public static OffhandItemNbt fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new OffhandItemNbt(YogData.str(m.get("player"), ""));
             }
 
@@ -4200,15 +4347,15 @@ public final class YogServices {
 
         /** Sets the custom data of `player`'s offhand stack. */
         public record SetOffhandItemNbt(String player, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("snbt", snbt);
                 return m;
             }
 
             public static SetOffhandItemNbt fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetOffhandItemNbt(YogData.str(m.get("player"), ""), YogData.str(m.get("snbt"), ""));
             }
 
@@ -4240,15 +4387,15 @@ public final class YogServices {
 
         /** The stack in `slot`: `item\tcount\tsnbt`. */
         public record SlotItem(String player, long slot) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("slot", slot);
                 return m;
             }
 
             public static SlotItem fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SlotItem(YogData.str(m.get("player"), ""), YogData.integer(m.get("slot"), 0));
             }
 
@@ -4280,8 +4427,8 @@ public final class YogServices {
 
         /** Sets the stack in `slot`, with custom data. */
         public record SetSlotItem(String player, long slot, String item, long count, String snbt) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("slot", slot);
                 m.put("item", item);
@@ -4291,7 +4438,7 @@ public final class YogServices {
             }
 
             public static SetSlotItem fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetSlotItem(YogData.str(m.get("player"), ""), YogData.integer(m.get("slot"), 0), YogData.str(m.get("item"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("snbt"), ""));
             }
 
@@ -4323,15 +4470,15 @@ public final class YogServices {
 
         /** Gives `player` experience points. */
         public record AddXp(String player, int amount) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("amount", amount);
                 return m;
             }
 
             public static AddXp fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new AddXp(YogData.str(m.get("player"), ""), (int) YogData.integer(m.get("amount"), 0));
             }
 
@@ -4363,15 +4510,15 @@ public final class YogServices {
 
         /** Lets `player` fly (or not). */
         public record SetMayFly(String player, boolean mayFly) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("may_fly", mayFly);
                 return m;
             }
 
             public static SetMayFly fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetMayFly(YogData.str(m.get("player"), ""), YogData.bool(m.get("may_fly"), false));
             }
 
@@ -4403,14 +4550,14 @@ public final class YogServices {
 
         /** `player`'s state (`yog_core::PlayerInfo`'s line). */
         public record Info(String player) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 return m;
             }
 
             public static Info fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Info(YogData.str(m.get("player"), ""));
             }
 
@@ -4442,8 +4589,8 @@ public final class YogServices {
 
         /** Puts `item` on cooldown for `player`. */
         public record SetItemCooldown(String player, String item, int ticks) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("item", item);
                 m.put("ticks", ticks);
@@ -4451,7 +4598,7 @@ public final class YogServices {
             }
 
             public static SetItemCooldown fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetItemCooldown(YogData.str(m.get("player"), ""), YogData.str(m.get("item"), ""), (int) YogData.integer(m.get("ticks"), 0));
             }
 
@@ -4483,8 +4630,8 @@ public final class YogServices {
 
         /** Places the block of `slot`'s stack at `pos`, as `player` would. */
         public record PlaceBlockFromSlot(String player, long slot, String dim, YogTypes.BlockPos pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("slot", slot);
                 m.put("dim", dim);
@@ -4493,7 +4640,7 @@ public final class YogServices {
             }
 
             public static PlaceBlockFromSlot fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new PlaceBlockFromSlot(YogData.str(m.get("player"), ""), YogData.integer(m.get("slot"), 0), YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
             }
 
@@ -4525,13 +4672,13 @@ public final class YogServices {
 
         /** The online players' names, one a line. */
         public record Online() {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 return m;
             }
 
             public static Online fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Online();
             }
 
@@ -4568,15 +4715,15 @@ public final class YogServices {
 
         /** A score. */
         public record Get(String objective, String player) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("objective", objective);
                 m.put("player", player);
                 return m;
             }
 
             public static Get fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Get(YogData.str(m.get("objective"), ""), YogData.str(m.get("player"), ""));
             }
 
@@ -4608,8 +4755,8 @@ public final class YogServices {
 
         /** Sets a score. */
         public record Set(String objective, String player, int score) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("objective", objective);
                 m.put("player", player);
                 m.put("score", score);
@@ -4617,7 +4764,7 @@ public final class YogServices {
             }
 
             public static Set fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Set(YogData.str(m.get("objective"), ""), YogData.str(m.get("player"), ""), (int) YogData.integer(m.get("score"), 0));
             }
 
@@ -4649,8 +4796,8 @@ public final class YogServices {
 
         /** Adds to a score; the new score. */
         public record Add(String objective, String player, int delta) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("objective", objective);
                 m.put("player", player);
                 m.put("delta", delta);
@@ -4658,7 +4805,7 @@ public final class YogServices {
             }
 
             public static Add fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Add(YogData.str(m.get("objective"), ""), YogData.str(m.get("player"), ""), (int) YogData.integer(m.get("delta"), 0));
             }
 
@@ -4695,8 +4842,8 @@ public final class YogServices {
 
         /** Plays `sound` at `pos`. */
         public record Play(String dim, YogTypes.Point pos, String sound, double volume, double pitch) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("sound", sound);
@@ -4706,7 +4853,7 @@ public final class YogServices {
             }
 
             public static Play fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Play(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.str(m.get("sound"), ""), YogData.number(m.get("volume"), 0), YogData.number(m.get("pitch"), 0));
             }
 
@@ -4738,8 +4885,8 @@ public final class YogServices {
 
         /** Plays `sound` to `player` only. */
         public record PlayToPlayer(String player, String sound, double volume, double pitch) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("player", player);
                 m.put("sound", sound);
                 m.put("volume", volume);
@@ -4748,7 +4895,7 @@ public final class YogServices {
             }
 
             public static PlayToPlayer fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new PlayToPlayer(YogData.str(m.get("player"), ""), YogData.str(m.get("sound"), ""), YogData.number(m.get("volume"), 0), YogData.number(m.get("pitch"), 0));
             }
 
@@ -4785,15 +4932,15 @@ public final class YogServices {
 
         /** Whether `item` is in item tag `tag`. */
         public record HasItem(String item, String tag) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("item", item);
                 m.put("tag", tag);
                 return m;
             }
 
             public static HasItem fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new HasItem(YogData.str(m.get("item"), ""), YogData.str(m.get("tag"), ""));
             }
 
@@ -4825,15 +4972,15 @@ public final class YogServices {
 
         /** Whether `block` is in block tag `tag`. */
         public record HasBlock(String block, String tag) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("block", block);
                 m.put("tag", tag);
                 return m;
             }
 
             public static HasBlock fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new HasBlock(YogData.str(m.get("block"), ""), YogData.str(m.get("tag"), ""));
             }
 
@@ -4865,15 +5012,15 @@ public final class YogServices {
 
         /** Whether `entity_type` is in entity type tag `tag`. */
         public record HasEntity(String entityType, String tag) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("entity_type", entityType);
                 m.put("tag", tag);
                 return m;
             }
 
             public static HasEntity fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new HasEntity(YogData.str(m.get("entity_type"), ""), YogData.str(m.get("tag"), ""));
             }
 
@@ -4910,8 +5057,8 @@ public final class YogServices {
 
         /** Opens screen `ui_id`; `modal` blocks the game's input, `pause` pauses singleplayer. */
         public record Open(String uiId, boolean modal, boolean pause) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("ui_id", uiId);
                 m.put("modal", modal);
                 m.put("pause", pause);
@@ -4919,7 +5066,7 @@ public final class YogServices {
             }
 
             public static Open fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Open(YogData.str(m.get("ui_id"), ""), YogData.bool(m.get("modal"), false), YogData.bool(m.get("pause"), false));
             }
 
@@ -4951,15 +5098,15 @@ public final class YogServices {
 
         /** Opens screen `ui_id` with [`flags`] bits. */
         public record OpenWithFlags(String uiId, int flags) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("ui_id", uiId);
                 m.put("flags", flags);
                 return m;
             }
 
             public static OpenWithFlags fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new OpenWithFlags(YogData.str(m.get("ui_id"), ""), (int) YogData.integer(m.get("flags"), 0));
             }
 
@@ -4991,14 +5138,14 @@ public final class YogServices {
 
         /** Closes screen `ui_id` if it's the one open. */
         public record Close(String uiId) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("ui_id", uiId);
                 return m;
             }
 
             public static Close fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Close(YogData.str(m.get("ui_id"), ""));
             }
 
@@ -5035,15 +5182,15 @@ public final class YogServices {
 
         /** The block at `pos` (`minecraft:stone`); `None` without the dimension. */
         public record GetBlock(String dim, YogTypes.BlockPos pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 return m;
             }
 
             public static GetBlock fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new GetBlock(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")));
             }
 
@@ -5075,8 +5222,8 @@ public final class YogServices {
 
         /** Sets the block at `pos`; whether it did. */
         public record SetBlock(String dim, YogTypes.BlockPos pos, String block) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("block", block);
@@ -5084,7 +5231,7 @@ public final class YogServices {
             }
 
             public static SetBlock fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetBlock(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("block"), ""));
             }
 
@@ -5116,14 +5263,14 @@ public final class YogServices {
 
         /** The time of day of `dim`; `None` without the dimension. */
         public record Time(String dim) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 return m;
             }
 
             public static Time fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Time(YogData.str(m.get("dim"), ""));
             }
 
@@ -5155,15 +5302,15 @@ public final class YogServices {
 
         /** Sets the time of day (0 dawn, 6000 noon, 12000 dusk, 18000 midnight). */
         public record SetTime(String dim, long time) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("time", time);
                 return m;
             }
 
             public static SetTime fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetTime(YogData.str(m.get("dim"), ""), YogData.integer(m.get("time"), 0));
             }
 
@@ -5195,14 +5342,14 @@ public final class YogServices {
 
         /** Whether it rains in `dim`. */
         public record IsRaining(String dim) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 return m;
             }
 
             public static IsRaining fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new IsRaining(YogData.str(m.get("dim"), ""));
             }
 
@@ -5234,8 +5381,8 @@ public final class YogServices {
 
         /** Starts or stops rain for `duration` ticks. */
         public record SetWeather(String dim, boolean raining, int duration) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("raining", raining);
                 m.put("duration", duration);
@@ -5243,7 +5390,7 @@ public final class YogServices {
             }
 
             public static SetWeather fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetWeather(YogData.str(m.get("dim"), ""), YogData.bool(m.get("raining"), false), (int) YogData.integer(m.get("duration"), 0));
             }
 
@@ -5275,14 +5422,14 @@ public final class YogServices {
 
         /** Whether it thunders in `dim`. */
         public record IsThundering(String dim) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 return m;
             }
 
             public static IsThundering fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new IsThundering(YogData.str(m.get("dim"), ""));
             }
 
@@ -5314,8 +5461,8 @@ public final class YogServices {
 
         /** Starts or stops thunder. */
         public record SetThunder(String dim, boolean thundering, int duration) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("thundering", thundering);
                 m.put("duration", duration);
@@ -5323,7 +5470,7 @@ public final class YogServices {
             }
 
             public static SetThunder fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new SetThunder(YogData.str(m.get("dim"), ""), YogData.bool(m.get("thundering"), false), (int) YogData.integer(m.get("duration"), 0));
             }
 
@@ -5355,8 +5502,8 @@ public final class YogServices {
 
         /** Fills a box with `state`; how many blocks changed (−1: failed). */
         public record FillRegion(String dim, YogTypes.BlockPos from, YogTypes.BlockPos to, String state) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("from", from.toData());
                 m.put("to", to.toData());
@@ -5365,7 +5512,7 @@ public final class YogServices {
             }
 
             public static FillRegion fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new FillRegion(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("from")), YogTypes.BlockPos.fromData(m.get("to")), YogData.str(m.get("state"), ""));
             }
 
@@ -5397,8 +5544,8 @@ public final class YogServices {
 
         /** The non-air blocks in a box: `x y z state` a line. */
         public record ScanRegion(String dim, YogTypes.BlockPos from, YogTypes.BlockPos to) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("from", from.toData());
                 m.put("to", to.toData());
@@ -5406,7 +5553,7 @@ public final class YogServices {
             }
 
             public static ScanRegion fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new ScanRegion(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("from")), YogTypes.BlockPos.fromData(m.get("to")));
             }
 
@@ -5438,8 +5585,8 @@ public final class YogServices {
 
         /** Places a configured feature at `pos`. */
         public record PlaceFeature(String dim, YogTypes.BlockPos pos, String feature) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("feature", feature);
@@ -5447,7 +5594,7 @@ public final class YogServices {
             }
 
             public static PlaceFeature fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new PlaceFeature(YogData.str(m.get("dim"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("feature"), ""));
             }
 
@@ -5479,8 +5626,8 @@ public final class YogServices {
 
         /** Makes an explosion. */
         public record Explode(String dim, YogTypes.Point pos, double power, boolean fire, String source) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
                 m.put("power", power);
@@ -5490,7 +5637,7 @@ public final class YogServices {
             }
 
             public static Explode fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new Explode(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.number(m.get("power"), 0), YogData.bool(m.get("fire"), false), YogData.str(m.get("source"), ""));
             }
 
@@ -5522,8 +5669,8 @@ public final class YogServices {
 
         /** Rolls a loot table and drops its items at `pos`. */
         public record DropLoot(String table, String dim, YogTypes.Point pos) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("table", table);
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
@@ -5531,7 +5678,7 @@ public final class YogServices {
             }
 
             public static DropLoot fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new DropLoot(YogData.str(m.get("table"), ""), YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")));
             }
 
@@ -5563,15 +5710,15 @@ public final class YogServices {
 
         /** How many entities of `entity_type` are in `dim`. */
         public record EntityCount(String dim, String entityType) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("entity_type", entityType);
                 return m;
             }
 
             public static EntityCount fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new EntityCount(YogData.str(m.get("dim"), ""), YogData.str(m.get("entity_type"), ""));
             }
 
@@ -5603,8 +5750,8 @@ public final class YogServices {
 
         /** The uuids of the entities in a box, one a line. */
         public record EntitiesInBox(String dim, YogTypes.Point min, YogTypes.Point max) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("min", min.toData());
                 m.put("max", max.toData());
@@ -5612,7 +5759,7 @@ public final class YogServices {
             }
 
             public static EntitiesInBox fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new EntitiesInBox(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("min")), YogTypes.Point.fromData(m.get("max")));
             }
 
@@ -5644,8 +5791,8 @@ public final class YogServices {
 
         /** The first block a ray hits (`yog_core::BlockHit`'s line). */
         public record RaycastBlock(String dim, YogTypes.Point from, YogTypes.Point to) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("from", from.toData());
                 m.put("to", to.toData());
@@ -5653,7 +5800,7 @@ public final class YogServices {
             }
 
             public static RaycastBlock fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new RaycastBlock(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("from")), YogTypes.Point.fromData(m.get("to")));
             }
 
@@ -5685,8 +5832,8 @@ public final class YogServices {
 
         /** The first entity a ray hits: its uuid. */
         public record RaycastEntity(String dim, YogTypes.Point from, YogTypes.Point to, String exclude) {
-            public Map<String, Object> toData() {
-                Map<String, Object> m = new LinkedHashMap<>();
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("from", from.toData());
                 m.put("to", to.toData());
@@ -5695,7 +5842,7 @@ public final class YogServices {
             }
 
             public static RaycastEntity fromData(Object data) {
-                Map<String, Object> m = YogData.map(data);
+                java.util.Map<String, Object> m = YogData.map(data);
                 return new RaycastEntity(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("from")), YogTypes.Point.fromData(m.get("to")), YogData.str(m.get("exclude"), ""));
             }
 

@@ -221,6 +221,15 @@ names! {
         CLOSE = concatcp!(DOMAIN, "close"),
     }
 
+    /// `yog:bus/…`: what the bus carries, described (provided by the runtime).
+    service_bus {
+        DOMAIN = concatcp!(service::PREFIX, "bus", sep::PATH),
+        DECLARE = concatcp!(DOMAIN, "declare"),
+        DESCRIBE = concatcp!(DOMAIN, "describe"),
+        LIST = concatcp!(DOMAIN, "list"),
+        FIND = concatcp!(DOMAIN, "find"),
+    }
+
     /// `yog:content/…`: what mods register (provided by the runtime).
     service_content {
         DOMAIN = concatcp!(service::PREFIX, "content", sep::PATH),

@@ -50,7 +50,7 @@ pub(super) fn services(package: &str) -> (String, Vec<StructShape>) {
     let hosted: Vec<String> = services.iter().filter(|s| s.host.is_some()).map(|s| record_path(s.domain, s.name)).collect();
     let _ = write!(
         o.members,
-        "\n    /** The actions the host answers ({{@code YogHostServices}}). */\n    public static final List<Class<? extends Record>> HOSTED = List.of({});\n",
+        "\n    /** The actions the host answers ({{@code YogHostServices}}). */\n    public static final java.util.List<Class<? extends Record>> HOSTED = java.util.List.of({});\n",
         hosted.iter().map(|r| format!("{r}.class")).collect::<Vec<_>>().join(", ")
     );
     let entries: Vec<Entry> = services

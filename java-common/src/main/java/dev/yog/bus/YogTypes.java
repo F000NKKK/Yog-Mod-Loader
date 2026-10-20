@@ -3,9 +3,6 @@ package dev.yog.bus;
 
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /** The records the bus's messages share. */
 public final class YogTypes {
@@ -13,8 +10,8 @@ public final class YogTypes {
 
     /** A block position in a payload. */
     public record BlockPos(int x, int y, int z) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("x", x);
             m.put("y", y);
             m.put("z", z);
@@ -22,7 +19,7 @@ public final class YogTypes {
         }
 
         public static BlockPos fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new BlockPos((int) YogData.integer(m.get("x"), 0), (int) YogData.integer(m.get("y"), 0), (int) YogData.integer(m.get("z"), 0));
         }
 
@@ -33,8 +30,8 @@ public final class YogTypes {
 
     /** A stack of items: its id, how many, and its custom data (SNBT, `{}` for none). */
     public record LootStack(String id, long count, String nbt) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("id", id);
             m.put("count", count);
             m.put("nbt", nbt);
@@ -42,7 +39,7 @@ public final class YogTypes {
         }
 
         public static LootStack fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new LootStack(YogData.str(m.get("id"), ""), YogData.integer(m.get("count"), 0), YogData.str(m.get("nbt"), ""));
         }
 
@@ -53,8 +50,8 @@ public final class YogTypes {
 
     /** The local player before a travel step. */
     public record TravelFrame(String uuid, YogTypes.Vec3 velocity, YogTypes.Vec3 look, double yaw, double pitch, double forward, double strafe, boolean jumping, boolean sneaking, double gravity, long flags) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("uuid", uuid);
             m.put("velocity", velocity.toData());
             m.put("look", look.toData());
@@ -70,7 +67,7 @@ public final class YogTypes {
         }
 
         public static TravelFrame fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new TravelFrame(YogData.str(m.get("uuid"), ""), YogTypes.Vec3.fromData(m.get("velocity")), YogTypes.Vec3.fromData(m.get("look")), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.number(m.get("forward"), 0), YogData.number(m.get("strafe"), 0), YogData.bool(m.get("jumping"), false), YogData.bool(m.get("sneaking"), false), YogData.number(m.get("gravity"), 0), YogData.integer(m.get("flags"), 0));
         }
 
@@ -79,8 +76,8 @@ public final class YogTypes {
         }
     }
     public record Vec3(double x, double y, double z) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("x", x);
             m.put("y", y);
             m.put("z", z);
@@ -88,7 +85,7 @@ public final class YogTypes {
         }
 
         public static Vec3 fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new Vec3(YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0));
         }
 
@@ -98,9 +95,9 @@ public final class YogTypes {
     }
 
     /** The camera as vanilla placed it this frame. */
-    public record CameraFrame(String uuid, double partial, List<Double> pos, double yaw, double pitch, boolean detached, long flags) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+    public record CameraFrame(String uuid, double partial, java.util.List<Double> pos, double yaw, double pitch, boolean detached, long flags) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("uuid", uuid);
             m.put("partial", partial);
             m.put("pos", pos);
@@ -112,7 +109,7 @@ public final class YogTypes {
         }
 
         public static CameraFrame fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new CameraFrame(YogData.str(m.get("uuid"), ""), YogData.number(m.get("partial"), 0), YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList(), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.bool(m.get("detached"), false), YogData.integer(m.get("flags"), 0));
         }
 
@@ -123,8 +120,8 @@ public final class YogTypes {
 
     /** What mods change; each handler gets the last one's result and adds to it. */
     public record CameraOut(YogTypes.Vec3 localOffset, YogTypes.Vec3 worldOffset, double yaw, double pitch, double roll, double fov) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("local_offset", localOffset.toData());
             m.put("world_offset", worldOffset.toData());
             m.put("yaw", yaw);
@@ -135,7 +132,7 @@ public final class YogTypes {
         }
 
         public static CameraOut fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new CameraOut(YogTypes.Vec3.fromData(m.get("local_offset")), YogTypes.Vec3.fromData(m.get("world_offset")), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.number(m.get("roll"), 0), YogData.number(m.get("fov"), 0));
         }
 
@@ -144,16 +141,39 @@ public final class YogTypes {
         }
     }
 
+    /** An address's descriptor. */
+    public record Descriptor(String address, String kind, String doc, Object shape, Object reply, java.util.List<String> interfaces) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("address", address);
+            m.put("kind", kind);
+            m.put("doc", doc);
+            m.put("shape", shape);
+            if (reply != null) m.put("reply", reply);
+            m.put("interfaces", interfaces);
+            return m;
+        }
+
+        public static Descriptor fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Descriptor(YogData.str(m.get("address"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("doc"), ""), m.get("shape"), (m.get("reply") == null ? null : m.get("reply")), YogData.list(m.get("interfaces")).stream().map(e0 -> YogData.str(e0, "")).toList());
+        }
+
+        public static Descriptor fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
     /** Bytes a mod keeps on an entity under a key. */
     public record DataValue(byte[] bytes) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("bytes", bytes);
             return m;
         }
 
         public static DataValue fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new DataValue((m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
         }
 
@@ -164,15 +184,15 @@ public final class YogTypes {
 
     /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
     public record CommandSpec(String name, String schema) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("name", name);
             if (schema != null) m.put("schema", schema);
             return m;
         }
 
         public static CommandSpec fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new CommandSpec(YogData.str(m.get("name"), ""), (m.get("schema") == null ? null : YogData.str(m.get("schema"), "")));
         }
 
@@ -183,8 +203,8 @@ public final class YogTypes {
 
     /** An installed mod. */
     public record ModInfo(String source, String id, String name, String version, String authors, String description) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("source", source);
             m.put("id", id);
             m.put("name", name);
@@ -195,7 +215,7 @@ public final class YogTypes {
         }
 
         public static ModInfo fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new ModInfo(YogData.str(m.get("source"), ""), YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), YogData.str(m.get("version"), ""), YogData.str(m.get("authors"), ""), YogData.str(m.get("description"), ""));
         }
 
@@ -205,16 +225,16 @@ public final class YogTypes {
     }
 
     /** What a stack shows instead of its item's own name and description. */
-    public record Shown(String name, List<String> lines) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+    public record Shown(String name, java.util.List<String> lines) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             if (name != null) m.put("name", name);
             m.put("lines", lines);
             return m;
         }
 
         public static Shown fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new Shown((m.get("name") == null ? null : YogData.str(m.get("name"), "")), YogData.list(m.get("lines")).stream().map(e0 -> YogData.str(e0, "")).toList());
         }
 
@@ -225,8 +245,8 @@ public final class YogTypes {
 
     /** A declared key binding as the host registers it: under its mod's category. */
     public record CategorizedBinding(String id, String name, int defaultKey, String category) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("id", id);
             m.put("name", name);
             m.put("default_key", defaultKey);
@@ -235,7 +255,7 @@ public final class YogTypes {
         }
 
         public static CategorizedBinding fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new CategorizedBinding(YogData.str(m.get("id"), ""), YogData.str(m.get("name"), ""), (int) YogData.integer(m.get("default_key"), 0), YogData.str(m.get("category"), ""));
         }
 
@@ -246,15 +266,15 @@ public final class YogTypes {
 
     /** A button (the `menu/declare` service) the host shows on the title screen (the mod list on Forge and NeoForge), opening a mod's screen. */
     public record MenuEntry(String label, String uiId) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("label", label);
             m.put("ui_id", uiId);
             return m;
         }
 
         public static MenuEntry fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new MenuEntry(YogData.str(m.get("label"), ""), YogData.str(m.get("ui_id"), ""));
         }
 
@@ -265,8 +285,8 @@ public final class YogTypes {
 
     /** A point in a world (blocks, fractional). */
     public record Point(double x, double y, double z) {
-        public Map<String, Object> toData() {
-            Map<String, Object> m = new LinkedHashMap<>();
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("x", x);
             m.put("y", y);
             m.put("z", z);
@@ -274,7 +294,7 @@ public final class YogTypes {
         }
 
         public static Point fromData(Object data) {
-            Map<String, Object> m = YogData.map(data);
+            java.util.Map<String, Object> m = YogData.map(data);
             return new Point(YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0));
         }
 
