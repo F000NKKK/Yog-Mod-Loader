@@ -271,6 +271,7 @@ public final class YogNames {
 
         public static final String PLANE = "yog:event/client/game/";
         public static final String TICK = "yog:event/client/game/tick";
+        public static final String TRAVEL = "yog:event/client/game/travel";
     }
 
     public static final class EventClientInput {
@@ -295,6 +296,8 @@ public final class YogNames {
 
         public static final String PLANE = "yog:event/client/render/";
         public static final String HUD = "yog:event/client/render/hud";
+        public static final String CAMERA = "yog:event/client/render/camera";
+        public static final String BODY = "yog:event/client/render/body";
     }
 
     public static final class EventClientNet {

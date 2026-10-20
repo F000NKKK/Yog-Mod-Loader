@@ -73,7 +73,7 @@ impl Neg for Vec2 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Default)]
 pub struct Vec3 {
     pub x: f32,
     pub y: f32,

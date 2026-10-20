@@ -5,7 +5,7 @@
 use crate::math::Vec3;
 
 /// The local player before a travel step.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(yog_data::Schema, Debug, Clone, PartialEq, Default)]
 pub struct TravelFrame {
     /// The local player.
     pub uuid: String,

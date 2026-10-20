@@ -113,7 +113,7 @@ public final class YogBody {
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
                 (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial);
-        return Ops.parse(NativeBridge.nativeBodyPose(frame));
+        return Ops.parse(dev.yog.util.YogBodyBus.bodyPose(frame));
     }
 
     /** LivingEntityRenderer.extractRenderState TAIL: asks the mods, keeps the answer on the state. */
@@ -390,7 +390,7 @@ public final class YogBody {
      * fov} from the mods, or null.
      */
     public static float[] camera(Entity entity, float partial, Vec3 pos, float yaw, float pitch, boolean detached) {
-        float[] o = entity == null ? null : NativeBridge.nativeCamera(entity.getStringUUID(), partial, pos.x, pos.y, pos.z,
+        float[] o = entity == null ? null : dev.yog.util.YogBodyBus.camera(entity.getStringUUID(), partial, pos.x, pos.y, pos.z,
                 yaw, pitch, detached, NativeBridge.entityFlags(entity));
         roll = o == null ? 0 : o[8];
         fov = o == null ? 1 : o[9];
@@ -405,7 +405,7 @@ public final class YogBody {
         Vec3 v = p.getDeltaMovement();
         Vec3 look = p.getLookAngle();
         float gravity = v.y <= 0 && p.hasEffect(MobEffects.SLOW_FALLING) ? 0.01F : 0.08F;
-        float[] out = NativeBridge.nativeTravel(p.getStringUUID(), (float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
+        float[] out = dev.yog.util.YogBodyBus.travel(p.getStringUUID(), (float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
                 p.getYRot(), p.getXRot(), p.zza, p.xxa, p.input.keyPresses.jump(), p.isShiftKeyDown(), gravity, NativeBridge.entityFlags(p));
         if (out == null) return false;
         Vec3 move = new Vec3(out[0], out[1], out[2]);

@@ -15,18 +15,6 @@ macro_rules! for_each_handler_list {
             $body;
         }
         {
-            let $list = &mut $h.body;
-            $body;
-        }
-        {
-            let $list = &mut $h.camera;
-            $body;
-        }
-        {
-            let $list = &mut $h.travel;
-            $body;
-        }
-        {
             let $list = &mut $h.world_render;
             $body;
         }

@@ -58,56 +58,9 @@ pub type YogTooltipDrawFn = unsafe extern "C" fn(
 );
 /// Takes bytes a handler writes (copies them; valid for the call).
 pub type YogBytesSink = unsafe extern "C" fn(sink: *mut c_void, data: *const u8, len: usize);
-/// A body frame (`yog_body::Frame`, its wire form): the handler writes its
-/// ops (`yog_body::Ops`) to `sink`.
-pub type YogBodyFn = unsafe extern "C" fn(ud: *mut c_void, frame: *const u8, len: usize, sink: *mut c_void, write: YogBytesSink);
-/// The camera this frame; the handler changes `out` (each handler sees the
-/// last one's result).
-pub type YogCameraFn = unsafe extern "C" fn(ud: *mut c_void, frame: *const YogCameraFrame, out: *mut YogCameraOut);
-/// The local player's travel step: `true` and `velocity` set replaces it.
-pub type YogTravelFn = unsafe extern "C" fn(ud: *mut c_void, frame: *const YogTravelFrame, velocity: *mut [f32; 3]) -> bool;
 
-/// See `yog_body::CameraFrame`.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct YogCameraFrame {
-    pub uuid: YogStr,
-    pub partial: f32,
-    pub pos: [f64; 3],
-    pub yaw: f32,
-    pub pitch: f32,
-    pub detached: bool,
-    pub flags: u32,
-}
 
-/// See `yog_body::CameraOut`.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct YogCameraOut {
-    pub local_offset: [f32; 3],
-    pub world_offset: [f32; 3],
-    pub yaw: f32,
-    pub pitch: f32,
-    pub roll: f32,
-    pub fov: f32,
-}
 
-/// See `yog_body::TravelFrame`.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct YogTravelFrame {
-    pub uuid: YogStr,
-    pub velocity: [f32; 3],
-    pub look: [f32; 3],
-    pub yaw: f32,
-    pub pitch: f32,
-    pub forward: f32,
-    pub strafe: f32,
-    pub jumping: bool,
-    pub sneaking: bool,
-    pub gravity: f32,
-    pub flags: u32,
-}
 
 /// World render — `gfx` contains `view_proj` and `camera_pos` for 3D rendering.
 /// Valid only for the call duration.

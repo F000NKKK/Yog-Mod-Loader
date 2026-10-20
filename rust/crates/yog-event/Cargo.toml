@@ -12,3 +12,4 @@ yog-core = { workspace = true }
 yog-data = { workspace = true }
 yog-ids = { workspace = true }
 yog-registry = { workspace = true }
+yog-body = { workspace = true }

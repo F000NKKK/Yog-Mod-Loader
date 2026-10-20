@@ -52,6 +52,23 @@ fn provide<S: Service>(f: fn(&S) -> S::Reply) {
 /// The commands mods declared, for the host to register.
 static DECLARED: Mutex<Vec<command::Declare>> = Mutex::new(Vec::new());
 
+/// Runs the `fn(&mut E)` in `ud` on the payload; the changed event is the reply.
+unsafe extern "C" fn run_change<E: Event>(ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus {
+    let f: fn(&mut E) = unsafe { std::mem::transmute::<*mut c_void, fn(&mut E)>(ud) };
+    let Some(mut e) = E::from_bytes(unsafe { payload.as_slice() }) else {
+        return status::BAD_PAYLOAD;
+    };
+    crate::guard(std::any::type_name::<E>(), || f(&mut e));
+    unsafe { YogReply::send(reply, &e.to_bytes()) };
+    status::OK
+}
+
+/// `f` changes every `E`, at `priority`.
+fn change<E: Event>(priority: i32, f: fn(&mut E)) {
+    let at = ROUTER.resolve(E::ADDRESS);
+    ROUTER.on(at, priority, Handler::Native { owner: None, ud: f as usize, f: run_change::<E> });
+}
+
 /// `f` on every `E` after the game did it, at `priority`.
 fn after<E: Event>(priority: i32, f: fn(&E)) {
     listen(E::ADDRESS, priority, f);
@@ -81,6 +98,10 @@ pub(crate) fn register() {
         true
     });
     provide::<command::Declared>(|_| DECLARED.locked().clone());
+    // The camera's changes start from none (the defaults live in yog-body).
+    change::<client::render::Camera>(FIRST, |c| c.out = yog_body::CameraOut::default());
+    // A body's frame carries what this client was told its entity keeps.
+    change::<client::render::Body>(FIRST, |b| b.frame = crate::entity_data::with_data(&b.frame));
     // What the server tells this client about entities comes on the runtime's own channel.
     listen::<client::net::Packet>(&keyed(client::net::Packet::ADDRESS, crate::entity_data::ENTITY_DATA), FIRST, |p| {
         crate::entity_data::receive(&p.payload)

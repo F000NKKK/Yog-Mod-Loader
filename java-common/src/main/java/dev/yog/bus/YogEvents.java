@@ -1582,6 +1582,49 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     }
                 }
             }
+
+            /** The local player's travel step: the first handler to set `velocity` (blocks per tick, drag applied) moves it by that instead of vanilla's. */
+            public record Travel(YogTypes.TravelFrame frame, YogTypes.Vec3 velocity) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("frame", frame.toData());
+                    if (velocity != null) m.put("velocity", velocity.toData());
+                    return m;
+                }
+
+                public static Travel fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Travel(YogTypes.TravelFrame.fromData(m.get("frame")), (m.get("velocity") == null ? null : YogTypes.Vec3.fromData(m.get("velocity"))));
+                }
+
+                public static Travel fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventClientGame.TRAVEL);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Travel emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
         }
 
         /** `input`. */
@@ -1799,6 +1842,92 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
                 public Hud emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+
+            /** The camera this frame, as vanilla placed it, and what the mods make of it: each handler adds to `out`, seeing the one before's. */
+            public record Camera(YogTypes.CameraFrame frame, YogTypes.CameraOut out) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("frame", frame.toData());
+                    m.put("out", out.toData());
+                    return m;
+                }
+
+                public static Camera fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Camera(YogTypes.CameraFrame.fromData(m.get("frame")), YogTypes.CameraOut.fromData(m.get("out")));
+                }
+
+                public static Camera fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventClientRender.CAMERA);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Camera emitChanged() {
+                    YogBus.Reply r = emit();
+                    if (r.status() != YogBus.OK) return this;
+                    try {
+                        return fromBytes(r.bytes());
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
+
+            /** A tracked entity's body this frame (`yog_body::wire`): each handler appends its ops to `ops` (pose vanilla parts, turn, draw meshes…). */
+            public record Body(byte[] frame, byte[] ops) {
+                public Map<String, Object> toData() {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("frame", frame);
+                    m.put("ops", ops);
+                    return m;
+                }
+
+                public static Body fromData(Object data) {
+                    Map<String, Object> m = YogData.map(data);
+                    return new Body((m.get("frame") instanceof byte[] e0 ? e0 : new byte[0]), (m.get("ops") instanceof byte[] e0 ? e0 : new byte[0]));
+                }
+
+                public static Body fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventClientRender.BODY);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                public YogBus.Reply emit() {
+                    return YogBus.emit(Address.POST, YogData.encode(toData()));
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Body emitChanged() {
                     YogBus.Reply r = emit();
                     if (r.status() != YogBus.OK) return this;
                     try {

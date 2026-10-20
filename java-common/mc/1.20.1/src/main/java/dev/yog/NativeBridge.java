@@ -1578,9 +1578,6 @@ public final class NativeBridge {
 
     // ── Pictures in item tooltips (ABI 2.2) ─────────────────────────────────
 
-    /** yog-body: the ops for a tracked entity's body this frame, or null. */
-    public static native byte[] nativeBodyPose(byte[] frame);
-
     /** Entity data: everything about an entity, for a player who starts seeing it; null for nothing. */
     public static native byte[] nativeEntityDataFor(String uuid);
     /** Entity data: what the entity keeps when saved; null for nothing. */
@@ -1593,11 +1590,6 @@ public final class NativeBridge {
     public static native void nativeEntityDataSet(String uuid, String key, byte[] value);
     /** Entity data: the client left its world. */
     public static native void nativeEntityDataClientReset();
-    /** yog-body: {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} for the camera, or null. */
-    public static native float[] nativeCamera(String uuid, float partial, double x, double y, double z, float yaw, float pitch, boolean detached, int flags);
-    /** yog-body: the velocity to move the local player by instead of its travel step, or null. */
-    public static native float[] nativeTravel(String uuid, float vx, float vy, float vz, float lx, float ly, float lz, float yaw, float pitch,
-            float forward, float strafe, boolean jumping, boolean sneaking, float gravity, int flags);
 
     /** What machine {@code defId} at a block makes of {@code items} ({@code \n}-joined by slot): {@code recipe\nresult\ncount}, or null. */
     public static native String nativeMachineResult(String defId, String dimension, int x, int y, int z, String items);

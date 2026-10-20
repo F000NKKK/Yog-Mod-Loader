@@ -31,9 +31,6 @@ pub(super) type TooltipEntry = (LoadedModule, *mut c_void, yog_abi::YogTooltipSi
 #[derive(Default)]
 pub(super) struct RuntimeHandlers {
     pub(super) hud_render: Vec<(LoadedModule, *mut c_void, YogHudRenderFn)>,
-    pub(super) body: Vec<(LoadedModule, *mut c_void, yog_abi::YogBodyFn)>,
-    pub(super) camera: Vec<(LoadedModule, *mut c_void, yog_abi::YogCameraFn)>,
-    pub(super) travel: Vec<(LoadedModule, *mut c_void, yog_abi::YogTravelFn)>,
     pub(super) world_render: Vec<(LoadedModule, *mut c_void, YogWorldRenderFn)>,
     /// (namespace, name, the recipe in Yog's own format).
     pub(super) recipes: Vec<(String, String, yog_data::Value)>,

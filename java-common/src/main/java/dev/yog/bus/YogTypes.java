@@ -51,6 +51,99 @@ public final class YogTypes {
         }
     }
 
+    /** The local player before a travel step. */
+    public record TravelFrame(String uuid, YogTypes.Vec3 velocity, YogTypes.Vec3 look, double yaw, double pitch, double forward, double strafe, boolean jumping, boolean sneaking, double gravity, long flags) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("uuid", uuid);
+            m.put("velocity", velocity.toData());
+            m.put("look", look.toData());
+            m.put("yaw", yaw);
+            m.put("pitch", pitch);
+            m.put("forward", forward);
+            m.put("strafe", strafe);
+            m.put("jumping", jumping);
+            m.put("sneaking", sneaking);
+            m.put("gravity", gravity);
+            m.put("flags", flags);
+            return m;
+        }
+
+        public static TravelFrame fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new TravelFrame(YogData.str(m.get("uuid"), ""), YogTypes.Vec3.fromData(m.get("velocity")), YogTypes.Vec3.fromData(m.get("look")), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.number(m.get("forward"), 0), YogData.number(m.get("strafe"), 0), YogData.bool(m.get("jumping"), false), YogData.bool(m.get("sneaking"), false), YogData.number(m.get("gravity"), 0), YogData.integer(m.get("flags"), 0));
+        }
+
+        public static TravelFrame fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+    public record Vec3(double x, double y, double z) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("x", x);
+            m.put("y", y);
+            m.put("z", z);
+            return m;
+        }
+
+        public static Vec3 fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new Vec3(YogData.number(m.get("x"), 0), YogData.number(m.get("y"), 0), YogData.number(m.get("z"), 0));
+        }
+
+        public static Vec3 fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** The camera as vanilla placed it this frame. */
+    public record CameraFrame(String uuid, double partial, List<Double> pos, double yaw, double pitch, boolean detached, long flags) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("uuid", uuid);
+            m.put("partial", partial);
+            m.put("pos", pos);
+            m.put("yaw", yaw);
+            m.put("pitch", pitch);
+            m.put("detached", detached);
+            m.put("flags", flags);
+            return m;
+        }
+
+        public static CameraFrame fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new CameraFrame(YogData.str(m.get("uuid"), ""), YogData.number(m.get("partial"), 0), YogData.list(m.get("pos")).stream().map(e0 -> YogData.number(e0, 0)).toList(), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.bool(m.get("detached"), false), YogData.integer(m.get("flags"), 0));
+        }
+
+        public static CameraFrame fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
+    /** What mods change; each handler gets the last one's result and adds to it. */
+    public record CameraOut(YogTypes.Vec3 localOffset, YogTypes.Vec3 worldOffset, double yaw, double pitch, double roll, double fov) {
+        public Map<String, Object> toData() {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("local_offset", localOffset.toData());
+            m.put("world_offset", worldOffset.toData());
+            m.put("yaw", yaw);
+            m.put("pitch", pitch);
+            m.put("roll", roll);
+            m.put("fov", fov);
+            return m;
+        }
+
+        public static CameraOut fromData(Object data) {
+            Map<String, Object> m = YogData.map(data);
+            return new CameraOut(YogTypes.Vec3.fromData(m.get("local_offset")), YogTypes.Vec3.fromData(m.get("world_offset")), YogData.number(m.get("yaw"), 0), YogData.number(m.get("pitch"), 0), YogData.number(m.get("roll"), 0), YogData.number(m.get("fov"), 0));
+        }
+
+        public static CameraOut fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+    }
+
     /** What a stack shows instead of its item's own name and description. */
     public record Shown(String name, List<String> lines) {
         public Map<String, Object> toData() {

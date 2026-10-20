@@ -182,12 +182,6 @@ pub struct YogApi {
     pub client_body_track: unsafe extern "C" fn(ctx: *mut c_void, uuid: YogStr, on: bool),
     /// The same for every entity of type `entity_type`.
     pub client_body_track_type: unsafe extern "C" fn(ctx: *mut c_void, entity_type: YogStr, on: bool),
-    /// The body of a tracked entity, each frame — see [`YogBodyFn`].
-    pub on_body: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogBodyFn),
-    /// The camera, each frame — see [`YogCameraFn`].
-    pub on_camera: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogCameraFn),
-    /// The local player's travel step, each tick — see [`YogTravelFn`].
-    pub on_travel: unsafe extern "C" fn(ctx: *mut c_void, ud: *mut c_void, f: YogTravelFn),
 
     // ── ABI 3.1 — entity dimensions (client) ────────────────────────────────
     /// This client's side of `entity_set_dimensions` (the local player

@@ -1878,6 +1878,7 @@ dependencies = [
 name = "yog-event"
 version = "0.7.0"
 dependencies = [
+ "yog-body",
  "yog-core",
  "yog-data",
  "yog-ids",
@@ -2027,6 +2028,7 @@ dependencies = [
  "resvg",
  "serde_json",
  "yog-abi",
+ "yog-body",
  "yog-book",
  "yog-core",
  "yog-data",

@@ -4,7 +4,7 @@
 use crate::math::Vec3;
 
 /// The camera as vanilla placed it this frame.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(yog_data::Schema, Debug, Clone, Default, PartialEq)]
 pub struct CameraFrame {
     /// The entity the camera follows.
     pub uuid: String,
@@ -21,7 +21,7 @@ pub struct CameraFrame {
 }
 
 /// What mods change; each handler gets the last one's result and adds to it.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq)]
 pub struct CameraOut {
     /// Blocks, along the camera's own axes: right, up, forward.
     pub local_offset: Vec3,

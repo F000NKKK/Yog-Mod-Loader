@@ -284,6 +284,7 @@ names! {
     event_client_game {
         PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "game", sep::PATH),
         TICK = concatcp!(PLANE, "tick"),
+        TRAVEL = concatcp!(PLANE, "travel"),
     }
 
     /// `yog:event/client/input/…`.
@@ -305,6 +306,8 @@ names! {
     event_client_render {
         PLANE = concatcp!(event::PREFIX, "client", sep::PATH, "render", sep::PATH),
         HUD = concatcp!(PLANE, "hud"),
+        CAMERA = concatcp!(PLANE, "camera"),
+        BODY = concatcp!(PLANE, "body"),
     }
 
     /// `yog:event/client/net/…`; keyed by channel.

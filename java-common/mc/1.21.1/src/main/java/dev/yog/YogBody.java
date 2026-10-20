@@ -112,7 +112,7 @@ public final class YogBody {
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
                 (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial);
-        Ops ops = Ops.parse(NativeBridge.nativeBodyPose(frame));
+        Ops ops = Ops.parse(dev.yog.util.YogBodyBus.bodyPose(frame));
         if (!ops.captures.isEmpty()) capture(self, e, ops.captures, partial, light);
         if (ops.disguise != null) {
             Entity d = dummy(e, ops.disguise);
@@ -248,7 +248,7 @@ public final class YogBody {
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
                 (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial);
-        Ops ops = Ops.parse(NativeBridge.nativeBodyPose(frame));
+        Ops ops = Ops.parse(dev.yog.util.YogBodyBus.bodyPose(frame));
         if (ops == Ops.NONE) return;
         overlay = living != null ? LivingEntityRenderer.getOverlayCoords(living, 0) : OverlayTexture.NO_OVERLAY;
         try {
@@ -430,7 +430,7 @@ public final class YogBody {
      * fov} from the mods, or null.
      */
     public static float[] camera(Entity entity, float partial, Vec3 pos, float yaw, float pitch, boolean detached) {
-        float[] o = entity == null ? null : NativeBridge.nativeCamera(entity.getStringUUID(), partial, pos.x, pos.y, pos.z,
+        float[] o = entity == null ? null : dev.yog.util.YogBodyBus.camera(entity.getStringUUID(), partial, pos.x, pos.y, pos.z,
                 yaw, pitch, detached, NativeBridge.entityFlags(entity));
         fov = o == null ? 1 : o[9];
         return o;
@@ -446,7 +446,7 @@ public final class YogBody {
         Vec3 v = p.getDeltaMovement();
         Vec3 look = p.getLookAngle();
         float gravity = v.y <= 0 && p.hasEffect(MobEffects.SLOW_FALLING) ? 0.01F : 0.08F;
-        float[] out = NativeBridge.nativeTravel(p.getStringUUID(), (float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
+        float[] out = dev.yog.util.YogBodyBus.travel(p.getStringUUID(), (float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
                 p.getYRot(), p.getXRot(), p.zza, p.xxa, p.input.jumping, p.isShiftKeyDown(), gravity, NativeBridge.entityFlags(p));
         if (out == null) return false;
         Vec3 move = new Vec3(out[0], out[1], out[2]);

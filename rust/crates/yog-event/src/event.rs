@@ -83,10 +83,13 @@ events! {
     server::command::Run => ids::event_server_command::RUN, None, key = name;
     server::net::Packet => ids::event_server_net::PACKET, None, key = channel;
     client::game::Tick => ids::event_client_game::TICK, None;
+    client::game::Travel => ids::event_client_game::TRAVEL, None;
     client::input::Key => ids::event_client_input::KEY, Some(ids::event_client_input::KEY_PRE);
     client::input::Binding => ids::event_client_input::BINDING, None, key = id;
     client::ui::Open => ids::event_client_ui::OPEN, None;
     client::ui::Close => ids::event_client_ui::CLOSE, None;
     client::render::Hud => ids::event_client_render::HUD, None;
+    client::render::Camera => ids::event_client_render::CAMERA, None;
+    client::render::Body => ids::event_client_render::BODY, None;
     client::net::Packet => ids::event_client_net::PACKET, None, key = channel;
 }
