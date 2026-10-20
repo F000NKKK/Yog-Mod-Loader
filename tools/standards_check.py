@@ -121,7 +121,12 @@ def test_start(lines, path):
         return 0
     for i, l in enumerate(lines):
         if l.strip().startswith("#[cfg(test)]"):
-            return i
+            # The test module, not a test-only item before it.
+            k = i + 1
+            while k < len(lines) and lines[k].strip().startswith("#["):
+                k += 1
+            if k < len(lines) and re.match(r"^\s*(pub(\([^)]*\))?\s+)?mod\s+\w+\s*\{", lines[k]):
+                return i
     return len(lines)
 
 
