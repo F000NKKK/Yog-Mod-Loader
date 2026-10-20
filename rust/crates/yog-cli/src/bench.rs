@@ -165,7 +165,7 @@ pub fn write_sources(root: &Path, files: &[BenchFile]) -> Result<(), String> {
         }
     }
     for file in files {
-        crate::write_if_changed(&dir.join(format!("{}.rs", file.name)), &main_source(file))?;
+        crate::write_if_changed(&dir.join(format!("{}.rs", file.name)), main_source(file))?;
     }
     Ok(())
 }

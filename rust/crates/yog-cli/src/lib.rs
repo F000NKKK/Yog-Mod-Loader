@@ -24,8 +24,9 @@ pub mod yui_vm;
 /// Writes generated `code` to `path` (creating its directory) unless it's
 /// already there — unchanged files keep their mtime, so cargo doesn't
 /// rebuild for nothing.
-pub(crate) fn write_if_changed(path: &std::path::Path, code: &str) -> Result<(), String> {
-    if std::fs::read_to_string(path).ok().as_deref() == Some(code) {
+pub(crate) fn write_if_changed(path: &std::path::Path, code: impl AsRef<[u8]>) -> Result<(), String> {
+    let code = code.as_ref();
+    if std::fs::read(path).ok().as_deref() == Some(code) {
         return Ok(());
     }
     if let Some(dir) = path.parent() {

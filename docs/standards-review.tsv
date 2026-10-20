@@ -231,10 +231,10 @@ Yog-Mod-Loader/neoforge/platforms/1.21.1/src/main/java/dev/yog/YogPlatform.java	
 Yog-Mod-Loader/neoforge/platforms/26.2/src/main/java/dev/yog/YogClient.java		todo
 Yog-Mod-Loader/neoforge/platforms/26.2/src/main/java/dev/yog/YogHost.java		todo
 Yog-Mod-Loader/neoforge/platforms/26.2/src/main/java/dev/yog/YogPlatform.java		todo
-Yog-Mod-Loader/rust/crates/yog-abi/src/api.rs	glob_imports:1	todo
+Yog-Mod-Loader/rust/crates/yog-abi/src/api.rs		todo
 Yog-Mod-Loader/rust/crates/yog-abi/src/bus.rs		todo
-Yog-Mod-Loader/rust/crates/yog-abi/src/gfx.rs	glob_imports:1	todo
-Yog-Mod-Loader/rust/crates/yog-abi/src/handlers.rs	glob_imports:1	todo
+Yog-Mod-Loader/rust/crates/yog-abi/src/gfx.rs		todo
+Yog-Mod-Loader/rust/crates/yog-abi/src/handlers.rs		todo
 Yog-Mod-Loader/rust/crates/yog-abi/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-abi/src/primitives.rs		todo
 Yog-Mod-Loader/rust/crates/yog-abi/src/tests.rs		todo
@@ -292,20 +292,33 @@ Yog-Mod-Loader/rust/crates/yog-cli/benches/yui.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/bench.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/book_page.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/cargo_toml.rs	long-fn:generate_cargo_toml@12(107)	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content.rs	file:1051 long-fn:compile@632(338) literal_facts:17	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item.rs	long-fn:compile_file@58(547) panics:4 literal_facts:28 magic_numbers:11	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content.rs	file:1053 long-fn:compile@633(339) literal_facts:17	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/block.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/item.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/loot.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/mod.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/screens.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/source.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/block_item/states.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/body.rs	literal_facts:1 magic_numbers:2	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/book.rs	long-fn:compile_book@32(207),compile_layout@243(177) panics:1 literal_facts:6	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/datapack.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/defs.rs	long-fn:read_defs@324(147) literal_facts:37 magic_numbers:2	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/file.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/import.rs	file:1290 long-fn:convert_model@381(150),import_bbmodel@871(304) prints:3 literal_facts:26 magic_numbers:19	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/import/font.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/json.rs	long-fn:to_pretty@166(84),value@313(103)	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/looks.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/material.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/model.rs	long-fn:model@21(121) literal_facts:10 magic_numbers:18	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/model/element.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/model/kind.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/model/mod.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/model/state.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/outputs.rs	long-fn:merge_outputs@101(106) literal_facts:4	todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe.rs	long-fn:compile_recipe@17(227) panics:3 literal_facts:4	todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe/body.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe/custom.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe/gaps.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/content/recipe/mod.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/refs.rs	literal_facts:7	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/source.rs	long-fn:rust_source@162(289) panics:2 literal_facts:1 magic_numbers:2	todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/table.rs	silenced:1 literal_facts:2	todo
@@ -369,27 +382,33 @@ Yog-Mod-Loader/rust/crates/yog-data-derive/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/benches/data.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/benches/messages.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/benches/versus.rs		todo
-Yog-Mod-Loader/rust/crates/yog-data/src/atom.rs	glob_imports:1	todo
+Yog-Mod-Loader/rust/crates/yog-data/src/atom.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/atom/local.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/binary/decoder.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/binary/interner.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/binary/mod.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/binary/tests.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/binary/writer.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/borrowed.rs		todo
-Yog-Mod-Loader/rust/crates/yog-data/src/frame/floats.rs	glob_imports:3	todo
-Yog-Mod-Loader/rust/crates/yog-data/src/frame/lanes.rs	glob_imports:3	todo
+Yog-Mod-Loader/rust/crates/yog-data/src/frame/floats.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/frame/floats/avx2.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/frame/floats/portable.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/frame/lanes.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/frame/lanes/avx2.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/frame/lanes/portable.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/frame/mod.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/frame/shaped.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/frame/view.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/json.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/patch.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/schema/fields.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/schema/mod.rs		todo
-Yog-Mod-Loader/rust/crates/yog-data/src/schema/plain.rs	glob_imports:1	todo
-Yog-Mod-Loader/rust/crates/yog-data/src/schema/reader.rs	glob_imports:1	todo
-Yog-Mod-Loader/rust/crates/yog-data/src/schema/shape.rs	glob_imports:1	todo
+Yog-Mod-Loader/rust/crates/yog-data/src/schema/plain.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/schema/reader.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/schema/shape.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/schema/shape/key.rs		todo
-Yog-Mod-Loader/rust/crates/yog-data/src/schema/typed_values.rs	glob_imports:1	todo
+Yog-Mod-Loader/rust/crates/yog-data/src/schema/typed_values.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/stream.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/text.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/toml.rs		todo
@@ -528,8 +547,8 @@ Yog-Mod-Loader/rust/crates/yog-home/src/version.rs		todo
 Yog-Mod-Loader/rust/crates/yog-hot-reload/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-hot-reload/tests/hot_reload.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ids/src/export.rs		todo
-Yog-Mod-Loader/rust/crates/yog-ids/src/formats.rs	glob_imports:1	todo
-Yog-Mod-Loader/rust/crates/yog-ids/src/lib.rs	glob_imports:1	todo
+Yog-Mod-Loader/rust/crates/yog-ids/src/formats.rs		todo
+Yog-Mod-Loader/rust/crates/yog-ids/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ids/src/names/base.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ids/src/names/bus.rs		todo
 Yog-Mod-Loader/rust/crates/yog-ids/src/names/content.rs		todo
@@ -630,7 +649,7 @@ Yog-Mod-Loader/rust/crates/yog-symbols/benches/symbols.rs		todo
 Yog-Mod-Loader/rust/crates/yog-symbols/src/eval.rs		todo
 Yog-Mod-Loader/rust/crates/yog-symbols/src/format.rs		todo
 Yog-Mod-Loader/rust/crates/yog-symbols/src/format/dwarf.rs		todo
-Yog-Mod-Loader/rust/crates/yog-symbols/src/format/nav.rs	glob_imports:1	todo
+Yog-Mod-Loader/rust/crates/yog-symbols/src/format/nav.rs		todo
 Yog-Mod-Loader/rust/crates/yog-symbols/src/format/std_types.rs		todo
 Yog-Mod-Loader/rust/crates/yog-symbols/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-symbols/src/locals.rs		todo

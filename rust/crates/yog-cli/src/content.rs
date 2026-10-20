@@ -999,9 +999,18 @@ impl Source {
     }
 }
 
-/// Where the mod's tags are listed for tools (`#ns:path` → its entries, by
-/// kind) — the IDE shows a tag's items from here, as the build makes them.
-pub const TAGS_FILE: &str = ".yog-build/generated/tags.json";
+/// Where the mod's tags are listed for tools (`ns:path` → its entries, by
+/// kind), as binary Yog Data — the IDE shows a tag's items from here, as the
+/// build makes them.
+pub const TAGS_FILE: &str = yog_ids::concatcp!(".yog-build/generated/tags.", yog_ids::Format::Data.ext());
+
+/// The mod's tags as [`TAGS_FILE`] lists them: kind → tag → its entries.
+pub type TagLists = BTreeMap<String, BTreeMap<String, Vec<String>>>;
+
+/// [`TAGS_FILE`] of the mod at `root`, as the build last wrote it; empty without one.
+pub fn read_tags(root: &Path) -> TagLists {
+    std::fs::read(root.join(TAGS_FILE)).ok().and_then(|b| yog_data::read_bytes::<TagLists>(&b).ok()).unwrap_or_default()
+}
 
 /// Outputs in order, keyed by path: [`OutputSet::put`] replaces a path's
 /// output (moving it to the end) without rescanning the list.

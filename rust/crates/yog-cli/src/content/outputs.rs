@@ -1,12 +1,12 @@
 //! Merging what every file produced: tags, lang files, per-version overlays.
 
 use serde_json::{Map, Value};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::path::Path;
 use crate::content::Compiled;
 use crate::content::Output;
 use crate::content::OutputSet;
-use crate::content::TAGS_FILE;
+use crate::content::{TAGS_FILE, TagLists};
 use crate::content::datapack;
 use crate::content::pretty;
 use crate::content::refs;
@@ -63,19 +63,22 @@ pub(super) fn version_overlays(out: &mut Compiled, datapack: &str) {
 }
 
 
-/// Writes [`TAGS_FILE`]: `{ "item": { "ns:path": ["ns:id", "#ns:tag", …] }, "block": … }`.
+/// Writes [`TAGS_FILE`]: `{ item: { "ns:path": ["ns:id", "#ns:tag", …] }, block: … }`.
 pub(super) fn write_tags(root: &Path, compiled: &Compiled) -> Result<(), String> {
-    let mut by_kind: BTreeMap<String, BTreeMap<String, Vec<String>>> = BTreeMap::new();
+    use yog_ids::pack::{DATA, TAGS};
+    use yog_ids::sep::PATH;
+    let data_dir = format!("{DATA}{PATH}");
+    let tags_dir = format!("{PATH}{TAGS}{PATH}");
+    let mut by_kind = TagLists::new();
     for (path, entries) in &compiled.tags {
         // `[when/<loader>/<version>/]data/<ns>/tags/<kind>/<path>.json`
-        let data = path.find("data/").map_or(path.as_str(), |i| &path[i + 5..]);
-        let Some((ns, rest)) = data.split_once("/tags/") else { continue };
-        let Some((kind, tag)) = rest.split_once('/') else { continue };
-        let tag = tag.trim_end_matches(".json");
-        by_kind.entry(kind.to_string()).or_default().entry(format!("{ns}:{tag}")).or_default().extend(entries.keys().cloned());
+        let data = path.find(&data_dir).map_or(path.as_str(), |i| &path[i + data_dir.len()..]);
+        let Some((ns, rest)) = data.split_once(&tags_dir) else { continue };
+        let Some((kind, tag)) = rest.split_once(PATH) else { continue };
+        let tag = tag.trim_end_matches(yog_ids::res::JSON);
+        by_kind.entry(kind.to_string()).or_default().entry(yog_ids::join(ns, tag)).or_default().extend(entries.keys().cloned());
     }
-    let text = serde_json::to_string_pretty(&by_kind).map_err(|e| e.to_string())?;
-    crate::write_if_changed(&root.join(TAGS_FILE), &text)
+    crate::write_if_changed(&root.join(TAGS_FILE), yog_data::to_bytes(&by_kind))
 }
 
 /// A JSON object output at `path`: the one already in `outputs`, else the

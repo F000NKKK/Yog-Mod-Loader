@@ -1,6 +1,6 @@
 //! What an item tag holds (`#minecraft:planks`), for slots that show each
 //! of its items in turn, as JEI does: the mod's own tags as `yog build`
-//! makes them (its `.yog-build/generated/tags.json` — content files'
+//! makes them (its `.yog-build/generated/tags.ydata`, `content::TAGS_FILE` — content files'
 //! `tags`, `.ydef` tags), and the game's — from the newest version that has
 //! the tag (one removed in 1.21 still shows its 1.20 items) — nested tags
 //! opened. Yog's common tags (`yog:ingots/iron`) are the game's and the
@@ -22,11 +22,7 @@ const REGISTRY: &str = yog_ids::kind::ITEM;
 /// The mod's item tags, as the CLI listed them (`yog content check` / `yog build`).
 fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
     let Some(root) = root else { return BTreeMap::new() };
-    let mut tags = std::fs::read(root.join(crate::content::TAGS_FILE))
-        .ok()
-        .and_then(|b| serde_json::from_slice::<BTreeMap<String, BTreeMap<String, Vec<String>>>>(&b).ok())
-        .and_then(|mut kinds| kinds.remove(REGISTRY))
-        .unwrap_or_default();
+    let mut tags = crate::content::read_tags(root).remove(REGISTRY).unwrap_or_default();
     let Some(ns) = crate::design::project::mod_id(root) else { return tags };
     for format in [Format::Block, Format::Item, Format::Def] {
         for file in crate::design::files::of(&root.join(yog_ids::project::CONTENT), format) {

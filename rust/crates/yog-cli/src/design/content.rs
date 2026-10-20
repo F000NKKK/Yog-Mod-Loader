@@ -518,11 +518,7 @@ pub fn tags(file: &Path, registry: &str) -> Vec<String> {
     let mut out = Vec::new();
     if let Some(root) = mod_root(file) {
         let ns = crate::design::project::mod_id(&root).unwrap_or_default();
-        let listed = std::fs::read(root.join(".yog-build/generated/tags.json"))
-            .ok()
-            .and_then(|b| serde_json::from_slice::<std::collections::BTreeMap<String, std::collections::BTreeMap<String, Value>>>(&b).ok())
-            .and_then(|mut by| by.remove(registry))
-            .unwrap_or_default();
+        let listed = crate::content::read_tags(&root).remove(registry).unwrap_or_default();
         out.extend(listed.into_keys().filter_map(|t| t.strip_prefix(&format!("{ns}:")).map(str::to_string)));
     }
     out.extend(yog_formats::tags::yog_tags(registry).into_iter().map(|(p, _)| format!("yog:{p}")));
