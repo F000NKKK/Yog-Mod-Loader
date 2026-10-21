@@ -90,16 +90,26 @@ struct Texts {
 }
 
 fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Texts {
-    let mut t = Texts {
-        refs: HashMap::new(),
-        lang: HashMap::new(),
-    };
-    // The game's (and the mod's assets') language files, the mod's own on top.
     let lang_file = locale.unwrap_or(yog_ids::game::LOCALE);
     let mod_id = mod_root
         .and_then(crate::design::project::mod_id)
         .unwrap_or_default();
-    for ns in [yog_ids::ns::MINECRAFT, mod_id.as_str()] {
+    let mut t = Texts {
+        refs: HashMap::new(),
+        lang: game_lang(res, &mod_id, lang_file),
+    };
+    let Some(root) = mod_root else { return t };
+    for (set, p) in yres_files(root, locale) {
+        add_yres(&mut t, &set, &p, &mod_id);
+    }
+    t
+}
+
+/// The game's (and the mod's assets') language files, the mod's own on top,
+/// and the book's own words as the loader's jars ship them.
+fn game_lang(res: &Resources, mod_id: &str, lang_file: &str) -> HashMap<String, String> {
+    let mut lang = HashMap::new();
+    for ns in [yog_ids::ns::MINECRAFT, mod_id] {
         for file in [yog_ids::game::LOCALE, lang_file] {
             if let Some(Value::Object(map)) = res
                 .read(ns, &yog_ids::lang_file(file))
@@ -107,21 +117,24 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
             {
                 for (k, v) in map {
                     if let Value::String(v) = v {
-                        t.lang.insert(k, v);
+                        lang.insert(k, v);
                     }
                 }
             }
         }
     }
-    // The book's own words, as the loader's jars ship them.
     for file in [yog_ids::game::LOCALE, lang_file] {
         if let Some((_, json)) = yog_book::LANG.iter().find(|(l, _)| *l == file)
             && let Ok(map) = serde_json::from_str::<HashMap<String, String>>(json)
         {
-            t.lang.extend(map);
+            lang.extend(map);
         }
     }
-    let Some(root) = mod_root else { return t };
+    lang
+}
+
+/// The mod's `.yres` sets read in `locale`: (set, file), the neutral ones first.
+fn yres_files(root: &Path, locale: Option<&str>) -> Vec<(String, PathBuf)> {
     let mut files: Vec<(String, Option<String>, PathBuf)> = Vec::new();
     for f in std::fs::read_dir(root.join(crate::yres::RESOURCES_DIR))
         .into_iter()
@@ -143,38 +156,37 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
     }
     // Neutral first, the locale's over it.
     files.sort_by_key(|(_, loc, _)| loc.is_some());
-    for (set, _, p) in files {
-        let Some(doc) = crate::files::read_source(&p)
-            .ok()
-            .and_then(|t| crate::design::data::read_object(&t))
-        else {
-            continue;
+    files.into_iter().map(|(set, _, p)| (set, p)).collect()
+}
+
+/// The texts of set `set`'s `.yres` at `file`, into `t`.
+fn add_yres(t: &mut Texts, set: &str, file: &Path, mod_id: &str) {
+    use yog_data::Value as V;
+    let Some(doc) = crate::files::read_source(file)
+        .ok()
+        .and_then(|text| crate::design::data::read_object(&text))
+    else {
+        return;
+    };
+    let text_of = |o: &V, f: &str| o.get(f).and_then(V::as_str).map(str::to_string);
+    for (k, v) in doc.as_map().into_iter().flatten() {
+        let (text, key) = match v {
+            V::Str(s) => (Some(s.clone()), None),
+            V::Map(o)
+                if o.get("type")
+                    .and_then(V::as_str)
+                    .is_none_or(|t| t == "text") =>
+            {
+                (text_of(v, "value"), text_of(v, "key"))
+            }
+            _ => (None, None),
         };
-        for (k, v) in doc.as_map().into_iter().flatten() {
-            let text_of = |o: &yog_data::Value, f: &str| {
-                o.get(f)
-                    .and_then(yog_data::Value::as_str)
-                    .map(str::to_string)
-            };
-            let (text, key) = match v {
-                yog_data::Value::Str(s) => (Some(s.clone()), None),
-                yog_data::Value::Map(o)
-                    if o.get("type")
-                        .and_then(yog_data::Value::as_str)
-                        .is_none_or(|t| t == "text") =>
-                {
-                    (text_of(v, "value"), text_of(v, "key"))
-                }
-                _ => (None, None),
-            };
-            let Some(text) = text else { continue };
-            // As `yog build` names its translation key.
-            let key = key.unwrap_or_else(|| crate::yres::default_key(&set, &mod_id, k));
-            t.lang.insert(key, text.clone());
-            t.refs.insert(format!("{set}.{k}"), text);
-        }
+        let Some(text) = text else { continue };
+        // As `yog build` names its translation key.
+        let key = key.unwrap_or_else(|| crate::yres::default_key(set, mod_id, k));
+        t.lang.insert(key, text.clone());
+        t.refs.insert(format!("{set}.{k}"), text);
     }
-    t
 }
 
 /// The languages the mod's `resources/*.yres` are translated into.
