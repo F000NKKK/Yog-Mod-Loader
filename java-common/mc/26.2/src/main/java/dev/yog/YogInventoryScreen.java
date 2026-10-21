@@ -34,20 +34,20 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
         if (def != null) {
             this.titleLabelX = TITLE_X;
             this.titleLabelY = TITLE_Y;
-            if (def.includePlayerInventory) {
-                this.inventoryLabelX = (int) def.playerInvX;
-                this.inventoryLabelY = (int) def.playerInvY - INVENTORY_LABEL_GAP;
+            if (def.includePlayerInventory()) {
+                this.inventoryLabelX = (int) def.playerInvX();
+                this.inventoryLabelY = (int) def.playerInvY() - INVENTORY_LABEL_GAP;
             }
         }
         NativeBridge.nativeUIShow(uiId, "", true, false, width, height);
     }
 
     private static int width(YogInventoryDef def) {
-        return def != null && def.backgroundW > 0 ? (int) def.backgroundW : VANILLA_W;
+        return def != null && def.backgroundW() > 0 ? (int) def.backgroundW() : VANILLA_W;
     }
 
     private static int height(YogInventoryDef def) {
-        return def != null && def.backgroundH > 0 ? (int) def.backgroundH : VANILLA_H;
+        return def != null && def.backgroundH() > 0 ? (int) def.backgroundH() : VANILLA_H;
     }
 
     /** The screen's markup is the background; the game draws the real slots' items over it. */

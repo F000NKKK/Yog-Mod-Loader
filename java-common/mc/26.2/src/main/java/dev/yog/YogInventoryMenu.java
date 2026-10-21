@@ -43,7 +43,7 @@ public class YogInventoryMenu extends AbstractContainerMenu {
      * generic chest screen handler uses). */
     public static YogInventoryMenu createClient(int syncId, Inventory playerInv, String defId) {
         YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
-        int slotCount = def != null ? def.slotCount : 0;
+        int slotCount = def != null ? def.slotCount() : 0;
         return new YogInventoryMenu(syncId, playerInv, new SimpleContainer(slotCount), defId);
     }
 
@@ -52,24 +52,24 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         this.inventory = inv;
         this.defId = defId;
         YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
-        this.customSlotCount = def != null ? def.slotCount : inv.getContainerSize();
+        this.customSlotCount = def != null ? def.slotCount() : inv.getContainerSize();
         inv.startOpen(playerInv.player);
         if (def != null && def.isMachine() && inv instanceof YogInventoryBlockEntity be && be.getLevel() != null && !be.getLevel().isClientSide()) {
             this.machine = be;
         }
 
         if (def != null) {
-            for (int i = 0; i < def.slotCount; i++) {
-                float[] xy = i < def.layout.size() ? def.layout.get(i) : new float[]{8f + (i % 9) * 18f, 18f + (i / 9) * 18f};
-                String[] accepts = i < def.accepts.size() ? def.accepts.get(i) : new String[0];
-                this.addSlot(def.isMachine() && i == def.machineResult
+            for (int i = 0; i < def.slotCount(); i++) {
+                float[] xy = i < def.layout().size() ? def.layout().get(i) : new float[]{8f + (i % 9) * 18f, 18f + (i / 9) * 18f};
+                String[] accepts = i < def.accepts().size() ? def.accepts().get(i) : new String[0];
+                this.addSlot(def.isMachine() && i == def.machineResult()
                         ? new MachineResultSlot((int) xy[0], (int) xy[1])
                         : accepts.length == 0
                         ? new Slot(inv, i, (int) xy[0], (int) xy[1])
                         : new FilteredSlot(inv, i, (int) xy[0], (int) xy[1], accepts));
             }
-            if (def.includePlayerInventory) {
-                addPlayerInventorySlots(playerInv, def.playerInvX, def.playerInvY);
+            if (def.includePlayerInventory()) {
+                addPlayerInventorySlots(playerInv, def.playerInvX(), def.playerInvY());
             }
         }
     }
@@ -154,7 +154,7 @@ public class YogInventoryMenu extends AbstractContainerMenu {
         } catch (UnsatisfiedLinkError ignored) {
         }
         YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
-        for (int p : def.machinePlaces) {
+        for (int p : def.machinePlaces()) {
             if (p >= inventory.getContainerSize() || inventory.getItem(p).isEmpty()) continue;
             // What an ingredient leaves (a milk bucket's bucket): in its slot if that's empty, else the player's.
             net.minecraft.world.item.ItemStackTemplate rem = inventory.getItem(p).getItem().getCraftingRemainder();

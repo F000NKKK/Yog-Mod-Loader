@@ -22,12 +22,12 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
             // computed from imageWidth/Height in `init()`) land under that
             // decoration instead of the two disagreeing about where the
             // container's top-left corner is.
-            this.imageWidth  = def.backgroundW > 0 ? (int) def.backgroundW : Math.max(176, this.imageWidth);
-            this.imageHeight = def.backgroundH > 0 ? (int) def.backgroundH : Math.max(166, this.imageHeight);
+            this.imageWidth  = def.backgroundW() > 0 ? (int) def.backgroundW() : Math.max(176, this.imageWidth);
+            this.imageHeight = def.backgroundH() > 0 ? (int) def.backgroundH() : Math.max(166, this.imageHeight);
             this.titleLabelX = 8; this.titleLabelY = 6;
-            if (def.includePlayerInventory) {
-                this.inventoryLabelX = (int) def.playerInvX;
-                this.inventoryLabelY = (int) def.playerInvY - 10;
+            if (def.includePlayerInventory()) {
+                this.inventoryLabelX = (int) def.playerInvX();
+                this.inventoryLabelY = (int) def.playerInvY() - 10;
             }
         }
         NativeBridge.nativeUIShow(uiId, "", true, false, width, height);

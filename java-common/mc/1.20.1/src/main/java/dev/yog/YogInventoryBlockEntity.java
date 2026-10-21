@@ -73,7 +73,7 @@ public class YogInventoryBlockEntity extends BlockEntity implements Container, M
     @Override
     public Component getDisplayName() {
         YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
-        String title = def != null ? def.title : "";
+        String title = def != null ? def.title() : "";
         return title == null || title.isEmpty() ? Component.literal("Inventory") : Component.literal(title);
     }
 

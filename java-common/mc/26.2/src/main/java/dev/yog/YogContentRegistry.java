@@ -113,7 +113,7 @@ public final class YogContentRegistry {
         }
         if (p.inventory() != null) {
             YogInventoryDef def = INVENTORY_DEFS.get(p.inventory());
-            Block block = new YogInventoryBlock(settings, p.inventory(), def != null ? def.slotCount : 0);
+            Block block = new YogInventoryBlock(settings, p.inventory(), def != null ? def.slotCount() : 0);
             INVENTORY_BLOCKS.add(block);
             return block;
         }

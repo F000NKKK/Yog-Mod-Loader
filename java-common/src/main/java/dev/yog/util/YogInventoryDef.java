@@ -11,43 +11,17 @@ import java.util.Map;
  * the runtime's content blob ({@code YogContent}) and shared by every host's block
  * entity, menu and screen (see rust/crates/yog-inventory/DESIGN.md).
  */
-public final class YogInventoryDef {
+public record YogInventoryDef(String id, int slotCount, List<float[]> layout,
+        /** Per slot (by index, parallel to {@link #layout}): the item ids and {@code #tags} it takes; empty = anything. */
+        List<String[]> accepts, boolean includePlayerInventory, float playerInvX, float playerInvY,
+        String backgroundTexture, String title, float backgroundW, float backgroundH,
+        /** A machine's ingredient slots ({@code .yui <RecipeArea>}): the runtime finds the recipe they make. */
+        int[] machinePlaces,
+        /** A machine's result slot, or -1: not a machine. Its stack lives in the menu, never in the block. */
+        int machineResult) {
     /** Vanilla container screens put the player inventory at (8, 84). */
     private static final float DEFAULT_PLAYER_INV_X = 8f;
     private static final float DEFAULT_PLAYER_INV_Y = 84f;
-
-    public final String id;
-    public final int slotCount;
-    public final List<float[]> layout;
-    /** Per slot (by index, parallel to {@link #layout}): the item ids and {@code #tags} it takes; empty = anything. */
-    public final List<String[]> accepts;
-    public final boolean includePlayerInventory;
-    public final float playerInvX, playerInvY;
-    public final String backgroundTexture;
-    public final String title;
-    public final float backgroundW, backgroundH;
-    /** A machine's ingredient slots ({@code .yui <RecipeArea>}): the runtime finds the recipe they make. */
-    public final int[] machinePlaces;
-    /** A machine's result slot, or -1: not a machine. Its stack lives in the menu, never in the block. */
-    public final int machineResult;
-
-    YogInventoryDef(String id, int slotCount, List<float[]> layout, List<String[]> accepts, boolean includePlayerInventory,
-                    float playerInvX, float playerInvY, String backgroundTexture, String title,
-                    float backgroundW, float backgroundH, int[] machinePlaces, int machineResult) {
-        this.id = id;
-        this.slotCount = slotCount;
-        this.layout = layout;
-        this.accepts = accepts;
-        this.includePlayerInventory = includePlayerInventory;
-        this.playerInvX = playerInvX;
-        this.playerInvY = playerInvY;
-        this.backgroundTexture = backgroundTexture;
-        this.title = title;
-        this.backgroundW = backgroundW;
-        this.backgroundH = backgroundH;
-        this.machinePlaces = machinePlaces;
-        this.machineResult = machineResult;
-    }
 
     public boolean isMachine() {
         return machineResult >= 0;

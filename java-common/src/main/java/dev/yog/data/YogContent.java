@@ -285,7 +285,7 @@ public final class YogContent {
         Map<String, YogInventoryDef> inventories = new HashMap<>();
         for (Object o : YogData.list(root.get("inventories"))) {
             YogInventoryDef def = YogInventoryDef.fromData(YogData.map(o));
-            inventories.put(def.id, def);
+            inventories.put(def.id(), def);
         }
         List<Recipe> recipes = new ArrayList<>();
         for (Object o : YogData.list(root.get("recipes"))) {
