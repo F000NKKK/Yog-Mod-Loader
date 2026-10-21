@@ -209,7 +209,11 @@ pub(super) fn rust_source(c: &Content) -> Source {
     let doc = "The entity types of `content/` (`.yentity`), by id.";
     part(
         "entities",
-        id_consts(doc, code_set::ENTITIES, c.entities.iter().map(|e| e.id.as_str())),
+        id_consts(
+            doc,
+            code_set::ENTITIES,
+            c.entities.iter().map(|e| e.id.as_str()),
+        ),
     );
     let doc = "The advancements of `content/` (`.ydef` kind `advancement`), by id\n/// (`yog_api::advancements::grant`/`done`).";
     part(
@@ -240,7 +244,11 @@ pub(super) fn rust_source(c: &Content) -> Source {
     let doc = "The textures of `resources/` (`.ytexture`), by id — what the mod's code draws.";
     part(
         "textures",
-        id_consts(doc, code_set::TEXTURES, c.textures.iter().map(String::as_str)),
+        id_consts(
+            doc,
+            code_set::TEXTURES,
+            c.textures.iter().map(String::as_str),
+        ),
     );
     let idents = blocks::entry_idents(c.entries);
     for (name, code) in blocks::entries_code(c.entries, &idents) {
@@ -257,7 +265,6 @@ pub(super) fn rust_source(c: &Content) -> Source {
     }
     Source { root, parts }
 }
-
 
 /// Writes `compiled.source` to [`GENERATED_FILE`] (only when it changed);
 /// deletes it when the mod has no content files.

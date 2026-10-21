@@ -242,13 +242,7 @@ fn unknown_page_type(cx: &mut Ctx, line: Line, at: &At, kind: &str) -> bool {
 
 /// A page's fields: each one its type has, given unless it has a default,
 /// read as its kind. Whether they're all right.
-fn page_fields(
-    cx: &mut Ctx,
-    pages: &mut Pages,
-    at: &At,
-    c: &mut CustomPage,
-    t: &PageType,
-) -> bool {
+fn page_fields(cx: &mut Ctx, pages: &mut Pages, at: &At, c: &mut CustomPage, t: &PageType) -> bool {
     let line = pages.line;
     let mut ok = true;
     for (k, _) in c.fields.iter() {

@@ -16,9 +16,9 @@ use yog_data::field;
 use yog_formats::content::{BlockFile, ItemFile, Model, Register};
 use yog_ids::{Format, content_field};
 
-use crate::content::file::{check_format, file_id};
 use crate::content::ctx::{Ctx, Loc, Wanted};
 use crate::content::entry::{BlockProps, Entry, ItemProps};
+use crate::content::file::{check_format, file_id};
 use crate::content::{Compiled, Lang, datapack, pretty};
 use crate::yres;
 
@@ -226,17 +226,35 @@ fn read_parts(
         cx.defer(loc(&f.path), &f.path, Wanted::Ref(f.value));
     }
     for f in tag_refs {
-        cx.defer(loc(&f.path), &f.path, Wanted::Tag { kinds: vec![f.value.kind], id: f.value.id });
+        cx.defer(
+            loc(&f.path),
+            &f.path,
+            Wanted::Tag {
+                kinds: vec![f.value.kind],
+                id: f.value.id,
+            },
+        );
     }
     // Its tags (checked like the rest): a block's are block or item tags.
-    let kinds: &[&str] = if kind == Format::Block { &[yog_ids::kind::BLOCK, yog_ids::kind::ITEM] } else { &[yog_ids::kind::ITEM] };
+    let kinds: &[&str] = if kind == Format::Block {
+        &[yog_ids::kind::BLOCK, yog_ids::kind::ITEM]
+    } else {
+        &[yog_ids::kind::ITEM]
+    };
     for (i, tag) in parts.tags.iter().enumerate() {
         let at = At::root().key(field!(ItemFile, tags)).index(i);
         let tag = yog_ids::qualify_in(
             mod_ns.unwrap_or(yog_ids::ns::MINECRAFT),
             tag.trim_start_matches(yog_ids::sep::TAG),
         );
-        cx.defer(loc(&at), &at, Wanted::Tag { kinds: kinds.iter().map(|k| k.to_string()).collect(), id: tag });
+        cx.defer(
+            loc(&at),
+            &at,
+            Wanted::Tag {
+                kinds: kinds.iter().map(|k| k.to_string()).collect(),
+                id: tag,
+            },
+        );
     }
     Some(parts)
 }
@@ -314,9 +332,17 @@ fn join_tags(cx: &Ctx, tags: &[String], kind: Format, id: &str, out: &mut Compil
 
 /// The translation key a text names (`@Lang.…`, `@lang:…`, an item's name),
 /// or for words, `key` with the words put in the mod's lang.
-pub(super) fn text_key(cx: &mut Ctx, lang: &mut Lang, t: &yog_data::Text, ns: &str, key: String) -> Result<String, String> {
+pub(super) fn text_key(
+    cx: &mut Ctx,
+    lang: &mut Lang,
+    t: &yog_data::Text,
+    ns: &str,
+    key: String,
+) -> Result<String, String> {
     if let yog_data::Text::Literal(words) = t {
-        lang.entry((ns.to_string(), yres::NEUTRAL_LOCALE.to_string())).or_default().insert(key.clone(), words.clone());
+        lang.entry((ns.to_string(), yres::NEUTRAL_LOCALE.to_string()))
+            .or_default()
+            .insert(key.clone(), words.clone());
         return Ok(key);
     }
     Ok(cx.refs.key_of(t)?.unwrap_or(key))

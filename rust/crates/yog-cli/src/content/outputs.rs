@@ -1,11 +1,10 @@
 //! Merging what every file produced: tags, lang files, per-version overlays.
 
+use crate::content::{Compiled, Output, datapack, pretty, refs};
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
-use crate::content::{Compiled, Output, datapack, pretty, refs};
 use yog_ids::tag_file as tf;
-
 
 /// The mod's data names vanilla content as its datapack version does; for
 /// each other version that calls some of it otherwise, an overlay of the
@@ -16,7 +15,8 @@ pub(super) fn version_overlays(out: &mut Compiled, datapack: &str) {
         match v {
             Value::String(s) if yog_ids::game_path(s).is_some() => {
                 let id = s.clone();
-                let eq = refs::equivalent(refs::RefKind::Item, &id, version).or_else(|| refs::equivalent(refs::RefKind::Block, &id, version));
+                let eq = refs::equivalent(refs::RefKind::Item, &id, version)
+                    .or_else(|| refs::equivalent(refs::RefKind::Block, &id, version));
                 match eq {
                     Some(e) if e != id => {
                         *s = e;
@@ -32,17 +32,25 @@ pub(super) fn version_overlays(out: &mut Compiled, datapack: &str) {
                     }
                 }
             }
-            Value::Array(a) => a.iter_mut().fold(false, |c, x| map(x, version, missing) | c),
-            Value::Object(o) => o.values_mut().fold(false, |c, x| map(x, version, missing) | c),
+            Value::Array(a) => a
+                .iter_mut()
+                .fold(false, |c, x| map(x, version, missing) | c),
+            Value::Object(o) => o
+                .values_mut()
+                .fold(false, |c, x| map(x, version, missing) | c),
             _ => false,
         }
     }
     let mut overlays = Vec::new();
     for (path, bytes) in &out.outputs {
-        if !path.starts_with(&format!("{}{}", yog_ids::pack::DATA, yog_ids::sep::PATH)) || !path.ends_with(yog_ids::res::JSON) {
+        if !path.starts_with(&format!("{}{}", yog_ids::pack::DATA, yog_ids::sep::PATH))
+            || !path.ends_with(yog_ids::res::JSON)
+        {
             continue;
         }
-        let Ok(json) = serde_json::from_slice::<Value>(bytes) else { continue };
+        let Ok(json) = serde_json::from_slice::<Value>(bytes) else {
+            continue;
+        };
         for version in refs::versions().iter().filter(|v| *v != datapack) {
             let mut copy = json.clone();
             let mut missing = BTreeSet::new();
@@ -50,13 +58,14 @@ pub(super) fn version_overlays(out: &mut Compiled, datapack: &str) {
                 overlays.push((datapack::for_version(version, path), pretty(&copy)));
             }
             for id in missing {
-                out.warnings.push(format!("{path} names {id}, which Minecraft {version} hasn't got"));
+                out.warnings.push(format!(
+                    "{path} names {id}, which Minecraft {version} hasn't got"
+                ));
             }
         }
     }
     out.outputs.extend(overlays);
 }
-
 
 /// Writes [`TAGS_FILE`]: `{ item: { "ns:path": ["ns:id", "#ns:tag", …] }, block: … }`.
 pub(super) fn write_tags(root: &Path, compiled: &Compiled) -> Result<(), String> {
@@ -67,18 +76,33 @@ pub(super) fn write_tags(root: &Path, compiled: &Compiled) -> Result<(), String>
     let mut by_kind = TagLists::new();
     for (path, entries) in &compiled.tags {
         // `[when/<loader>/<version>/]data/<ns>/tags/<kind>/<path>.json`
-        let data = path.find(&data_dir).map_or(path.as_str(), |i| &path[i + data_dir.len()..]);
-        let Some((ns, rest)) = data.split_once(&tags_dir) else { continue };
-        let Some((kind, tag)) = rest.split_once(PATH) else { continue };
+        let data = path
+            .find(&data_dir)
+            .map_or(path.as_str(), |i| &path[i + data_dir.len()..]);
+        let Some((ns, rest)) = data.split_once(&tags_dir) else {
+            continue;
+        };
+        let Some((kind, tag)) = rest.split_once(PATH) else {
+            continue;
+        };
         let tag = tag.trim_end_matches(yog_ids::res::JSON);
-        by_kind.entry(kind.to_string()).or_default().entry(yog_ids::join(ns, tag)).or_default().extend(entries.keys().cloned());
+        by_kind
+            .entry(kind.to_string())
+            .or_default()
+            .entry(yog_ids::join(ns, tag))
+            .or_default()
+            .extend(entries.keys().cloned());
     }
     crate::write_if_changed(&root.join(TAGS_FILE), yog_data::to_bytes(&by_kind))
 }
 
 /// A JSON object output at `path`: the one already in `outputs`, else the
 /// mod's own file there, else empty.
-pub(super) fn json_output(outputs: &OutputSet, root: &Path, path: &str) -> Result<Map<String, Value>, String> {
+pub(super) fn json_output(
+    outputs: &OutputSet,
+    root: &Path,
+    path: &str,
+) -> Result<Map<String, Value>, String> {
     let read;
     let bytes = match outputs.get(path) {
         Some(b) => b,
@@ -96,8 +120,16 @@ pub(super) fn json_output(outputs: &OutputSet, root: &Path, path: &str) -> Resul
 /// Adds the content's outputs to `outputs` (the `.yres` ones, say): lang
 /// entries and tags merged into what's there (or into the mod's own files),
 /// the rest appended.
-pub fn merge_outputs(root: &Path, outputs: &mut Vec<Output>, compiled: Compiled) -> Result<(), String> {
-    let mut m = Merging { set: OutputSet::from(std::mem::take(outputs)), root, errors: Vec::new() };
+pub fn merge_outputs(
+    root: &Path,
+    outputs: &mut Vec<Output>,
+    compiled: Compiled,
+) -> Result<(), String> {
+    let mut m = Merging {
+        set: OutputSet::from(std::mem::take(outputs)),
+        root,
+        errors: Vec::new(),
+    };
     if !compiled.lang_aliases.is_empty() {
         m.lang_aliases(&compiled.lang_aliases);
     }
@@ -114,7 +146,10 @@ pub fn merge_outputs(root: &Path, outputs: &mut Vec<Output>, compiled: Compiled)
     if m.errors.is_empty() {
         Ok(())
     } else {
-        Err(format!("merging blocks/items into the mod's files:\n  {}", m.errors.join("\n  ")))
+        Err(format!(
+            "merging blocks/items into the mod's files:\n  {}",
+            m.errors.join("\n  ")
+        ))
     }
 }
 
@@ -129,16 +164,25 @@ impl Merging<'_> {
     /// The JSON object at `path` (an output, the mod's own file, or empty); a
     /// problem noted when it won't read.
     fn object(&mut self, path: &str) -> Option<Map<String, Value>> {
-        json_output(&self.set, self.root, path).map_err(|e| self.errors.push(e)).ok()
+        json_output(&self.set, self.root, path)
+            .map_err(|e| self.errors.push(e))
+            .ok()
     }
 
     /// `.yres` texts under the keys the game looks up: in every lang file
     /// (the outputs' and the mod's own) that has the text.
     fn lang_aliases(&mut self, aliases: &[(String, String)]) {
-        let mut files: BTreeSet<String> = self.set.paths().filter(|p| is_lang_path(p)).cloned().collect();
+        let mut files: BTreeSet<String> = self
+            .set
+            .paths()
+            .filter(|p| is_lang_path(p))
+            .cloned()
+            .collect();
         files.extend(own_lang_files(self.root));
         for path in files {
-            let Some(mut map) = self.object(&path) else { continue };
+            let Some(mut map) = self.object(&path) else {
+                continue;
+            };
             let mut changed = false;
             for (from, to) in aliases {
                 if let Some(text) = map.get(from).cloned()
@@ -155,11 +199,19 @@ impl Merging<'_> {
     }
 
     /// A namespace's entries in a locale's lang file, under what's there.
-    fn lang(&mut self, ns: &str, locale: &str, entries: &std::collections::BTreeMap<String, String>) {
+    fn lang(
+        &mut self,
+        ns: &str,
+        locale: &str,
+        entries: &std::collections::BTreeMap<String, String>,
+    ) {
         let path = yog_ids::asset_file(ns, &yog_ids::lang_file(locale));
-        let Some(mut map) = self.object(&path) else { return };
+        let Some(mut map) = self.object(&path) else {
+            return;
+        };
         for (k, v) in entries {
-            map.entry(k.clone()).or_insert_with(|| Value::String(v.clone()));
+            map.entry(k.clone())
+                .or_insert_with(|| Value::String(v.clone()));
         }
         self.set.put(path, pretty(&Value::Object(map)));
     }
@@ -168,15 +220,42 @@ impl Merging<'_> {
     /// to what's there. The mod's own file may use the pre-1.21 spelling; the
     /// loader maps both to one file, so it's merged into whichever it has.
     fn tag(&mut self, path: &str, ids: &std::collections::BTreeMap<String, bool>) {
-        let block_tags = |dir: &str| format!("{}{}{dir}{}", yog_ids::sep::PATH, yog_ids::pack::TAGS, yog_ids::sep::PATH);
-        let plural = path.replacen(&block_tags(yog_ids::kind::BLOCK), &block_tags(yog_ids::word::BLOCKS), 1);
-        let path = if !self.set.contains(path) && self.root.join(&plural).is_file() { plural } else { path.to_string() };
-        let Some(mut map) = self.object(&path) else { return };
-        if let Value::Array(list) = map.entry(tf::VALUES).or_insert_with(|| Value::Array(Vec::new())) {
+        let block_tags = |dir: &str| {
+            format!(
+                "{}{}{dir}{}",
+                yog_ids::sep::PATH,
+                yog_ids::pack::TAGS,
+                yog_ids::sep::PATH
+            )
+        };
+        let plural = path.replacen(
+            &block_tags(yog_ids::kind::BLOCK),
+            &block_tags(yog_ids::word::BLOCKS),
+            1,
+        );
+        let path = if !self.set.contains(path) && self.root.join(&plural).is_file() {
+            plural
+        } else {
+            path.to_string()
+        };
+        let Some(mut map) = self.object(&path) else {
+            return;
+        };
+        if let Value::Array(list) = map
+            .entry(tf::VALUES)
+            .or_insert_with(|| Value::Array(Vec::new()))
+        {
             for (id, &required) in ids {
-                let listed = |v: &Value| v.as_str().or_else(|| v.get(tf::ID).and_then(Value::as_str)) == Some(id.as_str());
+                let listed = |v: &Value| {
+                    v.as_str().or_else(|| v.get(tf::ID).and_then(Value::as_str))
+                        == Some(id.as_str())
+                };
                 if !list.iter().any(listed) {
-                    list.push(if required { Value::String(id.clone()) } else { serde_json::json!({ tf::ID: id, tf::REQUIRED: false }) });
+                    list.push(if required {
+                        Value::String(id.clone())
+                    } else {
+                        serde_json::json!({ tf::ID: id, tf::REQUIRED: false })
+                    });
                 }
             }
         }
@@ -188,9 +267,13 @@ impl Merging<'_> {
 /// The mod's own lang files (`assets/<ns>/lang/<locale>.json`), as paths from `root`.
 fn own_lang_files(root: &Path) -> Vec<String> {
     let mut out = Vec::new();
-    let Ok(dirs) = std::fs::read_dir(root.join(yog_ids::pack::ASSETS)) else { return out };
+    let Ok(dirs) = std::fs::read_dir(root.join(yog_ids::pack::ASSETS)) else {
+        return out;
+    };
     for ns in dirs.flatten() {
-        let Ok(files) = std::fs::read_dir(ns.path().join(yog_ids::res::LANG)) else { continue };
+        let Ok(files) = std::fs::read_dir(ns.path().join(yog_ids::res::LANG)) else {
+            continue;
+        };
         for f in files.flatten() {
             if let Ok(rel) = f.path().strip_prefix(root) {
                 let rel = rel.to_string_lossy().replace('\\', yog_ids::sep::PATH);
@@ -213,14 +296,18 @@ pub(super) fn is_lang_path(p: &str) -> bool {
 /// Where the mod's tags are listed for tools (`ns:path` → its entries, by
 /// kind), as binary Yog Data — the IDE shows a tag's items from here, as the
 /// build makes them.
-pub const TAGS_FILE: &str = yog_ids::concatcp!(".yog-build/generated/tags.", yog_ids::Format::Data.ext());
+pub const TAGS_FILE: &str =
+    yog_ids::concatcp!(".yog-build/generated/tags.", yog_ids::Format::Data.ext());
 
 /// The mod's tags as [`TAGS_FILE`] lists them: kind → tag → its entries.
 pub type TagLists = BTreeMap<String, BTreeMap<String, Vec<String>>>;
 
 /// [`TAGS_FILE`] of the mod at `root`, as the build last wrote it; empty without one.
 pub fn read_tags(root: &Path) -> TagLists {
-    std::fs::read(root.join(TAGS_FILE)).ok().and_then(|b| yog_data::read_bytes::<TagLists>(&b).ok()).unwrap_or_default()
+    std::fs::read(root.join(TAGS_FILE))
+        .ok()
+        .and_then(|b| yog_data::read_bytes::<TagLists>(&b).ok())
+        .unwrap_or_default()
 }
 
 /// Outputs in order, keyed by path: [`OutputSet::put`] replaces a path's

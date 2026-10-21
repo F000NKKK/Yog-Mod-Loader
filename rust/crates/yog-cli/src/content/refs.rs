@@ -24,7 +24,13 @@ pub enum RefKind {
 }
 
 impl RefKind {
-    pub const ALL: [RefKind; 5] = [RefKind::Item, RefKind::Block, RefKind::Entity, RefKind::Recipe, RefKind::LootTable];
+    pub const ALL: [RefKind; 5] = [
+        RefKind::Item,
+        RefKind::Block,
+        RefKind::Entity,
+        RefKind::Recipe,
+        RefKind::LootTable,
+    ];
 
     /// Its prefix: `item` for `@item:`.
     pub fn word(self) -> &'static str {
@@ -62,24 +68,40 @@ static VANILLA: LazyLock<Vanilla> = LazyLock::new(|| {
             continue;
         }
         let mut p = line.split_whitespace();
-        let (Some(kind), Some(path), Some(vs)) = (p.next(), p.next(), p.next()) else { continue };
+        let (Some(kind), Some(path), Some(vs)) = (p.next(), p.next(), p.next()) else {
+            continue;
+        };
         let vs = (vs != "*").then(|| vs.split(',').map(str::to_string).collect());
         if kind == yog_ids::kind::POTION {
             potion_aliases.insert(path.to_string(), vs);
             continue;
         }
-        let Some(kind) = RefKind::ALL.into_iter().find(|k| k.word() == kind) else { continue };
+        let Some(kind) = RefKind::ALL.into_iter().find(|k| k.word() == kind) else {
+            continue;
+        };
         ids.insert((kind, path.to_string()), vs);
     }
     let mut renamed = HashMap::new();
-    for line in include_str!("../vanilla/renames.txt").lines().filter(|l| !l.starts_with('#')) {
+    for line in include_str!("../vanilla/renames.txt")
+        .lines()
+        .filter(|l| !l.starts_with('#'))
+    {
         let mut p = line.split_whitespace();
-        let (Some(kind), Some(old), Some(new)) = (p.next(), p.next(), p.next()) else { continue };
-        let Some(kind) = RefKind::from_word(kind) else { continue };
+        let (Some(kind), Some(old), Some(new)) = (p.next(), p.next(), p.next()) else {
+            continue;
+        };
+        let Some(kind) = RefKind::from_word(kind) else {
+            continue;
+        };
         renamed.insert((kind, old.to_string()), new.to_string());
         renamed.insert((kind, new.to_string()), old.to_string());
     }
-    Vanilla { versions, ids, renamed, potion_aliases }
+    Vanilla {
+        versions,
+        ids,
+        renamed,
+        potion_aliases,
+    }
 });
 
 /// The Minecraft versions Yog supports, oldest first.
@@ -89,13 +111,20 @@ pub fn versions() -> &'static [String] {
 
 /// Whether vanilla `path` (of `kind`) is in Minecraft `version`.
 fn in_version(kind: RefKind, path: &str, version: &str) -> bool {
-    VANILLA.ids.get(&(kind, path.to_string())).is_some_and(|vs| vs.as_ref().is_none_or(|vs| vs.iter().any(|v| v == version)))
+    VANILLA
+        .ids
+        .get(&(kind, path.to_string()))
+        .is_some_and(|vs| vs.as_ref().is_none_or(|vs| vs.iter().any(|v| v == version)))
 }
 
 /// Whether `id` is an item or block of some Minecraft version Yog knows.
 pub fn is_vanilla(id: &str) -> bool {
-    let Some(path) = yog_ids::game_path(id) else { return false };
-    [RefKind::Item, RefKind::Block].iter().any(|k| VANILLA.ids.contains_key(&(*k, path.to_string())))
+    let Some(path) = yog_ids::game_path(id) else {
+        return false;
+    };
+    [RefKind::Item, RefKind::Block]
+        .iter()
+        .any(|k| VANILLA.ids.contains_key(&(*k, path.to_string())))
 }
 
 /// The game's potion Yog's alias `id` (`yog:potion/<name>`) stands for.
@@ -112,7 +141,11 @@ pub fn is_vanilla_potion(id: &str) -> bool {
 pub fn is_vanilla_potion_in(id: &str, version: &str) -> bool {
     potion_of(id)
         .and_then(|p| VANILLA.potion_aliases.get(p))
-        .is_some_and(|versions| versions.as_ref().is_none_or(|versions| versions.iter().any(|v| v == version)))
+        .is_some_and(|versions| {
+            versions
+                .as_ref()
+                .is_none_or(|versions| versions.iter().any(|v| v == version))
+        })
 }
 
 /// What vanilla `id` (`minecraft:short_grass`) is on Minecraft `version`:
@@ -121,7 +154,11 @@ pub fn is_vanilla_potion_in(id: &str, version: &str) -> bool {
 pub fn equivalent(kind: RefKind, id: &str, version: &str) -> Option<String> {
     let path = yog_ids::game_path(id)?;
     // An item may be a block's item.
-    let kinds: &[RefKind] = if kind == RefKind::Item { &[RefKind::Item, RefKind::Block] } else { std::slice::from_ref(&kind) };
+    let kinds: &[RefKind] = if kind == RefKind::Item {
+        &[RefKind::Item, RefKind::Block]
+    } else {
+        std::slice::from_ref(&kind)
+    };
     if kinds.iter().any(|k| in_version(*k, path, version)) {
         return Some(id.to_string());
     }
@@ -148,14 +185,24 @@ pub struct Known {
 impl Known {
     /// `datapack`: the version the mod names vanilla content by (`None`: the newest).
     pub fn new(ns: &str, externals: &[External], datapack: Option<&str>) -> Known {
-        let datapack = datapack.map(str::to_string).unwrap_or_else(|| VANILLA.versions.last().cloned().unwrap_or_default());
-        let mut k = Known { ns: ns.to_string(), datapack, ..Default::default() };
+        let datapack = datapack
+            .map(str::to_string)
+            .unwrap_or_else(|| VANILLA.versions.last().cloned().unwrap_or_default());
+        let mut k = Known {
+            ns: ns.to_string(),
+            datapack,
+            ..Default::default()
+        };
         for e in externals {
             k.external_ns.insert(e.namespace.clone());
             for (kind, paths) in &e.ids {
                 let set = k.external.entry(*kind).or_default();
                 for p in paths {
-                    set.insert(if p.contains(':') { p.clone() } else { format!("{}:{p}", e.namespace) });
+                    set.insert(if p.contains(':') {
+                        p.clone()
+                    } else {
+                        format!("{}:{p}", e.namespace)
+                    });
                 }
             }
         }
@@ -172,7 +219,10 @@ impl Known {
     /// it is left out of the others (see [`tag_hosts`]).
     pub fn check_tag(&self, kind: &str, id: &str) -> Result<(), String> {
         let Some((ns, _)) = id.split_once(':') else {
-            return Err(format!("`{id}`: write the tag's namespace (`yog:{id}`, `{}:{id}`)", self.ns));
+            return Err(format!(
+                "`{id}`: write the tag's namespace (`yog:{id}`, `{}:{id}`)",
+                self.ns
+            ));
         };
         if !tags_known(ns) || tag_hosts(yog_ids::registry_of(kind), id).is_some() {
             return Ok(());
@@ -190,7 +240,10 @@ impl Known {
     pub fn check(&self, kind: RefKind, id: &str) -> Result<(), String> {
         let id = bare(id);
         let Some((ns, path)) = id.split_once(':') else {
-            return Err(format!("`{id}`: write its namespace (`minecraft:{id}`, `{}:{id}`)", self.ns));
+            return Err(format!(
+                "`{id}`: write its namespace (`minecraft:{id}`, `{}:{id}`)",
+                self.ns
+            ));
         };
         let what = kind.word();
         // Stable aliases for vanilla potion stacks; backends resolve these to
@@ -199,19 +252,31 @@ impl Known {
             return if is_vanilla_potion_in(id, &self.datapack) {
                 Ok(())
             } else if is_vanilla_potion(id) {
-                Err(format!("potion alias {id} isn't registered in Minecraft {}", self.datapack))
+                Err(format!(
+                    "potion alias {id} isn't registered in Minecraft {}",
+                    self.datapack
+                ))
             } else {
-                Err(format!("no item {id} among Yog's versioned default potion aliases"))
+                Err(format!(
+                    "no item {id} among Yog's versioned default potion aliases"
+                ))
             };
         }
         // An item may be a block's item.
-        let kinds: &[RefKind] = if kind == RefKind::Item { &[RefKind::Item, RefKind::Block] } else { std::slice::from_ref(&kind) };
+        let kinds: &[RefKind] = if kind == RefKind::Item {
+            &[RefKind::Item, RefKind::Block]
+        } else {
+            std::slice::from_ref(&kind)
+        };
         // The mod's loot tables are its blocks' and its data's.
         if ns == self.ns && kind == RefKind::LootTable {
             return Ok(());
         }
         if ns == self.ns {
-            return if kinds.iter().any(|k| self.own.get(k).is_some_and(|s| s.contains(id))) {
+            return if kinds
+                .iter()
+                .any(|k| self.own.get(k).is_some_and(|s| s.contains(id)))
+            {
                 Ok(())
             } else {
                 Err(format!("no {what} {id} in this mod"))
@@ -220,14 +285,22 @@ impl Known {
         if ns == yog_ids::ns::MINECRAFT {
             let v = &*VANILLA;
             if !v.versions.contains(&self.datapack) {
-                return Err(format!("the mod's datapack is Minecraft {}, which Yog doesn't know ({})", self.datapack, v.versions.join(", ")));
+                return Err(format!(
+                    "the mod's datapack is Minecraft {}, which Yog doesn't know ({})",
+                    self.datapack,
+                    v.versions.join(", ")
+                ));
             }
-            let found = kinds.iter().find_map(|k| v.ids.get(&(*k, path.to_string())));
+            let found = kinds
+                .iter()
+                .find_map(|k| v.ids.get(&(*k, path.to_string())));
             return match found {
                 None => Err(format!("no {what} {id} in Minecraft")),
                 Some(_) if kinds.iter().any(|k| in_version(*k, path, &self.datapack)) => Ok(()),
                 Some(Some(only)) => {
-                    let hint = equivalent(kind, id, &self.datapack).map(|e| format!(" — there it's {e}")).unwrap_or_default();
+                    let hint = equivalent(kind, id, &self.datapack)
+                        .map(|e| format!(" — there it's {e}"))
+                        .unwrap_or_default();
                     Err(format!(
                         "{id} isn't in Minecraft {} (the mod's datapack; it's in {}){hint}",
                         self.datapack,
@@ -237,7 +310,10 @@ impl Known {
                 Some(None) => Ok(()),
             };
         }
-        if kinds.iter().any(|k| self.external.get(k).is_some_and(|s| s.contains(id))) {
+        if kinds
+            .iter()
+            .any(|k| self.external.get(k).is_some_and(|s| s.contains(id)))
+        {
             return Ok(());
         }
         let section = format!("[external.{ns}]");
@@ -251,7 +327,9 @@ impl Known {
                 RefKind::LootTable => "loot_tables",
                 _ => "recipes",
             };
-            format!("{id} is another mod's: declare it in yog.toml — {section} {list} = [\"{path}\"]")
+            format!(
+                "{id} is another mod's: declare it in yog.toml — {section} {list} = [\"{path}\"]"
+            )
         })
     }
 }
@@ -280,37 +358,105 @@ mod tests {
 
     #[test]
     fn references_are_checked_against_every_source() {
-        let ext = External { namespace: "farmersdelight".into(), ids: vec![(RefKind::Item, vec!["cutting_board".into()])] };
+        let ext = External {
+            namespace: "farmersdelight".into(),
+            ids: vec![(RefKind::Item, vec!["cutting_board".into()])],
+        };
         let mut k = Known::new("mymod", std::slice::from_ref(&ext), None);
         k.add(RefKind::Item, "mymod:ruby");
         assert!(k.check(RefKind::Item, "mymod:ruby").is_ok());
-        assert!(k.check(RefKind::Item, "mymod:nope").unwrap_err().contains("no item mymod:nope"));
+        assert!(
+            k.check(RefKind::Item, "mymod:nope")
+                .unwrap_err()
+                .contains("no item mymod:nope")
+        );
         assert!(k.check(RefKind::Item, "minecraft:stick").is_ok());
-        assert!(k.check(RefKind::Item, "yog:potion/awkward").is_ok(), "Yog's stable vanilla potion item alias");
+        assert!(
+            k.check(RefKind::Item, "yog:potion/awkward").is_ok(),
+            "Yog's stable vanilla potion item alias"
+        );
         assert!(k.check(RefKind::Item, "yog:potion/long_swiftness").is_ok());
         assert!(k.check(RefKind::Item, "yog:potion/wind_charged").is_ok());
-        assert!(k.check(RefKind::Item, "yog:potion/levitation").is_err(), "an effect name isn't a potion registry id");
-        assert!(k.check(RefKind::Item, "minecraft:stone").is_ok(), "a block's item");
-        assert!(k.check(RefKind::Block, "minecraft:furnace[facing=north]").is_ok());
+        assert!(
+            k.check(RefKind::Item, "yog:potion/levitation").is_err(),
+            "an effect name isn't a potion registry id"
+        );
+        assert!(
+            k.check(RefKind::Item, "minecraft:stone").is_ok(),
+            "a block's item"
+        );
+        assert!(
+            k.check(RefKind::Block, "minecraft:furnace[facing=north]")
+                .is_ok()
+        );
         assert!(k.check(RefKind::Entity, "minecraft:allay").is_ok());
-        assert!(k.check(RefKind::Item, "minecraft:short_grass").is_ok(), "the datapack is the newest by default");
+        assert!(
+            k.check(RefKind::Item, "minecraft:short_grass").is_ok(),
+            "the datapack is the newest by default"
+        );
         let newest = versions().last().expect("supported versions");
-        let wanted = format!("isn't in Minecraft {newest} (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass");
-        assert!(k.check(RefKind::Item, "minecraft:grass").unwrap_err().contains(&wanted));
-        assert_eq!(equivalent(RefKind::Item, "minecraft:chain", newest).as_deref(), Some("minecraft:iron_chain"), "renamed in 1.21.9");
+        let wanted = format!(
+            "isn't in Minecraft {newest} (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass"
+        );
+        assert!(
+            k.check(RefKind::Item, "minecraft:grass")
+                .unwrap_err()
+                .contains(&wanted)
+        );
+        assert_eq!(
+            equivalent(RefKind::Item, "minecraft:chain", newest).as_deref(),
+            Some("minecraft:iron_chain"),
+            "renamed in 1.21.9"
+        );
         let old = Known::new("mymod", &[ext], Some("1.20.1"));
         assert!(old.check(RefKind::Item, "yog:potion/awkward").is_ok());
         assert!(old.check(RefKind::Item, "yog:potion/wind_charged").is_err());
         assert!(old.check(RefKind::Item, "minecraft:grass").is_ok());
-        assert!(old.check(RefKind::Block, "minecraft:crafter").unwrap_err().contains("isn't in Minecraft 1.20.1"));
-        assert_eq!(equivalent(RefKind::Item, "minecraft:short_grass", "1.20.1").as_deref(), Some("minecraft:grass"));
-        assert_eq!(equivalent(RefKind::Item, "minecraft:turtle_scute", "1.20.1").as_deref(), Some("minecraft:scute"));
-        assert_eq!(equivalent(RefKind::Item, "minecraft:stick", "1.20.1").as_deref(), Some("minecraft:stick"));
-        assert_eq!(equivalent(RefKind::Block, "minecraft:crafter", "1.20.1"), None, "1.20.1 has no crafter");
-        assert!(k.check(RefKind::Item, "minecraft:nope").unwrap_err().contains("in Minecraft"));
-        assert!(k.check(RefKind::Item, "farmersdelight:cutting_board").is_ok());
-        assert!(k.check(RefKind::Item, "farmersdelight:knife").unwrap_err().contains("isn't declared"));
-        assert!(k.check(RefKind::Item, "create:wrench").unwrap_err().contains("[external.create]"));
-        assert!(k.check(RefKind::Item, "stick").unwrap_err().contains("namespace"));
+        assert!(
+            old.check(RefKind::Block, "minecraft:crafter")
+                .unwrap_err()
+                .contains("isn't in Minecraft 1.20.1")
+        );
+        assert_eq!(
+            equivalent(RefKind::Item, "minecraft:short_grass", "1.20.1").as_deref(),
+            Some("minecraft:grass")
+        );
+        assert_eq!(
+            equivalent(RefKind::Item, "minecraft:turtle_scute", "1.20.1").as_deref(),
+            Some("minecraft:scute")
+        );
+        assert_eq!(
+            equivalent(RefKind::Item, "minecraft:stick", "1.20.1").as_deref(),
+            Some("minecraft:stick")
+        );
+        assert_eq!(
+            equivalent(RefKind::Block, "minecraft:crafter", "1.20.1"),
+            None,
+            "1.20.1 has no crafter"
+        );
+        assert!(
+            k.check(RefKind::Item, "minecraft:nope")
+                .unwrap_err()
+                .contains("in Minecraft")
+        );
+        assert!(
+            k.check(RefKind::Item, "farmersdelight:cutting_board")
+                .is_ok()
+        );
+        assert!(
+            k.check(RefKind::Item, "farmersdelight:knife")
+                .unwrap_err()
+                .contains("isn't declared")
+        );
+        assert!(
+            k.check(RefKind::Item, "create:wrench")
+                .unwrap_err()
+                .contains("[external.create]")
+        );
+        assert!(
+            k.check(RefKind::Item, "stick")
+                .unwrap_err()
+                .contains("namespace")
+        );
     }
 }

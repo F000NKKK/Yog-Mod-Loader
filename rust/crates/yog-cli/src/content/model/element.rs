@@ -9,8 +9,8 @@ use yog_ids::model as m;
 use yog_ids::units::BLOCK_PIXELS;
 
 use super::{Building, Parent, nums};
-use crate::content::num_value;
 use crate::content::ctx::{Ctx, Loc};
+use crate::content::num_value;
 
 /// The angles the game turns an element by are multiples of this (-45 to 45).
 const ROTATION_STEP: f64 = 22.5;

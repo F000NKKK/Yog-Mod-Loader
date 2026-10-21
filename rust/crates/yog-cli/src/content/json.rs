@@ -202,11 +202,23 @@ fn inline(j: &J) -> Option<String> {
     let s = match &j.v {
         V::Arr(a) if a.is_empty() => "[]".into(),
         V::Obj(m) if m.is_empty() => "{}".into(),
-        V::Arr(a) if a.iter().all(|i| matches!(i.v, V::Num(_) | V::Bool(_) | V::Null)) => {
-            format!("[{}]", a.iter().filter_map(scalar).collect::<Vec<_>>().join(", "))
+        V::Arr(a)
+            if a.iter()
+                .all(|i| matches!(i.v, V::Num(_) | V::Bool(_) | V::Null)) =>
+        {
+            format!(
+                "[{}]",
+                a.iter().filter_map(scalar).collect::<Vec<_>>().join(", ")
+            )
         }
-        V::Obj(m) if m.iter().all(|(_, v)| !matches!(v.v, V::Obj(_)) && inline(v).is_some()) => {
-            let parts: Vec<String> = m.iter().filter_map(|(k, v)| Some(format!("{}: {}", quoted(k), inline(v)?))).collect();
+        V::Obj(m)
+            if m.iter()
+                .all(|(_, v)| !matches!(v.v, V::Obj(_)) && inline(v).is_some()) =>
+        {
+            let parts: Vec<String> = m
+                .iter()
+                .filter_map(|(k, v)| Some(format!("{}: {}", quoted(k), inline(v)?)))
+                .collect();
             format!("{{ {} }}", parts.join(", "))
         }
         _ => return None,
@@ -222,7 +234,11 @@ fn write(j: &J, indent: usize, out: &mut String) {
     }
     let (open, close, items): (char, char, Vec<(Option<&str>, &J)>) = match &j.v {
         V::Arr(a) => ('[', ']', a.iter().map(|i| (None, i)).collect()),
-        V::Obj(m) => ('{', '}', m.iter().map(|(k, v)| (Some(k.as_str()), v)).collect()),
+        V::Obj(m) => (
+            '{',
+            '}',
+            m.iter().map(|(k, v)| (Some(k.as_str()), v)).collect(),
+        ),
         _ => return,
     };
     let pad = INDENT.repeat(indent + 1);
@@ -397,11 +413,15 @@ impl P<'_> {
     fn number(&mut self) -> Result<f64, String> {
         let start = self.i;
         self.i += 1;
-        while self.peek().is_some_and(|c| c.is_ascii_digit() || matches!(c, b'.' | b'e' | b'E' | b'+' | b'-')) {
+        while self
+            .peek()
+            .is_some_and(|c| c.is_ascii_digit() || matches!(c, b'.' | b'e' | b'E' | b'+' | b'-'))
+        {
             self.i += 1;
         }
         let lit = std::str::from_utf8(&self.s[start..self.i]).unwrap_or("");
-        lit.parse().map_err(|_| self.err(&format!("`{lit}` isn't a number")))
+        lit.parse()
+            .map_err(|_| self.err(&format!("`{lit}` isn't a number")))
     }
 
     fn string(&mut self) -> Result<String, String> {

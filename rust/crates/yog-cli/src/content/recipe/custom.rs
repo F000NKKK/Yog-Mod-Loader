@@ -8,9 +8,9 @@ use yog_formats::def::{RecipeKindDef, ValueType};
 use yog_formats::recipe::{Custom, TYPE_FIELD, TYPES};
 
 use super::Against;
-use crate::content::valid_path;
 use crate::content::ctx::{Ctx, Loc};
 use crate::content::recipe::registration::RecipeKind;
+use crate::content::valid_path;
 
 /// A recipe of kind `kind`: the mod's own (`<mod id>:<kind>`), declared.
 pub(super) fn custom(
@@ -46,7 +46,12 @@ pub(super) fn custom(
         .slots
         .0
         .iter()
-        .map(|(name, ings)| (name.clone(), ings.iter().map(yog_formats::recipe::ids).collect()))
+        .map(|(name, ings)| {
+            (
+                name.clone(),
+                ings.iter().map(yog_formats::recipe::ids).collect(),
+            )
+        })
         .collect();
     let values = k
         .values

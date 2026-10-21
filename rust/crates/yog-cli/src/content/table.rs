@@ -58,7 +58,11 @@ fn scalar(s: &str) -> Option<Scalar> {
 
 fn column(s: &str) -> Result<Column, String> {
     let s = s.trim();
-    let bad = || format!("`{s}`: a column is bool, u8…u64, i32, i64, usize, f32, f64, string, text, color, item, block, [<one>] or {{<one>: <one>}}");
+    let bad = || {
+        format!(
+            "`{s}`: a column is bool, u8…u64, i32, i64, usize, f32, f64, string, text, color, item, block, [<one>] or {{<one>: <one>}}"
+        )
+    };
     let col = if let Some(inner) = s.strip_prefix('[').and_then(|r| r.strip_suffix(']')) {
         Column::List(scalar(inner).ok_or_else(bad)?)
     } else if let Some(inner) = s.strip_prefix('{').and_then(|r| r.strip_suffix('}')) {
@@ -67,8 +71,13 @@ fn column(s: &str) -> Result<Column, String> {
     } else {
         Column::One(scalar(s).ok_or_else(bad)?)
     };
-    if matches!(col, Column::List(Scalar::Text) | Column::Map(Scalar::Text, _) | Column::Map(_, Scalar::Text)) {
-        return Err(format!("`{s}`: a text is translated when asked for — one per column, not in a list"));
+    if matches!(
+        col,
+        Column::List(Scalar::Text) | Column::Map(Scalar::Text, _) | Column::Map(_, Scalar::Text)
+    ) {
+        return Err(format!(
+            "`{s}`: a text is translated when asked for — one per column, not in a list"
+        ));
     }
     Ok(col)
 }
@@ -97,9 +106,14 @@ impl Scalar {
         };
         let want = |what: &str| Err(format!("{}: want {what}", short(v)));
         match self {
-            Scalar::Bool => v.as_bool().map(|b| b.to_string()).map_or_else(|| want("true or false"), Ok),
+            Scalar::Bool => v
+                .as_bool()
+                .map(|b| b.to_string())
+                .map_or_else(|| want("true or false"), Ok),
             Scalar::Int(t) => {
-                let Some(n) = v.as_i64() else { return want("an integer") };
+                let Some(n) = v.as_i64() else {
+                    return want("an integer");
+                };
                 let fits = match t {
                     "u8" => u8::try_from(n).is_ok(),
                     "u16" => u16::try_from(n).is_ok(),
@@ -108,12 +122,24 @@ impl Scalar {
                     "i32" => i32::try_from(n).is_ok(),
                     _ => true,
                 };
-                if fits { Ok(format!("{n}")) } else { Err(format!("{n} doesn't fit a {t}")) }
+                if fits {
+                    Ok(format!("{n}"))
+                } else {
+                    Err(format!("{n} doesn't fit a {t}"))
+                }
             }
-            Scalar::Float(_) => v.as_f64().map(|f| format!("{f:?}")).map_or_else(|| want("a number"), Ok),
-            Scalar::Str => v.as_str().map(|s| format!("{s:?}")).map_or_else(|| want("a string"), Ok),
+            Scalar::Float(_) => v
+                .as_f64()
+                .map(|f| format!("{f:?}"))
+                .map_or_else(|| want("a number"), Ok),
+            Scalar::Str => v
+                .as_str()
+                .map(|s| format!("{s:?}"))
+                .map_or_else(|| want("a string"), Ok),
             Scalar::Text => match v {
-                Value::Res(r) => refs.text(r).map(|(key, _)| format!("::yog_api::tr({key:?})")),
+                Value::Res(r) => refs
+                    .text(r)
+                    .map(|(key, _)| format!("::yog_api::tr({key:?})")),
                 _ => want("a text, `@Strings.<key>`"),
             },
             Scalar::Color => match v {
@@ -121,9 +147,15 @@ impl Scalar {
                 _ => want("a color, `@Colors.<key>`"),
             },
             Scalar::Item | Scalar::Block => {
-                let (kind, word) = if self == Scalar::Item { (RefKind::Item, yog_ids::kind::ITEM) } else { (RefKind::Block, yog_ids::kind::BLOCK) };
+                let (kind, word) = if self == Scalar::Item {
+                    (RefKind::Item, yog_ids::kind::ITEM)
+                } else {
+                    (RefKind::Block, yog_ids::kind::BLOCK)
+                };
                 match v {
-                    Value::Ref(r) if r.kind == word => known.check(kind, &r.id).map(|()| format!("{:?}", r.id)),
+                    Value::Ref(r) if r.kind == word => {
+                        known.check(kind, &r.id).map(|()| format!("{:?}", r.id))
+                    }
                     _ => want(&format!("`@{word}:<id>`")),
                 }
             }
@@ -134,7 +166,11 @@ impl Scalar {
 /// A value, short, for an error.
 fn short(v: &Value) -> String {
     let s = format!("{v:?}");
-    if s.chars().count() > 40 { format!("{}…", s.chars().take(40).collect::<String>()) } else { s }
+    if s.chars().count() > 40 {
+        format!("{}…", s.chars().take(40).collect::<String>())
+    } else {
+        s
+    }
 }
 
 /// `snake_case` (or `kebab-case`) → `PascalCase`.
@@ -143,7 +179,9 @@ fn pascal(s: &str) -> String {
         .filter(|w| !w.is_empty())
         .map(|w| {
             let mut c = w.chars();
-            c.next().map(|f| f.to_ascii_uppercase().to_string() + c.as_str()).unwrap_or_default()
+            c.next()
+                .map(|f| f.to_ascii_uppercase().to_string() + c.as_str())
+                .unwrap_or_default()
         })
         .collect()
 }
@@ -160,15 +198,27 @@ pub struct Table {
 }
 
 /// Checks a table; its errors as `path: message`.
-pub fn check(file: &str, t: TableDef, refs: &yres::Refs, known: &refs::Known) -> Result<Table, Vec<String>> {
+pub fn check(
+    file: &str,
+    t: TableDef,
+    refs: &yres::Refs,
+    known: &refs::Known,
+) -> Result<Table, Vec<String>> {
     let mut errors = Vec::new();
     let name = pascal(&t.id);
-    if name.is_empty() || !name.chars().next().is_some_and(|c| c.is_ascii_alphabetic()) || !name.chars().all(|c| c.is_ascii_alphanumeric()) {
-        errors.push(format!("id: `{}`: a name like `tier` or `power_level`", t.id));
+    if name.is_empty()
+        || !name.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+        || !name.chars().all(|c| c.is_ascii_alphanumeric())
+    {
+        errors.push(format!(
+            "id: `{}`: a name like `tier` or `power_level`",
+            t.id
+        ));
     }
     let mut columns = Vec::new();
     for (c, ty) in &t.columns.0 {
-        if !super::valid_path(c) || c.contains('/') || c.starts_with(|ch: char| ch.is_ascii_digit()) {
+        if !super::valid_path(c) || c.contains('/') || c.starts_with(|ch: char| ch.is_ascii_digit())
+        {
             errors.push(format!("columns.{c}: a name like `world_size`"));
         } else if ["id", "index", "from_id", "all"].contains(&c.as_str()) {
             errors.push(format!("columns.{c}: taken (every table has it)"));
@@ -181,7 +231,12 @@ pub fn check(file: &str, t: TableDef, refs: &yres::Refs, known: &refs::Known) ->
     let mut rows = Vec::new();
     for (id, v) in &t.rows.0 {
         let variant = pascal(id);
-        if variant.is_empty() || !variant.chars().next().is_some_and(|c| c.is_ascii_alphabetic()) {
+        if variant.is_empty()
+            || !variant
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphabetic())
+        {
             errors.push(format!("rows.{id}: a name like `wood`"));
             continue;
         }
@@ -203,7 +258,11 @@ pub fn check(file: &str, t: TableDef, refs: &yres::Refs, known: &refs::Known) ->
             let e = match col {
                 Column::One(s) => s.expr(cell, refs, known),
                 Column::List(s) => match cell.as_list() {
-                    Some(items) => items.iter().map(|i| s.expr(i, refs, known)).collect::<Result<Vec<_>, _>>().map(|v| format!("&[{}]", v.join(", "))),
+                    Some(items) => items
+                        .iter()
+                        .map(|i| s.expr(i, refs, known))
+                        .collect::<Result<Vec<_>, _>>()
+                        .map(|v| format!("&[{}]", v.join(", "))),
                     None => Err("want a list".into()),
                 },
                 Column::Map(k, val) => match cell.as_map() {
@@ -212,11 +271,20 @@ pub fn check(file: &str, t: TableDef, refs: &yres::Refs, known: &refs::Known) ->
                         .map(|(key, x)| {
                             // A key is written bare: `minecraft:redstone`, not `@item:…`.
                             let key = match k {
-                                Scalar::Item => Value::Ref(yog_data::Ref::new(yog_ids::kind::ITEM, key)),
-                                Scalar::Block => Value::Ref(yog_data::Ref::new(yog_ids::kind::BLOCK, key)),
-                                _ => yog_data::text::parse_value(key).unwrap_or_else(|_| Value::Str(key.to_string())),
+                                Scalar::Item => {
+                                    Value::Ref(yog_data::Ref::new(yog_ids::kind::ITEM, key))
+                                }
+                                Scalar::Block => {
+                                    Value::Ref(yog_data::Ref::new(yog_ids::kind::BLOCK, key))
+                                }
+                                _ => yog_data::text::parse_value(key)
+                                    .unwrap_or_else(|_| Value::Str(key.to_string())),
                             };
-                            Ok(format!("({}, {})", k.expr(&key, refs, known)?, val.expr(x, refs, known)?))
+                            Ok(format!(
+                                "({}, {})",
+                                k.expr(&key, refs, known)?,
+                                val.expr(x, refs, known)?
+                            ))
                         })
                         .collect::<Result<Vec<_>, String>>()
                         .map(|v| format!("&[{}]", v.join(", "))),
@@ -228,7 +296,10 @@ pub fn check(file: &str, t: TableDef, refs: &yres::Refs, known: &refs::Known) ->
                 Err(e) => errors.push(format!("rows.{id}.{c}: {e}")),
             }
         }
-        if rows.iter().any(|(_, v, _): &(String, String, Vec<String>)| *v == variant) {
+        if rows
+            .iter()
+            .any(|(_, v, _): &(String, String, Vec<String>)| *v == variant)
+        {
             errors.push(format!("rows.{id}: twice"));
         }
         rows.push((id.clone(), variant, exprs));
@@ -236,34 +307,79 @@ pub fn check(file: &str, t: TableDef, refs: &yres::Refs, known: &refs::Known) ->
     if rows.is_empty() {
         errors.push("rows: none".into());
     }
-    if errors.is_empty() { Ok(Table { file: file.to_string(), name, serde: t.serde, columns, rows }) } else { Err(errors) }
+    if errors.is_empty() {
+        Ok(Table {
+            file: file.to_string(),
+            name,
+            serde: t.serde,
+            columns,
+            rows,
+        })
+    } else {
+        Err(errors)
+    }
 }
 
 /// The enum a table makes.
 pub fn rust(t: &Table) -> String {
     let mut code = String::new();
     let n = &t.name;
-    let derive = if t.serde { ", ::serde::Serialize, ::serde::Deserialize" } else { "" };
-    let _ = writeln!(code, "\n/// The `{}` table: a variant per row.\n#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord{derive})]\n#[allow(dead_code)]\npub enum {n} {{", t.file);
+    let derive = if t.serde {
+        ", ::serde::Serialize, ::serde::Deserialize"
+    } else {
+        ""
+    };
+    let _ = writeln!(
+        code,
+        "\n/// The `{}` table: a variant per row.\n#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord{derive})]\n#[allow(dead_code)]\npub enum {n} {{",
+        t.file
+    );
     for (_, v, _) in &t.rows {
         let _ = writeln!(code, "    {v},");
     }
     // Generated for every table: a mod uses some of it, so what it doesn't is no warning.
     code.push_str("}\n\n#[allow(dead_code, clippy::all)]\nimpl ");
-    let _ = writeln!(code, "{n} {{\n    /// Every row, in order.\n    pub const ALL: [{n}; {}] = [{}];\n", t.rows.len(), t.rows.iter().map(|(_, v, _)| format!("{n}::{v}")).collect::<Vec<_>>().join(", "));
+    let _ = writeln!(
+        code,
+        "{n} {{\n    /// Every row, in order.\n    pub const ALL: [{n}; {}] = [{}];\n",
+        t.rows.len(),
+        t.rows
+            .iter()
+            .map(|(_, v, _)| format!("{n}::{v}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
     let arms = |f: &dyn Fn(usize, &TableRow) -> String| -> String {
-        t.rows.iter().enumerate().map(|(i, r)| format!("            {n}::{} => {},\n", r.1, f(i, r))).collect()
+        t.rows
+            .iter()
+            .enumerate()
+            .map(|(i, r)| format!("            {n}::{} => {},\n", r.1, f(i, r)))
+            .collect()
     };
-    let _ = writeln!(code, "    /// Its row's id.\n    pub fn id(self) -> &'static str {{\n        match self {{\n{}        }}\n    }}\n", arms(&|_, r| format!("{:?}", r.0)));
-    let _ = writeln!(code, "    pub fn from_id(id: &str) -> ::std::option::Option<{n}> {{\n        Self::ALL.into_iter().find(|r| r.id() == id)\n    }}\n");
-    let _ = writeln!(code, "    /// Its place in [`Self::ALL`].\n    pub fn index(self) -> usize {{\n        self as usize\n    }}");
+    let _ = writeln!(
+        code,
+        "    /// Its row's id.\n    pub fn id(self) -> &'static str {{\n        match self {{\n{}        }}\n    }}\n",
+        arms(&|_, r| format!("{:?}", r.0))
+    );
+    let _ = writeln!(
+        code,
+        "    pub fn from_id(id: &str) -> ::std::option::Option<{n}> {{\n        Self::ALL.into_iter().find(|r| r.id() == id)\n    }}\n"
+    );
+    let _ = writeln!(
+        code,
+        "    /// Its place in [`Self::ALL`].\n    pub fn index(self) -> usize {{\n        self as usize\n    }}"
+    );
     for (ci, (c, col)) in t.columns.iter().enumerate() {
         let ty = match col {
             Column::One(s) => s.rust().to_string(),
             Column::List(s) => format!("&'static [{}]", s.rust()),
             Column::Map(k, v) => format!("&'static [({}, {})]", k.rust(), v.rust()),
         };
-        let _ = writeln!(code, "\n    pub fn {c}(self) -> {ty} {{\n        match self {{\n{}        }}\n    }}", arms(&|_, r| r.2[ci].clone()));
+        let _ = writeln!(
+            code,
+            "\n    pub fn {c}(self) -> {ty} {{\n        match self {{\n{}        }}\n    }}",
+            arms(&|_, r| r.2[ci].clone())
+        );
         if let Column::One(Scalar::Item | Scalar::Block | Scalar::Str) = col {
             let _ = writeln!(
                 code,
@@ -281,12 +397,18 @@ mod tests {
 
     fn table(text: &str) -> Result<Table, Vec<String>> {
         let doc = yog_data::text::parse(text).unwrap();
-        let def = match yog_data::schema::from_doc::<yog_formats::def::Def>(text, &doc).unwrap().value {
+        let def = match yog_data::schema::from_doc::<yog_formats::def::Def>(text, &doc)
+            .unwrap()
+            .value
+        {
             yog_formats::def::Def::Table(t) => t,
             _ => panic!("not a table"),
         };
         let mut refs = yres::Refs::default();
-        refs.texts.insert("Strings.tier_wood".into(), ("mymod.tier_wood".into(), "Wood".into()));
+        refs.texts.insert(
+            "Strings.tier_wood".into(),
+            ("mymod.tier_wood".into(), "Wood".into()),
+        );
         let mut known = refs::Known::new("mymod", &[], None);
         known.add(RefKind::Item, String::from("mymod:chip_wood"));
         check("content/tier.ydef", def, &refs, &known)
@@ -304,7 +426,10 @@ mod tests {
         )
         .unwrap();
         let code = rust(&t);
-        assert!(code.contains("pub enum Tier {\n    Wood,\n    Stone,\n}"), "{code}");
+        assert!(
+            code.contains("pub enum Tier {\n    Wood,\n    Stone,\n}"),
+            "{code}"
+        );
         assert!(code.contains("::serde::Serialize"));
         assert!(code.contains("pub const ALL: [Tier; 2] = [Tier::Wood, Tier::Stone];"));
         assert!(code.contains("pub fn size(self) -> u32"));
@@ -323,7 +448,10 @@ mod tests {
         .unwrap_err();
         let all = e.join("\n");
         assert!(all.contains("columns.odd"), "{all}");
-        assert!(all.contains("rows.wood.size: 300 doesn't fit a u8"), "{all}");
+        assert!(
+            all.contains("rows.wood.size: 300 doesn't fit a u8"),
+            "{all}"
+        );
         assert!(all.contains("rows.wood.chip"), "{all}");
         assert!(all.contains("rows.wood.extra: no such column"), "{all}");
     }

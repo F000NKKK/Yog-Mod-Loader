@@ -21,7 +21,10 @@ pub fn for_version(version: &str, file: &str) -> String {
 /// The file of tag `tag` (`minecraft:needs_iron_tool`) of the content `kind`
 /// (`block`, `item`, …).
 pub fn tag_file(kind: &str, tag: &str) -> String {
-    data_in(&[TAGS, yog_ids::registry_of(kind)].join(yog_ids::sep::PATH), tag)
+    data_in(
+        &[TAGS, yog_ids::registry_of(kind)].join(yog_ids::sep::PATH),
+        tag,
+    )
 }
 
 /// Data `id`'s file in folder `dir` of its namespace's data (`worldgen/placed_feature`).
@@ -38,7 +41,10 @@ pub fn data_file(kind: &str, id: &str) -> String {
 /// The files data `id` of content `kind` may be in: the current folder's
 /// first, then 1.20's plural one (`loot_table`, `loot_tables`).
 pub fn data_files(kind: &str, id: &str) -> Vec<String> {
-    yog_ids::registry_dirs(kind).iter().map(|dir| data_in(dir, id)).collect()
+    yog_ids::registry_dirs(kind)
+        .iter()
+        .map(|dir| data_in(dir, id))
+        .collect()
 }
 
 #[cfg(test)]

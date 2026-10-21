@@ -14,11 +14,20 @@ use crate::yres::RESOURCES_DIR;
 pub(crate) fn load(root: &Path, ns: &str, id: &str) -> Result<MaterialFile, String> {
     let (owner, path) = yog_ids::split(id);
     if owner != ns {
-        return Err(format!("material `{id}`: only this mod's materials can be used ({ns}:…)"));
+        return Err(format!(
+            "material `{id}`: only this mod's materials can be used ({ns}:…)"
+        ));
     }
     let file = root.join(RESOURCES_DIR).join(Format::Material.file(path));
-    let text = std::fs::read_to_string(&file).map_err(|_| format!("material `{id}`: no {RESOURCES_DIR}/{}", Format::Material.file(path)))?;
-    yog_data::from_text::<MaterialFile>(&text).map(|r| r.value).map_err(|e| format!("material `{id}`: {e}"))
+    let text = std::fs::read_to_string(&file).map_err(|_| {
+        format!(
+            "material `{id}`: no {RESOURCES_DIR}/{}",
+            Format::Material.file(path)
+        )
+    })?;
+    yog_data::from_text::<MaterialFile>(&text)
+        .map(|r| r.value)
+        .map_err(|e| format!("material `{id}`: {e}"))
 }
 
 /// `model` with its material's textures under its own; the material's render layer, if any.

@@ -13,10 +13,10 @@ use yog_data::field;
 use yog_formats::recipe::{Body, Common, RecipeFile};
 use yog_ids::units::MAX_STACK;
 
-use crate::content::file::{check_format, file_id};
-use crate::content::refs;
 use crate::content::ctx::{Ctx, Loc};
+use crate::content::file::{check_format, file_id};
 use crate::content::recipe::registration::{Recipe, RecipeKind};
+use crate::content::refs;
 
 /// What a recipe is checked against: the mod's namespace, the ids it may
 /// name, the mod's kinds of recipe; where its brewing recipes go.

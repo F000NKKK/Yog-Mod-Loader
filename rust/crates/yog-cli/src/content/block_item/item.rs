@@ -6,9 +6,9 @@ use yog_formats::content::ItemProps as Props;
 use yog_formats::content::{HangsProps, ItemFile};
 
 use super::{Emit, Parts};
-use crate::content::model::model;
 use crate::content::ctx::{Ctx, Loc};
 use crate::content::entry::Entry;
+use crate::content::model::model;
 
 /// The item's properties onto `entry`, its model (none for a potion-only
 /// file without one) and definition written.
@@ -65,10 +65,7 @@ fn props(cx: &mut Ctx, loc: Loc, it: &Props, entry: &mut Entry) {
             t.attack_speed,
         )
     });
-    p.armor = it
-        .armor
-        .as_ref()
-        .map(|a| (a.slot, a.material.clone()));
+    p.armor = it.armor.as_ref().map(|a| (a.slot, a.material.clone()));
     p.wearable = it.wearable;
     p.hangs = it.hangs.as_ref().map(|h| (h.entity.clone(), h.size));
     if it
