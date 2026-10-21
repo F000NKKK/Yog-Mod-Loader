@@ -9,7 +9,7 @@ description = "In-game book/documentation framework for Yog mods (Patchouli-like
 
 [dependencies]
 yog-ids = { workspace = true }
-yog-registry = { workspace = true, features = ["serde"] }
+yog-registry = { workspace = true }
 yog-sync = { workspace = true }
 yog-ui = { workspace = true }
 yog-gfx = { workspace = true }
@@ -18,7 +18,6 @@ yog-formats = { workspace = true }
 yog-data = { workspace = true, features = ["json"] }
 
 # Serialization (for runtime JSON parsing)
-serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]

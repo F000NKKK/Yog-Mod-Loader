@@ -1,11 +1,8 @@
 //! Tools and armor: their items, and the materials they're made of (the game's built in).
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 use yog_ids::tool_kind::{AXE, HOE, PICKAXE, SHOVEL, SWORD};
 
 /// An item as a tool or weapon.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct ToolItem {
     /// `pickaxe`, `axe`, `shovel`, `hoe`, `sword`, or the mineable tag of
@@ -40,11 +37,6 @@ pub struct GameTool {
 }
 
 /// Where a piece of armor, or something else worn, is worn.
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(rename_all = "snake_case")
-)]
 #[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArmorSlot {
     Head,
@@ -54,7 +46,6 @@ pub enum ArmorSlot {
 }
 
 /// An item as a piece of armor.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct ArmorPiece {
     pub slot: ArmorSlot,
@@ -66,7 +57,6 @@ pub struct ArmorPiece {
 /// ([`ToolMaterial::built_ins`]); a mod declares its own in a `.ydef`
 /// (`kind: "tool_material"`) or registers one
 /// (`Registry::register_tool_material`).
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct ToolMaterial {
     pub id: String,
@@ -95,7 +85,6 @@ pub struct ToolMaterial {
 }
 
 /// Defense points per armor piece.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq)]
 pub struct ArmorDefense {
     pub head: u32,
@@ -107,7 +96,6 @@ pub struct ArmorDefense {
 /// What armor is made of. The game's are built in
 /// ([`ArmorMaterial::built_ins`]); a mod declares its own in a `.ydef`
 /// (`kind: "armor_material"`) or registers one.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct ArmorMaterial {
     pub id: String,

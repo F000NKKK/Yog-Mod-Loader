@@ -1,8 +1,5 @@
 //! Sound groups: what a block sounds like.
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 use crate::equipment::built_in;
 
 /// What a block sounds like: the sound events it plays when broken,
@@ -10,7 +7,6 @@ use crate::equipment::built_in;
 /// are built in ([`SoundGroup::built_in`]); a mod registers its own
 /// (`Registry::register_sound_group`, or a `.ydef` of kind `sound_group`)
 /// and names it in `BlockDef::sound`.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct SoundGroup {
     pub id: String,

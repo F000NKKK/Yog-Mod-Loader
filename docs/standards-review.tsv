@@ -306,6 +306,7 @@ Yog-Mod-Loader/rust/crates/yog-body/src/morph.rs		todo
 Yog-Mod-Loader/rust/crates/yog-body/src/movement.rs		todo
 Yog-Mod-Loader/rust/crates/yog-body/src/rig.rs		todo
 Yog-Mod-Loader/rust/crates/yog-body/src/wire.rs		todo
+Yog-Mod-Loader/rust/crates/yog-body/src/wire/tests.rs		todo
 Yog-Mod-Loader/rust/crates/yog-book/benches/book.rs		todo
 Yog-Mod-Loader/rust/crates/yog-book/src/layout_picture.rs		todo
 Yog-Mod-Loader/rust/crates/yog-book/src/lib.rs		todo
@@ -406,18 +407,22 @@ Yog-Mod-Loader/rust/crates/yog-cli/src/content/tests/recipes.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/textures.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/content/vocab.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/advancements.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/advancements/tests.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/assets.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/blocks3d.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/blocks3d/tests.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/book.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/codebehind.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/components.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/content.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/content/choices.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/content/looks.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/design/content/texture.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/custom/fit.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/custom/mod.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/custom/placeholder.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/custom/tests.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/data.rs		todo
-Yog-Mod-Loader/rust/crates/yog-cli/src/design/files.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/font.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/font_copy.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/font_yog.rs		todo
@@ -438,6 +443,7 @@ Yog-Mod-Loader/rust/crates/yog-cli/src/design/tags.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/worldgen.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/design/yui_codegen.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/exports.rs		todo
+Yog-Mod-Loader/rust/crates/yog-cli/src/files.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/main.rs		todo
 Yog-Mod-Loader/rust/crates/yog-cli/src/manifest.rs		todo
@@ -515,6 +521,7 @@ Yog-Mod-Loader/rust/crates/yog-data/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/patch.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/schema/fields.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/schema/mod.rs		todo
+Yog-Mod-Loader/rust/crates/yog-data/src/schema/one_or_list.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/schema/plain.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/schema/reader.rs		todo
 Yog-Mod-Loader/rust/crates/yog-data/src/schema/shape.rs		todo
@@ -693,7 +700,8 @@ Yog-Mod-Loader/rust/crates/yog-kit/tests/surface.rs		todo
 Yog-Mod-Loader/rust/crates/yog-logging/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-media/src/image.rs		todo
 Yog-Mod-Loader/rust/crates/yog-media/src/lib.rs		todo
-Yog-Mod-Loader/rust/crates/yog-network/benches/codec.rs		todo
+Yog-Mod-Loader/rust/crates/yog-media/src/svg.rs		todo
+Yog-Mod-Loader/rust/crates/yog-media/src/svg/tests.rs		todo
 Yog-Mod-Loader/rust/crates/yog-network/src/lib.rs		todo
 Yog-Mod-Loader/rust/crates/yog-registry/src/atlases.rs		todo
 Yog-Mod-Loader/rust/crates/yog-registry/src/blocks.rs		todo
@@ -819,19 +827,19 @@ Yog-IDLE/src-tauri/build.rs	panics:2 literal_facts:1	todo
 Yog-IDLE/src-tauri/src/app_commands.rs	glob_imports:1	todo
 Yog-IDLE/src-tauri/src/bench.rs		todo
 Yog-IDLE/src-tauri/src/cli.rs	foreign_sync:2	todo
-Yog-IDLE/src-tauri/src/debugger/control.rs	long-fn:connect_and_watch@142(112) glob_imports:1	todo
+Yog-IDLE/src-tauri/src/debugger/control.rs	long-fn:connect_and_watch@142(140) glob_imports:1	todo
 Yog-IDLE/src-tauri/src/debugger/hot_reload.rs	glob_imports:1	todo
 Yog-IDLE/src-tauri/src/debugger/mod.rs	foreign_sync:3	todo
 Yog-IDLE/src-tauri/src/debugger/trace/commands.rs	glob_imports:1	todo
 Yog-IDLE/src-tauri/src/debugger/trace/mod.rs	glob_imports:1 foreign_sync:2	todo
 Yog-IDLE/src-tauri/src/debugger/trace/process.rs	glob_imports:1	todo
-Yog-IDLE/src-tauri/src/debugger/trace/session.rs	long-fn:tracer_main@105(115) glob_imports:1	todo
+Yog-IDLE/src-tauri/src/debugger/trace/session.rs	long-fn:tracer_main@109(115) glob_imports:1	todo
 Yog-IDLE/src-tauri/src/debugger/trace/tracer.rs	glob_imports:1	todo
 Yog-IDLE/src-tauri/src/events.rs		todo
 Yog-IDLE/src-tauri/src/format.rs	glob_imports:1	todo
 Yog-IDLE/src-tauri/src/lib.rs	glob_imports:3 foreign_sync:2	todo
 Yog-IDLE/src-tauri/src/main.rs		todo
-Yog-IDLE/src-tauri/src/manifest.rs	foreign_sync:1	todo
+Yog-IDLE/src-tauri/src/manifest.rs	foreign_sync:2	todo
 Yog-IDLE/src-tauri/src/mod_commands.rs	glob_imports:1	todo
 Yog-IDLE/src-tauri/src/path_commands.rs	glob_imports:1	todo
 Yog-IDLE/src-tauri/src/plugins/app.rs		todo
@@ -869,7 +877,7 @@ Yog-IDLE/src/OpenWithPicker.tsx		todo
 Yog-IDLE/src/ProjectContext.tsx		todo
 Yog-IDLE/src/ViewMenu.tsx		todo
 Yog-IDLE/src/bench/fixtures.ts	literal_facts:6 magic_numbers:1	todo
-Yog-IDLE/src/body/ModelViewport.tsx	long-fn:ModelViewport@136(329) literal_facts:1 magic_numbers:4	todo
+Yog-IDLE/src/body/ModelViewport.tsx	long-fn:ModelViewport@136(329) literal_facts:1 magic_numbers:2	todo
 Yog-IDLE/src/body/useBody.ts		todo
 Yog-IDLE/src/body/useFileText.ts		todo
 Yog-IDLE/src/body/yanim.test.ts		todo
@@ -884,12 +892,12 @@ Yog-IDLE/src/content/Viewport.tsx		todo
 Yog-IDLE/src/content/animation.test.ts		todo
 Yog-IDLE/src/content/animation.ts		todo
 Yog-IDLE/src/content/content.bench.ts		todo
-Yog-IDLE/src/content/icons.tsx	magic_numbers:25	todo
+Yog-IDLE/src/content/icons.tsx		todo
 Yog-IDLE/src/content/importContent.ts	long-fn:importContent@12(81)	todo
 Yog-IDLE/src/content/model.test.ts		todo
-Yog-IDLE/src/content/model.ts	literal_facts:2 magic_numbers:50	todo
+Yog-IDLE/src/content/model.ts	literal_facts:1 magic_numbers:38	todo
 Yog-IDLE/src/content/paint/FrameStrip.tsx	long-fn:FrameStrip@35(92)	todo
-Yog-IDLE/src/content/paint/PaintCanvas.tsx	long-fn:PaintCanvas@34(230) literal_facts:1 magic_numbers:5	todo
+Yog-IDLE/src/content/paint/PaintCanvas.tsx	long-fn:PaintCanvas@34(230) literal_facts:1 magic_numbers:3	todo
 Yog-IDLE/src/content/paint/PaintTools.tsx	long-fn:PaintTools@96(148)	todo
 Yog-IDLE/src/content/paint/pixels.test.ts		todo
 Yog-IDLE/src/content/paint/pixels.ts	params:fill@94(6)	todo
@@ -901,7 +909,7 @@ Yog-IDLE/src/content/viewport/camera.ts		todo
 Yog-IDLE/src/content/viewport/draw.ts		todo
 Yog-IDLE/src/content/viewport/handleDrag.ts		todo
 Yog-IDLE/src/content/viewport/handles.ts		todo
-Yog-IDLE/src/content/viewport/scene.ts	magic_numbers:15	todo
+Yog-IDLE/src/content/viewport/scene.ts	magic_numbers:5	todo
 Yog-IDLE/src/content/viewport/threeView.ts		todo
 Yog-IDLE/src/content/viewport/useRenderer.ts		todo
 Yog-IDLE/src/content/viewport/useViewportInput.ts		todo
@@ -930,7 +938,7 @@ Yog-IDLE/src/debugger/session/useDebugStepping.ts		todo
 Yog-IDLE/src/debugger/variables.test.ts		todo
 Yog-IDLE/src/debugger/variables.ts		todo
 Yog-IDLE/src/designer/BookPagePreview.tsx		todo
-Yog-IDLE/src/designer/GridAdorner.tsx	long-fn:GridRails@138(124),rail@143(95) magic_numbers:1	todo
+Yog-IDLE/src/designer/GridAdorner.tsx	long-fn:GridRails@138(124),rail@143(95)	todo
 Yog-IDLE/src/designer/ItemIcons.tsx		todo
 Yog-IDLE/src/designer/ScreenDesigner.tsx	long-fn:CanvasDesigner@70(220)	todo
 Yog-IDLE/src/designer/TintedItem.tsx		todo
@@ -974,7 +982,7 @@ Yog-IDLE/src/designer/grid.test.ts		todo
 Yog-IDLE/src/designer/grid.ts		todo
 Yog-IDLE/src/designer/imageSources.ts	literal_facts:1	todo
 Yog-IDLE/src/designer/layout.test.ts		todo
-Yog-IDLE/src/designer/layout.ts	long-fn:layoutChildren@170(154),layoutGrid@441(117) params:layoutWidget@74(8),measureWidget@89(8),measureAligned@160(6) magic_numbers:2	todo
+Yog-IDLE/src/designer/layout.ts	long-fn:layoutChildren@170(154),layoutGrid@441(117) params:layoutWidget@74(8),measureWidget@89(8),measureAligned@160(6) magic_numbers:1	todo
 Yog-IDLE/src/designer/layoutText.ts		todo
 Yog-IDLE/src/designer/layoutWidget.ts		todo
 Yog-IDLE/src/designer/properties.ts		todo
@@ -985,23 +993,23 @@ Yog-IDLE/src/diagnostics/buildDiagnostics.test.tsx		todo
 Yog-IDLE/src/diagnostics/buildDiagnostics.tsx		todo
 Yog-IDLE/src/diagnostics/yogOutput.test.ts		todo
 Yog-IDLE/src/diagnostics/yogOutput.ts		todo
-Yog-IDLE/src/editors/AnimEditor.tsx	long-fn:AnimEditor@78(296),Timeline@393(141) magic_numbers:3	todo
+Yog-IDLE/src/editors/AnimEditor.tsx	long-fn:AnimEditor@78(296),Timeline@393(141) magic_numbers:1	todo
 Yog-IDLE/src/editors/BookEditor.tsx	long-fn:BookEditor@66(381)	todo
 Yog-IDLE/src/editors/ContentEditor.tsx		todo
 Yog-IDLE/src/editors/DataEditor.tsx		todo
-Yog-IDLE/src/editors/EntityEditor.tsx	long-fn:EntityEditor@61(328) literal_facts:1	todo
+Yog-IDLE/src/editors/EntityEditor.tsx	long-fn:EntityEditor@61(328)	todo
 Yog-IDLE/src/editors/ItemList.tsx		todo
 Yog-IDLE/src/editors/LangFileEditor.tsx		todo
 Yog-IDLE/src/editors/MediaValue.tsx		todo
-Yog-IDLE/src/editors/ModelEditor.tsx	long-fn:ModelEditor@58(338) literal_facts:2 magic_numbers:6	todo
+Yog-IDLE/src/editors/ModelEditor.tsx	long-fn:ModelEditor@59(338) literal_facts:1	todo
 Yog-IDLE/src/editors/RecipeEditor.tsx	long-fn:RecipeEditor@102(285)	todo
 Yog-IDLE/src/editors/RowsEditor.tsx	long-fn:RowsEditor@25(124)	todo
 Yog-IDLE/src/editors/TerrainPreview.tsx		todo
-Yog-IDLE/src/editors/TextureEditor.tsx	long-fn:TextureEditor@41(166)	todo
+Yog-IDLE/src/editors/TextureEditor.tsx	long-fn:TextureEditor@42(166)	todo
 Yog-IDLE/src/editors/YdataViewer.tsx		todo
 Yog-IDLE/src/editors/YresEditor.tsx		todo
 Yog-IDLE/src/editors/bookModel.test.ts		todo
-Yog-IDLE/src/editors/bookModel.ts	literal_facts:18	todo
+Yog-IDLE/src/editors/bookModel.ts	literal_facts:5	todo
 Yog-IDLE/src/editors/content/ContentToolbar.tsx		todo
 Yog-IDLE/src/editors/content/PaintPane.tsx		todo
 Yog-IDLE/src/editors/content/contentModel.ts	literal_facts:1	todo
@@ -1045,7 +1053,7 @@ Yog-IDLE/src/editors/defs/AdvancementDesigner.tsx	long-fn:AdvancementDesigner@39
 Yog-IDLE/src/editors/defs/DefEditor.test.ts		todo
 Yog-IDLE/src/editors/defs/DefEditor.tsx		todo
 Yog-IDLE/src/editors/defs/DefLayout.tsx		todo
-Yog-IDLE/src/editors/defs/EffectDesigner.tsx	long-fn:EffectDesigner@47(81) literal_facts:1 magic_numbers:1	todo
+Yog-IDLE/src/editors/defs/EffectDesigner.tsx	long-fn:EffectDesigner@47(81)	todo
 Yog-IDLE/src/editors/defs/GamePanel.tsx		todo
 Yog-IDLE/src/editors/defs/LootDesigner.tsx	long-fn:LootDesigner@31(111) literal_facts:2	todo
 Yog-IDLE/src/editors/defs/TagDesigner.tsx	long-fn:TagDesigner@13(82)	todo
@@ -1110,7 +1118,7 @@ Yog-IDLE/src/panels/DebugPanel.tsx	long-fn:DebugPanel@39(157)	todo
 Yog-IDLE/src/panels/DocumentOutline.tsx		todo
 Yog-IDLE/src/panels/EmptyEditorState.tsx		todo
 Yog-IDLE/src/panels/ErrorListPanel.tsx		todo
-Yog-IDLE/src/panels/NewItemDialog.tsx	long-fn:AllTemplates@283(114) literal_facts:5	todo
+Yog-IDLE/src/panels/NewItemDialog.tsx	long-fn:AllTemplates@283(114)	todo
 Yog-IDLE/src/panels/ProjectExplorer.tsx	long-fn:ProjectExplorerTree@64(99)	todo
 Yog-IDLE/src/panels/Properties.tsx	long-fn:Properties@113(169) magic_numbers:1	todo
 Yog-IDLE/src/panels/PublishWindow.tsx	long-fn:PublishWindow@32(159)	todo
@@ -1199,7 +1207,7 @@ Substrate-Platform/.design-sync/previews/MenuBarItem.tsx	prints:5	todo
 Substrate-Platform/.design-sync/previews/OutputPanel.tsx		todo
 Substrate-Platform/.design-sync/previews/PanelSurface.tsx		todo
 Substrate-Platform/.design-sync/previews/PlatformShell.tsx	prints:1 magic_numbers:1	todo
-Substrate-Platform/.design-sync/previews/SettingsWindow.tsx	prints:1 magic_numbers:1	todo
+Substrate-Platform/.design-sync/previews/SettingsWindow.tsx	prints:1	todo
 Substrate-Platform/.design-sync/previews/Swatch.tsx		todo
 Substrate-Platform/.design-sync/previews/Tab.tsx		todo
 Substrate-Platform/.design-sync/previews/TextField.tsx		todo
@@ -1268,7 +1276,7 @@ Substrate-Platform/tauri-plugin/src/git/history.rs		todo
 Substrate-Platform/tauri-plugin/src/git/mod.rs		todo
 Substrate-Platform/tauri-plugin/src/git/remote.rs		todo
 Substrate-Platform/tauri-plugin/src/git/stash.rs		todo
-Substrate-Platform/tauri-plugin/src/lib.rs	long-fn:init_with@58(124)	todo
+Substrate-Platform/tauri-plugin/src/lib.rs	long-fn:init_with@62(124)	todo
 Substrate-Platform/tauri-plugin/src/open.rs		todo
 Substrate-Platform/tauri-plugin/src/search/mod.rs		todo
 Substrate-Platform/tauri-plugin/src/state.rs		todo
@@ -1544,7 +1552,7 @@ Substrate-Platform/ui/src/widgets/Editor/editorPhrases.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/editorPointer.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/editorRegistry.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/editorSync.tsx		todo
-Substrate-Platform/ui/src/widgets/Editor/editorThemes.tsx	magic_numbers:4	todo
+Substrate-Platform/ui/src/widgets/Editor/editorThemes.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/fileTypes.tsx		todo
 Substrate-Platform/ui/src/widgets/Editor/findWidget.tsx	long-fn:FindWidget@113(153)	todo
 Substrate-Platform/ui/src/widgets/Editor/index.tsx		todo
@@ -1618,13 +1626,13 @@ Substrate-Platform/ui/src/widgets/SearchField/SearchField.tsx		todo
 Substrate-Platform/ui/src/widgets/SearchField/index.ts		todo
 Substrate-Platform/ui/src/widgets/SearchResults/SearchResults.tsx	long-fn:SearchResults@47(175)	todo
 Substrate-Platform/ui/src/widgets/SearchResults/index.ts		todo
-Substrate-Platform/ui/src/widgets/SplitPane/SplitPane.tsx	magic_numbers:2	todo
+Substrate-Platform/ui/src/widgets/SplitPane/SplitPane.tsx		todo
 Substrate-Platform/ui/src/widgets/SplitPane/index.ts		todo
 Substrate-Platform/ui/src/widgets/StatusBar/StatusBar.tsx		todo
 Substrate-Platform/ui/src/widgets/StatusBar/index.tsx		todo
 Substrate-Platform/ui/src/widgets/Swatch/Swatch.tsx		todo
 Substrate-Platform/ui/src/widgets/Swatch/index.ts		todo
-Substrate-Platform/ui/src/widgets/SymbolIcon/SymbolIcon.tsx	magic_numbers:27	todo
+Substrate-Platform/ui/src/widgets/SymbolIcon/SymbolIcon.tsx	magic_numbers:1	todo
 Substrate-Platform/ui/src/widgets/SymbolIcon/index.ts		todo
 Substrate-Platform/ui/src/widgets/Tab/Tab.tsx		todo
 Substrate-Platform/ui/src/widgets/Tab/index.ts		todo
@@ -1657,9 +1665,9 @@ HexMod-Yog/src/casting/actions.rs	silenced:2 panics:1 magic_numbers:2 foreign_sy
 HexMod-Yog/src/casting/args.rs	params:entity@232(6) literal_facts:1	todo
 HexMod-Yog/src/casting/arith.rs	long-fn:apply@175(201)	todo
 HexMod-Yog/src/casting/cont.rs	foreign_sync:1	todo
-HexMod-Yog/src/casting/env.rs	file:1134 literal_facts:1 magic_numbers:11 foreign_sync:1	todo
+HexMod-Yog/src/casting/env.rs	file:1143 literal_facts:1 magic_numbers:11 foreign_sync:1	todo
 HexMod-Yog/src/casting/image.rs		todo
-HexMod-Yog/src/casting/mishap.rs	long-fn:execute@279(92),error_message@373(104) literal_facts:1 magic_numbers:9 glob_imports:1	todo
+HexMod-Yog/src/casting/mishap.rs	long-fn:execute@279(92),error_message@373(109) literal_facts:1 magic_numbers:9 glob_imports:1	todo
 HexMod-Yog/src/casting/mod.rs		todo
 HexMod-Yog/src/casting/ops/great.rs	literal_facts:1 magic_numbers:8	todo
 HexMod-Yog/src/casting/ops/interop.rs	literal_facts:1 magic_numbers:2	todo
@@ -1669,10 +1677,10 @@ HexMod-Yog/src/casting/ops/meta.rs	foreign_sync:1	todo
 HexMod-Yog/src/casting/ops/mod.rs		todo
 HexMod-Yog/src/casting/ops/query.rs	long-fn:actions@23(109) foreign_sync:1	todo
 HexMod-Yog/src/casting/ops/rw.rs	magic_numbers:4	todo
-HexMod-Yog/src/casting/ops/spells.rs	file:1288 long-fn:actions@35(102),tick_flight@1142(112) params:potion@935(7) literal_facts:1 magic_numbers:36 foreign_sync:1	todo
+HexMod-Yog/src/casting/ops/spells.rs	file:1291 long-fn:actions@35(102),tick_flight@1145(112) params:potion@938(7) literal_facts:1 magic_numbers:36 foreign_sync:1	todo
 HexMod-Yog/src/casting/ops/stack.rs	panics:4	todo
 HexMod-Yog/src/casting/vm.rs	long-fn:evaluate@237(85) foreign_sync:1	todo
-HexMod-Yog/src/circle.rs	file:1018 long-fn:register@869(149) panics:15 magic_numbers:14 foreign_sync:1	todo
+HexMod-Yog/src/circle.rs	file:1259 long-fn:step@694(100),register@1064(195) panics:15 magic_numbers:14 foreign_sync:1	todo
 HexMod-Yog/src/conjured.rs	panics:8 magic_numbers:33 foreign_sync:1	todo
 HexMod-Yog/src/events/items.rs	magic_numbers:7	todo
 HexMod-Yog/src/events/mod.rs		todo
@@ -1684,7 +1692,7 @@ HexMod-Yog/src/item/media.rs		todo
 HexMod-Yog/src/item/mod.rs		todo
 HexMod-Yog/src/item/packaged.rs	literal_facts:2	todo
 HexMod-Yog/src/item/pigment.rs	magic_numbers:23	todo
-HexMod-Yog/src/lens.rs	params:rail_signal@137(6),rail_power@199(6) panics:5 magic_numbers:30 foreign_sync:1	todo
+HexMod-Yog/src/lens.rs	long-fn:lines@273(116) params:rail_signal@172(6),rail_power@241(6) panics:5 magic_numbers:30 foreign_sync:1	todo
 HexMod-Yog/src/lib.rs		todo
 HexMod-Yog/src/loot.rs		todo
 HexMod-Yog/src/math/mod.rs		todo
@@ -1693,34 +1701,34 @@ HexMod-Yog/src/render.rs	panics:11 magic_numbers:12 foreign_sync:1	todo
 HexMod-Yog/src/snbt.rs	panics:1	todo
 HexMod-Yog/src/sounds.rs		todo
 HexMod-Yog/src/text.rs		todo
-HexMod-Yog/src/ui/book_page.rs	params:draw@88(6) magic_numbers:12	todo
+HexMod-Yog/src/ui/book_page.rs	params:draw@106(6) magic_numbers:12	todo
 HexMod-Yog/src/ui/mod.rs		todo
 HexMod-Yog/src/ui/noise.rs	magic_numbers:11 foreign_sync:1	todo
-HexMod-Yog/src/ui/pattern_render.rs	params:mesh_pattern@108(7),draw_pattern@132(6),mesh_rune@148(6) magic_numbers:12	todo
-HexMod-Yog/src/ui/render_lib.rs	long-fn:draw_line_seq@322(115) params:draw_line_seq@322(6),make_zappy@519(10) magic_numbers:28 foreign_sync:1	todo
-HexMod-Yog/src/ui/rune_text.rs	params:draw@103(6)	todo
-HexMod-Yog/src/ui/spellcasting.rs	file:939 panics:2 magic_numbers:39 foreign_sync:2	todo
+HexMod-Yog/src/ui/pattern_render.rs	params:mesh_pattern@138(7),draw_pattern@162(6),mesh_rune@182(6) magic_numbers:12	todo
+HexMod-Yog/src/ui/render_lib.rs	long-fn:draw_line_seq@326(115) params:draw_line_seq@326(6),make_zappy@523(10) magic_numbers:28 foreign_sync:1	todo
+HexMod-Yog/src/ui/rune_text.rs	params:draw@111(6)	todo
+HexMod-Yog/src/ui/spellcasting.rs	file:958 panics:2 magic_numbers:39 foreign_sync:2	todo
 HexMod-Yog/src/wall_scroll.rs	magic_numbers:6 foreign_sync:1	todo
 HexMod-Yog/src/wire.rs		todo
 Yog-VLSI/benches/vm.rs		todo
-Yog-VLSI/src/board.rs	panics:14 foreign_sync:1	todo
+Yog-VLSI/src/board.rs	file:1045 panics:14 foreign_sync:1	todo
 Yog-VLSI/src/cables.rs	panics:11 foreign_sync:2	todo
-Yog-VLSI/src/chip.rs	literal_facts:2	todo
+Yog-VLSI/src/chip.rs	long-fn:block_type@168(119) literal_facts:2	todo
 Yog-VLSI/src/commands.rs		todo
 Yog-VLSI/src/compile.rs	panics:2 foreign_sync:1	todo
-Yog-VLSI/src/designs.rs	panics:1 literal_facts:1 foreign_sync:1	todo
-Yog-VLSI/src/display.rs	params:fits@174(6) panics:17 literal_facts:3 magic_numbers:1 foreign_sync:2	todo
-Yog-VLSI/src/editor.rs	long-fn:enter@255(83) params:enter@255(6) panics:10 literal_facts:6 magic_numbers:1 foreign_sync:1	todo
-Yog-VLSI/src/gpu.rs	panics:1 magic_numbers:14	todo
-Yog-VLSI/src/lib.rs	long-fn:register@32(93) literal_facts:1	todo
-Yog-VLSI/src/nbt.rs	long-fn:read@27(95)	todo
+Yog-VLSI/src/designs.rs	long-fn:parse@127(83),circuit@287(98) panics:1 literal_facts:1 foreign_sync:1	todo
+Yog-VLSI/src/display.rs	params:fits@204(6) panics:17 literal_facts:3 magic_numbers:1 foreign_sync:2	todo
+Yog-VLSI/src/editor.rs	long-fn:enter@285(115) params:enter@285(6) panics:10 literal_facts:6 magic_numbers:1 foreign_sync:1	todo
+Yog-VLSI/src/gpu.rs	long-fn:render@427(95) panics:1 magic_numbers:14	todo
+Yog-VLSI/src/lib.rs	long-fn:register@32(108) literal_facts:1	todo
+Yog-VLSI/src/nbt.rs	long-fn:read@27(99)	todo
 Yog-VLSI/src/resources.rs	literal_facts:3	todo
-Yog-VLSI/src/ui/alu.rs	file:1126 long-fn:layout@246(177),flow_layout@456(89),draw@679(108),pointer@810(94) params:layout@246(6) panics:5 magic_numbers:53 foreign_sync:1	todo
+Yog-VLSI/src/ui/alu.rs	file:1559 long-fn:layout@281(250),flow_layout@564(132),draw@845(172),pointer@1040(140) params:layout@281(6) panics:5 magic_numbers:53 foreign_sync:1	todo
 Yog-VLSI/src/ui/display.rs		todo
 Yog-VLSI/src/ui/mod.rs		todo
 Yog-VLSI/src/ui/port.rs	panics:4 foreign_sync:1	todo
 Yog-VLSI/src/ui/workbench.rs	panics:11 literal_facts:1 magic_numbers:3 foreign_sync:1	todo
-Yog-VLSI/src/vm.rs	file:2505 long-fn:settle_components@1275(122),run@1878(88) panics:3 literal_facts:2 magic_numbers:2 glob_imports:1	todo
+Yog-VLSI/src/vm.rs	file:3122 long-fn:ensure_buses@1357(84),settle_components@1484(180),new@2130(89),run@2222(88) panics:3 literal_facts:1 magic_numbers:2 glob_imports:1	todo
 Yog-Pipes/core/benches/transport.rs		todo
 Yog-Pipes/core/src/engine.rs	file:1461 long-fn:register_capability@247(93),discover@649(151),save@1197(99) params:set_side@837(6) panics:2	todo
 Yog-Pipes/core/src/ids.rs		todo

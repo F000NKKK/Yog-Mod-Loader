@@ -11,27 +11,11 @@ pub mod refs;
 
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
 use yog_data::Schema;
 use yog_data::kinds::{Block, Category, Entity, Entry, Item, Recipe};
 use yog_data::with::{List, Opt, RefTo, Values};
 
 use refs::{BookText, Icon};
-
-/// A [`yog_data::Value`] in a book's JSON form.
-mod value_json {
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-    pub fn serialize<S: Serializer>(v: &yog_data::Value, s: S) -> Result<S::Ok, S::Error> {
-        yog_data::json::to_json(v).serialize(s)
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<yog_data::Value, D::Error> {
-        Ok(yog_data::json::from_json(&serde_json::Value::deserialize(
-            d,
-        )?))
-    }
-}
 
 /// The blocks of a multiblock `pattern` (layers top to bottom, rows of
 /// characters) with their `mapping`: ((x, y, z), block state).
@@ -59,8 +43,7 @@ pub fn multiblock_blocks(
 // ── Pages ────────────────────────────────────────────────────────────────────
 
 /// One page of an entry: `{"type": "spotlight", "item": "@item:minecraft:stick", …}`.
-#[derive(Debug, Clone, Serialize, Deserialize, Schema)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[derive(Debug, Clone, Schema)]
 #[data(tag = "type")]
 pub enum BookPage {
     /// Text (Yog text: `{b|…}`, `{#rrggbb|…}`, `{link=…|…}`), with an
@@ -69,24 +52,19 @@ pub enum BookPage {
     Text {
         #[data(with = "BookText")]
         text: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         title: Option<String>,
         /// A resource-pack font id.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         font: Option<String>,
         /// Pixels a line.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         font_size: Option<f32>,
     },
     /// An item in a frame, its name (or `title`) and text.
     Spotlight {
         #[data(with = "RefTo<(Item, Block)>")]
         item: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         title: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
@@ -94,7 +72,6 @@ pub enum BookPage {
     Recipe {
         #[data(with = "RefTo<Recipe>")]
         recipe: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
@@ -102,10 +79,8 @@ pub enum BookPage {
     Image {
         /// An image source (`mymod:textures/gui/x.png`, `.svg` too).
         texture: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         title: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
@@ -113,10 +88,8 @@ pub enum BookPage {
     Entity {
         #[data(with = "RefTo<Entity>")]
         entity: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         name: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
@@ -124,7 +97,6 @@ pub enum BookPage {
     /// each a list of rows; each character stands for the block `mapping`
     /// gives it (a block state: `minecraft:furnace[facing=north]`), ` ` for air.
     Multiblock {
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         name: Option<String>,
         /// Layers top to bottom, each a list of rows of characters.
@@ -132,7 +104,6 @@ pub enum BookPage {
         /// What each character is: a block, with a state if it matters.
         #[data(with = "Values<RefTo<Block>>")]
         mapping: BTreeMap<String, String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
@@ -140,7 +111,6 @@ pub enum BookPage {
     Relations {
         #[data(with = "List<RefTo<Entry>>")]
         entries: Vec<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         text: Option<String>,
     },
@@ -151,22 +121,17 @@ pub enum BookPage {
     Drawn {
         /// The id the mod's drawer is registered under (`hexcasting:pattern`).
         drawer: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         title: Option<String>,
         /// The picture's height in book pixels (0: none).
-        #[serde(default)]
         #[data(default, range = "0..=150")]
         height: f32,
         /// A line under the picture.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         caption: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         #[data(with = "Opt<BookText>")]
         text: Option<String>,
         /// Whatever the drawer reads, as is.
-        #[serde(default, with = "value_json")]
         #[data(default)]
         data: yog_data::Value,
     },
@@ -174,7 +139,6 @@ pub enum BookPage {
     Empty,
     /// A page of a mod's own type (`type: "hexcasting:pattern"`), laid out
     /// by the book's [`page_type::PageType`] of it.
-    #[serde(skip)]
     #[data(other)]
     Custom(page_type::CustomPage),
 }
@@ -182,17 +146,14 @@ pub enum BookPage {
 // ── Categories and entries ───────────────────────────────────────────────────
 
 /// A category of the book's home page.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, Schema)]
-#[serde(default)]
+#[derive(Debug, Clone, Default, Schema)]
 pub struct BookCategory {
     pub id: String,
     #[data(with = "BookText")]
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[data(with = "Opt<BookText>")]
     pub description: Option<String>,
     /// An item (`@item:minecraft:book`) or an image (`minecraft:textures/item/book.png`).
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[data(with = "Opt<Icon>")]
     pub icon: Option<String>,
     /// Lower first.
@@ -201,8 +162,7 @@ pub struct BookCategory {
 }
 
 /// One entry: its pages, in a category.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, Schema)]
-#[serde(default)]
+#[derive(Debug, Clone, Default, Schema)]
 pub struct BookEntry {
     pub id: String,
     #[data(with = "BookText")]
@@ -212,7 +172,6 @@ pub struct BookEntry {
     #[data(default)]
     pub pages: Vec<BookPage>,
     /// An item or an image, as [`BookCategory::icon`].
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[data(with = "Opt<Icon>")]
     pub icon: Option<String>,
     /// Lower first.
@@ -226,26 +185,22 @@ pub struct BookEntry {
     pub read_by_default: bool,
     /// Mods it's about — Yog or Java mod ids (`pehkui`): without every one
     /// of them loaded the book doesn't show it.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[data(default)]
     pub requires: Vec<String>,
     /// The advancement that unlocks it.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub advancement: Option<String>,
 }
 
 // ── Book ─────────────────────────────────────────────────────────────────────
 
 /// A guide book: what a `.ybook` file holds.
-#[derive(Debug, Clone, Serialize, Deserialize, Schema)]
-#[serde(default)]
+#[derive(Debug, Clone, Schema)]
 pub struct Book {
     /// The item that opens it (the mod's namespace if it has none).
     pub id: String,
     #[data(with = "BookText")]
     pub name: String,
     /// The nameplate's second line when `version` is 0.
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[data(with = "Opt<BookText>")]
     pub subtitle: Option<String>,
     /// The book's edition: its nameplate says "1st Edition", "2nd Edition"…
@@ -272,12 +227,10 @@ pub struct Book {
     #[data(default)]
     pub i18n: bool,
     /// Recipe layouts of its own; the build adds the mod's (`.ydef` recipe kinds and layouts).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[data(default)]
     pub layouts: Vec<layout::RecipeLayout>,
     /// The mods' own kinds of page its pages use; the build adds them
     /// (`.yui` components with `book_page`).
-    #[serde(skip)]
     #[data(default)]
     pub page_types: Vec<page_type::PageType>,
 }
@@ -386,11 +339,6 @@ impl Book {
         b.page_types = types;
         b
     }
-
-    /// The book as the JSON hosts and `yog build` pass around.
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(self).unwrap_or_default()
-    }
 }
 
 #[cfg(test)]
@@ -439,7 +387,7 @@ mod tests {
             }],
             ..Default::default()
         };
-        let parsed: Book = serde_json::from_str(&book.to_json()).expect("its JSON parses");
+        let parsed: Book = yog_data::read_bytes(&yog_data::to_bytes(&book)).expect("it reads back");
         assert_eq!(parsed.version, 1);
         assert_eq!(parsed.entries[0].pages.len(), 4);
         assert!(

@@ -53,11 +53,11 @@ fn big_book() -> Book {
 }
 
 fn book(c: &mut Criterion) {
-    let json = big_book().to_json();
-    c.bench_function("book/parse_json", |b| {
-        b.iter(|| serde_json::from_str::<Book>(&json).unwrap())
+    let bytes = yog_data::to_bytes(&big_book());
+    c.bench_function("book/read", |b| {
+        b.iter(|| yog_data::read_bytes::<Book>(&bytes).unwrap())
     });
-    let parsed: Book = serde_json::from_str(&json).unwrap();
+    let parsed: Book = yog_data::read_bytes(&bytes).unwrap();
     c.bench_function("book/flow", |b| {
         b.iter(|| BookRenderer::new(parsed.clone()))
     });

@@ -1,12 +1,8 @@
 //! Items: what a mod declares an item as (food, hangings, its look).
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 use crate::{ArmorPiece, ArmorSlot, ToolItem};
 
 /// Nutritional properties for a food item.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone)]
 pub struct FoodDef {
     /// Hunger points restored (1 unit = half a drumstick).
@@ -33,7 +29,6 @@ impl FoodDef {
 }
 
 /// A custom item to register, identified by `namespace:path`.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone)]
 pub struct ItemDef {
     pub id: String,
@@ -59,7 +54,6 @@ pub struct ItemDef {
 }
 
 /// What an item hangs on a wall ([`ItemDef::hangs`]).
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct Hangs {
     /// A hanging entity type ([`EntityKind::Hanging`]).

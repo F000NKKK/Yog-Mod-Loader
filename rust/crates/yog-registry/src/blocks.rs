@@ -1,14 +1,6 @@
 //! Blocks: what a mod declares a block as.
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 /// Which ways a block can turn.
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(rename_all = "snake_case")
-)]
 #[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Facing {
     /// North, east, south or west.
@@ -18,11 +10,6 @@ pub enum Facing {
 }
 
 /// Which way a block turns when placed.
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-    serde(rename_all = "snake_case")
-)]
 #[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Placement {
     /// Its front toward the player.
@@ -33,7 +20,6 @@ pub enum Placement {
 }
 
 /// A custom block to register; it also gets a matching block-item.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone)]
 pub struct BlockDef {
     pub id: String,
@@ -121,7 +107,6 @@ fn thirty() -> u32 {
 
 /// A property of a block's own: its name and values (the first the
 /// default; `false`, `true` is a yes/no).
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, PartialEq, Eq)]
 pub struct BlockProperty {
     pub name: String,

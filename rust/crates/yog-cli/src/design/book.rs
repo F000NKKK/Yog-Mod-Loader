@@ -67,8 +67,8 @@ pub struct BookRendered {
 
 struct Session {
     renderer: BookRenderer,
-    /// The resolved book JSON it was last given.
-    json: String,
+    /// The resolved book it was last given, as Yog Data.
+    given: Vec<u8>,
 }
 
 static SESSIONS: LazyLock<Mutex<HashMap<String, Session>>> =
@@ -466,7 +466,7 @@ fn render_book(
         locales: locales.clone(),
         error: Some(error),
     };
-    let json = serde_json::to_string(&book).unwrap_or_default();
+    let given = yog_data::to_bytes(&book);
 
     let mut sessions = SESSIONS.lock();
     let session = sessions.entry(args.path.clone()).or_insert_with(|| {
@@ -477,12 +477,12 @@ fn render_book(
         }
         Session {
             renderer,
-            json: json.clone(),
+            given: given.clone(),
         }
     });
-    if session.json != json {
+    if session.given != given {
         session.renderer.set_book(book);
-        session.json = json;
+        session.given = given;
     }
     let r = &mut session.renderer;
 

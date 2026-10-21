@@ -1864,7 +1864,6 @@ name = "yog-book"
 version = "0.69.0"
 dependencies = [
  "criterion",
- "serde",
  "serde_json",
  "yog-data",
  "yog-formats",
@@ -1970,8 +1969,6 @@ dependencies = [
 name = "yog-dimensions"
 version = "0.13.0"
 dependencies = [
- "serde",
- "serde_json",
  "yog-data",
  "yog-ids",
 ]
@@ -2002,7 +1999,6 @@ dependencies = [
 name = "yog-formats"
 version = "0.11.3"
 dependencies = [
- "serde",
  "serde_json",
  "yog-body",
  "yog-core",
@@ -2074,11 +2070,7 @@ dependencies = [
 name = "yog-inventory"
 version = "0.20.0"
 dependencies = [
- "serde",
- "serde_json",
- "yog-abi",
  "yog-data",
- "yog-sync",
 ]
 
 [[package]]
@@ -2119,7 +2111,6 @@ dependencies = [
 name = "yog-registry"
 version = "0.37.0"
 dependencies = [
- "serde",
  "serde_json",
  "yog-data",
  "yog-graphics",

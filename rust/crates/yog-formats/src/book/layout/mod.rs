@@ -29,7 +29,6 @@
 
 use yog_sync::LazyLock;
 
-use serde::{Deserialize, Serialize};
 use yog_data::Schema;
 use yog_data::kinds::Item;
 use yog_data::with::RefTo;
@@ -39,21 +38,19 @@ mod from_yui;
 pub use from_yui::{compile, is_recipe_layout};
 
 /// How one or more kinds of recipe are shown.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Schema)]
+#[derive(Debug, Clone, PartialEq, Schema)]
 pub struct RecipeLayout {
     /// The recipe kinds it shows: the game's (`shaped`, `smelting`, …) or a mod's (`mymod:infusion`).
     pub kinds: Vec<String>,
     /// Width and height in GUI pixels.
     pub size: [f32; 2],
     /// What's drawn, in order.
-    #[serde(default)]
     #[data(default)]
     pub parts: Vec<LayoutPart>,
 }
 
 /// One part of a [`RecipeLayout`].
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Schema)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Schema)]
 #[data(tag = "type")]
 pub enum LayoutPart {
     /// A region of an image (a Yog image source).
@@ -61,7 +58,6 @@ pub enum LayoutPart {
         source: String,
         /// `[u, v, width, height]` in the image's pixels.
         uv: [f32; 4],
-        #[serde(default)]
         #[data(default)]
         at: [f32; 2],
     },
@@ -70,14 +66,12 @@ pub enum LayoutPart {
         slot: String,
         at: Vec<[f32; 2]>,
         /// A slot frame behind each (for layouts without their own picture).
-        #[serde(default)]
         #[data(default)]
         frame: bool,
     },
     /// The recipe's result.
     Result {
         at: [f32; 2],
-        #[serde(default)]
         #[data(default)]
         frame: bool,
     },
@@ -96,7 +90,6 @@ pub enum LayoutPart {
         block: String,
         at: [f32; 2],
         /// Its side in GUI pixels: a slot's item by default.
-        #[serde(default = "icon_px")]
         #[data(default = "icon_px")]
         size: f32,
     },

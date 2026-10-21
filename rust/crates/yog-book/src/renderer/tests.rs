@@ -325,10 +325,10 @@ fn short_text_stays_put() {
 #[test]
 fn a_drawn_page_hands_its_box_and_data_to_the_mods_drawer() {
     let data = yog_data::json::from_json(&serde_json::json!({ "op_id": "hexcasting:manual" }));
-    let page: BookPage = serde_json::from_value(serde_json::json!({
+    let page: BookPage = yog_data::read_value(&yog_data::json::from_json(&serde_json::json!({
         "type": "drawn", "drawer": "hexcasting:pattern", "title": "Manual", "height": 64,
         "caption": "{u|entity} → {u|num}", "text": "Casts.", "data": { "op_id": "hexcasting:manual" }
-    }))
+    })))
     .unwrap();
     assert!(
         matches!(&page, BookPage::Drawn { data: d, height, .. } if *d == data && *height == 64.0)
@@ -363,11 +363,9 @@ fn a_drawn_page_hands_its_box_and_data_to_the_mods_drawer() {
         (drawn[0].2 - PAGE_W / 64.0).abs() < 0.01,
         "the page's width, 64 high"
     );
-    // The JSON form keeps the data.
-    assert_eq!(
-        serde_json::to_value(&page).unwrap()["data"]["op_id"],
-        "hexcasting:manual"
-    );
+    // Its Yog Data keeps the data.
+    let back: BookPage = yog_data::read_bytes(&yog_data::to_bytes(&page)).unwrap();
+    assert!(matches!(back, BookPage::Drawn { data: d, .. } if d == data));
 }
 
 #[test]

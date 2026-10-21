@@ -1,12 +1,8 @@
 //! Recipes: shaped, shapeless, cooking and the rest, as the game reads them; startup grants.
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-
 use crate::recipe_kinds;
 
 /// How a cooking recipe cooks.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Cooking {
     Smelting,
@@ -36,7 +32,6 @@ impl Cooking {
 }
 
 /// What a recipe is made of besides its result.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum RecipeKind {
     /// A crafting grid: rows of key characters (space = empty).
@@ -78,7 +73,6 @@ pub enum RecipeKind {
 ///     .key('R', "yog:ruby").key('S', "minecraft:stick");
 /// Recipe::cooking("yog:ruby", Cooking::Blasting, "#c:ruby_ores", "yog:ruby", 1).experience(0.7);
 /// ```
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Recipe {
     pub id: String,
@@ -338,7 +332,6 @@ impl Recipe {
 
 /// Grant items/books to every player once when they first join.
 /// This is the Yog-side replacement for `grant_patchi_book.json`.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone)]
 pub struct StartupGrant {
     pub id: String,
