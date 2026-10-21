@@ -784,6 +784,457 @@ public final class YogTypes {
         }
     }
 
+    /** One entity, this frame. */
+    public record BodyFrame(String uuid, String entityType, float partial, float age, float limbSwing, float limbAmount, float headYaw, float headPitch, float bodyYaw, float pitch, double[] pos, YogTypes.Vec3 velocity, long flags, double gameTime, java.util.List<YogTypes.BodyCapture> captures, java.util.List<YogTypes.BodyKept> data) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("uuid", uuid);
+            m.put("entity_type", entityType);
+            m.put("partial", partial);
+            m.put("age", age);
+            m.put("limb_swing", limbSwing);
+            m.put("limb_amount", limbAmount);
+            m.put("head_yaw", headYaw);
+            m.put("head_pitch", headPitch);
+            m.put("body_yaw", bodyYaw);
+            m.put("pitch", pitch);
+            m.put("pos", YogData.listOf(pos));
+            m.put("velocity", velocity.toData());
+            m.put("flags", flags);
+            m.put("game_time", gameTime);
+            m.put("captures", captures.stream().map(e0 -> e0.toData()).toList());
+            m.put("data", data.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static BodyFrame fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BodyFrame(YogData.str(m.get("uuid"), ""), YogData.str(m.get("entity_type"), ""), (float) YogData.number(m.get("partial"), 0), (float) YogData.number(m.get("age"), 0), (float) YogData.number(m.get("limb_swing"), 0), (float) YogData.number(m.get("limb_amount"), 0), (float) YogData.number(m.get("head_yaw"), 0), (float) YogData.number(m.get("head_pitch"), 0), (float) YogData.number(m.get("body_yaw"), 0), (float) YogData.number(m.get("pitch"), 0), YogData.doubles(m.get("pos")), YogTypes.Vec3.fromData(m.get("velocity")), YogData.integer(m.get("flags"), 0), YogData.number(m.get("game_time"), 0), YogData.list(m.get("captures")).stream().map(e0 -> YogTypes.BodyCapture.fromData(e0)).toList(), YogData.list(m.get("data")).stream().map(e0 -> YogTypes.BodyKept.fromData(e0)).toList());
+        }
+
+        public static BodyFrame fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.uuid);
+            p.putStr(this.entityType);
+            p.putF32(this.partial);
+            p.putF32(this.age);
+            p.putF32(this.limbSwing);
+            p.putF32(this.limbAmount);
+            p.putF32(this.headYaw);
+            p.putF32(this.headPitch);
+            p.putF32(this.bodyYaw);
+            p.putF32(this.pitch);
+            p.putF64s(this.pos);
+            this.velocity.pack(p);
+            p.putI(this.flags);
+            p.putF64(this.gameTime);
+            { int l0 = p.beginList(this.captures.size()); for (var e0 : this.captures) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.data.size()); for (var e0 : this.data) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static BodyFrame unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_uuid = u.more(end) ? u.getStr() : "";
+            String f_entityType = u.more(end) ? u.getStr() : "";
+            float f_partial = u.more(end) ? u.getF32() : 0.0f;
+            float f_age = u.more(end) ? u.getF32() : 0.0f;
+            float f_limbSwing = u.more(end) ? u.getF32() : 0.0f;
+            float f_limbAmount = u.more(end) ? u.getF32() : 0.0f;
+            float f_headYaw = u.more(end) ? u.getF32() : 0.0f;
+            float f_headPitch = u.more(end) ? u.getF32() : 0.0f;
+            float f_bodyYaw = u.more(end) ? u.getF32() : 0.0f;
+            float f_pitch = u.more(end) ? u.getF32() : 0.0f;
+            double[] f_pos = u.more(end) ? u.getF64s() : new double[0];
+            YogTypes.Vec3 f_velocity = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
+            long f_flags = u.more(end) ? u.getI() : 0L;
+            double f_gameTime = u.more(end) ? u.getF64() : 0.0;
+            java.util.List<YogTypes.BodyCapture> f_captures = u.more(end) ? YogFrame.list(u, () -> YogTypes.BodyCapture.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.BodyKept> f_data = u.more(end) ? YogFrame.list(u, () -> YogTypes.BodyKept.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new BodyFrame(f_uuid, f_entityType, f_partial, f_age, f_limbSwing, f_limbAmount, f_headYaw, f_headPitch, f_bodyYaw, f_pitch, f_pos, f_velocity, f_flags, f_gameTime, f_captures, f_data);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BodyFrame fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BodyFrame fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BodyFrame readFrame(YogFrame.Unpacker u) {
+            BodyFrame v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BodyFrame} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+            private final int o9;
+            private final int o10;
+            private final int h10, n10, b10;
+            private final int o11;
+            private final int o12;
+            private final int o13;
+            private final int o14;
+            private final int h14, n14, b14;
+            private final int o15;
+            private final int h15, n15, b15;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(4); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(4); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.skip(4); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(4); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.skip(4); } else { o8 = -1; }
+                if (u.more(end)) { o9 = u.position(); u.skip(4); } else { o9 = -1; }
+                if (u.more(end)) { h10 = u.position(); n10 = u.count(); b10 = u.getBool() ? 1 : 0; o10 = u.position(); u.skip(n10 * (b10 != 0 ? 4 : 8)); } else { h10 = n10 = b10 = 0; o10 = -1; }
+                if (u.more(end)) { o11 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o11 = -1; }
+                if (u.more(end)) { o12 = u.position(); u.getU(); } else { o12 = -1; }
+                if (u.more(end)) { o13 = u.position(); u.skip(8); } else { o13 = -1; }
+                if (u.more(end)) { h14 = u.position(); n14 = u.count(); int e14 = u.listEnd(); b14 = 0; o14 = u.position(); u.skipTo(e14); } else { h14 = n14 = b14 = 0; o14 = -1; }
+                if (u.more(end)) { h15 = u.position(); n15 = u.count(); int e15 = u.listEnd(); b15 = 0; o15 = u.position(); u.skipTo(e15); } else { h15 = n15 = b15 = 0; o15 = -1; }
+                u.leave(end);
+            }
+
+            public String uuid() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String entityType() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public float partial() {
+                if (o2 < 0) return 0.0f;
+                u.seek(o2);
+                return u.getF32();
+            }
+
+            public float age() {
+                if (o3 < 0) return 0.0f;
+                u.seek(o3);
+                return u.getF32();
+            }
+
+            public float limbSwing() {
+                if (o4 < 0) return 0.0f;
+                u.seek(o4);
+                return u.getF32();
+            }
+
+            public float limbAmount() {
+                if (o5 < 0) return 0.0f;
+                u.seek(o5);
+                return u.getF32();
+            }
+
+            public float headYaw() {
+                if (o6 < 0) return 0.0f;
+                u.seek(o6);
+                return u.getF32();
+            }
+
+            public float headPitch() {
+                if (o7 < 0) return 0.0f;
+                u.seek(o7);
+                return u.getF32();
+            }
+
+            public float bodyYaw() {
+                if (o8 < 0) return 0.0f;
+                u.seek(o8);
+                return u.getF32();
+            }
+
+            public float pitch() {
+                if (o9 < 0) return 0.0f;
+                u.seek(o9);
+                return u.getF32();
+            }
+
+            public double[] pos() {
+                if (o10 < 0) return new double[0];
+                u.seek(h10);
+                return u.getF64s();
+            }
+
+            public int posLength() {
+                return n10;
+            }
+
+            /** Item {@code i}, read in place. */
+            public double pos(int i) {
+                if (i < 0 || i >= n10) throw new IndexOutOfBoundsException(i);
+                return b10 != 0 ? (double) u.f32At(o10 + 4 * i) : u.f64At(o10 + 8 * i);
+            }
+
+            public YogTypes.Vec3.View velocity() {
+                if (o11 < 0) return null;
+                u.seek(o11);
+                return new YogTypes.Vec3.View(u);
+            }
+
+            public long flags() {
+                if (o12 < 0) return 0L;
+                u.seek(o12);
+                return u.getI();
+            }
+
+            public double gameTime() {
+                if (o13 < 0) return 0.0;
+                u.seek(o13);
+                return u.getF64();
+            }
+
+            public java.util.List<YogTypes.BodyCapture> captures() {
+                if (o14 < 0) return java.util.List.of();
+                u.seek(h14);
+                return YogFrame.list(u, () -> YogTypes.BodyCapture.unpack(u));
+            }
+
+            public int capturesLength() {
+                return n14;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachCaptures(java.util.function.Consumer<YogTypes.BodyCapture.View> each) {
+                int at = o14;
+                for (int j = 0; j < n14; j++) {
+                    u.seek(at);
+                    YogTypes.BodyCapture.View v = new YogTypes.BodyCapture.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.BodyKept> data() {
+                if (o15 < 0) return java.util.List.of();
+                u.seek(h15);
+                return YogFrame.list(u, () -> YogTypes.BodyKept.unpack(u));
+            }
+
+            public int dataLength() {
+                return n15;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachData(java.util.function.Consumer<YogTypes.BodyKept.View> each) {
+                int at = o15;
+                for (int j = 0; j < n15; j++) {
+                    u.seek(at);
+                    YogTypes.BodyKept.View v = new YogTypes.BodyKept.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
+    /** A mod's answer — every handler's add up, in order. */
+    public record BodyOps(float[] root, java.util.List<YogTypes.BodyBone> bones, java.util.List<YogTypes.BodyDraw> draws, String disguise, boolean hide, java.util.List<String> captures) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            if (root != null) m.put("root", YogData.listOf(root));
+            m.put("bones", bones.stream().map(e0 -> e0.toData()).toList());
+            m.put("draws", draws.stream().map(e0 -> e0.toData()).toList());
+            if (disguise != null) m.put("disguise", disguise);
+            m.put("hide", hide);
+            m.put("captures", captures);
+            return m;
+        }
+
+        public static BodyOps fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BodyOps((m.get("root") == null ? null : YogData.floats(m.get("root"))), YogData.list(m.get("bones")).stream().map(e0 -> YogTypes.BodyBone.fromData(e0)).toList(), YogData.list(m.get("draws")).stream().map(e0 -> YogTypes.BodyDraw.fromData(e0)).toList(), (m.get("disguise") == null ? null : YogData.str(m.get("disguise"), "")), YogData.bool(m.get("hide"), false), YogData.list(m.get("captures")).stream().map(e0 -> YogData.str(e0, "")).toList());
+        }
+
+        public static BodyOps fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putBool(this.root != null); if (this.root != null) { p.putF32s(this.root); }
+            { int l0 = p.beginList(this.bones.size()); for (var e0 : this.bones) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.draws.size()); for (var e0 : this.draws) { e0.pack(p); } p.end(l0); }
+            p.putBool(this.disguise != null); if (this.disguise != null) { p.putStr(this.disguise); }
+            p.putBool(this.hide);
+            { int l0 = p.beginList(this.captures.size()); for (var e0 : this.captures) { p.putStr(e0); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static BodyOps unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            float[] f_root = u.more(end) ? (u.getBool() ? u.getF32s() : null) : null;
+            java.util.List<YogTypes.BodyBone> f_bones = u.more(end) ? YogFrame.list(u, () -> YogTypes.BodyBone.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.BodyDraw> f_draws = u.more(end) ? YogFrame.list(u, () -> YogTypes.BodyDraw.unpack(u)) : java.util.List.of();
+            String f_disguise = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            boolean f_hide = u.more(end) ? u.getBool() : false;
+            java.util.List<String> f_captures = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            u.leave(end);
+            return new BodyOps(f_root, f_bones, f_draws, f_disguise, f_hide, f_captures);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BodyOps fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BodyOps fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BodyOps readFrame(YogFrame.Unpacker u) {
+            BodyOps v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BodyOps} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int h1, n1, b1;
+            private final int o2;
+            private final int h2, n2, b2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); if (u.getBool()) { u.skip(u.count() * 4); } } else { o0 = -1; }
+                if (u.more(end)) { h1 = u.position(); n1 = u.count(); int e1 = u.listEnd(); b1 = 0; o1 = u.position(); u.skipTo(e1); } else { h1 = n1 = b1 = 0; o1 = -1; }
+                if (u.more(end)) { h2 = u.position(); n2 = u.count(); int e2 = u.listEnd(); b2 = 0; o2 = u.position(); u.skipTo(e2); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); if (u.getBool()) { u.getU(); } } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o5 = -1; }
+                u.leave(end);
+            }
+
+            public float[] root() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return (u.getBool() ? u.getF32s() : null);
+            }
+
+            public java.util.List<YogTypes.BodyBone> bones() {
+                if (o1 < 0) return java.util.List.of();
+                u.seek(h1);
+                return YogFrame.list(u, () -> YogTypes.BodyBone.unpack(u));
+            }
+
+            public int bonesLength() {
+                return n1;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachBones(java.util.function.Consumer<YogTypes.BodyBone.View> each) {
+                int at = o1;
+                for (int j = 0; j < n1; j++) {
+                    u.seek(at);
+                    YogTypes.BodyBone.View v = new YogTypes.BodyBone.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.BodyDraw> draws() {
+                if (o2 < 0) return java.util.List.of();
+                u.seek(h2);
+                return YogFrame.list(u, () -> YogTypes.BodyDraw.unpack(u));
+            }
+
+            public int drawsLength() {
+                return n2;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachDraws(java.util.function.Consumer<YogTypes.BodyDraw.View> each) {
+                int at = o2;
+                for (int j = 0; j < n2; j++) {
+                    u.seek(at);
+                    YogTypes.BodyDraw.View v = new YogTypes.BodyDraw.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public String disguise() {
+                if (o3 < 0) return null;
+                u.seek(o3);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public boolean hide() {
+                if (o4 < 0) return false;
+                u.seek(o4);
+                return u.getBool();
+            }
+
+            public java.util.List<String> captures() {
+                if (o5 < 0) return java.util.List.of();
+                u.seek(o5);
+                return YogFrame.list(u, () -> u.getStr());
+            }
+        }
+    }
+
     /** A block's properties (`block::Info`). */
     public record BlockInfo(String state, float hardness, boolean replaceable, boolean air, String fluid, boolean fluidSource, int redstone, boolean inWorld) {
         public java.util.Map<String, Object> toData() {
@@ -3616,6 +4067,422 @@ public final class YogTypes {
         }
     }
 
+    /** The posed geometry of an entity (entity space, see the design doc). */
+    public record BodyCapture(String source, java.util.List<YogTypes.BodyMesh> meshes) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("source", source);
+            m.put("meshes", meshes.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static BodyCapture fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BodyCapture(YogData.str(m.get("source"), ""), YogData.list(m.get("meshes")).stream().map(e0 -> YogTypes.BodyMesh.fromData(e0)).toList());
+        }
+
+        public static BodyCapture fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.source);
+            { int l0 = p.beginList(this.meshes.size()); for (var e0 : this.meshes) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static BodyCapture unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_source = u.more(end) ? u.getStr() : "";
+            java.util.List<YogTypes.BodyMesh> f_meshes = u.more(end) ? YogFrame.list(u, () -> YogTypes.BodyMesh.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new BodyCapture(f_source, f_meshes);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BodyCapture fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BodyCapture fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BodyCapture readFrame(YogFrame.Unpacker u) {
+            BodyCapture v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BodyCapture} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int h1, n1, b1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { h1 = u.position(); n1 = u.count(); int e1 = u.listEnd(); b1 = 0; o1 = u.position(); u.skipTo(e1); } else { h1 = n1 = b1 = 0; o1 = -1; }
+                u.leave(end);
+            }
+
+            public String source() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public java.util.List<YogTypes.BodyMesh> meshes() {
+                if (o1 < 0) return java.util.List.of();
+                u.seek(h1);
+                return YogFrame.list(u, () -> YogTypes.BodyMesh.unpack(u));
+            }
+
+            public int meshesLength() {
+                return n1;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachMeshes(java.util.function.Consumer<YogTypes.BodyMesh.View> each) {
+                int at = o1;
+                for (int j = 0; j < n1; j++) {
+                    u.seek(at);
+                    YogTypes.BodyMesh.View v = new YogTypes.BodyMesh.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
+    /** A value the entity keeps, by key. */
+    public record BodyKept(String key, byte[] value) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("key", key);
+            m.put("value", value);
+            return m;
+        }
+
+        public static BodyKept fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BodyKept(YogData.str(m.get("key"), ""), (m.get("value") instanceof byte[] e0 ? e0 : new byte[0]));
+        }
+
+        public static BodyKept fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.key);
+            p.putBytes(this.value);
+            p.end(at);
+        }
+
+        public static BodyKept unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_key = u.more(end) ? u.getStr() : "";
+            byte[] f_value = u.more(end) ? u.getBytes() : new byte[0];
+            u.leave(end);
+            return new BodyKept(f_key, f_value);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BodyKept fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BodyKept fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BodyKept readFrame(YogFrame.Unpacker u) {
+            BodyKept v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BodyKept} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String key() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public byte[] value() {
+                if (o1 < 0) return new byte[0];
+                u.seek(o1);
+                return u.getBytes();
+            }
+        }
+    }
+
+    /** A vanilla part to change, and how. */
+    public record BodyBone(String name, YogTypes.BodyBoneOp op) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("name", name);
+            m.put("op", op.toData());
+            return m;
+        }
+
+        public static BodyBone fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BodyBone(YogData.str(m.get("name"), ""), YogTypes.BodyBoneOp.fromData(m.get("op")));
+        }
+
+        public static BodyBone fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.name);
+            this.op.pack(p);
+            p.end(at);
+        }
+
+        public static BodyBone unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_name = u.more(end) ? u.getStr() : "";
+            YogTypes.BodyBoneOp f_op = u.more(end) ? YogTypes.BodyBoneOp.unpack(u) : null;
+            u.leave(end);
+            return new BodyBone(f_name, f_op);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BodyBone fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BodyBone fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BodyBone readFrame(YogFrame.Unpacker u) {
+            BodyBone v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BodyBone} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String name() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public YogTypes.BodyBoneOp.View op() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return new YogTypes.BodyBoneOp.View(u);
+            }
+        }
+    }
+
+    /** A mesh to draw: where, with what texture, how it looks ([`Look`] as numbers: a tint is ARGB). */
+    public record BodyDraw(String anchor, String bone, YogTypes.BodyMesh mesh, String mode, boolean glint, long tint) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("anchor", anchor);
+            m.put("bone", bone);
+            m.put("mesh", mesh.toData());
+            m.put("mode", mode);
+            m.put("glint", glint);
+            m.put("tint", tint);
+            return m;
+        }
+
+        public static BodyDraw fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BodyDraw(YogData.str(m.get("anchor"), ""), YogData.str(m.get("bone"), ""), YogTypes.BodyMesh.fromData(m.get("mesh")), YogData.str(m.get("mode"), ""), YogData.bool(m.get("glint"), false), YogData.integer(m.get("tint"), 0));
+        }
+
+        public static BodyDraw fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putU(switch (this.anchor) { case "entity" -> 0; case "model" -> 1; case "bone" -> 2; case "block" -> 3; default -> 0; });
+            p.putStr(this.bone);
+            this.mesh.pack(p);
+            p.putU(switch (this.mode) { case "cutout" -> 0; case "translucent" -> 1; case "emissive" -> 2; default -> 0; });
+            p.putBool(this.glint);
+            p.putI(this.tint);
+            p.end(at);
+        }
+
+        public static BodyDraw unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_anchor = u.more(end) ? switch ((int) u.getU()) { case 0 -> "entity"; case 1 -> "model"; case 2 -> "bone"; case 3 -> "block"; default -> ""; } : "entity";
+            String f_bone = u.more(end) ? u.getStr() : "";
+            YogTypes.BodyMesh f_mesh = u.more(end) ? YogTypes.BodyMesh.unpack(u) : null;
+            String f_mode = u.more(end) ? switch ((int) u.getU()) { case 0 -> "cutout"; case 1 -> "translucent"; case 2 -> "emissive"; default -> ""; } : "cutout";
+            boolean f_glint = u.more(end) ? u.getBool() : false;
+            long f_tint = u.more(end) ? u.getI() : 0L;
+            u.leave(end);
+            return new BodyDraw(f_anchor, f_bone, f_mesh, f_mode, f_glint, f_tint);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BodyDraw fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BodyDraw fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BodyDraw readFrame(YogFrame.Unpacker u) {
+            BodyDraw v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BodyDraw} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                u.leave(end);
+            }
+
+            public String anchor() {
+                if (o0 < 0) return "entity";
+                u.seek(o0);
+                return switch ((int) u.getU()) { case 0 -> "entity"; case 1 -> "model"; case 2 -> "bone"; case 3 -> "block"; default -> ""; };
+            }
+
+            public String bone() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public YogTypes.BodyMesh.View mesh() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return new YogTypes.BodyMesh.View(u);
+            }
+
+            public String mode() {
+                if (o3 < 0) return "cutout";
+                u.seek(o3);
+                return switch ((int) u.getU()) { case 0 -> "cutout"; case 1 -> "translucent"; case 2 -> "emissive"; default -> ""; };
+            }
+
+            public boolean glint() {
+                if (o4 < 0) return false;
+                u.seek(o4);
+                return u.getBool();
+            }
+
+            public long tint() {
+                if (o5 < 0) return 0L;
+                u.seek(o5);
+                return u.getI();
+            }
+        }
+    }
+
     /** One kind of block in a [`BlockArea`]: how it is to walk through. */
     public record BlockKind(String id, boolean solid, boolean liquid, boolean climbable, boolean harmful) {
         public java.util.Map<String, Object> toData() {
@@ -5633,6 +6500,239 @@ public final class YogTypes {
         }
     }
 
+    /** Quads with one texture: [`VERTEX_FLOATS`] floats a vertex, four vertices a quad. */
+    public record BodyMesh(String texture, float[] verts) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("texture", texture);
+            m.put("verts", YogData.listOf(verts));
+            return m;
+        }
+
+        public static BodyMesh fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BodyMesh(YogData.str(m.get("texture"), ""), YogData.floats(m.get("verts")));
+        }
+
+        public static BodyMesh fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.texture);
+            p.putF32s(this.verts);
+            p.end(at);
+        }
+
+        public static BodyMesh unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_texture = u.more(end) ? u.getStr() : "";
+            float[] f_verts = u.more(end) ? u.getF32s() : new float[0];
+            u.leave(end);
+            return new BodyMesh(f_texture, f_verts);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BodyMesh fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BodyMesh fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BodyMesh readFrame(YogFrame.Unpacker u) {
+            BodyMesh v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BodyMesh} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int h1, n1, b1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { h1 = u.position(); n1 = u.count(); b1 = 1; o1 = u.position(); u.skip(n1 * (b1 != 0 ? 4 : 8)); } else { h1 = n1 = b1 = 0; o1 = -1; }
+                u.leave(end);
+            }
+
+            public String texture() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public float[] verts() {
+                if (o1 < 0) return new float[0];
+                u.seek(h1);
+                return u.getF32s();
+            }
+
+            public int vertsLength() {
+                return n1;
+            }
+
+            /** Item {@code i}, read in place. */
+            public float verts(int i) {
+                if (i < 0 || i >= n1) throw new IndexOutOfBoundsException(i);
+                return u.f32At(o1 + 4 * i);
+            }
+        }
+    }
+
+    /** What to change about a vanilla part. */
+    public record BodyBoneOp(YogTypes.Vec3 rotation, boolean setRotation, YogTypes.Vec3 position, boolean setPosition, YogTypes.Vec3 scale, Boolean visible) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("rotation", rotation.toData());
+            m.put("set_rotation", setRotation);
+            m.put("position", position.toData());
+            m.put("set_position", setPosition);
+            if (scale != null) m.put("scale", scale.toData());
+            if (visible != null) m.put("visible", visible);
+            return m;
+        }
+
+        public static BodyBoneOp fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BodyBoneOp(YogTypes.Vec3.fromData(m.get("rotation")), YogData.bool(m.get("set_rotation"), false), YogTypes.Vec3.fromData(m.get("position")), YogData.bool(m.get("set_position"), false), (m.get("scale") == null ? null : YogTypes.Vec3.fromData(m.get("scale"))), (m.get("visible") == null ? null : YogData.bool(m.get("visible"), false)));
+        }
+
+        public static BodyBoneOp fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            this.rotation.pack(p);
+            p.putBool(this.setRotation);
+            this.position.pack(p);
+            p.putBool(this.setPosition);
+            p.putBool(this.scale != null); if (this.scale != null) { this.scale.pack(p); }
+            p.putBool(this.visible != null); if (this.visible != null) { p.putBool(this.visible); }
+            p.end(at);
+        }
+
+        public static BodyBoneOp unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.Vec3 f_rotation = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
+            boolean f_setRotation = u.more(end) ? u.getBool() : false;
+            YogTypes.Vec3 f_position = u.more(end) ? YogTypes.Vec3.unpack(u) : null;
+            boolean f_setPosition = u.more(end) ? u.getBool() : false;
+            YogTypes.Vec3 f_scale = u.more(end) ? (u.getBool() ? YogTypes.Vec3.unpack(u) : null) : null;
+            Boolean f_visible = u.more(end) ? (u.getBool() ? Boolean.valueOf(u.getBool()) : null) : null;
+            u.leave(end);
+            return new BodyBoneOp(f_rotation, f_setRotation, f_position, f_setPosition, f_scale, f_visible);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BodyBoneOp fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BodyBoneOp fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BodyBoneOp readFrame(YogFrame.Unpacker u) {
+            BodyBoneOp v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BodyBoneOp} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); if (u.getBool()) { u.skip(1); } } else { o5 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.Vec3.View rotation() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return new YogTypes.Vec3.View(u);
+            }
+
+            public boolean setRotation() {
+                if (o1 < 0) return false;
+                u.seek(o1);
+                return u.getBool();
+            }
+
+            public YogTypes.Vec3.View position() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return new YogTypes.Vec3.View(u);
+            }
+
+            public boolean setPosition() {
+                if (o3 < 0) return false;
+                u.seek(o3);
+                return u.getBool();
+            }
+
+            public YogTypes.Vec3 scale() {
+                if (o4 < 0) return null;
+                u.seek(o4);
+                return (u.getBool() ? YogTypes.Vec3.unpack(u) : null);
+            }
+
+            public Boolean visible() {
+                if (o5 < 0) return null;
+                u.seek(o5);
+                return (u.getBool() ? Boolean.valueOf(u.getBool()) : null);
+            }
+        }
+    }
+
     /** Nutritional properties for a food item. */
     public record FoodDef(long nutrition, float saturation, boolean canAlwaysEat) {
         public java.util.Map<String, Object> toData() {
@@ -7336,6 +8436,23 @@ public final class YogTypes {
         public static final String SOUTH = "south";
         public static final String WEST = "west";
         public static final String EAST = "east";
+    }
+
+    /** [`Anchor`] as the wire names it; a bone's name goes beside it. */
+    public static final class BodyAnchor {
+        private BodyAnchor() {}
+        public static final String ENTITY = "entity";
+        public static final String MODEL = "model";
+        public static final String BONE = "bone";
+        public static final String BLOCK = "block";
+    }
+
+    /** How a mesh is drawn. */
+    public static final class BodyMode {
+        private BodyMode() {}
+        public static final String CUTOUT = "cutout";
+        public static final String TRANSLUCENT = "translucent";
+        public static final String EMISSIVE = "emissive";
     }
 
     /** Where a piece of armor, or something else worn, is worn. */

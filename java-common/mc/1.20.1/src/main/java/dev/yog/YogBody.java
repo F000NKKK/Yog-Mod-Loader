@@ -7,10 +7,7 @@ import com.mojang.math.Axis;
 import dev.yog.mixin.ModelPartAccess;
 import dev.yog.mixin.WalkAnimationAccess;
 import dev.yog.util.YogBodyWire;
-import dev.yog.util.YogBodyWire.BoneOp;
 import dev.yog.util.YogBodyWire.Captured;
-import dev.yog.util.YogBodyWire.Mesh;
-import dev.yog.util.YogBodyWire.Ops;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -61,11 +58,11 @@ public final class YogBody {
 
     /** One entity being drawn: what the mods said, the parts changed. */
     private static final class State {
-        static final State NONE = new State(Ops.NONE);
-        final Ops ops;
+        static final State NONE = new State(dev.yog.util.YogBodyBus.NONE);
+        final YogTypes.BodyOps ops;
         final List<Saved> saved = new ArrayList<>();
 
-        State(Ops ops) {
+        State(YogTypes.BodyOps ops) {
             this.ops = ops;
         }
     }
@@ -111,15 +108,15 @@ public final class YogBody {
         float head = Mth.rotLerp(partial, e.yHeadRotO, e.yHeadRot);
         boolean alive = e.isAlive() && !e.isPassenger();
         Vec3 v = e.getDeltaMovement();
-        byte[] frame = YogBodyWire.frame(new YogBodyWire.Pose(e.getUUID(), typeId(e), partial, e.tickCount + partial,
+        YogTypes.BodyFrame frame = YogBodyWire.frame(new YogBodyWire.Pose(e.getUUID(), typeId(e), partial, e.tickCount + partial,
                 alive ? e.walkAnimation.position(partial) : 0, alive ? Math.min(1, e.walkAnimation.speed(partial)) : 0,
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
                 (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial));
-        Ops ops = Ops.parse(dev.yog.util.YogBodyBus.bodyPose(frame));
-        if (!ops.captures.isEmpty()) capture(self, e, ops.captures, partial, light);
-        if (ops.disguise != null) {
-            Entity d = dummy(e, ops.disguise);
+        YogTypes.BodyOps ops = dev.yog.util.YogBodyBus.bodyOps(frame);
+        if (!ops.captures().isEmpty()) capture(self, e, ops.captures(), partial, light);
+        if (ops.disguise() != null) {
+            Entity d = dummy(e, ops.disguise());
             if (d != null) {
                 capturing++; // the stand-in isn't asked about
                 try {
@@ -129,12 +126,12 @@ public final class YogBody {
                 }
             }
         }
-        if (ops.hide) {
-            if (ops.has(YogBodyWire.ANCHOR_ENTITY)) {
+        if (ops.hide()) {
+            if (YogBodyWire.has(ops, YogTypes.BodyAnchor.ENTITY)) {
                 pose.pushPose();
                 pose.mulPose(Axis.YP.rotationDegrees(180.0F - body));
-                if (ops.root != null) pose.mulPoseMatrix(new Matrix4f().set(ops.root));
-                draw(ops, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, buffers, light));
+                if (ops.root() != null) pose.mulPoseMatrix(new Matrix4f().set(ops.root()));
+                draw(ops, YogTypes.BodyAnchor.ENTITY, null, new Into(pose, buffers, light));
                 pose.popPose();
             }
             return true;
@@ -146,45 +143,46 @@ public final class YogBody {
     /** After vanilla turned the body: the mods' turn, then their entity-space meshes. */
     public static void rotated(PoseStack pose, MultiBufferSource buffers, int light) {
         State s = DRAWING.peek();
-        if (s == null || s.ops == Ops.NONE) return;
-        if (s.ops.root != null) pose.mulPoseMatrix(new Matrix4f().set(s.ops.root));
-        draw(s.ops, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, buffers, light));
+        if (s == null || s.ops == dev.yog.util.YogBodyBus.NONE) return;
+        if (s.ops.root() != null) pose.mulPoseMatrix(new Matrix4f().set(s.ops.root()));
+        draw(s.ops, YogTypes.BodyAnchor.ENTITY, null, new Into(pose, buffers, light));
     }
 
     /** After vanilla animated the model: the mods' part changes. */
     public static void posed(EntityModel<?> model) {
         State s = DRAWING.peek();
-        if (s == null || s.ops.bones.isEmpty()) return;
+        if (s == null || s.ops.bones().isEmpty()) return;
         Map<String, ModelPart[]> parts = parts(model);
-        for (BoneOp o : s.ops.bones) {
-            ModelPart[] chain = parts.get(o.name);
+        for (YogTypes.BodyBone bone : s.ops.bones()) {
+            YogTypes.BodyBoneOp o = bone.op();
+            ModelPart[] chain = parts.get(bone.name());
             if (chain == null) continue;
             ModelPart p = chain[chain.length - 1];
             s.saved.add(new Saved(p));
-            if ((o.flags & YogBodyWire.BONE_SET_ROT) != 0) {
-                p.xRot = o.rx; p.yRot = o.ry; p.zRot = o.rz;
+            if (o.setRotation()) {
+                p.xRot = o.rotation().x(); p.yRot = o.rotation().y(); p.zRot = o.rotation().z();
             } else {
-                p.xRot += o.rx; p.yRot += o.ry; p.zRot += o.rz;
+                p.xRot += o.rotation().x(); p.yRot += o.rotation().y(); p.zRot += o.rotation().z();
             }
-            if ((o.flags & YogBodyWire.BONE_SET_POS) != 0) {
-                p.x = o.px; p.y = o.py; p.z = o.pz;
+            if (o.setPosition()) {
+                p.x = o.position().x(); p.y = o.position().y(); p.z = o.position().z();
             } else {
-                p.x += o.px; p.y += o.py; p.z += o.pz;
+                p.x += o.position().x(); p.y += o.position().y(); p.z += o.position().z();
             }
-            if ((o.flags & YogBodyWire.BONE_SCALE) != 0) {
-                p.xScale *= o.sx; p.yScale *= o.sy; p.zScale *= o.sz;
+            if (o.scale() != null) {
+                p.xScale *= o.scale().x(); p.yScale *= o.scale().y(); p.zScale *= o.scale().z();
             }
-            if ((o.flags & YogBodyWire.BONE_HIDE) != 0) p.visible = false;
-            if ((o.flags & YogBodyWire.BONE_SHOW) != 0) p.visible = true;
+            if (Boolean.FALSE.equals(o.visible())) p.visible = false;
+            if (Boolean.TRUE.equals(o.visible())) p.visible = true;
         }
     }
 
     /** After the model and its layers: the mods' model- and part-space meshes. */
     public static void drawn(EntityModel<?> model, PoseStack pose, MultiBufferSource buffers, int light) {
         State s = DRAWING.peek();
-        if (s == null || s.ops.meshes.isEmpty()) return;
-        draw(s.ops, YogBodyWire.ANCHOR_MODEL, null, new Into(pose, buffers, light));
-        if (s.ops.has(YogBodyWire.ANCHOR_BONE)) draw(s.ops, YogBodyWire.ANCHOR_BONE, parts(model), new Into(pose, buffers, light));
+        if (s == null || s.ops.draws().isEmpty()) return;
+        draw(s.ops, YogTypes.BodyAnchor.MODEL, null, new Into(pose, buffers, light));
+        if (YogBodyWire.has(s.ops, YogTypes.BodyAnchor.BONE)) draw(s.ops, YogTypes.BodyAnchor.BONE, parts(model), new Into(pose, buffers, light));
     }
 
     /** Render RETURN: the parts back as vanilla left them. */
@@ -194,41 +192,42 @@ public final class YogBody {
         for (int i = s.saved.size() - 1; i >= 0; i--) s.saved.get(i).restore();
     }
 
-    private static void draw(Ops ops, int anchor, Map<String, ModelPart[]> parts, Into into) {
+    private static void draw(YogTypes.BodyOps ops, String anchor, Map<String, ModelPart[]> parts, Into into) {
         PoseStack pose = into.pose();
         MultiBufferSource buffers = into.buffers();
         int light = into.light();
-        for (Mesh m : ops.meshes) {
-            if (m.anchor != anchor) continue;
+        for (YogTypes.BodyDraw m : ops.draws()) {
+            if (!m.anchor().equals(anchor)) continue;
             pose.pushPose();
-            if (anchor == YogBodyWire.ANCHOR_BONE) {
-                ModelPart[] chain = parts.get(m.bone);
+            if (anchor.equals(YogTypes.BodyAnchor.BONE)) {
+                ModelPart[] chain = parts.get(m.bone());
                 if (chain == null) {
                     pose.popPose();
                     continue;
                 }
                 for (ModelPart p : chain) p.translateAndRotate(pose);
             }
-            if (anchor != YogBodyWire.ANCHOR_ENTITY) pose.scale(1 / 16.0F, 1 / 16.0F, 1 / 16.0F);
+            if (!anchor.equals(YogTypes.BodyAnchor.ENTITY)) pose.scale(1 / 16.0F, 1 / 16.0F, 1 / 16.0F);
             emit(m, pose, buffers, light);
             pose.popPose();
         }
     }
 
-    private static void emit(Mesh m, PoseStack pose, MultiBufferSource buffers, int light) {
-        ResourceLocation tex = ResourceLocation.tryParse(m.texture);
+    private static void emit(YogTypes.BodyDraw m, PoseStack pose, MultiBufferSource buffers, int light) {
+        ResourceLocation tex = ResourceLocation.tryParse(m.mesh().texture());
         if (tex == null) return;
-        RenderType type = switch (m.mode) {
-            case YogBodyWire.MODE_TRANSLUCENT -> RenderType.entityTranslucent(tex);
-            case YogBodyWire.MODE_EMISSIVE -> RenderType.eyes(tex);
+        RenderType type = switch (m.mode()) {
+            case YogTypes.BodyMode.TRANSLUCENT -> RenderType.entityTranslucent(tex);
+            case YogTypes.BodyMode.EMISSIVE -> RenderType.eyes(tex);
             default -> RenderType.entityCutoutNoCull(tex);
         };
-        VertexConsumer vc = m.glint ? ItemRenderer.getArmorFoilBuffer(buffers, type, false, true) : buffers.getBuffer(type);
-        int lit = m.mode == YogBodyWire.MODE_EMISSIVE ? LightTexture.FULL_BRIGHT : light;
-        int a = m.argb >>> 24, r = m.argb >> 16 & 0xFF, g = m.argb >> 8 & 0xFF, b = m.argb & 0xFF;
+        VertexConsumer vc = m.glint() ? ItemRenderer.getArmorFoilBuffer(buffers, type, false, true) : buffers.getBuffer(type);
+        int lit = YogTypes.BodyMode.EMISSIVE.equals(m.mode()) ? LightTexture.FULL_BRIGHT : light;
+        int argb = (int) m.tint();
+        int a = argb >>> 24, r = argb >> 16 & 0xFF, g = argb >> 8 & 0xFF, b = argb & 0xFF;
         Matrix4f mat = pose.last().pose();
         Matrix3f nm = pose.last().normal();
-        float[] v = m.verts;
+        float[] v = m.mesh().verts();
         for (int i = 0; i + 8 <= v.length; i += 8) {
             vc.vertex(mat, v[i], v[i + 1], v[i + 2]).color(r, g, b, a).uv(v[i + 3], v[i + 4])
                     .overlayCoords(overlay).uv2(lit).normal(nm, v[i + 5], v[i + 6], v[i + 7]).endVertex();
@@ -249,22 +248,22 @@ public final class YogBody {
         float head = living != null ? Mth.rotLerp(partial, living.yHeadRotO, living.yHeadRot) : body;
         boolean walks = living != null && living.isAlive() && !living.isPassenger();
         Vec3 v = e.getDeltaMovement();
-        byte[] frame = YogBodyWire.frame(new YogBodyWire.Pose(e.getUUID(), typeId(e), partial, e.tickCount + partial,
+        YogTypes.BodyFrame frame = YogBodyWire.frame(new YogBodyWire.Pose(e.getUUID(), typeId(e), partial, e.tickCount + partial,
                 walks ? living.walkAnimation.position(partial) : 0, walks ? Math.min(1, living.walkAnimation.speed(partial)) : 0,
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
                 (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial));
-        Ops ops = Ops.parse(dev.yog.util.YogBodyBus.bodyPose(frame));
-        if (ops == Ops.NONE) return;
+        YogTypes.BodyOps ops = dev.yog.util.YogBodyBus.bodyOps(frame);
+        if (ops == dev.yog.util.YogBodyBus.NONE) return;
         overlay = living != null ? LivingEntityRenderer.getOverlayCoords(living, 0) : OverlayTexture.NO_OVERLAY;
         try {
             pose.pushPose();
             pose.mulPose(Axis.YP.rotationDegrees(180.0F - body));
-            if (ops.root != null) pose.mulPoseMatrix(new Matrix4f().set(ops.root));
-            draw(ops, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, buffers, light));
+            if (ops.root() != null) pose.mulPoseMatrix(new Matrix4f().set(ops.root()));
+            draw(ops, YogTypes.BodyAnchor.ENTITY, null, new Into(pose, buffers, light));
             pose.scale(-1.0F, -1.0F, 1.0F);
             pose.translate(0.0F, -1.501F, 0.0F);
-            draw(ops, YogBodyWire.ANCHOR_MODEL, null, new Into(pose, buffers, light));
+            draw(ops, YogTypes.BodyAnchor.MODEL, null, new Into(pose, buffers, light));
             pose.popPose();
         } finally {
             overlay = OverlayTexture.NO_OVERLAY;

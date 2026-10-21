@@ -609,12 +609,9 @@ impl Registry {
         F: Fn(&yog_body::Frame, &mut yog_body::Ops) + Send + Sync + 'static,
     {
         self.change::<yog_event::client::render::Body>(move |e, _| {
-            let Some(frame) = yog_body::Frame::decode(&e.frame) else {
-                return;
-            };
             let mut ops = yog_body::Ops::default();
-            handler(&frame, &mut ops);
-            e.ops.extend_from_slice(&ops.0);
+            handler(&e.frame, &mut ops);
+            e.ops.add(ops);
         });
     }
 

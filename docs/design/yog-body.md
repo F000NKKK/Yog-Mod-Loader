@@ -51,19 +51,24 @@ Every mod with an `on_body` handler is asked; their ops add up in order.
 
 Captures come in entity space.
 
-## Wire (little-endian; `str` = u16 length + UTF-8)
+## Wire (Yog Data, on the bus's `client/render/body` event)
 
-Frame: `u8 1`, `str uuid`, `str type`, f32 partial, age, limb_swing,
-limb_amount, head_yaw, head_pitch, body_yaw, pitch, f64 x y z, f32 vx vy vz,
-u32 flags, u16 captures × (`str source`, u16 meshes × (`str texture`,
-u32 vertices × 8 f32: x y z u v nx ny nz)).
+The frame and the ops are `yog_body::wire`'s records — the hosts read and
+write them through the Java records generated from them (`YogTypes.BodyFrame`,
+`YogTypes.BodyOps`); nothing is laid out by hand on either side.
 
-Ops, until the end: `1` root (16 f32, column-major), `2` bone (`str name`,
-u8 flags: 1 rot set, 2 pos set, 4 scale, 8 hide, 16 show; f32 rot xyz rad,
-pos xyz px, scale xyz), `3` mesh (u8 anchor 0 entity 1 model 2 bone,
-`str bone`, `str texture`, u8 mode 0 cutout 1 translucent 2 emissive, u8
-glint, u32 argb, u32 vertices × 8 f32 — quads), `4` disguise (`str type`),
-`5` hide, `6` capture (`str source`: `self` or an entity type).
+- **Frame** (`BodyFrame`): uuid, type, partial, age, limb swing and amount,
+  head yaw and pitch, body yaw, pitch, position (f64), velocity, flags, the
+  game's time; last frame's captures (`BodyCapture`: source, meshes); what
+  the entity keeps (`BodyKept`: key, bytes), filled in by the runtime.
+- **Ops** (`BodyOps`), every handler's added up (`Ops::add`): `root` (16
+  floats, column-major — turns compose), `bones` (`BodyBone`: a vanilla part
+  and its `BodyBoneOp` — rotation, position, set or added, scale, shown or
+  hidden), `draws` (`BodyDraw`: anchor `entity`/`model`/`bone`/`block`, the
+  bone, the mesh, mode `cutout`/`translucent`/`emissive`, glint, ARGB tint),
+  `disguise` (an entity type), `hide`, `captures` (`self` or entity types).
+- A mesh (`BodyMesh`) is a texture and its quads' vertices, 8 floats each:
+  x y z u v nx ny nz, four a quad.
 
 ## Formats
 

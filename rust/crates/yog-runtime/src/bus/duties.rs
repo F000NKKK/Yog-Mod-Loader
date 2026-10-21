@@ -130,7 +130,7 @@ pub(crate) fn register() {
     // The camera's changes start from none (the defaults live in yog-body).
     change::<client::render::Camera>(FIRST, |c| c.out = yog_body::CameraOut::default());
     // A body's frame carries what this client was told its entity keeps.
-    change::<client::render::Body>(FIRST, |b| b.frame = crate::entity_data::with_data(&b.frame));
+    change::<client::render::Body>(FIRST, |b| crate::entity_data::fill_frame(&mut b.frame));
     // Mods' records go to the game's log.
     after::<log::Record>(LAST, |r| {
         crate::logging::host_log(yog_logging::Level::from_u32(r.level), &r.message)

@@ -1,7 +1,6 @@
 //! What the client draws.
 
 use yog_data::Schema;
-use yog_data::with::Raw;
 
 /// Fired every frame when the HUD is rendered.
 /// `delta_tick` is the partial-tick interpolation factor (0.0–1.0).
@@ -32,13 +31,11 @@ pub struct Camera {
 }
 
 /// A tracked entity's body this frame (`yog_body::wire`): each handler
-/// appends its ops to `ops` (pose vanilla parts, turn, draw meshes…).
+/// adds its ops to `ops` (pose vanilla parts, turn, draw meshes…).
 #[derive(Debug, Clone, Schema)]
 pub struct Body {
-    #[data(with = "Raw")]
-    pub frame: Vec<u8>,
-    #[data(with = "Raw")]
-    pub ops: Vec<u8>,
+    pub frame: yog_body::Frame,
+    pub ops: yog_body::Ops,
 }
 
 /// A stack's tooltip picture drawn in `rect` (`[x, y, w, h]`, screen

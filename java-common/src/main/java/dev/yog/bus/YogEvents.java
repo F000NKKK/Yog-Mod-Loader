@@ -6167,18 +6167,18 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 }
             }
 
-            /** A tracked entity's body this frame (`yog_body::wire`): each handler appends its ops to `ops` (pose vanilla parts, turn, draw meshes…). */
-            public record Body(byte[] frame, byte[] ops) {
+            /** A tracked entity's body this frame (`yog_body::wire`): each handler adds its ops to `ops` (pose vanilla parts, turn, draw meshes…). */
+            public record Body(YogTypes.BodyFrame frame, YogTypes.BodyOps ops) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
-                    m.put("frame", frame);
-                    m.put("ops", ops);
+                    m.put("frame", frame.toData());
+                    m.put("ops", ops.toData());
                     return m;
                 }
 
                 public static Body fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Body((m.get("frame") instanceof byte[] e0 ? e0 : new byte[0]), (m.get("ops") instanceof byte[] e0 ? e0 : new byte[0]));
+                    return new Body(YogTypes.BodyFrame.fromData(m.get("frame")), YogTypes.BodyOps.fromData(m.get("ops")));
                 }
 
                 public static Body fromBytes(byte[] bytes) {
@@ -6187,15 +6187,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
 
                 public void pack(YogFrame.Packer p) {
                     int at = p.begin();
-                    p.putBytes(this.frame);
-                    p.putBytes(this.ops);
+                    this.frame.pack(p);
+                    this.ops.pack(p);
                     p.end(at);
                 }
 
                 public static Body unpack(YogFrame.Unpacker u) {
                     int end = u.begin();
-                    byte[] f_frame = u.more(end) ? u.getBytes() : new byte[0];
-                    byte[] f_ops = u.more(end) ? u.getBytes() : new byte[0];
+                    YogTypes.BodyFrame f_frame = u.more(end) ? YogTypes.BodyFrame.unpack(u) : null;
+                    YogTypes.BodyOps f_ops = u.more(end) ? YogTypes.BodyOps.unpack(u) : null;
                     u.leave(end);
                     return new Body(f_frame, f_ops);
                 }
@@ -6237,21 +6237,21 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     public View(YogFrame.Unpacker u) {
                         this.u = u;
                         int end = u.begin();
-                        if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
-                        if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                        if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                        if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
                         u.leave(end);
                     }
 
-                    public byte[] frame() {
-                        if (o0 < 0) return new byte[0];
+                    public YogTypes.BodyFrame.View frame() {
+                        if (o0 < 0) return null;
                         u.seek(o0);
-                        return u.getBytes();
+                        return new YogTypes.BodyFrame.View(u);
                     }
 
-                    public byte[] ops() {
-                        if (o1 < 0) return new byte[0];
+                    public YogTypes.BodyOps.View ops() {
+                        if (o1 < 0) return null;
                         u.seek(o1);
-                        return u.getBytes();
+                        return new YogTypes.BodyOps.View(u);
                     }
                 }
 

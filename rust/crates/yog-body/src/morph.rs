@@ -25,9 +25,9 @@ fn faces(meshes: &[Mesh]) -> Vec<Face<'_>> {
     meshes
         .iter()
         .flat_map(|m| {
-            m.quads.iter().map(move |q| Face {
+            m.quads().into_iter().map(move |quad| Face {
                 texture: &m.texture,
-                quad: *q,
+                quad,
             })
         })
         .collect()
@@ -125,17 +125,14 @@ mod tests {
             uv: [[0.0; 2]; 4],
             normal: Vec3::new(0.0, 1.0, 0.0),
         };
-        Mesh {
-            texture: tex.into(),
-            quads: vec![q; n],
-        }
+        Mesh::new(tex, &vec![q; n])
     }
 
     #[test]
     fn half_way_draws_both_skins() {
         let mut ops = Ops::default();
         blend(&mut ops, &[mesh("a", 0.0, 2)], &[mesh("b", 2.0, 3)], 0.5);
-        assert!(ops.0.iter().filter(|b| **b == 3).count() >= 2);
+        assert!(ops.draws.len() >= 2);
         let mut none = Ops::default();
         blend(&mut none, &[mesh("a", 0.0, 2)], &[mesh("b", 2.0, 3)], 0.0);
         assert!(!none.is_empty());

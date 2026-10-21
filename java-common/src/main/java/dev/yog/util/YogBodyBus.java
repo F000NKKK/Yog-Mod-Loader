@@ -12,13 +12,14 @@ import dev.yog.bus.YogTypes;
 public final class YogBodyBus {
     private YogBodyBus() {}
 
-    private static final byte[] NONE = new byte[0];
+    /** No ops: what a body nobody changes gets. */
+    public static final YogTypes.BodyOps NONE = new YogTypes.BodyOps(null, java.util.List.of(), java.util.List.of(), null, false, java.util.List.of());
     private static final YogTypes.Vec3 ZERO = new YogTypes.Vec3(0, 0, 0);
 
-    /** The ops for a tracked entity's body this frame ({@code yog_body::wire}), or null for none. */
-    public static byte[] bodyPose(byte[] frame) {
-        byte[] ops = new YogEvents.Client.Render.Body(frame, NONE).emitChanged().ops();
-        return ops.length == 0 ? null : ops;
+    /** The ops for a tracked entity's body this frame ({@code yog_body::wire}); {@link #NONE} for none. */
+    public static YogTypes.BodyOps bodyOps(YogTypes.BodyFrame frame) {
+        YogTypes.BodyOps ops = new YogEvents.Client.Render.Body(frame, NONE).emitChanged().ops();
+        return ops.equals(NONE) ? NONE : ops;
     }
 
     /** {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} the mods make of this frame's camera. */

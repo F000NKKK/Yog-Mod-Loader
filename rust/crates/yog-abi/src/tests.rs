@@ -31,7 +31,7 @@ fn layout_fingerprint() -> u64 {
 fn the_layout_matches_its_version() {
     assert_eq!(
         (ABI_VERSION, layout_fingerprint()),
-        (40001, 0x363d_3a40_d0b0_f211),
+        (50000, 0x363d_3a40_d0b0_f211),
         "layout fingerprint: {:#x}",
         layout_fingerprint()
     );

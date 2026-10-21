@@ -404,25 +404,12 @@ pub(crate) fn client_get(uuid: &str, key: &str) -> Option<Vec<u8>> {
     CLIENT.lock().get(uuid).and_then(|v| v.get(key)).cloned()
 }
 
-/// Adds what this client knows of the frame's entity to a body frame
-/// (`yog_body::Frame`): the frame ends with its data.
-pub(crate) fn with_data(frame: &[u8]) -> Vec<u8> {
-    let uuid = frame
-        .get(1..3)
-        .map(|n| u16::from_le_bytes([n[0], n[1]]) as usize)
-        .and_then(|n| frame.get(3..3 + n))
-        .and_then(|s| std::str::from_utf8(s).ok())
-        .unwrap_or("");
-    let values = client_values(uuid);
-    let mut out = Vec::with_capacity(frame.len() + 2);
-    out.extend_from_slice(frame);
-    out.extend_from_slice(&(values.len() as u16).to_le_bytes());
-    for (k, v) in values {
-        put_str(&mut out, &k);
-        out.extend_from_slice(&(v.len() as u32).to_le_bytes());
-        out.extend_from_slice(&v);
-    }
-    out
+/// What this client knows the frame's entity keeps, put in its body frame.
+pub(crate) fn fill_frame(frame: &mut yog_body::Frame) {
+    frame.data = client_values(&frame.uuid)
+        .into_iter()
+        .map(|(key, value)| yog_body::wire::Kept { key, value })
+        .collect();
 }
 
 #[cfg(test)]
@@ -450,9 +437,11 @@ mod tests {
             .entry("ab".into())
             .or_default()
             .insert("m:k".into(), vec![9]);
-        let frame = [1u8, 2, 0, b'a', b'b'];
-        let out = with_data(&frame);
-        assert_eq!(&out[..5], &frame);
-        assert_eq!(&out[5..7], &1u16.to_le_bytes());
+        let mut frame = yog_body::Frame {
+            uuid: "ab".into(),
+            ..Default::default()
+        };
+        fill_frame(&mut frame);
+        assert_eq!(frame.data("m:k"), Some(&[9u8][..]));
     }
 }

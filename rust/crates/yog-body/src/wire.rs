@@ -1,15 +1,25 @@
 //! What the host and a mod say each frame about one entity (see
 //! `docs/design/yog-body.md`): the [`Frame`] the host sends, the [`Ops`]
-//! the mod answers with. Little-endian; strings are a u16 length and UTF-8.
+//! the mod answers with. Both are Yog Data, carried by the bus's
+//! `client/render/body` event; the hosts read and write them through the
+//! records generated from them.
 
+use yog_data::Schema;
+use yog_data::with::Raw;
 use yog_graphics::Color;
 use yog_ids::time::TICKS_PER_SECOND as TICKS;
 
 use crate::math::{Mat4, Vec3};
 use crate::model::Quad;
 
+/// Floats a vertex takes on the wire: x y z, u v, nx ny nz.
+const VERTEX_FLOATS: usize = 8;
+/// Vertices a quad has.
+const QUAD_VERTICES: usize = 4;
+
 /// One entity, this frame.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Schema, Debug, Clone, Default, PartialEq)]
+#[data(rename = "BodyFrame")]
 pub struct Frame {
     pub uuid: String,
     /// `minecraft:player`, `minecraft:zombie`…
@@ -36,25 +46,77 @@ pub struct Frame {
     /// client, so clips timed by it play alike for everyone.
     pub game_time: f64,
     /// What was captured last frame (see [`Ops::capture`]).
+    #[data(default)]
     pub captures: Vec<Capture>,
-    /// What the entity keeps by key (`entity::SetData`), as this
-    /// client was told.
-    pub data: Vec<(String, Vec<u8>)>,
+    /// What the entity keeps by key (`entity::SetData`), as this client was told.
+    #[data(default)]
+    pub data: Vec<Kept>,
+}
+
+/// A value the entity keeps, by key.
+#[derive(Schema, Debug, Clone, Default, PartialEq)]
+#[data(rename = "BodyKept")]
+pub struct Kept {
+    pub key: String,
+    #[data(with = "Raw")]
+    pub value: Vec<u8>,
 }
 
 /// The posed geometry of an entity (entity space, see the design doc).
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Schema, Debug, Clone, Default, PartialEq)]
+#[data(rename = "BodyCapture")]
 pub struct Capture {
     /// `self`, or the entity type captured.
     pub source: String,
     pub meshes: Vec<Mesh>,
 }
 
-/// Quads with one texture.
-#[derive(Debug, Clone, Default, PartialEq)]
+/// Quads with one texture: [`VERTEX_FLOATS`] floats a vertex, four vertices a quad.
+#[derive(Schema, Debug, Clone, Default, PartialEq)]
+#[data(rename = "BodyMesh")]
 pub struct Mesh {
     pub texture: String,
-    pub quads: Vec<Quad>,
+    pub verts: Vec<f32>,
+}
+
+impl Mesh {
+    pub fn new(texture: &str, quads: &[Quad]) -> Mesh {
+        Mesh {
+            texture: texture.to_string(),
+            verts: verts(quads),
+        }
+    }
+
+    /// Its quads (the whole ones).
+    pub fn quads(&self) -> Vec<Quad> {
+        self.verts
+            .as_chunks::<{ VERTEX_FLOATS * QUAD_VERTICES }>()
+            .0
+            .iter()
+            .map(|q| {
+                let vertex = |i: usize| &q[i * VERTEX_FLOATS..(i + 1) * VERTEX_FLOATS];
+                Quad {
+                    pos: std::array::from_fn(|i| {
+                        Vec3::new(vertex(i)[0], vertex(i)[1], vertex(i)[2])
+                    }),
+                    uv: std::array::from_fn(|i| [vertex(i)[3], vertex(i)[4]]),
+                    normal: Vec3::new(vertex(0)[5], vertex(0)[6], vertex(0)[7]),
+                }
+            })
+            .collect()
+    }
+}
+
+/// `quads` as the wire's vertices.
+fn verts(quads: &[Quad]) -> Vec<f32> {
+    let mut out = Vec::with_capacity(quads.len() * QUAD_VERTICES * VERTEX_FLOATS);
+    for q in quads {
+        for i in 0..QUAD_VERTICES {
+            out.extend([q.pos[i].x, q.pos[i].y, q.pos[i].z, q.uv[i][0], q.uv[i][1]]);
+            out.extend([q.normal.x, q.normal.y, q.normal.z]);
+        }
+    }
+    out
 }
 
 /// Where a mesh's vertices are.
@@ -67,6 +129,17 @@ pub enum Anchor {
     /// A vanilla part's space (pixels), wherever the part is posed.
     Bone(String),
     /// A block's space: pixels 0–16, y up, as block models (block bodies).
+    Block,
+}
+
+/// [`Anchor`] as the wire names it; a bone's name goes beside it.
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[data(rename = "BodyAnchor")]
+pub enum AnchorKind {
+    #[default]
+    Entity,
+    Model,
+    Bone,
     Block,
 }
 
@@ -91,7 +164,8 @@ impl Default for Look {
 }
 
 /// How a mesh is drawn.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[data(rename = "BodyMode")]
 pub enum Mode {
     /// Opaque, transparent pixels cut out, both sides.
     #[default]
@@ -103,7 +177,8 @@ pub enum Mode {
 }
 
 /// What to change about a vanilla part.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Default)]
+#[data(rename = "BodyBoneOp")]
 pub struct BoneOp {
     /// Radians; replaces vanilla's turn if `set_rotation`, else adds.
     pub rotation: Vec3,
@@ -116,54 +191,72 @@ pub struct BoneOp {
     pub visible: Option<bool>,
 }
 
-/// A mod's answer: operations, written in order.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Ops(pub Vec<u8>);
+/// A vanilla part to change, and how.
+#[derive(Schema, Debug, Clone, PartialEq, Default)]
+#[data(rename = "BodyBone")]
+pub struct Bone {
+    pub name: String,
+    pub op: BoneOp,
+}
 
-const ROOT: u8 = 1;
-const BONE: u8 = 2;
-const MESH: u8 = 3;
-const DISGUISE: u8 = 4;
-const HIDE: u8 = 5;
-const CAPTURE: u8 = 6;
+/// A mesh to draw: where, with what texture, how it looks ([`Look`] as
+/// numbers: a tint is ARGB).
+#[derive(Schema, Debug, Clone, PartialEq, Default)]
+#[data(rename = "BodyDraw")]
+pub struct Draw {
+    pub anchor: AnchorKind,
+    /// The vanilla part, for [`AnchorKind::Bone`].
+    pub bone: String,
+    pub mesh: Mesh,
+    pub mode: Mode,
+    pub glint: bool,
+    pub tint: u32,
+}
+
+/// A mod's answer — every handler's add up, in order.
+#[derive(Schema, Debug, Clone, Default, PartialEq)]
+#[data(rename = "BodyOps")]
+pub struct Ops {
+    /// The whole body's turn in entity space (after the body's yaw), column-major.
+    pub root: Option<Vec<f32>>,
+    #[data(default)]
+    pub bones: Vec<Bone>,
+    #[data(default)]
+    pub draws: Vec<Draw>,
+    /// Drawn as one of this entity type instead.
+    pub disguise: Option<String>,
+    /// The entity itself isn't drawn (its model, layers and name).
+    #[data(default)]
+    pub hide: bool,
+    /// Sources to capture for the next frame.
+    #[data(default)]
+    pub captures: Vec<String>,
+}
 
 impl Ops {
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        *self == Ops::default()
     }
 
     /// Turns the whole body by `m` in entity space (after the body's yaw).
     pub fn root(&mut self, m: &Mat4) {
-        self.0.push(ROOT);
-        for f in m.0 {
-            put_f32(&mut self.0, f);
-        }
+        let turned = match self
+            .root
+            .as_deref()
+            .and_then(|r| <[f32; 16]>::try_from(r).ok())
+        {
+            Some(r) => Mat4(r) * *m,
+            None => *m,
+        };
+        self.root = Some(turned.0.to_vec());
     }
 
     /// Poses the vanilla part `bone` (after vanilla animated it).
     pub fn bone(&mut self, bone: &str, op: &BoneOp) {
-        let b = &mut self.0;
-        b.push(BONE);
-        put_str(b, bone);
-        let mut flags = 0u8;
-        if op.set_rotation {
-            flags |= 1;
-        }
-        if op.set_position {
-            flags |= 2;
-        }
-        if op.scale.is_some() {
-            flags |= 4;
-        }
-        match op.visible {
-            Some(false) => flags |= 8,
-            Some(true) => flags |= 16,
-            None => {}
-        }
-        b.push(flags);
-        for v in [op.rotation, op.position, op.scale.unwrap_or(Vec3::ONE)] {
-            put_vec(b, v);
-        }
+        self.bones.push(Bone {
+            name: bone.to_string(),
+            op: *op,
+        });
     }
 
     /// Draws `quads` with `texture` at `anchor`, looking `look`.
@@ -171,221 +264,58 @@ impl Ops {
         if quads.is_empty() {
             return;
         }
-        let b = &mut self.0;
-        b.push(MESH);
-        let (a, bone) = match anchor {
-            Anchor::Entity => (0u8, ""),
-            Anchor::Model => (1, ""),
-            Anchor::Bone(n) => (2, n.as_str()),
-            Anchor::Block => (3, ""),
+        let (anchor, bone) = match anchor {
+            Anchor::Entity => (AnchorKind::Entity, ""),
+            Anchor::Model => (AnchorKind::Model, ""),
+            Anchor::Bone(n) => (AnchorKind::Bone, n.as_str()),
+            Anchor::Block => (AnchorKind::Block, ""),
         };
-        b.push(a);
-        put_str(b, bone);
-        put_str(b, texture);
-        b.push(match look.mode {
-            Mode::Cutout => 0,
-            Mode::Translucent => 1,
-            Mode::Emissive => 2,
+        let mesh = Mesh::new(texture, quads);
+        self.draws.push(Draw {
+            anchor,
+            bone: bone.to_string(),
+            mesh,
+            mode: look.mode,
+            glint: look.glint,
+            tint: look.tint.0,
         });
-        b.push(look.glint as u8);
-        b.extend_from_slice(&look.tint.0.to_le_bytes());
-        put_quads(b, quads);
     }
 
     /// Draws the entity as one of `entity_type`, animated like it.
     pub fn disguise(&mut self, entity_type: &str) {
-        self.0.push(DISGUISE);
-        put_str(&mut self.0, entity_type);
+        self.disguise = Some(entity_type.to_string());
     }
 
     /// Doesn't draw the entity itself (its model, layers and name).
     pub fn hide(&mut self) {
-        self.0.push(HIDE);
+        self.hide = true;
     }
 
     /// Asks for the posed geometry of the entity (`"self"`) or of a type
     /// posed like it; it comes in the next frame's [`Frame::captures`].
     pub fn capture(&mut self, source: &str) {
-        self.0.push(CAPTURE);
-        put_str(&mut self.0, source);
+        self.captures.push(source.to_string());
     }
-}
 
-// ── Encoding ────────────────────────────────────────────────────────────────
-
-fn put_f32(b: &mut Vec<u8>, f: f32) {
-    b.extend_from_slice(&f.to_le_bytes());
-}
-
-fn put_vec(b: &mut Vec<u8>, v: Vec3) {
-    put_f32(b, v.x);
-    put_f32(b, v.y);
-    put_f32(b, v.z);
-}
-
-fn put_str(b: &mut Vec<u8>, s: &str) {
-    let s = &s.as_bytes()[..s.len().min(u16::MAX as usize)];
-    b.extend_from_slice(&(s.len() as u16).to_le_bytes());
-    b.extend_from_slice(s);
-}
-
-/// Vertex count, then x y z u v nx ny nz per vertex.
-fn put_quads(b: &mut Vec<u8>, quads: &[Quad]) {
-    b.extend_from_slice(&((quads.len() * 4) as u32).to_le_bytes());
-    for q in quads {
-        for i in 0..4 {
-            put_vec(b, q.pos[i]);
-            put_f32(b, q.uv[i][0]);
-            put_f32(b, q.uv[i][1]);
-            put_vec(b, q.normal);
+    /// `other`'s ops after these (another handler's): turns compose, the
+    /// rest adds up, a later disguise wins.
+    pub fn add(&mut self, other: Ops) {
+        if let Some(r) = other
+            .root
+            .as_deref()
+            .and_then(|r| <[f32; 16]>::try_from(r).ok())
+        {
+            self.root(&Mat4(r));
         }
-    }
-}
-
-struct Reader<'a> {
-    b: &'a [u8],
-}
-
-impl Reader<'_> {
-    fn take(&mut self, n: usize) -> Option<&[u8]> {
-        if self.b.len() < n {
-            return None;
-        }
-        let (h, t) = self.b.split_at(n);
-        self.b = t;
-        Some(h)
-    }
-    fn u8(&mut self) -> Option<u8> {
-        self.take(1).map(|b| b[0])
-    }
-    fn u16(&mut self) -> Option<u16> {
-        self.take(2).map(|b| u16::from_le_bytes([b[0], b[1]]))
-    }
-    /// `N` bytes, as an array.
-    fn array<const N: usize>(&mut self) -> Option<[u8; N]> {
-        self.take(N)?.try_into().ok()
-    }
-    fn u32(&mut self) -> Option<u32> {
-        self.array().map(u32::from_le_bytes)
-    }
-    fn f32(&mut self) -> Option<f32> {
-        self.array().map(f32::from_le_bytes)
-    }
-    fn f64(&mut self) -> Option<f64> {
-        self.array().map(f64::from_le_bytes)
-    }
-    fn vec(&mut self) -> Option<Vec3> {
-        Some(Vec3::new(self.f32()?, self.f32()?, self.f32()?))
-    }
-    fn str(&mut self) -> Option<String> {
-        let n = self.u16()? as usize;
-        String::from_utf8(self.take(n)?.to_vec()).ok()
-    }
-    fn quads(&mut self) -> Option<Vec<Quad>> {
-        let n = self.u32()? as usize / 4;
-        let mut out = Vec::with_capacity(n.min(1 << 16));
-        for _ in 0..n {
-            let mut q = Quad {
-                pos: [Vec3::ZERO; 4],
-                uv: [[0.0; 2]; 4],
-                normal: Vec3::ZERO,
-            };
-            for i in 0..4 {
-                q.pos[i] = self.vec()?;
-                q.uv[i] = [self.f32()?, self.f32()?];
-                q.normal = self.vec()?;
-            }
-            out.push(q);
-        }
-        Some(out)
+        self.bones.extend(other.bones);
+        self.draws.extend(other.draws);
+        self.disguise = other.disguise.or(self.disguise.take());
+        self.hide |= other.hide;
+        self.captures.extend(other.captures);
     }
 }
 
 impl Frame {
-    /// Reads what the host sent.
-    pub fn decode(bytes: &[u8]) -> Option<Frame> {
-        let mut r = Reader { b: bytes };
-        if r.u8()? != 2 {
-            return None;
-        }
-        let mut f = Frame {
-            uuid: r.str()?,
-            entity_type: r.str()?,
-            partial: r.f32()?,
-            age: r.f32()?,
-            limb_swing: r.f32()?,
-            limb_amount: r.f32()?,
-            head_yaw: r.f32()?,
-            head_pitch: r.f32()?,
-            body_yaw: r.f32()?,
-            pitch: r.f32()?,
-            pos: [r.f64()?, r.f64()?, r.f64()?],
-            velocity: r.vec()?,
-            flags: r.u32()?,
-            game_time: r.f64()?,
-            captures: Vec::new(),
-            data: Vec::new(),
-        };
-        for _ in 0..r.u16()? {
-            let source = r.str()?;
-            let mut meshes = Vec::new();
-            for _ in 0..r.u16()? {
-                meshes.push(Mesh {
-                    texture: r.str()?,
-                    quads: r.quads()?,
-                });
-            }
-            f.captures.push(Capture { source, meshes });
-        }
-        for _ in 0..r.u16()? {
-            let key = r.str()?;
-            let n = r.u32()? as usize;
-            f.data.push((key, r.take(n)?.to_vec()));
-        }
-        Some(f)
-    }
-
-    /// As the host writes it (for tests and tools).
-    pub fn encode(&self) -> Vec<u8> {
-        let mut b = vec![2u8];
-        put_str(&mut b, &self.uuid);
-        put_str(&mut b, &self.entity_type);
-        for f in [
-            self.partial,
-            self.age,
-            self.limb_swing,
-            self.limb_amount,
-            self.head_yaw,
-            self.head_pitch,
-            self.body_yaw,
-            self.pitch,
-        ] {
-            put_f32(&mut b, f);
-        }
-        for p in self.pos {
-            b.extend_from_slice(&p.to_le_bytes());
-        }
-        put_vec(&mut b, self.velocity);
-        b.extend_from_slice(&self.flags.to_le_bytes());
-        b.extend_from_slice(&self.game_time.to_le_bytes());
-        b.extend_from_slice(&(self.captures.len() as u16).to_le_bytes());
-        for c in &self.captures {
-            put_str(&mut b, &c.source);
-            b.extend_from_slice(&(c.meshes.len() as u16).to_le_bytes());
-            for m in &c.meshes {
-                put_str(&mut b, &m.texture);
-                put_quads(&mut b, &m.quads);
-            }
-        }
-        b.extend_from_slice(&(self.data.len() as u16).to_le_bytes());
-        for (k, v) in &self.data {
-            put_str(&mut b, k);
-            b.extend_from_slice(&(v.len() as u32).to_le_bytes());
-            b.extend_from_slice(v);
-        }
-        b
-    }
-
     pub fn has(&self, flag: u32) -> bool {
         self.flags & flag != 0
     }
@@ -410,49 +340,10 @@ impl Frame {
     pub fn data(&self, key: &str) -> Option<&[u8]> {
         self.data
             .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, v)| v.as_slice())
+            .find(|k| k.key == key)
+            .map(|k| k.value.as_slice())
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_frame_reads_back() {
-        let q = Quad {
-            pos: [Vec3::new(1.0, 2.0, 3.0); 4],
-            uv: [[0.5, 0.25]; 4],
-            normal: Vec3::new(0.0, 1.0, 0.0),
-        };
-        let f = Frame {
-            uuid: "u".into(),
-            entity_type: "minecraft:player".into(),
-            age: 12.5,
-            pos: [1.0, 2.0, 3.0],
-            flags: 5,
-            game_time: 1234.5,
-            data: vec![("m:k".into(), vec![1, 2])],
-            captures: vec![Capture {
-                source: "self".into(),
-                meshes: vec![Mesh {
-                    texture: "t".into(),
-                    quads: vec![q],
-                }],
-            }],
-            ..Default::default()
-        };
-        assert_eq!(Frame::decode(&f.encode()), Some(f));
-    }
-
-    #[test]
-    fn ops_are_records() {
-        let mut o = Ops::default();
-        o.hide();
-        o.disguise("minecraft:zombie");
-        assert_eq!(o.0[0], HIDE);
-        assert_eq!(o.0[1], DISGUISE);
-        assert_eq!(&o.0[2..4], &16u16.to_le_bytes());
-    }
-}
+mod tests;
