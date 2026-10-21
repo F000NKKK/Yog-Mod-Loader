@@ -2,6 +2,7 @@
 # release.sh — bump, publish, и обновить ссылки (корневой [workspace.dependencies] и Yog-IDLE).
 # Использование: ./release.sh <crate-name> --patch|--minor|--major [--dry-run] [--no-publish] [--no-cascade]
 #                ./release.sh <crate-name> --publish-only
+#                ./release.sh --all --minor|--major [--dry-run] [--no-publish]
 #
 # При --minor/--major все зависимые крейты воркспейса тоже бампятся (минор) и
 # публикуются следом в порядке зависимостей — иначе на crates.io остаются
@@ -12,6 +13,7 @@
 #   ./release.sh yog-abi --minor          # каскад: abi → gfx → ui → ... → runtime
 #   ./release.sh yog-book --patch         # patch: только ссылки, каскада нет
 #   ./release.sh yog-api --publish-only   # только публикация текущей версии
+#   ./release.sh --all --minor            # все публикуемые крейты, каждый один раз
 
 set -euo pipefail
 
@@ -39,6 +41,7 @@ usage() {
     echo "  --no-publish     сбампить и обновить ссылки без публикации"
     echo "  --no-cascade     не трогать зависимые крейты (как раньше)"
     echo "  --publish-only   только опубликовать текущую версию крейта"
+    echo "  --all            вместо одного крейта — все публикуемые крейты воркспейса"
     exit 1
 }
 
@@ -48,6 +51,7 @@ DRY_RUN=false
 NO_PUBLISH=false
 PUBLISH_ONLY=false
 CASCADE=true
+ALL=false
 
 for arg in "$@"; do
     case "$arg" in
@@ -56,6 +60,7 @@ for arg in "$@"; do
         --no-publish)   NO_PUBLISH=true ;;
         --publish-only) PUBLISH_ONLY=true ;;
         --no-cascade)   CASCADE=false ;;
+        --all)          ALL=true ;;
         --*) die "Неизвестный флаг: $arg"; ;;
         *)
             if [[ -z "$CRATE" ]]; then CRATE="$arg"
@@ -64,6 +69,12 @@ for arg in "$@"; do
     esac
 done
 
+if $ALL; then
+    [[ -n "$CRATE" ]] && die "--all не принимает имя крейта"
+    $PUBLISH_ONLY && die "--all не сочетается с --publish-only"
+    [[ "$BUMP" == "--patch" ]] && die "--all бампит минор или мажор: изменились зависимости"
+    CRATE="--all"
+fi
 [[ -z "$CRATE" ]] && { echo "Не указано имя крейта."; usage; }
 if ! $PUBLISH_ONLY && [[ -z "$BUMP" ]]; then
     echo "Не указан тип бампа."; usage
@@ -77,7 +88,7 @@ crate_version() {
     grep -m1 '^version *= *"' "$(crate_toml "$1")" | sed 's/.*"\([^"]*\)".*/\1/'
 }
 
-[[ -f "$(crate_toml "$CRATE")" ]] || die "Крейт не найден: $(crate_toml "$CRATE")"
+$ALL || [[ -f "$(crate_toml "$CRATE")" ]] || die "Крейт не найден: $(crate_toml "$CRATE")"
 
 # ── Публикация с ретраями ─────────────────────────────────────────────────────
 # Без фиксированного ожидания индексации: cargo сам ждёт появления крейта в
@@ -206,6 +217,7 @@ cascade_order() {
 import sys, re, glob, os
 ws, root = sys.argv[1], sys.argv[2]
 deps = {}
+publishable = {}
 for toml in glob.glob(os.path.join(ws, "crates", "*", "Cargo.toml")):
     text = open(toml).read()
     m = re.search(r'^name *= *"([^"]+)"', text, re.M)
@@ -214,7 +226,8 @@ for toml in glob.glob(os.path.join(ws, "crates", "*", "Cargo.toml")):
     name = m.group(1)
     ds = set(re.findall(r'^(yog-[a-z0-9_-]+) *=', text, re.M)) - {name}
     deps[name] = ds
-if root not in deps:
+    publishable[name] = not re.search(r'^publish *= *false', text, re.M)
+if root not in deps and root != "--all":
     sys.exit(f"crate {root} not found in workspace")
 # Транзитивные зависимые от root
 dependents = set()
@@ -229,6 +242,8 @@ while changed:
             changed = True
 # Топологический порядок внутри {root} ∪ dependents
 sel = dependents | {root}
+if root == "--all":
+    sel = {c for c, t in publishable.items() if t}
 order, placed = [], set()
 while len(order) < len(sel):
     progressed = False
@@ -246,7 +261,7 @@ PY
 }
 
 # ── Составляем план ───────────────────────────────────────────────────────────
-if $CASCADE; then
+if $CASCADE || $ALL; then
     PLAN="$(cascade_order)" || die "не удалось построить каскад"
 else
     PLAN="$CRATE"
@@ -263,7 +278,7 @@ echo ""
 # ── Шаг 1: бампы + обновление ссылок, в порядке зависимостей ──────────────────
 declare -A NEW_VERSIONS
 for c in $PLAN; do
-    if [[ "$c" == "$CRATE" ]]; then
+    if [[ "$c" == "$CRATE" ]] || $ALL; then
         NEW_VERSIONS[$c]="$(bump_crate "$c" "$BUMP" | tail -1)"
     else
         NEW_VERSIONS[$c]="$(bump_crate "$c" --minor | tail -1)"
@@ -280,7 +295,15 @@ else
     ok "check пройден"
 fi
 
-# ── Шаг 3: публикация цепочки ─────────────────────────────────────────────────
+# ── Шаг 3: коммит бампов ──────────────────────────────────────────────────────
+# cargo publish не берёт незакоммиченное: версии и ссылки уходят коммитом.
+if ! $DRY_RUN && ! $NO_PUBLISH; then
+    git -C "$WS" add Cargo.toml Cargo.lock crates/*/Cargo.toml
+    git -C "$WS" commit -q -m "chore(release): $(for c in $PLAN; do printf '%s %s, ' "$c" "${NEW_VERSIONS[$c]}"; done | sed 's/, $//')"
+    ok "бампы закоммичены"
+fi
+
+# ── Шаг 4: публикация цепочки ─────────────────────────────────────────────────
 echo ""
 if $NO_PUBLISH; then
     warn "--no-publish: пропускаю cargo publish"

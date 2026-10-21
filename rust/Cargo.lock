@@ -1820,11 +1820,11 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "yog-abi"
-version = "0.30.10"
+version = "0.31.0"
 
 [[package]]
 name = "yog-api"
-version = "0.100.1"
+version = "0.101.0"
 dependencies = [
  "ctor",
  "yog-abi",
@@ -1851,7 +1851,7 @@ dependencies = [
 
 [[package]]
 name = "yog-body"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "yog-data",
  "yog-graphics",
@@ -1861,7 +1861,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.69.0"
+version = "0.70.0"
 dependencies = [
  "criterion",
  "serde_json",
@@ -1876,7 +1876,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.47.1"
+version = "0.48.0"
 dependencies = [
  "base64",
  "criterion",
@@ -1912,15 +1912,15 @@ dependencies = [
 
 [[package]]
 name = "yog-command"
-version = "0.2.1"
+version = "0.3.0"
 
 [[package]]
 name = "yog-config"
-version = "0.1.1"
+version = "0.2.0"
 
 [[package]]
 name = "yog-core"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "yog-data",
  "yog-ids",
@@ -1928,7 +1928,7 @@ dependencies = [
 
 [[package]]
 name = "yog-data"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "base64",
  "bumpalo",
@@ -1947,7 +1947,7 @@ dependencies = [
 
 [[package]]
 name = "yog-data-derive"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1956,7 +1956,7 @@ dependencies = [
 
 [[package]]
 name = "yog-debugger"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "iced-x86",
  "nix",
@@ -1968,7 +1968,7 @@ dependencies = [
 
 [[package]]
 name = "yog-dimensions"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "yog-data",
  "yog-ids",
@@ -1976,7 +1976,7 @@ dependencies = [
 
 [[package]]
 name = "yog-event"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "pastey",
  "yog-body",
@@ -1990,7 +1990,7 @@ dependencies = [
 
 [[package]]
 name = "yog-font"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "yog-data",
  "yog-graphics",
@@ -1998,7 +1998,7 @@ dependencies = [
 
 [[package]]
 name = "yog-formats"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "serde_json",
  "yog-body",
@@ -2013,7 +2013,7 @@ dependencies = [
 
 [[package]]
 name = "yog-gfx"
-version = "0.30.0"
+version = "0.31.0"
 dependencies = [
  "yog-abi",
  "yog-data",
@@ -2024,14 +2024,14 @@ dependencies = [
 
 [[package]]
 name = "yog-graphics"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "yog-data",
 ]
 
 [[package]]
 name = "yog-home"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "dirs",
  "semver",
@@ -2041,7 +2041,7 @@ dependencies = [
 
 [[package]]
 name = "yog-hot-reload"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "libloading",
  "serde",
@@ -2051,14 +2051,14 @@ dependencies = [
 
 [[package]]
 name = "yog-ids"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "const_format",
 ]
 
 [[package]]
 name = "yog-interop"
-version = "0.21.4"
+version = "0.22.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2067,14 +2067,14 @@ dependencies = [
 
 [[package]]
 name = "yog-inventory"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "yog-data",
 ]
 
 [[package]]
 name = "yog-kit"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "yog-api",
  "yog-kit",
@@ -2083,14 +2083,14 @@ dependencies = [
 
 [[package]]
 name = "yog-logging"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "yog-sync",
 ]
 
 [[package]]
 name = "yog-media"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "image",
  "png",
@@ -2101,14 +2101,14 @@ dependencies = [
 
 [[package]]
 name = "yog-network"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "yog-data",
 ]
 
 [[package]]
 name = "yog-registry"
-version = "0.37.0"
+version = "0.38.0"
 dependencies = [
  "serde_json",
  "yog-data",
@@ -2119,7 +2119,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.106.1"
+version = "0.107.0"
 dependencies = [
  "criterion",
  "glow",
@@ -2152,7 +2152,7 @@ dependencies = [
 
 [[package]]
 name = "yog-storage"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "yog-data",
  "yog-ids",
@@ -2160,7 +2160,7 @@ dependencies = [
 
 [[package]]
 name = "yog-symbols"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "addr2line",
  "criterion",
@@ -2172,11 +2172,11 @@ dependencies = [
 
 [[package]]
 name = "yog-sync"
-version = "0.2.0"
+version = "0.3.0"
 
 [[package]]
 name = "yog-ui"
-version = "0.45.0"
+version = "0.46.0"
 dependencies = [
  "criterion",
  "yog-abi",
@@ -2188,7 +2188,7 @@ dependencies = [
 
 [[package]]
 name = "yog-worldgen"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "yog-data",
  "yog-ids",
