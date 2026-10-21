@@ -13,10 +13,12 @@ categories = ["gui", "game-development"]
 [dependencies]
 yog-api = { workspace = true }
 
-# Its own tests drive screens with TestHost.
 yog-sync = { workspace = true }
+
 [dev-dependencies]
-yog-kit = { workspace = true, features = ["testing"] }
+# Its own tests drive screens with TestHost. By path alone, no version:
+# `cargo publish` drops it, as crates.io hasn't this version yet.
+yog-kit = { path = ".", features = ["testing"] }
 
 [features]
 # TestHost: driving a screen in unit tests; never in a mod's build.
