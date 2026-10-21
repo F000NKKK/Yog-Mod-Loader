@@ -89,6 +89,40 @@ names! {
         AIR = crate::id!(crate::ns::MINECRAFT, "air"),
     }
 
+    /// Yog's chunk generator in code (`yog:callback_generator`): the hosts
+    /// write a dimension's JSON with it, and read it back.
+    callback_generator {
+        PATH = "callback_generator",
+        TYPE = crate::id!(crate::ns::YOG, PATH),
+        GENERATOR_TYPE_ID = "generator_type_id",
+        MIN_Y = "min_y",
+        HEIGHT = crate::word::HEIGHT,
+        STRUCTURES = crate::dimension_field::STRUCTURES,
+        FEATURES = crate::dimension_field::FEATURES,
+        MOB_SPAWNING = crate::dimension_field::MOB_SPAWNING,
+        BIOME_SOURCE = "biome_source",
+    }
+
+    /// The game's dimensions as a datapack writes them.
+    game_dimension {
+        DIMENSION_TYPE = crate::dimension_field::DIMENSION_TYPE,
+        DIMENSION = crate::kind::DIMENSION,
+        /// A dimension's biomes: all of one.
+        FIXED_BIOMES = crate::id!(crate::ns::MINECRAFT, "fixed"),
+        /// The game's own generator and its settings, for a dimension with no generator of Yog's.
+        NOISE = crate::id!(crate::ns::MINECRAFT, "noise"),
+        OVERWORLD_NOISE = crate::game::OVERWORLD,
+        /// What burns forever in it.
+        INFINIBURN = crate::concatcp!(crate::sep::TAG, crate::id!(crate::ns::MINECRAFT, "infiniburn_overworld")),
+        /// Its look before 26.1 (`effects`).
+        EFFECTS_OVERWORLD = crate::game::OVERWORLD,
+        EFFECTS_END = crate::game::THE_END,
+        EFFECTS_NETHER = crate::game::THE_NETHER,
+        /// 26.x attributes: whether beds work and explode, whether respawn anchors work.
+        BED_RULE = crate::id!(crate::ns::MINECRAFT, "gameplay/bed_rule"),
+        ANCHORS_WORK = crate::id!(crate::ns::MINECRAFT, "gameplay/respawn_anchor_works"),
+    }
+
     /// The game's worldgen data: `data/<ns>/worldgen/…`.
     worldgen {
         DIR = "worldgen",

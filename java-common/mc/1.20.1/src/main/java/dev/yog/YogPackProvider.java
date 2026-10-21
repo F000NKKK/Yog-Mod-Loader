@@ -32,7 +32,7 @@ public class YogPackProvider implements RepositorySource {
     public void loadPacks(Consumer<Pack> adder) {
         Path dir;
         try {
-            dir = YogPackStager.stage(YogPlatform.gameDir(), YogPlatform.LOADER, net.minecraft.SharedConstants.getCurrentVersion().getName(), MC121_LAYOUT, PACK_MCMETA,
+            dir = YogPackStager.stage(net.minecraft.SharedConstants.getCurrentVersion().getName(), MC121_LAYOUT, PACK_MCMETA,
                     NativeBridge::nativeContent);
         } catch (IOException e) {
             YogLog.warn("failed to stage mod packs: " + e);

@@ -46,7 +46,7 @@ public class YogHangingItem extends YogItem {
         if (type == null) return InteractionResult.PASS;
         if (player != null && !mayPlace(player, side, stack, at)) return InteractionResult.FAIL;
         Level level = ctx.getLevel();
-        YogHanging hanging = new YogHanging(type, level, at, side, hangs.width(), hangs.height(), stack.copyWithCount(1));
+        YogHanging hanging = new YogHanging(type, level, at).hang(side, hangs, stack.copyWithCount(1));
         CustomData tag = stack.getOrDefault(DataComponents.ENTITY_DATA, CustomData.EMPTY);
         if (!tag.isEmpty()) EntityType.updateCustomEntityTag(level, player, hanging, tag);
         if (!hanging.survives()) return InteractionResult.CONSUME;

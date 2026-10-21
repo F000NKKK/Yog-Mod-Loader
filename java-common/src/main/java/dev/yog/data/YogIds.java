@@ -12,9 +12,14 @@ public final class YogIds {
         return ns + YogNames.Sep.NAMESPACE + path;
     }
 
+    /** {@code id} in namespace {@code ns} when it has none; else as it is. */
+    public static String qualifyIn(String ns, String id) {
+        return id.contains(YogNames.Sep.NAMESPACE) ? id : join(ns, id);
+    }
+
     /** The game's {@code id} when it has no namespace; else as it is. */
     public static String qualify(String id) {
-        return id.contains(YogNames.Sep.NAMESPACE) ? id : join(YogNames.Ns.MINECRAFT, id);
+        return qualifyIn(YogNames.Ns.MINECRAFT, id);
     }
 
     /** {@code max_health} → the game's {@code max_health} or {@code generic.max_health}; a full id stays. */

@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.util.YogGeneratorSettings;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.List;
@@ -48,43 +50,26 @@ import net.minecraft.world.level.levelgen.blending.Blender;
 @SuppressWarnings("deprecation") // BuiltInRegistries is the vanilla registry; Forge only nudges towards its wrappers
 public class YogCallbackChunkGenerator extends ChunkGenerator {
     public static final Codec<YogCallbackChunkGenerator> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-                    BiomeSource.CODEC.fieldOf("biome_source").forGetter(g -> g.biomeSource),
-                    Codec.STRING.fieldOf("generator_type_id").forGetter(g -> g.generatorTypeId),
-                    Codec.INT.fieldOf("min_y").forGetter(g -> g.minY),
-                    Codec.INT.fieldOf("height").forGetter(g -> g.height),
-                    Codec.BOOL.optionalFieldOf("structures", true).forGetter(g -> g.structures),
-                    Codec.BOOL.optionalFieldOf("features", true).forGetter(g -> g.features),
-                    Codec.BOOL.optionalFieldOf("mob_spawning", true).forGetter(g -> g.mobSpawning))
+                    BiomeSource.CODEC.fieldOf(YogNames.CallbackGenerator.BIOME_SOURCE).forGetter(g -> g.biomeSource),
+                    YogGeneratorSettings.MAP_CODEC.forGetter(g -> g.settings))
             .apply(inst, YogCallbackChunkGenerator::new));
 
     /** Its codec, with {@link YogRegistrar}: dimensions name the generator {@code yog:callback_generator}. */
     public static void schedule() {
         YogRegistrar.add(net.minecraft.core.registries.Registries.CHUNK_GENERATOR, sink -> sink.register(
                 net.minecraft.core.registries.Registries.CHUNK_GENERATOR,
-                new net.minecraft.resources.ResourceLocation(YogNames.Ns.YOG, "callback_generator"), CODEC));
+                new net.minecraft.resources.ResourceLocation(YogNames.Ns.YOG, YogNames.CallbackGenerator.PATH), CODEC));
     }
 
     /** The chunk currently being filled on this worker thread, if any. */
     private static final ThreadLocal<ChunkAccess> CURRENT_CHUNK = new ThreadLocal<>();
 
-    private final String generatorTypeId;
-    private final int minY;
-    private final int height;
+    /** Its generator in code, height, and what it has. */
+    private final YogGeneratorSettings settings;
 
-    private final boolean structures;
-    private final boolean features;
-    private final boolean mobSpawning;
-
-    public YogCallbackChunkGenerator(
-            BiomeSource biomeSource, String generatorTypeId, int minY, int height,
-            boolean structures, boolean features, boolean mobSpawning) {
+    public YogCallbackChunkGenerator(BiomeSource biomeSource, YogGeneratorSettings settings) {
         super(biomeSource);
-        this.generatorTypeId = generatorTypeId;
-        this.minY = minY;
-        this.height = height;
-        this.structures = structures;
-        this.features = features;
-        this.mobSpawning = mobSpawning;
+        this.settings = settings;
     }
 
     @Override
@@ -100,7 +85,7 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
             net.minecraft.world.level.ChunkPos pos = chunk.getPos();
             CURRENT_CHUNK.set(chunk);
             try {
-                NativeBridge.nativeGenerateChunk(generatorTypeId, pos.x, pos.z, minY, height);
+                NativeBridge.nativeGenerateChunk(settings.generatorTypeId(), pos.x, pos.z, settings.minY(), settings.height());
             } finally {
                 CURRENT_CHUNK.remove();
             }
@@ -145,27 +130,27 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
 
     @Override
     public int getGenDepth() {
-        return height;
+        return settings.height();
     }
 
     @Override
     public int getSeaLevel() {
-        return minY + height / 3;
+        return settings.minY() + settings.height() / 3;
     }
 
     @Override
     public int getMinY() {
-        return minY;
+        return settings.minY();
     }
 
     @Override
     public int getBaseHeight(int x, int z, Heightmap.Types heightmap, LevelHeightAccessor world, RandomState randomState) {
-        return minY;
+        return settings.minY();
     }
 
     @Override
     public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor world, RandomState randomState) {
-        return new NoiseColumn(minY, new BlockState[0]);
+        return new NoiseColumn(settings.minY(), new BlockState[0]);
     }
 
     @Override
@@ -177,14 +162,14 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
             net.minecraft.world.level.chunk.ChunkGeneratorStructureState structureState,
             StructureManager structureManager, ChunkAccess chunk,
             net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager templateManager) {
-        if (structures) {
+        if (settings.structures()) {
             super.createStructures(registryAccess, structureState, structureManager, chunk, templateManager);
         }
     }
 
     @Override
     public void applyBiomeDecoration(net.minecraft.world.level.WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
-        if (features) {
+        if (settings.features()) {
             super.applyBiomeDecoration(level, chunk, structureManager);
         }
     }
@@ -193,6 +178,6 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
     public net.minecraft.util.random.WeightedRandomList<net.minecraft.world.level.biome.MobSpawnSettings.SpawnerData> getMobsAt(
             net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biome, StructureManager structureManager,
             net.minecraft.world.entity.MobCategory category, BlockPos pos) {
-        return mobSpawning ? super.getMobsAt(biome, structureManager, category, pos) : net.minecraft.util.random.WeightedRandomList.create();
+        return settings.mobSpawning() ? super.getMobsAt(biome, structureManager, category, pos) : net.minecraft.util.random.WeightedRandomList.create();
     }
 }

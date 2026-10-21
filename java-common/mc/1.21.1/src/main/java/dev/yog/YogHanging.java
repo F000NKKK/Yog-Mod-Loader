@@ -40,13 +40,18 @@ public class YogHanging extends HangingEntity {
         super(type, level);
     }
 
-    /** A new one on the {@code facing} side of the block before {@code pos}, keeping {@code item}. */
-    public YogHanging(EntityType<? extends YogHanging> type, Level level, BlockPos pos, Direction facing, int width, int height, ItemStack item) {
+    /** A new one at the block before {@code pos}; {@link #hang} says how. */
+    public YogHanging(EntityType<? extends YogHanging> type, Level level, BlockPos pos) {
         super(type, level, pos);
-        entityData.set(WIDTH, width);
-        entityData.set(HEIGHT, height);
+    }
+
+    /** Hangs it on its block's {@code facing} side, {@code size} blocks wide and high, keeping {@code item}. */
+    public YogHanging hang(Direction facing, YogContent.Hangs size, ItemStack item) {
+        entityData.set(WIDTH, size.width());
+        entityData.set(HEIGHT, size.height());
         entityData.set(ITEM, item);
         setDirection(facing);
+        return this;
     }
 
     private YogContent.Entity def() {

@@ -1671,6 +1671,42 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(CRAFTING_SHAPED, CRAFTING_SHAPELESS, STONECUTTING, SMITHING_TRANSFORM, COOKING_TIME, ID, ITEM, TAG, AIR);
     }
 
+    public static final class CallbackGenerator {
+        private CallbackGenerator() {}
+
+        public static final String PATH = "callback_generator";
+        public static final String TYPE = "yog:callback_generator";
+        public static final String GENERATOR_TYPE_ID = "generator_type_id";
+        public static final String MIN_Y = "min_y";
+        public static final String HEIGHT = "height";
+        public static final String STRUCTURES = "structures";
+        public static final String FEATURES = "features";
+        public static final String MOB_SPAWNING = "mob_spawning";
+        public static final String BIOME_SOURCE = "biome_source";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PATH, TYPE, GENERATOR_TYPE_ID, MIN_Y, HEIGHT, STRUCTURES, FEATURES, MOB_SPAWNING, BIOME_SOURCE);
+    }
+
+    public static final class GameDimension {
+        private GameDimension() {}
+
+        public static final String DIMENSION_TYPE = "dimension_type";
+        public static final String DIMENSION = "dimension";
+        public static final String FIXED_BIOMES = "minecraft:fixed";
+        public static final String NOISE = "minecraft:noise";
+        public static final String OVERWORLD_NOISE = "minecraft:overworld";
+        public static final String INFINIBURN = "#minecraft:infiniburn_overworld";
+        public static final String EFFECTS_OVERWORLD = "minecraft:overworld";
+        public static final String EFFECTS_END = "minecraft:the_end";
+        public static final String EFFECTS_NETHER = "minecraft:the_nether";
+        public static final String BED_RULE = "minecraft:gameplay/bed_rule";
+        public static final String ANCHORS_WORK = "minecraft:gameplay/respawn_anchor_works";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIMENSION_TYPE, DIMENSION, FIXED_BIOMES, NOISE, OVERWORLD_NOISE, INFINIBURN, EFFECTS_OVERWORLD, EFFECTS_END, EFFECTS_NETHER, BED_RULE, ANCHORS_WORK);
+    }
+
     public static final class Worldgen {
         private Worldgen() {}
 

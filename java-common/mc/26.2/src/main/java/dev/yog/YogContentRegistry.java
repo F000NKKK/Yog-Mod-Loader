@@ -124,12 +124,11 @@ public final class YogContentRegistry {
                 float[] sp = p.shape();
                 for (int i = 0; i < core.length; i++) core[i] = sp[i];
             }
-            return new YogConnectingBlock(settings, core[0], core[1], core[2], core[3], core[4], core[5]);
+            return new YogConnectingBlock(settings, core);
         }
         if (p.stateful()) return YogStateBlock.create(settings, p);
         if (p.shape() != null) {
-            float[] sp = p.shape();
-            return new YogShapedBlock(settings, sp[0], sp[1], sp[2], sp[3], sp[4], sp[5]);
+            return new YogShapedBlock(settings, p.shape());
         }
         return new Block(settings);
     }

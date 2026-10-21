@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.util.YogGeneratorSettings;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -41,43 +43,26 @@ import net.minecraft.world.level.levelgen.blending.Blender;
  */
 public class YogCallbackChunkGenerator extends ChunkGenerator {
     public static final MapCodec<YogCallbackChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
-                    BiomeSource.CODEC.fieldOf("biome_source").forGetter(g -> g.biomeSource),
-                    Codec.STRING.fieldOf("generator_type_id").forGetter(g -> g.generatorTypeId),
-                    Codec.INT.fieldOf("min_y").forGetter(g -> g.minY),
-                    Codec.INT.fieldOf("height").forGetter(g -> g.height),
-                    Codec.BOOL.optionalFieldOf("structures", true).forGetter(g -> g.structures),
-                    Codec.BOOL.optionalFieldOf("features", true).forGetter(g -> g.features),
-                    Codec.BOOL.optionalFieldOf("mob_spawning", true).forGetter(g -> g.mobSpawning))
+                    BiomeSource.CODEC.fieldOf(YogNames.CallbackGenerator.BIOME_SOURCE).forGetter(g -> g.biomeSource),
+                    YogGeneratorSettings.MAP_CODEC.forGetter(g -> g.settings))
             .apply(inst, YogCallbackChunkGenerator::new));
 
     /** The chunk currently being filled on this worker thread, if any. */
     private static final ThreadLocal<ChunkAccess> CURRENT_CHUNK = new ThreadLocal<>();
 
-    private final String generatorTypeId;
-    private final int minY;
-    private final int height;
+    /** Its generator in code, height, and what it has. */
+    private final YogGeneratorSettings settings;
 
-    private final boolean structures;
-    private final boolean features;
-    private final boolean mobSpawning;
-
-    public YogCallbackChunkGenerator(
-            BiomeSource biomeSource, String generatorTypeId, int minY, int height,
-            boolean structures, boolean features, boolean mobSpawning) {
+    public YogCallbackChunkGenerator(BiomeSource biomeSource, YogGeneratorSettings settings) {
         super(biomeSource);
-        this.generatorTypeId = generatorTypeId;
-        this.minY = minY;
-        this.height = height;
-        this.structures = structures;
-        this.features = features;
-        this.mobSpawning = mobSpawning;
+        this.settings = settings;
     }
 
     /** Register {@link #CODEC} under {@code yog:callback_generator}. Call once at mod-init. */
     /** Its codec, with {@link YogRegistrar}: dimensions name the generator {@code yog:callback_generator}. */
     public static void schedule() {
         YogRegistrar.add(net.minecraft.core.registries.Registries.CHUNK_GENERATOR, sink -> sink.register(
-                net.minecraft.core.registries.Registries.CHUNK_GENERATOR, Identifier.fromNamespaceAndPath(YogNames.Ns.YOG, "callback_generator"), CODEC));
+                net.minecraft.core.registries.Registries.CHUNK_GENERATOR, Identifier.fromNamespaceAndPath(YogNames.Ns.YOG, YogNames.CallbackGenerator.PATH), CODEC));
     }
 
     @Override
@@ -91,7 +76,7 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
         net.minecraft.world.level.ChunkPos pos = chunk.getPos();
         CURRENT_CHUNK.set(chunk);
         try {
-            NativeBridge.nativeGenerateChunk(generatorTypeId, pos.x(), pos.z(), minY, height);
+            NativeBridge.nativeGenerateChunk(settings.generatorTypeId(), pos.x(), pos.z(), settings.minY(), settings.height());
         } finally {
             CURRENT_CHUNK.remove();
         }
@@ -135,27 +120,27 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
 
     @Override
     public int getGenDepth() {
-        return height;
+        return settings.height();
     }
 
     @Override
     public int getSeaLevel() {
-        return minY + height / 3;
+        return settings.minY() + settings.height() / 3;
     }
 
     @Override
     public int getMinY() {
-        return minY;
+        return settings.minY();
     }
 
     @Override
     public int getBaseHeight(int x, int z, Heightmap.Types heightmap, LevelHeightAccessor world, RandomState noiseConfig) {
-        return minY;
+        return settings.minY();
     }
 
     @Override
     public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor world, RandomState noiseConfig) {
-        return new NoiseColumn(minY, new BlockState[0]);
+        return new NoiseColumn(settings.minY(), new BlockState[0]);
     }
 
     @Override
@@ -168,14 +153,14 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
             StructureManager structureAccessor, ChunkAccess chunk,
             net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager structureTemplateManager,
             net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> level) {
-        if (structures) {
+        if (settings.structures()) {
             super.createStructures(registryManager, placementCalculator, structureAccessor, chunk, structureTemplateManager, level);
         }
     }
 
     @Override
     public void applyBiomeDecoration(net.minecraft.world.level.WorldGenLevel world, ChunkAccess chunk, StructureManager structureAccessor) {
-        if (features) {
+        if (settings.features()) {
             super.applyBiomeDecoration(world, chunk, structureAccessor);
         }
     }
@@ -184,6 +169,6 @@ public class YogCallbackChunkGenerator extends ChunkGenerator {
     public net.minecraft.util.random.WeightedList<net.minecraft.world.level.biome.MobSpawnSettings.SpawnerData> getMobsAt(
             net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biome, StructureManager accessor,
             net.minecraft.world.entity.MobCategory group, BlockPos pos) {
-        return mobSpawning ? super.getMobsAt(biome, accessor, group, pos) : net.minecraft.util.random.WeightedList.of();
+        return settings.mobSpawning() ? super.getMobsAt(biome, accessor, group, pos) : net.minecraft.util.random.WeightedList.of();
     }
 }

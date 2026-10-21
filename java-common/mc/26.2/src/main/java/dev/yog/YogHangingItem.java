@@ -44,7 +44,7 @@ public class YogHangingItem extends YogItem {
         if (type == null) return InteractionResult.PASS;
         if (player != null && !canPlaceOn(player, side, stack, at)) return InteractionResult.FAIL;
         Level world = ctx.getLevel();
-        YogHanging hanging = new YogHanging(type, world, at, side, hangs.width(), hangs.height(), stack.copyWithCount(1));
+        YogHanging hanging = new YogHanging(type, world, at).hang(side, hangs, stack.copyWithCount(1));
         EntityType.<YogHanging>createDefaultStackConfig(world, stack, player).apply(hanging);
         if (!hanging.survives()) return InteractionResult.CONSUME;
         if (!world.isClientSide()) {

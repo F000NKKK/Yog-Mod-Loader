@@ -1,7 +1,6 @@
 package dev.yog.util;
 
 import dev.yog.YogNames;
-import dev.yog.YogNames.DimensionField;
 
 import dev.yog.YogLog;
 
@@ -36,13 +35,6 @@ public final class YogPackStager {
     /** Staging directory, relative to the game directory. Wiped on every reload. */
     public static final String PACK_DIR = ".yog-pack";
 
-    /** Namespace for dimension ids that don't specify one. */
-    private static final String DEFAULT_NAMESPACE = dev.yog.YogNames.Ns.YOG;
-    /** Chunk generator that forwards each chunk to the native per-chunk callback. */
-    private static final String CALLBACK_GENERATOR = "yog:callback_generator";
-    private static final int DEFAULT_MIN_Y = -64;
-    private static final int DEFAULT_HEIGHT = 384;
-
     /**
      * Merge every {@code .yog}'s {@code assets/} and {@code data/} into
      * {@code <gameDir>/.yog-pack}, then add the mod-registered recipes and
@@ -55,7 +47,8 @@ public final class YogPackStager {
      * files ({@code data/<ns>/tags/…}) from several mods or overlays are
      * merged, not replaced.
      *
-     * @param loader this host's loader: {@code fabric}, {@code forge}, {@code neoforge}
+     * <p>The game's folder and the loader are this host's ({@code YogPlatform}, {@code YogLoader}).
+     *
      * @param mcVersion this host's Minecraft version ({@code 1.21.1})
      * @param mc121 Minecraft 1.21+ data layout: singular datapack dir
      *     names and the 1.21 recipe result format (1.20-format recipes are
@@ -64,108 +57,113 @@ public final class YogPackStager {
      * @param content the runtime's content blob ({@code NativeBridge.nativeContent()}):
      *     its recipes and dimensions become datapack JSON
      */
-    public static synchronized Path stage(Path gameDir, String loader, String mcVersion, boolean mc121, String packMcmeta,
-                                          Supplier<byte[]> content)
+    public static synchronized Path stage(String mcVersion, boolean mc121, String packMcmeta, Supplier<byte[]> content)
             throws IOException {
+        Path gameDir = dev.yog.YogPlatform.gameDir();
+        String loader = dev.yog.YogLoader.NAME;
         Path mods = gameDir.resolve(YogNativeRuntime.MODS_DIR);
         Path out = gameDir.resolve(PACK_DIR);
         if (!Files.isDirectory(mods)) {
             return null;
         }
+        clear(out);
+        dev.yog.data.YogTags.setHost(loader, mcVersion);
+        YogDataLayout.setVersion(mcVersion);
+        for (String layer : layers(loader, mcVersion)) {
+            try (var listing = Files.newDirectoryStream(mods, MOD_FILES)) {
+                for (Path yog : listing) stageLayer(yog, layer, out, mc121);
+            }
+        }
+        // Yog's common tags: what the mods put in them, to this host's tags.
+        dev.yog.data.YogTags.stage(out, mc121);
+        // Item textures in the items atlas, where this version has one.
+        if (YogDataLayout.atLeast(mcVersion, ITEMS_ATLAS_SINCE)) splitItemsAtlas(out);
+        YogContent registered = YogContent.cached(content);
+        YogPackContent.recipes(out, registered.recipes, mc121);
+        YogPackContent.dimensions(out, registered.dimensions);
+        YogPackContent.fonts(out, registered.fonts);
+        // The mods' key bindings' categories, named in the controls.
+        injectKeyCategoryNames(out);
+        // A name for each of the mods' item tags nothing names (recipe viewers show them).
+        injectTagNames(out, mc121);
+        Files.writeString(out.resolve(PACK_MCMETA), packMcmeta);
+        return out;
+    }
 
+    /** The mods' files, and the pack's description. */
+    private static final String MOD_FILES = "*" + YogNames.Sep.EXT + YogNames.Ext.MOD, PACK_MCMETA = "pack" + YogNames.Res.MCMETA;
+    /** Where a pack's assets and data start. */
+    private static final String ASSETS_DIR = YogNames.Pack.ASSETS + YogNames.Sep.PATH, DATA_DIR = YogNames.Pack.DATA + YogNames.Sep.PATH;
+
+    /** The staging folder emptied (made when it isn't there). */
+    private static void clear(Path out) throws IOException {
         if (Files.exists(out)) {
             try (var walk = Files.walk(out)) {
                 walk.sorted(Comparator.reverseOrder()).forEach(p -> {
                     try {
                         Files.deleteIfExists(p);
-                    } catch (IOException ignored) {
+                    } catch (IOException e) {
+                        YogLog.warn("staging " + p + ": " + e);
                     }
                 });
             }
         }
         Files.createDirectories(out);
-        dev.yog.data.YogTags.setHost(loader, mcVersion);
-        YogDataLayout.setVersion(mcVersion);
+    }
 
-        // The common files, then each overlay that applies, least specific first.
-        // A version directory is the whole version or a release line of it: `1.21` covers 1.21.x.
-        java.util.List<String> versions = new java.util.ArrayList<>(java.util.List.of(dev.yog.YogNames.Pack.ANY_VERSION));
+    /**
+     * The common files' layer, then each overlay that applies, least specific
+     * first. A version directory is the whole version or a release line of
+     * it: {@code 1.21} covers 1.21.x.
+     */
+    private static java.util.List<String> layers(String loader, String mcVersion) {
+        java.util.List<String> versions = new java.util.ArrayList<>(java.util.List.of(YogNames.Pack.ANY_VERSION));
         String[] parts = mcVersion.split("\\.");
-        for (int i = 2; i <= parts.length; i++) versions.add(String.join(".", java.util.Arrays.copyOf(parts, i)));
+        for (int i = 2; i <= parts.length; i++) versions.add(String.join(YogNames.Sep.EXT, java.util.Arrays.copyOf(parts, i)));
         java.util.List<String> layers = new java.util.ArrayList<>(java.util.List.of(""));
         for (String v : versions) {
-            layers.add(overlay(dev.yog.YogNames.Pack.ANY_LOADER, v));
+            layers.add(overlay(YogNames.Pack.ANY_LOADER, v));
             layers.add(overlay(loader, v));
         }
-        for (String layer : layers) {
-            try (var listing = Files.newDirectoryStream(mods, "*.yog")) {
-                for (Path yog : listing) {
-                    try (ZipFile zip = new ZipFile(yog.toFile())) {
-                        var entries = zip.entries();
-                        while (entries.hasMoreElements()) {
-                            ZipEntry e = entries.nextElement();
-                            String n = e.getName();
-                            if (e.isDirectory() || !n.startsWith(layer)) {
-                                continue;
-                            }
-                            n = n.substring(layer.length());
-                            if (!(n.startsWith("assets/") || n.startsWith("data/"))) {
-                                continue;
-                            }
-                            // Accept both pre-1.21 plural and 1.21+ singular datapack dir names.
-                            n = YogDataLayout.remapDataPath(n, mc121);
-                            Path target = out.resolve(n).normalize();
-                            if (!target.startsWith(out)) {
-                                continue; // zip-slip guard
-                            }
-                            Files.createDirectories(target.getParent());
-                            try (InputStream in = zip.getInputStream(e)) {
-                                if (mc121 && YogDataLayout.isRecipePath(n)) {
-                                    // 1.20-format recipe results don't parse on 1.21.
-                                    String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                                    Files.writeString(target, YogDataLayout.upgradeRecipeJson(json));
-                                } else if (isTagPath(n) && Files.exists(target)) {
-                                    // Several mods (or overlays) adding to one tag: all of them.
-                                    String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                                    Files.writeString(target, mergeTags(Files.readString(target), json));
-                                } else if (isAtlasPath(n) && Files.exists(target)) {
-                                    // Several mods' textures in one atlas: every mod's sources.
-                                    String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                                    Files.writeString(target, mergeAtlases(Files.readString(target), json));
-                                } else {
-                                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-                                }
-                            }
-                        }
-                    }
+        return layers;
+    }
+
+    /** {@code yog}'s files of {@code layer}, staged into {@code out}. */
+    private static void stageLayer(Path yog, String layer, Path out, boolean mc121) throws IOException {
+        try (ZipFile zip = new ZipFile(yog.toFile())) {
+            var entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry e = entries.nextElement();
+                String n = e.getName();
+                if (e.isDirectory() || !n.startsWith(layer)) continue;
+                n = n.substring(layer.length());
+                if (!(n.startsWith(ASSETS_DIR) || n.startsWith(DATA_DIR))) continue;
+                // Accept both pre-1.21 plural and 1.21+ singular datapack dir names.
+                n = YogDataLayout.remapDataPath(n, mc121);
+                Path target = out.resolve(n).normalize();
+                if (!target.startsWith(out)) continue; // zip-slip guard
+                Files.createDirectories(target.getParent());
+                try (InputStream in = zip.getInputStream(e)) {
+                    stageFile(in, n, target, mc121);
                 }
             }
         }
+    }
 
-        // Yog's common tags: what the mods put in them, to this host's tags.
-        dev.yog.data.YogTags.stage(out, mc121);
-
-        // Item textures in the items atlas, where this version has one.
-        if (YogDataLayout.atLeast(mcVersion, ITEMS_ATLAS_SINCE)) splitItemsAtlas(out);
-
-        YogContent registered = YogContent.cached(content);
-        // Mod-registered recipes as JSON files inside the data pack.
-        injectRecipes(out, registered.recipes, mc121);
-
-        // Mod-declared dimensions as vanilla dimension_type/dimension JSON.
-        injectDimensions(out, registered.dimensions);
-
-        // The mods' Yog fonts, the game's too.
-        injectFonts(out, registered.fonts);
-
-        // The mods' key bindings' categories, named in the controls.
-        injectKeyCategoryNames(out);
-
-        // A name for each of the mods' item tags nothing names (recipe viewers show them).
-        injectTagNames(out, mc121);
-
-        Files.writeString(out.resolve("pack.mcmeta"), packMcmeta);
-        return out;
+    /** One file at {@code target}: a recipe upgraded, a tag or atlas merged with what's there, else copied. */
+    private static void stageFile(InputStream in, String n, Path target, boolean mc121) throws IOException {
+        if (mc121 && YogDataLayout.isRecipePath(n)) {
+            // 1.20-format recipe results don't parse on 1.21.
+            Files.writeString(target, YogDataLayout.upgradeRecipeJson(new String(in.readAllBytes(), StandardCharsets.UTF_8)));
+        } else if (isTagPath(n) && Files.exists(target)) {
+            // Several mods (or overlays) adding to one tag: all of them.
+            Files.writeString(target, mergeTags(Files.readString(target), new String(in.readAllBytes(), StandardCharsets.UTF_8)));
+        } else if (isAtlasPath(n) && Files.exists(target)) {
+            // Several mods' textures in one atlas: every mod's sources.
+            Files.writeString(target, mergeAtlases(Files.readString(target), new String(in.readAllBytes(), StandardCharsets.UTF_8)));
+        } else {
+            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     /**
@@ -178,9 +176,9 @@ public final class YogPackStager {
     }
 
     /** The registry whose tags recipe viewers name, and the game's folder of them per layout. */
-    private static final String ITEM_TAGS = "item", ITEM_TAGS_1_20 = "items";
+    private static final String ITEM_TAGS = YogNames.RenamedTagDir.ITEM, ITEM_TAGS_1_20 = ITEM_TAGS + YogNames.DataLayout.PLURAL;
     /** A tag's translation key: {@code tag.item.<ns>.<path with dots>}. */
-    private static final String TAG_KEY = "tag." + ITEM_TAGS + ".";
+    private static final String TAG_KEY = YogNames.Kind.TAG + YogNames.Sep.EXT + ITEM_TAGS + YogNames.Sep.EXT;
     /** The lang file of Yog's common tags' names (the jar's, not the pack's). */
     private static final String COMMON_TAG_NAMES = "/assets/yog_tags/lang/" + dev.yog.YogNames.Game.LOCALE + dev.yog.YogNames.Res.JSON;
 
@@ -265,7 +263,7 @@ public final class YogPackStager {
     /** {@code data/<ns>/tags/…} — a tag file. */
     static boolean isTagPath(String path) {
         String[] p = path.split("/", 4);
-        return p.length == 4 && p[0].equals("data") && p[2].equals("tags");
+        return p.length == 4 && p[0].equals(YogNames.Pack.DATA) && p[2].equals(YogNames.Pack.TAGS);
     }
 
     /** {@code assets/<ns>/atlases/<atlas>.json} — an atlas's sources. */
@@ -358,199 +356,15 @@ public final class YogPackStager {
         JsonObject y = gson.fromJson(b, JsonObject.class);
         if (x == null) return b;
         if (y == null) return a;
-        com.google.gson.JsonArray values = x.has("values") ? x.getAsJsonArray("values") : new com.google.gson.JsonArray();
-        if (y.has("values")) {
-            for (var v : y.getAsJsonArray("values")) {
+        com.google.gson.JsonArray values = x.has(YogNames.TagFile.VALUES) ? x.getAsJsonArray(YogNames.TagFile.VALUES) : new com.google.gson.JsonArray();
+        if (y.has(YogNames.TagFile.VALUES)) {
+            for (var v : y.getAsJsonArray(YogNames.TagFile.VALUES)) {
                 if (!values.contains(v)) values.add(v);
             }
         }
-        x.add("values", values);
-        if (y.has("replace") && y.get("replace").getAsBoolean()) x.addProperty("replace", true);
+        x.add(YogNames.TagFile.VALUES, values);
+        if (y.has(YogNames.TagFile.REPLACE) && y.get(YogNames.TagFile.REPLACE).getAsBoolean()) x.addProperty(YogNames.TagFile.REPLACE, true);
         return gson.toJson(x);
-    }
-
-    private static void injectRecipes(Path packRoot, java.util.List<YogContent.Recipe> recipes, boolean mc121) {
-        for (YogContent.Recipe r : recipes) {
-            String namespace = r.namespace();
-            String name     = r.name();
-            try {
-                String vanilla = YogDataLayout.yogRecipeToVanilla(r.data(), namespace, mc121);
-                if (vanilla == null) continue;
-                Path target = packRoot
-                        .resolve("data").resolve(namespace).resolve(YogDataLayout.recipeDir(mc121))
-                        .resolve(name + ".json");
-                Files.createDirectories(target.getParent());
-                Files.writeString(target, vanilla);
-            } catch (IOException e) {
-                YogLog.warn("failed to write recipe " + namespace + ":" + name + ": " + e);
-            }
-        }
-    }
-
-    /**
-     * Convert mod-declared {@code YogDimensionDef} JSON (our shape — see the
-     * {@code yog-dimensions} Rust crate) into vanilla {@code dimension_type}
-     * / {@code dimension} datapack JSON. Writing to a vanilla id (e.g.
-     * {@code minecraft:overworld}) patches that dimension instead of adding
-     * a new one, since this pack loads at TOP priority.
-     *
-     * <p>Custom generator types ({@code generator_type} in the def) reference
-     * {@code yog:callback_generator} (see {@code YogCallbackChunkGenerator}),
-     * which forwards each chunk to the native per-chunk callback. Dimensions
-     * without a {@code generator_type} fall back to a plain vanilla noise
-     * generator.
-     */
-    /** A dimension's look before 26.1, and the skies 26.x names for them. */
-    private static final String EFFECTS_OVERWORLD = "minecraft:overworld";
-    private static final String EFFECTS_END = "minecraft:the_end";
-    private static final String EFFECTS_NETHER = "minecraft:the_nether";
-    private static final String SKYBOX_OVERWORLD = "overworld", SKYBOX_END = "end", SKYBOX_NONE = "none";
-    /** 26.x dimension attributes: whether beds work and explode, whether respawn anchors work. */
-    private static final String ATTRIBUTE_BED_RULE = "minecraft:gameplay/bed_rule";
-    private static final String ATTRIBUTE_ANCHORS_WORK = "minecraft:gameplay/respawn_anchor_works";
-
-    /** The 26.x sky of a dimension whose effects are {@code effects}. */
-    private static String skybox(String effects) {
-        return switch (effects) {
-            case EFFECTS_END -> SKYBOX_END;
-            case EFFECTS_NETHER -> SKYBOX_NONE;
-            default -> SKYBOX_OVERWORLD;
-        };
-    }
-
-    /** A bitmap font provider's fields, as every version reads them. */
-    private static final String FONT_PROVIDERS = "providers", FONT_TYPE = "type", FONT_BITMAP = "bitmap", FONT_FILE = "file",
-            FONT_ASCENT = "ascent", FONT_HEIGHT = "height", FONT_CHARS = "chars";
-    /** Where a font and its atlas go: {@code assets/<ns>/font/<path>.json}, {@code textures/font/<path>.png}. */
-    private static final String FONT_DIR = "font", FONT_TEXTURE_DIR = "textures/font";
-
-    /**
-     * The mods' Yog fonts as the game's (a bitmap font each, its atlas from
-     * the runtime): the game's own text — chat, signs, tooltips — in one by
-     * the same id Yog draws it by.
-     */
-    private static void injectFonts(Path packRoot, java.util.List<YogContent.Font> fonts) {
-        Gson gson = new Gson();
-        for (YogContent.Font f : fonts) {
-            int colon = f.id().indexOf(':');
-            String ns = colon > 0 ? f.id().substring(0, colon) : DEFAULT_NAMESPACE;
-            String path = f.id().substring(colon + 1);
-            try {
-                Path assets = packRoot.resolve(dev.yog.YogNames.Pack.ASSETS).resolve(ns);
-                Path png = assets.resolve(FONT_TEXTURE_DIR).resolve(path + dev.yog.YogNames.Res.PNG);
-                Files.createDirectories(png.getParent());
-                Files.write(png, f.png());
-                com.google.gson.JsonObject provider = new com.google.gson.JsonObject();
-                provider.addProperty(FONT_TYPE, FONT_BITMAP);
-                provider.addProperty(FONT_FILE, ns + ":" + FONT_DIR + "/" + path + dev.yog.YogNames.Res.PNG);
-                provider.addProperty(FONT_ASCENT, f.ascent());
-                provider.addProperty(FONT_HEIGHT, f.height());
-                com.google.gson.JsonArray chars = new com.google.gson.JsonArray();
-                f.rows().forEach(chars::add);
-                provider.add(FONT_CHARS, chars);
-                com.google.gson.JsonArray providers = new com.google.gson.JsonArray();
-                providers.add(provider);
-                com.google.gson.JsonObject json = new com.google.gson.JsonObject();
-                json.add(FONT_PROVIDERS, providers);
-                Path file = assets.resolve(FONT_DIR).resolve(path + dev.yog.YogNames.Res.JSON);
-                Files.createDirectories(file.getParent());
-                Files.writeString(file, gson.toJson(json));
-            } catch (IOException e) {
-                dev.yog.YogLog.warn("font " + f.id() + ": " + e);
-            }
-        }
-    }
-
-    private static void injectDimensions(Path packRoot, java.util.List<YogContent.Dimension> dimensions) {
-        Gson gson = new Gson();
-        for (YogContent.Dimension d : dimensions) {
-            String id = d.id();
-            try {
-                int colon = id.indexOf(':');
-                String namespace = colon > 0 ? id.substring(0, colon) : DEFAULT_NAMESPACE;
-                String name = colon > 0 ? id.substring(colon + 1) : id;
-
-                JsonObject def = d.def();
-                JsonObject dt = def.has(DimensionField.DIMENSION_TYPE) ? def.getAsJsonObject(DimensionField.DIMENSION_TYPE) : new JsonObject();
-
-                JsonObject dimensionType = new JsonObject();
-                dimensionType.addProperty("ultrawarm", jbool(dt, "ultrawarm", false));
-                dimensionType.addProperty("natural", jbool(dt, "natural", true));
-                dimensionType.addProperty("coordinate_scale", jnum(dt, "coordinate_scale", 1.0));
-                dimensionType.addProperty("has_skylight", jbool(dt, "has_sky_light", true));
-                dimensionType.addProperty("has_ceiling", jbool(dt, "has_ceiling", false));
-                dimensionType.addProperty("ambient_light", jnum(dt, "ambient_light", 0.0));
-                dimensionType.addProperty("bed_works", !jbool(dt, "beds_explode", false));
-                dimensionType.addProperty("respawn_anchor_works", !jbool(dt, "respawn_anchors_explode", false));
-                dimensionType.addProperty("min_y", (int) jnum(dt, "min_y", DEFAULT_MIN_Y));
-                dimensionType.addProperty("height", (int) jnum(dt, "height", DEFAULT_HEIGHT));
-                dimensionType.addProperty("logical_height", (int) jnum(dt, "logical_height", DEFAULT_HEIGHT));
-                dimensionType.addProperty("infiniburn", "#minecraft:infiniburn_overworld");
-                dimensionType.addProperty("effects", jstr(dt, "effects", EFFECTS_OVERWORLD));
-                dimensionType.addProperty("piglin_safe", jbool(dt, "piglin_safe", false));
-                boolean mobs = jbool(def, DimensionField.MOB_SPAWNING, true);
-                dimensionType.addProperty("has_raids", mobs);
-                dimensionType.addProperty("monster_spawn_block_light_limit", 0);
-                dimensionType.addProperty("monster_spawn_light_level", mobs ? 7 : 0);
-                // 26.x: these, and beds/anchors as attributes; older versions ignore them.
-                dimensionType.addProperty("has_ender_dragon_fight", false);
-                dimensionType.addProperty("skybox", skybox(jstr(dt, "effects", EFFECTS_OVERWORLD)));
-                JsonObject attributes = new JsonObject();
-                if (jbool(dt, "beds_explode", false)) {
-                    JsonObject bed = new JsonObject();
-                    bed.addProperty("can_set_spawn", "never");
-                    bed.addProperty("can_sleep", "never");
-                    bed.addProperty("explodes", true);
-                    attributes.add(ATTRIBUTE_BED_RULE, bed);
-                }
-                if (jbool(dt, "respawn_anchors_explode", false)) attributes.addProperty(ATTRIBUTE_ANCHORS_WORK, false);
-                dimensionType.add("attributes", attributes);
-
-                JsonObject biomeSource = new JsonObject();
-                biomeSource.addProperty("type", "minecraft:fixed");
-                biomeSource.addProperty("biome", jstr(def, DimensionField.BIOME, YogNames.Game.PLAINS));
-                JsonObject generator = new JsonObject();
-                if (def.has(DimensionField.GENERATOR_TYPE) && !def.get(DimensionField.GENERATOR_TYPE).isJsonNull()) {
-                    generator.addProperty("type", CALLBACK_GENERATOR);
-                    generator.addProperty("generator_type_id", def.get(DimensionField.GENERATOR_TYPE).getAsString());
-                    generator.addProperty("min_y", (int) jnum(dt, "min_y", DEFAULT_MIN_Y));
-                    generator.addProperty("height", (int) jnum(dt, "height", DEFAULT_HEIGHT));
-                    generator.addProperty("structures", jbool(def, DimensionField.STRUCTURES, true));
-                    generator.addProperty("features", jbool(def, DimensionField.FEATURES, true));
-                    generator.addProperty("mob_spawning", mobs);
-                    generator.add("biome_source", biomeSource);
-                } else {
-                    generator.addProperty("type", "minecraft:noise");
-                    generator.addProperty("settings", "minecraft:overworld");
-                    generator.add("biome_source", biomeSource);
-                }
-
-                JsonObject dimension = new JsonObject();
-                dimension.addProperty("type", namespace + ":" + name);
-                dimension.add("generator", generator);
-
-                Path dtPath = packRoot.resolve("data").resolve(namespace).resolve("dimension_type").resolve(name + ".json");
-                Path dPath = packRoot.resolve("data").resolve(namespace).resolve("dimension").resolve(name + ".json");
-                Files.createDirectories(dtPath.getParent());
-                Files.createDirectories(dPath.getParent());
-                Files.writeString(dtPath, gson.toJson(dimensionType));
-                Files.writeString(dPath, gson.toJson(dimension));
-            } catch (Exception e) {
-                YogLog.warn("failed to inject dimension '" + id + "': " + e);
-            }
-        }
-    }
-
-    private static boolean jbool(JsonObject o, String key, boolean def) {
-        return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsBoolean() : def;
-    }
-
-    private static double jnum(JsonObject o, String key, double def) {
-        return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsDouble() : def;
-    }
-
-    private static String jstr(JsonObject o, String key, String def) {
-        return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsString() : def;
     }
 
     /** The overlay folder of {@code loader} on {@code version}: {@code when/<loader>/<version>/}. */

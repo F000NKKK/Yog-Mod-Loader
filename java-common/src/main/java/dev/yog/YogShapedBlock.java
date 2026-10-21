@@ -11,12 +11,11 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class YogShapedBlock extends Block {
     private final VoxelShape shape;
 
-    public YogShapedBlock(Properties settings,
-                          double x1, double y1, double z1,
-                          double x2, double y2, double z2) {
+    /** A block of {@code settings} shaped {@code box}: its corners' x, y, z, then the other's, in pixels. */
+    public YogShapedBlock(Properties settings, float[] box) {
         super(settings);
-        // createCuboidShape is protected static on Block; accessible from this subclass.
-        this.shape = box(x1, y1, z1, x2, y2, z2);
+        // box() is protected static on Block; accessible from this subclass.
+        this.shape = box(box[0], box[1], box[2], box[3], box[4], box[5]);
     }
 
     @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers

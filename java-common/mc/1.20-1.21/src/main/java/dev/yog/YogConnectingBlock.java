@@ -31,9 +31,10 @@ public class YogConnectingBlock extends Block {
 
     private final double[] core;
 
-    public YogConnectingBlock(Properties properties, double x1, double y1, double z1, double x2, double y2, double z2) {
+    /** A block of {@code properties} whose core is {@code core}: its corners, in pixels (as {@link YogShapedBlock}). */
+    public YogConnectingBlock(Properties properties, double[] core) {
         super(properties);
-        this.core = new double[]{x1, y1, z1, x2, y2, z2};
+        this.core = core.clone();
         registerDefaultState(this.stateDefinition.any()
                 .setValue(NORTH, false).setValue(SOUTH, false)
                 .setValue(EAST, false).setValue(WEST, false)
