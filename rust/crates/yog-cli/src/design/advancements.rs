@@ -12,6 +12,10 @@ use yog_gfx::draw2d::Draw2D;
 use yog_gfx::{Color, Rect, Vec2};
 
 use super::assets::Resources;
+mod args;
+
+pub use args::{AdvancementArgs, NodeArgs};
+
 use super::{gfx, images, raster};
 
 /// The screen the preview shows: 1280×720 at GUI scale 3.
@@ -66,8 +70,8 @@ const BLACK: Color = Color(0xFF00_0000);
 /// How much bigger than GUI pixels the picture is drawn.
 const SCALE: u32 = 1;
 
-/// One advancement of the tab.
-#[derive(Debug, Clone, yog_data::Schema)]
+/// One advancement of the tab, its texts as shown.
+#[derive(Debug, Clone)]
 pub struct Node {
     pub id: String,
     pub parent: Option<String>,
@@ -77,12 +81,11 @@ pub struct Node {
     pub title: String,
     pub description: String,
     /// Drawn as had (the one being edited).
-    #[data(default)]
     pub obtained: bool,
 }
 
-/// What to draw.
-#[derive(Debug, Clone, yog_data::Schema)]
+/// What to draw, its texts as shown.
+#[derive(Debug, Clone)]
 pub struct Args {
     pub path: String,
     pub title: String,
@@ -90,7 +93,6 @@ pub struct Args {
     pub background: Option<String>,
     pub nodes: Vec<Node>,
     /// How far the reader dragged the tree, GUI pixels.
-    #[data(default)]
     pub drag: [f32; 2],
     /// The advancement under the pointer.
     pub hover: Option<String>,

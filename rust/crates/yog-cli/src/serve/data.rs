@@ -6,15 +6,7 @@ use yog_data::{Schema, Value};
 use yog_ids::serve_method as M;
 use yog_ids::serve_param as P;
 
-use super::Reply;
-
-/// Text that doesn't parse: what's wrong, and where.
-#[derive(Schema)]
-struct ParseError {
-    message: String,
-    line: u32,
-    col: u32,
-}
+use super::{Reply, ServiceError};
 
 /// A string as a typed value, the way a tool takes it: `{t, …}`.
 #[derive(Schema)]
@@ -41,16 +33,8 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         // The service's version: a tool restarts it when the binary changes.
         M::VERSION => Ok(env!("CARGO_PKG_VERSION").into()),
         // Yog Data text → its value (maps in file order).
-        M::DATA_PARSE => text(params, P::TEXT).and_then(|t| {
-            yog_data::text::parse_value(t).map_err(|e| {
-                ParseError {
-                    message: e.to_string(),
-                    line: e.at.line,
-                    col: e.at.col,
-                }
-                .write()
-            })
-        }),
+        M::DATA_PARSE => text(params, P::TEXT)
+            .and_then(|t| yog_data::text::parse_value(t).map_err(|e| ServiceError::syntax(&e))),
         // `text` changed to hold `next`, comments and layout of the rest kept.
         M::DATA_PATCH => text(params, P::TEXT)
             .and_then(|t| Ok(yog_data::patch::patch(t, param(params, P::NEXT)?).into())),
@@ -74,15 +58,9 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         }),
         // Text saved as a Yog format's file: binary, its comments kept as notes.
         M::SOURCE_WRITE => text(params, P::PATH).and_then(|p| {
-            let bytes = yog_data::source::binary(text(params, P::TEXT)?).map_err(|e| {
-                ParseError {
-                    message: e.message.clone(),
-                    line: e.at.line,
-                    col: e.at.col,
-                }
-                .write()
-            })?;
-            std::fs::write(p, bytes).map_err(|e| Value::from(format!("{p}: {e}")))?;
+            let bytes = yog_data::source::binary(text(params, P::TEXT)?)
+                .map_err(|e| ServiceError::syntax(&e))?;
+            std::fs::write(p, bytes).map_err(|e| ServiceError::from(format!("{p}: {e}")))?;
             Ok(Value::Null)
         }),
         // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
@@ -97,14 +75,14 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
 }
 
 /// The parameter `name`.
-fn param<'a>(params: &'a Value, name: &str) -> Result<&'a Value, Value> {
+fn param<'a>(params: &'a Value, name: &str) -> Result<&'a Value, ServiceError> {
     params
         .get(name)
         .ok_or_else(|| format!("missing `{name}`").into())
 }
 
 /// The text parameter `name`.
-fn text<'a>(params: &'a Value, name: &str) -> Result<&'a str, Value> {
+fn text<'a>(params: &'a Value, name: &str) -> Result<&'a str, ServiceError> {
     param(params, name)?
         .as_str()
         .ok_or_else(|| format!("`{name}` is text").into())

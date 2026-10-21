@@ -8,17 +8,30 @@ use yog_ids::serve_param as P;
 use base64::Engine as _;
 use yog_data::{Schema, Value};
 
+use crate::serve::ServiceError;
+
 use super::{
     advancements, book, codebehind, content, custom, font_copy, images, project, recipe_kinds,
     refs, tags, worldgen, yui_codegen,
 };
 
-type Reply = Result<Value, Value>;
+type Reply = crate::serve::Reply;
 
 /// A parameter, read as its type.
-fn param<T: Schema>(params: &Value, name: &str) -> Result<T, Value> {
+fn param<T: Schema>(params: &Value, name: &str) -> Result<T, ServiceError> {
     yog_data::read_value(params.get(name).unwrap_or(&Value::Null))
-        .map_err(|e| format!("`{name}`: {e:?}").into())
+        .map_err(|e| ServiceError::param(name, e))
+}
+
+/// A parameter that's markup's text (`item:apple`, `@Images.logo`): as spelled.
+fn spelled(params: &Value, name: &str) -> Result<String, ServiceError> {
+    use yog_data::with::{Spelled, With};
+    let v = params.get(name).unwrap_or(&Value::Null);
+    let arena = yog_data::Bump::new();
+    let mut cx = yog_data::Reader::new();
+    <Spelled as With<String>>::read(&v.borrow(&arena), &mut cx)
+        .filter(|_| cx.problems.is_empty())
+        .ok_or_else(|| ServiceError::param(name, cx.problems))
 }
 
 fn ok<T: Schema>(v: T) -> Reply {
@@ -26,11 +39,11 @@ fn ok<T: Schema>(v: T) -> Reply {
 }
 
 fn done<T: Schema>(r: Result<T, String>) -> Reply {
-    r.map_err(Value::from).and_then(ok)
+    r.map_err(ServiceError::from).and_then(ok)
 }
 
 /// A picture's `width` and `height` parameters.
-fn size(params: &Value) -> Result<(u32, u32), Value> {
+fn size(params: &Value) -> Result<(u32, u32), ServiceError> {
     Ok((param(params, P::WIDTH)?, param(params, P::HEIGHT)?))
 }
 
@@ -53,7 +66,7 @@ struct Call<'a> {
 
 impl Call<'_> {
     /// The `path` parameter: the file the method is about.
-    fn path(&self) -> Result<String, Value> {
+    fn path(&self) -> Result<String, ServiceError> {
         param::<String>(self.params, P::PATH)
     }
 
@@ -67,6 +80,14 @@ impl Call<'_> {
         let (p, v) = (self.path()?, param::<String>(self.params, name)?);
         f(Path::new(&p), &v)
     }
+
+    /// `f` of the `path` file and the `texture` parameter — a texture's id,
+    /// `@texture:<ns>:<path>` or just `<ns>:<path>`.
+    fn texture(&self, f: &dyn Fn(&Path, &str) -> Reply) -> Reply {
+        let p = self.path()?;
+        let t: yog_data::Id<yog_data::kinds::Texture> = param(self.params, P::TEXTURE)?;
+        f(Path::new(&p), &yog_ids::qualify(&t.id))
+    }
 }
 
 /// What design method `method` does with `params`; `None`: no such method.
@@ -79,16 +100,14 @@ pub fn dispatch(method: &str, params: &Value) -> Option<Reply> {
 fn content_method(method: &str, c: &Call) -> Option<Reply> {
     Some(match method {
         M::CONTENT_MOD_ID => c.file(|p| ok(super::mod_root(p).and_then(|r| project::mod_id(&r)))),
-        M::CONTENT_TEXTURE | M::BODY_TEXTURE => {
-            c.with(P::TEXTURE, &|p, t| done(content::texture(p, t)))
-        }
-        M::CONTENT_SAVE_TEXTURE => c.with(P::TEXTURE, &|p, t| {
+        M::CONTENT_TEXTURE | M::BODY_TEXTURE => c.texture(&|p, t| done(content::texture(p, t))),
+        M::CONTENT_SAVE_TEXTURE => c.texture(&|p, t| {
             let png = base64::engine::general_purpose::STANDARD
                 .decode(param::<String>(c.params, P::PNG)?)
-                .map_err(|e| Value::from(e.to_string()))?;
+                .map_err(|e| ServiceError::from(e.to_string()))?;
             done(content::write_texture(p, t, png))
         }),
-        M::CONTENT_SAVE_TEXTURE_ANIMATION => c.with(P::TEXTURE, &|p, t| {
+        M::CONTENT_SAVE_TEXTURE_ANIMATION => c.texture(&|p, t| {
             done(content::write_animation(
                 p,
                 t,
@@ -144,8 +163,13 @@ fn designer_method(method: &str, c: &Call) -> Option<Reply> {
             .and_then(|t| done(worldgen::render(&t, param(c.params, P::SIZE)?))),
         M::YUI_CODEGEN => c.path().and_then(|p| done(yui_codegen::codegen(&p))),
         M::YUI_IMAGE_SOURCES => c.file(|p| ok(images::candidates(p))),
-        M::YUI_IMAGE_PREVIEW => c.with(P::SOURCE, &|p, s| {
-            ok(images::preview(p, s, param(c.params, P::SIZE)?))
+        M::YUI_IMAGE_PREVIEW => c.path().and_then(|p| {
+            let source = spelled(c.params, P::SOURCE)?;
+            ok(images::preview(
+                Path::new(&p),
+                &source,
+                param(c.params, P::SIZE)?,
+            ))
         }),
         M::YUI_DESIGNER_RENDER => param(c.params, P::ARGS).and_then(|a| done(super::render(&a))),
         M::YUI_DESIGNER_EVENT => param(c.params, P::ARGS).and_then(|a| ok(super::event(&a))),
@@ -168,9 +192,8 @@ fn designer_method(method: &str, c: &Call) -> Option<Reply> {
             book::close(&p);
             Value::Null
         }),
-        M::ADVANCEMENT_RENDER => {
-            param(c.params, P::ARGS).and_then(|a| ok(advancements::render(&a)))
-        }
+        M::ADVANCEMENT_RENDER => param::<advancements::AdvancementArgs>(c.params, P::ARGS)
+            .and_then(|a| ok(advancements::render(&a.resolved()))),
 
         _ => return None,
     })

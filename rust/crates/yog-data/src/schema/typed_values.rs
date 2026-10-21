@@ -52,6 +52,7 @@ pub mod kinds {
         Dimension = yog_ids::kind::DIMENSION,
         Texture = yog_ids::kind::TEXTURE,
         Material = yog_ids::kind::MATERIAL,
+        Advancement = yog_ids::kind::ADVANCEMENT,
     }
 }
 

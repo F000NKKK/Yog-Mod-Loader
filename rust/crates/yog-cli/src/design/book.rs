@@ -84,12 +84,12 @@ fn mod_root(path: &Path) -> Option<PathBuf> {
 /// `@Set.name`) and translation key → text (item and block names), from
 /// the mod's `resources/*.yres` — `Set.<locale>.yres` over the neutral
 /// `Set.yres` — and the game's language files under them.
-struct Texts {
-    refs: HashMap<String, String>,
-    lang: HashMap<String, String>,
+pub(super) struct Texts {
+    pub(super) refs: HashMap<String, String>,
+    pub(super) lang: HashMap<String, String>,
 }
 
-fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Texts {
+pub(super) fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Texts {
     let lang_file = locale.unwrap_or(yog_ids::game::LOCALE);
     let mod_id = mod_root
         .and_then(crate::design::project::mod_id)
@@ -212,7 +212,7 @@ fn locales(mod_root: Option<&Path>) -> Vec<String> {
 }
 
 /// The game's name of an item or block: `item.<ns>.<path>`, else `block.…`.
-fn item_name(lang: &HashMap<String, String>, id: &str) -> Option<String> {
+pub(super) fn item_name(lang: &HashMap<String, String>, id: &str) -> Option<String> {
     [yog_ids::kind::ITEM, yog_ids::kind::BLOCK]
         .iter()
         .find_map(|k| lang.get(&yog_ids::lang_key(k, id)).cloned())

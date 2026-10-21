@@ -8,7 +8,7 @@ use yog_formats::yres::{Entry, Kind};
 use yog_ids::serve_method as M;
 use yog_ids::serve_param as P;
 
-use super::Reply;
+use super::{Reply, ServiceError};
 
 /// A file taken into a `.yres` entry: its value (`@bytes:…`) and the type its bytes are.
 #[derive(Schema)]
@@ -25,13 +25,6 @@ struct PictureInfo {
     name: String,
     path: String,
     file: PathBuf,
-}
-
-/// `.yres` text that doesn't read: why, and on which line.
-#[derive(Schema)]
-struct ParseError {
-    message: String,
-    line: Option<u64>,
 }
 
 /// A `.yres` file's entries.
@@ -97,7 +90,7 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         // Entries (as `yres.parse` gives them) → `.yres` text.
         M::YRES_WRITE => params
             .get(P::ENTRIES)
-            .ok_or_else(|| Value::from("missing `entries`"))
+            .ok_or_else(|| ServiceError::from("missing `entries`"))
             .and_then(write),
         // The mod's pictures: set, name, path, file.
         M::MEDIA_PICTURES => path(params, P::PATH).and_then(|p| {
@@ -125,7 +118,7 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
 }
 
 /// A request's text parameter.
-fn text<'a>(params: &'a Value, name: &str) -> Result<&'a str, Value> {
+fn text<'a>(params: &'a Value, name: &str) -> Result<&'a str, ServiceError> {
     params
         .get(name)
         .and_then(Value::as_str)
@@ -133,12 +126,12 @@ fn text<'a>(params: &'a Value, name: &str) -> Result<&'a str, Value> {
 }
 
 /// A request's path parameter.
-fn path(params: &Value, name: &str) -> Result<PathBuf, Value> {
+fn path(params: &Value, name: &str) -> Result<PathBuf, ServiceError> {
     text(params, name).map(PathBuf::from)
 }
 
 /// The mod a file is in (the folder with its manifest, up from it).
-fn mod_root(file: &Path) -> Result<PathBuf, Value> {
+fn mod_root(file: &Path) -> Result<PathBuf, ServiceError> {
     crate::design::project::mod_root(file)
         .ok_or_else(|| format!("{} isn't in a mod", file.display()).into())
 }
@@ -150,7 +143,10 @@ fn parse(text: &str, set_and_mod: Option<(&str, &str)>) -> Reply {
             .split(':')
             .next()
             .and_then(|l| l.trim().parse::<u64>().ok());
-        ParseError { message: e, line }.write()
+        match line {
+            Some(line) => ServiceError::at(e, line as u32, None),
+            None => ServiceError::from(e),
+        }
     })?;
     let entries = entries.iter().map(|e| info(e, set_and_mod)).collect();
     Ok(Parsed { entries }.write())
@@ -193,7 +189,7 @@ fn info(e: &Entry, set_and_mod: Option<(&str, &str)>) -> EntryInfo {
 fn write(entries: &Value) -> Reply {
     let list = entries
         .as_list()
-        .ok_or_else(|| Value::from("`entries` is a list"))?;
+        .ok_or_else(|| ServiceError::from("`entries` is a list"))?;
     let mut out = Vec::with_capacity(list.len());
     for e in list {
         out.push(entry(e)?);
@@ -202,15 +198,15 @@ fn write(entries: &Value) -> Reply {
 }
 
 /// An entry as `yres.parse` gave it (and the editor changed it).
-fn entry(e: &Value) -> Result<Entry, Value> {
+fn entry(e: &Value) -> Result<Entry, ServiceError> {
     let field = |k: &str| e.get(k).and_then(Value::as_str).map(str::to_string);
-    let name = field("name").ok_or_else(|| Value::from("an entry without `name`"))?;
+    let name = field("name").ok_or_else(|| ServiceError::from("an entry without `name`"))?;
     let kind = field("type").unwrap_or_else(|| Kind::String.name().into());
     let kind = KINDS
         .iter()
         .copied()
         .find(|k| k.name() == kind)
-        .ok_or_else(|| Value::from(format!("{name}: no type `{kind}`")))?;
+        .ok_or_else(|| ServiceError::from(format!("{name}: no type `{kind}`")))?;
     let value = match e.get("value") {
         Some(Value::Str(s)) if s.starts_with(yog_ids::sep::TYPED) => {
             match yog_data::typed::classify(s) {

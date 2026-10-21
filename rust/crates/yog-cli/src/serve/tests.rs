@@ -2,10 +2,10 @@
 
 use yog_data::Value;
 
-use super::{Request, answer};
+use super::{Request, ServiceError, answer};
 
 /// `method` called with `params` (Yog Data text).
-fn call(method: &str, params: &str) -> Result<Value, Value> {
+fn call(method: &str, params: &str) -> Result<Value, ServiceError> {
     answer(&Request {
         method: method.into(),
         params: yog_data::text::parse_value(params).unwrap(),
@@ -117,7 +117,7 @@ fn data_is_read_patched_and_formatted_through_the_service() {
         patched.as_str(),
         Some(text.replace("a: 1", "a: 2").as_str())
     );
-    assert_eq!(at(&parse("{ a: }").unwrap_err(), &["line"]), &Value::Int(1));
+    assert_eq!(parse("{ a: }").unwrap_err().problems[0].line, Some(1));
     assert_eq!(
         call("data.format", "{ value: [1, 2] }").unwrap().as_str(),
         Some("[1, 2]")
@@ -160,6 +160,64 @@ fn a_source_is_saved_binary_and_read_as_text() {
     let back = yog_data::text::parse_value(text).unwrap();
     assert_eq!(back.get("$hardness").and_then(Value::as_str), Some("Hard."));
     assert_eq!(back.get("hardness"), Some(&Value::Int(3)));
-    assert_eq!(at(&save("{ a: }").unwrap_err(), &["line"]), &Value::Int(1));
+    assert_eq!(save("{ a: }").unwrap_err().problems[0].line, Some(1));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_parameter_that_doesnt_read_says_where() {
+    let e = call(
+        "content_texture",
+        r#"{ path: "/nowhere/a.yblock", texture: "@item:stick" }"#,
+    )
+    .unwrap_err();
+    assert_eq!(e.problems.len(), 1);
+    assert_eq!(e.problems[0].path, "texture");
+    assert!(e.message.contains("texture"), "{e:?}");
+}
+
+/// What the editors ask with their files' values as written.
+#[test]
+fn textures_and_advancements_take_references_as_written() {
+    use base64::Engine as _;
+    let dir = std::env::temp_dir().join(format!("yog-serve-refs-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(dir.join("content")).unwrap();
+    std::fs::write(dir.join("yog.toml"), "[mod]\nid = \"mymod\"\n").unwrap();
+    let file = dir.join("content/ruby.yblock");
+    std::fs::write(&file, "{}").unwrap();
+    let png = yog_media::image::encode_png(&yog_media::image::Image {
+        width: 1,
+        height: 1,
+        rgba: vec![1, 2, 3, 255],
+    })
+    .unwrap();
+    let p = file.to_string_lossy();
+    let png = base64::engine::general_purpose::STANDARD.encode(&png);
+    call(
+        "content_save_texture",
+        &format!(r#"{{ path: "{p}", texture: "@texture:mymod:block/ruby", png: "{png}" }}"#),
+    )
+    .unwrap();
+    let texture = |t: &str| {
+        call(
+            "content_texture",
+            &format!(r#"{{ path: "{p}", texture: "{t}" }}"#),
+        )
+    };
+    assert!(texture("@texture:mymod:block/ruby").is_ok());
+    // A bare id isn't a reference: said, at the parameter.
+    assert_eq!(
+        texture("mymod:block/ruby").unwrap_err().problems[0].path,
+        "texture"
+    );
+    let args = format!(
+        r#"{{ args: {{ path: "{p}", title: "@lang:gui.done", nodes: [
+            {{ id: "mymod:root", parent: null, icon: "@item:minecraft:stick", frame: "task", title: "Root", description: "@lang:gui.done" }},
+            {{ id: "mymod:next", parent: "@advancement:mymod:root", icon: "@block:minecraft:stone", frame: "goal", title: null, description: null }}
+        ], hover: null }} }}"#
+    );
+    let drawn = call("advancement_render", &args);
+    assert!(drawn.is_ok(), "{drawn:?}");
     std::fs::remove_dir_all(&dir).unwrap();
 }

@@ -169,6 +169,21 @@ fn model_textures(root: &Path, doc: &Value, field: &str) -> Map {
         .collect()
 }
 
+/// A game model's textures (`minecraft:block/stone`, `#side`) as Yog Data
+/// names them: a texture by reference, a slot as written.
+fn texture_refs(textures: &Value) -> Value {
+    let Some(m) = textures.as_map() else {
+        return textures.clone();
+    };
+    let named = |v: &Value| match v.as_str() {
+        Some(t) if !t.starts_with(yog_formats::content::SLOT_MARK) => Value::Ref(
+            yog_data::Ref::new(yog_ids::kind::TEXTURE, yog_ids::qualify(t)),
+        ),
+        _ => v.clone(),
+    };
+    Value::Map(m.iter().map(|(k, v)| (k, named(v))).collect())
+}
+
 /// A model by id, parents flattened: `{textures, elements?, display, parent?}`
 /// where `parent` is the vanilla sprite/builtin root it ends at, if any.
 pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
@@ -194,7 +209,10 @@ pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
                 }
             }
         };
-        inherit(&mut textures, m.get(yog_ids::model::TEXTURES));
+        inherit(
+            &mut textures,
+            m.get(yog_ids::model::TEXTURES).map(texture_refs).as_ref(),
+        );
         inherit(&mut display, m.get(yog_ids::model::DISPLAY));
         if elements.is_none() {
             elements = m.get(yog_ids::model::ELEMENTS).cloned();

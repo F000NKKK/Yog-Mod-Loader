@@ -16,7 +16,7 @@
 //! }
 //! ```
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
@@ -99,6 +99,30 @@ impl<K: Kinds> With<String> for RefTo<K> {
     }
 }
 
+/// Text as it's spelled — markup's attribute, which may spell a reference
+/// (`@Strings.title`): a string kept as written, a typed value as its
+/// spelling. Nothing is checked or resolved here.
+pub struct Spelled;
+
+impl With<String> for Spelled {
+    fn shape() -> Shape {
+        Shape::Str
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<String> {
+        if let ValueRef::Str(s) = v {
+            return Some(s.to_string());
+        }
+        let spelled = crate::typed::typed_string(&v.to_value());
+        if spelled.is_none() {
+            cx.expected("text", v);
+        }
+        spelled
+    }
+    fn write(f: &String) -> Value {
+        Value::Str(f.clone())
+    }
+}
+
 /// A text ([`Text`]: written, a `.yres` text, or a name), kept resolved.
 pub struct TextOf;
 
@@ -175,26 +199,50 @@ impl<F, W: With<F>> With<BTreeMap<String, F>> for Values<W> {
         Shape::Map(W::shape)
     }
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<BTreeMap<String, F>> {
-        let map = cx.map(v)?;
-        let mut out = BTreeMap::new();
-        let mut ok = true;
-        for (k, item) in map.iter().filter(|(k, _)| !is_metadata_key(k)) {
-            match cx.at(Seg::Key(k.to_string()), |cx| W::read(item, cx)) {
-                Some(x) => {
-                    out.insert(k.to_string(), x);
-                }
-                None => ok = false,
-            }
-        }
-        ok.then_some(out)
+        read_values::<F, W, _>(v, cx)
     }
     fn write(f: &BTreeMap<String, F>) -> Value {
-        Value::Map(
-            f.iter()
-                .map(|(k, v)| (k.clone(), W::write(v)))
-                .collect::<Map>(),
-        )
+        write_values::<F, W>(f.iter())
     }
+}
+
+impl<F, W: With<F>> With<HashMap<String, F>> for Values<W> {
+    fn shape() -> Shape {
+        Shape::Map(W::shape)
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<HashMap<String, F>> {
+        read_values::<F, W, _>(v, cx)
+    }
+    fn write(f: &HashMap<String, F>) -> Value {
+        write_values::<F, W>(f.iter())
+    }
+}
+
+/// An object's entries (its notes left out), each value through `W`.
+fn read_values<F, W: With<F>, M: Default + Extend<(String, F)>>(
+    v: &ValueRef<'_>,
+    cx: &mut Reader,
+) -> Option<M> {
+    let map = cx.map(v)?;
+    let mut out = M::default();
+    let mut ok = true;
+    for (k, item) in map.iter().filter(|(k, _)| !is_metadata_key(k)) {
+        match cx.at(Seg::Key(k.to_string()), |cx| W::read(item, cx)) {
+            Some(x) => out.extend([(k.to_string(), x)]),
+            None => ok = false,
+        }
+    }
+    ok.then_some(out)
+}
+
+fn write_values<'a, F: 'a, W: With<F>>(
+    entries: impl Iterator<Item = (&'a String, &'a F)>,
+) -> Value {
+    Value::Map(
+        entries
+            .map(|(k, v)| (k.clone(), W::write(v)))
+            .collect::<Map>(),
+    )
 }
 
 /// The field's own schema — `with` spelled out (`List<Plain>` for a `Vec<T: Schema>`).

@@ -9,7 +9,10 @@
 //! the designers' (`design::service`).
 
 mod data;
+mod error;
 mod media;
+
+pub use error::{Problem, ServiceError};
 
 use yog_data::Schema;
 
@@ -21,9 +24,8 @@ pub struct Request {
     pub params: yog_data::Value,
 }
 
-/// The answer: the method's result, or what went wrong — a message, or
-/// `{message, line}` for a file that doesn't parse.
-pub type Reply = Result<yog_data::Value, yog_data::Value>;
+/// The answer: the method's result, or what went wrong.
+pub type Reply = Result<yog_data::Value, ServiceError>;
 
 /// Serves requests until stdin ends.
 pub fn run() -> Result<(), String> {
@@ -50,9 +52,7 @@ pub fn answer(request: &Request) -> Reply {
         // The designers: drawing, pickers' choices, edits of a mod's files.
         .or_else(|| crate::design::service::dispatch(method, params))
         .unwrap_or_else(|| Err(format!("no method `{method}`").into()));
-    reply
-        .map(|v| yog_data::typed::flatten(&v))
-        .map_err(|e| yog_data::typed::flatten(&e))
+    reply.map(|v| yog_data::typed::flatten(&v))
 }
 
 #[cfg(test)]
