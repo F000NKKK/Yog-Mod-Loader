@@ -80,6 +80,19 @@ names! {
         SERVE = "serve",
     }
 
+    /// The structs the generated code names a mod's content by
+    /// (`Items::RUBY`); a `.yres` set of the same name holds that content's
+    /// names (`Items.yres`: `item.<mod>.<name>`).
+    code_set {
+        BLOCKS = "Blocks",
+        ITEMS = "Items",
+        ENTITIES = "Entities",
+        ADVANCEMENTS = "Advancements",
+        MODELS = "Models",
+        ANIMS = "Anims",
+        TEXTURES = "Textures",
+    }
+
     /// Yog's crates a mod's code builds with, as Cargo names them (Rust's
     /// name has `_` for `-`: [`crate::rust_name`]).
     rust_crate {
@@ -125,6 +138,11 @@ names! {
         LANG = crate::concatcp!("lang", crate::sep::PATH),
         /// Models the game draws in code (`builtin/entity`), not from elements.
         BUILTIN = crate::concatcp!("builtin", crate::sep::PATH),
+        /// Sounds: `<ns>:sounds/<path>.ogg`, their events in `<ns>:sounds.json`.
+        SOUNDS = crate::concatcp!(SOUNDS_WORD, crate::sep::PATH),
+        SOUNDS_JSON = crate::concatcp!(SOUNDS_WORD, JSON),
+        SOUNDS_WORD = "sounds",
+        OGG = ".ogg",
         PNG = ".png",
         SVG = ".svg",
         JSON = ".json",

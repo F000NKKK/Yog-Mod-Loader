@@ -11,10 +11,6 @@ use crate::content::{Compiled, pretty};
 /// An opaque colour from `0xRRGGBB`, as the game's item tints take it (ARGB, signed).
 const OPAQUE: u32 = 0xFF00_0000;
 
-/// What an asset's file is under the pack: `assets/<ns>/<rel>`.
-fn asset(ns: &str, rel: &str) -> String {
-    format!("{}/{ns}/{rel}", yog_ids::pack::ASSETS)
-}
 
 /// Whether the mod writes `path` itself (a hand-written asset, or another content file's output).
 fn own(root: &Path, out: &Compiled, path: &str) -> bool {
@@ -27,11 +23,11 @@ fn own(root: &Path, out: &Compiled, path: &str) -> bool {
 pub(super) fn spawn_egg(root: &Path, out: &mut Compiled, ns: &str, p: &str, [base, spots]: [u32; 2]) {
     let item = format!("{p}{}", res::SPAWN_EGG_SUFFIX);
     let model = format!("{}{item}", res::ITEM_DIR);
-    let model_path = asset(ns, &yog_ids::model_file(&model));
+    let model_path = yog_ids::asset_file(ns, &yog_ids::model_file(&model));
     if !own(root, out, &model_path) {
         out.outputs.push((model_path, pretty(&json!({ (yog_ids::model::PARENT): yog_ids::yog::SPAWN_EGG_MODEL }))));
     }
-    let def_path = asset(ns, &format!("{}{item}{}", res::ITEM_DEFINITIONS, res::JSON));
+    let def_path = yog_ids::asset_file(ns, &format!("{}{item}{}", res::ITEM_DEFINITIONS, res::JSON));
     if own(root, out, &def_path) {
         return;
     }
@@ -50,7 +46,7 @@ pub(super) fn spawn_egg(root: &Path, out: &mut Compiled, ns: &str, p: &str, [bas
 pub(super) fn equipment(root: &Path, out: &mut Compiled, texture: &str, warnings: &mut Vec<String>) {
     let (ns, path) = yog_ids::split(texture);
     let layer = json!([{ (equipment::TEXTURE): texture }]);
-    let asset_path = asset(ns, &format!("{}{path}{}", res::EQUIPMENT, res::JSON));
+    let asset_path = yog_ids::asset_file(ns, &format!("{}{path}{}", res::EQUIPMENT, res::JSON));
     if !own(root, out, &asset_path) {
         let def = json!({ (equipment::LAYERS): {
             (equipment::HUMANOID): layer.clone(),
@@ -59,8 +55,8 @@ pub(super) fn equipment(root: &Path, out: &mut Compiled, texture: &str, warnings
         out.outputs.push((asset_path, pretty(&def)));
     }
     for (n, worn) in [(1, equipment::HUMANOID), (2, equipment::HUMANOID_LEGGINGS)] {
-        let old = asset(ns, &yog_ids::texture_file(&format!("{}{path}{}{n}", res::ARMOR_TEXTURES, res::ARMOR_LAYER)));
-        let new = asset(ns, &yog_ids::texture_file(&format!("{}{worn}{}{path}", res::EQUIPMENT_TEXTURES, yog_ids::sep::PATH)));
+        let old = yog_ids::asset_file(ns, &yog_ids::texture_file(&format!("{}{path}{}{n}", res::ARMOR_TEXTURES, res::ARMOR_LAYER)));
+        let new = yog_ids::asset_file(ns, &yog_ids::texture_file(&format!("{}{worn}{}{path}", res::EQUIPMENT_TEXTURES, yog_ids::sep::PATH)));
         if own(root, out, &new) {
             continue;
         }

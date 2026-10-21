@@ -26,13 +26,13 @@ struct Kind {
 const KINDS: [Kind; 2] = [
     Kind {
         format: Format::Block,
-        set: "Blocks",
+        set: yog_ids::code_set::BLOCKS,
         def: "BlockDef",
         noun: yog_ids::word::BLOCKS,
     },
     Kind {
         format: Format::Item,
-        set: "Items",
+        set: yog_ids::code_set::ITEMS,
         def: "ItemDef",
         noun: yog_ids::word::ITEMS,
     },
@@ -175,7 +175,7 @@ pub(super) fn entry_idents(entries: &[Entry]) -> Vec<String> {
 
 /// `ident` as Rust takes it: a keyword as `r#ident`.
 pub(super) fn escaped(ident: &str) -> String {
-    if super::is_keyword(ident) {
+    if crate::rust_code::is_keyword(ident) {
         format!("r#{ident}")
     } else {
         ident.to_string()

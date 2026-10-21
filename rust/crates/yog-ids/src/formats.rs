@@ -108,6 +108,12 @@ pub fn blockstate_file(path: &str) -> String {
 const ENTITY_REGISTRY: &str = crate::concatcp!(kind::ENTITY, sep::WORD, crate::word::TYPE);
 const BIOME_REGISTRY: &str = crate::concatcp!(crate::worldgen::DIR, sep::PATH, kind::BIOME);
 
+/// Asset `rel` of namespace `ns`'s, as the pack holds it: `assets/<ns>/<rel>`.
+#[must_use]
+pub fn asset_file(ns: &str, rel: &str) -> String {
+    format!("{}{}{ns}{}{rel}", crate::pack::ASSETS, sep::PATH, sep::PATH)
+}
+
 /// Crate `name` as Rust code names it: `yog-api` → `yog_api`.
 #[must_use]
 pub fn rust_name(name: &str) -> String {

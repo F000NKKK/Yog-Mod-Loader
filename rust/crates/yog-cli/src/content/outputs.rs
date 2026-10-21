@@ -156,7 +156,7 @@ impl Merging<'_> {
 
     /// A namespace's entries in a locale's lang file, under what's there.
     fn lang(&mut self, ns: &str, locale: &str, entries: &std::collections::BTreeMap<String, String>) {
-        let path = format!("{}/{ns}/{}", yog_ids::pack::ASSETS, yog_ids::lang_file(locale));
+        let path = yog_ids::asset_file(ns, &yog_ids::lang_file(locale));
         let Some(mut map) = self.object(&path) else { return };
         for (k, v) in entries {
             map.entry(k.clone()).or_insert_with(|| Value::String(v.clone()));

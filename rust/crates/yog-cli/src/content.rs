@@ -136,34 +136,9 @@ pub fn valid_id(s: &str) -> bool {
     }
 }
 
-// ── Finding ──────────────────────────────────────────────────────────────────
-
 /// Every content file (`CONTENT`) under `content/` of the mod at `root`, sorted.
 pub fn find(root: &Path) -> Vec<PathBuf> {
-    fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
-        let Ok(entries) = std::fs::read_dir(dir) else {
-            return;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                walk(&path, out);
-            } else if content_format(&path).is_some() {
-                out.push(path);
-            }
-        }
-    }
-    let mut out = Vec::new();
-    walk(&root.join(CONTENT_DIR), &mut out);
-    out.sort();
-    out
-}
-
-fn display(root: &Path, p: &Path) -> String {
-    p.strip_prefix(root)
-        .unwrap_or(p)
-        .to_string_lossy()
-        .replace('\\', "/")
+    crate::files_under(&root.join(CONTENT_DIR), &|p| content_format(p).is_some())
 }
 
 fn pretty(v: &Value) -> Vec<u8> {

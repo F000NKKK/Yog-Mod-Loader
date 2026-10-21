@@ -761,6 +761,18 @@ public final class YogNames {
         public static final String SERVE = "serve";
     }
 
+    public static final class CodeSet {
+        private CodeSet() {}
+
+        public static final String BLOCKS = "Blocks";
+        public static final String ITEMS = "Items";
+        public static final String ENTITIES = "Entities";
+        public static final String ADVANCEMENTS = "Advancements";
+        public static final String MODELS = "Models";
+        public static final String ANIMS = "Anims";
+        public static final String TEXTURES = "Textures";
+    }
+
     public static final class RustCrate {
         private RustCrate() {}
 
@@ -791,6 +803,10 @@ public final class YogNames {
         public static final String ATLASES = "atlases/";
         public static final String LANG = "lang/";
         public static final String BUILTIN = "builtin/";
+        public static final String SOUNDS = "sounds/";
+        public static final String SOUNDS_JSON = "sounds.json";
+        public static final String SOUNDS_WORD = "sounds";
+        public static final String OGG = ".ogg";
         public static final String PNG = ".png";
         public static final String SVG = ".svg";
         public static final String JSON = ".json";

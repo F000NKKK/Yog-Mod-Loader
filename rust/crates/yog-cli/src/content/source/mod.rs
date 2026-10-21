@@ -3,6 +3,8 @@
 mod blocks;
 mod register;
 
+use yog_ids::code_set;
+
 use crate::content::defs::Defs;
 use crate::content::entry::{BlockProps, Entry};
 use crate::content::files::{BodyFile, BookFile, EntityFile, FontFile};
@@ -207,20 +209,20 @@ pub(super) fn rust_source(c: &Content) -> Source {
     let doc = "The entity types of `content/` (`.yentity`), by id.";
     part(
         "entities",
-        id_consts(doc, "Entities", c.entities.iter().map(|e| e.id.as_str())),
+        id_consts(doc, code_set::ENTITIES, c.entities.iter().map(|e| e.id.as_str())),
     );
     let doc = "The advancements of `content/` (`.ydef` kind `advancement`), by id\n/// (`yog_api::advancements::grant`/`done`).";
     part(
         "advancements",
         id_consts(
             doc,
-            "Advancements",
+            code_set::ADVANCEMENTS,
             c.defs.advancements.iter().map(String::as_str),
         ),
     );
     for (model, set, what) in [
-        (true, "Models", "models (`.ymodel`)"),
-        (false, "Anims", "animations (`.yanim`)"),
+        (true, code_set::MODELS, "models (`.ymodel`)"),
+        (false, code_set::ANIMS, "animations (`.yanim`)"),
     ] {
         let doc = format!("The {what} of `content/`, by id (`yog_api::body::model`/`clip`).");
         part(
@@ -238,7 +240,7 @@ pub(super) fn rust_source(c: &Content) -> Source {
     let doc = "The textures of `resources/` (`.ytexture`), by id — what the mod's code draws.";
     part(
         "textures",
-        id_consts(doc, "Textures", c.textures.iter().map(String::as_str)),
+        id_consts(doc, code_set::TEXTURES, c.textures.iter().map(String::as_str)),
     );
     let idents = blocks::entry_idents(c.entries);
     for (name, code) in blocks::entries_code(c.entries, &idents) {
@@ -256,16 +258,6 @@ pub(super) fn rust_source(c: &Content) -> Source {
     Source { root, parts }
 }
 
-pub(super) fn is_keyword(s: &str) -> bool {
-    const KW: &[&str] = &[
-        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn",
-        "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref",
-        "return", "self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use",
-        "where", "while", "async", "await", "dyn", "abstract", "become", "box", "do", "final",
-        "macro", "override", "priv", "typeof", "unsized", "virtual", "yield", "try", "gen",
-    ];
-    KW.contains(&s)
-}
 
 /// Writes `compiled.source` to [`GENERATED_FILE`] (only when it changed);
 /// deletes it when the mod has no content files.

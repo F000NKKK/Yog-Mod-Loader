@@ -56,7 +56,7 @@ enum GameIds {
 }
 
 /// The game's sound events: the keys of its `sounds.json`.
-const SOUNDS_ASSET: &str = "sounds.json";
+const SOUNDS_ASSET: &str = yog_ids::res::SOUNDS_JSON;
 /// Attributes' translation keys: `attribute.name.generic.max_health`.
 const ATTRIBUTE_LANG_PREFIX: &str = "attribute.name.";
 /// The game's potions' item names: `item.minecraft.potion.effect.<name>`, a Yog potion alias.

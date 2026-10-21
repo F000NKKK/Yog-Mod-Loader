@@ -113,7 +113,7 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
     }
     let Some(root) = mod_root else { return t };
     let mut files: Vec<(String, Option<String>, PathBuf)> = Vec::new();
-    for f in std::fs::read_dir(root.join("resources")).into_iter().flatten().flatten() {
+    for f in std::fs::read_dir(root.join(crate::yres::RESOURCES_DIR)).into_iter().flatten().flatten() {
         let p = f.path();
         let Some((set, loc)) = p.file_name().and_then(|n| n.to_str()).and_then(yog_formats::yres::split_file_name) else { continue };
         let (set, loc) = (set.to_string(), loc.map(str::to_string));
@@ -138,12 +138,7 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
             };
             let Some(text) = text else { continue };
             // As `yog build` names its translation key.
-            let key = key.unwrap_or_else(|| match set.as_str() {
-                "Items" => format!("item.{mod_id}.{k}"),
-                "Blocks" => format!("block.{mod_id}.{k}"),
-                "Entities" => format!("entity.{mod_id}.{k}"),
-                _ => format!("{mod_id}.{k}"),
-            });
+            let key = key.unwrap_or_else(|| crate::yres::default_key(&set, &mod_id, &k));
             t.lang.insert(key, text.clone());
             t.refs.insert(format!("{set}.{k}"), text);
         }

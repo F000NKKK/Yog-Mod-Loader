@@ -43,7 +43,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
     let resources = root.join(RESOURCES_DIR);
     let mut b = Building::default();
     for file in crate::yui::find_files(&resources, Format::Texture.ext()) {
-        let shown = super::display(root, &file);
+        let shown = crate::shown_path(root, &file);
         let rel = file.strip_prefix(&resources).unwrap_or(&file).to_string_lossy().replace('\\', yog_ids::sep::PATH);
         let Some(id) = yog_formats::texture::id_of(mod_id, &rel) else { continue };
         if let Err(e) = texture(&mut b, &file, &id, refs) {
@@ -84,7 +84,7 @@ fn texture(b: &mut Building, file: &Path, id: &str, refs: &Refs) -> Result<(), S
             b.out.packed.insert(picture.output.clone());
         }
         _ => {
-            let target = format!("{}/{ns}/{}", yog_ids::pack::ASSETS, yog_ids::texture_file(path));
+            let target = yog_ids::asset_file(ns, &yog_ids::texture_file(path));
             if let Some(meta) = texture.game_mcmeta() {
                 b.out.outputs.push((format!("{target}{}", yog_ids::res::MCMETA), super::pretty(&meta)));
             }
@@ -110,7 +110,7 @@ fn write_atlas(b: &mut Building, atlas: &str, mod_id: &str) -> Result<(), String
         let (sheet, regions) = pack(&textures);
         let picture_path = format!("{ATLAS_DIR}{}{}", yog_ids::sep::PATH, yog_ids::split(atlas).1);
         let png = yog_media::image::encode_png(&sheet)?;
-        b.out.outputs.push((format!("{}/{mod_id}/{}", yog_ids::pack::ASSETS, yog_ids::texture_file(&picture_path)), png));
+        b.out.outputs.push((yog_ids::asset_file(mod_id, &yog_ids::texture_file(&picture_path)), png));
         let regions: Vec<Value> = regions
             .iter()
             .map(|(id, x, y, w, h)| json!({ src::SPRITE: id, src::X: x, src::Y: y, src::WIDTH: w, src::HEIGHT: h }))
@@ -124,7 +124,7 @@ fn write_atlas(b: &mut Building, atlas: &str, mod_id: &str) -> Result<(), String
         }));
     }
     let (ns, path) = yog_ids::split(atlas);
-    let file = format!("{}/{ns}/{}{path}{}", yog_ids::pack::ASSETS, yog_ids::res::ATLASES, yog_ids::res::JSON);
+    let file = yog_ids::asset_file(ns, &format!("{}{path}{}", yog_ids::res::ATLASES, yog_ids::res::JSON));
     b.out.outputs.push((file, super::pretty(&json!({ src::SOURCES: sources }))));
     Ok(())
 }

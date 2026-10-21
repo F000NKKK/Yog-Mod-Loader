@@ -273,7 +273,7 @@ impl Pack {
                         if path.is_dir() {
                             stack.push(path);
                         } else if let Ok(rel) = path.strip_prefix(d) {
-                            add(&rel.to_string_lossy().replace('\\', "/"));
+                            add(&crate::slash_path(rel));
                         }
                     }
                 }

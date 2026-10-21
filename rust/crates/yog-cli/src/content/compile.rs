@@ -24,7 +24,7 @@ use crate::content::recipe::registration::Recipe;
 use crate::content::recipe::{Against, compile_recipe};
 use crate::content::source::{Content, mentions_content_macro, registrations, rust_source};
 use crate::content::{
-    CONTENT_DIR, Compiled, content_format, datapack, display, find, looks, refs, textures,
+    CONTENT_DIR, Compiled, content_format, datapack, find, looks, refs, textures,
     valid_namespace,
 };
 use crate::yres;
@@ -137,7 +137,7 @@ impl<'a> Build<'a> {
     /// Reads the content file at `path`: checked now, or kept for when
     /// what it names is known.
     fn read(&mut self, path: &Path) {
-        let shown = display(self.shared.root, path);
+        let shown = crate::shown_path(self.shared.root, path);
         let Some(kind) = content_format(path) else {
             return;
         };

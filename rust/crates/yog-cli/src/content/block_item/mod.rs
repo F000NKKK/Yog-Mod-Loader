@@ -102,7 +102,7 @@ pub(super) struct Emit<'a> {
 impl Emit<'_> {
     /// `value` as `assets/<ns>/<rel>`.
     pub(super) fn asset(&mut self, cx: &mut Ctx, rel: String, value: &Value) {
-        let full = format!("{}/{}/{rel}", yog_ids::pack::ASSETS, self.ns);
+        let full = yog_ids::asset_file(&self.ns, &rel);
         if cx.root.join(&full).is_file() {
             cx.err(1, format!("{full} is written by this file — delete the hand-written one (or bring it in with `yog import model`)"));
         }

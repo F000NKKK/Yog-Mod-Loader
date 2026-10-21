@@ -59,10 +59,7 @@ impl Shared<'_> {
             .strip_prefix(self.root.join(CONTENT_DIR))
             .unwrap_or(path)
             .with_extension("");
-        yog_ids::join(
-            self.ns,
-            &rel.to_string_lossy().replace('\\', yog_ids::sep::PATH),
-        )
+        yog_ids::join(self.ns, &crate::slash_path(&rel))
     }
 }
 

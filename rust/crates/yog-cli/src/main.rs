@@ -1515,7 +1515,7 @@ fn gather_assets(root: &Path, compiled: Vec<(String, Vec<u8>)>) -> Vec<(String, 
             if path.is_dir() {
                 stack.push(path);
             } else if let Ok(rel) = path.strip_prefix(root) {
-                let key = rel.to_string_lossy().replace('\\', "/");
+                let key = yog_cli::slash_path(rel);
                 if let Ok(bytes) = std::fs::read(&path) {
                     out.put(key, bytes);
                 }
