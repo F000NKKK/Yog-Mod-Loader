@@ -16,7 +16,7 @@ fn tools_and_armor_of_the_games_materials_or_the_mods() {
     let c = compile(&project(&files), "mymod", &yres::Refs::default()).unwrap();
     let src = c.source.unwrap().all();
     assert!(src.contains(r#".tool("pickaxe", "mymod:mythril")"#) && !src.contains(".tool_attack("), "the game's tool's attack: {src}");
-    assert!(src.contains(r#".armor("head", "minecraft:iron")"#), "{src}");
+    assert!(src.contains(r#".armor(::yog_api::ArmorSlot::Head, "minecraft:iron")"#), "{src}");
     assert!(src.contains(r##"level: "mymod:mythril".into(), repair: "#c:ingots".into(), level_index: 4, incorrect: "minecraft:incorrect_for_netherite_tool".into()"##), "above diamond: netherite's on both versions: {src}");
     assert!(src.contains(r#"registry.register_armor_material(::yog_api::ArmorMaterial { id: "mymod:mythril".into()"#) && src.contains(r#"texture: "mymod:mythril".into()"#), "{src}");
 
