@@ -9,7 +9,7 @@ use std::path::Path;
 
 use base64::Engine as _;
 use yog_gfx::draw2d::Draw2D;
-use yog_gfx::{Color, Rect, Vec2};
+use yog_gfx::{Color, GfxContext, Rect, Vec2};
 
 use super::assets::Resources;
 mod args;
@@ -141,9 +141,7 @@ pub fn render(args: &Args) -> Rendered {
     images::set_document(root.as_deref());
     let res = Resources::for_mod(root.as_deref());
     let (tab, drag) = lay_out(args);
-    let ops = gfx::record(SCREEN.0 as i32, SCREEN.1 as i32, |ctx| {
-        draw(&ctx.draw2d(), args, &tab)
-    });
+    let ops = gfx::record(SCREEN.0 as i32, SCREEN.1 as i32, |ctx| draw(ctx, args, &tab));
     let canvas = raster::rasterize(&ops, SCREEN.0 as u32, SCREEN.1 as u32, SCALE, &res);
     let image = canvas.png().ok().map(|png| {
         format!(
@@ -229,7 +227,8 @@ fn lay_out(args: &Args) -> (Tab, [f32; 2]) {
 
 /// The screen: the world behind dimmed, the view, the window, the title,
 /// the hover.
-fn draw(d: &Draw2D, args: &Args, tab: &Tab) {
+fn draw(ctx: &GfxContext, args: &Args, tab: &Tab) {
+    let d = &ctx.draw2d();
     // The world behind, dimmed (here: nothing behind).
     d.rect(Rect::new(0.0, 0.0, SCREEN.0, SCREEN.1), BLACK);
     d.gradient(
@@ -237,8 +236,13 @@ fn draw(d: &Draw2D, args: &Args, tab: &Tab) {
         BACKDROP.0,
         BACKDROP.1,
     );
+    // The view clips what's inside it (`AdvancementTab.drawContents`'
+    // `enableScissor`); the rasterizer takes the scissor in GUI pixels.
+    let v = tab.view_rect();
+    ctx.set_scissor(v.x as i32, v.y as i32, v.w as i32, v.h as i32);
     draw_background(d, args, tab);
     draw_tree(d, args, tab);
+    ctx.clear_scissor();
     let w = tab.window;
     d.image(WINDOW_SPRITE, Rect::new(w.x, w.y, WINDOW.0, WINDOW.1));
     d.text(
@@ -258,7 +262,7 @@ fn draw(d: &Draw2D, args: &Args, tab: &Tab) {
     }
 }
 
-/// The view's background, tiled from the scroll (clipped by the view).
+/// The view's background, tiled from the scroll.
 fn draw_background(d: &Draw2D, args: &Args, tab: &Tab) {
     let background = args.background.as_deref().map_or_else(
         || yog_ids::game::MISSING_TEXTURE.to_string(),
@@ -274,22 +278,14 @@ fn draw_background(d: &Draw2D, args: &Args, tab: &Tab) {
                 TILE,
                 TILE,
             );
-            if let Some(t) = clip(tile, tab.view_rect()) {
-                let uv = Rect::new(t.x - tile.x, t.y - tile.y, t.w, t.h);
-                d.image_region(&background, t, Some(uv), WHITE);
-            }
+            d.image(&background, tile);
         }
     }
 }
 
 /// The connectors (their shadow first), then each advancement's frame and icon.
 fn draw_tree(d: &Draw2D, args: &Args, tab: &Tab) {
-    let view_rect = tab.view_rect();
-    let fill = |r: Rect, c: Color| {
-        if let Some(r) = clip(r, view_rect) {
-            d.rect(r, c);
-        }
-    };
+    let fill = |r: Rect, c: Color| d.rect(r, c);
     for shadow in [true, false] {
         for (_, p, parent) in &tab.spots {
             if let Some(pp) = parent {
@@ -301,15 +297,13 @@ fn draw_tree(d: &Draw2D, args: &Args, tab: &Tab) {
     for (i, p, _) in &tab.spots {
         let n = &args.nodes[*i];
         let frame = Rect::new(o.x + p.x + FRAME_DX, o.y + p.y, FRAME, FRAME);
-        if clip(frame, view_rect).is_some() {
-            d.image(&frame_sprite(&n.frame, n.obtained), frame);
-            if let Some(icon) = &n.icon {
-                d.item(
-                    icon,
-                    Vec2::new(o.x + p.x + ICON_AT.x, o.y + p.y + ICON_AT.y),
-                    ICON,
-                );
-            }
+        d.image(&frame_sprite(&n.frame, n.obtained), frame);
+        if let Some(icon) = &n.icon {
+            d.item(
+                icon,
+                Vec2::new(o.x + p.x + ICON_AT.x, o.y + p.y + ICON_AT.y),
+                ICON,
+            );
         }
     }
 }
@@ -504,16 +498,6 @@ fn split_lines(text: &str, max: f32, width: &impl Fn(&str) -> f32) -> Vec<String
         out.push(line);
     }
     out
-}
-
-/// The part of `r` inside `within`.
-fn clip(r: Rect, within: Rect) -> Option<Rect> {
-    let (x0, y0) = (r.x.max(within.x), r.y.max(within.y));
-    let (x1, y1) = (
-        (r.x + r.w).min(within.x + within.w),
-        (r.y + r.h).min(within.y + within.h),
-    );
-    (x1 > x0 && y1 > y0).then(|| Rect::new(x0, y0, x1 - x0, y1 - y0))
 }
 
 /// Each advancement's place: `(column, row)` — the game's `TreeNodePosition`
