@@ -5,12 +5,14 @@
 //! docs.
 
 mod fields;
+mod one_or_list;
 mod plain;
 mod reader;
 mod shape;
 mod typed_values;
 
 pub use fields::{Fields, field_name};
+pub use one_or_list::OneOrList;
 pub use plain::*;
 pub use reader::*;
 pub use shape::*;

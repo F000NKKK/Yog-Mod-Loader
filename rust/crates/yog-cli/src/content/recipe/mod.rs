@@ -57,11 +57,11 @@ pub(super) fn compile_recipe(
         Body::Shaped(s) => body::shaped(cx, loc, s)?,
         Body::Shapeless(s) => body::shapeless(cx, loc, &s)?,
         Body::Cooking(ty, k) => body::cooking(cx, loc, &ty, k)?,
-        Body::Stonecutting(k) => RecipeKind::Stonecutting(k.ingredient.ids()),
+        Body::Stonecutting(k) => RecipeKind::Stonecutting(yog_formats::recipe::ids(&k.ingredient)),
         Body::Smithing(k) => RecipeKind::Smithing {
-            template: k.template.ids(),
-            base: k.base.ids(),
-            addition: k.addition.ids(),
+            template: yog_formats::recipe::ids(&k.template),
+            base: yog_formats::recipe::ids(&k.base),
+            addition: yog_formats::recipe::ids(&k.addition),
         },
         Body::Brewing(k) => {
             body::brewing(cx, loc, &c);

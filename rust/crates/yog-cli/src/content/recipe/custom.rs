@@ -46,7 +46,7 @@ pub(super) fn custom(
         .slots
         .0
         .iter()
-        .map(|(name, ings)| (name.clone(), ings.iter().map(|i| i.ids()).collect()))
+        .map(|(name, ings)| (name.clone(), ings.iter().map(yog_formats::recipe::ids).collect()))
         .collect();
     let values = k
         .values

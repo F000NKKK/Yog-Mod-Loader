@@ -40,41 +40,18 @@ fn one() -> u32 {
 }
 
 /// One ingredient: an item or a tag, or a list of them (any of them does).
-pub struct Ingredient(pub Vec<ItemIdOrTag>);
+pub type Ingredient = yog_data::OneOrList<ItemIdOrTag>;
 
-impl Ingredient {
-    /// As the generated code and the runtime write it: ids, `#tag`s.
-    pub fn ids(&self) -> Vec<String> {
-        self.0
-            .iter()
-            .map(|i| match i {
-                OneOrTag::One(id) => id.id.clone(),
-                OneOrTag::Tag(t) => format!("#{}", t.id),
-            })
-            .collect()
-    }
-}
-
-impl Schema for Ingredient {
-    fn shape() -> Shape {
-        ItemIdOrTag::shape()
-    }
-    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
-        match v {
-            ValueRef::List([]) => {
-                cx.problem("an empty list: at least one item or tag");
-                None
-            }
-            ValueRef::List(_) => Vec::<ItemIdOrTag>::read(v, cx).map(Ingredient),
-            _ => ItemIdOrTag::read(v, cx).map(|i| Ingredient(vec![i])),
-        }
-    }
-    fn write(&self) -> Value {
-        match self.0.as_slice() {
-            [one] => one.write(),
-            many => Value::List(many.iter().map(Schema::write).collect()),
-        }
-    }
+/// `ingredient` as the generated code and the runtime write it: ids, `#tag`s.
+pub fn ids(ingredient: &Ingredient) -> Vec<String> {
+    ingredient
+        .0
+        .iter()
+        .map(|i| match i {
+            OneOrTag::One(id) => id.id.clone(),
+            OneOrTag::Tag(t) => format!("#{}", t.id),
+        })
+        .collect()
 }
 
 /// A crafting grid: `pattern` rows of `key` characters (space: empty).

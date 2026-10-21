@@ -38,7 +38,7 @@ pub mod schema;
 
 pub use schema::{
     AnyRefOrTag, BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds,
-    OneOrTag, Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text, built_in,
+    OneOrList, OneOrTag, Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text, built_in,
     from_doc_with, from_text, from_value, from_value_with, kinds, read_bytes, read_ref_value,
     read_value, to_bytes, to_text,
 };

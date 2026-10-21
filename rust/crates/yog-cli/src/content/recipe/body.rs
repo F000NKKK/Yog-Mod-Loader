@@ -33,7 +33,7 @@ pub(super) fn shaped(cx: &mut Ctx, loc: Loc, s: Shaped) -> Option<RecipeKind> {
                 if !s.pattern.iter().any(|r| r.contains(ch)) {
                     cx.warn(at, format!("key {k:?} isn't used by the pattern"));
                 }
-                key.push((ch, ing.ids()));
+                key.push((ch, yog_formats::recipe::ids(ing)));
             }
             _ => cx.err(at, format!("key {k:?}: one character other than space")),
         }
@@ -72,7 +72,7 @@ pub(super) fn shapeless(cx: &mut Ctx, loc: Loc, s: &Shapeless) -> Option<RecipeK
         return None;
     }
     Some(RecipeKind::Shapeless(
-        s.ingredients.iter().map(|i| i.ids()).collect(),
+        s.ingredients.iter().map(yog_formats::recipe::ids).collect(),
     ))
 }
 
@@ -103,7 +103,7 @@ pub(super) fn cooking(cx: &mut Ctx, loc: Loc, ty: &str, k: Cooking) -> Option<Re
     }
     Some(RecipeKind::Cooking {
         method,
-        input: k.ingredient.ids(),
+        input: yog_formats::recipe::ids(&k.ingredient),
         experience: k.experience,
         cook_time,
     })

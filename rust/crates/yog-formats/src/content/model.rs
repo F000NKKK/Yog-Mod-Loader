@@ -263,25 +263,6 @@ pub struct States {
 }
 
 /// One model name, or several to pick from at random (a blockstate's list of variants).
-#[derive(Debug, Clone, PartialEq)]
-pub struct ModelNames(pub Vec<String>);
-
-impl Schema for ModelNames {
-    fn shape() -> Shape {
-        Shape::List(String::shape)
-    }
-    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
-        match v {
-            ValueRef::List(_) => Vec::<String>::read(v, cx).map(ModelNames),
-            _ => String::read(v, cx).map(|s| ModelNames(vec![s])),
-        }
-    }
-    fn write(&self) -> Value {
-        match self.0.as_slice() {
-            [one] => one.write(),
-            many => Value::List(many.iter().map(Schema::write).collect()),
-        }
-    }
-}
+pub type ModelNames = yog_data::OneOrList<String>;
 
 pub use yog_registry::{Facing, Placement};
