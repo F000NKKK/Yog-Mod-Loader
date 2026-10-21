@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,13 +70,13 @@ public final class YogClientApi {
     }
 
     @YogServiceHost
-    public static String heldItem(boolean offHand) {
+    public static YogTypes.Stack heldItem(boolean offHand) {
         try {
             LocalPlayer p = Minecraft.getInstance().player;
             if (p == null) return null;
             ItemStack st = p.getItemInHand(offHand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
             if (st.isEmpty()) return null;
-            return BuiltInRegistries.ITEM.getKey(st.getItem()).toString();
+            return YogQueries.stack(st);
         } catch (Throwable t) {
             return null;
         }
