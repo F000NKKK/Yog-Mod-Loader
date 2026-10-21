@@ -11,10 +11,10 @@ use yog_ids::model as mc;
 use yog_ids::ns::MINECRAFT;
 
 use super::blocks::content_file;
+use super::build::{Data, Fields, number, nums, obj, string};
 use super::fields as f;
 use super::model::{clamp_coord, numbers, rounded, snap_angle, template_of};
 use super::target::Target;
-use crate::content::json::{J, V, to_pretty};
 use crate::content::valid_path;
 use crate::content::vocab::{DIRECTIONS, DISPLAY_SLOTS};
 
@@ -87,7 +87,7 @@ struct Named {
 /// The project's textures: slot → value, each slot's uv scale, by uuid
 /// its slot.
 struct Textures {
-    tex: J,
+    tex: Data,
     uv_scale: Vec<(f64, f64)>,
     by_uuid: BTreeMap<String, usize>,
 }
@@ -106,12 +106,15 @@ pub(super) fn import_bbmodel(
     let textures = textures(t, &bb, &named)?;
     let elements = elements(t, &bb, &textures);
     let model = model(&bb, textures.tex, elements)?;
-    let mut j = J::obj::<&str>([]);
+    let mut j = obj::<&str>([]);
     if t.ns.is_none() || named.own_ns {
-        j.set(f::ID, J::string(yog_ids::join(&named.ns, &named.name)));
+        j.set(f::ID, string(yog_ids::join(&named.ns, &named.name)));
     }
     j.set(f::MODEL, model);
-    t.write_file(&content_file(item, &named.name), to_pretty(&j).as_bytes())
+    t.write_file(
+        &content_file(item, &named.name),
+        &yog_data::binary::encode(&j),
+    )
 }
 
 /// Only the "Java Block/Item" format maps to Minecraft models; a generic
@@ -192,7 +195,7 @@ fn textures(t: &mut Target, bb: &Value, named: &Named) -> Result<Textures, Strin
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    let mut tex = J::obj::<&str>([]);
+    let mut tex = obj::<&str>([]);
     let mut uv_scale = Vec::new();
     let mut particle = None;
     for (i, tx) in list.iter().enumerate() {
@@ -203,10 +206,10 @@ fn textures(t: &mut Target, bb: &Value, named: &Named) -> Result<Textures, Strin
         if tx.get(mc::PARTICLE).and_then(Value::as_bool) == Some(true) {
             particle = Some(value.clone());
         }
-        tex.set(&i.to_string(), J::string(value));
+        tex.set(&i.to_string(), string(value));
     }
     if let Some(p) = particle {
-        tex.set(mc::PARTICLE, J::string(p));
+        tex.set(mc::PARTICLE, string(p));
     }
     let by_uuid = list
         .iter()
@@ -253,7 +256,7 @@ fn texture(t: &mut Target, tx: &Value, ns: &str, folder: &str) -> Result<String,
 }
 
 /// The project's cubes as elements; anything else skipped.
-fn elements(t: &mut Target, bb: &Value, textures: &Textures) -> Vec<J> {
+fn elements(t: &mut Target, bb: &Value, textures: &Textures) -> Vec<Data> {
     let list = bb
         .get(mc::ELEMENTS)
         .and_then(Value::as_array)
@@ -284,30 +287,30 @@ fn elements(t: &mut Target, bb: &Value, textures: &Textures) -> Vec<J> {
 }
 
 /// One cube: its box (inflated both ways), its one rotation, its faces.
-fn element(t: &mut Target, e: &Value, what: &str, textures: &Textures) -> J {
+fn element(t: &mut Target, e: &Value, what: &str, textures: &Textures) -> Data {
     let vec3 = |t: &mut Target, k: &str| -> Vec<f64> {
         numbers(e.get(k))
             .into_iter()
             .map(|n| clamp_coord(t, what, n))
             .collect()
     };
-    let mut el = J::obj::<&str>([]);
+    let mut el = obj::<&str>([]);
     if let Some(n) = e.get(yog_ids::word::NAME).and_then(Value::as_str) {
-        el.set(f::EL_NAME, J::string(n));
+        el.set(f::EL_NAME, string(n));
     }
     // Blockbench's inflate grows the box both ways.
     let inflate = e.get("inflate").and_then(Value::as_f64).unwrap_or(0.0);
     let from: Vec<f64> = vec3(t, mc::FROM).into_iter().map(|v| v - inflate).collect();
     let to: Vec<f64> = vec3(t, mc::TO).into_iter().map(|v| v + inflate).collect();
-    el.set(f::FROM, J::nums(&from));
-    el.set(f::TO, J::nums(&to));
+    el.set(f::FROM, nums(&from));
+    el.set(f::TO, nums(&to));
     if let Some(r) = rotation(t, e, what) {
         el.set(f::ROTATION, r);
     }
     if e.get(mc::SHADE).and_then(Value::as_bool) == Some(false) {
-        el.set(f::SHADE, J::of(V::Bool(false)));
+        el.set(f::SHADE, Data::Bool(false));
     }
-    let mut faces = J::obj::<&str>([]);
+    let mut faces = obj::<&str>([]);
     for dir in DIRECTIONS {
         if let Some(fo) = e
             .pointer(&format!("/{}/{dir}", mc::FACES))
@@ -322,7 +325,7 @@ fn element(t: &mut Target, e: &Value, what: &str, textures: &Textures) -> J {
 
 /// A cube's rotation: on its first rotated axis only (Minecraft rotates
 /// elements on one), snapped.
-fn rotation(t: &mut Target, e: &Value, what: &str) -> Option<J> {
+fn rotation(t: &mut Target, e: &Value, what: &str) -> Option<Data> {
     let rot = numbers(e.get(mc::ROTATION));
     let nonzero: Vec<(usize, f64)> = rot
         .iter()
@@ -338,34 +341,31 @@ fn rotation(t: &mut Target, e: &Value, what: &str) -> Option<J> {
     if angle == 0.0 {
         return None;
     }
-    let mut r = J::obj([(
-        f::AXIS,
-        J::string(AXES.get(axis).copied().unwrap_or(AXES[2])),
-    )]);
-    r.set(f::ANGLE, J::number(angle));
+    let mut r = obj([(f::AXIS, string(AXES.get(axis).copied().unwrap_or(AXES[2])))]);
+    r.set(f::ANGLE, number(angle));
     let origin: Vec<f64> = numbers(e.get(mc::ORIGIN))
         .into_iter()
         .map(|n| clamp_coord(t, what, n))
         .collect();
-    r.set(f::ORIGIN, J::nums(&origin));
+    r.set(f::ORIGIN, nums(&origin));
     if e.get(mc::RESCALE).and_then(Value::as_bool) == Some(true) {
-        r.set(f::RESCALE, J::of(V::Bool(true)));
+        r.set(f::RESCALE, Data::Bool(true));
     }
     Some(r)
 }
 
 /// A face with a texture (Blockbench doesn't export one without): its
 /// slot, its uv scaled to the block, rotation, cullface, tint.
-fn face(fv: &Value, textures: &Textures) -> Option<J> {
+fn face(fv: &Value, textures: &Textures) -> Option<Data> {
     let index = match fv.get(mc::TEXTURE) {
         Some(Value::Number(n)) => n.as_u64().and_then(|n| usize::try_from(n).ok()),
         Some(Value::String(u)) => textures.by_uuid.get(u).copied(),
         _ => None,
     };
     let (su, sv) = *textures.uv_scale.get(index?)?;
-    let mut fo = J::obj([(
+    let mut fo = obj([(
         f::TEXTURE,
-        J::string(format!("{}{}", yog_ids::sep::TAG, index?)),
+        string(format!("{}{}", yog_ids::sep::TAG, index?)),
     )]);
     if let Some(Value::Array(_)) = fv.get(mc::UV) {
         let uv: Vec<f64> = numbers(fv.get(mc::UV))
@@ -375,36 +375,36 @@ fn face(fv: &Value, textures: &Textures) -> Option<J> {
                 rounded((n * if k % 2 == 0 { su } else { sv }).clamp(0.0, block_pixels()))
             })
             .collect();
-        fo.set(f::UV, J::nums(&uv));
+        fo.set(f::UV, nums(&uv));
     }
     if let Some(r) = fv
         .get(mc::ROTATION)
         .and_then(Value::as_f64)
         .filter(|r| *r != 0.0)
     {
-        fo.set(f::FACE_ROTATION, J::number(r));
+        fo.set(f::FACE_ROTATION, number(r));
     }
     if let Some(c) = fv
         .get(mc::CULLFACE)
         .and_then(Value::as_str)
         .filter(|c| !c.is_empty())
     {
-        fo.set(f::CULLFACE, J::string(c));
+        fo.set(f::CULLFACE, string(c));
     }
     if let Some(n) = fv
         .get(f::TINT)
         .and_then(Value::as_f64)
         .filter(|n| *n >= 0.0)
     {
-        fo.set(f::TINT, J::number(n));
+        fo.set(f::TINT, number(n));
     }
     Some(fo)
 }
 
 /// The content model: a parent (a template, or a model id) when it has no
 /// cubes, its textures and elements, display transforms, lighting.
-fn model(bb: &Value, tex: J, elements: Vec<J>) -> Result<J, String> {
-    let mut model = J::obj::<&str>([]);
+fn model(bb: &Value, tex: Data, elements: Vec<Data>) -> Result<Data, String> {
+    let mut model = obj::<&str>([]);
     match bb
         .get(mc::PARENT)
         .and_then(Value::as_str)
@@ -412,43 +412,41 @@ fn model(bb: &Value, tex: J, elements: Vec<J>) -> Result<J, String> {
     {
         Some(p) if elements.is_empty() => model.set(
             f::PARENT,
-            J::string(
-                template_of(p).map_or_else(|| yog_ids::qualify(p), |tpl| tpl.name.to_string()),
-            ),
+            string(template_of(p).map_or_else(|| yog_ids::qualify(p), |tpl| tpl.name.to_string())),
         ),
         Some(_) => {}
         None if elements.is_empty() => return Err("the model has no cubes".into()),
         None => {}
     }
-    if !tex.members().is_empty() {
+    if tex.has_fields() {
         model.set(f::TEXTURES, tex);
     }
     if !elements.is_empty() {
-        model.set(f::ELEMENTS, J::of(V::Arr(elements)));
+        model.set(f::ELEMENTS, Data::List(elements));
     }
     if let Some(Value::Object(d)) = bb.get(mc::DISPLAY) {
         let display = display(d);
-        if !display.members().is_empty() {
+        if display.has_fields() {
             model.set(f::DISPLAY, display);
         }
     }
     if bb.get(mc::AMBIENT_OCCLUSION).and_then(Value::as_bool) == Some(false) {
-        model.set(f::AMBIENT_OCCLUSION, J::of(V::Bool(false)));
+        model.set(f::AMBIENT_OCCLUSION, Data::Bool(false));
     }
     if bb.get("front_gui_light").and_then(Value::as_bool) == Some(true) {
-        model.set(f::GUI_LIGHT, J::string(FRONT));
+        model.set(f::GUI_LIGHT, string(FRONT));
     }
     Ok(model)
 }
 
 /// The display transforms the game has, each part that changes something.
-fn display(d: &serde_json::Map<String, Value>) -> J {
-    let mut display = J::obj::<&str>([]);
+fn display(d: &serde_json::Map<String, Value>) -> Data {
+    let mut display = obj::<&str>([]);
     for (slot, v) in d
         .iter()
         .filter(|(slot, _)| DISPLAY_SLOTS.contains(&slot.as_str()))
     {
-        let mut o = J::obj::<&str>([]);
+        let mut o = obj::<&str>([]);
         for k in TRANSFORMS {
             let a = numbers(v.get(k));
             let unchanged = if k == mc::SCALE { NO_SCALE } else { NO_MOVE };
@@ -456,10 +454,10 @@ fn display(d: &serde_json::Map<String, Value>) -> J {
                 && a.len() == unchanged.len()
                 && a[..] != unchanged[..]
             {
-                o.set(k, J::nums(&a));
+                o.set(k, nums(&a));
             }
         }
-        if !o.members().is_empty() {
+        if o.has_fields() {
             display.set(slot, o);
         }
     }

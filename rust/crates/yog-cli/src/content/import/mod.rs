@@ -12,6 +12,7 @@
 
 mod bbmodel;
 mod blocks;
+mod build;
 mod fields;
 mod font;
 mod model;

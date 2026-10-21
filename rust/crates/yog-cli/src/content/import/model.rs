@@ -6,10 +6,10 @@ use serde_json::{Map, Value};
 use yog_ids::model as mc;
 use yog_ids::ns::MINECRAFT;
 
+use super::build::{Data, Fields, number, nums, obj, string};
 use super::fields as f;
 use super::pack::{Models, Pack};
 use super::target::Target;
-use crate::content::json::{J, V};
 use crate::content::valid_path;
 use crate::content::vocab::{DIRECTIONS, TEMPLATES, Template, template};
 
@@ -147,47 +147,47 @@ pub(super) fn convert_model(
     models: &mut Models,
     id: &str,
     item: bool,
-) -> Result<(J, Option<String>), String> {
+) -> Result<(Data, Option<String>), String> {
     let mut chain = read_chain(t, models, id, item)?;
     // A sprite parent reached through the jar: `item/generated` itself.
     if chain.elements.is_none() && chain.parent.is_none() {
         chain.parent = Some(if item { GENERATED } else { CUBE_ALL }.into());
     }
-    let mut out = J::obj::<&str>([]);
+    let mut out = obj::<&str>([]);
     if let Some(p) = &chain.parent {
-        out.set(f::PARENT, J::string(p.clone()));
+        out.set(f::PARENT, string(p.clone()));
     }
     let tex = textures(t, models.pack, id, &chain)?;
-    if !tex.members().is_empty() {
+    if tex.has_fields() {
         out.set(f::TEXTURES, tex);
     }
     if let Some(els) = &chain.elements {
-        let converted: Vec<J> = els
+        let converted: Vec<Data> = els
             .iter()
             .enumerate()
             .map(|(i, e)| element_from_mc(t, id, i, e))
             .collect();
-        out.set(f::ELEMENTS, J::of(V::Arr(converted)));
+        out.set(f::ELEMENTS, Data::List(converted));
     }
     if !chain.display.is_empty() {
         out.set(
             f::DISPLAY,
-            J::from_value(&Value::Object(std::mem::take(&mut chain.display))),
+            yog_data::json::from_json(&Value::Object(std::mem::take(&mut chain.display))),
         );
     }
     if let Some(ao) = chain.ao {
-        out.set(f::AMBIENT_OCCLUSION, J::of(V::Bool(ao)));
+        out.set(f::AMBIENT_OCCLUSION, Data::Bool(ao));
     }
     if let Some(g) = chain.gui_light {
-        out.set(f::GUI_LIGHT, J::string(g));
+        out.set(f::GUI_LIGHT, string(g));
     }
     Ok((out, chain.render_type))
 }
 
 /// The chain's textures: references to other slots stay, ids get copied
 /// when the pack has them; a template's own `particle` left to it.
-fn textures(t: &mut Target, pack: &Pack, id: &str, chain: &Chain) -> Result<J, String> {
-    let mut tex = J::obj::<&str>([]);
+fn textures(t: &mut Target, pack: &Pack, id: &str, chain: &Chain) -> Result<Data, String> {
+    let mut tex = obj::<&str>([]);
     let tex_ns = t.texture_ns(&chain.from_ns);
     for (slot, v) in &chain.textures {
         let value = if v.starts_with(SLOT_MARK) {
@@ -195,13 +195,12 @@ fn textures(t: &mut Target, pack: &Pack, id: &str, chain: &Chain) -> Result<J, S
         } else {
             texture(t, pack, id, v, &tex_ns)?
         };
-        tex.set(slot, J::string(value));
+        tex.set(slot, string(value));
     }
     if let Some(tpl) = chain.parent.as_deref().and_then(template)
         && tpl.has_particle
-        && let V::Obj(m) = &mut tex.v
     {
-        m.retain(|(k, _)| k != mc::PARTICLE);
+        tex.without(mc::PARTICLE);
     }
     Ok(tex)
 }
@@ -258,7 +257,7 @@ pub(super) fn numbers(v: Option<&Value>) -> Vec<f64> {
 }
 
 /// A Minecraft model element → a content element (same shape, `tint`).
-fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
+fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> Data {
     let what = format!("{id} element {i}");
     let coords = |t: &mut Target, v: Option<&Value>| -> Vec<f64> {
         numbers(v)
@@ -266,12 +265,12 @@ fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
             .map(|n| clamp_coord(t, &what, n))
             .collect()
     };
-    let mut out = J::obj::<&str>([]);
+    let mut out = obj::<&str>([]);
     if let Some(n) = e.get(yog_ids::word::NAME).and_then(Value::as_str) {
-        out.set(f::EL_NAME, J::string(n));
+        out.set(f::EL_NAME, string(n));
     }
-    out.set(f::FROM, J::nums(&coords(t, e.get(mc::FROM))));
-    out.set(f::TO, J::nums(&coords(t, e.get(mc::TO))));
+    out.set(f::FROM, nums(&coords(t, e.get(mc::FROM))));
+    out.set(f::TO, nums(&coords(t, e.get(mc::TO))));
     if let Some(r) = e.get(mc::ROTATION) {
         let angle = snap_angle(
             t,
@@ -279,22 +278,22 @@ fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
             r.get(mc::ANGLE).and_then(Value::as_f64).unwrap_or(0.0),
         );
         if angle != 0.0 {
-            let mut rot = J::obj([(
+            let mut rot = obj([(
                 f::AXIS,
-                J::string(r.get(mc::AXIS).and_then(Value::as_str).unwrap_or(mc::Y)),
+                string(r.get(mc::AXIS).and_then(Value::as_str).unwrap_or(mc::Y)),
             )]);
-            rot.set(f::ANGLE, J::number(angle));
-            rot.set(f::ORIGIN, J::nums(&coords(t, r.get(mc::ORIGIN))));
+            rot.set(f::ANGLE, number(angle));
+            rot.set(f::ORIGIN, nums(&coords(t, r.get(mc::ORIGIN))));
             if r.get(mc::RESCALE).and_then(Value::as_bool) == Some(true) {
-                rot.set(f::RESCALE, J::of(V::Bool(true)));
+                rot.set(f::RESCALE, Data::Bool(true));
             }
             out.set(f::ROTATION, rot);
         }
     }
     if e.get(mc::SHADE).and_then(Value::as_bool) == Some(false) {
-        out.set(f::SHADE, J::of(V::Bool(false)));
+        out.set(f::SHADE, Data::Bool(false));
     }
-    let mut faces = J::obj::<&str>([]);
+    let mut faces = obj::<&str>([]);
     if let Some(Value::Object(fs)) = e.get(mc::FACES) {
         for &dir in DIRECTIONS {
             if let Some(face) = fs.get(dir) {
@@ -308,10 +307,10 @@ fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
 
 /// A face: its texture slot, uv, rotation, the side it's culled by
 /// (`bottom` is `down`), its tint.
-fn face_from_mc(face: &Value) -> J {
-    let mut fo = J::obj([(
+fn face_from_mc(face: &Value) -> Data {
+    let mut fo = obj([(
         f::TEXTURE,
-        J::string(
+        string(
             face.get(mc::TEXTURE)
                 .and_then(Value::as_str)
                 .unwrap_or(MISSING),
@@ -323,19 +322,19 @@ fn face_from_mc(face: &Value) -> J {
             .into_iter()
             .map(|n| rounded(n.clamp(0.0, pixels)))
             .collect();
-        fo.set(f::UV, J::nums(&uv));
+        fo.set(f::UV, nums(&uv));
     }
     if let Some(r) = face
         .get(mc::ROTATION)
         .and_then(Value::as_f64)
         .filter(|r| *r != 0.0)
     {
-        fo.set(f::FACE_ROTATION, J::number(r));
+        fo.set(f::FACE_ROTATION, number(r));
     }
     if let Some(c) = face.get(mc::CULLFACE).and_then(Value::as_str) {
         fo.set(
             f::CULLFACE,
-            J::string(if c == yog_ids::word::BOTTOM {
+            string(if c == yog_ids::word::BOTTOM {
                 yog_ids::direction::DOWN
             } else {
                 c
@@ -343,24 +342,24 @@ fn face_from_mc(face: &Value) -> J {
         );
     }
     if let Some(n) = face.get(mc::TINTINDEX).and_then(Value::as_f64) {
-        fo.set(f::TINT, J::number(n));
+        fo.set(f::TINT, number(n));
     }
     fo
 }
 
 /// One variant's model and rotation.
-fn variant_rotation(v: &Value) -> (Option<String>, J) {
-    let mut r = J::obj::<&str>([]);
+fn variant_rotation(v: &Value) -> (Option<String>, Data) {
+    let mut r = obj::<&str>([]);
     for (k, out) in [(mc::X, f::X), (mc::Y, f::Y)] {
         if let Some(n) = v.get(k).and_then(Value::as_f64).filter(|n| *n != 0.0) {
-            r.set(out, J::number(n));
+            r.set(out, number(n));
         }
     }
     if let Some(w) = v.get(mc::WEIGHT).and_then(Value::as_f64) {
-        r.set(f::WEIGHT, J::number(w));
+        r.set(f::WEIGHT, number(w));
     }
     if v.get(mc::UVLOCK).and_then(Value::as_bool) == Some(true) {
-        r.set(f::UVLOCK, J::of(V::Bool(true)));
+        r.set(f::UVLOCK, Data::Bool(true));
     }
     (
         v.get(mc::MODEL).and_then(Value::as_str).map(String::from),
@@ -386,7 +385,11 @@ fn first_variant(t: &mut Target, id: &str, bs: &Value) -> Option<Value> {
 }
 
 /// The blockstate's rotations (`"variants": {"": [...]}`) — or none.
-pub(super) fn state_rotations(t: &mut Target, id: &str, bs: &Value) -> (Option<String>, Option<J>) {
+pub(super) fn state_rotations(
+    t: &mut Target,
+    id: &str,
+    bs: &Value,
+) -> (Option<String>, Option<Data>) {
     match first_variant(t, id, bs) {
         Some(Value::Array(list)) => {
             let mut model = None;
@@ -396,11 +399,11 @@ pub(super) fn state_rotations(t: &mut Target, id: &str, bs: &Value) -> (Option<S
                 model = model.or(m);
                 rots.push(r);
             }
-            (model, Some(J::of(V::Arr(rots))))
+            (model, Some(Data::List(rots)))
         }
         Some(v) => {
             let (m, r) = variant_rotation(&v);
-            (m, (!r.members().is_empty()).then(|| J::of(V::Arr(vec![r]))))
+            (m, (r.has_fields()).then(|| Data::List(vec![r])))
         }
         None => (None, None),
     }

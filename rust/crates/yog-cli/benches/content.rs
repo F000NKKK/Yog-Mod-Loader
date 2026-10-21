@@ -12,8 +12,8 @@ use yog_cli::{content, manifest, yres};
 
 fn bench(c: &mut Criterion) {
     let block = common::yblock(1);
-    c.bench_function("content/json_parse/yblock", |b| {
-        b.iter(|| content::json::parse(black_box(&block)).unwrap())
+    c.bench_function("content/parse/yblock", |b| {
+        b.iter(|| yog_data::text::parse(black_box(&block)).unwrap())
     });
 
     let mut compile = c.benchmark_group("content/compile");

@@ -3,11 +3,11 @@
 
 use serde_json::{Map, Value};
 
+use super::build::{Data, Fields, obj, string};
 use super::fields as f;
 use super::model::{convert_model, default_ns, state_rotations};
 use super::pack::{Models, Pack};
 use super::target::Target;
-use crate::content::json::{J, to_pretty};
 use crate::content::vocab::RENDER_LAYERS;
 use yog_ids::kind::{BLOCK, ITEM};
 use yog_ids::sep::PATH;
@@ -44,13 +44,13 @@ fn lang_name(pack: &Pack, ns: &str, key: &str) -> Option<String> {
 }
 
 /// A content file's start: its id (when the mod's namespace isn't it), its name.
-fn header(t: &Target, ns: &str, name: &str, pack: &Pack, kind: &str) -> J {
-    let mut j = J::obj::<&str>([]);
+fn header(t: &Target, ns: &str, name: &str, pack: &Pack, kind: &str) -> Data {
+    let mut j = obj::<&str>([]);
     if let Some(id) = t.id_for(ns, name) {
-        j.set(f::ID, J::string(id));
+        j.set(f::ID, string(id));
     }
     if let Some(n) = lang_name(pack, ns, &yog_ids::lang_key(kind, &yog_ids::join(ns, name))) {
-        j.set(f::NAME, J::string(n));
+        j.set(f::NAME, string(n));
     }
     j
 }
@@ -70,7 +70,7 @@ fn import_block(t: &mut Target, models: &mut Models, ns: &str, name: &str) -> Re
     let (model, render) = convert_model(t, models, &model_id, false)?;
     let mut j = header(t, ns, name, pack, BLOCK);
     if let Some(r) = render.filter(|r| RENDER_LAYERS.contains(&r.as_str()) && r != SOLID) {
-        j.set(f::BLOCK, J::obj([(f::RENDER_LAYER, J::string(r))]));
+        j.set(f::BLOCK, obj([(f::RENDER_LAYER, string(r))]));
     }
     j.set(f::MODEL, model);
     let item_id = yog_ids::join(ns, &format!("{ITEM_DIR}{name}"));
@@ -87,9 +87,9 @@ fn import_block(t: &mut Target, models: &mut Models, ns: &str, name: &str) -> Re
         }
     }
     if let Some(r) = rotations {
-        j.set(f::STATES, J::obj([(f::ROTATIONS, r)]));
+        j.set(f::STATES, obj([(f::ROTATIONS, r)]));
     }
-    t.write_file(&content_file(false, name), to_pretty(&j).as_bytes())
+    t.write_file(&content_file(false, name), &yog_data::binary::encode(&j))
 }
 
 /// Item `ns:name`: its model.
@@ -102,7 +102,7 @@ fn import_item(t: &mut Target, models: &mut Models, ns: &str, name: &str) -> Res
     )?;
     let mut j = header(t, ns, name, models.pack, ITEM);
     j.set(f::MODEL, model);
-    t.write_file(&content_file(true, name), to_pretty(&j).as_bytes())
+    t.write_file(&content_file(true, name), &yog_data::binary::encode(&j))
 }
 
 /// What a pack has: its blockstates', block models' and item models' (ns, name).

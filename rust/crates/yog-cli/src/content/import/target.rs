@@ -35,12 +35,12 @@ impl Target {
         // A Yog format's file is kept binary.
         let binary;
         let bytes = match yog_ids::Format::of_path(&path).filter(|f| f.is_data()) {
-            Some(_) => {
+            Some(_) if !yog_data::source::is_binary(bytes) => {
                 let text = std::str::from_utf8(bytes).map_err(|e| format!("{rel}: {e}"))?;
                 binary = yog_data::source::binary(text).map_err(|e| format!("{rel}: {e}"))?;
                 binary.as_slice()
             }
-            None => bytes,
+            _ => bytes,
         };
         if path.exists() && !self.force {
             if std::fs::read(&path).ok().as_deref() == Some(bytes) {

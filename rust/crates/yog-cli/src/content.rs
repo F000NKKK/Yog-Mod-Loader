@@ -31,7 +31,6 @@ mod file;
 mod files;
 mod import;
 pub(crate) use import::font_copy_path;
-pub mod json;
 mod looks;
 pub(crate) mod material;
 mod model;
@@ -49,7 +48,6 @@ pub use outputs::{OutputSet, TAGS_FILE, TagLists, merge_outputs, read_tags};
 pub use source::{GENERATED_PARTS_DIR, Source, write_source};
 pub use vocab::TEMPLATES;
 
-use json::num_value;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -128,3 +126,17 @@ type Lang = BTreeMap<(String, String), BTreeMap<String, String>>;
 
 #[cfg(test)]
 mod tests;
+
+/// Whole numbers below this are written as integers.
+const WHOLE_BELOW: f64 = 1e15;
+
+/// A number in the game's JSON: integral values without a fraction (`16`, not `16.0`).
+pub fn num_value(n: f64) -> serde_json::Value {
+    if n.fract() == 0.0 && n.abs() < WHOLE_BELOW {
+        serde_json::Value::from(n as i64)
+    } else {
+        serde_json::Number::from_f64(n)
+            .map(serde_json::Value::Number)
+            .unwrap_or(serde_json::Value::Null)
+    }
+}
