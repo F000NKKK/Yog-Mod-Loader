@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -19,9 +20,9 @@ import net.minecraft.world.level.gameevent.GameEvent;
  * places a painting.
  */
 public class YogHangingItem extends YogItem {
-    private final YogContent.Hangs hangs;
+    private final YogTypes.Hangs hangs;
 
-    public YogHangingItem(Properties settings, String displayName, String tooltip, YogContent.Hangs hangs) {
+    public YogHangingItem(Properties settings, String displayName, String tooltip, YogTypes.Hangs hangs) {
         super(settings, displayName, tooltip);
         this.hangs = hangs;
     }
@@ -30,8 +31,8 @@ public class YogHangingItem extends YogItem {
     private EntityType<? extends YogHanging> type() {
         Identifier id = Identifier.tryParse(hangs.entity());
         EntityType<?> type = id == null ? null : BuiltInRegistries.ENTITY_TYPE.getValue(id);
-        YogContent.Entity def = type == null ? null : YogEntityTypes.def(type);
-        return def != null && def.hanging() ? (EntityType<? extends YogHanging>) type : null;
+        YogTypes.EntityDef def = type == null ? null : YogEntityTypes.def(type);
+        return def != null && YogContent.hanging(def) ? (EntityType<? extends YogHanging>) type : null;
     }
 
     @Override

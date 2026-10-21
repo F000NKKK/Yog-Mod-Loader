@@ -164,34 +164,18 @@ fn the_hosts_get_content_as_one_yog_data_blob() {
             &json(r#"{"id":"mymod:guide","name":"Guide","categories":[],"entries":[]}"#),
         );
     });
-    let bytes = crate::content_blob::blob(&h.read_locked());
-    let v = yog_data::binary::decode(&bytes).unwrap();
-    let item = &v.get("items").unwrap().as_list().unwrap()[0];
-    assert_eq!(item.get("id").and_then(|x| x.as_str()), Some("mymod:apple"));
-    assert_eq!(item.get("max_stack").and_then(|x| x.as_i64()), Some(16));
-    assert!(
-        item.get("tooltip").is_none(),
-        "an empty tooltip is no tooltip"
-    );
-    let book = |i: usize| {
-        v.get("items").unwrap().as_list().unwrap()[i]
-            .get("book")
-            .and_then(|x| x.as_bool())
-    };
+    let c = blob_content(&h.read_locked());
+    let item = &c.items[0];
+    assert_eq!((item.id.as_str(), item.max_stack), ("mymod:apple", 16));
+    assert!(item.tooltip.is_empty(), "an empty tooltip is no tooltip");
     assert_eq!(
-        (book(0), book(1)),
-        (Some(false), Some(true)),
+        (c.items[0].book, c.items[1].book),
+        (false, true),
         "the item of a book's id opens it"
     );
-    let food = item.get("food").unwrap();
-    assert_eq!(
-        (
-            food.get("nutrition").and_then(|x| x.as_i64()),
-            food.get("always_edible").and_then(|x| x.as_bool())
-        ),
-        (Some(4), Some(true))
-    );
-    assert_eq!(v.get("blocks").unwrap().as_list().unwrap().len(), 0);
+    let food = item.food.as_ref().unwrap();
+    assert_eq!((food.nutrition, food.can_always_eat), (4, true));
+    assert!(c.blocks.is_empty());
 }
 
 #[test]
@@ -224,39 +208,21 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
                 .write(),
         );
     });
-    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read_locked())).unwrap();
-    let items = v.get("items").unwrap().as_list().unwrap();
-    let tool = items[0].get("tool").unwrap();
-    assert_eq!(tool.get("kind").and_then(|k| k.as_str()), Some("pickaxe"));
+    let c = blob_content(&h.read_locked());
+    let tool = c.items[0].tool.as_ref().unwrap();
     assert_eq!(
-        tool.get("material")
-            .and_then(|m| m.get("durability"))
-            .and_then(|d| d.as_i64()),
-        Some(1561)
+        (tool.kind.as_str(), tool.material.durability),
+        ("pickaxe", 1561)
     );
-    assert!(
-        tool.get("attack_speed").is_none(),
-        "the game's tool's speed"
-    );
-    let game = tool.get("game_tool").unwrap();
+    assert!(tool.attack_speed.is_none(), "the game's tool's speed");
     assert_eq!(
-        game.get("item").and_then(|i| i.as_str()),
+        tool.game_tool.as_ref().map(|g| g.item.as_str()),
         Some("minecraft:diamond_pickaxe"),
         "like diamond: its tools'"
     );
-    let armor = items[1].get("armor").unwrap();
-    assert_eq!(
-        armor
-            .get("material")
-            .and_then(|m| m.get("defense"))
-            .and_then(|d| d.get("chest"))
-            .and_then(|c| c.as_i64()),
-        Some(8)
-    );
-    assert!(
-        items[2].get("tool").is_none(),
-        "an unknown material: a plain item"
-    );
+    let armor = c.items[1].armor.as_ref().unwrap();
+    assert_eq!(armor.material.defense.chest, 8);
+    assert!(c.items[2].tool.is_none(), "an unknown material: a plain item");
 }
 
 #[test]
@@ -310,27 +276,18 @@ fn a_blocks_sound_group_arrives_whole() {
             );
         }
     });
-    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read_locked())).unwrap();
-    let blocks = v.get("blocks").unwrap().as_list().unwrap();
-    let sound = |i: usize, k: &str| blocks[i].get("sound").and_then(|s| s.get(k)).cloned();
+    let c = blob_content(&h.read_locked());
+    let sound = |i: usize| c.blocks[i].sound.as_ref();
     assert_eq!(
-        sound(0, "break").as_ref().and_then(|x| x.as_str()),
+        sound(0).map(|g| g.break_sound.as_str()),
         Some("mymod:crystal.break")
     );
+    assert_eq!(sound(0).map(|g| (g.pitch * 10.0).round()), Some(12.0));
     assert_eq!(
-        sound(0, "pitch")
-            .and_then(|x| x.as_f64())
-            .map(|p| (p * 10.0).round()),
-        Some(12.0)
-    );
-    assert_eq!(
-        sound(1, "step").as_ref().and_then(|x| x.as_str()),
+        sound(1).map(|g| g.step.as_str()),
         Some("minecraft:block.amethyst_block.step")
     );
-    assert!(
-        blocks[2].get("sound").is_none(),
-        "an unknown group is left to the default"
-    );
+    assert!(sound(2).is_none(), "an unknown group is left to the default");
 }
 
 #[test]
@@ -354,33 +311,37 @@ fn a_block_of_a_game_kind_arrives_with_its_base_and_set() {
             &yog_registry::BlockDef::new("mymod:plain").write(),
         );
     });
-    let v = yog_data::binary::decode(&crate::content_blob::blob(&h.read_locked())).unwrap();
-    let blocks = v.get("blocks").unwrap().as_list().unwrap();
-    let str = |i: usize, k: &str| blocks[i].get(k).and_then(|x| x.as_str()).map(String::from);
-    let int = |i: usize, k: &str| blocks[i].get(k).and_then(|x| x.as_i64());
-    let yes = |i: usize, k: &str| blocks[i].get(k).and_then(|x| x.as_bool());
+    let c = blob_content(&h.read_locked());
+    let ids: Vec<&str> = c.blocks.iter().map(|b| b.id.as_str()).collect();
     assert_eq!(
-        (str(0, "kind"), str(0, "base"), str(0, "set")),
-        (Some("stairs".into()), Some("mymod:planks".into()), None)
+        ids,
+        ["mymod:button", "mymod:plain", "mymod:stairs"],
+        "a block made from another comes after the ones that aren't"
+    );
+    let (button, plain, stairs) = (&c.blocks[0], &c.blocks[1], &c.blocks[2]);
+    assert_eq!(
+        (stairs.kind.as_str(), stairs.base.as_deref(), stairs.set.as_deref()),
+        ("stairs", Some("mymod:planks"), None)
     );
     assert_eq!(
         (
-            str(1, "set"),
-            int(1, "press_ticks"),
-            yes(1, "mobs_only"),
-            yes(1, "no_occlusion")
+            button.set.as_deref(),
+            button.press_ticks,
+            button.mobs_only,
+            button.no_occlusion
         ),
-        (Some("dark_oak".into()), Some(20), Some(true), Some(true))
+        (Some("dark_oak"), 20, true, true)
     );
     assert_eq!(
-        (
-            str(2, "kind"),
-            int(2, "press_ticks"),
-            yes(2, "no_occlusion")
-        ),
-        (Some(String::new()), Some(30), Some(false)),
+        (plain.kind.as_str(), plain.press_ticks, plain.no_occlusion),
+        ("", 30, false),
         "a plain block: no kind"
     );
+}
+
+/// The content blob read back.
+fn blob_content(h: &RuntimeHandlers) -> yog_event::content::Content {
+    yog_data::read_bytes(&crate::content_blob::blob(h)).unwrap()
 }
 
 /// For checking the Java reader by hand: `YOG_CONTENT_OUT=file cargo test -p yog-runtime write_a_content_blob`.

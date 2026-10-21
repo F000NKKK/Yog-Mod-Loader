@@ -1,5 +1,12 @@
 //! What mods register: content the hosts make into the game's.
 
+mod host;
+
+pub use host::{
+    Armor, Block, Content, Dimension, Font, Hangs, Inventory, InventorySlot, Item, Machine, Recipe,
+    Tool,
+};
+
 use yog_data::Schema;
 use yog_data::with::Raw;
 

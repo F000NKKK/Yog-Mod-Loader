@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -28,8 +29,8 @@ public class YogMob extends PathfinderMob {
     /** Runs in the constructor: the definition comes by the type. */
     @Override
     protected void registerGoals() {
-        YogContent.Entity def = YogEntityTypes.def(getType());
-        if (def == null || !def.mob()) return;
+        YogTypes.EntityDef def = YogEntityTypes.def(getType());
+        if (def == null || !YogContent.mob(def)) return;
         int priority = 0;
         for (String goal : def.goals()) {
             switch (goal) {
@@ -55,7 +56,7 @@ public class YogMob extends PathfinderMob {
 
     @Override
     public boolean isPushable() {
-        YogContent.Entity def = YogEntityTypes.def(getType());
+        YogTypes.EntityDef def = YogEntityTypes.def(getType());
         return def != null && def.pushable() != null ? def.pushable() : super.isPushable();
     }
 
@@ -67,7 +68,7 @@ public class YogMob extends PathfinderMob {
 
     @Override
     protected float getStandingEyeHeight(net.minecraft.world.entity.Pose pose, net.minecraft.world.entity.EntityDimensions size) {
-        YogContent.Entity def = YogEntityTypes.def(getType());
+        YogTypes.EntityDef def = YogEntityTypes.def(getType());
         return def != null && def.eyeHeight() != null ? def.eyeHeight() : super.getStandingEyeHeight(pose, size);
     }
 }

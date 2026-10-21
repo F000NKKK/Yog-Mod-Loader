@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
+import dev.yog.data.YogContent;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -10,9 +12,9 @@ import net.minecraft.world.entity.Entity;
 /** Draws a mod's entity: its body as the mods give it ({@link YogBody#drawEntity}), then its name. */
 public class YogEntityRenderer extends EntityRenderer<Entity> {
     /** A hanging thing ({@code def}'s kind) casts no shadow, as a painting. */
-    public YogEntityRenderer(EntityRendererProvider.Context ctx, dev.yog.data.YogContent.Entity def) {
+    public YogEntityRenderer(EntityRendererProvider.Context ctx, dev.yog.bus.YogTypes.EntityDef def) {
         super(ctx);
-        this.shadowRadius = def != null && def.hanging() ? 0.0F : 0.4F;
+        this.shadowRadius = def != null && YogContent.hanging(def) ? 0.0F : 0.4F;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import java.util.function.Consumer;
 import dev.yog.data.YogContent;
 import java.util.ArrayList;
@@ -39,30 +40,30 @@ public final class YogEffects {
     /** The mods' attributes, effects and potions, with {@link YogRegistrar}. */
     static void schedule(YogContent content) {
         YogRegistrar.add(Registries.ATTRIBUTE, sink -> {
-            for (YogContent.Attribute a : content.attributes) {
+            for (YogTypes.AttributeDef a : content.attributes) {
                 Identifier id = Identifier.parse(a.id());
-                Attribute attr = new RangedAttribute(YogIds.attributeNameKey(a.id()), a.defaultValue(), a.min(), a.max()).setSyncable(true);
+                Attribute attr = new RangedAttribute(YogIds.attributeNameKey(a.id()), a.default_(), a.min(), a.max()).setSyncable(true);
                 sink.register(Registries.ATTRIBUTE, id, attr);
                 PLAYER_ATTRIBUTES.add(YogPlatform.holder(Registries.ATTRIBUTE, id));
             }
         });
         YogRegistrar.add(Registries.MOB_EFFECT, sink -> {
-            for (YogContent.Effect e : content.effects) {
+            for (YogTypes.EffectDef e : content.effects) {
                 Identifier id = Identifier.parse(e.id());
-                MobEffect effect = new Effect(category(e.category()), e.color());
-                for (YogContent.Modifier m : e.modifiers()) {
+                MobEffect effect = new Effect(category(e.category()), (int) e.color());
+                for (YogTypes.EffectModifier m : e.modifiers()) {
                     effect.addAttributeModifier(YogPlatform.holder(Registries.ATTRIBUTE, Identifier.parse(m.attribute())), id, m.amount(), operation(m.operation()));
                 }
                 sink.register(Registries.MOB_EFFECT, id, effect);
             }
         });
         YogRegistrar.add(Registries.POTION, sink -> {
-            for (YogContent.Potion p : content.potions) {
+            for (YogTypes.PotionDef p : content.potions) {
                 Identifier id = potionId(p.id());
                 if (YogIds.isPotionAlias(p.id()) || BuiltInRegistries.POTION.containsKey(id)) continue;
                 List<MobEffectInstance> effects = new ArrayList<>();
-                for (YogContent.PotionEffect pe : p.effects()) {
-                    effects.add(new MobEffectInstance(YogPlatform.holder(Registries.MOB_EFFECT, Identifier.parse(pe.effect())), pe.duration(), pe.amplifier()));
+                for (YogTypes.PotionEffect pe : p.effects()) {
+                    effects.add(new MobEffectInstance(YogPlatform.holder(Registries.MOB_EFFECT, Identifier.parse(pe.effect())), (int) pe.duration(), (int) pe.amplifier()));
                 }
                 sink.register(Registries.POTION, id, new Potion(p.name(), effects.toArray(new MobEffectInstance[0])));
             }
@@ -71,9 +72,9 @@ public final class YogEffects {
 
     /** The mods' brewing mixes, to the loader's brewing hook (the registries are filled by then). */
     public static void mixes(Mixes out) {
-        for (YogContent.Potion p : YogContent.cached(NativeBridge::nativeContent).potions) {
+        for (YogTypes.PotionDef p : YogContent.cached(NativeBridge::nativeContent).potions) {
             var to = BuiltInRegistries.POTION.get(potionId(p.id()));
-            for (YogContent.Brew b : p.brewed()) {
+            for (YogTypes.Brew b : p.brewed()) {
                 var from = BuiltInRegistries.POTION.get(potionId(b.from()));
                 Identifier with = Identifier.parse(b.with());
                 if (from.isEmpty() || to.isEmpty() || !BuiltInRegistries.ITEM.containsKey(with)) {
@@ -94,7 +95,7 @@ public final class YogEffects {
 
     /** Namespace {@code namespace}'s potions — as a potion, splash and lingering, a tipped arrow — for its creative tab. */
     static void addTabStacks(String namespace, Consumer<ItemStack> out) {
-        for (YogContent.Potion p : YogContent.cached(NativeBridge::nativeContent).potions) {
+        for (YogTypes.PotionDef p : YogContent.cached(NativeBridge::nativeContent).potions) {
             Identifier id = potionId(p.id());
             if (YogIds.isPotionAlias(p.id()) || !id.getNamespace().equals(namespace)) continue;
             BuiltInRegistries.POTION.get(id).ifPresent(potion -> {
@@ -103,19 +104,19 @@ public final class YogEffects {
         }
     }
 
-    private static MobEffectCategory category(YogContent.EffectCategory c) {
+    private static MobEffectCategory category(String c) {
         return switch (c) {
-            case BENEFICIAL -> MobEffectCategory.BENEFICIAL;
-            case HARMFUL -> MobEffectCategory.HARMFUL;
-            case NEUTRAL -> MobEffectCategory.NEUTRAL;
+            case YogTypes.EffectCategory.BENEFICIAL -> MobEffectCategory.BENEFICIAL;
+            case YogTypes.EffectCategory.HARMFUL -> MobEffectCategory.HARMFUL;
+            default -> MobEffectCategory.NEUTRAL;
         };
     }
 
-    private static AttributeModifier.Operation operation(YogContent.Operation o) {
+    private static AttributeModifier.Operation operation(String o) {
         return switch (o) {
-            case MULTIPLY_BASE -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
-            case MULTIPLY_TOTAL -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
-            case ADD -> AttributeModifier.Operation.ADD_VALUE;
+            case YogTypes.ModifierOperation.MULTIPLY_BASE -> AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+            case YogTypes.ModifierOperation.MULTIPLY_TOTAL -> AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL;
+            default -> AttributeModifier.Operation.ADD_VALUE;
         };
     }
 

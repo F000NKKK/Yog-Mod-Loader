@@ -1407,6 +1407,18 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(PICKAXE, AXE, SHOVEL, HOE, SWORD);
     }
 
+    public static final class ArmorSlot {
+        private ArmorSlot() {}
+
+        public static final String HEAD = "head";
+        public static final String CHEST = "chest";
+        public static final String LEGS = "legs";
+        public static final String FEET = "feet";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(HEAD, CHEST, LEGS, FEET);
+    }
+
     public static final class Model {
         private Model() {}
 

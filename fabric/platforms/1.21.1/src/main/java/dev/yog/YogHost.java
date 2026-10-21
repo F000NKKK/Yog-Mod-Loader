@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 
 import net.fabricmc.api.ModInitializer;
@@ -83,7 +84,7 @@ public class YogHost implements ModInitializer {
 
     /** The mods' features in biomes (their ores): Fabric adds them in code; Forge and NeoForge read the biome modifiers the build wrote. */
     private static void addBiomeFeatures() {
-        for (YogContent.BiomeFeature f : YogContent.cached(NativeBridge::nativeContent).biomeFeatures) {
+        for (YogTypes.BiomeFeature f : YogContent.cached(NativeBridge::nativeContent).biomeFeatures) {
             ResourceLocation feature = ResourceLocation.tryParse(f.feature()), biomes = ResourceLocation.tryParse(f.biomes());
             if (feature == null || biomes == null) continue;
             GenerationStep.Decoration step;

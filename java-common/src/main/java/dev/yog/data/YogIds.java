@@ -12,6 +12,11 @@ public final class YogIds {
         return ns + YogNames.Sep.NAMESPACE + path;
     }
 
+    /** {@code id}'s path: what follows its namespace (all of it if it has none). */
+    public static String path(String id) {
+        return id.substring(id.indexOf(YogNames.Sep.NAMESPACE) + 1);
+    }
+
     /** {@code id} in namespace {@code ns} when it has none; else as it is. */
     public static String qualifyIn(String ns, String id) {
         return id.contains(YogNames.Sep.NAMESPACE) ? id : join(ns, id);

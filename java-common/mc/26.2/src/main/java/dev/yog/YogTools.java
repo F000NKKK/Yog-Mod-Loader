@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -28,7 +29,7 @@ import net.minecraft.world.level.block.Block;
 
 /**
  * Tools, weapons and armor of a material (the game's or a mod's), as the
- * runtime describes them ({@link YogContent.Tool}, {@link YogContent.Armor}):
+ * runtime describes them ({@link YogTypes.Tool}, {@link YogTypes.Armor}):
  * since 1.21.2 a tool or a piece of armor is a plain item whose components
  * (tool rules, attributes, equippable) say what it is.
  */
@@ -41,9 +42,9 @@ public final class YogTools {
     private static final String DESC_SUFFIX = ".desc";
 
     /** The tool or armor item {@code p} says, or null for neither. */
-    public static Item make(Item.Properties s, YogContent.Item p) {
+    public static Item make(Item.Properties s, YogTypes.Item p) {
         if (p.tool() != null) {
-            YogContent.Tool t = p.tool().resolved(YogTools::gameAttack);
+            YogTypes.Tool t = YogContent.resolved(p.tool(), YogTools::gameAttack);
             ToolMaterial m = material(t.material());
             float damage = t.attackDamage(), speed = t.attackSpeed();
             Item.Properties tool = switch (t.kind()) {
@@ -57,15 +58,15 @@ public final class YogTools {
             return new Named(repairable(tool, t.material().repair()), p.name(), p.tooltip());
         }
         if (p.armor() != null) {
-            YogContent.Armor a = p.armor();
-            YogContent.ArmorMaterial m = a.material();
+            YogTypes.Armor a = p.armor();
+            YogTypes.ArmorMaterial m = a.material();
             EnumMap<ArmorType, Integer> defense = new EnumMap<>(ArmorType.class);
-            defense.put(ArmorType.HELMET, m.head());
-            defense.put(ArmorType.CHESTPLATE, m.chest());
-            defense.put(ArmorType.LEGGINGS, m.legs());
-            defense.put(ArmorType.BOOTS, m.feet());
-            defense.put(ArmorType.BODY, m.chest());
-            ArmorMaterial material = new ArmorMaterial(m.durability(), defense, m.enchantability(),
+            defense.put(ArmorType.HELMET, (int) m.defense().head());
+            defense.put(ArmorType.CHESTPLATE, (int) m.defense().chest());
+            defense.put(ArmorType.LEGGINGS, (int) m.defense().legs());
+            defense.put(ArmorType.BOOTS, (int) m.defense().feet());
+            defense.put(ArmorType.BODY, (int) m.defense().chest());
+            ArmorMaterial material = new ArmorMaterial((int) m.durability(), defense, (int) m.enchantability(),
                     BuiltInRegistries.SOUND_EVENT.wrapAsHolder(YogContentRegistry.soundEvent(m.equipSound())),
                     m.toughness(), m.knockbackResistance(), repairTag(m.repair()), asset(m.texture()));
             Item.Properties armor = s.humanoidArmor(material, armorType(a.slot()));
@@ -91,18 +92,18 @@ public final class YogTools {
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's armor type. */
     static ArmorType armorType(String slot) {
         return switch (slot) {
-            case "chest" -> ArmorType.CHESTPLATE;
-            case "legs" -> ArmorType.LEGGINGS;
-            case "feet" -> ArmorType.BOOTS;
+            case YogNames.ArmorSlot.CHEST -> ArmorType.CHESTPLATE;
+            case YogNames.ArmorSlot.LEGS -> ArmorType.LEGGINGS;
+            case YogNames.ArmorSlot.FEET -> ArmorType.BOOTS;
             default -> ArmorType.HELMET;
         };
     }
 
     /** A tool material as the game's. */
-    static ToolMaterial material(YogContent.ToolMaterial m) {
+    static ToolMaterial material(YogTypes.ToolMaterial m) {
         Identifier id = Identifier.tryParse(m.incorrect());
         TagKey<Block> incorrect = id != null ? TagKey.create(Registries.BLOCK, id) : BlockTags.INCORRECT_FOR_WOODEN_TOOL;
-        return new ToolMaterial(incorrect, m.durability(), m.speed(), m.attackDamage(), m.enchantability(), repairTag(m.repair()));
+        return new ToolMaterial(incorrect, (int) m.durability(), m.speed(), m.attackDamage(), (int) m.enchantability(), repairTag(m.repair()));
     }
 
     /** A mod's kind of tool: the blocks it mines, by their tag. */

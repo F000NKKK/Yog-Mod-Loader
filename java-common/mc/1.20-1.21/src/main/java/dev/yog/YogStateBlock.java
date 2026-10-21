@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.block.YogStateLogic;
 import dev.yog.data.YogContent;
 import java.util.ArrayList;
@@ -54,14 +55,14 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
 
     /** A block's properties. */
     private static final class Spec {
-        final YogContent.Block def;
+        final YogTypes.Block def;
         DirectionProperty facing;
         EnumProperty<AttachFace> face;
         BooleanProperty waterlogged;
         final Map<String, Property<?>> own = new HashMap<>();
         final List<Property<?>> all = new ArrayList<>();
 
-        Spec(YogContent.Block def) {
+        Spec(YogTypes.Block def) {
             this.def = def;
             if (def.attach()) {
                 facing = BlockStateProperties.HORIZONTAL_FACING;
@@ -75,15 +76,15 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
             if (facing != null) all.add(facing);
             if (face != null) all.add(face);
             if (waterlogged != null) all.add(waterlogged);
-            for (YogContent.Property p : def.properties()) {
-                Property<?> made = p.yesNo() ? BooleanProperty.create(p.name()) : new Named(p.name(), p.values());
+            for (YogTypes.BlockProperty p : def.properties()) {
+                Property<?> made = YogContent.yesNo(p) ? BooleanProperty.create(p.name()) : new Named(p.name(), p.values());
                 own.put(p.name(), made);
                 all.add(made);
             }
         }
     }
 
-    public static YogStateBlock create(Properties properties, YogContent.Block def) {
+    public static YogStateBlock create(Properties properties, YogTypes.Block def) {
         PENDING.set(new Spec(def));
         try {
             return new YogStateBlock(properties);
@@ -100,7 +101,7 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
         if (spec.facing != null) state = state.setValue(spec.facing, Direction.NORTH);
         if (spec.face != null) state = state.setValue(spec.face, AttachFace.FLOOR);
         if (spec.waterlogged != null) state = state.setValue(spec.waterlogged, false);
-        for (YogContent.Property p : spec.def.properties()) state = withNamed(state, spec.own.get(p.name()), p.values().get(0));
+        for (YogTypes.BlockProperty p : spec.def.properties()) state = withNamed(state, spec.own.get(p.name()), p.values().get(0));
         registerDefaultState(state);
     }
 

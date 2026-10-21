@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 
 import dev.yog.util.YogEntityFlags;

@@ -433,6 +433,11 @@ public final class YogData {
         return def;
     }
 
+    /** The id a reference names ({@code @effect:mymod:clarity} → {@code mymod:clarity}), or {@code v} as a string. */
+    public static String id(Object v) {
+        return v instanceof Ref r ? r.id() : str(v, "");
+    }
+
     public static long integer(Object v, long def) {
         return v instanceof Long n ? n : v instanceof Double d && d == Math.rint(d) ? d.longValue() : def;
     }

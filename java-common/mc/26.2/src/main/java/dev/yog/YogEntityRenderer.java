@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
+import dev.yog.data.YogContent;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -13,9 +15,9 @@ public class YogEntityRenderer extends EntityRenderer<Entity, EntityRenderState>
     /** A shadow's radius under a mod's entity; a hanging thing casts none, as a painting. */
     private static final float SHADOW = 0.4F;
 
-    public YogEntityRenderer(EntityRendererProvider.Context ctx, dev.yog.data.YogContent.Entity def) {
+    public YogEntityRenderer(EntityRendererProvider.Context ctx, dev.yog.bus.YogTypes.EntityDef def) {
         super(ctx);
-        this.shadowRadius = def != null && def.hanging() ? 0.0F : SHADOW;
+        this.shadowRadius = def != null && YogContent.hanging(def) ? 0.0F : SHADOW;
     }
 
     @Override

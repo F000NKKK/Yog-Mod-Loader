@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use jni::JNIEnv;
 use yog_font::Font;
+use yog_event::content::Font as Atlas;
 use yog_graphics::Color;
 use yog_sync::{Locked, ReadWrite};
 
@@ -54,18 +55,6 @@ const ATLAS_EM_PX: f32 = 32.0;
 const ATLAS_COLUMNS: usize = 16;
 /// What fills an atlas's unused cells (the game skips it).
 const NO_CHAR: char = '\0';
-
-/// A font as the game's text takes it: one cell per character.
-pub(crate) struct Atlas {
-    pub(crate) id: String,
-    /// The cells, as a PNG.
-    pub(crate) png: Vec<u8>,
-    /// Each row's characters, cell by cell.
-    pub(crate) rows: Vec<String>,
-    /// GUI pixels from the top of a cell to the baseline, and a cell's height.
-    pub(crate) ascent: i32,
-    pub(crate) height: i32,
-}
 
 /// Every font's atlas.
 pub(crate) fn atlases() -> Vec<Atlas> {

@@ -85,6 +85,10 @@ pub struct EntityDef {
     pub break_sound: Option<String>,
 }
 
+/// A hanging thing's sounds when it names none: a painting's.
+pub const HANGING_PLACE_SOUND: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "entity.painting.place");
+pub const HANGING_BREAK_SOUND: &str = yog_ids::id!(yog_ids::ns::MINECRAFT, "entity.painting.break");
+
 fn eight() -> u32 {
     8
 }
@@ -123,5 +127,12 @@ impl EntityDef {
             place_sound: None,
             break_sound: None,
         }
+    }
+
+    /// Itself with the sounds it doesn't name: a painting's.
+    pub fn with_default_sounds(mut self) -> Self {
+        self.place_sound.get_or_insert_with(|| HANGING_PLACE_SOUND.into());
+        self.break_sound.get_or_insert_with(|| HANGING_BREAK_SOUND.into());
+        self
     }
 }

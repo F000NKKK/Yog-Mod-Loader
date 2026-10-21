@@ -33,7 +33,7 @@ pub const REFERENCE_KIND: &str = PICKAXE;
 /// The game's tool a tool takes its attack from when it gives none: its
 /// item id, and the attack damage its material adds (what the kind adds is
 /// the rest).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct GameTool {
     pub item: String,
     pub material_damage: f32,

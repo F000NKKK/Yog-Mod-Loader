@@ -47,10 +47,10 @@ pub(super) fn register_content(
     match kind {
         kind::ITEM => register_item(h, k, i, v),
         kind::BLOCK => register_block(h, k, i, v),
-        kind::ENTITY => keep::<yog_registry::EntityDef>(&mut h.entities, k, i, v),
-        kind::ATTRIBUTE => keep::<yog_registry::AttributeDef>(&mut h.attributes, k, i, v),
-        kind::EFFECT => keep::<yog_registry::EffectDef>(&mut h.effects, k, i, v),
-        kind::POTION => keep::<yog_registry::PotionDef>(&mut h.potions, k, i, v),
+        kind::ENTITY => h.entities.extend(read(k, i, v)),
+        kind::ATTRIBUTE => h.attributes.extend(read(k, i, v)),
+        kind::EFFECT => h.effects.extend(read(k, i, v)),
+        kind::POTION => h.potions.extend(read(k, i, v)),
         kind::BIOME_FEATURE => h.biome_features.extend(read(k, i, v)),
         kind::TOOL_MATERIAL => {
             if let Some(m) = read::<yog_registry::ToolMaterial>(k, i, v) {
@@ -107,18 +107,6 @@ fn register_block(h: &mut RuntimeHandlers, kind: &str, id: &str, value: &yog_dat
             &mut d.set,
         ]);
         h.blocks.push(d);
-    }
-}
-
-/// `value`, kept as it is once it reads as `T` (the host reads it whole).
-fn keep<T: yog_data::Schema>(
-    list: &mut Vec<yog_data::Value>,
-    kind: &str,
-    id: &str,
-    value: &yog_data::ValueRef,
-) {
-    if read::<T>(kind, id, value).is_some() {
-        list.push(value.to_value());
     }
 }
 

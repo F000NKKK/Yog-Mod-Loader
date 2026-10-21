@@ -1,10 +1,8 @@
 package dev.yog.util;
 
-import dev.yog.data.YogContent;
-import dev.yog.data.YogData;
+import dev.yog.bus.YogTypes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Runtime-side mirror of {@code yog_inventory::InventoryDef} — read from
@@ -19,39 +17,28 @@ public record YogInventoryDef(String id, int slotCount, List<float[]> layout,
         int[] machinePlaces,
         /** A machine's result slot, or -1: not a machine. Its stack lives in the menu, never in the block. */
         int machineResult) {
-    /** Vanilla container screens put the player inventory at (8, 84). */
-    private static final float DEFAULT_PLAYER_INV_X = 8f;
-    private static final float DEFAULT_PLAYER_INV_Y = 84f;
-
     public boolean isMachine() {
         return machineResult >= 0;
     }
 
-    /** One inventory of the runtime's content blob (see {@code dev.yog.data.YogContent}). */
-    public static YogInventoryDef fromData(Map<String, Object> m) {
+    /** One inventory of the runtime's content ({@code dev.yog.data.YogContent}). */
+    public static YogInventoryDef of(YogTypes.Inventory inv) {
         List<float[]> layout = new ArrayList<>();
         List<String[]> accepts = new ArrayList<>();
-        for (Object o : YogData.list(m.get("slots"))) {
-            Map<String, Object> slot = YogData.map(o);
-            layout.add(YogContent.floats(slot.get("at")));
-            List<Object> acc = YogData.list(slot.get("accepts"));
-            String[] a = new String[acc.size()];
-            for (int i = 0; i < a.length; i++) a[i] = YogData.str(acc.get(i), "");
-            accepts.add(a);
+        for (YogTypes.InventorySlot slot : inv.slots()) {
+            layout.add(slot.at());
+            accepts.add(slot.accepts().toArray(String[]::new));
         }
-        float[] playerInv = m.get("player_inv") != null ? YogContent.floats(m.get("player_inv")) : new float[]{DEFAULT_PLAYER_INV_X, DEFAULT_PLAYER_INV_Y};
-        float[] bg = m.get("background_size") != null ? YogContent.floats(m.get("background_size")) : new float[]{0f, 0f};
-        int[] places = new int[0];
-        int result = -1;
-        if (m.get("machine") != null) {
-            Map<String, Object> machine = YogData.map(m.get("machine"));
-            List<Object> p = YogData.list(machine.get("places"));
-            places = new int[p.size()];
-            for (int i = 0; i < places.length; i++) places[i] = (int) YogData.integer(p.get(i), 0);
-            result = (int) YogData.integer(machine.get("result"), -1);
-        }
-        return new YogInventoryDef(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("slot_count"), 0), layout, accepts,
-                YogData.bool(m.get("include_player_inventory"), true), playerInv[0], playerInv[1],
-                YogData.str(m.get("background_texture"), ""), YogData.str(m.get("title"), ""), bg[0], bg[1], places, result);
+        float[] bg = inv.backgroundSize() != null ? inv.backgroundSize() : new float[] {0f, 0f};
+        YogTypes.Machine m = inv.machine();
+        int[] places = m == null ? new int[0] : m.places();
+        int result = m == null ? NOT_A_MACHINE : m.result();
+        String background = inv.backgroundTexture() != null ? inv.backgroundTexture() : "";
+        return new YogInventoryDef(inv.id(), inv.slotCount(), layout, accepts,
+                inv.includePlayerInventory(), inv.playerInv()[0], inv.playerInv()[1], background, inv.title(),
+                bg[0], bg[1], places, result);
     }
+
+    /** {@link #machineResult} of an inventory that isn't a machine. */
+    private static final int NOT_A_MACHINE = -1;
 }

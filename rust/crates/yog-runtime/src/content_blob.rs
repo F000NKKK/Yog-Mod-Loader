@@ -1,413 +1,199 @@
 //! What the hosts register — items (and which open a book), blocks (with
 //! their sound groups whole), inventories, recipes, dimensions — as one
-//! Yog Data blob (`yog_data::binary`), read by `dev.yog.data.YogContent` in
-//! java-common: one call and one format instead of a TSV dialect per kind.
-//!
-//! Written straight from the runtime's definitions with a
-//! `yog_data::binary::Writer`: no tree is built and nothing is copied.
+//! Yog Data blob: `yog_event::content::Content`, which the hosts read
+//! through the Java records generated from it (`YogTypes.Content`).
 
-use yog_data::binary::Writer;
+use yog_event::content::{
+    Armor, Block, Content, Dimension, Hangs, Inventory, InventorySlot, Item, Machine, Recipe,
+    Tool,
+};
 
 use crate::handlers::RuntimeHandlers;
 
-/// A block's sound group: a mod's by id, else the game's (`stone`, `minecraft:stone`).
-fn sound_group<'a>(h: &'a RuntimeHandlers, name: &str) -> Option<&'a yog_registry::SoundGroup> {
-    h.sound_groups
-        .get(name)
-        .or_else(|| yog_registry::SoundGroup::built_in(name))
+/// The registered content, encoded.
+pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
+    yog_data::to_bytes(&content(h))
 }
 
-/// How many blocks wide and high an item hangs its entity: its own size,
-/// else the entity type's (at least one block each way).
-fn hanging_size(h: &RuntimeHandlers, hangs: &yog_registry::Hangs) -> [u32; 2] {
-    hangs.size.unwrap_or_else(|| {
-        let def = h
+/// The registered content.
+fn content(h: &RuntimeHandlers) -> Content {
+    // A block made from another (stairs from planks) comes after it: the host makes it of it.
+    let (bases, made): (Vec<_>, Vec<_>) = h.blocks.iter().partition(|d| d.base.is_none());
+    Content {
+        items: h.items.iter().map(|d| item(h, d)).collect(),
+        blocks: bases.into_iter().chain(made).map(|d| block(h, d)).collect(),
+        inventories: h.inventories.iter().map(inventory).collect(),
+        recipes: h
+            .recipes
+            .iter()
+            .map(|(ns, name, recipe)| Recipe {
+                namespace: ns.clone(),
+                name: name.clone(),
+                recipe: recipe.clone(),
+            })
+            .collect(),
+        biome_features: h.biome_features.clone(),
+        entities: h
             .entities
             .iter()
-            .find(|e| e.get("id").and_then(|v| v.as_str()) == Some(hangs.entity.as_str()));
-        let blocks = |key: &str| {
-            def.and_then(|e| e.get(key)?.as_f64())
-                .map_or(1, |n| n.round().max(1.0) as u32)
-        };
-        [blocks("width"), blocks("height")]
-    })
-}
-
-fn tool_material<'a>(h: &'a RuntimeHandlers, id: &str) -> Option<&'a yog_registry::ToolMaterial> {
-    h.tool_materials
-        .get(id)
-        .or_else(|| yog_registry::ToolMaterial::built_in(id))
-}
-
-fn armor_material<'a>(h: &'a RuntimeHandlers, id: &str) -> Option<&'a yog_registry::ArmorMaterial> {
-    h.armor_materials
-        .get(id)
-        .or_else(|| yog_registry::ArmorMaterial::built_in(id))
-}
-
-/// A tool material, whole: the host makes its tier from it.
-fn write_tool_material(w: &mut Writer, m: &yog_registry::ToolMaterial) {
-    w.map(8);
-    w.key("id").str(&m.id);
-    w.key("durability").int(m.durability as i64);
-    w.key("speed").float(m.speed as f64);
-    w.key("attack_damage").float(m.attack_damage as f64);
-    w.key("enchantability").int(m.enchantability as i64);
-    w.key("repair").str(&m.repair);
-    w.key("level_index").int(m.level_index as i64);
-    w.key("incorrect").str(&m.incorrect);
-}
-
-/// A tool: its kind, material, and its own attack where it gives one —
-/// else the game's tool it attacks as (`game_tool`), which the host reads
-/// the game's numbers off.
-fn write_tool(w: &mut Writer, t: &yog_registry::ToolItem, m: &yog_registry::ToolMaterial) {
-    let game = m.game_tool(&t.kind);
-    // Always: kind, material.
-    let n = 2
-        + t.attack_damage.is_some() as usize
-        + t.attack_speed.is_some() as usize
-        + game.is_some() as usize;
-    w.key("tool").map(n);
-    w.key("kind").str(&t.kind);
-    if let Some(d) = t.attack_damage {
-        w.key("attack_damage").float(f64::from(d));
-    }
-    if let Some(s) = t.attack_speed {
-        w.key("attack_speed").float(f64::from(s));
-    }
-    if let Some(g) = game {
-        w.key("game_tool").map(2);
-        w.key("item").str(&g.item);
-        w.key("material_damage").float(f64::from(g.material_damage));
-    }
-    w.key("material");
-    write_tool_material(w, m);
-}
-
-/// An armor material, whole.
-fn write_armor_material(w: &mut Writer, m: &yog_registry::ArmorMaterial) {
-    w.map(9);
-    w.key("id").str(&m.id);
-    w.key("durability").int(m.durability as i64);
-    w.key("defense").map(4);
-    for (k, v) in [
-        ("head", m.defense.head),
-        ("chest", m.defense.chest),
-        ("legs", m.defense.legs),
-        ("feet", m.defense.feet),
-    ] {
-        w.key(k).int(v as i64);
-    }
-    w.key("enchantability").int(m.enchantability as i64);
-    w.key("equip_sound").str(&m.equip_sound);
-    w.key("toughness").float(m.toughness as f64);
-    w.key("knockback_resistance")
-        .float(m.knockback_resistance as f64);
-    w.key("repair").str(&m.repair);
-    w.key("texture").str(&m.texture);
-}
-
-fn floats(w: &mut Writer, fs: &[f32]) {
-    w.list(fs.len());
-    for f in fs {
-        w.float(*f as f64);
+            .map(|e| e.clone().with_default_sounds())
+            .collect(),
+        dimensions: h
+            .dimensions
+            .iter()
+            .map(|(id, def)| Dimension {
+                id: id.clone(),
+                def: def.clone(),
+            })
+            .collect(),
+        fonts: crate::fonts::atlases(),
+        attributes: h.attributes.clone(),
+        effects: h.effects.clone(),
+        potions: h.potions.clone(),
     }
 }
 
-fn strings(w: &mut Writer, ss: &[String]) {
-    w.list(ss.len());
-    for s in ss {
-        w.str(s);
+/// `id` of a mod's (`mods`) or the game's (`built_in`); `None` (logged) for neither.
+fn named<'a, T>(
+    what: (&str, &str),
+    id: &str,
+    mods: &'a std::collections::HashMap<String, T>,
+    built_in: fn(&str) -> Option<&'static T>,
+) -> Option<&'a T> {
+    let found = mods.get(id).or_else(|| built_in(id));
+    if found.is_none() {
+        let (kind, owner) = what;
+        yog_logging::warn!("{owner}: no {kind} {id} — the game's or a mod's");
     }
+    found
 }
 
-/// The whole group, so the host builds it without a list of its own.
-fn sound(w: &mut Writer, g: &yog_registry::SoundGroup) {
-    w.map(7);
-    for (k, v) in [
-        ("break", &g.break_sound),
-        ("step", &g.step),
-        ("place", &g.place),
-        ("hit", &g.hit),
-        ("fall", &g.fall),
-    ] {
-        w.key(k).str(v);
-    }
-    w.key("volume").float(g.volume as f64);
-    w.key("pitch").float(g.pitch as f64);
-}
-
-/// The registered content: `{ items, blocks, inventories, recipes, biome_features, entities, dimensions, fonts, attributes, effects, potions }`.
-pub fn blob(h: &RuntimeHandlers) -> Vec<u8> {
-    // Inventories' layouts are worked out first: the writer borrows them.
-    let layouts: Vec<_> = h.inventories.iter().map(|d| d.resolved_layout()).collect();
-    let fonts = crate::fonts::atlases();
-    let mut w = Writer::new();
-    w.map(11);
-
-    w.key("items").list(h.items.len());
-    for d in &h.items {
-        write_item(&mut w, h, d);
-    }
-
-    w.key("blocks").list(h.blocks.len());
-    for d in &h.blocks {
-        write_block(&mut w, h, d);
-    }
-
-    w.key("inventories").list(h.inventories.len());
-    for (d, layout) in h.inventories.iter().zip(&layouts) {
-        write_inventory(&mut w, d, layout);
-    }
-
-    w.key("recipes").list(h.recipes.len());
-    for (ns, name, recipe) in &h.recipes {
-        w.map(3);
-        w.key("namespace").str(ns);
-        w.key("name").str(name);
-        w.key("recipe").value(recipe);
-    }
-
-    w.key("biome_features").list(h.biome_features.len());
-    for f in &h.biome_features {
-        w.map(3);
-        w.key("feature").str(&f.feature);
-        w.key("biomes").str(&f.biomes);
-        w.key("step").str(&f.step);
-    }
-
-    w.key("entities").list(h.entities.len());
-    for e in &h.entities {
-        w.value(e);
-    }
-
-    w.key("dimensions").list(h.dimensions.len());
-    for (id, def) in &h.dimensions {
-        w.map(2);
-        w.key("id").str(id);
-        w.key("def").value(def);
-    }
-
-    w.key("fonts").list(fonts.len());
-    for f in &fonts {
-        w.map(5);
-        w.key("id").str(&f.id);
-        w.key("png").bytes(&f.png);
-        w.key("rows");
-        strings(&mut w, &f.rows);
-        w.key("ascent").int(f.ascent as i64);
-        w.key("height").int(f.height as i64);
-    }
-
-    for (key, defs) in [
-        ("attributes", &h.attributes),
-        ("effects", &h.effects),
-        ("potions", &h.potions),
-    ] {
-        w.key(key).list(defs.len());
-        for d in defs {
-            w.value(d);
-        }
-    }
-    w.finish()
-}
-
-/// An item: its stack, durability, fuel, food, tool or armor (materials
-/// whole), what it's worn as or hangs, and whether it opens a book.
-fn write_item(w: &mut Writer, h: &RuntimeHandlers, d: &yog_registry::ItemDef) {
+/// An item, its materials whole.
+fn item(h: &RuntimeHandlers, d: &yog_registry::ItemDef) -> Item {
     let tool = d.tool.as_ref().and_then(|t| {
-        let m = tool_material(h, &t.material);
-        if m.is_none() {
-            yog_logging::warn!(
-                "item {}: no tool material {} — the game's or a mod's",
-                d.id,
-                t.material
-            );
-        }
-        Some((t, m?))
+        let m = named(
+            ("tool material", &d.id),
+            &t.material,
+            &h.tool_materials,
+            yog_registry::ToolMaterial::built_in,
+        )?;
+        Some(Tool {
+            kind: t.kind.clone(),
+            attack_damage: t.attack_damage,
+            attack_speed: t.attack_speed,
+            game_tool: m.game_tool(&t.kind),
+            material: m.clone(),
+        })
     });
     let armor = d.armor.as_ref().and_then(|a| {
-        let m = armor_material(h, &a.material);
-        if m.is_none() {
-            yog_logging::warn!(
-                "item {}: no armor material {} — the game's or a mod's",
-                d.id,
-                a.material
-            );
-        }
-        Some((a, m?))
+        let m = named(
+            ("armor material", &d.id),
+            &a.material,
+            &h.armor_materials,
+            yog_registry::ArmorMaterial::built_in,
+        )?;
+        Some(Armor {
+            slot: a.slot.clone(),
+            material: m.clone(),
+        })
     });
-    // Always: id, max_stack, max_damage, fire_resistant, fuel_ticks, book.
-    let n = 6
-        + d.name.is_some() as usize
-        + d.tooltip.is_some() as usize
-        + d.food.is_some() as usize
-        + tool.is_some() as usize
-        + armor.is_some() as usize
-        + d.wearable.is_some() as usize
-        + d.hangs.is_some() as usize;
-    w.map(n);
-    w.key("id").str(&d.id);
-    w.key("max_stack").int(d.max_stack as i64);
-    if let Some(n) = &d.name {
-        w.key("name").str(n);
+    Item {
+        id: d.id.clone(),
+        max_stack: d.max_stack.into(),
+        name: d.name.clone().unwrap_or_default(),
+        tooltip: d.tooltip.clone().unwrap_or_default(),
+        max_damage: d.max_damage as i32,
+        fire_resistant: d.fire_resistant,
+        fuel_ticks: d.fuel_ticks as i32,
+        food: d.food.clone(),
+        book: h.books.contains(&d.id),
+        tool,
+        armor,
+        wearable: d.wearable.clone(),
+        hangs: d.hangs.as_ref().map(|hangs| hanging(h, hangs)),
     }
-    if let Some(t) = &d.tooltip {
-        w.key("tooltip").str(t);
-    }
-    w.key("max_damage").int(d.max_damage as i64);
-    w.key("fire_resistant").bool(d.fire_resistant);
-    w.key("fuel_ticks").int(d.fuel_ticks as i64);
-    if let Some(f) = &d.food {
-        w.key("food").map(3);
-        w.key("nutrition").int(f.nutrition as i64);
-        w.key("saturation").float(f.saturation as f64);
-        w.key("always_edible").bool(f.can_always_eat);
-    }
-    if let Some((t, m)) = tool {
-        write_tool(w, t, m);
-    }
-    if let Some((a, m)) = armor {
-        w.key("armor").map(2);
-        w.key("slot").str(&a.slot);
-        w.key("material");
-        write_armor_material(w, m);
-    }
-    if let Some(slot) = &d.wearable {
-        w.key("wearable").str(slot);
-    }
-    if let Some(hangs) = &d.hangs {
-        let [width, height] = hanging_size(h, hangs);
-        w.key("hangs").map(3);
-        w.key("entity").str(&hangs.entity);
-        w.key("width").int(width as i64);
-        w.key("height").int(height as i64);
-    }
-    // A book registered under the item's id: the host makes it open the book.
-    w.key("book").bool(h.books.contains(&d.id));
 }
 
-/// A block: its properties, shape, sound group (whole), states, kind.
-fn write_block(w: &mut Writer, h: &RuntimeHandlers, d: &yog_registry::BlockDef) {
-    let group = d.sound.as_deref().and_then(|s| {
-        let g = sound_group(h, s);
-        if g.is_none() {
-            yog_logging::warn!("block {}: no sound group {s} — the game's or a mod's", d.id);
-        }
-        g
+/// What an item hangs: its own size, else the entity type's (at least one block each way).
+fn hanging(h: &RuntimeHandlers, hangs: &yog_registry::Hangs) -> Hangs {
+    let [width, height] = hangs.size.map(|s| s.map(|n| n as i32)).unwrap_or_else(|| {
+        let def = h.entities.iter().find(|e| e.id == hangs.entity);
+        let blocks = |size: fn(&yog_registry::EntityDef) -> f32| {
+            def.map_or(1, |e| size(e).round().max(1.0) as i32)
+        };
+        [blocks(|e| e.width), blocks(|e| e.height)]
     });
-    // Always: id, hardness, resistance, light, requires_tool, no_collision,
-    // slipperiness, connects, connect_groups, redstone, facing, placement,
-    // attach, waterlogged, properties, accepts_items, no_occlusion, kind,
-    // press_ticks, mobs_only.
-    let n = 20
-        + d.name.is_some() as usize
-        + d.base.is_some() as usize
-        + d.set.is_some() as usize
-        + d.shape.is_some() as usize
-        + group.is_some() as usize
-        + d.inventory_id.is_some() as usize
-        + d.powered.is_some() as usize
-        + d.comparator.is_some() as usize;
-    w.map(n);
-    w.key("id").str(&d.id);
-    w.key("hardness").float(d.hardness as f64);
-    w.key("resistance").float(d.resistance as f64);
-    if let Some(n) = &d.name {
-        w.key("name").str(n);
+    Hangs {
+        entity: hangs.entity.clone(),
+        width,
+        height,
     }
-    if let Some(sh) = &d.shape {
-        w.key("shape");
-        floats(w, sh);
-    }
-    w.key("light").int(d.light_level as i64);
-    if let Some(g) = group {
-        w.key("sound");
-        sound(w, g);
-    }
-    w.key("requires_tool").bool(d.requires_tool);
-    w.key("no_collision").bool(d.no_collision);
-    w.key("slipperiness").float(d.slipperiness as f64);
-    w.key("connects").bool(d.connects);
-    w.key("connect_groups");
-    strings(w, &d.connect_groups);
-    if let Some(inv) = &d.inventory_id {
-        w.key("inventory").str(inv);
-    }
-    w.key("redstone").bool(d.redstone_source);
-    w.key("facing").str(&d.facing);
-    w.key("placement").str(&d.placement);
-    w.key("attach").bool(d.attach);
-    w.key("waterlogged").bool(d.waterlogged);
-    w.key("accepts_items").bool(d.accepts_items);
-    w.key("properties").list(d.properties.len());
-    for p in &d.properties {
-        w.map(2);
-        w.key("name").str(&p.name);
-        w.key("values");
-        strings(w, &p.values);
-    }
-    if let Some(p) = &d.powered {
-        w.key("powered").str(p);
-    }
-    if let Some(c) = &d.comparator {
-        w.key("comparator").str(c);
-    }
-    w.key("no_occlusion").bool(d.no_occlusion);
-    w.key("kind").str(&d.kind);
-    if let Some(b) = &d.base {
-        w.key("base").str(b);
-    }
-    if let Some(s) = &d.set {
-        w.key("set").str(s);
-    }
-    w.key("press_ticks").int(d.press_ticks as i64);
-    w.key("mobs_only").bool(d.mobs_only);
 }
 
-/// An inventory: its slots where `layout` puts them, its background, and
-/// — a machine's — its ingredients' and result's slots.
-fn write_inventory(
-    w: &mut Writer,
-    d: &yog_inventory::InventoryDef,
-    layout: &[yog_inventory::SlotLayout],
-) {
-    // Always: id, slot_count, slots, include_player_inventory, player_inv, title.
-    let n = 6
-        + d.background_texture.is_some() as usize
-        + d.background_size.is_some() as usize
-        + d.machine.is_some() as usize;
-    w.map(n);
-    w.key("id").str(&d.id);
-    w.key("slot_count").int(d.slot_count as i64);
-    w.key("slots").list(layout.len());
-    for s in layout {
-        w.map(2);
-        w.key("at");
-        floats(w, &[s.x, s.y]);
-        w.key("accepts");
-        strings(w, &s.accepts);
+/// A block, its sound group whole.
+fn block(h: &RuntimeHandlers, d: &yog_registry::BlockDef) -> Block {
+    let sound = d.sound.as_deref().and_then(|s| {
+        named(
+            ("sound group", &d.id),
+            s,
+            &h.sound_groups,
+            yog_registry::SoundGroup::built_in,
+        )
+    });
+    Block {
+        id: d.id.clone(),
+        hardness: d.hardness,
+        resistance: d.resistance,
+        name: d.name.clone().unwrap_or_default(),
+        shape: d.shape.map(Vec::from),
+        light: d.light_level.into(),
+        sound: sound.cloned(),
+        requires_tool: d.requires_tool,
+        no_collision: d.no_collision,
+        slipperiness: d.slipperiness,
+        connects: d.connects,
+        connect_groups: d.connect_groups.clone(),
+        inventory: d.inventory_id.clone(),
+        redstone: d.redstone_source,
+        facing: d.facing.clone(),
+        placement: d.placement.clone(),
+        attach: d.attach,
+        waterlogged: d.waterlogged,
+        properties: d.properties.clone(),
+        powered: d.powered.clone(),
+        comparator: d.comparator.clone(),
+        accepts_items: d.accepts_items,
+        no_occlusion: d.no_occlusion,
+        kind: d.kind.clone(),
+        base: d.base.clone(),
+        set: d.set.clone(),
+        press_ticks: d.press_ticks as i32,
+        mobs_only: d.mobs_only,
     }
-    w.key("include_player_inventory")
-        .bool(d.include_player_inventory);
-    w.key("player_inv");
-    floats(w, &[d.player_inv_offset.0, d.player_inv_offset.1]);
-    if let Some(t) = &d.background_texture {
-        w.key("background_texture").str(t);
-    }
-    w.key("title").str(&d.title);
-    if let Some((bw, bh)) = d.background_size {
-        w.key("background_size");
-        floats(w, &[bw, bh]);
-    }
-    // A machine: its ingredients' slots and its result's (the recipe is the runtime's to find).
-    if let Some(m) = &d.machine {
-        w.key("machine").map(2);
-        w.key("places").list(m.places.len());
-        for p in &m.places {
-            w.int(p.inv as i64);
-        }
-        w.key("result").int(m.result as i64);
+}
+
+/// An inventory with its slots where its layout puts them.
+fn inventory(d: &yog_inventory::InventoryDef) -> Inventory {
+    let (x, y) = d.player_inv_offset;
+    Inventory {
+        id: d.id.clone(),
+        slot_count: d.slot_count as i32,
+        slots: d
+            .resolved_layout()
+            .into_iter()
+            .map(|s| InventorySlot {
+                at: vec![s.x, s.y],
+                accepts: s.accepts,
+            })
+            .collect(),
+        include_player_inventory: d.include_player_inventory,
+        player_inv: vec![x, y],
+        background_texture: d.background_texture.clone(),
+        title: d.title.clone(),
+        background_size: d.background_size.map(|(w, h)| vec![w, h]),
+        machine: d.machine.as_ref().map(|m| Machine {
+            places: m.places.iter().map(|p| p.inv as i32).collect(),
+            result: m.result as i32,
+        }),
     }
 }

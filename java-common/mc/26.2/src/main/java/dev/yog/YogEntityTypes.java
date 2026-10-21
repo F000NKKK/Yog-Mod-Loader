@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -28,13 +29,13 @@ import net.minecraft.world.item.SpawnEggItem;
 public final class YogEntityTypes {
     private YogEntityTypes() {}
 
-    private static final Map<EntityType<?>, YogContent.Entity> DEFS = new HashMap<>();
+    private static final Map<EntityType<?>, YogTypes.EntityDef> DEFS = new HashMap<>();
     /** A hanging thing's type's box, blocks (a painting's); its own box is its size on the wall. */
     private static final float HANGING_BOX = 0.5F;
     private static final Map<String, EntityType<?>> TYPES = new LinkedHashMap<>();
 
     /** The definition of a mod's type, or null. */
-    public static YogContent.Entity def(EntityType<?> type) {
+    public static YogTypes.EntityDef def(EntityType<?> type) {
         return DEFS.get(type);
     }
 
@@ -47,24 +48,24 @@ public final class YogEntityTypes {
     }
 
     /** Every mod's type, with {@link YogRegistrar}; their attributes go to the loader's hook ({@link #attributes}). */
-    static void schedule(List<YogContent.Entity> defs) {
+    static void schedule(List<YogTypes.EntityDef> defs) {
         YogRegistrar.add(Registries.ENTITY_TYPE, sink -> register(defs, sink));
     }
 
     @SuppressWarnings({"rawtypes"}) // a type built at runtime: its entity class isn't known statically
-    private static void register(List<YogContent.Entity> defs, YogRegistrar.Sink sink) {
-        for (YogContent.Entity def : defs) {
+    private static void register(List<YogTypes.EntityDef> defs, YogRegistrar.Sink sink) {
+        for (YogTypes.EntityDef def : defs) {
             Identifier id = Identifier.tryParse(def.id());
             if (id == null || TYPES.containsKey(def.id())) continue;
-            EntityType.Builder b = def.living()
+            EntityType.Builder b = YogContent.living(def)
                     ? EntityType.Builder.<YogMob>of(YogMob::new, category(def.category()))
-                    : def.hanging()
+                    : YogContent.hanging(def)
                     ? EntityType.Builder.<YogHanging>of(YogHanging::new, category(def.category()))
                     : EntityType.Builder.<YogObject>of(YogObject::new, category(def.category()));
-            b = b.sized(def.hanging() ? HANGING_BOX : def.width(), def.hanging() ? HANGING_BOX : def.height());
+            b = b.sized(YogContent.hanging(def) ? HANGING_BOX : def.width(), YogContent.hanging(def) ? HANGING_BOX : def.height());
             if (def.eyeHeight() != null) b = b.eyeHeight(def.eyeHeight());
             // A hanging thing doesn't move: as a painting, it's sent once.
-            b = b.clientTrackingRange(def.trackingRange()).updateInterval(def.hanging() ? Integer.MAX_VALUE : def.updateInterval());
+            b = b.clientTrackingRange((int) def.trackingRange()).updateInterval(YogContent.hanging(def) ? Integer.MAX_VALUE : (int) def.updateInterval());
             if (def.fireImmune()) b = b.fireImmune();
             EntityType<?> type = b.build(ResourceKey.create(Registries.ENTITY_TYPE, id));
             DEFS.put(type, def);
@@ -82,8 +83,8 @@ public final class YogEntityTypes {
     @SuppressWarnings("unchecked") // the mod's entity types are of the entity classes their defs name
     public static void attributes(Attributes out) {
         for (EntityType<?> type : TYPES.values()) {
-            YogContent.Entity def = DEFS.get(type);
-            if (def.living()) out.put((EntityType<? extends Mob>) type, attributes(def));
+            YogTypes.EntityDef def = DEFS.get(type);
+            if (YogContent.living(def)) out.put((EntityType<? extends Mob>) type, attributes(def));
         }
     }
 
@@ -94,8 +95,8 @@ public final class YogEntityTypes {
 
     private static void eggs(YogRegistrar.Sink sink) {
         for (Map.Entry<String, EntityType<?>> t : TYPES.entrySet()) {
-            YogContent.Entity def = DEFS.get(t.getValue());
-            if (def.spawnEgg() == null || !def.living()) continue;
+            YogTypes.EntityDef def = DEFS.get(t.getValue());
+            if (def.spawnEgg() == null || !YogContent.living(def)) continue;
             Identifier id = Identifier.tryParse(dev.yog.data.YogIds.spawnEgg(def.id()));
             if (id == null) continue;
             sink.register(Registries.ITEM, id,
@@ -120,7 +121,7 @@ public final class YogEntityTypes {
         YogLog.warn("entity attribute " + name + ": no such attribute");
     }
 
-    private static AttributeSupplier.Builder attributes(YogContent.Entity def) {
+    private static AttributeSupplier.Builder attributes(YogTypes.EntityDef def) {
         AttributeSupplier.Builder a = Mob.createMobAttributes();
         Map<String, Double> attrs = new LinkedHashMap<>(def.attributes());
         if (def.goals().contains("melee_attack")) attrs.putIfAbsent("attack_damage", 2.0);
@@ -130,7 +131,7 @@ public final class YogEntityTypes {
 
     /** A tick of a mod's entity: to the mod, if it asked. */
     public static void tick(Entity e) {
-        YogContent.Entity def = DEFS.get(e.getType());
+        YogTypes.EntityDef def = DEFS.get(e.getType());
         if (def != null && def.ticks() && !e.level().isClientSide()) {
             new dev.yog.bus.YogEvents.Entity.Game.Tick(def.id(), e.getStringUUID()).emit();
         }

@@ -40,12 +40,11 @@ pub(super) struct RuntimeHandlers {
     /// (namespace, name, the recipe in Yog's own format).
     pub(super) recipes: Vec<(String, String, yog_data::Value)>,
     pub(super) items: Vec<ItemDef>,
-    /// Mods' entity types, as Yog Data (the host reads them whole).
-    pub(super) entities: Vec<yog_data::Value>,
-    /// Mods' attributes, mob effects and potions, as Yog Data (read whole too).
-    pub(super) attributes: Vec<yog_data::Value>,
-    pub(super) effects: Vec<yog_data::Value>,
-    pub(super) potions: Vec<yog_data::Value>,
+    /// Mods' entity types, attributes, mob effects and potions: the hosts get them whole.
+    pub(super) entities: Vec<yog_registry::EntityDef>,
+    pub(super) attributes: Vec<yog_registry::AttributeDef>,
+    pub(super) effects: Vec<yog_registry::EffectDef>,
+    pub(super) potions: Vec<yog_registry::PotionDef>,
     pub(super) blocks: Vec<BlockDef>,
     /// The content blob the hosts read (`nativeContent`), built once —
     /// dropped when more content registers.

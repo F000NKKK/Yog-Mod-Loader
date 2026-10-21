@@ -8,6 +8,7 @@ mod frames;
 mod services;
 mod types;
 mod views;
+mod words;
 
 use std::fmt::Write;
 
@@ -289,6 +290,7 @@ fn types_file(package: &str, records: Vec<StructShape>) -> String {
         done += 1;
     }
     unique(&o.records);
+    o.text.push_str(&words::classes(&o.records, INDENT));
     finish(package, o).0
 }
 
@@ -339,7 +341,11 @@ fn unique(records: &[StructShape]) {
 
 /// Payloads that travel inside other bytes (entity data), not as messages:
 /// Java builds them too.
-const PAYLOADS: &[fn() -> Shape] = &[<crate::entity::Hanging as yog_data::Schema>::shape];
+const PAYLOADS: &[fn() -> Shape] = &[
+    <crate::entity::Hanging as yog_data::Schema>::shape,
+    // The content the runtime hands the hosts at registration (`content_blob`).
+    <crate::content::Content as yog_data::Schema>::shape,
+];
 
 /// Every generated class: its name and text.
 pub fn files(package: &str) -> [(&'static str, String); 3] {

@@ -534,6 +534,14 @@ names! {
         SWORD = "sword",
     }
 
+    /// Where a piece of armor (or anything worn) goes.
+    armor_slot {
+        HEAD = "head",
+        CHEST = "chest",
+        LEGS = "legs",
+        FEET = "feet",
+    }
+
     /// The fields of the game's model JSON (block and item models, block states' variants).
     model {
         PARENT = "parent",

@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
@@ -18,7 +19,7 @@ import net.minecraft.world.level.storage.ValueOutput;
 public class YogObject extends Entity {
     public YogObject(EntityType<? extends YogObject> type, Level world) {
         super(type, world);
-        YogContent.Entity def = YogEntityTypes.def(type);
+        YogTypes.EntityDef def = YogEntityTypes.def(type);
         if (def != null) setNoGravity(def.noGravity());
     }
 
@@ -47,13 +48,13 @@ public class YogObject extends Entity {
 
     @Override
     public boolean isPushable() {
-        YogContent.Entity def = YogEntityTypes.def(getType());
+        YogTypes.EntityDef def = YogEntityTypes.def(getType());
         return def != null && Boolean.TRUE.equals(def.pushable());
     }
 
     @Override
     public boolean canBeCollidedWith(Entity other) {
-        YogContent.Entity def = YogEntityTypes.def(getType());
+        YogTypes.EntityDef def = YogEntityTypes.def(getType());
         return def != null && def.solid();
     }
 

@@ -1,5 +1,6 @@
 package dev.yog.util;
 
+import dev.yog.bus.YogTypes;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -32,10 +33,10 @@ final class YogPackContent {
     private static final int MONSTER_LIGHT = 7;
 
     /** The mods' recipes as the game's, in this version's layout ({@code mc121}). */
-    static void recipes(Path packRoot, List<YogContent.Recipe> recipes, boolean mc121) {
-        for (YogContent.Recipe r : recipes) {
+    static void recipes(Path packRoot, List<YogTypes.Recipe> recipes, boolean mc121) {
+        for (YogTypes.Recipe r : recipes) {
             try {
-                String vanilla = YogDataLayout.yogRecipeToVanilla(r.data(), r.namespace(), mc121);
+                String vanilla = YogDataLayout.yogRecipeToVanilla(YogContent.json(r.recipe()), r.namespace(), mc121);
                 if (vanilla == null) continue;
                 write(dataFile(packRoot, r.namespace(), YogDataLayout.recipeDir(mc121), r.name()), vanilla);
             } catch (IOException e) {
@@ -62,13 +63,13 @@ final class YogPackContent {
      * {@code yog:callback_generator} (see {@code YogCallbackChunkGenerator});
      * one without, the game's noise generator.
      */
-    static void dimensions(Path packRoot, List<YogContent.Dimension> dimensions) {
+    static void dimensions(Path packRoot, List<YogTypes.Dimension> dimensions) {
         Gson gson = new Gson();
-        for (YogContent.Dimension d : dimensions) {
+        for (YogTypes.Dimension d : dimensions) {
             String id = YogIds.qualifyIn(DEFAULT_NAMESPACE, d.id());
             int colon = id.indexOf(YogNames.Sep.NAMESPACE);
             String namespace = id.substring(0, colon), name = id.substring(colon + 1);
-            JsonObject def = d.def();
+            JsonObject def = YogContent.json(d.def());
             JsonObject dt = def.has(DimensionField.DIMENSION_TYPE) ? def.getAsJsonObject(DimensionField.DIMENSION_TYPE) : new JsonObject();
             JsonObject dimension = new JsonObject();
             dimension.addProperty(YogNames.Word.TYPE, id);
@@ -167,9 +168,9 @@ final class YogPackContent {
      * the runtime): the game's own text — chat, signs, tooltips — in one by
      * the same id Yog draws it by.
      */
-    static void fonts(Path packRoot, List<YogContent.Font> fonts) {
+    static void fonts(Path packRoot, List<YogTypes.Font> fonts) {
         Gson gson = new Gson();
-        for (YogContent.Font f : fonts) {
+        for (YogTypes.Font f : fonts) {
             String id = YogIds.qualifyIn(DEFAULT_NAMESPACE, f.id());
             int colon = id.indexOf(YogNames.Sep.NAMESPACE);
             String ns = id.substring(0, colon), path = id.substring(colon + 1);

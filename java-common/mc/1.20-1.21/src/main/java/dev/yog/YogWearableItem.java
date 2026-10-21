@@ -17,9 +17,9 @@ public class YogWearableItem extends YogItem implements Equipable {
     public YogWearableItem(Properties properties, String displayName, String tooltip, String slot) {
         super(properties, displayName, tooltip);
         this.slot = switch (slot) {
-            case "chest" -> EquipmentSlot.CHEST;
-            case "legs" -> EquipmentSlot.LEGS;
-            case "feet" -> EquipmentSlot.FEET;
+            case YogNames.ArmorSlot.CHEST -> EquipmentSlot.CHEST;
+            case YogNames.ArmorSlot.LEGS -> EquipmentSlot.LEGS;
+            case YogNames.ArmorSlot.FEET -> EquipmentSlot.FEET;
             default -> EquipmentSlot.HEAD;
         };
         DispenserBlock.registerBehavior(this, ArmorItem.DISPENSE_ITEM_BEHAVIOR);

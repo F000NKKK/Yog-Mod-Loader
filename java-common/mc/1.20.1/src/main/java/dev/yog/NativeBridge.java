@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.util.YogEntityFlags;
 import dev.yog.util.YogNativeRuntime;
 import java.util.Locale;

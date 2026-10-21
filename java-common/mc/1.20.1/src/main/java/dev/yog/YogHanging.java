@@ -44,7 +44,7 @@ public class YogHanging extends HangingEntity {
     }
 
     /** Hangs it on its block's {@code facing} side, {@code size} blocks wide and high, keeping {@code item}. */
-    public YogHanging hang(Direction facing, YogContent.Hangs size, ItemStack item) {
+    public YogHanging hang(Direction facing, YogTypes.Hangs size, ItemStack item) {
         entityData.set(WIDTH, size.width());
         entityData.set(HEIGHT, size.height());
         entityData.set(ITEM, item);
@@ -52,13 +52,13 @@ public class YogHanging extends HangingEntity {
         return this;
     }
 
-    private YogContent.Entity def() {
+    private YogTypes.EntityDef def() {
         return YogEntityTypes.def(getType());
     }
 
     @Override
     protected void defineSynchedData() {
-        YogContent.Entity def = def();
+        YogTypes.EntityDef def = def();
         entityData.define(WIDTH, def == null ? 1 : Math.max(1, Math.round(def.width())));
         entityData.define(HEIGHT, def == null ? 1 : Math.max(1, Math.round(def.height())));
         entityData.define(ITEM, ItemStack.EMPTY);
@@ -101,7 +101,7 @@ public class YogHanging extends HangingEntity {
     @Override
     public void dropItem(Entity breaker) {
         if (!level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) return;
-        YogContent.Entity def = def();
+        YogTypes.EntityDef def = def();
         if (def != null) play(def.breakSound());
         if (breaker instanceof Player p && p.getAbilities().instabuild) return;
         if (!item().isEmpty()) spawnAtLocation(item().copy());
@@ -109,7 +109,7 @@ public class YogHanging extends HangingEntity {
 
     @Override
     public void playPlacementSound() {
-        YogContent.Entity def = def();
+        YogTypes.EntityDef def = def();
         if (def != null) play(def.placeSound());
     }
 

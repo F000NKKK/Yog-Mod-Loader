@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.block.YogConnectingLogic;
 import dev.yog.data.YogContent;
 import dev.yog.util.YogInventoryDef;
@@ -78,7 +79,7 @@ public final class YogContentRegistry {
     }
 
     private static void blocks(YogContent content, YogRegistrar.Sink sink) {
-        for (YogContent.Block p : content.blocks) {
+        for (YogTypes.Block p : content.blocks) {
             ResourceLocation ident = ResourceLocation.tryParse(p.id());
             if (ident == null) continue;
             Block block = block(p, ident);
@@ -90,7 +91,7 @@ public final class YogContentRegistry {
         }
     }
 
-    private static Block block(YogContent.Block p, ResourceLocation ident) {
+    private static Block block(YogTypes.Block p, ResourceLocation ident) {
         BlockBehaviour.Properties settings = BlockBehaviour.Properties.of()
                 .strength(p.hardness(), p.resistance());
         if (p.light() > 0) {
@@ -124,7 +125,7 @@ public final class YogContentRegistry {
             }
             return new YogConnectingBlock(settings, core);
         }
-        if (p.stateful()) return YogStateBlock.create(settings, p);
+        if (YogContent.stateful(p)) return YogStateBlock.create(settings, p);
         if (p.shape() != null) {
             return new YogShapedBlock(settings, p.shape());
         }
@@ -137,9 +138,9 @@ public final class YogContentRegistry {
      */
     private static void items(YogContent content, YogRegistrar.Sink sink) {
         Set<String> blockIds = new HashSet<>();
-        for (YogContent.Block b : content.blocks) blockIds.add(b.id());
-        Map<String, YogContent.Item> blockItems = new HashMap<>();
-        for (YogContent.Item p : content.items) {
+        for (YogTypes.Block b : content.blocks) blockIds.add(b.id());
+        Map<String, YogTypes.Item> blockItems = new HashMap<>();
+        for (YogTypes.Item p : content.items) {
             ResourceLocation ident = ResourceLocation.tryParse(p.id());
             if (ident == null) continue;
             if (blockIds.contains(p.id())) {
@@ -153,7 +154,7 @@ public final class YogContentRegistry {
         }
         for (Map.Entry<String, Block> b : BLOCKS.entrySet()) {
             ResourceLocation ident = new ResourceLocation(b.getKey());
-            YogContent.Item own = blockItems.get(b.getKey());
+            YogTypes.Item own = blockItems.get(b.getKey());
             Item blockItem = new YogBlockItem(b.getValue(), blockItemSettings(ident, own),
                     own != null ? own.name() : "", own != null ? own.tooltip() : "");
             sink.register(Registries.ITEM, ident, blockItem);
@@ -162,14 +163,14 @@ public final class YogContentRegistry {
         }
     }
 
-    private static Item item(YogContent.Item p, ResourceLocation ident) {
+    private static Item item(YogTypes.Item p, ResourceLocation ident) {
         Item.Properties settings = new Item.Properties();
         settings = p.maxDamage() > 0 ? settings.durability(p.maxDamage()) : settings.stacksTo(p.maxStack());
         if (p.fireResistant()) settings = settings.fireResistant();
         if (p.food() != null) {
-            YogContent.Food fp = p.food();
-            FoodProperties.Builder fb = new FoodProperties.Builder().nutrition(fp.nutrition()).saturationMod(fp.saturation());
-            if (fp.alwaysEdible()) fb = fb.alwaysEat();
+            YogTypes.FoodDef fp = p.food();
+            FoodProperties.Builder fb = new FoodProperties.Builder().nutrition((int) fp.nutrition()).saturationMod(fp.saturation());
+            if (fp.canAlwaysEat()) fb = fb.alwaysEat();
             settings = settings.food(fb.build());
         }
         // A tool, a weapon or armor of a material, else what it says it is.
@@ -213,8 +214,8 @@ public final class YogContentRegistry {
     }
 
     /** A sound group from its sound event ids: the registered events, else made by id (a mod's, or one this version lacks). */
-    private static SoundType blockSoundGroup(YogContent.Sound s) {
-        return new SoundType(s.volume(), s.pitch(), soundEvent(s.breakSound()), soundEvent(s.step()),
+    private static SoundType blockSoundGroup(YogTypes.SoundGroup s) {
+        return new SoundType(s.volume(), s.pitch(), soundEvent(s.break_()), soundEvent(s.step()),
                 soundEvent(s.place()), soundEvent(s.hit()), soundEvent(s.fall()));
     }
 
@@ -226,7 +227,7 @@ public final class YogContentRegistry {
     }
 
     /** A block's item form as its {@code .yitem} says (how it stacks, whether it survives fire); the game's defaults otherwise. */
-    private static Item.Properties blockItemSettings(ResourceLocation id, YogContent.Item own) {
+    private static Item.Properties blockItemSettings(ResourceLocation id, YogTypes.Item own) {
         Item.Properties s = new Item.Properties();
         if (own == null) return s;
         s = s.stacksTo(own.maxStack());

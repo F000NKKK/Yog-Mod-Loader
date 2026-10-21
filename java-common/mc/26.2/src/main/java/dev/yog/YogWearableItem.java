@@ -14,9 +14,9 @@ public class YogWearableItem extends YogItem {
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's slot. */
     static EquipmentSlot slotOf(String slot) {
         return switch (slot) {
-            case "chest" -> EquipmentSlot.CHEST;
-            case "legs" -> EquipmentSlot.LEGS;
-            case "feet" -> EquipmentSlot.FEET;
+            case YogNames.ArmorSlot.CHEST -> EquipmentSlot.CHEST;
+            case YogNames.ArmorSlot.LEGS -> EquipmentSlot.LEGS;
+            case YogNames.ArmorSlot.FEET -> EquipmentSlot.FEET;
             default -> EquipmentSlot.HEAD;
         };
     }

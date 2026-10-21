@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -31,16 +32,16 @@ import net.minecraft.world.level.block.Block;
 
 /**
  * Tools, weapons and armor of a material (the game's or a mod's), as the
- * runtime describes them ({@link YogContent.Tool}, {@link YogContent.Armor}):
+ * runtime describes them ({@link YogTypes.Tool}, {@link YogTypes.Armor}):
  * the game's own item classes, with the mod's name and tooltip.
  */
 public final class YogTools {
     private YogTools() {}
 
     /** The tool or armor item {@code p} says, or null for neither. */
-    public static Item make(Item.Properties props, YogContent.Item p) {
+    public static Item make(Item.Properties props, YogTypes.Item p) {
         if (p.tool() != null) {
-            YogContent.Tool t = p.tool().resolved(YogTools::gameAttack);
+            YogTypes.Tool t = YogContent.resolved(p.tool(), YogTools::gameAttack);
             Tier tier = new YogTier(t.material());
             String n = p.name(), tip = p.tooltip();
             return switch (t.kind()) {
@@ -48,26 +49,26 @@ public final class YogTools {
                 case YogNames.ToolKind.AXE -> new Axe(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
                 case YogNames.ToolKind.SHOVEL -> new Shovel(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
                 case YogNames.ToolKind.HOE -> new Hoe(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
-                case YogNames.ToolKind.SWORD -> new Sword(tier, props.attributes(SwordItem.createAttributes(tier, (int) t.attackDamage(), t.attackSpeed())), n, tip);
+                case YogNames.ToolKind.SWORD -> new Sword(tier, props.attributes(SwordItem.createAttributes(tier, t.attackDamage().intValue(), t.attackSpeed())), n, tip);
                 default -> new Digger(tier, mineable(t.kind()), props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
             };
         }
         if (p.armor() != null) {
-            YogContent.Armor a = p.armor();
-            YogContent.ArmorMaterial m = a.material();
+            YogTypes.Armor a = p.armor();
+            YogTypes.ArmorMaterial m = a.material();
             java.util.EnumMap<ArmorItem.Type, Integer> defense = new java.util.EnumMap<>(ArmorItem.Type.class);
-            defense.put(ArmorItem.Type.HELMET, m.head());
-            defense.put(ArmorItem.Type.CHESTPLATE, m.chest());
-            defense.put(ArmorItem.Type.LEGGINGS, m.legs());
-            defense.put(ArmorItem.Type.BOOTS, m.feet());
-            defense.put(ArmorItem.Type.BODY, m.chest());
+            defense.put(ArmorItem.Type.HELMET, (int) m.defense().head());
+            defense.put(ArmorItem.Type.CHESTPLATE, (int) m.defense().chest());
+            defense.put(ArmorItem.Type.LEGGINGS, (int) m.defense().legs());
+            defense.put(ArmorItem.Type.BOOTS, (int) m.defense().feet());
+            defense.put(ArmorItem.Type.BODY, (int) m.defense().chest());
             ResourceLocation texture = ResourceLocation.tryParse(m.texture());
-            net.minecraft.world.item.ArmorMaterial material = new net.minecraft.world.item.ArmorMaterial(defense, m.enchantability(),
+            net.minecraft.world.item.ArmorMaterial material = new net.minecraft.world.item.ArmorMaterial(defense, (int) m.enchantability(),
                     BuiltInRegistries.SOUND_EVENT.wrapAsHolder(YogContentRegistry.soundEvent(m.equipSound())), () -> repair(m.repair()),
                     texture == null ? List.of() : List.of(new net.minecraft.world.item.ArmorMaterial.Layer(texture)),
                     m.toughness(), m.knockbackResistance());
             ArmorItem.Type type = armorType(a.slot());
-            return new Armor(Holder.direct(material), type, props.durability(type.getDurability(m.durability())), p.name(), p.tooltip());
+            return new Armor(Holder.direct(material), type, props.durability(type.getDurability((int) m.durability())), p.name(), p.tooltip());
         }
         return null;
     }
@@ -89,9 +90,9 @@ public final class YogTools {
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's armor type. */
     static ArmorItem.Type armorType(String slot) {
         return switch (slot) {
-            case "chest" -> ArmorItem.Type.CHESTPLATE;
-            case "legs" -> ArmorItem.Type.LEGGINGS;
-            case "feet" -> ArmorItem.Type.BOOTS;
+            case YogNames.ArmorSlot.CHEST -> ArmorItem.Type.CHESTPLATE;
+            case YogNames.ArmorSlot.LEGS -> ArmorItem.Type.LEGGINGS;
+            case YogNames.ArmorSlot.FEET -> ArmorItem.Type.BOOTS;
             default -> ArmorItem.Type.HELMET;
         };
     }
@@ -130,15 +131,15 @@ public final class YogTools {
     }
 
     /** A tool material as the game's tier. */
-    record YogTier(YogContent.ToolMaterial m) implements Tier {
-        @Override public int getUses() { return m.durability(); }
+    record YogTier(YogTypes.ToolMaterial m) implements Tier {
+        @Override public int getUses() { return (int) m.durability(); }
         @Override public float getSpeed() { return m.speed(); }
         @Override public float getAttackDamageBonus() { return m.attackDamage(); }
         @Override public TagKey<Block> getIncorrectBlocksForDrops() {
             ResourceLocation rl = ResourceLocation.tryParse(m.incorrect());
             return TagKey.create(Registries.BLOCK, rl != null ? rl : ResourceLocation.tryParse(dev.yog.YogNames.ToolTier.INCORRECT_FOR_WOODEN_TOOL));
         }
-        @Override public int getEnchantmentValue() { return m.enchantability(); }
+        @Override public int getEnchantmentValue() { return (int) m.enchantability(); }
         @Override public Ingredient getRepairIngredient() { return repair(m.repair()); }
     }
 

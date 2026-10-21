@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -34,16 +35,16 @@ import net.minecraft.world.level.block.Block;
 
 /**
  * Tools, weapons and armor of a material (the game's or a mod's), as the
- * runtime describes them ({@link YogContent.Tool}, {@link YogContent.Armor}):
+ * runtime describes them ({@link YogTypes.Tool}, {@link YogTypes.Armor}):
  * the game's own item classes, with the mod's name and tooltip.
  */
 public final class YogTools {
     private YogTools() {}
 
     /** The tool or armor item {@code p} says, or null for neither. */
-    public static Item make(Item.Properties props, YogContent.Item p) {
+    public static Item make(Item.Properties props, YogTypes.Item p) {
         if (p.tool() != null) {
-            YogContent.Tool t = p.tool().resolved(YogTools::gameAttack);
+            YogTypes.Tool t = YogContent.resolved(p.tool(), YogTools::gameAttack);
             Tier tier = new YogTier(t.material());
             String n = p.name(), tip = p.tooltip();
             return switch (t.kind()) {
@@ -56,7 +57,7 @@ public final class YogTools {
             };
         }
         if (p.armor() != null) {
-            YogContent.Armor a = p.armor();
+            YogTypes.Armor a = p.armor();
             return new Armor(new YogArmorMaterial(a.material()), armorType(a.slot()), props, p.name(), p.tooltip());
         }
         return null;
@@ -80,9 +81,9 @@ public final class YogTools {
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's armor type. */
     static ArmorItem.Type armorType(String slot) {
         return switch (slot) {
-            case "chest" -> ArmorItem.Type.CHESTPLATE;
-            case "legs" -> ArmorItem.Type.LEGGINGS;
-            case "feet" -> ArmorItem.Type.BOOTS;
+            case YogNames.ArmorSlot.CHEST -> ArmorItem.Type.CHESTPLATE;
+            case YogNames.ArmorSlot.LEGS -> ArmorItem.Type.LEGGINGS;
+            case YogNames.ArmorSlot.FEET -> ArmorItem.Type.BOOTS;
             default -> ArmorItem.Type.HELMET;
         };
     }
@@ -121,24 +122,24 @@ public final class YogTools {
     }
 
     /** A tool material as the game's tier. */
-    record YogTier(YogContent.ToolMaterial m) implements Tier {
-        @Override public int getUses() { return m.durability(); }
+    record YogTier(YogTypes.ToolMaterial m) implements Tier {
+        @Override public int getUses() { return (int) m.durability(); }
         @Override public float getSpeed() { return m.speed(); }
         @Override public float getAttackDamageBonus() { return m.attackDamage(); }
-        @Override public int getLevel() { return m.levelIndex(); }
-        @Override public int getEnchantmentValue() { return m.enchantability(); }
+        @Override public int getLevel() { return (int) m.levelIndex(); }
+        @Override public int getEnchantmentValue() { return (int) m.enchantability(); }
         @Override public Ingredient getRepairIngredient() { return repair(m.repair()); }
     }
 
     /** An armor material as the game's. */
-    record YogArmorMaterial(YogContent.ArmorMaterial m) implements net.minecraft.world.item.ArmorMaterial {
+    record YogArmorMaterial(YogTypes.ArmorMaterial m) implements net.minecraft.world.item.ArmorMaterial {
         @Override public int getDurabilityForType(ArmorItem.Type type) {
-            return YogContent.armorDurability(new YogContent.Armor(slotOf(type), m));
+            return YogContent.armorDurability(new YogTypes.Armor(slotOf(type), m));
         }
         @Override public int getDefenseForType(ArmorItem.Type type) {
-            return YogContent.armorDefense(new YogContent.Armor(slotOf(type), m));
+            return YogContent.armorDefense(new YogTypes.Armor(slotOf(type), m));
         }
-        @Override public int getEnchantmentValue() { return m.enchantability(); }
+        @Override public int getEnchantmentValue() { return (int) m.enchantability(); }
         @Override public net.minecraft.sounds.SoundEvent getEquipSound() { return YogContentRegistry.soundEvent(m.equipSound()); }
         @Override public Ingredient getRepairIngredient() { return repair(m.repair()); }
         /** {@code ns:name}: the textures are {@code ns:textures/models/armor/name_layer_1.png}. */
@@ -149,10 +150,10 @@ public final class YogTools {
 
     private static String slotOf(ArmorItem.Type type) {
         return switch (type) {
-            case CHESTPLATE -> "chest";
-            case LEGGINGS -> "legs";
-            case BOOTS -> "feet";
-            default -> "head";
+            case CHESTPLATE -> YogNames.ArmorSlot.CHEST;
+            case LEGGINGS -> YogNames.ArmorSlot.LEGS;
+            case BOOTS -> YogNames.ArmorSlot.FEET;
+            default -> YogNames.ArmorSlot.HEAD;
         };
     }
 
@@ -160,8 +161,8 @@ public final class YogTools {
     public static final class Pickaxe extends PickaxeItem {
         private final String displayName, tip;
 
-        Pickaxe(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
-            super(tier, (int) t.attackDamage(), t.attackSpeed(), p);
+        Pickaxe(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage().intValue(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
         }
@@ -187,7 +188,7 @@ public final class YogTools {
     public static final class Axe extends AxeItem {
         private final String displayName, tip;
 
-        Axe(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+        Axe(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
             super(tier, t.attackDamage(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
@@ -214,7 +215,7 @@ public final class YogTools {
     public static final class Shovel extends ShovelItem {
         private final String displayName, tip;
 
-        Shovel(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+        Shovel(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
             super(tier, t.attackDamage(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
@@ -241,8 +242,8 @@ public final class YogTools {
     public static final class Hoe extends HoeItem {
         private final String displayName, tip;
 
-        Hoe(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
-            super(tier, (int) t.attackDamage(), t.attackSpeed(), p);
+        Hoe(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage().intValue(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
         }
@@ -268,8 +269,8 @@ public final class YogTools {
     public static final class Sword extends SwordItem {
         private final String displayName, tip;
 
-        Sword(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
-            super(tier, (int) t.attackDamage(), t.attackSpeed(), p);
+        Sword(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage().intValue(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
         }
@@ -295,7 +296,7 @@ public final class YogTools {
     public static final class Digger extends DiggerItem {
         private final String displayName, tip;
 
-        Digger(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+        Digger(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
             super(t.attackDamage(), t.attackSpeed(), tier, mineable(t.kind()), p);
             this.displayName = displayName;
             this.tip = tip;

@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import java.util.Map;
 import java.util.function.Function;
@@ -29,7 +30,7 @@ final class YogBlockKinds {
 
     /** Makes a block of a kind: its settings, its definition, blocks by id (for {@code base}). */
     private interface Maker {
-        Block make(BlockBehaviour.Properties settings, YogContent.Block p, Function<String, Block> blocks);
+        Block make(BlockBehaviour.Properties settings, YogTypes.Block p, Function<String, Block> blocks);
     }
 
     private static final Map<String, Maker> KINDS = Map.of(
@@ -45,7 +46,7 @@ final class YogBlockKinds {
             "fence_gate", (s, p, blocks) -> new FenceGateBlock(woodType(p), s));
 
     /** The block of {@code p}'s kind; {@code blocks} finds a block by id. */
-    static Block make(BlockBehaviour.Properties settings, YogContent.Block p, Function<String, Block> blocks) {
+    static Block make(BlockBehaviour.Properties settings, YogTypes.Block p, Function<String, Block> blocks) {
         Maker maker = KINDS.get(p.kind());
         if (maker == null) {
             YogLog.warn("block " + p.id() + ": no kind of block `" + p.kind() + "` — a plain block");
@@ -54,7 +55,7 @@ final class YogBlockKinds {
         return maker.make(settings, p, blocks);
     }
 
-    private static BlockState base(YogContent.Block p, Function<String, Block> blocks) {
+    private static BlockState base(YogTypes.Block p, Function<String, Block> blocks) {
         Block base = p.base() == null ? null : blocks.apply(p.base());
         if (base == null) {
             YogLog.warn("block " + p.id() + ": no base block " + p.base());
@@ -64,7 +65,7 @@ final class YogBlockKinds {
     }
 
     /** The registered block set of {@code p}'s {@code set}; oak by default. */
-    private static BlockSetType blockSet(YogContent.Block p) {
+    private static BlockSetType blockSet(YogTypes.Block p) {
         String name = p.set() == null ? BlockSetType.OAK.name() : p.set();
         return BlockSetType.values().filter(t -> t.name().equals(name)).findFirst().orElseGet(() -> {
             YogLog.warn("block " + p.id() + ": no block set " + name + " — oak");
@@ -73,7 +74,7 @@ final class YogBlockKinds {
     }
 
     /** The registered wood type of {@code p}'s {@code set}; oak by default. */
-    private static WoodType woodType(YogContent.Block p) {
+    private static WoodType woodType(YogTypes.Block p) {
         String name = p.set() == null ? WoodType.OAK.name() : p.set();
         return WoodType.values().filter(t -> t.name().equals(name)).findFirst().orElseGet(() -> {
             YogLog.warn("block " + p.id() + ": no wood type " + name + " — oak");

@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
+import dev.yog.data.YogContent;
 import dev.yog.bus.YogEvents;
 import java.util.ArrayList;
 import java.util.List;
@@ -118,7 +120,7 @@ public final class YogClientEvents {
     public static List<Block> tintedBlocks() {
         NativeBridge.ensureLoaded();
         List<Block> out = new ArrayList<>();
-        for (dev.yog.data.YogContent.Block b : dev.yog.data.YogContent.cached(NativeBridge::nativeContent).blocks) {
+        for (dev.yog.bus.YogTypes.Block b : dev.yog.data.YogContent.cached(NativeBridge::nativeContent).blocks) {
             Identifier id = Identifier.tryParse(b.id());
             if (id != null && BuiltInRegistries.BLOCK.containsKey(id)) out.add(BuiltInRegistries.BLOCK.getValue(id));
         }

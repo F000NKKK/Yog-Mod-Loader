@@ -3252,6 +3252,370 @@ public final class YogTypes {
         }
     }
 
+    /** Everything the hosts register. */
+    public record Content(java.util.List<YogTypes.Item> items, java.util.List<YogTypes.Block> blocks, java.util.List<YogTypes.Inventory> inventories, java.util.List<YogTypes.Recipe> recipes, java.util.List<YogTypes.BiomeFeature> biomeFeatures, java.util.List<YogTypes.EntityDef> entities, java.util.List<YogTypes.Dimension> dimensions, java.util.List<YogTypes.Font> fonts, java.util.List<YogTypes.AttributeDef> attributes, java.util.List<YogTypes.EffectDef> effects, java.util.List<YogTypes.PotionDef> potions) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("items", items.stream().map(e0 -> e0.toData()).toList());
+            m.put("blocks", blocks.stream().map(e0 -> e0.toData()).toList());
+            m.put("inventories", inventories.stream().map(e0 -> e0.toData()).toList());
+            m.put("recipes", recipes.stream().map(e0 -> e0.toData()).toList());
+            m.put("biome_features", biomeFeatures.stream().map(e0 -> e0.toData()).toList());
+            m.put("entities", entities.stream().map(e0 -> e0.toData()).toList());
+            m.put("dimensions", dimensions.stream().map(e0 -> e0.toData()).toList());
+            m.put("fonts", fonts.stream().map(e0 -> e0.toData()).toList());
+            m.put("attributes", attributes.stream().map(e0 -> e0.toData()).toList());
+            m.put("effects", effects.stream().map(e0 -> e0.toData()).toList());
+            m.put("potions", potions.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static Content fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Content(YogData.list(m.get("items")).stream().map(e0 -> YogTypes.Item.fromData(e0)).toList(), YogData.list(m.get("blocks")).stream().map(e0 -> YogTypes.Block.fromData(e0)).toList(), YogData.list(m.get("inventories")).stream().map(e0 -> YogTypes.Inventory.fromData(e0)).toList(), YogData.list(m.get("recipes")).stream().map(e0 -> YogTypes.Recipe.fromData(e0)).toList(), YogData.list(m.get("biome_features")).stream().map(e0 -> YogTypes.BiomeFeature.fromData(e0)).toList(), YogData.list(m.get("entities")).stream().map(e0 -> YogTypes.EntityDef.fromData(e0)).toList(), YogData.list(m.get("dimensions")).stream().map(e0 -> YogTypes.Dimension.fromData(e0)).toList(), YogData.list(m.get("fonts")).stream().map(e0 -> YogTypes.Font.fromData(e0)).toList(), YogData.list(m.get("attributes")).stream().map(e0 -> YogTypes.AttributeDef.fromData(e0)).toList(), YogData.list(m.get("effects")).stream().map(e0 -> YogTypes.EffectDef.fromData(e0)).toList(), YogData.list(m.get("potions")).stream().map(e0 -> YogTypes.PotionDef.fromData(e0)).toList());
+        }
+
+        public static Content fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            { int l0 = p.beginList(this.items.size()); for (var e0 : this.items) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.blocks.size()); for (var e0 : this.blocks) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.inventories.size()); for (var e0 : this.inventories) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.recipes.size()); for (var e0 : this.recipes) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.biomeFeatures.size()); for (var e0 : this.biomeFeatures) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.entities.size()); for (var e0 : this.entities) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.dimensions.size()); for (var e0 : this.dimensions) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.fonts.size()); for (var e0 : this.fonts) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.attributes.size()); for (var e0 : this.attributes) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.effects.size()); for (var e0 : this.effects) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.potions.size()); for (var e0 : this.potions) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static Content unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            java.util.List<YogTypes.Item> f_items = u.more(end) ? YogFrame.list(u, () -> YogTypes.Item.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.Block> f_blocks = u.more(end) ? YogFrame.list(u, () -> YogTypes.Block.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.Inventory> f_inventories = u.more(end) ? YogFrame.list(u, () -> YogTypes.Inventory.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.Recipe> f_recipes = u.more(end) ? YogFrame.list(u, () -> YogTypes.Recipe.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.BiomeFeature> f_biomeFeatures = u.more(end) ? YogFrame.list(u, () -> YogTypes.BiomeFeature.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.EntityDef> f_entities = u.more(end) ? YogFrame.list(u, () -> YogTypes.EntityDef.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.Dimension> f_dimensions = u.more(end) ? YogFrame.list(u, () -> YogTypes.Dimension.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.Font> f_fonts = u.more(end) ? YogFrame.list(u, () -> YogTypes.Font.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.AttributeDef> f_attributes = u.more(end) ? YogFrame.list(u, () -> YogTypes.AttributeDef.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.EffectDef> f_effects = u.more(end) ? YogFrame.list(u, () -> YogTypes.EffectDef.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.PotionDef> f_potions = u.more(end) ? YogFrame.list(u, () -> YogTypes.PotionDef.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new Content(f_items, f_blocks, f_inventories, f_recipes, f_biomeFeatures, f_entities, f_dimensions, f_fonts, f_attributes, f_effects, f_potions);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Content fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Content fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Content readFrame(YogFrame.Unpacker u) {
+            Content v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Content} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int h0, n0, b0;
+            private final int o1;
+            private final int h1, n1, b1;
+            private final int o2;
+            private final int h2, n2, b2;
+            private final int o3;
+            private final int h3, n3, b3;
+            private final int o4;
+            private final int h4, n4, b4;
+            private final int o5;
+            private final int h5, n5, b5;
+            private final int o6;
+            private final int h6, n6, b6;
+            private final int o7;
+            private final int h7, n7, b7;
+            private final int o8;
+            private final int h8, n8, b8;
+            private final int o9;
+            private final int h9, n9, b9;
+            private final int o10;
+            private final int h10, n10, b10;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { h0 = u.position(); n0 = u.count(); int e0 = u.listEnd(); b0 = 0; o0 = u.position(); u.skipTo(e0); } else { h0 = n0 = b0 = 0; o0 = -1; }
+                if (u.more(end)) { h1 = u.position(); n1 = u.count(); int e1 = u.listEnd(); b1 = 0; o1 = u.position(); u.skipTo(e1); } else { h1 = n1 = b1 = 0; o1 = -1; }
+                if (u.more(end)) { h2 = u.position(); n2 = u.count(); int e2 = u.listEnd(); b2 = 0; o2 = u.position(); u.skipTo(e2); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                if (u.more(end)) { h3 = u.position(); n3 = u.count(); int e3 = u.listEnd(); b3 = 0; o3 = u.position(); u.skipTo(e3); } else { h3 = n3 = b3 = 0; o3 = -1; }
+                if (u.more(end)) { h4 = u.position(); n4 = u.count(); int e4 = u.listEnd(); b4 = 0; o4 = u.position(); u.skipTo(e4); } else { h4 = n4 = b4 = 0; o4 = -1; }
+                if (u.more(end)) { h5 = u.position(); n5 = u.count(); int e5 = u.listEnd(); b5 = 0; o5 = u.position(); u.skipTo(e5); } else { h5 = n5 = b5 = 0; o5 = -1; }
+                if (u.more(end)) { h6 = u.position(); n6 = u.count(); int e6 = u.listEnd(); b6 = 0; o6 = u.position(); u.skipTo(e6); } else { h6 = n6 = b6 = 0; o6 = -1; }
+                if (u.more(end)) { h7 = u.position(); n7 = u.count(); int e7 = u.listEnd(); b7 = 0; o7 = u.position(); u.skipTo(e7); } else { h7 = n7 = b7 = 0; o7 = -1; }
+                if (u.more(end)) { h8 = u.position(); n8 = u.count(); int e8 = u.listEnd(); b8 = 0; o8 = u.position(); u.skipTo(e8); } else { h8 = n8 = b8 = 0; o8 = -1; }
+                if (u.more(end)) { h9 = u.position(); n9 = u.count(); int e9 = u.listEnd(); b9 = 0; o9 = u.position(); u.skipTo(e9); } else { h9 = n9 = b9 = 0; o9 = -1; }
+                if (u.more(end)) { h10 = u.position(); n10 = u.count(); int e10 = u.listEnd(); b10 = 0; o10 = u.position(); u.skipTo(e10); } else { h10 = n10 = b10 = 0; o10 = -1; }
+                u.leave(end);
+            }
+
+            public java.util.List<YogTypes.Item> items() {
+                if (o0 < 0) return java.util.List.of();
+                u.seek(h0);
+                return YogFrame.list(u, () -> YogTypes.Item.unpack(u));
+            }
+
+            public int itemsLength() {
+                return n0;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachItems(java.util.function.Consumer<YogTypes.Item.View> each) {
+                int at = o0;
+                for (int j = 0; j < n0; j++) {
+                    u.seek(at);
+                    YogTypes.Item.View v = new YogTypes.Item.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.Block> blocks() {
+                if (o1 < 0) return java.util.List.of();
+                u.seek(h1);
+                return YogFrame.list(u, () -> YogTypes.Block.unpack(u));
+            }
+
+            public int blocksLength() {
+                return n1;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachBlocks(java.util.function.Consumer<YogTypes.Block.View> each) {
+                int at = o1;
+                for (int j = 0; j < n1; j++) {
+                    u.seek(at);
+                    YogTypes.Block.View v = new YogTypes.Block.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.Inventory> inventories() {
+                if (o2 < 0) return java.util.List.of();
+                u.seek(h2);
+                return YogFrame.list(u, () -> YogTypes.Inventory.unpack(u));
+            }
+
+            public int inventoriesLength() {
+                return n2;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachInventories(java.util.function.Consumer<YogTypes.Inventory.View> each) {
+                int at = o2;
+                for (int j = 0; j < n2; j++) {
+                    u.seek(at);
+                    YogTypes.Inventory.View v = new YogTypes.Inventory.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.Recipe> recipes() {
+                if (o3 < 0) return java.util.List.of();
+                u.seek(h3);
+                return YogFrame.list(u, () -> YogTypes.Recipe.unpack(u));
+            }
+
+            public int recipesLength() {
+                return n3;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachRecipes(java.util.function.Consumer<YogTypes.Recipe.View> each) {
+                int at = o3;
+                for (int j = 0; j < n3; j++) {
+                    u.seek(at);
+                    YogTypes.Recipe.View v = new YogTypes.Recipe.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.BiomeFeature> biomeFeatures() {
+                if (o4 < 0) return java.util.List.of();
+                u.seek(h4);
+                return YogFrame.list(u, () -> YogTypes.BiomeFeature.unpack(u));
+            }
+
+            public int biomeFeaturesLength() {
+                return n4;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachBiomeFeatures(java.util.function.Consumer<YogTypes.BiomeFeature.View> each) {
+                int at = o4;
+                for (int j = 0; j < n4; j++) {
+                    u.seek(at);
+                    YogTypes.BiomeFeature.View v = new YogTypes.BiomeFeature.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.EntityDef> entities() {
+                if (o5 < 0) return java.util.List.of();
+                u.seek(h5);
+                return YogFrame.list(u, () -> YogTypes.EntityDef.unpack(u));
+            }
+
+            public int entitiesLength() {
+                return n5;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachEntities(java.util.function.Consumer<YogTypes.EntityDef.View> each) {
+                int at = o5;
+                for (int j = 0; j < n5; j++) {
+                    u.seek(at);
+                    YogTypes.EntityDef.View v = new YogTypes.EntityDef.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.Dimension> dimensions() {
+                if (o6 < 0) return java.util.List.of();
+                u.seek(h6);
+                return YogFrame.list(u, () -> YogTypes.Dimension.unpack(u));
+            }
+
+            public int dimensionsLength() {
+                return n6;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachDimensions(java.util.function.Consumer<YogTypes.Dimension.View> each) {
+                int at = o6;
+                for (int j = 0; j < n6; j++) {
+                    u.seek(at);
+                    YogTypes.Dimension.View v = new YogTypes.Dimension.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.Font> fonts() {
+                if (o7 < 0) return java.util.List.of();
+                u.seek(h7);
+                return YogFrame.list(u, () -> YogTypes.Font.unpack(u));
+            }
+
+            public int fontsLength() {
+                return n7;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachFonts(java.util.function.Consumer<YogTypes.Font.View> each) {
+                int at = o7;
+                for (int j = 0; j < n7; j++) {
+                    u.seek(at);
+                    YogTypes.Font.View v = new YogTypes.Font.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.AttributeDef> attributes() {
+                if (o8 < 0) return java.util.List.of();
+                u.seek(h8);
+                return YogFrame.list(u, () -> YogTypes.AttributeDef.unpack(u));
+            }
+
+            public int attributesLength() {
+                return n8;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachAttributes(java.util.function.Consumer<YogTypes.AttributeDef.View> each) {
+                int at = o8;
+                for (int j = 0; j < n8; j++) {
+                    u.seek(at);
+                    YogTypes.AttributeDef.View v = new YogTypes.AttributeDef.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.EffectDef> effects() {
+                if (o9 < 0) return java.util.List.of();
+                u.seek(h9);
+                return YogFrame.list(u, () -> YogTypes.EffectDef.unpack(u));
+            }
+
+            public int effectsLength() {
+                return n9;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachEffects(java.util.function.Consumer<YogTypes.EffectDef.View> each) {
+                int at = o9;
+                for (int j = 0; j < n9; j++) {
+                    u.seek(at);
+                    YogTypes.EffectDef.View v = new YogTypes.EffectDef.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.PotionDef> potions() {
+                if (o10 < 0) return java.util.List.of();
+                u.seek(h10);
+                return YogFrame.list(u, () -> YogTypes.PotionDef.unpack(u));
+            }
+
+            public int potionsLength() {
+                return n10;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachPotions(java.util.function.Consumer<YogTypes.PotionDef.View> each) {
+                int at = o10;
+                for (int j = 0; j < n10; j++) {
+                    u.seek(at);
+                    YogTypes.PotionDef.View v = new YogTypes.PotionDef.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
     /** One kind of block in a [`BlockArea`]: how it is to walk through. */
     public record BlockKind(String id, boolean solid, boolean liquid, boolean climbable, boolean harmful) {
         public java.util.Map<String, Object> toData() {
@@ -3372,5 +3736,3630 @@ public final class YogTypes {
                 return u.getBool();
             }
         }
+    }
+
+    /** An item: its stack, durability, fuel, food, tool or armor (materials whole), what it's worn as or hangs, and whether it opens a book. */
+    public record Item(String id, int maxStack, String name, String tooltip, int maxDamage, boolean fireResistant, int fuelTicks, YogTypes.FoodDef food, boolean book, YogTypes.Tool tool, YogTypes.Armor armor, String wearable, YogTypes.Hangs hangs) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("max_stack", maxStack);
+            m.put("name", name);
+            m.put("tooltip", tooltip);
+            m.put("max_damage", maxDamage);
+            m.put("fire_resistant", fireResistant);
+            m.put("fuel_ticks", fuelTicks);
+            if (food != null) m.put("food", food.toData());
+            m.put("book", book);
+            if (tool != null) m.put("tool", tool.toData());
+            if (armor != null) m.put("armor", armor.toData());
+            if (wearable != null) m.put("wearable", wearable);
+            if (hangs != null) m.put("hangs", hangs.toData());
+            return m;
+        }
+
+        public static Item fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Item(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("max_stack"), 0), YogData.str(m.get("name"), ""), YogData.str(m.get("tooltip"), ""), (int) YogData.integer(m.get("max_damage"), 0), YogData.bool(m.get("fire_resistant"), false), (int) YogData.integer(m.get("fuel_ticks"), 0), (m.get("food") == null ? null : YogTypes.FoodDef.fromData(m.get("food"))), YogData.bool(m.get("book"), false), (m.get("tool") == null ? null : YogTypes.Tool.fromData(m.get("tool"))), (m.get("armor") == null ? null : YogTypes.Armor.fromData(m.get("armor"))), (m.get("wearable") == null ? null : YogData.str(m.get("wearable"), "")), (m.get("hangs") == null ? null : YogTypes.Hangs.fromData(m.get("hangs"))));
+        }
+
+        public static Item fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putI(this.maxStack);
+            p.putStr(this.name);
+            p.putStr(this.tooltip);
+            p.putI(this.maxDamage);
+            p.putBool(this.fireResistant);
+            p.putI(this.fuelTicks);
+            p.putBool(this.food != null); if (this.food != null) { this.food.pack(p); }
+            p.putBool(this.book);
+            p.putBool(this.tool != null); if (this.tool != null) { this.tool.pack(p); }
+            p.putBool(this.armor != null); if (this.armor != null) { this.armor.pack(p); }
+            p.putBool(this.wearable != null); if (this.wearable != null) { p.putStr(this.wearable); }
+            p.putBool(this.hangs != null); if (this.hangs != null) { this.hangs.pack(p); }
+            p.end(at);
+        }
+
+        public static Item unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            int f_maxStack = u.more(end) ? (int) u.getI() : 0;
+            String f_name = u.more(end) ? u.getStr() : "";
+            String f_tooltip = u.more(end) ? u.getStr() : "";
+            int f_maxDamage = u.more(end) ? (int) u.getI() : 0;
+            boolean f_fireResistant = u.more(end) ? u.getBool() : false;
+            int f_fuelTicks = u.more(end) ? (int) u.getI() : 0;
+            YogTypes.FoodDef f_food = u.more(end) ? (u.getBool() ? YogTypes.FoodDef.unpack(u) : null) : null;
+            boolean f_book = u.more(end) ? u.getBool() : false;
+            YogTypes.Tool f_tool = u.more(end) ? (u.getBool() ? YogTypes.Tool.unpack(u) : null) : null;
+            YogTypes.Armor f_armor = u.more(end) ? (u.getBool() ? YogTypes.Armor.unpack(u) : null) : null;
+            String f_wearable = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            YogTypes.Hangs f_hangs = u.more(end) ? (u.getBool() ? YogTypes.Hangs.unpack(u) : null) : null;
+            u.leave(end);
+            return new Item(f_id, f_maxStack, f_name, f_tooltip, f_maxDamage, f_fireResistant, f_fuelTicks, f_food, f_book, f_tool, f_armor, f_wearable, f_hangs);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Item fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Item fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Item readFrame(YogFrame.Unpacker u) {
+            Item v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Item} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+            private final int o9;
+            private final int o10;
+            private final int o11;
+            private final int o12;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(1); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.skip(1); } else { o8 = -1; }
+                if (u.more(end)) { o9 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o9 = -1; }
+                if (u.more(end)) { o10 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o10 = -1; }
+                if (u.more(end)) { o11 = u.position(); if (u.getBool()) { u.getU(); } } else { o11 = -1; }
+                if (u.more(end)) { o12 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o12 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public int maxStack() {
+                if (o1 < 0) return 0;
+                u.seek(o1);
+                return (int) u.getI();
+            }
+
+            public String name() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
+
+            public String tooltip() {
+                if (o3 < 0) return "";
+                u.seek(o3);
+                return u.getStr();
+            }
+
+            public int maxDamage() {
+                if (o4 < 0) return 0;
+                u.seek(o4);
+                return (int) u.getI();
+            }
+
+            public boolean fireResistant() {
+                if (o5 < 0) return false;
+                u.seek(o5);
+                return u.getBool();
+            }
+
+            public int fuelTicks() {
+                if (o6 < 0) return 0;
+                u.seek(o6);
+                return (int) u.getI();
+            }
+
+            public YogTypes.FoodDef food() {
+                if (o7 < 0) return null;
+                u.seek(o7);
+                return (u.getBool() ? YogTypes.FoodDef.unpack(u) : null);
+            }
+
+            public boolean book() {
+                if (o8 < 0) return false;
+                u.seek(o8);
+                return u.getBool();
+            }
+
+            public YogTypes.Tool tool() {
+                if (o9 < 0) return null;
+                u.seek(o9);
+                return (u.getBool() ? YogTypes.Tool.unpack(u) : null);
+            }
+
+            public YogTypes.Armor armor() {
+                if (o10 < 0) return null;
+                u.seek(o10);
+                return (u.getBool() ? YogTypes.Armor.unpack(u) : null);
+            }
+
+            public String wearable() {
+                if (o11 < 0) return null;
+                u.seek(o11);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public YogTypes.Hangs hangs() {
+                if (o12 < 0) return null;
+                u.seek(o12);
+                return (u.getBool() ? YogTypes.Hangs.unpack(u) : null);
+            }
+        }
+    }
+
+    /** A block: its properties, shape, sound group (whole), states, kind. */
+    public record Block(String id, float hardness, float resistance, String name, float[] shape, int light, YogTypes.SoundGroup sound, boolean requiresTool, boolean noCollision, float slipperiness, boolean connects, java.util.List<String> connectGroups, String inventory, boolean redstone, String facing, String placement, boolean attach, boolean waterlogged, java.util.List<YogTypes.BlockProperty> properties, String powered, String comparator, boolean acceptsItems, boolean noOcclusion, String kind, String base, String set, int pressTicks, boolean mobsOnly) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("hardness", hardness);
+            m.put("resistance", resistance);
+            m.put("name", name);
+            if (shape != null) m.put("shape", YogData.listOf(shape));
+            m.put("light", light);
+            if (sound != null) m.put("sound", sound.toData());
+            m.put("requires_tool", requiresTool);
+            m.put("no_collision", noCollision);
+            m.put("slipperiness", slipperiness);
+            m.put("connects", connects);
+            m.put("connect_groups", connectGroups);
+            if (inventory != null) m.put("inventory", inventory);
+            m.put("redstone", redstone);
+            m.put("facing", facing);
+            m.put("placement", placement);
+            m.put("attach", attach);
+            m.put("waterlogged", waterlogged);
+            m.put("properties", properties.stream().map(e0 -> e0.toData()).toList());
+            if (powered != null) m.put("powered", powered);
+            if (comparator != null) m.put("comparator", comparator);
+            m.put("accepts_items", acceptsItems);
+            m.put("no_occlusion", noOcclusion);
+            m.put("kind", kind);
+            if (base != null) m.put("base", base);
+            if (set != null) m.put("set", set);
+            m.put("press_ticks", pressTicks);
+            m.put("mobs_only", mobsOnly);
+            return m;
+        }
+
+        public static Block fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Block(YogData.str(m.get("id"), ""), (float) YogData.number(m.get("hardness"), 0), (float) YogData.number(m.get("resistance"), 0), YogData.str(m.get("name"), ""), (m.get("shape") == null ? null : YogData.floats(m.get("shape"))), (int) YogData.integer(m.get("light"), 0), (m.get("sound") == null ? null : YogTypes.SoundGroup.fromData(m.get("sound"))), YogData.bool(m.get("requires_tool"), false), YogData.bool(m.get("no_collision"), false), (float) YogData.number(m.get("slipperiness"), 0), YogData.bool(m.get("connects"), false), YogData.list(m.get("connect_groups")).stream().map(e0 -> YogData.str(e0, "")).toList(), (m.get("inventory") == null ? null : YogData.str(m.get("inventory"), "")), YogData.bool(m.get("redstone"), false), YogData.str(m.get("facing"), ""), YogData.str(m.get("placement"), ""), YogData.bool(m.get("attach"), false), YogData.bool(m.get("waterlogged"), false), YogData.list(m.get("properties")).stream().map(e0 -> YogTypes.BlockProperty.fromData(e0)).toList(), (m.get("powered") == null ? null : YogData.str(m.get("powered"), "")), (m.get("comparator") == null ? null : YogData.str(m.get("comparator"), "")), YogData.bool(m.get("accepts_items"), false), YogData.bool(m.get("no_occlusion"), false), YogData.str(m.get("kind"), ""), (m.get("base") == null ? null : YogData.str(m.get("base"), "")), (m.get("set") == null ? null : YogData.str(m.get("set"), "")), (int) YogData.integer(m.get("press_ticks"), 0), YogData.bool(m.get("mobs_only"), false));
+        }
+
+        public static Block fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putF32(this.hardness);
+            p.putF32(this.resistance);
+            p.putStr(this.name);
+            p.putBool(this.shape != null); if (this.shape != null) { p.putF32s(this.shape); }
+            p.putI(this.light);
+            p.putBool(this.sound != null); if (this.sound != null) { this.sound.pack(p); }
+            p.putBool(this.requiresTool);
+            p.putBool(this.noCollision);
+            p.putF32(this.slipperiness);
+            p.putBool(this.connects);
+            { int l0 = p.beginList(this.connectGroups.size()); for (var e0 : this.connectGroups) { p.putStr(e0); } p.end(l0); }
+            p.putBool(this.inventory != null); if (this.inventory != null) { p.putStr(this.inventory); }
+            p.putBool(this.redstone);
+            p.putStr(this.facing);
+            p.putStr(this.placement);
+            p.putBool(this.attach);
+            p.putBool(this.waterlogged);
+            { int l0 = p.beginList(this.properties.size()); for (var e0 : this.properties) { e0.pack(p); } p.end(l0); }
+            p.putBool(this.powered != null); if (this.powered != null) { p.putStr(this.powered); }
+            p.putBool(this.comparator != null); if (this.comparator != null) { p.putStr(this.comparator); }
+            p.putBool(this.acceptsItems);
+            p.putBool(this.noOcclusion);
+            p.putStr(this.kind);
+            p.putBool(this.base != null); if (this.base != null) { p.putStr(this.base); }
+            p.putBool(this.set != null); if (this.set != null) { p.putStr(this.set); }
+            p.putI(this.pressTicks);
+            p.putBool(this.mobsOnly);
+            p.end(at);
+        }
+
+        public static Block unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            float f_hardness = u.more(end) ? u.getF32() : 0.0f;
+            float f_resistance = u.more(end) ? u.getF32() : 0.0f;
+            String f_name = u.more(end) ? u.getStr() : "";
+            float[] f_shape = u.more(end) ? (u.getBool() ? u.getF32s() : null) : null;
+            int f_light = u.more(end) ? (int) u.getI() : 0;
+            YogTypes.SoundGroup f_sound = u.more(end) ? (u.getBool() ? YogTypes.SoundGroup.unpack(u) : null) : null;
+            boolean f_requiresTool = u.more(end) ? u.getBool() : false;
+            boolean f_noCollision = u.more(end) ? u.getBool() : false;
+            float f_slipperiness = u.more(end) ? u.getF32() : 0.0f;
+            boolean f_connects = u.more(end) ? u.getBool() : false;
+            java.util.List<String> f_connectGroups = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            String f_inventory = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            boolean f_redstone = u.more(end) ? u.getBool() : false;
+            String f_facing = u.more(end) ? u.getStr() : "";
+            String f_placement = u.more(end) ? u.getStr() : "";
+            boolean f_attach = u.more(end) ? u.getBool() : false;
+            boolean f_waterlogged = u.more(end) ? u.getBool() : false;
+            java.util.List<YogTypes.BlockProperty> f_properties = u.more(end) ? YogFrame.list(u, () -> YogTypes.BlockProperty.unpack(u)) : java.util.List.of();
+            String f_powered = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            String f_comparator = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            boolean f_acceptsItems = u.more(end) ? u.getBool() : false;
+            boolean f_noOcclusion = u.more(end) ? u.getBool() : false;
+            String f_kind = u.more(end) ? u.getStr() : "";
+            String f_base = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            String f_set = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            int f_pressTicks = u.more(end) ? (int) u.getI() : 0;
+            boolean f_mobsOnly = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new Block(f_id, f_hardness, f_resistance, f_name, f_shape, f_light, f_sound, f_requiresTool, f_noCollision, f_slipperiness, f_connects, f_connectGroups, f_inventory, f_redstone, f_facing, f_placement, f_attach, f_waterlogged, f_properties, f_powered, f_comparator, f_acceptsItems, f_noOcclusion, f_kind, f_base, f_set, f_pressTicks, f_mobsOnly);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Block fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Block fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Block readFrame(YogFrame.Unpacker u) {
+            Block v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Block} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+            private final int o9;
+            private final int o10;
+            private final int o11;
+            private final int o12;
+            private final int o13;
+            private final int o14;
+            private final int o15;
+            private final int o16;
+            private final int o17;
+            private final int o18;
+            private final int h18, n18, b18;
+            private final int o19;
+            private final int o20;
+            private final int o21;
+            private final int o22;
+            private final int o23;
+            private final int o24;
+            private final int o25;
+            private final int o26;
+            private final int o27;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); if (u.getBool()) { u.skip(u.count() * 4); } } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(1); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.skip(1); } else { o8 = -1; }
+                if (u.more(end)) { o9 = u.position(); u.skip(4); } else { o9 = -1; }
+                if (u.more(end)) { o10 = u.position(); u.skip(1); } else { o10 = -1; }
+                if (u.more(end)) { o11 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o11 = -1; }
+                if (u.more(end)) { o12 = u.position(); if (u.getBool()) { u.getU(); } } else { o12 = -1; }
+                if (u.more(end)) { o13 = u.position(); u.skip(1); } else { o13 = -1; }
+                if (u.more(end)) { o14 = u.position(); u.getU(); } else { o14 = -1; }
+                if (u.more(end)) { o15 = u.position(); u.getU(); } else { o15 = -1; }
+                if (u.more(end)) { o16 = u.position(); u.skip(1); } else { o16 = -1; }
+                if (u.more(end)) { o17 = u.position(); u.skip(1); } else { o17 = -1; }
+                if (u.more(end)) { h18 = u.position(); n18 = u.count(); int e18 = u.listEnd(); b18 = 0; o18 = u.position(); u.skipTo(e18); } else { h18 = n18 = b18 = 0; o18 = -1; }
+                if (u.more(end)) { o19 = u.position(); if (u.getBool()) { u.getU(); } } else { o19 = -1; }
+                if (u.more(end)) { o20 = u.position(); if (u.getBool()) { u.getU(); } } else { o20 = -1; }
+                if (u.more(end)) { o21 = u.position(); u.skip(1); } else { o21 = -1; }
+                if (u.more(end)) { o22 = u.position(); u.skip(1); } else { o22 = -1; }
+                if (u.more(end)) { o23 = u.position(); u.getU(); } else { o23 = -1; }
+                if (u.more(end)) { o24 = u.position(); if (u.getBool()) { u.getU(); } } else { o24 = -1; }
+                if (u.more(end)) { o25 = u.position(); if (u.getBool()) { u.getU(); } } else { o25 = -1; }
+                if (u.more(end)) { o26 = u.position(); u.getU(); } else { o26 = -1; }
+                if (u.more(end)) { o27 = u.position(); u.skip(1); } else { o27 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public float hardness() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+
+            public float resistance() {
+                if (o2 < 0) return 0.0f;
+                u.seek(o2);
+                return u.getF32();
+            }
+
+            public String name() {
+                if (o3 < 0) return "";
+                u.seek(o3);
+                return u.getStr();
+            }
+
+            public float[] shape() {
+                if (o4 < 0) return null;
+                u.seek(o4);
+                return (u.getBool() ? u.getF32s() : null);
+            }
+
+            public int light() {
+                if (o5 < 0) return 0;
+                u.seek(o5);
+                return (int) u.getI();
+            }
+
+            public YogTypes.SoundGroup sound() {
+                if (o6 < 0) return null;
+                u.seek(o6);
+                return (u.getBool() ? YogTypes.SoundGroup.unpack(u) : null);
+            }
+
+            public boolean requiresTool() {
+                if (o7 < 0) return false;
+                u.seek(o7);
+                return u.getBool();
+            }
+
+            public boolean noCollision() {
+                if (o8 < 0) return false;
+                u.seek(o8);
+                return u.getBool();
+            }
+
+            public float slipperiness() {
+                if (o9 < 0) return 0.0f;
+                u.seek(o9);
+                return u.getF32();
+            }
+
+            public boolean connects() {
+                if (o10 < 0) return false;
+                u.seek(o10);
+                return u.getBool();
+            }
+
+            public java.util.List<String> connectGroups() {
+                if (o11 < 0) return java.util.List.of();
+                u.seek(o11);
+                return YogFrame.list(u, () -> u.getStr());
+            }
+
+            public String inventory() {
+                if (o12 < 0) return null;
+                u.seek(o12);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public boolean redstone() {
+                if (o13 < 0) return false;
+                u.seek(o13);
+                return u.getBool();
+            }
+
+            public String facing() {
+                if (o14 < 0) return "";
+                u.seek(o14);
+                return u.getStr();
+            }
+
+            public String placement() {
+                if (o15 < 0) return "";
+                u.seek(o15);
+                return u.getStr();
+            }
+
+            public boolean attach() {
+                if (o16 < 0) return false;
+                u.seek(o16);
+                return u.getBool();
+            }
+
+            public boolean waterlogged() {
+                if (o17 < 0) return false;
+                u.seek(o17);
+                return u.getBool();
+            }
+
+            public java.util.List<YogTypes.BlockProperty> properties() {
+                if (o18 < 0) return java.util.List.of();
+                u.seek(h18);
+                return YogFrame.list(u, () -> YogTypes.BlockProperty.unpack(u));
+            }
+
+            public int propertiesLength() {
+                return n18;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachProperties(java.util.function.Consumer<YogTypes.BlockProperty.View> each) {
+                int at = o18;
+                for (int j = 0; j < n18; j++) {
+                    u.seek(at);
+                    YogTypes.BlockProperty.View v = new YogTypes.BlockProperty.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public String powered() {
+                if (o19 < 0) return null;
+                u.seek(o19);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public String comparator() {
+                if (o20 < 0) return null;
+                u.seek(o20);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public boolean acceptsItems() {
+                if (o21 < 0) return false;
+                u.seek(o21);
+                return u.getBool();
+            }
+
+            public boolean noOcclusion() {
+                if (o22 < 0) return false;
+                u.seek(o22);
+                return u.getBool();
+            }
+
+            public String kind() {
+                if (o23 < 0) return "";
+                u.seek(o23);
+                return u.getStr();
+            }
+
+            public String base() {
+                if (o24 < 0) return null;
+                u.seek(o24);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public String set() {
+                if (o25 < 0) return null;
+                u.seek(o25);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public int pressTicks() {
+                if (o26 < 0) return 0;
+                u.seek(o26);
+                return (int) u.getI();
+            }
+
+            public boolean mobsOnly() {
+                if (o27 < 0) return false;
+                u.seek(o27);
+                return u.getBool();
+            }
+        }
+    }
+
+    /** An inventory: its slots where its layout puts them, its background, and — a machine's — its ingredients' and result's slots. */
+    public record Inventory(String id, int slotCount, java.util.List<YogTypes.InventorySlot> slots, boolean includePlayerInventory, float[] playerInv, String backgroundTexture, String title, float[] backgroundSize, YogTypes.Machine machine) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("slot_count", slotCount);
+            m.put("slots", slots.stream().map(e0 -> e0.toData()).toList());
+            m.put("include_player_inventory", includePlayerInventory);
+            m.put("player_inv", YogData.listOf(playerInv));
+            if (backgroundTexture != null) m.put("background_texture", backgroundTexture);
+            m.put("title", title);
+            if (backgroundSize != null) m.put("background_size", YogData.listOf(backgroundSize));
+            if (machine != null) m.put("machine", machine.toData());
+            return m;
+        }
+
+        public static Inventory fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Inventory(YogData.str(m.get("id"), ""), (int) YogData.integer(m.get("slot_count"), 0), YogData.list(m.get("slots")).stream().map(e0 -> YogTypes.InventorySlot.fromData(e0)).toList(), YogData.bool(m.get("include_player_inventory"), false), YogData.floats(m.get("player_inv")), (m.get("background_texture") == null ? null : YogData.str(m.get("background_texture"), "")), YogData.str(m.get("title"), ""), (m.get("background_size") == null ? null : YogData.floats(m.get("background_size"))), (m.get("machine") == null ? null : YogTypes.Machine.fromData(m.get("machine"))));
+        }
+
+        public static Inventory fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putI(this.slotCount);
+            { int l0 = p.beginList(this.slots.size()); for (var e0 : this.slots) { e0.pack(p); } p.end(l0); }
+            p.putBool(this.includePlayerInventory);
+            p.putF32s(this.playerInv);
+            p.putBool(this.backgroundTexture != null); if (this.backgroundTexture != null) { p.putStr(this.backgroundTexture); }
+            p.putStr(this.title);
+            p.putBool(this.backgroundSize != null); if (this.backgroundSize != null) { p.putF32s(this.backgroundSize); }
+            p.putBool(this.machine != null); if (this.machine != null) { this.machine.pack(p); }
+            p.end(at);
+        }
+
+        public static Inventory unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            int f_slotCount = u.more(end) ? (int) u.getI() : 0;
+            java.util.List<YogTypes.InventorySlot> f_slots = u.more(end) ? YogFrame.list(u, () -> YogTypes.InventorySlot.unpack(u)) : java.util.List.of();
+            boolean f_includePlayerInventory = u.more(end) ? u.getBool() : false;
+            float[] f_playerInv = u.more(end) ? u.getF32s() : new float[0];
+            String f_backgroundTexture = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            String f_title = u.more(end) ? u.getStr() : "";
+            float[] f_backgroundSize = u.more(end) ? (u.getBool() ? u.getF32s() : null) : null;
+            YogTypes.Machine f_machine = u.more(end) ? (u.getBool() ? YogTypes.Machine.unpack(u) : null) : null;
+            u.leave(end);
+            return new Inventory(f_id, f_slotCount, f_slots, f_includePlayerInventory, f_playerInv, f_backgroundTexture, f_title, f_backgroundSize, f_machine);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Inventory fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Inventory fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Inventory readFrame(YogFrame.Unpacker u) {
+            Inventory v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Inventory} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int h2, n2, b2;
+            private final int o3;
+            private final int o4;
+            private final int h4, n4, b4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { h2 = u.position(); n2 = u.count(); int e2 = u.listEnd(); b2 = 0; o2 = u.position(); u.skipTo(e2); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                if (u.more(end)) { h4 = u.position(); n4 = u.count(); b4 = 1; o4 = u.position(); u.skip(n4 * (b4 != 0 ? 4 : 8)); } else { h4 = n4 = b4 = 0; o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); if (u.getBool()) { u.getU(); } } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); if (u.getBool()) { u.skip(u.count() * 4); } } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o8 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public int slotCount() {
+                if (o1 < 0) return 0;
+                u.seek(o1);
+                return (int) u.getI();
+            }
+
+            public java.util.List<YogTypes.InventorySlot> slots() {
+                if (o2 < 0) return java.util.List.of();
+                u.seek(h2);
+                return YogFrame.list(u, () -> YogTypes.InventorySlot.unpack(u));
+            }
+
+            public int slotsLength() {
+                return n2;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachSlots(java.util.function.Consumer<YogTypes.InventorySlot.View> each) {
+                int at = o2;
+                for (int j = 0; j < n2; j++) {
+                    u.seek(at);
+                    YogTypes.InventorySlot.View v = new YogTypes.InventorySlot.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public boolean includePlayerInventory() {
+                if (o3 < 0) return false;
+                u.seek(o3);
+                return u.getBool();
+            }
+
+            public float[] playerInv() {
+                if (o4 < 0) return new float[0];
+                u.seek(h4);
+                return u.getF32s();
+            }
+
+            public int playerInvLength() {
+                return n4;
+            }
+
+            /** Item {@code i}, read in place. */
+            public float playerInv(int i) {
+                if (i < 0 || i >= n4) throw new IndexOutOfBoundsException(i);
+                return u.f32At(o4 + 4 * i);
+            }
+
+            public String backgroundTexture() {
+                if (o5 < 0) return null;
+                u.seek(o5);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public String title() {
+                if (o6 < 0) return "";
+                u.seek(o6);
+                return u.getStr();
+            }
+
+            public float[] backgroundSize() {
+                if (o7 < 0) return null;
+                u.seek(o7);
+                return (u.getBool() ? u.getF32s() : null);
+            }
+
+            public YogTypes.Machine machine() {
+                if (o8 < 0) return null;
+                u.seek(o8);
+                return (u.getBool() ? YogTypes.Machine.unpack(u) : null);
+            }
+        }
+    }
+
+    /** A recipe in Yog's own format. */
+    public record Recipe(String namespace, String name, Object recipe) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("namespace", namespace);
+            m.put("name", name);
+            m.put("recipe", recipe);
+            return m;
+        }
+
+        public static Recipe fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Recipe(YogData.str(m.get("namespace"), ""), YogData.str(m.get("name"), ""), m.get("recipe"));
+        }
+
+        public static Recipe fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.namespace);
+            p.putStr(this.name);
+            p.putTagged(this.recipe);
+            p.end(at);
+        }
+
+        public static Recipe unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_namespace = u.more(end) ? u.getStr() : "";
+            String f_name = u.more(end) ? u.getStr() : "";
+            Object f_recipe = u.more(end) ? u.getTagged() : null;
+            u.leave(end);
+            return new Recipe(f_namespace, f_name, f_recipe);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Recipe fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Recipe fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Recipe readFrame(YogFrame.Unpacker u) {
+            Recipe v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Recipe} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skipBytes(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String namespace() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String name() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public Object recipe() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return u.getTagged();
+            }
+        }
+    }
+
+    /** A placed feature (`mymod:mythril_ore`, the mod's datapack's) added to biomes at a generation step — what an ore `.ydef` makes. Forge and NeoForge read the biome modifiers `yog build` writes; Fabric's host adds these through its biome API. */
+    public record BiomeFeature(String feature, String biomes, String step) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("feature", feature);
+            m.put("biomes", biomes);
+            m.put("step", step);
+            return m;
+        }
+
+        public static BiomeFeature fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BiomeFeature(YogData.str(m.get("feature"), ""), YogData.str(m.get("biomes"), ""), YogData.str(m.get("step"), ""));
+        }
+
+        public static BiomeFeature fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.feature);
+            p.putStr(this.biomes);
+            p.putStr(this.step);
+            p.end(at);
+        }
+
+        public static BiomeFeature unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_feature = u.more(end) ? u.getStr() : "";
+            String f_biomes = u.more(end) ? u.getStr() : "";
+            String f_step = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new BiomeFeature(f_feature, f_biomes, f_step);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BiomeFeature fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BiomeFeature fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BiomeFeature readFrame(YogFrame.Unpacker u) {
+            BiomeFeature v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BiomeFeature} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String feature() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String biomes() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public String step() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
+        }
+    }
+
+    /** An entity type to register (`.yentity`). Its look is a body model (`model`, `.ymodel`) with clips by state; what it does beyond `goals` is the mod's code (entity events, a tick of its own). */
+    public record EntityDef(String id, String name, String kind, String category, float width, float height, Float eyeHeight, boolean fireImmune, boolean noGravity, Boolean pushable, boolean solid, long trackingRange, long updateInterval, java.util.Map<String, Double> attributes, String model, String animations, java.util.Map<String, String> clips, long[] spawnEgg, java.util.List<String> goals, boolean ticks, String placeSound, String breakSound) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            if (name != null) m.put("name", name);
+            m.put("kind", kind);
+            m.put("category", category);
+            m.put("width", width);
+            m.put("height", height);
+            if (eyeHeight != null) m.put("eye_height", eyeHeight);
+            m.put("fire_immune", fireImmune);
+            m.put("no_gravity", noGravity);
+            if (pushable != null) m.put("pushable", pushable);
+            m.put("solid", solid);
+            m.put("tracking_range", trackingRange);
+            m.put("update_interval", updateInterval);
+            m.put("attributes", attributes);
+            if (model != null) m.put("model", model);
+            if (animations != null) m.put("animations", animations);
+            m.put("clips", clips);
+            if (spawnEgg != null) m.put("spawn_egg", YogData.listOf(spawnEgg));
+            m.put("goals", goals);
+            m.put("ticks", ticks);
+            if (placeSound != null) m.put("place_sound", placeSound);
+            if (breakSound != null) m.put("break_sound", breakSound);
+            return m;
+        }
+
+        public static EntityDef fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new EntityDef(YogData.str(m.get("id"), ""), (m.get("name") == null ? null : YogData.str(m.get("name"), "")), YogData.str(m.get("kind"), ""), YogData.str(m.get("category"), ""), (float) YogData.number(m.get("width"), 0), (float) YogData.number(m.get("height"), 0), (m.get("eye_height") == null ? null : (float) YogData.number(m.get("eye_height"), 0)), YogData.bool(m.get("fire_immune"), false), YogData.bool(m.get("no_gravity"), false), (m.get("pushable") == null ? null : YogData.bool(m.get("pushable"), false)), YogData.bool(m.get("solid"), false), YogData.integer(m.get("tracking_range"), 0), YogData.integer(m.get("update_interval"), 0), YogData.map(m.get("attributes")).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.number(e0.getValue(), 0))), (m.get("model") == null ? null : YogData.str(m.get("model"), "")), (m.get("animations") == null ? null : YogData.str(m.get("animations"), "")), YogData.map(m.get("clips")).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.str(e0.getValue(), ""))), (m.get("spawn_egg") == null ? null : YogData.longs(m.get("spawn_egg"))), YogData.list(m.get("goals")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.bool(m.get("ticks"), false), (m.get("place_sound") == null ? null : YogData.str(m.get("place_sound"), "")), (m.get("break_sound") == null ? null : YogData.str(m.get("break_sound"), "")));
+        }
+
+        public static EntityDef fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putBool(this.name != null); if (this.name != null) { p.putStr(this.name); }
+            p.putU(switch (this.kind) { case "object" -> 0; case "living" -> 1; case "mob" -> 2; case "hanging" -> 3; default -> 0; });
+            p.putStr(this.category);
+            p.putF32(this.width);
+            p.putF32(this.height);
+            p.putBool(this.eyeHeight != null); if (this.eyeHeight != null) { p.putF32(this.eyeHeight); }
+            p.putBool(this.fireImmune);
+            p.putBool(this.noGravity);
+            p.putBool(this.pushable != null); if (this.pushable != null) { p.putBool(this.pushable); }
+            p.putBool(this.solid);
+            p.putI(this.trackingRange);
+            p.putI(this.updateInterval);
+            p.putTagged(this.attributes);
+            p.putBool(this.model != null); if (this.model != null) { p.putStr(this.model); }
+            p.putBool(this.animations != null); if (this.animations != null) { p.putStr(this.animations); }
+            p.putTagged(this.clips);
+            p.putBool(this.spawnEgg != null); if (this.spawnEgg != null) { p.putLongs(this.spawnEgg, false); }
+            { int l0 = p.beginList(this.goals.size()); for (var e0 : this.goals) { p.putStr(e0); } p.end(l0); }
+            p.putBool(this.ticks);
+            p.putBool(this.placeSound != null); if (this.placeSound != null) { p.putStr(this.placeSound); }
+            p.putBool(this.breakSound != null); if (this.breakSound != null) { p.putStr(this.breakSound); }
+            p.end(at);
+        }
+
+        public static EntityDef unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            String f_name = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            String f_kind = u.more(end) ? switch ((int) u.getU()) { case 0 -> "object"; case 1 -> "living"; case 2 -> "mob"; case 3 -> "hanging"; default -> ""; } : "object";
+            String f_category = u.more(end) ? u.getStr() : "";
+            float f_width = u.more(end) ? u.getF32() : 0.0f;
+            float f_height = u.more(end) ? u.getF32() : 0.0f;
+            Float f_eyeHeight = u.more(end) ? (u.getBool() ? Float.valueOf(u.getF32()) : null) : null;
+            boolean f_fireImmune = u.more(end) ? u.getBool() : false;
+            boolean f_noGravity = u.more(end) ? u.getBool() : false;
+            Boolean f_pushable = u.more(end) ? (u.getBool() ? Boolean.valueOf(u.getBool()) : null) : null;
+            boolean f_solid = u.more(end) ? u.getBool() : false;
+            long f_trackingRange = u.more(end) ? u.getI() : 0L;
+            long f_updateInterval = u.more(end) ? u.getI() : 0L;
+            java.util.Map<String, Double> f_attributes = u.more(end) ? YogData.map(u.getTagged()).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.number(e0.getValue(), 0))) : java.util.Map.of();
+            String f_model = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            String f_animations = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            java.util.Map<String, String> f_clips = u.more(end) ? YogData.map(u.getTagged()).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.str(e0.getValue(), ""))) : java.util.Map.of();
+            long[] f_spawnEgg = u.more(end) ? (u.getBool() ? u.getLongs(false) : null) : null;
+            java.util.List<String> f_goals = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            boolean f_ticks = u.more(end) ? u.getBool() : false;
+            String f_placeSound = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            String f_breakSound = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            u.leave(end);
+            return new EntityDef(f_id, f_name, f_kind, f_category, f_width, f_height, f_eyeHeight, f_fireImmune, f_noGravity, f_pushable, f_solid, f_trackingRange, f_updateInterval, f_attributes, f_model, f_animations, f_clips, f_spawnEgg, f_goals, f_ticks, f_placeSound, f_breakSound);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static EntityDef fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static EntityDef fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static EntityDef readFrame(YogFrame.Unpacker u) {
+            EntityDef v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code EntityDef} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+            private final int o9;
+            private final int o10;
+            private final int o11;
+            private final int o12;
+            private final int o13;
+            private final int o14;
+            private final int o15;
+            private final int o16;
+            private final int o17;
+            private final int o18;
+            private final int o19;
+            private final int o20;
+            private final int o21;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); if (u.getBool()) { u.getU(); } } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(4); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); if (u.getBool()) { u.skip(4); } } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(1); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.skip(1); } else { o8 = -1; }
+                if (u.more(end)) { o9 = u.position(); if (u.getBool()) { u.skip(1); } } else { o9 = -1; }
+                if (u.more(end)) { o10 = u.position(); u.skip(1); } else { o10 = -1; }
+                if (u.more(end)) { o11 = u.position(); u.getU(); } else { o11 = -1; }
+                if (u.more(end)) { o12 = u.position(); u.getU(); } else { o12 = -1; }
+                if (u.more(end)) { o13 = u.position(); u.skipBytes(); } else { o13 = -1; }
+                if (u.more(end)) { o14 = u.position(); if (u.getBool()) { u.getU(); } } else { o14 = -1; }
+                if (u.more(end)) { o15 = u.position(); if (u.getBool()) { u.getU(); } } else { o15 = -1; }
+                if (u.more(end)) { o16 = u.position(); u.skipBytes(); } else { o16 = -1; }
+                if (u.more(end)) { o17 = u.position(); if (u.getBool()) { { int c1 = (int) u.getU(); int w1 = u.getByte(); u.skip(YogFrame.packedBytes(c1, w1)); } } } else { o17 = -1; }
+                if (u.more(end)) { o18 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o18 = -1; }
+                if (u.more(end)) { o19 = u.position(); u.skip(1); } else { o19 = -1; }
+                if (u.more(end)) { o20 = u.position(); if (u.getBool()) { u.getU(); } } else { o20 = -1; }
+                if (u.more(end)) { o21 = u.position(); if (u.getBool()) { u.getU(); } } else { o21 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String name() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public String kind() {
+                if (o2 < 0) return "object";
+                u.seek(o2);
+                return switch ((int) u.getU()) { case 0 -> "object"; case 1 -> "living"; case 2 -> "mob"; case 3 -> "hanging"; default -> ""; };
+            }
+
+            public String category() {
+                if (o3 < 0) return "";
+                u.seek(o3);
+                return u.getStr();
+            }
+
+            public float width() {
+                if (o4 < 0) return 0.0f;
+                u.seek(o4);
+                return u.getF32();
+            }
+
+            public float height() {
+                if (o5 < 0) return 0.0f;
+                u.seek(o5);
+                return u.getF32();
+            }
+
+            public Float eyeHeight() {
+                if (o6 < 0) return null;
+                u.seek(o6);
+                return (u.getBool() ? Float.valueOf(u.getF32()) : null);
+            }
+
+            public boolean fireImmune() {
+                if (o7 < 0) return false;
+                u.seek(o7);
+                return u.getBool();
+            }
+
+            public boolean noGravity() {
+                if (o8 < 0) return false;
+                u.seek(o8);
+                return u.getBool();
+            }
+
+            public Boolean pushable() {
+                if (o9 < 0) return null;
+                u.seek(o9);
+                return (u.getBool() ? Boolean.valueOf(u.getBool()) : null);
+            }
+
+            public boolean solid() {
+                if (o10 < 0) return false;
+                u.seek(o10);
+                return u.getBool();
+            }
+
+            public long trackingRange() {
+                if (o11 < 0) return 0L;
+                u.seek(o11);
+                return u.getI();
+            }
+
+            public long updateInterval() {
+                if (o12 < 0) return 0L;
+                u.seek(o12);
+                return u.getI();
+            }
+
+            public java.util.Map<String, Double> attributes() {
+                if (o13 < 0) return java.util.Map.of();
+                u.seek(o13);
+                return YogData.map(u.getTagged()).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.number(e0.getValue(), 0)));
+            }
+
+            public String model() {
+                if (o14 < 0) return null;
+                u.seek(o14);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public String animations() {
+                if (o15 < 0) return null;
+                u.seek(o15);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public java.util.Map<String, String> clips() {
+                if (o16 < 0) return java.util.Map.of();
+                u.seek(o16);
+                return YogData.map(u.getTagged()).entrySet().stream().collect(java.util.stream.Collectors.toMap(java.util.Map.Entry::getKey, e0 -> YogData.str(e0.getValue(), "")));
+            }
+
+            public long[] spawnEgg() {
+                if (o17 < 0) return null;
+                u.seek(o17);
+                return (u.getBool() ? u.getLongs(false) : null);
+            }
+
+            public java.util.List<String> goals() {
+                if (o18 < 0) return java.util.List.of();
+                u.seek(o18);
+                return YogFrame.list(u, () -> u.getStr());
+            }
+
+            public boolean ticks() {
+                if (o19 < 0) return false;
+                u.seek(o19);
+                return u.getBool();
+            }
+
+            public String placeSound() {
+                if (o20 < 0) return null;
+                u.seek(o20);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public String breakSound() {
+                if (o21 < 0) return null;
+                u.seek(o21);
+                return (u.getBool() ? u.getStr() : null);
+            }
+        }
+    }
+
+    /** A dimension: its id and definition (`yog-dimensions`). */
+    public record Dimension(String id, Object def) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("def", def);
+            return m;
+        }
+
+        public static Dimension fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Dimension(YogData.str(m.get("id"), ""), m.get("def"));
+        }
+
+        public static Dimension fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putTagged(this.def);
+            p.end(at);
+        }
+
+        public static Dimension unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            Object f_def = u.more(end) ? u.getTagged() : null;
+            u.leave(end);
+            return new Dimension(f_id, f_def);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Dimension fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Dimension fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Dimension readFrame(YogFrame.Unpacker u) {
+            Dimension v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Dimension} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public Object def() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return u.getTagged();
+            }
+        }
+    }
+
+    /** A Yog font as the game's text takes it: one cell per character, `rows` of them in the PNG, its baseline `ascent` GUI pixels down a cell `height` high. */
+    public record Font(String id, byte[] png, java.util.List<String> rows, int ascent, int height) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("png", png);
+            m.put("rows", rows);
+            m.put("ascent", ascent);
+            m.put("height", height);
+            return m;
+        }
+
+        public static Font fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Font(YogData.str(m.get("id"), ""), (m.get("png") instanceof byte[] e0 ? e0 : new byte[0]), YogData.list(m.get("rows")).stream().map(e0 -> YogData.str(e0, "")).toList(), (int) YogData.integer(m.get("ascent"), 0), (int) YogData.integer(m.get("height"), 0));
+        }
+
+        public static Font fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putBytes(this.png);
+            { int l0 = p.beginList(this.rows.size()); for (var e0 : this.rows) { p.putStr(e0); } p.end(l0); }
+            p.putI(this.ascent);
+            p.putI(this.height);
+            p.end(at);
+        }
+
+        public static Font unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            byte[] f_png = u.more(end) ? u.getBytes() : new byte[0];
+            java.util.List<String> f_rows = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            int f_ascent = u.more(end) ? (int) u.getI() : 0;
+            int f_height = u.more(end) ? (int) u.getI() : 0;
+            u.leave(end);
+            return new Font(f_id, f_png, f_rows, f_ascent, f_height);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Font fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Font fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Font readFrame(YogFrame.Unpacker u) {
+            Font v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Font} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public byte[] png() {
+                if (o1 < 0) return new byte[0];
+                u.seek(o1);
+                return u.getBytes();
+            }
+
+            public java.util.List<String> rows() {
+                if (o2 < 0) return java.util.List.of();
+                u.seek(o2);
+                return YogFrame.list(u, () -> u.getStr());
+            }
+
+            public int ascent() {
+                if (o3 < 0) return 0;
+                u.seek(o3);
+                return (int) u.getI();
+            }
+
+            public int height() {
+                if (o4 < 0) return 0;
+                u.seek(o4);
+                return (int) u.getI();
+            }
+        }
+    }
+
+    /** A number every player has (`hexcasting:grid_zoom`) — what effects change (`EffectDef::modifiers`) and the mod reads (`entity::attribute_value`). */
+    public record AttributeDef(String id, double default_, double min, double max) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("default", default_);
+            m.put("min", min);
+            m.put("max", max);
+            return m;
+        }
+
+        public static AttributeDef fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new AttributeDef(YogData.str(m.get("id"), ""), YogData.number(m.get("default"), 0), YogData.number(m.get("min"), 0), YogData.number(m.get("max"), 0));
+        }
+
+        public static AttributeDef fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putF64(this.default_);
+            p.putF64(this.min);
+            p.putF64(this.max);
+            p.end(at);
+        }
+
+        public static AttributeDef unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            double f_default_ = u.more(end) ? u.getF64() : 0.0;
+            double f_min = u.more(end) ? u.getF64() : 0.0;
+            double f_max = u.more(end) ? u.getF64() : 0.0;
+            u.leave(end);
+            return new AttributeDef(f_id, f_default_, f_min, f_max);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static AttributeDef fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static AttributeDef fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static AttributeDef readFrame(YogFrame.Unpacker u) {
+            AttributeDef v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code AttributeDef} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(8); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(8); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(8); } else { o3 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public double default_() {
+                if (o1 < 0) return 0.0;
+                u.seek(o1);
+                return u.getF64();
+            }
+
+            public double min() {
+                if (o2 < 0) return 0.0;
+                u.seek(o2);
+                return u.getF64();
+            }
+
+            public double max() {
+                if (o3 < 0) return 0.0;
+                u.seek(o3);
+                return u.getF64();
+            }
+        }
+    }
+
+    /** A mob effect (`hexcasting:enlarge_grid`): its kind, its color (its particles, its potions) and the attributes it changes. Its icon is the mod's `textures/mob_effect/<name>.png`, its name `effect.<ns>.<name>`. */
+    public record EffectDef(String id, String category, long color, java.util.List<YogTypes.EffectModifier> modifiers) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("category", category);
+            m.put("color", color);
+            m.put("modifiers", modifiers.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static EffectDef fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new EffectDef(YogData.str(m.get("id"), ""), YogData.str(m.get("category"), ""), YogData.integer(m.get("color"), 0), YogData.list(m.get("modifiers")).stream().map(e0 -> YogTypes.EffectModifier.fromData(e0)).toList());
+        }
+
+        public static EffectDef fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putU(switch (this.category) { case "beneficial" -> 0; case "harmful" -> 1; case "neutral" -> 2; default -> 0; });
+            p.putI(this.color);
+            { int l0 = p.beginList(this.modifiers.size()); for (var e0 : this.modifiers) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static EffectDef unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            String f_category = u.more(end) ? switch ((int) u.getU()) { case 0 -> "beneficial"; case 1 -> "harmful"; case 2 -> "neutral"; default -> ""; } : "beneficial";
+            long f_color = u.more(end) ? u.getI() : 0L;
+            java.util.List<YogTypes.EffectModifier> f_modifiers = u.more(end) ? YogFrame.list(u, () -> YogTypes.EffectModifier.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new EffectDef(f_id, f_category, f_color, f_modifiers);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static EffectDef fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static EffectDef fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static EffectDef readFrame(YogFrame.Unpacker u) {
+            EffectDef v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code EffectDef} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int h3, n3, b3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { h3 = u.position(); n3 = u.count(); int e3 = u.listEnd(); b3 = 0; o3 = u.position(); u.skipTo(e3); } else { h3 = n3 = b3 = 0; o3 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String category() {
+                if (o1 < 0) return "beneficial";
+                u.seek(o1);
+                return switch ((int) u.getU()) { case 0 -> "beneficial"; case 1 -> "harmful"; case 2 -> "neutral"; default -> ""; };
+            }
+
+            public long color() {
+                if (o2 < 0) return 0L;
+                u.seek(o2);
+                return u.getI();
+            }
+
+            public java.util.List<YogTypes.EffectModifier> modifiers() {
+                if (o3 < 0) return java.util.List.of();
+                u.seek(h3);
+                return YogFrame.list(u, () -> YogTypes.EffectModifier.unpack(u));
+            }
+
+            public int modifiersLength() {
+                return n3;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachModifiers(java.util.function.Consumer<YogTypes.EffectModifier.View> each) {
+                int at = o3;
+                for (int j = 0; j < n3; j++) {
+                    u.seek(at);
+                    YogTypes.EffectModifier.View v = new YogTypes.EffectModifier.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
+    /** A potion (`hexcasting:enlarge_grid_long`): the effects it gives, and the brewing that makes it. Its names are the game's `item.minecraft.potion. effect.<name>` (splash, lingering and tipped arrow alike). */
+    public record PotionDef(String id, String name, java.util.List<YogTypes.PotionEffect> effects, java.util.List<YogTypes.Brew> brewed) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            if (name != null) m.put("name", name);
+            m.put("effects", effects.stream().map(e0 -> e0.toData()).toList());
+            m.put("brewed", brewed.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static PotionDef fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new PotionDef(YogData.str(m.get("id"), ""), (m.get("name") == null ? null : YogData.str(m.get("name"), "")), YogData.list(m.get("effects")).stream().map(e0 -> YogTypes.PotionEffect.fromData(e0)).toList(), YogData.list(m.get("brewed")).stream().map(e0 -> YogTypes.Brew.fromData(e0)).toList());
+        }
+
+        public static PotionDef fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putBool(this.name != null); if (this.name != null) { p.putStr(this.name); }
+            { int l0 = p.beginList(this.effects.size()); for (var e0 : this.effects) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.brewed.size()); for (var e0 : this.brewed) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static PotionDef unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            String f_name = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            java.util.List<YogTypes.PotionEffect> f_effects = u.more(end) ? YogFrame.list(u, () -> YogTypes.PotionEffect.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.Brew> f_brewed = u.more(end) ? YogFrame.list(u, () -> YogTypes.Brew.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new PotionDef(f_id, f_name, f_effects, f_brewed);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static PotionDef fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static PotionDef fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static PotionDef readFrame(YogFrame.Unpacker u) {
+            PotionDef v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code PotionDef} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int h2, n2, b2;
+            private final int o3;
+            private final int h3, n3, b3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); if (u.getBool()) { u.getU(); } } else { o1 = -1; }
+                if (u.more(end)) { h2 = u.position(); n2 = u.count(); int e2 = u.listEnd(); b2 = 0; o2 = u.position(); u.skipTo(e2); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                if (u.more(end)) { h3 = u.position(); n3 = u.count(); int e3 = u.listEnd(); b3 = 0; o3 = u.position(); u.skipTo(e3); } else { h3 = n3 = b3 = 0; o3 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String name() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return (u.getBool() ? u.getStr() : null);
+            }
+
+            public java.util.List<YogTypes.PotionEffect> effects() {
+                if (o2 < 0) return java.util.List.of();
+                u.seek(h2);
+                return YogFrame.list(u, () -> YogTypes.PotionEffect.unpack(u));
+            }
+
+            public int effectsLength() {
+                return n2;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachEffects(java.util.function.Consumer<YogTypes.PotionEffect.View> each) {
+                int at = o2;
+                for (int j = 0; j < n2; j++) {
+                    u.seek(at);
+                    YogTypes.PotionEffect.View v = new YogTypes.PotionEffect.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.Brew> brewed() {
+                if (o3 < 0) return java.util.List.of();
+                u.seek(h3);
+                return YogFrame.list(u, () -> YogTypes.Brew.unpack(u));
+            }
+
+            public int brewedLength() {
+                return n3;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachBrewed(java.util.function.Consumer<YogTypes.Brew.View> each) {
+                int at = o3;
+                for (int j = 0; j < n3; j++) {
+                    u.seek(at);
+                    YogTypes.Brew.View v = new YogTypes.Brew.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
+    /** Nutritional properties for a food item. */
+    public record FoodDef(long nutrition, float saturation, boolean canAlwaysEat) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("nutrition", nutrition);
+            m.put("saturation", saturation);
+            m.put("can_always_eat", canAlwaysEat);
+            return m;
+        }
+
+        public static FoodDef fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new FoodDef(YogData.integer(m.get("nutrition"), 0), (float) YogData.number(m.get("saturation"), 0), YogData.bool(m.get("can_always_eat"), false));
+        }
+
+        public static FoodDef fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putI(this.nutrition);
+            p.putF32(this.saturation);
+            p.putBool(this.canAlwaysEat);
+            p.end(at);
+        }
+
+        public static FoodDef unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            long f_nutrition = u.more(end) ? u.getI() : 0L;
+            float f_saturation = u.more(end) ? u.getF32() : 0.0f;
+            boolean f_canAlwaysEat = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new FoodDef(f_nutrition, f_saturation, f_canAlwaysEat);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static FoodDef fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static FoodDef fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static FoodDef readFrame(YogFrame.Unpacker u) {
+            FoodDef v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code FoodDef} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public long nutrition() {
+                if (o0 < 0) return 0L;
+                u.seek(o0);
+                return u.getI();
+            }
+
+            public float saturation() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+
+            public boolean canAlwaysEat() {
+                if (o2 < 0) return false;
+                u.seek(o2);
+                return u.getBool();
+            }
+        }
+    }
+
+    /** A tool: its kind (`pickaxe`…, or a mineable tag id), its material, and its own attack where it gives one — else the game's tool it attacks as (`game_tool`), which the host reads the game's numbers off. */
+    public record Tool(String kind, Float attackDamage, Float attackSpeed, YogTypes.ToolMaterial material, YogTypes.GameTool gameTool) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("kind", kind);
+            if (attackDamage != null) m.put("attack_damage", attackDamage);
+            if (attackSpeed != null) m.put("attack_speed", attackSpeed);
+            m.put("material", material.toData());
+            if (gameTool != null) m.put("game_tool", gameTool.toData());
+            return m;
+        }
+
+        public static Tool fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Tool(YogData.str(m.get("kind"), ""), (m.get("attack_damage") == null ? null : (float) YogData.number(m.get("attack_damage"), 0)), (m.get("attack_speed") == null ? null : (float) YogData.number(m.get("attack_speed"), 0)), YogTypes.ToolMaterial.fromData(m.get("material")), (m.get("game_tool") == null ? null : YogTypes.GameTool.fromData(m.get("game_tool"))));
+        }
+
+        public static Tool fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.kind);
+            p.putBool(this.attackDamage != null); if (this.attackDamage != null) { p.putF32(this.attackDamage); }
+            p.putBool(this.attackSpeed != null); if (this.attackSpeed != null) { p.putF32(this.attackSpeed); }
+            this.material.pack(p);
+            p.putBool(this.gameTool != null); if (this.gameTool != null) { this.gameTool.pack(p); }
+            p.end(at);
+        }
+
+        public static Tool unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_kind = u.more(end) ? u.getStr() : "";
+            Float f_attackDamage = u.more(end) ? (u.getBool() ? Float.valueOf(u.getF32()) : null) : null;
+            Float f_attackSpeed = u.more(end) ? (u.getBool() ? Float.valueOf(u.getF32()) : null) : null;
+            YogTypes.ToolMaterial f_material = u.more(end) ? YogTypes.ToolMaterial.unpack(u) : null;
+            YogTypes.GameTool f_gameTool = u.more(end) ? (u.getBool() ? YogTypes.GameTool.unpack(u) : null) : null;
+            u.leave(end);
+            return new Tool(f_kind, f_attackDamage, f_attackSpeed, f_material, f_gameTool);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Tool fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Tool fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Tool readFrame(YogFrame.Unpacker u) {
+            Tool v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Tool} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); if (u.getBool()) { u.skip(4); } } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); if (u.getBool()) { u.skip(4); } } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o4 = -1; }
+                u.leave(end);
+            }
+
+            public String kind() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public Float attackDamage() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return (u.getBool() ? Float.valueOf(u.getF32()) : null);
+            }
+
+            public Float attackSpeed() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return (u.getBool() ? Float.valueOf(u.getF32()) : null);
+            }
+
+            public YogTypes.ToolMaterial.View material() {
+                if (o3 < 0) return null;
+                u.seek(o3);
+                return new YogTypes.ToolMaterial.View(u);
+            }
+
+            public YogTypes.GameTool gameTool() {
+                if (o4 < 0) return null;
+                u.seek(o4);
+                return (u.getBool() ? YogTypes.GameTool.unpack(u) : null);
+            }
+        }
+    }
+
+    /** A piece of armor: its slot (`head`, `chest`, `legs`, `feet`) and material, whole. */
+    public record Armor(String slot, YogTypes.ArmorMaterial material) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("slot", slot);
+            m.put("material", material.toData());
+            return m;
+        }
+
+        public static Armor fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Armor(YogData.str(m.get("slot"), ""), YogTypes.ArmorMaterial.fromData(m.get("material")));
+        }
+
+        public static Armor fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.slot);
+            this.material.pack(p);
+            p.end(at);
+        }
+
+        public static Armor unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_slot = u.more(end) ? u.getStr() : "";
+            YogTypes.ArmorMaterial f_material = u.more(end) ? YogTypes.ArmorMaterial.unpack(u) : null;
+            u.leave(end);
+            return new Armor(f_slot, f_material);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Armor fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Armor fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Armor readFrame(YogFrame.Unpacker u) {
+            Armor v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Armor} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String slot() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public YogTypes.ArmorMaterial.View material() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return new YogTypes.ArmorMaterial.View(u);
+            }
+        }
+    }
+
+    /** What an item hangs on a block's side: an entity of a hanging type, `width`×`height` blocks. */
+    public record Hangs(String entity, int width, int height) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("entity", entity);
+            m.put("width", width);
+            m.put("height", height);
+            return m;
+        }
+
+        public static Hangs fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Hangs(YogData.str(m.get("entity"), ""), (int) YogData.integer(m.get("width"), 0), (int) YogData.integer(m.get("height"), 0));
+        }
+
+        public static Hangs fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.entity);
+            p.putI(this.width);
+            p.putI(this.height);
+            p.end(at);
+        }
+
+        public static Hangs unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_entity = u.more(end) ? u.getStr() : "";
+            int f_width = u.more(end) ? (int) u.getI() : 0;
+            int f_height = u.more(end) ? (int) u.getI() : 0;
+            u.leave(end);
+            return new Hangs(f_entity, f_width, f_height);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Hangs fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Hangs fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Hangs readFrame(YogFrame.Unpacker u) {
+            Hangs v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Hangs} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String entity() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public int width() {
+                if (o1 < 0) return 0;
+                u.seek(o1);
+                return (int) u.getI();
+            }
+
+            public int height() {
+                if (o2 < 0) return 0;
+                u.seek(o2);
+                return (int) u.getI();
+            }
+        }
+    }
+
+    /** What a block sounds like: the sound events it plays when broken, stepped on, placed, hit while mining and fallen on. The game's groups are built in ([`SoundGroup::built_in`]); a mod registers its own (`Registry::register_sound_group`, or a `.ydef` of kind `sound_group`) and names it in `BlockDef::sound`. */
+    public record SoundGroup(String id, String break_, String step, String place, String hit, String fall, float volume, float pitch) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("break", break_);
+            m.put("step", step);
+            m.put("place", place);
+            m.put("hit", hit);
+            m.put("fall", fall);
+            m.put("volume", volume);
+            m.put("pitch", pitch);
+            return m;
+        }
+
+        public static SoundGroup fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new SoundGroup(YogData.str(m.get("id"), ""), YogData.str(m.get("break"), ""), YogData.str(m.get("step"), ""), YogData.str(m.get("place"), ""), YogData.str(m.get("hit"), ""), YogData.str(m.get("fall"), ""), (float) YogData.number(m.get("volume"), 0), (float) YogData.number(m.get("pitch"), 0));
+        }
+
+        public static SoundGroup fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putStr(this.break_);
+            p.putStr(this.step);
+            p.putStr(this.place);
+            p.putStr(this.hit);
+            p.putStr(this.fall);
+            p.putF32(this.volume);
+            p.putF32(this.pitch);
+            p.end(at);
+        }
+
+        public static SoundGroup unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            String f_break_ = u.more(end) ? u.getStr() : "";
+            String f_step = u.more(end) ? u.getStr() : "";
+            String f_place = u.more(end) ? u.getStr() : "";
+            String f_hit = u.more(end) ? u.getStr() : "";
+            String f_fall = u.more(end) ? u.getStr() : "";
+            float f_volume = u.more(end) ? u.getF32() : 0.0f;
+            float f_pitch = u.more(end) ? u.getF32() : 0.0f;
+            u.leave(end);
+            return new SoundGroup(f_id, f_break_, f_step, f_place, f_hit, f_fall, f_volume, f_pitch);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static SoundGroup fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static SoundGroup fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static SoundGroup readFrame(YogFrame.Unpacker u) {
+            SoundGroup v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code SoundGroup} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.skip(4); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(4); } else { o7 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String break_() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public String step() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
+
+            public String place() {
+                if (o3 < 0) return "";
+                u.seek(o3);
+                return u.getStr();
+            }
+
+            public String hit() {
+                if (o4 < 0) return "";
+                u.seek(o4);
+                return u.getStr();
+            }
+
+            public String fall() {
+                if (o5 < 0) return "";
+                u.seek(o5);
+                return u.getStr();
+            }
+
+            public float volume() {
+                if (o6 < 0) return 0.0f;
+                u.seek(o6);
+                return u.getF32();
+            }
+
+            public float pitch() {
+                if (o7 < 0) return 0.0f;
+                u.seek(o7);
+                return u.getF32();
+            }
+        }
+    }
+
+    /** A property of a block's own: its name and values (the first the default; `false`, `true` is a yes/no). */
+    public record BlockProperty(String name, java.util.List<String> values) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("name", name);
+            m.put("values", values);
+            return m;
+        }
+
+        public static BlockProperty fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BlockProperty(YogData.str(m.get("name"), ""), YogData.list(m.get("values")).stream().map(e0 -> YogData.str(e0, "")).toList());
+        }
+
+        public static BlockProperty fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.name);
+            { int l0 = p.beginList(this.values.size()); for (var e0 : this.values) { p.putStr(e0); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static BlockProperty unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_name = u.more(end) ? u.getStr() : "";
+            java.util.List<String> f_values = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            u.leave(end);
+            return new BlockProperty(f_name, f_values);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BlockProperty fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BlockProperty fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BlockProperty readFrame(YogFrame.Unpacker u) {
+            BlockProperty v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BlockProperty} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String name() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public java.util.List<String> values() {
+                if (o1 < 0) return java.util.List.of();
+                u.seek(o1);
+                return YogFrame.list(u, () -> u.getStr());
+            }
+        }
+    }
+
+    /** A slot: where it is (`x, y`), and the item ids and `#tags` it takes (none: anything). */
+    public record InventorySlot(float[] at, java.util.List<String> accepts) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("at", YogData.listOf(at));
+            m.put("accepts", accepts);
+            return m;
+        }
+
+        public static InventorySlot fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new InventorySlot(YogData.floats(m.get("at")), YogData.list(m.get("accepts")).stream().map(e0 -> YogData.str(e0, "")).toList());
+        }
+
+        public static InventorySlot fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putF32s(this.at);
+            { int l0 = p.beginList(this.accepts.size()); for (var e0 : this.accepts) { p.putStr(e0); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static InventorySlot unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            float[] f_at = u.more(end) ? u.getF32s() : new float[0];
+            java.util.List<String> f_accepts = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            u.leave(end);
+            return new InventorySlot(f_at, f_accepts);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static InventorySlot fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static InventorySlot fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static InventorySlot readFrame(YogFrame.Unpacker u) {
+            InventorySlot v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code InventorySlot} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int h0, n0, b0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { h0 = u.position(); n0 = u.count(); b0 = 1; o0 = u.position(); u.skip(n0 * (b0 != 0 ? 4 : 8)); } else { h0 = n0 = b0 = 0; o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public float[] at() {
+                if (o0 < 0) return new float[0];
+                u.seek(h0);
+                return u.getF32s();
+            }
+
+            public int atLength() {
+                return n0;
+            }
+
+            /** Item {@code i}, read in place. */
+            public float at(int i) {
+                if (i < 0 || i >= n0) throw new IndexOutOfBoundsException(i);
+                return u.f32At(o0 + 4 * i);
+            }
+
+            public java.util.List<String> accepts() {
+                if (o1 < 0) return java.util.List.of();
+                u.seek(o1);
+                return YogFrame.list(u, () -> u.getStr());
+            }
+        }
+    }
+
+    /** A machine's ingredients' slots and its result's (the recipe is the runtime's to find). */
+    public record Machine(int[] places, int result) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("places", YogData.listOf(places));
+            m.put("result", result);
+            return m;
+        }
+
+        public static Machine fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Machine(YogData.ints(m.get("places")), (int) YogData.integer(m.get("result"), 0));
+        }
+
+        public static Machine fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putInts(this.places, true);
+            p.putI(this.result);
+            p.end(at);
+        }
+
+        public static Machine unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            int[] f_places = u.more(end) ? u.getInts(true) : new int[0];
+            int f_result = u.more(end) ? (int) u.getI() : 0;
+            u.leave(end);
+            return new Machine(f_places, f_result);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Machine fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Machine fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Machine readFrame(YogFrame.Unpacker u) {
+            Machine v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Machine} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int h0, n0, b0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { h0 = u.position(); n0 = (int) u.getU(); b0 = u.getByte(); o0 = u.position(); u.skip(YogFrame.packedBytes(n0, b0)); } else { h0 = n0 = b0 = 0; o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public int[] places() {
+                if (o0 < 0) return new int[0];
+                u.seek(h0);
+                return u.getInts(true);
+            }
+
+            public int placesLength() {
+                return n0;
+            }
+
+            /** Item {@code i}, read in place. */
+            public int places(int i) {
+                long v = u.packedAt(o0, n0, b0, i);
+                return (int) YogFrame.unzigzag(v);
+            }
+
+            public int result() {
+                if (o1 < 0) return 0;
+                u.seek(o1);
+                return (int) u.getI();
+            }
+        }
+    }
+
+    /** An attribute an effect changes while it lasts — by `amount` for each level. */
+    public record EffectModifier(String attribute, double amount, String operation) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("attribute", attribute);
+            m.put("amount", amount);
+            m.put("operation", operation);
+            return m;
+        }
+
+        public static EffectModifier fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new EffectModifier(YogData.id(m.get("attribute")), YogData.number(m.get("amount"), 0), YogData.str(m.get("operation"), ""));
+        }
+
+        public static EffectModifier fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putTagged(this.attribute);
+            p.putF64(this.amount);
+            p.putU(switch (this.operation) { case "add" -> 0; case "multiply_base" -> 1; case "multiply_total" -> 2; default -> 0; });
+            p.end(at);
+        }
+
+        public static EffectModifier unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_attribute = u.more(end) ? YogData.id(u.getTagged()) : null;
+            double f_amount = u.more(end) ? u.getF64() : 0.0;
+            String f_operation = u.more(end) ? switch ((int) u.getU()) { case 0 -> "add"; case 1 -> "multiply_base"; case 2 -> "multiply_total"; default -> ""; } : "add";
+            u.leave(end);
+            return new EffectModifier(f_attribute, f_amount, f_operation);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static EffectModifier fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static EffectModifier fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static EffectModifier readFrame(YogFrame.Unpacker u) {
+            EffectModifier v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code EffectModifier} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(8); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String attribute() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return YogData.id(u.getTagged());
+            }
+
+            public double amount() {
+                if (o1 < 0) return 0.0;
+                u.seek(o1);
+                return u.getF64();
+            }
+
+            public String operation() {
+                if (o2 < 0) return "add";
+                u.seek(o2);
+                return switch ((int) u.getU()) { case 0 -> "add"; case 1 -> "multiply_base"; case 2 -> "multiply_total"; default -> ""; };
+            }
+        }
+    }
+
+    /** An effect a potion gives. */
+    public record PotionEffect(String effect, long duration, long amplifier) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("effect", effect);
+            m.put("duration", duration);
+            m.put("amplifier", amplifier);
+            return m;
+        }
+
+        public static PotionEffect fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new PotionEffect(YogData.id(m.get("effect")), YogData.integer(m.get("duration"), 0), YogData.integer(m.get("amplifier"), 0));
+        }
+
+        public static PotionEffect fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putTagged(this.effect);
+            p.putI(this.duration);
+            p.putI(this.amplifier);
+            p.end(at);
+        }
+
+        public static PotionEffect unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_effect = u.more(end) ? YogData.id(u.getTagged()) : null;
+            long f_duration = u.more(end) ? u.getI() : 0L;
+            long f_amplifier = u.more(end) ? u.getI() : 0L;
+            u.leave(end);
+            return new PotionEffect(f_effect, f_duration, f_amplifier);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static PotionEffect fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static PotionEffect fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static PotionEffect readFrame(YogFrame.Unpacker u) {
+            PotionEffect v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code PotionEffect} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String effect() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return YogData.id(u.getTagged());
+            }
+
+            public long duration() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public long amplifier() {
+                if (o2 < 0) return 0L;
+                u.seek(o2);
+                return u.getI();
+            }
+        }
+    }
+
+    /** A brewing stand recipe making a potion: one potion and an ingredient. */
+    public record Brew(String from, String with) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("from", from);
+            m.put("with", with);
+            return m;
+        }
+
+        public static Brew fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Brew(YogData.id(m.get("from")), YogData.id(m.get("with")));
+        }
+
+        public static Brew fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putTagged(this.from);
+            p.putTagged(this.with);
+            p.end(at);
+        }
+
+        public static Brew unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_from = u.more(end) ? YogData.id(u.getTagged()) : null;
+            String f_with = u.more(end) ? YogData.id(u.getTagged()) : null;
+            u.leave(end);
+            return new Brew(f_from, f_with);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Brew fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Brew fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Brew readFrame(YogFrame.Unpacker u) {
+            Brew v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Brew} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String from() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return YogData.id(u.getTagged());
+            }
+
+            public String with() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return YogData.id(u.getTagged());
+            }
+        }
+    }
+
+    /** What tools are made of. The game's are built in ([`ToolMaterial::built_ins`]); a mod declares its own in a `.ydef` (`kind: "tool_material"`) or registers one (`Registry::register_tool_material`). */
+    public record ToolMaterial(String id, long durability, float speed, float attackDamage, long enchantability, String level, String repair, long levelIndex, String incorrect, String gameTools) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("durability", durability);
+            m.put("speed", speed);
+            m.put("attack_damage", attackDamage);
+            m.put("enchantability", enchantability);
+            m.put("level", level);
+            m.put("repair", repair);
+            m.put("level_index", levelIndex);
+            m.put("incorrect", incorrect);
+            m.put("game_tools", gameTools);
+            return m;
+        }
+
+        public static ToolMaterial fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new ToolMaterial(YogData.str(m.get("id"), ""), YogData.integer(m.get("durability"), 0), (float) YogData.number(m.get("speed"), 0), (float) YogData.number(m.get("attack_damage"), 0), YogData.integer(m.get("enchantability"), 0), YogData.str(m.get("level"), ""), YogData.str(m.get("repair"), ""), YogData.integer(m.get("level_index"), 0), YogData.str(m.get("incorrect"), ""), YogData.str(m.get("game_tools"), ""));
+        }
+
+        public static ToolMaterial fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putI(this.durability);
+            p.putF32(this.speed);
+            p.putF32(this.attackDamage);
+            p.putI(this.enchantability);
+            p.putStr(this.level);
+            p.putStr(this.repair);
+            p.putI(this.levelIndex);
+            p.putStr(this.incorrect);
+            p.putStr(this.gameTools);
+            p.end(at);
+        }
+
+        public static ToolMaterial unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            long f_durability = u.more(end) ? u.getI() : 0L;
+            float f_speed = u.more(end) ? u.getF32() : 0.0f;
+            float f_attackDamage = u.more(end) ? u.getF32() : 0.0f;
+            long f_enchantability = u.more(end) ? u.getI() : 0L;
+            String f_level = u.more(end) ? u.getStr() : "";
+            String f_repair = u.more(end) ? u.getStr() : "";
+            long f_levelIndex = u.more(end) ? u.getI() : 0L;
+            String f_incorrect = u.more(end) ? u.getStr() : "";
+            String f_gameTools = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new ToolMaterial(f_id, f_durability, f_speed, f_attackDamage, f_enchantability, f_level, f_repair, f_levelIndex, f_incorrect, f_gameTools);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static ToolMaterial fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static ToolMaterial fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static ToolMaterial readFrame(YogFrame.Unpacker u) {
+            ToolMaterial v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code ToolMaterial} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+            private final int o9;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(4); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.getU(); } else { o8 = -1; }
+                if (u.more(end)) { o9 = u.position(); u.getU(); } else { o9 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public long durability() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public float speed() {
+                if (o2 < 0) return 0.0f;
+                u.seek(o2);
+                return u.getF32();
+            }
+
+            public float attackDamage() {
+                if (o3 < 0) return 0.0f;
+                u.seek(o3);
+                return u.getF32();
+            }
+
+            public long enchantability() {
+                if (o4 < 0) return 0L;
+                u.seek(o4);
+                return u.getI();
+            }
+
+            public String level() {
+                if (o5 < 0) return "";
+                u.seek(o5);
+                return u.getStr();
+            }
+
+            public String repair() {
+                if (o6 < 0) return "";
+                u.seek(o6);
+                return u.getStr();
+            }
+
+            public long levelIndex() {
+                if (o7 < 0) return 0L;
+                u.seek(o7);
+                return u.getI();
+            }
+
+            public String incorrect() {
+                if (o8 < 0) return "";
+                u.seek(o8);
+                return u.getStr();
+            }
+
+            public String gameTools() {
+                if (o9 < 0) return "";
+                u.seek(o9);
+                return u.getStr();
+            }
+        }
+    }
+
+    /** The game's tool a tool takes its attack from when it gives none: its item id, and the attack damage its material adds (what the kind adds is the rest). */
+    public record GameTool(String item, float materialDamage) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("item", item);
+            m.put("material_damage", materialDamage);
+            return m;
+        }
+
+        public static GameTool fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new GameTool(YogData.str(m.get("item"), ""), (float) YogData.number(m.get("material_damage"), 0));
+        }
+
+        public static GameTool fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.item);
+            p.putF32(this.materialDamage);
+            p.end(at);
+        }
+
+        public static GameTool unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_item = u.more(end) ? u.getStr() : "";
+            float f_materialDamage = u.more(end) ? u.getF32() : 0.0f;
+            u.leave(end);
+            return new GameTool(f_item, f_materialDamage);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static GameTool fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static GameTool fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static GameTool readFrame(YogFrame.Unpacker u) {
+            GameTool v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code GameTool} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String item() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public float materialDamage() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+        }
+    }
+
+    /** What armor is made of. The game's are built in ([`ArmorMaterial::built_ins`]); a mod declares its own in a `.ydef` (`kind: "armor_material"`) or registers one. */
+    public record ArmorMaterial(String id, long durability, YogTypes.ArmorDefense defense, long enchantability, String equipSound, float toughness, float knockbackResistance, String repair, String texture) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", id);
+            m.put("durability", durability);
+            m.put("defense", defense.toData());
+            m.put("enchantability", enchantability);
+            m.put("equip_sound", equipSound);
+            m.put("toughness", toughness);
+            m.put("knockback_resistance", knockbackResistance);
+            m.put("repair", repair);
+            m.put("texture", texture);
+            return m;
+        }
+
+        public static ArmorMaterial fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new ArmorMaterial(YogData.str(m.get("id"), ""), YogData.integer(m.get("durability"), 0), YogTypes.ArmorDefense.fromData(m.get("defense")), YogData.integer(m.get("enchantability"), 0), YogData.str(m.get("equip_sound"), ""), (float) YogData.number(m.get("toughness"), 0), (float) YogData.number(m.get("knockback_resistance"), 0), YogData.str(m.get("repair"), ""), YogData.str(m.get("texture"), ""));
+        }
+
+        public static ArmorMaterial fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.id);
+            p.putI(this.durability);
+            this.defense.pack(p);
+            p.putI(this.enchantability);
+            p.putStr(this.equipSound);
+            p.putF32(this.toughness);
+            p.putF32(this.knockbackResistance);
+            p.putStr(this.repair);
+            p.putStr(this.texture);
+            p.end(at);
+        }
+
+        public static ArmorMaterial unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_id = u.more(end) ? u.getStr() : "";
+            long f_durability = u.more(end) ? u.getI() : 0L;
+            YogTypes.ArmorDefense f_defense = u.more(end) ? YogTypes.ArmorDefense.unpack(u) : null;
+            long f_enchantability = u.more(end) ? u.getI() : 0L;
+            String f_equipSound = u.more(end) ? u.getStr() : "";
+            float f_toughness = u.more(end) ? u.getF32() : 0.0f;
+            float f_knockbackResistance = u.more(end) ? u.getF32() : 0.0f;
+            String f_repair = u.more(end) ? u.getStr() : "";
+            String f_texture = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new ArmorMaterial(f_id, f_durability, f_defense, f_enchantability, f_equipSound, f_toughness, f_knockbackResistance, f_repair, f_texture);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static ArmorMaterial fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static ArmorMaterial fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static ArmorMaterial readFrame(YogFrame.Unpacker u) {
+            ArmorMaterial v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code ArmorMaterial} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(4); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.skip(4); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.getU(); } else { o8 = -1; }
+                u.leave(end);
+            }
+
+            public String id() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public long durability() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public YogTypes.ArmorDefense.View defense() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return new YogTypes.ArmorDefense.View(u);
+            }
+
+            public long enchantability() {
+                if (o3 < 0) return 0L;
+                u.seek(o3);
+                return u.getI();
+            }
+
+            public String equipSound() {
+                if (o4 < 0) return "";
+                u.seek(o4);
+                return u.getStr();
+            }
+
+            public float toughness() {
+                if (o5 < 0) return 0.0f;
+                u.seek(o5);
+                return u.getF32();
+            }
+
+            public float knockbackResistance() {
+                if (o6 < 0) return 0.0f;
+                u.seek(o6);
+                return u.getF32();
+            }
+
+            public String repair() {
+                if (o7 < 0) return "";
+                u.seek(o7);
+                return u.getStr();
+            }
+
+            public String texture() {
+                if (o8 < 0) return "";
+                u.seek(o8);
+                return u.getStr();
+            }
+        }
+    }
+
+    /** Defense points per armor piece. */
+    public record ArmorDefense(long head, long chest, long legs, long feet) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("head", head);
+            m.put("chest", chest);
+            m.put("legs", legs);
+            m.put("feet", feet);
+            return m;
+        }
+
+        public static ArmorDefense fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new ArmorDefense(YogData.integer(m.get("head"), 0), YogData.integer(m.get("chest"), 0), YogData.integer(m.get("legs"), 0), YogData.integer(m.get("feet"), 0));
+        }
+
+        public static ArmorDefense fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putI(this.head);
+            p.putI(this.chest);
+            p.putI(this.legs);
+            p.putI(this.feet);
+            p.end(at);
+        }
+
+        public static ArmorDefense unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            long f_head = u.more(end) ? u.getI() : 0L;
+            long f_chest = u.more(end) ? u.getI() : 0L;
+            long f_legs = u.more(end) ? u.getI() : 0L;
+            long f_feet = u.more(end) ? u.getI() : 0L;
+            u.leave(end);
+            return new ArmorDefense(f_head, f_chest, f_legs, f_feet);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static ArmorDefense fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static ArmorDefense fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static ArmorDefense readFrame(YogFrame.Unpacker u) {
+            ArmorDefense v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code ArmorDefense} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                u.leave(end);
+            }
+
+            public long head() {
+                if (o0 < 0) return 0L;
+                u.seek(o0);
+                return u.getI();
+            }
+
+            public long chest() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public long legs() {
+                if (o2 < 0) return 0L;
+                u.seek(o2);
+                return u.getI();
+            }
+
+            public long feet() {
+                if (o3 < 0) return 0L;
+                u.seek(o3);
+                return u.getI();
+            }
+        }
+    }
+
+    /** What an address is. */
+    public static final class AddressKind {
+        private AddressKind() {}
+        public static final String EVENT = "event";
+        public static final String SERVICE = "service";
+    }
+
+    /** The six block faces, in Minecraft's `Direction` order (named as the game names them: `down`, `up`, …). */
+    public static final class Face {
+        private Face() {}
+        public static final String DOWN = "down";
+        public static final String UP = "up";
+        public static final String NORTH = "north";
+        public static final String SOUTH = "south";
+        public static final String WEST = "west";
+        public static final String EAST = "east";
+    }
+
+    /** What kind of entity a type is. */
+    public static final class EntityKind {
+        private EntityKind() {}
+        public static final String OBJECT = "object";
+        public static final String LIVING = "living";
+        public static final String MOB = "mob";
+        public static final String HANGING = "hanging";
+    }
+
+    /** Whether an effect is good or bad for whoever has it (its color in the inventory, what milk and beacons do with it). */
+    public static final class EffectCategory {
+        private EffectCategory() {}
+        public static final String BENEFICIAL = "beneficial";
+        public static final String HARMFUL = "harmful";
+        public static final String NEUTRAL = "neutral";
+    }
+
+    /** How a modifier changes an attribute. */
+    public static final class ModifierOperation {
+        private ModifierOperation() {}
+        public static final String ADD = "add";
+        public static final String MULTIPLY_BASE = "multiply_base";
+        public static final String MULTIPLY_TOTAL = "multiply_total";
     }
 }

@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.damagesource.DamageSource;
@@ -16,7 +17,7 @@ import net.minecraft.world.level.Level;
 public class YogObject extends Entity {
     public YogObject(EntityType<? extends YogObject> type, Level level) {
         super(type, level);
-        YogContent.Entity def = YogEntityTypes.def(type);
+        YogTypes.EntityDef def = YogEntityTypes.def(type);
         if (def != null) setNoGravity(def.noGravity());
     }
 
@@ -45,13 +46,13 @@ public class YogObject extends Entity {
 
     @Override
     public boolean isPushable() {
-        YogContent.Entity def = YogEntityTypes.def(getType());
+        YogTypes.EntityDef def = YogEntityTypes.def(getType());
         return def != null && Boolean.TRUE.equals(def.pushable());
     }
 
     @Override
     public boolean canBeCollidedWith() {
-        YogContent.Entity def = YogEntityTypes.def(getType());
+        YogTypes.EntityDef def = YogEntityTypes.def(getType());
         return def != null && def.solid();
     }
 
@@ -63,7 +64,7 @@ public class YogObject extends Entity {
 
     @Override
     protected float getEyeHeight(net.minecraft.world.entity.Pose pose, net.minecraft.world.entity.EntityDimensions size) {
-        YogContent.Entity def = YogEntityTypes.def(getType());
+        YogTypes.EntityDef def = YogEntityTypes.def(getType());
         return def != null && def.eyeHeight() != null ? def.eyeHeight() : super.getEyeHeight(pose, size);
     }
 }
