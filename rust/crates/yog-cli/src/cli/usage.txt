@@ -15,10 +15,12 @@ Commands:
   version             Print the yog CLI version
   add <crate>         Add a Rust dependency to yog.toml
   remove <crate>      Remove a dependency from yog.toml
-  schema <format>     Print a format's schema as JSON (yblock, yitem, yrecipe, ydef, yres, yog.toml, ybook)
+  schema <format>     Print a format's schema as Yog Data text (yblock, yitem, yrecipe, ydef, yres, yog.toml, ybook)
   run <loader> <mc>   Build, put into that loader's dev game, and launch it (`run fabric 26.2`)
   run <target> --debug  Same, built with debug info kept (see `build debug`)
   run --list [--json]  The run targets: the loader SDK's, and ~/.yog/local.toml's
+  control hot-reload <mod.yog>...  Swap mods into the running game (YOG_CONTROL_SOCKET/TOKEN)
+  control reload-resources         The running game rereads its resources and data
   publish exports     Publish this mod's exported API to crates.io
   ui gen [files]      Generate .yog-build/generated/**/*.g.rs from .yui screens (build does this too)
   res check           Validate resources/**/*.yres, regenerate accessors, list untranslated texts

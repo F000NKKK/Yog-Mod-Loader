@@ -1900,6 +1900,7 @@ dependencies = [
  "yog-gfx",
  "yog-graphics",
  "yog-home",
+ "yog-hot-reload",
  "yog-ids",
  "yog-media",
  "yog-registry",
@@ -2045,7 +2046,7 @@ version = "0.2.3"
 dependencies = [
  "libloading",
  "serde",
- "serde_json",
+ "yog-data",
  "yog-sync",
 ]
 

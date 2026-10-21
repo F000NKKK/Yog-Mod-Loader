@@ -16,6 +16,8 @@ path = "src/main.rs"
 [dependencies]
 yog-sync = { workspace = true }
 yog-ids = { workspace = true }
+# `yog control`: the running game's control channel.
+yog-hot-reload = { workspace = true }
 yog-media = { workspace = true }
 # `yog publish exports` reads `#[yog_export]` items with syn, by their exact text.
 syn = { workspace = true, features = ["visit"] }

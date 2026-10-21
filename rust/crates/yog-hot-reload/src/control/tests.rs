@@ -1,53 +1,52 @@
-//! The protocol's lines as the other side writes them.
+//! The protocol's frames as the other side reads them.
 
-use super::{Changes, Command, Event, line, parse};
+use super::{Changes, Command, Event, ModInfo, receive, send};
+
+/// `message` sent, then read back.
+fn through<T: yog_data::Schema>(message: &T) -> T {
+    let mut pipe = Vec::new();
+    send(&mut pipe, message).unwrap();
+    receive(&mut pipe.as_slice()).unwrap().unwrap()
+}
 
 #[test]
-fn commands_are_tagged_by_cmd() {
+fn commands_cross_whole() {
     let hot_reload = Command::HotReload {
         mod_id: "m".into(),
         yog_path: "/m.yog".into(),
         resources: true,
     };
-    assert_eq!(
-        line(&hot_reload),
-        "{\"cmd\":\"hot_reload\",\"mod_id\":\"m\",\"yog_path\":\"/m.yog\",\"resources\":true}\n"
-    );
-    assert_eq!(
-        parse::<Command>("{\"cmd\":\"list_mods\"}"),
-        Some(Command::ListMods)
-    );
+    assert_eq!(through(&hot_reload), hot_reload);
+    assert_eq!(through(&Command::ListMods), Command::ListMods);
 }
 
 #[test]
-fn events_are_tagged_by_event() {
-    let check = "{\"event\":\"hot-reload-check\",\"mod_id\":\"m\",\"added\":[\"item m:a\"],\"removed\":[],\"changed\":[]}";
-    let changes = Changes {
-        added: vec!["item m:a".into()],
-        ..Changes::default()
+fn events_cross_whole() {
+    let check = Event::HotReloadCheck {
+        mod_id: "m".into(),
+        changes: Changes {
+            added: vec!["item m:a".into()],
+            ..Changes::default()
+        },
     };
-    assert_eq!(
-        parse::<Event>(check),
-        Some(Event::HotReloadCheck {
-            mod_id: "m".into(),
-            changes
-        })
-    );
-    assert_eq!(
-        parse::<Event>(&line(&Event::ResourcesReloaded)),
-        Some(Event::ResourcesReloaded)
-    );
+    assert_eq!(through(&check), check);
+    let ready = Event::Ready {
+        pid: 7,
+        mods: vec![ModInfo {
+            id: "m".into(),
+            ..ModInfo::default()
+        }],
+        ptracer: true,
+    };
+    assert_eq!(through(&ready), ready);
+    assert_eq!(through(&Event::ResourcesReloaded), Event::ResourcesReloaded);
 }
 
 #[test]
-fn a_ready_without_ptracer_still_reads() {
-    let ready = parse::<Event>("{\"event\":\"ready\",\"pid\":7,\"mods\":[]}");
+fn the_tags_name_the_variants() {
+    let v = yog_data::Schema::write(&Command::ReloadResources);
     assert_eq!(
-        ready,
-        Some(Event::Ready {
-            pid: 7,
-            mods: Vec::new(),
-            ptracer: None
-        })
+        v.get("cmd").and_then(|c| c.as_str()),
+        Some("reload_resources")
     );
 }

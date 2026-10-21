@@ -17,6 +17,7 @@ pub mod atom;
 pub mod binary;
 mod borrowed;
 pub mod frame;
+pub mod io;
 #[cfg(feature = "json")]
 pub mod json;
 pub mod patch;

@@ -11,12 +11,11 @@
 //! Opt-in: it starts only when `YOG_CONTROL_SOCKET` (a loopback address,
 //! `127.0.0.1:<port>`) and `YOG_CONTROL_TOKEN` are set. TCP on loopback works
 //! on every platform; the token keeps other local processes out: a client's
-//! first line is `{"cmd":"hello","token":…,"pid":<its pid>}`, anything else
-//! closes the connection. The protocol (`yog_hot_reload::control`) follows:
-//! the runtime answers `hello` with `ready` (its pid, its mods), then each
-//! command with its event.
+//! first frame is `Command::Hello` with it and its pid, anything else closes
+//! the connection. The protocol (`yog_hot_reload::control`, frames of Yog
+//! Data) follows: the runtime answers `hello` with `ready` (its pid, its
+//! mods), then each command with its event.
 
-use std::io::{BufRead, BufReader, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 
 use yog_hot_reload::control::{self, Command, Event, ModInfo};
@@ -65,8 +64,7 @@ pub fn start_if_requested() {
 /// fails with `EINVAL`: nothing to lift then.
 ///
 /// Returns whether `pid` may now trace us — reported in `ready` as
-/// `ptracer`, so the client can tell an outdated runtime (no field) from a
-/// policy that really refuses it.
+/// `ptracer`, so the client knows whether an attach can work.
 #[cfg(target_os = "linux")]
 fn allow_to_trace(pid: u32) -> bool {
     if pid == 0 {
@@ -85,8 +83,8 @@ fn allow_to_trace(pid: u32) -> bool {
     false
 }
 
-fn write_line(stream: &mut TcpStream, event: &Event) {
-    let _ = stream.write_all(control::line(event).as_bytes());
+fn send(stream: &mut TcpStream, event: &Event) {
+    let _ = control::send(stream, event);
 }
 
 fn mod_list() -> Vec<ModInfo> {
@@ -102,24 +100,20 @@ fn mod_list() -> Vec<ModInfo> {
 }
 
 fn handle_client(mut stream: TcpStream, token: &str) {
-    let Ok(read_half) = stream.try_clone() else {
-        return;
-    };
-    let mut lines = BufReader::new(read_half).lines().map_while(Result::ok);
-    if !greet(&mut stream, lines.next(), token) {
+    let first = control::receive(&mut stream).ok().flatten();
+    if !greet(&mut stream, first, token) {
         return;
     }
-    for line in lines {
-        if let Some(cmd) = control::parse(&line) {
-            answer(&mut stream, cmd);
-        }
+    // Until the client hangs up, or sends what isn't a command.
+    while let Ok(Some(cmd)) = control::receive(&mut stream) {
+        answer(&mut stream, cmd);
     }
 }
 
 /// The client proves it's the launcher first (`hello` with the token); it's
 /// answered `ready`: this process, its mods, whether it may trace it.
-fn greet(stream: &mut TcpStream, first: Option<String>, token: &str) -> bool {
-    let Some(Command::Hello { token: theirs, pid }) = first.and_then(|l| control::parse(&l)) else {
+fn greet(stream: &mut TcpStream, first: Option<Command>, token: &str) -> bool {
+    let Some(Command::Hello { token: theirs, pid }) = first else {
         yog_logging::warn!("control socket: a client that didn't say hello — closed");
         return false;
     };
@@ -134,12 +128,12 @@ fn greet(stream: &mut TcpStream, first: Option<String>, token: &str) -> bool {
         let _ = pid;
         false
     };
-    write_line(
+    send(
         stream,
         &Event::Ready {
             pid: std::process::id(),
             mods: mod_list(),
-            ptracer: Some(ptracer),
+            ptracer,
         },
     );
     true
@@ -172,5 +166,5 @@ fn answer(stream: &mut TcpStream, cmd: Command) {
         Command::ListMods => Event::Mods { mods: mod_list() },
         Command::Hello { .. } => return,
     };
-    write_line(stream, &reply);
+    send(stream, &reply);
 }
