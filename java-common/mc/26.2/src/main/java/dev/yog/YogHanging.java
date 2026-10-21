@@ -124,7 +124,7 @@ public class YogHanging extends HangingEntity {
         out.putByte("facing", (byte) getDirection().get2DDataValue());
         out.putInt("width", entityData.get(WIDTH));
         out.putInt("height", entityData.get(HEIGHT));
-        if (!item().isEmpty()) out.store("item", ItemStack.CODEC, item());
+        if (!item().isEmpty()) out.store(dev.yog.YogNames.Kind.ITEM, ItemStack.CODEC, item());
         super.addAdditionalSaveData(out);
     }
 
@@ -132,7 +132,7 @@ public class YogHanging extends HangingEntity {
     protected void readAdditionalSaveData(ValueInput in) {
         entityData.set(WIDTH, Math.max(1, in.getIntOr("width", 1)));
         entityData.set(HEIGHT, Math.max(1, in.getIntOr("height", 1)));
-        entityData.set(ITEM, in.read("item", ItemStack.CODEC).orElse(ItemStack.EMPTY));
+        entityData.set(ITEM, in.read(dev.yog.YogNames.Kind.ITEM, ItemStack.CODEC).orElse(ItemStack.EMPTY));
         Direction facing = Direction.from2DDataValue(in.getByteOr("facing", (byte) 0));
         super.readAdditionalSaveData(in);
         setDirection(facing);

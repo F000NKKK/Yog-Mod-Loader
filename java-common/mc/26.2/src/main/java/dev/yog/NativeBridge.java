@@ -155,10 +155,10 @@ public final class NativeBridge {
         if (!BuiltInRegistries.ITEM.containsKey(id)) {
             YogLog.info("giveItem: item not registered: " + itemId);
             // List what IS registered for debugging
-            if (itemId.startsWith("yog:")) {
+            if (itemId.startsWith(YogNames.Ns.YOG + YogNames.Sep.NAMESPACE)) {
                 YogLog.warn("known yog: items: " +
                     BuiltInRegistries.ITEM.keySet().stream()
-                        .filter(i -> i.getNamespace().equals("yog"))
+                        .filter(i -> i.getNamespace().equals(YogNames.Ns.YOG))
                         .map(Identifier::toString).toList());
             }
             return false;

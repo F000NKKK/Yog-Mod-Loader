@@ -119,7 +119,7 @@ public class YogHanging extends HangingEntity {
         tag.putByte("facing", (byte) direction.get2DDataValue());
         tag.putInt("width", entityData.get(WIDTH));
         tag.putInt("height", entityData.get(HEIGHT));
-        tag.put("item", item().save(new CompoundTag()));
+        tag.put(dev.yog.YogNames.Kind.ITEM, item().save(new CompoundTag()));
         super.addAdditionalSaveData(tag);
     }
 
@@ -127,7 +127,7 @@ public class YogHanging extends HangingEntity {
     public void readAdditionalSaveData(CompoundTag tag) {
         if (tag.contains("width")) entityData.set(WIDTH, Math.max(1, tag.getInt("width")));
         if (tag.contains("height")) entityData.set(HEIGHT, Math.max(1, tag.getInt("height")));
-        entityData.set(ITEM, ItemStack.of(tag.getCompound("item")));
+        entityData.set(ITEM, ItemStack.of(tag.getCompound(dev.yog.YogNames.Kind.ITEM)));
         Direction facing = Direction.from2DDataValue(tag.getByte("facing"));
         super.readAdditionalSaveData(tag);
         setDirection(facing);

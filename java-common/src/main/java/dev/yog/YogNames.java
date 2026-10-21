@@ -859,6 +859,7 @@ public final class YogNames {
         public static final String MISSING_TEXTURE = "minecraft:missingno";
         public static final String WRITTEN_BOOK = "minecraft:written_book";
         public static final String BOOK = "minecraft:book";
+        public static final String OLD_ATTRIBUTE_PREFIX = "generic.";
         public static final String LOCALE = "en_us";
     }
 
@@ -1340,6 +1341,17 @@ public final class YogNames {
         public static final String NEOFORGE_ADD_FEATURES = "neoforge:add_features";
     }
 
+    public static final class TagTable {
+        private TagTable() {}
+
+        public static final String TAG = "tag";
+        public static final String YOG = "yog";
+        public static final String BASE = "base";
+        public static final String HAS = "has";
+        public static final String EVERYWHERE = "*";
+        public static final String LOADERS = "# loaders:";
+    }
+
     public static final class Advancement {
         private Advancement() {}
 
@@ -1349,6 +1361,12 @@ public final class YogNames {
         public static final String IMPOSSIBLE = "minecraft:impossible";
         public static final String INVENTORY_CHANGED = "minecraft:inventory_changed";
         public static final String CONSUME_ITEM = "minecraft:consume_item";
+    }
+
+    public static final class ToolTier {
+        private ToolTier() {}
+
+        public static final String INCORRECT_FOR_WOODEN_TOOL = "minecraft:incorrect_for_wooden_tool";
     }
 
     public static final class YuiComponent {

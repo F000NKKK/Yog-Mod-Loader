@@ -82,20 +82,14 @@ public final class YogEntityTypes {
         for (Map.Entry<String, EntityType<?>> t : TYPES.entrySet()) {
             YogContent.Entity def = DEFS.get(t.getValue());
             if (def.spawnEgg() == null || !def.living()) continue;
-            ResourceLocation id = ResourceLocation.tryParse(def.id() + "_spawn_egg");
+            ResourceLocation id = ResourceLocation.tryParse(dev.yog.data.YogIds.spawnEgg(def.id()));
             if (id == null) continue;
             register.accept(id, new SpawnEggItem((EntityType<? extends Mob>) t.getValue(), def.spawnEgg()[0], def.spawnEgg()[1], new Item.Properties()));
         }
     }
 
-    /** {@code max_health} → the game's {@code generic.max_health}; a full id stays. */
-    private static List<String> candidates(String name) {
-        if (name.contains(":")) return List.of(name);
-        return List.of("minecraft:" + name, "minecraft:generic." + name);
-    }
-
     private static void add(AttributeSupplier.Builder a, String name, double value) {
-        for (String id : candidates(name)) {
+        for (String id : dev.yog.data.YogIds.attributeCandidates(name)) {
             ResourceLocation rl = ResourceLocation.tryParse(id);
             Attribute attribute = rl == null ? null : BuiltInRegistries.ATTRIBUTE.get(rl);
             if (attribute != null) {

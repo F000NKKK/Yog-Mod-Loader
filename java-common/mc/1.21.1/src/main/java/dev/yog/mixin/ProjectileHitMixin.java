@@ -37,10 +37,10 @@ public abstract class ProjectileHitMixin extends Entity {
         String hitEntityUuid;
         Vec3 pos = hitResult.getLocation();
         if (hitResult instanceof EntityHitResult ehr) {
-            hitType       = "entity";
+            hitType       = dev.yog.YogNames.Kind.ENTITY;
             hitEntityUuid = ehr.getEntity().getStringUUID();
         } else {
-            hitType       = "block";
+            hitType       = dev.yog.YogNames.Kind.BLOCK;
             hitEntityUuid = "";
         }
 

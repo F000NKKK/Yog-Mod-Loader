@@ -37,7 +37,7 @@ public final class YogJava {
     }
 
     private static Object toJava(Object v) {
-        if (v instanceof YogData.Ref r && r.kind().equals("entity")) {
+        if (v instanceof YogData.Ref r && r.kind().equals(dev.yog.YogNames.Kind.ENTITY)) {
             Object e = entityByUuid.apply(r.id());
             if (e == null) throw new IllegalArgumentException("no entity " + r.id());
             return e;
@@ -50,7 +50,7 @@ public final class YogJava {
         if (v instanceof Float || v instanceof Double) return ((Number) v).doubleValue();
         if (v instanceof Number n) return n.longValue();
         String uuid = uuidOf.apply(v);
-        if (uuid != null) return new YogData.Ref("entity", uuid);
+        if (uuid != null) return new YogData.Ref(dev.yog.YogNames.Kind.ENTITY, uuid);
         return String.valueOf(v);
     }
 

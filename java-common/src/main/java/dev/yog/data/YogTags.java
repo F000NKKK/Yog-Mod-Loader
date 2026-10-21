@@ -1,5 +1,7 @@
 package dev.yog.data;
 
+import dev.yog.YogNames;
+
 import dev.yog.YogLog;
 
 import com.google.gson.Gson;
@@ -52,16 +54,16 @@ public final class YogTags {
             if (in != null) {
                 BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
                 for (String line; (line = r.readLine()) != null; ) {
-                    if (line.startsWith("# loaders:")) {
-                        LOADERS.addAll(List.of(line.substring("# loaders:".length()).trim().split("\\s+")));
+                    if (line.startsWith(YogNames.TagTable.LOADERS)) {
+                        LOADERS.addAll(List.of(line.substring(YogNames.TagTable.LOADERS.length()).trim().split("\\s+")));
                         continue;
                     }
                     String[] p = line.trim().split("\\s+");
-                    if (p.length == 4 && p[0].equals("tag")) {
+                    if (p.length == 4 && p[0].equals(YogNames.TagTable.TAG)) {
                         TAGS.put(p[1] + " " + p[2], Set.of(p[3].split(",")));
-                    } else if (p.length >= 4 && p[0].equals(dev.yog.YogNames.Ns.YOG)) {
+                    } else if (p.length >= 4 && p[0].equals(YogNames.TagTable.YOG)) {
                         YOG.put(p[1] + " " + p[2], List.of(p).subList(3, p.length));
-                    } else if (p.length >= 4 && p[0].equals("base")) {
+                    } else if (p.length >= 4 && p[0].equals(YogNames.TagTable.BASE)) {
                         BASE.put(p[1] + " " + p[2], List.of(p).subList(3, p.length));
                     }
                 }
@@ -160,8 +162,8 @@ public final class YogTags {
 
     /** {@code data/<ns>/tags/<registry>/<path>.json} in this version's layout. */
     private static Path tagFile(Path pack, String registry, String id, boolean mc121) {
-        int colon = id.indexOf(':');
-        String rel = "data/" + id.substring(0, colon) + "/tags/" + registry + "/" + id.substring(colon + 1) + ".json";
+        int colon = id.indexOf(YogNames.Sep.NAMESPACE);
+        String rel = String.join(YogNames.Sep.PATH, YogNames.Pack.DATA, id.substring(0, colon), YogNames.Pack.TAGS, registry, id.substring(colon + 1)) + YogNames.Res.JSON;
         return pack.resolve(YogDataLayout.remapDataPath(rel, mc121));
     }
 }

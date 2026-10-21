@@ -35,8 +35,8 @@ public final class YogVersions {
                 if (line.startsWith("#") || line.isBlank()) continue;
                 String[] p = line.trim().split("\\s+");
                 if (p.length < 3) continue;
-                out.put("minecraft:" + p[1], "minecraft:" + p[2]);
-                out.put("minecraft:" + p[2], "minecraft:" + p[1]);
+                out.put(YogIds.join(dev.yog.YogNames.Ns.MINECRAFT, p[1]), YogIds.join(dev.yog.YogNames.Ns.MINECRAFT, p[2]));
+                out.put(YogIds.join(dev.yog.YogNames.Ns.MINECRAFT, p[2]), YogIds.join(dev.yog.YogNames.Ns.MINECRAFT, p[1]));
             }
         } catch (Exception e) {
             YogLog.warn("yog/renames.txt: " + e);

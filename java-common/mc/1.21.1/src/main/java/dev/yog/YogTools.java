@@ -136,7 +136,7 @@ public final class YogTools {
         @Override public float getAttackDamageBonus() { return m.attackDamage(); }
         @Override public TagKey<Block> getIncorrectBlocksForDrops() {
             ResourceLocation rl = ResourceLocation.tryParse(m.incorrect());
-            return TagKey.create(Registries.BLOCK, rl != null ? rl : ResourceLocation.tryParse("minecraft:incorrect_for_wooden_tool"));
+            return TagKey.create(Registries.BLOCK, rl != null ? rl : ResourceLocation.tryParse(dev.yog.YogNames.ToolTier.INCORRECT_FOR_WOODEN_TOOL));
         }
         @Override public int getEnchantmentValue() { return m.enchantability(); }
         @Override public Ingredient getRepairIngredient() { return repair(m.repair()); }

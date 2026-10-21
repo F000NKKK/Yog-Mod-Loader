@@ -220,6 +220,8 @@ names! {
         /// What a book is given to players as.
         WRITTEN_BOOK = crate::id!(crate::ns::MINECRAFT, "written_book"),
         BOOK = crate::id!(crate::ns::MINECRAFT, "book"),
+        /// What the game's attributes were named under before 1.21.2: `generic.max_health`.
+        OLD_ATTRIBUTE_PREFIX = crate::concatcp!("generic", crate::sep::EXT),
         /// The language every lang file falls back to, and a mod's texts are written in.
         LOCALE = "en_us",
     }

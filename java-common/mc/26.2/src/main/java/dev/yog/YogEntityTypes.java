@@ -96,7 +96,7 @@ public final class YogEntityTypes {
         for (Map.Entry<String, EntityType<?>> t : TYPES.entrySet()) {
             YogContent.Entity def = DEFS.get(t.getValue());
             if (def.spawnEgg() == null || !def.living()) continue;
-            Identifier id = Identifier.tryParse(def.id() + "_spawn_egg");
+            Identifier id = Identifier.tryParse(dev.yog.data.YogIds.spawnEgg(def.id()));
             if (id == null) continue;
             sink.register(Registries.ITEM, id,
                     new SpawnEggItem(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).spawnEgg(t.getValue())));
@@ -108,14 +108,8 @@ public final class YogEntityTypes {
         return TYPES.values();
     }
 
-    /** {@code max_health} → the game's {@code generic.max_health}; a full id stays. */
-    private static List<String> candidates(String name) {
-        if (name.contains(":")) return List.of(name);
-        return List.of("minecraft:" + name, "minecraft:generic." + name);
-    }
-
     private static void add(AttributeSupplier.Builder a, String name, double value) {
-        for (String id : candidates(name)) {
+        for (String id : dev.yog.data.YogIds.attributeCandidates(name)) {
             Identifier rl = Identifier.tryParse(id);
             var entry = rl == null ? java.util.Optional.<net.minecraft.core.Holder.Reference<Attribute>>empty() : BuiltInRegistries.ATTRIBUTE.get(rl);
             if (entry.isPresent()) {

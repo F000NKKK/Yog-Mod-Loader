@@ -61,6 +61,17 @@ names! {
         NEOFORGE_ADD_FEATURES = crate::id!(crate::loader::NEOFORGE, "add_features"),
     }
 
+    /// The tags table (yog-formats' `data/tags.txt`, copied for the hosts):
+    /// what its lines start with, and a tag every host has.
+    tag_table {
+        TAG = crate::kind::TAG,
+        YOG = crate::ns::YOG,
+        BASE = "base",
+        HAS = "has",
+        EVERYWHERE = "*",
+        LOADERS = "# loaders:",
+    }
+
     /// The game's advancements.
     advancement {
         /// How one is shown: a task, a goal, a challenge.
@@ -71,5 +82,10 @@ names! {
         IMPOSSIBLE = crate::id!(crate::ns::MINECRAFT, "impossible"),
         INVENTORY_CHANGED = crate::id!(crate::ns::MINECRAFT, "inventory_changed"),
         CONSUME_ITEM = crate::id!(crate::ns::MINECRAFT, "consume_item"),
+    }
+
+    /// The game's tool tiers' tags of what they can't mine; the weakest's.
+    tool_tier {
+        INCORRECT_FOR_WOODEN_TOOL = crate::id!(crate::ns::MINECRAFT, "incorrect_for_wooden_tool"),
     }
 }

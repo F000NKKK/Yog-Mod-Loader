@@ -31,12 +31,9 @@ struct Tags {
 
 /// The table's records: a tag and where it is, a `yog:` tag and the tags
 /// it is, what the game's content a `yog:` tag holds, what a loader's holds.
-const TAG: &str = "tag";
-const YOG: &str = "yog";
-const BASE: &str = "base";
-const HAS: &str = "has";
+use yog_ids::tag_table::{BASE, HAS, TAG, YOG};
 /// Where a tag is everywhere.
-const EVERYWHERE: &str = "*";
+use yog_ids::tag_table::EVERYWHERE;
 
 static TAGS: LazyLock<Tags> = LazyLock::new(|| {
     let mut loaders = Vec::new();
@@ -48,7 +45,7 @@ static TAGS: LazyLock<Tags> = LazyLock::new(|| {
         HashMap::new(),
     );
     for line in TABLE.lines() {
-        if let Some(l) = line.strip_prefix("# loaders:") {
+        if let Some(l) = line.strip_prefix(yog_ids::tag_table::LOADERS) {
             loaders = l.split_whitespace().map(str::to_string).collect();
         } else if let Some(h) = line.strip_prefix("# hosts:") {
             hosts = h.split_whitespace().map(str::to_string).collect();
