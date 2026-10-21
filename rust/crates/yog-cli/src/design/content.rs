@@ -3,13 +3,13 @@
 //! texture picker's list, vanilla/parent models for preview, and
 //! `yog import`.
 
-use yog_ids::Format;
-use crate::design::assets::{Resources};
+use crate::design::assets::Resources;
 use crate::design::project::mod_root;
 use base64::Engine as _;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
+use yog_ids::Format;
 
 /// The slots of a block model whose texture stands for it as an icon, best first.
 const ICON_SLOTS: [&str; 4] = [
@@ -23,7 +23,11 @@ const ICON_SLOTS: [&str; 4] = [
 /// The id a content file's texture names: `@texture:<ns>:<path>`, or an id
 /// (`<ns>:<path>`; a bare path is the game's).
 fn texture_id(texture: &str) -> String {
-    yog_ids::qualify(texture.strip_prefix(yog_ids::reference::TEXTURE).unwrap_or(texture))
+    yog_ids::qualify(
+        texture
+            .strip_prefix(yog_ids::reference::TEXTURE)
+            .unwrap_or(texture),
+    )
 }
 
 /// The png bytes of a texture as a content file names it: `@Set.name`,
@@ -44,7 +48,8 @@ fn texture_bytes(file: &Path, texture: &str) -> Result<Vec<u8>, String> {
             };
             let sheet = texture_file(file, &yog_gfx::image::short_source(&legacy.texture), "png")?;
             let r = legacy.region;
-            crop_png(&sheet, r.x as u32, r.y as u32, r.w as u32, r.h as u32).map_err(|e| format!("{original}; the older versions' sprite sheet: {e}"))
+            crop_png(&sheet, r.x as u32, r.y as u32, r.w as u32, r.h as u32)
+                .map_err(|e| format!("{original}; the older versions' sprite sheet: {e}"))
         }
     }
 }
@@ -52,7 +57,10 @@ fn texture_bytes(file: &Path, texture: &str) -> Result<Vec<u8>, String> {
 fn crop_png(bytes: &[u8], x: u32, y: u32, width: u32, height: u32) -> Result<Vec<u8>, String> {
     let image = crate::design::assets::decode_png(bytes).ok_or("invalid PNG")?;
     if x + width > image.width || y + height > image.height {
-        return Err(format!("crop {x},{y} {width}x{height} exceeds {}x{}", image.width, image.height));
+        return Err(format!(
+            "crop {x},{y} {width}x{height} exceeds {}x{}",
+            image.width, image.height
+        ));
     }
     let mut rgba = Vec::with_capacity((width * height * 4) as usize);
     for row in y..y + height {
@@ -76,7 +84,12 @@ fn texture_file(file: &Path, texture: &str, ext: &str) -> Result<Vec<u8>, String
     let (ns, path) = yog_ids::split(&id);
     Resources::for_mod(mod_root(file).as_deref())
         .read(ns, &format!("{}{path}.{ext}", yog_ids::res::TEXTURES))
-        .ok_or_else(|| format!("texture {id} not found (the mod's .{}, or the Minecraft client jar)", yog_ids::Format::Texture.ext()))
+        .ok_or_else(|| {
+            format!(
+                "texture {id} not found (the mod's .{}, or the Minecraft client jar)",
+                yog_ids::Format::Texture.ext()
+            )
+        })
 }
 
 /// The mod's `content/` file defining item or block `id` (`kind`:
@@ -89,10 +102,17 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
     }
     for format in formats {
         for file in crate::files::of(&root.join(yog_ids::project::CONTENT), *format) {
-            let Some(doc) = std::fs::read_to_string(&file).ok().and_then(|t| crate::design::data::read_object(&t)).map(Value::Object) else {
+            let Some(doc) = std::fs::read_to_string(&file)
+                .ok()
+                .and_then(|t| crate::design::data::read_object(&t))
+                .map(Value::Object)
+            else {
                 continue;
             };
-            let fid = doc.get(yog_ids::content_field::ID).and_then(Value::as_str).map(str::to_string)
+            let fid = doc
+                .get(yog_ids::content_field::ID)
+                .and_then(Value::as_str)
+                .map(str::to_string)
                 .or_else(|| file.file_stem().map(|s| s.to_string_lossy().into_owned()))?;
             if fid.split_once(':').map_or(fid.as_str(), |(_, p)| p) == want {
                 return Some((file, doc));
@@ -105,18 +125,35 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
 /// The textures of a content file's model (`field`) as the build takes them:
 /// its material's (`.ymaterial`) under its own, as `@texture:` text.
 fn model_textures(root: &Path, doc: &Value, field: &str) -> serde_json::Map<String, Value> {
-    let Some(model) = doc.get(field) else { return serde_json::Map::new() };
-    let read = yog_data::read_value::<yog_formats::content::Model>(&yog_data::json::from_json(model));
+    let Some(model) = doc.get(field) else {
+        return serde_json::Map::new();
+    };
+    let read =
+        yog_data::read_value::<yog_formats::content::Model>(&yog_data::json::from_json(model));
     let (Ok(mut model), Some(ns)) = (read, crate::design::project::mod_id(root)) else {
         // Not a model the build would take: its textures as written.
-        return model.get(yog_ids::model::TEXTURES).and_then(Value::as_object).cloned().unwrap_or_default();
+        return model
+            .get(yog_ids::model::TEXTURES)
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default();
     };
     if let Some(material) = model.material.clone()
         && let Ok(m) = crate::content::material::load(root, &ns, &material)
     {
         crate::content::material::apply(&mut model, &m);
     }
-    model.textures.0.iter().map(|(slot, t)| (slot.clone(), yog_data::json::to_json(&yog_data::Schema::write(t)))).collect()
+    model
+        .textures
+        .0
+        .iter()
+        .map(|(slot, t)| {
+            (
+                slot.clone(),
+                yog_data::json::to_json(&yog_data::Schema::write(t)),
+            )
+        })
+        .collect()
 }
 
 /// The textures of the mod's block `id` (its `.yblock` model's), per face:
@@ -142,12 +179,23 @@ pub type BlockModel = (Vec<Value>, std::collections::HashMap<String, Vec<u8>>);
 /// block of the mod, or its model has no elements of its own.
 pub fn content_block_model(root: &Path, id: &str) -> Option<BlockModel> {
     let (file, doc) = content_file(root, id, &[Format::Block])?;
-    let elements = match super::data::at(&doc, &[yog_ids::content_field::MODEL, yog_ids::model::ELEMENTS]).and_then(Value::as_array) {
+    let elements = match super::data::at(
+        &doc,
+        &[yog_ids::content_field::MODEL, yog_ids::model::ELEMENTS],
+    )
+    .and_then(Value::as_array)
+    {
         Some(elements) => elements.clone(),
-        None if doc.get(yog_ids::content_field::KIND).and_then(Value::as_str) == Some("stairs") => vec![
-            stair_element([0, 0, 0], [16, 8, 16]),
-            stair_element([0, 8, 8], [16, 16, 16]),
-        ],
+        None if doc
+            .get(yog_ids::content_field::KIND)
+            .and_then(Value::as_str)
+            == Some("stairs") =>
+        {
+            vec![
+                stair_element([0, 0, 0], [16, 8, 16]),
+                stair_element([0, 8, 8], [16, 16, 16]),
+            ]
+        }
         None => return None,
     };
     let textures = model_textures(root, &doc, yog_ids::content_field::MODEL)
@@ -209,11 +257,22 @@ pub fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u
 }
 
 fn potion_effect_color(root: &Path, item: &Value) -> Option<u32> {
-    let effects = super::data::at(item, &[yog_ids::content_field::ITEM, yog_ids::content_field::POTION, yog_ids::content_field::EFFECTS])?.as_array()?;
+    let effects = super::data::at(
+        item,
+        &[
+            yog_ids::content_field::ITEM,
+            yog_ids::content_field::POTION,
+            yog_ids::content_field::EFFECTS,
+        ],
+    )?
+    .as_array()?;
     let mut channels = [0u64; 3];
     let mut count = 0u64;
     for effect in effects {
-        let Some(id) = effect.get(yog_ids::content_field::EFFECT).and_then(Value::as_str) else {
+        let Some(id) = effect
+            .get(yog_ids::content_field::EFFECT)
+            .and_then(Value::as_str)
+        else {
             continue;
         };
         let Some(color) = content_effect_color(root, id) else {
@@ -278,13 +337,27 @@ pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
     if want_ns != ns {
         return None;
     }
-    let files = [crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Item), crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Block)].concat();
+    let files = [
+        crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Item),
+        crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Block),
+    ]
+    .concat();
     for file in files {
-        let Ok(text) = std::fs::read_to_string(&file) else { continue };
-        let Some(doc) = crate::design::data::read_object(&text).map(Value::Object) else { continue };
-        let fid = doc.get(yog_ids::content_field::ID).and_then(Value::as_str).map(str::to_string)
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        let Some(doc) = crate::design::data::read_object(&text).map(Value::Object) else {
+            continue;
+        };
+        let fid = doc
+            .get(yog_ids::content_field::ID)
+            .and_then(Value::as_str)
+            .map(str::to_string)
             .or_else(|| file.file_stem().map(|s| s.to_string_lossy().into_owned()))?;
-        let fid = fid.split_once(':').map_or(fid.as_str(), |(_, p)| p).to_string();
+        let fid = fid
+            .split_once(':')
+            .map_or(fid.as_str(), |(_, p)| p)
+            .to_string();
         if fid != want {
             continue;
         }
@@ -349,15 +422,28 @@ impl Animation {
         }
         let frame_time = a.frame_time().max(1);
         let frames = if a.frames.is_empty() {
-            (0..count).map(|index| AnimationFrame { index, time: frame_time }).collect()
+            (0..count)
+                .map(|index| AnimationFrame {
+                    index,
+                    time: frame_time,
+                })
+                .collect()
         } else {
             a.frames
                 .iter()
                 .filter(|f| f.index < count)
-                .map(|f| AnimationFrame { index: f.index, time: f.time.map_or(frame_time, |t| t.max(1)) })
+                .map(|f| AnimationFrame {
+                    index: f.index,
+                    time: f.time.map_or(frame_time, |t| t.max(1)),
+                })
                 .collect()
         };
-        Some(Animation { frame_width: fw, frame_height: fh, frames, interpolate: a.interpolate })
+        Some(Animation {
+            frame_width: fw,
+            frame_height: fh,
+            frames,
+            interpolate: a.interpolate,
+        })
     }
 
     /// It as a `.ytexture` keeps it, for a `size` image: every frame listed with its time.
@@ -366,7 +452,14 @@ impl Animation {
         yog_formats::texture::Animation {
             frame_time: None,
             interpolate: self.interpolate,
-            frames: self.frames.iter().map(|f| yog_formats::texture::Frame { index: f.index, time: Some(f.time) }).collect(),
+            frames: self
+                .frames
+                .iter()
+                .map(|f| yog_formats::texture::Frame {
+                    index: f.index,
+                    time: Some(f.time),
+                })
+                .collect(),
             width: (self.frame_width != side).then_some(self.frame_width),
             height: (self.frame_height != side).then_some(self.frame_height),
         }
@@ -375,7 +468,11 @@ impl Animation {
 
 /// Sets the animation of texture `texture` of the mod (`None`: still) in
 /// its `.ytexture`; the file written.
-pub fn write_animation(file: &Path, texture: &str, animation: Option<&Animation>) -> Result<PathBuf, String> {
+pub fn write_animation(
+    file: &Path,
+    texture: &str,
+    animation: Option<&Animation>,
+) -> Result<PathBuf, String> {
     let root = mod_root(file).ok_or("not in a mod")?;
     let id = texture_id(texture);
     let animation = match animation {
@@ -427,7 +524,8 @@ pub fn write_texture(file: &Path, texture: &str, png: Vec<u8>) -> Result<PathBuf
     if image_size(&png).is_none() {
         return Err("not a PNG image".into());
     }
-    let (root, id) = own_texture(file, texture).ok_or_else(|| format!("{texture} isn't a texture of this mod"))?;
+    let (root, id) = own_texture(file, texture)
+        .ok_or_else(|| format!("{texture} isn't a texture of this mod"))?;
     crate::media::save_texture_picture(&root, &id, png)
 }
 
@@ -481,22 +579,48 @@ pub fn strings(file: &Path) -> Vec<String> {
 
 /// What a `.ydef` reference offers: the game's built-ins by short name,
 /// then the mod's own definitions of `kind` as `@<kind>:` refs.
-fn definitions(file: &Path, kind: &str, built_ins: impl IntoIterator<Item = String>) -> Vec<String> {
-    let mut out: Vec<String> = built_ins.into_iter().map(|id| id.trim_start_matches(&format!("{}{}", yog_ids::ns::MINECRAFT, yog_ids::sep::NAMESPACE)).to_string()).collect();
+fn definitions(
+    file: &Path,
+    kind: &str,
+    built_ins: impl IntoIterator<Item = String>,
+) -> Vec<String> {
+    let mut out: Vec<String> = built_ins
+        .into_iter()
+        .map(|id| {
+            id.trim_start_matches(&format!(
+                "{}{}",
+                yog_ids::ns::MINECRAFT,
+                yog_ids::sep::NAMESPACE
+            ))
+            .to_string()
+        })
+        .collect();
     let Some(root) = mod_root(file) else {
         return out;
     };
     let ns = crate::design::project::mod_id(&root).unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
     let mut own = Vec::new();
     for p in crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Def) {
-        let Some(doc) = std::fs::read_to_string(&p).ok().and_then(|t| crate::design::data::read_object(&t)) else {
+        let Some(doc) = std::fs::read_to_string(&p)
+            .ok()
+            .and_then(|t| crate::design::data::read_object(&t))
+        else {
             continue;
         };
-        if doc.get(yog_ids::content_field::KIND).and_then(Value::as_str) != Some(kind) {
+        if doc
+            .get(yog_ids::content_field::KIND)
+            .and_then(Value::as_str)
+            != Some(kind)
+        {
             continue;
         }
         if let Some(id) = doc.get(yog_ids::content_field::ID).and_then(Value::as_str) {
-            own.push(format!("{}{kind}{}{}", yog_ids::sep::TYPED, yog_ids::sep::NAMESPACE, yog_ids::qualify_in(&ns, id)));
+            own.push(format!(
+                "{}{kind}{}{}",
+                yog_ids::sep::TYPED,
+                yog_ids::sep::NAMESPACE,
+                yog_ids::qualify_in(&ns, id)
+            ));
         }
     }
     own.sort();
@@ -506,17 +630,35 @@ fn definitions(file: &Path, kind: &str, built_ins: impl IntoIterator<Item = Stri
 
 /// What a block's `sound` offers: the game's sound groups, then the mod's.
 pub fn sound_groups(file: &Path) -> Vec<String> {
-    definitions(file, "sound_group", yog_formats::def::SoundGroup::built_ins().iter().map(|g| g.id.clone()))
+    definitions(
+        file,
+        "sound_group",
+        yog_formats::def::SoundGroup::built_ins()
+            .iter()
+            .map(|g| g.id.clone()),
+    )
 }
 
 /// What a tool's `material` offers: the game's, then the mod's.
 pub fn tool_materials(file: &Path) -> Vec<String> {
-    definitions(file, "tool_material", yog_formats::def::ToolMaterial::built_ins().iter().map(|m| m.id.clone()))
+    definitions(
+        file,
+        "tool_material",
+        yog_formats::def::ToolMaterial::built_ins()
+            .iter()
+            .map(|m| m.id.clone()),
+    )
 }
 
 /// What an armor piece's `material` offers: the game's, then the mod's.
 pub fn armor_materials(file: &Path) -> Vec<String> {
-    definitions(file, "armor_material", yog_formats::def::ArmorMaterial::built_ins().iter().map(|m| m.id.clone()))
+    definitions(
+        file,
+        "armor_material",
+        yog_formats::def::ArmorMaterial::built_ins()
+            .iter()
+            .map(|m| m.id.clone()),
+    )
 }
 
 /// What a `tags` list of content in `registry` (`item`, `block`) offers:
@@ -526,10 +668,20 @@ pub fn tags(file: &Path, registry: &str) -> Vec<String> {
     let mut out = Vec::new();
     if let Some(root) = mod_root(file) {
         let ns = crate::design::project::mod_id(&root).unwrap_or_default();
-        let listed = crate::content::read_tags(&root).remove(registry).unwrap_or_default();
-        out.extend(listed.into_keys().filter_map(|t| t.strip_prefix(&format!("{ns}:")).map(str::to_string)));
+        let listed = crate::content::read_tags(&root)
+            .remove(registry)
+            .unwrap_or_default();
+        out.extend(
+            listed
+                .into_keys()
+                .filter_map(|t| t.strip_prefix(&format!("{ns}:")).map(str::to_string)),
+        );
     }
-    out.extend(yog_formats::tags::yog_tags(registry).into_iter().map(|(p, _)| format!("yog:{p}")));
+    out.extend(
+        yog_formats::tags::yog_tags(registry)
+            .into_iter()
+            .map(|(p, _)| format!("yog:{p}")),
+    );
     out
 }
 
@@ -538,19 +690,37 @@ pub fn textures(file: &Path) -> Vec<TextureChoice> {
     let mut out = Vec::new();
     let root = mod_root(file);
     if let Some(root) = &root {
-        out.extend(crate::media::textures(root).into_iter().map(|t| TextureChoice {
-            value: format!("{}{}", yog_ids::reference::TEXTURE, t.id),
-            group: "Mod textures",
-        }));
+        out.extend(
+            crate::media::textures(root)
+                .into_iter()
+                .map(|t| TextureChoice {
+                    value: format!("{}{}", yog_ids::reference::TEXTURE, t.id),
+                    group: "Mod textures",
+                }),
+        );
     }
     if let Some(v) = Resources::for_mod(root.as_deref()).vanilla {
         let (items, blocks) = v.texture_names();
         out.extend(blocks.into_iter().map(|b| TextureChoice {
-            value: format!("{}{}", yog_ids::reference::TEXTURE, yog_ids::join(yog_ids::ns::MINECRAFT, &format!("{}{b}", yog_ids::res::BLOCK_DIR))),
+            value: format!(
+                "{}{}",
+                yog_ids::reference::TEXTURE,
+                yog_ids::join(
+                    yog_ids::ns::MINECRAFT,
+                    &format!("{}{b}", yog_ids::res::BLOCK_DIR)
+                )
+            ),
             group: "Minecraft blocks",
         }));
         out.extend(items.into_iter().map(|i| TextureChoice {
-            value: format!("{}{}", yog_ids::reference::TEXTURE, yog_ids::join(yog_ids::ns::MINECRAFT, &format!("{}{i}", yog_ids::res::ITEM_DIR))),
+            value: format!(
+                "{}{}",
+                yog_ids::reference::TEXTURE,
+                yog_ids::join(
+                    yog_ids::ns::MINECRAFT,
+                    &format!("{}{i}", yog_ids::res::ITEM_DIR)
+                )
+            ),
             group: "Minecraft items",
         }));
     }
@@ -595,7 +765,10 @@ pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
             Some(p) => {
                 let full = yog_ids::qualify(p);
                 // A sprite's parent (`item/generated`): where the model ends.
-                if crate::content::TEMPLATES.iter().any(|t| t.sprite && t.parent == full) {
+                if crate::content::TEMPLATES
+                    .iter()
+                    .any(|t| t.sprite && t.parent == full)
+                {
                     root_parent = Some(full.clone());
                 }
                 current = full;
@@ -664,16 +837,33 @@ mod tests {
         let a = Animation::read(meta, (16, 64)).unwrap();
         assert_eq!((a.frame_width, a.frame_height), (16, 16));
         // Frame 7 is past the four the image holds.
-        assert_eq!(a.frames, vec![AnimationFrame { index: 0, time: 3 }, AnimationFrame { index: 2, time: 10 }]);
+        assert_eq!(
+            a.frames,
+            vec![
+                AnimationFrame { index: 0, time: 3 },
+                AnimationFrame { index: 2, time: 10 }
+            ]
+        );
         assert!(!a.interpolate);
         let all = Animation::read(r#"{"animation":{}}"#, (16, 48)).unwrap();
-        assert_eq!(all.frames.iter().map(|f| f.index).collect::<Vec<_>>(), vec![0, 1, 2]);
+        assert_eq!(
+            all.frames.iter().map(|f| f.index).collect::<Vec<_>>(),
+            vec![0, 1, 2]
+        );
         assert!(Animation::read("{}", (16, 16)).is_none());
     }
 
     #[test]
     fn animation_round_trips() {
-        let a = Animation { frame_width: 16, frame_height: 16, frames: vec![AnimationFrame { index: 1, time: 4 }, AnimationFrame { index: 0, time: 1 }], interpolate: true };
+        let a = Animation {
+            frame_width: 16,
+            frame_height: 16,
+            frames: vec![
+                AnimationFrame { index: 1, time: 4 },
+                AnimationFrame { index: 0, time: 1 },
+            ],
+            interpolate: true,
+        };
         assert_eq!(Animation::of(&a.to_format((16, 32)), (16, 32)), Some(a));
     }
 
@@ -695,11 +885,22 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("content")).unwrap();
         std::fs::write(dir.join("yog.toml"), "[mod]\nid = \"mymod\"\n").unwrap();
-        std::fs::write(dir.join("content/crystal.ydef"), r#"{ kind: "sound_group", id: "crystal" }"#).unwrap();
-        std::fs::write(dir.join("content/mythril.ydef"), r#"{ kind: "level", id: "mythril" }"#).unwrap();
+        std::fs::write(
+            dir.join("content/crystal.ydef"),
+            r#"{ kind: "sound_group", id: "crystal" }"#,
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("content/mythril.ydef"),
+            r#"{ kind: "level", id: "mythril" }"#,
+        )
+        .unwrap();
         let all = sound_groups(&dir.join("content/ore.yblock"));
         assert!(all.contains(&"stone".to_string()) && all.contains(&"amethyst".to_string()));
-        assert_eq!(all.last().map(String::as_str), Some("@sound_group:mymod:crystal"));
+        assert_eq!(
+            all.last().map(String::as_str),
+            Some("@sound_group:mymod:crystal")
+        );
         assert!(!all.iter().any(|s| s.contains("mythril")));
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -710,13 +911,30 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("content")).unwrap();
         std::fs::write(dir.join("yog.toml"), "[mod]\nid = \"mymod\"\n").unwrap();
-        let png = yog_media::image::encode_png(&yog_media::image::Image { width: 1, height: 1, rgba: vec![1, 2, 3, 255] }).unwrap();
+        let png = yog_media::image::encode_png(&yog_media::image::Image {
+            width: 1,
+            height: 1,
+            rgba: vec![1, 2, 3, 255],
+        })
+        .unwrap();
         let file = dir.join("content/ruby.yblock");
         // Painting a new texture of the mod makes its picture and .ytexture.
-        assert_eq!(own_texture(&file, "@texture:mymod:block/ruby").map(|(_, id)| id).as_deref(), Some("mymod:block/ruby"));
+        assert_eq!(
+            own_texture(&file, "@texture:mymod:block/ruby")
+                .map(|(_, id)| id)
+                .as_deref(),
+            Some("mymod:block/ruby")
+        );
         write_texture(&file, "@texture:mymod:block/ruby", png.clone()).unwrap();
-        assert_eq!(texture_bytes(&file, "@texture:mymod:block/ruby").unwrap(), png);
-        assert!(textures(&file).iter().any(|c| c.value == "@texture:mymod:block/ruby"));
+        assert_eq!(
+            texture_bytes(&file, "@texture:mymod:block/ruby").unwrap(),
+            png
+        );
+        assert!(
+            textures(&file)
+                .iter()
+                .any(|c| c.value == "@texture:mymod:block/ruby")
+        );
         assert_eq!(own_texture(&file, "@texture:minecraft:item/apple"), None);
         assert_eq!(own_texture(&file, "#layer0"), None);
         let _ = std::fs::remove_dir_all(dir);
@@ -746,7 +964,10 @@ mod tests {
             Some("minecraft:item/potion")
         );
         assert_eq!(color, Some(0x123456));
-        assert_eq!(item_potion_color(&dir.join("content/items/potion.yitem")), Some(0x123456));
+        assert_eq!(
+            item_potion_color(&dir.join("content/items/potion.yitem")),
+            Some(0x123456)
+        );
         let _ = std::fs::remove_dir_all(dir);
     }
 

@@ -3,13 +3,13 @@
 //! build` emits (yog-cli `yui.rs`), made directly instead of as source —
 //! wrapped like the generated `root_with` (the screen panel, anchored).
 
-use yog_ui::attr::Attr;
 use crate::yui_resources::{Entry, Resources, local_name};
 use std::collections::HashMap;
+use yog_ui::attr::Attr;
 
 use serde::Deserialize;
-use yog_ui::widget::{self, Widget};
 use yog_ui::layout::Align;
+use yog_ui::widget::{self, Widget};
 use yog_ui::{FlexDir, Track, Units};
 
 use crate::yui::Anchor;
@@ -31,7 +31,14 @@ impl YuiNode {
     }
 }
 
-const CONTAINERS: &[&str] = &[yog_ids::yui::SCREEN, yog_ids::yui::CANVAS, yog_ids::yui::COLUMN, yog_ids::yui::ROW, yog_ids::yui::SCROLL_VIEW, yog_ids::yui::GRID];
+const CONTAINERS: &[&str] = &[
+    yog_ids::yui::SCREEN,
+    yog_ids::yui::CANVAS,
+    yog_ids::yui::COLUMN,
+    yog_ids::yui::ROW,
+    yog_ids::yui::SCROLL_VIEW,
+    yog_ids::yui::GRID,
+];
 
 pub fn is_container(kind: &str) -> bool {
     CONTAINERS.contains(&kind)
@@ -142,7 +149,11 @@ pub fn text(value: Option<&str>) -> String {
 /// `ListView` → `ScrollView`, `ItemsControl`/`ContentPresenter` → a column
 /// or row). Unknown names are left as they are (`yog check` reports them).
 pub fn apply_resources(root: &mut YuiNode) {
-    let read = match root.children.iter().find(|c| c.kind.ends_with(yog_ids::yui_markup::RESOURCES)) {
+    let read = match root
+        .children
+        .iter()
+        .find(|c| c.kind.ends_with(yog_ids::yui_markup::RESOURCES))
+    {
         // The designer shows what it can: problems are `yog check`'s to report.
         Some(res) => Resources::read(&res.children.iter().map(entry).collect::<Vec<_>>()),
         None => Resources::default(),
@@ -153,9 +164,17 @@ pub fn apply_resources(root: &mut YuiNode) {
 /// A resources' element as [`Resources::read`] takes it: its attributes in
 /// name order (a map has none of its own).
 fn entry(n: &YuiNode) -> Entry<'_> {
-    let mut attrs: Vec<(&str, &str)> = n.attrs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    let mut attrs: Vec<(&str, &str)> = n
+        .attrs
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.as_str()))
+        .collect();
     attrs.sort();
-    Entry { kind: &n.kind, line: 0, attrs }
+    Entry {
+        kind: &n.kind,
+        line: 0,
+        attrs,
+    }
 }
 
 /// `n` and its children with the resources applied, bound values as their
@@ -165,9 +184,15 @@ fn resolve(n: &mut YuiNode, res: &Resources) {
     // Bound values are the game's to compute: in the designer an attribute
     // shows its design-time value (`d:text="Sample"`), else none — as if
     // unset (a text box shows its placeholder).
-    let design: Vec<(String, String)> =
-        n.attrs.iter().filter_map(|(k, v)| Some((k.strip_prefix(DESIGN)?.to_string(), v.clone()))).collect();
-    n.attrs.retain(|k, v| !k.starts_with(DESIGN) && !(v.trim_start().starts_with(BIND) || v.trim_start().starts_with(BINDING)));
+    let design: Vec<(String, String)> = n
+        .attrs
+        .iter()
+        .filter_map(|(k, v)| Some((k.strip_prefix(DESIGN)?.to_string(), v.clone())))
+        .collect();
+    n.attrs.retain(|k, v| {
+        !k.starts_with(DESIGN)
+            && !(v.trim_start().starts_with(BIND) || v.trim_start().starts_with(BINDING))
+    });
     n.attrs.extend(design);
     for v in n.attrs.values_mut() {
         if let Some(r) = local_name(v).and_then(|name| res.values.get(name)) {
@@ -175,7 +200,9 @@ fn resolve(n: &mut YuiNode, res: &Resources) {
         }
     }
     if let Some(name) = n.attrs.remove(yog_ids::yui_attr::STYLE)
-        && let Some(attrs) = res.styles.get(name.trim().trim_start_matches(yog_ids::sep::TYPED))
+        && let Some(attrs) = res
+            .styles
+            .get(name.trim().trim_start_matches(yog_ids::sep::TYPED))
     {
         for (k, v) in attrs {
             n.attrs.entry(k.clone()).or_insert_with(|| v.clone());
@@ -194,7 +221,9 @@ fn resolve(n: &mut YuiNode, res: &Resources) {
 /// → `ScrollView`, `ItemsControl`/`ContentPresenter` → a column or row.
 fn as_widget(n: &YuiNode) -> &str {
     use yog_ids::yui;
-    let horizontal = n.attr(yog_ids::yui_attr::ORIENTATION).is_some_and(|o| o.trim() == HORIZONTAL);
+    let horizontal = n
+        .attr(yog_ids::yui_attr::ORIENTATION)
+        .is_some_and(|o| o.trim() == HORIZONTAL);
     match n.kind.as_str() {
         yui::TOGGLE_BUTTON => yui::BUTTON,
         yui::LIST_VIEW => yui::SCROLL_VIEW,
@@ -210,7 +239,10 @@ const HORIZONTAL: &str = "horizontal";
 /// `<Screen theme>`'s defaults on every node that doesn't set the attribute
 /// itself — as `yog build` applies them.
 pub fn apply_theme(root: &mut YuiNode) {
-    let Some(theme) = root.attr(yog_ids::yui_attr::THEME).and_then(yog_ui::theme::Theme::builtin) else {
+    let Some(theme) = root
+        .attr(yog_ids::yui_attr::THEME)
+        .and_then(yog_ui::theme::Theme::builtin)
+    else {
         return;
     };
     fn walk(n: &mut YuiNode, theme: &yog_ui::theme::Theme) {
@@ -245,7 +277,10 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
         w = w.scroll_y(*offset);
     }
     if is_container(&node.kind) {
-        let canvas = matches!(node.kind.as_str(), yog_ids::yui::SCREEN | yog_ids::yui::CANVAS);
+        let canvas = matches!(
+            node.kind.as_str(),
+            yog_ids::yui::SCREEN | yog_ids::yui::CANVAS
+        );
         for child in widget_children(node) {
             w = w.child(widget(child, canvas, scroll));
         }
@@ -257,22 +292,34 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
 fn of_kind(node: &YuiNode) -> Widget {
     let a = |k: &str| node.attr(k);
     match node.kind.as_str() {
-        yog_ids::yui::SCREEN | yog_ids::yui::CANVAS | yog_ids::yui::COLUMN => widget::panel(FlexDir::Column),
+        yog_ids::yui::SCREEN | yog_ids::yui::CANVAS | yog_ids::yui::COLUMN => {
+            widget::panel(FlexDir::Column)
+        }
         yog_ids::yui::ROW => widget::panel(FlexDir::Row),
         yog_ids::yui::GRID => widget::grid(),
         yog_ids::yui::SCROLL_VIEW => widget::scroll_view(),
         yog_ids::yui::LABEL => widget::label(text(a(yog_ids::yui_attr::TEXT))),
         yog_ids::yui::BUTTON => widget::button(text(a(yog_ids::yui_attr::TEXT))),
-        yog_ids::yui::ITEM_SLOT => widget::item_slot(a(yog_ids::yui_attr::ITEM).unwrap_or_default()),
+        yog_ids::yui::ITEM_SLOT => {
+            widget::item_slot(a(yog_ids::yui_attr::ITEM).unwrap_or_default())
+        }
         // A recipe layout's places (yog_formats::book::layout): a slot showing the
         // design-time sample (`d:item`), the count `d:text` or 2.
-        yog_ids::yui::RECIPE_SLOT | yog_ids::yui::RECIPE_RESULT => widget::item_slot(a(yog_ids::yui_attr::ITEM).unwrap_or_default()),
+        yog_ids::yui::RECIPE_SLOT | yog_ids::yui::RECIPE_RESULT => {
+            widget::item_slot(a(yog_ids::yui_attr::ITEM).unwrap_or_default())
+        }
         yog_ids::yui::RECIPE_COUNT => widget::label(a(yog_ids::yui_attr::TEXT).unwrap_or("2")),
         yog_ids::yui::INV_SLOT => widget::inv_slot(
             a(yog_ids::yui_attr::ITEM).unwrap_or_default(),
-            a(yog_ids::yui_attr::COUNT).and_then(|c| c.trim().parse().ok()).unwrap_or(1),
+            a(yog_ids::yui_attr::COUNT)
+                .and_then(|c| c.trim().parse().ok())
+                .unwrap_or(1),
         ),
-        yog_ids::yui::SLOT => widget::slot(a(yog_ids::yui_attr::INDEX).and_then(|i| i.trim().parse().ok()).unwrap_or(0)),
+        yog_ids::yui::SLOT => widget::slot(
+            a(yog_ids::yui_attr::INDEX)
+                .and_then(|i| i.trim().parse().ok())
+                .unwrap_or(0),
+        ),
         yog_ids::yui::PLAYER_INVENTORY => widget::player_inventory(),
         yog_ids::yui::IMAGE => super::images::widget(node),
         // Drawn by the mod's code in game: an empty box here.
@@ -307,7 +354,10 @@ fn grid_and_cell(mut w: Widget, node: &YuiNode) -> Widget {
             w = w.col_spacing(n);
         }
     }
-    let (row, col) = (cell_index(a(yog_ids::yui_attr::GRID_ROW)), cell_index(a(yog_ids::yui_attr::GRID_COLUMN)));
+    let (row, col) = (
+        cell_index(a(yog_ids::yui_attr::GRID_ROW)),
+        cell_index(a(yog_ids::yui_attr::GRID_COLUMN)),
+    );
     if row.is_some() || col.is_some() {
         w = w.cell(row.unwrap_or(0), col.unwrap_or(0));
     }
@@ -361,9 +411,18 @@ pub fn screen(
         Align::End => screen - size,
     };
     let content = match Anchor::of(root.attr(yog_ids::yui_attr::ANCHOR)) {
-        Some(Anchor::Fill) => content.w(Units::Percent(WHOLE)).h(Units::Percent(WHOLE)).at(0.0, 0.0),
-        Some(Anchor::At(h, v)) => content.at(at(h, screen_w, width).max(0.0), at(v, screen_h, height).max(0.0)),
-        None => content.at(at(Align::Center, screen_w, width).max(0.0), at(Align::Center, screen_h, height).max(0.0)),
+        Some(Anchor::Fill) => content
+            .w(Units::Percent(WHOLE))
+            .h(Units::Percent(WHOLE))
+            .at(0.0, 0.0),
+        Some(Anchor::At(h, v)) => content.at(
+            at(h, screen_w, width).max(0.0),
+            at(v, screen_h, height).max(0.0),
+        ),
+        None => content.at(
+            at(Align::Center, screen_w, width).max(0.0),
+            at(Align::Center, screen_h, height).max(0.0),
+        ),
     };
     widget::panel(FlexDir::Column)
         .w(Units::Px(screen_w))
@@ -379,7 +438,10 @@ mod tests {
         YuiNode {
             uid: kind.into(),
             kind: kind.into(),
-            attrs: attrs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
+            attrs: attrs
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
             children,
         }
     }
@@ -394,13 +456,43 @@ mod tests {
                     yog_ids::yui_vm::SCREEN_RESOURCES,
                     &[],
                     vec![
-                        node("Color", &[("x:Key", "Accent"), ("value", "#FF112233")], vec![]),
-                        node("Style", &[("x:Key", "Base"), ("target", "Button"), ("h", "16")], vec![]),
-                        node("Style", &[("x:Key", "Filter"), ("based_on", "@Base"), ("w", "58"), ("color", "@Accent")], vec![]),
+                        node(
+                            "Color",
+                            &[("x:Key", "Accent"), ("value", "#FF112233")],
+                            vec![],
+                        ),
+                        node(
+                            "Style",
+                            &[("x:Key", "Base"), ("target", "Button"), ("h", "16")],
+                            vec![],
+                        ),
+                        node(
+                            "Style",
+                            &[
+                                ("x:Key", "Filter"),
+                                ("based_on", "@Base"),
+                                ("w", "58"),
+                                ("color", "@Accent"),
+                            ],
+                            vec![],
+                        ),
                     ],
                 ),
-                node("ToggleButton", &[("style", "@Filter"), ("w", "64"), ("text", "{x:Bind label()}"), ("d:text", "Yog")], vec![]),
-                node("TextBox", &[("text", "{x:Bind search, Mode=TwoWay}")], vec![]),
+                node(
+                    "ToggleButton",
+                    &[
+                        ("style", "@Filter"),
+                        ("w", "64"),
+                        ("text", "{x:Bind label()}"),
+                        ("d:text", "Yog"),
+                    ],
+                    vec![],
+                ),
+                node(
+                    "TextBox",
+                    &[("text", "{x:Bind search, Mode=TwoWay}")],
+                    vec![],
+                ),
             ],
         );
         apply_resources(&mut root);
@@ -410,6 +502,10 @@ mod tests {
         assert_eq!(b.attr("h"), Some("16"), "from the base style");
         assert_eq!(b.attr("color"), Some("#FF112233"));
         assert_eq!(b.attr("text"), Some("Yog"), "the design-time value");
-        assert_eq!(root.children[2].attr("text"), None, "a bound value shows nothing");
+        assert_eq!(
+            root.children[2].attr("text"),
+            None,
+            "a bound value shows nothing"
+        );
     }
 }

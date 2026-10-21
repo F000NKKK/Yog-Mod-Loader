@@ -3,8 +3,12 @@
 //! watch expression. Follows the same Rust-aware layout rules as the eager
 //! formatter — std wrappers seen through, enums as their active variant,
 //! `Vec`s and slices as their elements, smart pointers dereferenceable.
-use super::{ARC, AttributeValue, BOX, Die, FAT_DATA, FAT_LEN, Formatter, Member, NON_NULL, ONCE_CELL, ONCE_LOCK, Off, PHANTOM_DATA, PHANTOM_PINNED, PIN, PTR_SIZE, Place, RC, SOME, STRING, TRANSPARENT_WRAPPERS, TUPLE_FIELD, UNIQUE, VEC, VariantPick, field_label, generic_base, is_tuple, short_type_name};
-
+use super::{
+    ARC, AttributeValue, BOX, Die, FAT_DATA, FAT_LEN, Formatter, Member, NON_NULL, ONCE_CELL,
+    ONCE_LOCK, Off, PHANTOM_DATA, PHANTOM_PINNED, PIN, PTR_SIZE, Place, RC, SOME, STRING,
+    TRANSPARENT_WRAPPERS, TUPLE_FIELD, UNIQUE, VEC, VariantPick, field_label, generic_base,
+    is_tuple, short_type_name,
+};
 
 /// A value somewhere in the stopped target: where its bytes are, its type,
 /// the row name a variables view shows for it, and an expression that

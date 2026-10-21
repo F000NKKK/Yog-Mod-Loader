@@ -32,7 +32,11 @@ pub struct SlotLayout {
 impl SlotLayout {
     /// A slot at `(x, y)` taking anything.
     pub fn at(x: f32, y: f32) -> Self {
-        Self { x, y, accepts: Vec::new() }
+        Self {
+            x,
+            y,
+            accepts: Vec::new(),
+        }
     }
 }
 
@@ -219,7 +223,12 @@ pub fn decode_layout(s: &str) -> Vec<SlotLayout> {
             let (x, y) = (parts.next()?, parts.next()?);
             let accepts = parts
                 .next()
-                .map(|a| a.split('|').filter(|s| !s.is_empty()).map(str::to_owned).collect())
+                .map(|a| {
+                    a.split('|')
+                        .filter(|s| !s.is_empty())
+                        .map(str::to_owned)
+                        .collect()
+                })
                 .unwrap_or_default();
             Some(SlotLayout {
                 x: x.parse().ok()?,
@@ -368,10 +377,7 @@ mod tests {
         assert_eq!(encode_layout(&l), "1.5:2,30:4:minecraft:redstone|#c:dusts");
         assert_eq!(decode_layout(&encode_layout(&l)), l);
         assert!(decode_layout("").is_empty());
-        assert_eq!(
-            decode_layout("1:2,bad,3"),
-            vec![SlotLayout::at(1.0, 2.0)]
-        );
+        assert_eq!(decode_layout("1:2,bad,3"), vec![SlotLayout::at(1.0, 2.0)]);
     }
 
     #[test]

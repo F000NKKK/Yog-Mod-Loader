@@ -5,8 +5,8 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use yog_sync::{Arc, Mutex, OnceLock};
 use std::time::SystemTime;
+use yog_sync::{Arc, Mutex, OnceLock};
 
 use yog_data::{Res, Schema};
 use yog_formats::texture::{Animation, TextureFile};
@@ -50,7 +50,9 @@ impl Texture {
 
 /// The id of the mod at `root` (its manifest's).
 pub fn mod_id(root: &Path) -> Option<String> {
-    crate::manifest::YogToml::read(&root.join(yog_ids::file::MANIFEST)).ok().map(|m| m.id)
+    crate::manifest::YogToml::read(&root.join(yog_ids::file::MANIFEST))
+        .ok()
+        .map(|m| m.id)
 }
 
 type Cache = Mutex<HashMap<PathBuf, (SystemTime, Arc<Vec<Picture>>)>>;
@@ -58,19 +60,29 @@ static PICTURES: OnceLock<Cache> = OnceLock::new();
 
 /// The pictures of the `.yres` file at `file` (a set's neutral one).
 fn pictures_of(file: &Path, set: &str) -> Arc<Vec<Picture>> {
-    let modified = std::fs::metadata(file).and_then(|m| m.modified()).unwrap_or(SystemTime::UNIX_EPOCH);
+    let modified = std::fs::metadata(file)
+        .and_then(|m| m.modified())
+        .unwrap_or(SystemTime::UNIX_EPOCH);
     let cache = PICTURES.get_or_init(Default::default);
     if let Some((at, pictures)) = cache.lock().get(file).cloned()
         && at == modified
     {
         return pictures;
     }
-    let entries = std::fs::read_to_string(file).ok().and_then(|t| yog_formats::yres::parse(&t).ok()).unwrap_or_default();
+    let entries = std::fs::read_to_string(file)
+        .ok()
+        .and_then(|t| yog_formats::yres::parse(&t).ok())
+        .unwrap_or_default();
     let pictures: Arc<Vec<Picture>> = Arc::new(
         entries
             .into_iter()
             .filter_map(|e| match (e.kind, e.value) {
-                (Kind::Image, Value::Bytes(b)) => Some(Picture { set: set.to_string(), name: e.name, file: file.to_path_buf(), bytes: Arc::new(b) }),
+                (Kind::Image, Value::Bytes(b)) => Some(Picture {
+                    set: set.to_string(),
+                    name: e.name,
+                    file: file.to_path_buf(),
+                    bytes: Arc::new(b),
+                }),
                 _ => None,
             })
             .collect(),
@@ -85,7 +97,13 @@ pub fn pictures(root: &Path) -> Vec<Picture> {
     let mut out = Vec::new();
     for file in crate::files::with_ext(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
         // A culture variant (`Images.ru_ru.yres`) has no pictures of its own.
-        let Some((set, None)) = file.file_name().and_then(|n| n.to_str()).and_then(split_file_name) else { continue };
+        let Some((set, None)) = file
+            .file_name()
+            .and_then(|n| n.to_str())
+            .and_then(split_file_name)
+        else {
+            continue;
+        };
         out.extend(pictures_of(&file, set).iter().cloned());
     }
     out
@@ -93,16 +111,25 @@ pub fn pictures(root: &Path) -> Vec<Picture> {
 
 /// Picture `@<set>.<name>` of the mod at `root`.
 pub fn picture(root: &Path, set: &str, name: &str) -> Option<Picture> {
-    let file = root.join(yog_ids::project::RESOURCES).join(Format::Res.file(set));
-    pictures_of(&file, set).iter().find(|p| p.name == name).cloned()
+    let file = root
+        .join(yog_ids::project::RESOURCES)
+        .join(Format::Res.file(set));
+    pictures_of(&file, set)
+        .iter()
+        .find(|p| p.name == name)
+        .cloned()
 }
 
 /// Writes `bytes` as picture `@<set>.<name>` of the mod at `root` (the
 /// set's file made when there's none); the file written.
 pub fn save_picture(root: &Path, set: &str, name: &str, bytes: Vec<u8>) -> Result<PathBuf, String> {
-    let file = root.join(yog_ids::project::RESOURCES).join(Format::Res.file(set));
+    let file = root
+        .join(yog_ids::project::RESOURCES)
+        .join(Format::Res.file(set));
     let mut entries = match std::fs::read_to_string(&file) {
-        Ok(text) => yog_formats::yres::parse(&text).map_err(|e| format!("{}: {e}", file.display()))?,
+        Ok(text) => {
+            yog_formats::yres::parse(&text).map_err(|e| format!("{}: {e}", file.display()))?
+        }
         Err(_) => Vec::new(),
     };
     match entries.iter_mut().find(|e| e.name == name) {
@@ -112,31 +139,47 @@ pub fn save_picture(root: &Path, set: &str, name: &str, bytes: Vec<u8>) -> Resul
     if let Some(dir) = file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
-    std::fs::write(&file, yog_formats::yres::write(&entries)).map_err(|e| format!("{}: {e}", file.display()))?;
+    std::fs::write(&file, yog_formats::yres::write(&entries))
+        .map_err(|e| format!("{}: {e}", file.display()))?;
     Ok(file)
 }
 
 /// Where texture `id` of the mod at `root` is described, whether it is yet or not.
 fn texture_file(root: &Path, id: &str) -> Option<PathBuf> {
     let (ns, path) = yog_ids::split(id);
-    (mod_id(root)? == ns).then(|| root.join(yog_ids::project::RESOURCES).join(Format::Texture.file(path)))
+    (mod_id(root)? == ns).then(|| {
+        root.join(yog_ids::project::RESOURCES)
+            .join(Format::Texture.file(path))
+    })
 }
 
 /// Texture `id` of the mod at `root`, when it has a `.ytexture`.
 pub fn texture(root: &Path, id: &str) -> Option<Texture> {
     let file = texture_file(root, id)?;
-    let texture = yog_data::from_text::<TextureFile>(&std::fs::read_to_string(&file).ok()?).ok()?.value;
-    Some(Texture { id: yog_ids::qualify(id), file, texture })
+    let texture = yog_data::from_text::<TextureFile>(&std::fs::read_to_string(&file).ok()?)
+        .ok()?
+        .value;
+    Some(Texture {
+        id: yog_ids::qualify(id),
+        file,
+        texture,
+    })
 }
 
 /// Every texture of the mod at `root`.
 pub fn textures(root: &Path) -> Vec<Texture> {
-    let Some(ns) = mod_id(root) else { return Vec::new() };
+    let Some(ns) = mod_id(root) else {
+        return Vec::new();
+    };
     let resources = root.join(yog_ids::project::RESOURCES);
     crate::files::with_ext(&resources, Format::Texture.ext())
         .into_iter()
         .filter_map(|f| {
-            let rel = f.strip_prefix(&resources).ok()?.to_string_lossy().replace('\\', yog_ids::sep::PATH);
+            let rel = f
+                .strip_prefix(&resources)
+                .ok()?
+                .to_string_lossy()
+                .replace('\\', yog_ids::sep::PATH);
             texture(root, &yog_formats::texture::id_of(&ns, &rel)?)
         })
         .collect()
@@ -156,16 +199,30 @@ pub fn save_texture_picture(root: &Path, id: &str, png: Vec<u8>) -> Result<PathB
         return save_picture(root, &own.texture.image.set, &own.texture.image.key, png);
     }
     let path = yog_ids::split(id).1;
-    let image = Res { set: yog_formats::texture::picture_set(path), key: path.replace(yog_ids::sep::PATH, ".") };
+    let image = Res {
+        set: yog_formats::texture::picture_set(path),
+        key: path.replace(yog_ids::sep::PATH, "."),
+    };
     let written = save_picture(root, &image.set, &image.key, png)?;
-    let texture = TextureFile { image, atlas: yog_registry::Atlas::of_path(path).map(|a| a.id.clone()), animation: None, blur: false, clamp: false };
+    let texture = TextureFile {
+        image,
+        atlas: yog_registry::Atlas::of_path(path).map(|a| a.id.clone()),
+        animation: None,
+        blur: false,
+        clamp: false,
+    };
     write_texture(&file, &texture)?;
     Ok(written)
 }
 
 /// Sets texture `id`'s animation (`None`: still); the `.ytexture` written.
-pub fn save_texture_animation(root: &Path, id: &str, animation: Option<Animation>) -> Result<PathBuf, String> {
-    let mut own = texture(root, id).ok_or_else(|| format!("{id} has no .{} in this mod", Format::Texture.ext()))?;
+pub fn save_texture_animation(
+    root: &Path,
+    id: &str,
+    animation: Option<Animation>,
+) -> Result<PathBuf, String> {
+    let mut own = texture(root, id)
+        .ok_or_else(|| format!("{id} has no .{} in this mod", Format::Texture.ext()))?;
     own.texture.animation = animation;
     write_texture(&own.file, &own.texture)?;
     Ok(own.file)
@@ -175,7 +232,8 @@ fn write_texture(file: &Path, texture: &TextureFile) -> Result<(), String> {
     if let Some(dir) = file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
-    std::fs::write(file, yog_data::text::to_string_pretty(&texture.write())).map_err(|e| format!("{}: {e}", file.display()))
+    std::fs::write(file, yog_data::text::to_string_pretty(&texture.write()))
+        .map_err(|e| format!("{}: {e}", file.display()))
 }
 
 /// The file the build makes at `assets/<ns>/<path>` from the mod at `root`
@@ -187,8 +245,13 @@ pub fn built_asset(root: &Path, ns: &str, path: &str) -> Option<Vec<u8>> {
         return None;
     }
     let file = path.strip_prefix(yog_ids::res::TEXTURES)?;
-    if let Some(stem) = file.strip_suffix(yog_ids::res::MCMETA).and_then(|f| f.strip_suffix(yog_ids::res::PNG)) {
-        let meta = texture(root, &yog_ids::join(ns, stem))?.texture.game_mcmeta()?;
+    if let Some(stem) = file
+        .strip_suffix(yog_ids::res::MCMETA)
+        .and_then(|f| f.strip_suffix(yog_ids::res::PNG))
+    {
+        let meta = texture(root, &yog_ids::join(ns, stem))?
+            .texture
+            .game_mcmeta()?;
         return serde_json::to_vec(&meta).ok();
     }
     let stem = file.strip_suffix(yog_ids::res::PNG)?;
@@ -206,7 +269,12 @@ mod tests {
     use super::*;
 
     fn png() -> Vec<u8> {
-        yog_media::image::encode_png(&yog_media::image::Image { width: 1, height: 1, rgba: vec![9, 9, 9, 255] }).unwrap()
+        yog_media::image::encode_png(&yog_media::image::Image {
+            width: 1,
+            height: 1,
+            rgba: vec![9, 9, 9, 255],
+        })
+        .unwrap()
     }
 
     #[test]
@@ -218,9 +286,23 @@ mod tests {
         save_texture_picture(&dir, "mymod:block/ruby", png()).unwrap();
         let own = texture(&dir, "mymod:block/ruby").unwrap();
         assert_eq!(own.texture.atlas.as_deref(), Some("minecraft:blocks"));
-        assert_eq!(own.picture(&dir).unwrap().bytes.as_slice(), png().as_slice());
-        assert_eq!(built_asset(&dir, "mymod", "textures/block/ruby.png"), Some(png()));
-        save_texture_animation(&dir, "mymod:block/ruby", Some(Animation { frame_time: Some(4), ..Animation::default() })).unwrap();
+        assert_eq!(
+            own.picture(&dir).unwrap().bytes.as_slice(),
+            png().as_slice()
+        );
+        assert_eq!(
+            built_asset(&dir, "mymod", "textures/block/ruby.png"),
+            Some(png())
+        );
+        save_texture_animation(
+            &dir,
+            "mymod:block/ruby",
+            Some(Animation {
+                frame_time: Some(4),
+                ..Animation::default()
+            }),
+        )
+        .unwrap();
         assert!(built_asset(&dir, "mymod", "textures/block/ruby.png.mcmeta").is_some());
         assert_eq!(textures(&dir).len(), 1);
         assert!(!is_own_texture(&dir, "minecraft:block/stone"));

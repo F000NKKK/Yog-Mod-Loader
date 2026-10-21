@@ -65,12 +65,9 @@ impl Model {
             }
             let parent = match &b.parent {
                 None => None,
-                Some(p) => Some(
-                    bones
-                        .iter()
-                        .position(|o| &o.name == p)
-                        .ok_or_else(|| format!("bone `{}`: its parent `{p}` must come before it", b.name))?,
-                ),
+                Some(p) => Some(bones.iter().position(|o| &o.name == p).ok_or_else(|| {
+                    format!("bone `{}`: its parent `{p}` must come before it", b.name)
+                })?),
             };
             bones.push(Bone {
                 name: b.name.clone(),
@@ -78,7 +75,12 @@ impl Model {
                 pivot: Vec3::from_array(b.pivot),
                 rotation: rad(Vec3::from_array(b.rotation)),
                 quads: b.cubes.iter().flat_map(|c| cube(c, tw, th)).collect(),
-                locators: b.locators.0.iter().map(|(n, p)| (n.clone(), Vec3::from_array(*p))).collect(),
+                locators: b
+                    .locators
+                    .0
+                    .iter()
+                    .map(|(n, p)| (n.clone(), Vec3::from_array(*p)))
+                    .collect(),
             });
         }
         Ok(Model { texture, bones })
@@ -109,11 +111,23 @@ pub fn cube(c: &CubeDef, tex_w: f32, tex_h: f32) -> [Quad; 6] {
     let p = |x, y, z| Vec3::new(x, y, z);
     let (v7, v0, v1, v2) = (p(x0, y0, z0), p(x1, y0, z0), p(x1, y1, z0), p(x0, y1, z0));
     let (v3, v4, v5, v6) = (p(x0, y0, z1), p(x1, y0, z1), p(x1, y1, z1), p(x0, y1, z1));
-    let (u0, u1, u2, u3, u4, u5) = (u, u + d, u + d + w, u + d + w + w, u + d + w + d, u + d + w + d + w);
+    let (u0, u1, u2, u3, u4, u5) = (
+        u,
+        u + d,
+        u + d + w,
+        u + d + w + w,
+        u + d + w + d,
+        u + d + w + d + w,
+    );
     let (t0, t1, t2) = (v, v + d, v + d + h);
     let face = |corners: [Vec3; 4], ua: f32, va: f32, ub: f32, vb: f32, normal: Vec3| {
         let mut pos = corners;
-        let mut uv = [[ub / tex_w, va / tex_h], [ua / tex_w, va / tex_h], [ua / tex_w, vb / tex_h], [ub / tex_w, vb / tex_h]];
+        let mut uv = [
+            [ub / tex_w, va / tex_h],
+            [ua / tex_w, va / tex_h],
+            [ua / tex_w, vb / tex_h],
+            [ub / tex_w, vb / tex_h],
+        ];
         let mut n = normal;
         if c.mirror {
             pos.reverse();
@@ -137,7 +151,13 @@ mod tests {
     use super::*;
 
     fn wing() -> CubeDef {
-        CubeDef { origin: [-10.0, 0.0, 0.0], size: [10.0, 20.0, 2.0], uv: [22.0, 0.0], inflate: 1.0, mirror: false }
+        CubeDef {
+            origin: [-10.0, 0.0, 0.0],
+            size: [10.0, 20.0, 2.0],
+            uv: [22.0, 0.0],
+            inflate: 1.0,
+            mirror: false,
+        }
     }
 
     #[test]
@@ -161,6 +181,9 @@ mod tests {
 
     #[test]
     fn a_texture_is_loaded_from_its_resource() {
-        assert_eq!(texture_resource("minecraft:entity/elytra"), "minecraft:textures/entity/elytra.png");
+        assert_eq!(
+            texture_resource("minecraft:entity/elytra"),
+            "minecraft:textures/entity/elytra.png"
+        );
     }
 }

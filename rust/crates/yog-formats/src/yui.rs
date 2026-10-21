@@ -159,7 +159,8 @@ impl<'a> Parser<'a> {
         let Some(end) = self.rest().find(quote) else {
             return self.err(format!("attribute `{key}`: unterminated value"));
         };
-        let value = unescape(&self.rest()[..end]).map_err(|e| format!("line {}: {e}", self.line()))?;
+        let value =
+            unescape(&self.rest()[..end]).map_err(|e| format!("line {}: {e}", self.line()))?;
         self.pos += end + quote.len_utf8();
         Ok((key, value))
     }

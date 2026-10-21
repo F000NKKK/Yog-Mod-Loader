@@ -76,7 +76,18 @@ pub struct Attrib {
 impl VertexArray {
     /// Declares vertex attribute `a` of this VAO, sourced from `vbo`.
     pub fn attrib(&self, ctx: &GfxContext, vbo: &Buffer, a: Attrib) {
-        unsafe { (ctx.api().vao_attrib)(self.handle, vbo.handle, a.index, a.components, a.dtype as u8, a.normalized, a.stride, a.offset) }
+        unsafe {
+            (ctx.api().vao_attrib)(
+                self.handle,
+                vbo.handle,
+                a.index,
+                a.components,
+                a.dtype as u8,
+                a.normalized,
+                a.stride,
+                a.offset,
+            )
+        }
     }
 
     /// Bind an index buffer (EBO) to this VAO.

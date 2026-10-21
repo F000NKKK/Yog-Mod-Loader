@@ -83,18 +83,32 @@ impl Local {
     pub fn read(path: &Path, base: &Path) -> Result<Self, String> {
         let text = match std::fs::read_to_string(path) {
             Ok(text) => text,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Self { base: base.to_path_buf(), ..Self::default() }),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(Self {
+                    base: base.to_path_buf(),
+                    ..Self::default()
+                });
+            }
             Err(e) => return Err(format!("reading {}: {e}", path.display())),
         };
         let at = |message: String| format!("{}: {message}", path.display());
-        let file = yog_data::schema::from_toml::<LocalFile>(&text).map_err(|e| at(e.to_string()))?.value;
+        let file = yog_data::schema::from_toml::<LocalFile>(&text)
+            .map_err(|e| at(e.to_string()))?
+            .value;
         let mut java = Vec::new();
         for (major, dir) in file.java.0 {
-            let major = major.parse().map_err(|_| at(format!("[java]: `{major}` isn't a Java version (17, 21, …)")))?;
+            let major = major.parse().map_err(|_| {
+                at(format!(
+                    "[java]: `{major}` isn't a Java version (17, 21, …)"
+                ))
+            })?;
             java.push((major, resolve_in(base, &dir)));
         }
         Ok(Self {
-            loader_sdk: file.sdk.and_then(|s| s.loader).map(|p| resolve_in(base, &p)),
+            loader_sdk: file
+                .sdk
+                .and_then(|s| s.loader)
+                .map(|p| resolve_in(base, &p)),
             java,
             env: file.launch.map(|l| pairs(&l.env)).unwrap_or_default(),
             runs: file.run.0,
@@ -104,11 +118,17 @@ impl Local {
 
     /// The JDK it names for Java `major`.
     pub fn jdk(&self, major: u32) -> Option<&Path> {
-        self.java.iter().find(|(m, _)| *m == major).map(|(_, p)| p.as_path())
+        self.java
+            .iter()
+            .find(|(m, _)| *m == major)
+            .map(|(_, p)| p.as_path())
     }
 }
 
 /// `KEY=VALUE` strings as pairs (one without `=` is skipped).
 pub fn pairs(env: &[String]) -> Vec<(String, String)> {
-    env.iter().filter_map(|kv| kv.split_once('=')).map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    env.iter()
+        .filter_map(|kv| kv.split_once('='))
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect()
 }

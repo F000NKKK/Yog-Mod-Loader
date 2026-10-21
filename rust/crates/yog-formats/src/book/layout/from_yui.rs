@@ -34,7 +34,10 @@ fn num(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> {
 }
 
 fn at(el: &Element) -> Result<[f32; 2], String> {
-    Ok([num(el, yui_attr::X, Some(0.0))?, num(el, yui_attr::Y, Some(0.0))?])
+    Ok([
+        num(el, yui_attr::X, Some(0.0))?,
+        num(el, yui_attr::Y, Some(0.0))?,
+    ])
 }
 
 fn flag(el: &Element, key: &str) -> bool {
@@ -126,7 +129,9 @@ impl Parts {
             yui::ITEM_SLOT => {
                 let item = needs(el, yui_attr::ITEM, " (the station: minecraft:furnace)")?;
                 LayoutPart::Item {
-                    item: yog_ids::qualify(item.trim().trim_start_matches(yog_ids::reference::ITEM)),
+                    item: yog_ids::qualify(
+                        item.trim().trim_start_matches(yog_ids::reference::ITEM),
+                    ),
                     at: at(el)?,
                 }
             }
@@ -170,7 +175,9 @@ impl Parts {
                 .places
                 .iter()
                 .find(|(s, ..)| *s == slot)
-                .map_or(0, |(_, p, _)| p.iter().map(|(i, _)| i + 1).max().unwrap_or(0)),
+                .map_or(0, |(_, p, _)| {
+                    p.iter().map(|(i, _)| i + 1).max().unwrap_or(0)
+                }),
         };
         let place = (index, at(el)?);
         let framed = flag(el, yui_attr::FRAME);
@@ -221,13 +228,21 @@ fn image(el: &Element) -> Result<LayoutPart, String> {
     let source = needs(el, yui_attr::SOURCE, "")?.to_string();
     let uv = match el.attr(yui_attr::UV) {
         Some(v) => {
-            let n: Vec<f32> = v.split_whitespace().filter_map(|x| x.parse().ok()).collect();
+            let n: Vec<f32> = v
+                .split_whitespace()
+                .filter_map(|x| x.parse().ok())
+                .collect();
             let [u, v, w, h] = n[..] else {
                 return err(el, format_args!("uv=\"{v}\": u v width height"));
             };
             [u, v, w, h]
         }
-        None => [0.0, 0.0, num(el, yui_attr::W, None)?, num(el, yui_attr::H, None)?],
+        None => [
+            0.0,
+            0.0,
+            num(el, yui_attr::W, None)?,
+            num(el, yui_attr::H, None)?,
+        ],
     };
     Ok(LayoutPart::Image {
         source,

@@ -10,15 +10,18 @@
 //! client::stop_sound(loop_);
 //! ```
 
+use yog_event::client;
 pub use yog_event::client::*;
 pub use yog_event::ui::flags as ui_flags;
-use yog_event::client;
 
 use crate::call;
 
 /// Open the Yog UI `ui_id` with [`ui_flags`] bits.
 pub fn open_ui_flags(ui_id: &str, flags: u32) {
-    call(&yog_event::ui::OpenWithFlags { ui_id: ui_id.to_owned(), flags: i32::try_from(flags).unwrap_or(i32::MAX) });
+    call(&yog_event::ui::OpenWithFlags {
+        ui_id: ui_id.to_owned(),
+        flags: i32::try_from(flags).unwrap_or(i32::MAX),
+    });
 }
 
 /// A sound started by [`play_sound`]; `SoundHandle(0)` is "none".
@@ -29,7 +32,13 @@ pub struct SoundHandle(pub u32);
 /// position; `looping` keeps it playing (following the player) until
 /// [`stop_sound`].
 pub fn play_sound(sound_id: &str, volume: f32, pitch: f32, looping: bool) -> SoundHandle {
-    let handle = call(&client::PlaySound { sound: sound_id.to_owned(), volume, pitch, looping }).flatten();
+    let handle = call(&client::PlaySound {
+        sound: sound_id.to_owned(),
+        volume,
+        pitch,
+        looping,
+    })
+    .flatten();
     SoundHandle(handle.and_then(|h| u32::try_from(h).ok()).unwrap_or(0))
 }
 
@@ -38,7 +47,9 @@ pub fn stop_sound(handle: SoundHandle) {
     if handle.0 == 0 {
         return;
     }
-    call(&client::StopSound { handle: i32::try_from(handle.0).unwrap_or(i32::MAX) });
+    call(&client::StopSound {
+        handle: i32::try_from(handle.0).unwrap_or(i32::MAX),
+    });
 }
 
 /// Tints the block at `pos` in `dimension` on this client — the faces of
@@ -49,7 +60,11 @@ pub fn set_block_tint(dimension: &str, pos: yog_core::BlockPos, color: Option<u3
     /// What the host reads as "no tint".
     const CLEAR: i32 = -1;
     let color = color.map_or(CLEAR, |c| (c & 0xFF_FFFF) as i32);
-    call(&client::SetBlockTint { dim: dimension.to_owned(), pos, color });
+    call(&client::SetBlockTint {
+        dim: dimension.to_owned(),
+        pos,
+        color,
+    });
 }
 
 /// GLFW key codes for [`key_down`].

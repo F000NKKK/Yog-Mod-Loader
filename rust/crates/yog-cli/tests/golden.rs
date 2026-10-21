@@ -62,7 +62,9 @@ fn build(root: &Path, mod_id: &str) -> String {
     }
     // Data the code includes (books), shown as Yog Data text.
     for (path, bytes) in &c.data_files {
-        let shown = yog_data::binary::decode(bytes).map(|v| yog_data::text::to_string_pretty(&v)).unwrap_or_else(|e| format!("<not Yog Data: {e}>"));
+        let shown = yog_data::binary::decode(bytes)
+            .map(|v| yog_data::text::to_string_pretty(&v))
+            .unwrap_or_else(|e| format!("<not Yog Data: {e}>"));
         let _ = writeln!(out, "# generated/{path}\n{shown}");
     }
     let mut outputs = res.outputs;
@@ -77,8 +79,16 @@ fn build(root: &Path, mod_id: &str) -> String {
             let mut files = walk(&dir);
             files.sort();
             for f in files {
-                let rel = f.strip_prefix(&dir).unwrap().to_string_lossy().replace('\\', "/");
-                let _ = writeln!(out, "# screens: {rel}\n{}", std::fs::read_to_string(&f).unwrap());
+                let rel = f
+                    .strip_prefix(&dir)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                let _ = writeln!(
+                    out,
+                    "# screens: {rel}\n{}",
+                    std::fs::read_to_string(&f).unwrap()
+                );
             }
         }
         Err(e) => {
@@ -100,7 +110,11 @@ fn build(root: &Path, mod_id: &str) -> String {
 fn every_case_builds_as_expected() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden");
     let bless = std::env::var_os("YOG_BLESS").is_some();
-    let mut cases: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().path()).filter(|p| p.is_dir()).collect();
+    let mut cases: Vec<PathBuf> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.is_dir())
+        .collect();
     cases.sort();
     assert!(!cases.is_empty());
     let mut failed = Vec::new();
@@ -119,7 +133,11 @@ fn every_case_builds_as_expected() {
         }
         let expected = std::fs::read_to_string(&expected_path).unwrap_or_default();
         if got != expected {
-            let first = got.lines().zip(expected.lines()).position(|(a, b)| a != b).unwrap_or(0);
+            let first = got
+                .lines()
+                .zip(expected.lines())
+                .position(|(a, b)| a != b)
+                .unwrap_or(0);
             failed.push(format!(
                 "{name}: differs from {name}.expected at line {} (got {:?}, expected {:?})",
                 first + 1,
@@ -128,5 +146,9 @@ fn every_case_builds_as_expected() {
             ));
         }
     }
-    assert!(failed.is_empty(), "{}\n(YOG_BLESS=1 rewrites the expected files)", failed.join("\n"));
+    assert!(
+        failed.is_empty(),
+        "{}\n(YOG_BLESS=1 rewrites the expected files)",
+        failed.join("\n")
+    );
 }

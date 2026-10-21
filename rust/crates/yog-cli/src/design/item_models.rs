@@ -39,7 +39,9 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
     let (parents, textures) = model_chain(
         res,
         &model,
-        appearance.as_ref().and_then(|(item, _)| item.get(yog_ids::content_field::MODEL)),
+        appearance
+            .as_ref()
+            .and_then(|(item, _)| item.get(yog_ids::content_field::MODEL)),
     );
     let is = |m: &str| parents.iter().any(|x| yog_ids::qualify(x) == m);
     if looks.models.heads.iter().any(|m| is(m))
@@ -69,8 +71,15 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
         vec![Some(color)]
     } else {
         // An alias without effects of its own is the game's plain potion.
-        let tinted_as = if alias { model_item(&looks.models.potion) } else { id.clone() };
-        looks.tint(&tinted_as).map(|c| vec![Some(c.0)]).unwrap_or_default()
+        let tinted_as = if alias {
+            model_item(&looks.models.potion)
+        } else {
+            id.clone()
+        };
+        looks
+            .tint(&tinted_as)
+            .map(|c| vec![Some(c.0)])
+            .unwrap_or_default()
     };
     let mut out: Option<Image> = None;
     for (i, layer) in layers.iter().enumerate() {
@@ -94,25 +103,42 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
     out.map(|i| Look::Flat(Arc::new(i)))
 }
 
-
 /// The constant tints item `ns:path`'s definition (`items/<path>.json`, 1.21.4+) gives its layers, in order.
 fn definition_tints(res: &Resources, ns: &str, path: &str) -> Vec<Option<u32>> {
     use crate::consts::item_def;
-    let file = format!("{}{path}{}", yog_ids::res::ITEM_DEFINITIONS, yog_ids::res::JSON);
-    let Some(def) = res.read(ns, &file).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else {
+    let file = format!(
+        "{}{path}{}",
+        yog_ids::res::ITEM_DEFINITIONS,
+        yog_ids::res::JSON
+    );
+    let Some(def) = res
+        .read(ns, &file)
+        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+    else {
         return Vec::new();
     };
-    let tints = def[item_def::MODEL][item_def::TINTS].as_array().cloned().unwrap_or_default();
+    let tints = def[item_def::MODEL][item_def::TINTS]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
     tints
         .iter()
-        .map(|t| (t[item_def::TYPE] == item_def::CONSTANT).then(|| t[item_def::VALUE].as_i64()).flatten().map(|v| v as u32))
+        .map(|t| {
+            (t[item_def::TYPE] == item_def::CONSTANT)
+                .then(|| t[item_def::VALUE].as_i64())
+                .flatten()
+                .map(|v| v as u32)
+        })
         .collect()
 }
 
 /// The item an item model is of: `minecraft:item/potion` → `minecraft:potion`.
 fn model_item(model: &str) -> String {
     let (ns, path) = yog_ids::split(model);
-    yog_ids::join(ns, path.strip_prefix(yog_ids::res::ITEM_DIR).unwrap_or(path))
+    yog_ids::join(
+        ns,
+        path.strip_prefix(yog_ids::res::ITEM_DIR).unwrap_or(path),
+    )
 }
 
 /// A model's parents (itself first) and its textures, the child's winning.
@@ -135,7 +161,10 @@ fn model_chain(
         let Some(json) = json else {
             break;
         };
-        if let Some(t) = json.get(yog_ids::model::TEXTURES).and_then(Value::as_object) {
+        if let Some(t) = json
+            .get(yog_ids::model::TEXTURES)
+            .and_then(Value::as_object)
+        {
             for (k, v) in t {
                 if let Some(v) = v.as_str() {
                     textures.entry(k.clone()).or_insert_with(|| v.to_string());
@@ -167,7 +196,11 @@ fn crop(img: &Image, x: u32, y: u32, w: u32, h: u32) -> Image {
     }
     let w = w.min(img.width.saturating_sub(x));
     let h = h.min(img.height.saturating_sub(y));
-    Image { width: w, height: h, rgba }
+    Image {
+        width: w,
+        height: h,
+        rgba,
+    }
 }
 
 /// `img` with its colors multiplied by `tint` (`0xRRGGBB`).
@@ -247,7 +280,8 @@ mod tests {
                 ("assets/minecraft/textures/item/potion.png", png([0, 0, 0, 0])),
             ];
             for (name, bytes) in files {
-                zip.start_file(name, zip::write::SimpleFileOptions::default()).unwrap();
+                zip.start_file(name, zip::write::SimpleFileOptions::default())
+                    .unwrap();
                 zip.write_all(&bytes).unwrap();
             }
             zip.finish().unwrap();

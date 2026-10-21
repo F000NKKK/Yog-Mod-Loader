@@ -17,7 +17,10 @@ pub struct Preview {
 }
 
 fn png(pixels: &[u32], w: u32, h: u32) -> Result<String, String> {
-    let rgba: Vec<u8> = pixels.iter().flat_map(|&p| [(p >> 16) as u8, (p >> 8) as u8, p as u8, (p >> 24) as u8]).collect();
+    let rgba: Vec<u8> = pixels
+        .iter()
+        .flat_map(|&p| [(p >> 16) as u8, (p >> 8) as u8, p as u8, (p >> 24) as u8])
+        .collect();
     let mut out = Vec::new();
     let mut enc = png::Encoder::new(&mut out, w, h);
     enc.set_color(png::ColorType::Rgba);
@@ -26,30 +29,63 @@ fn png(pixels: &[u32], w: u32, h: u32) -> Result<String, String> {
     let mut writer = enc.write_header().map_err(|e| e.to_string())?;
     writer.write_image_data(&rgba).map_err(|e| e.to_string())?;
     writer.finish().map_err(|e| e.to_string())?;
-    Ok(format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(out)))
+    Ok(format!(
+        "data:image/png;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(out)
+    ))
 }
 
 /// The terrain of `text` (a `.ydef` of kind `dimension`) around 0, 0: `size` blocks across.
 pub fn render(text: &str, size: u32) -> Result<Preview, String> {
     let size = size.clamp(16, 1024);
-    let def = yog_data::text::parse_value(text).map_err(|e| format!("{}:{}: {}", e.at.line, e.at.col, e.message))?;
-    let terrain = def.get(yog_ids::dimension_field::TERRAIN).ok_or("no `terrain` — this dimension's chunks come from a generator in code")?;
+    let def = yog_data::text::parse_value(text)
+        .map_err(|e| format!("{}:{}: {}", e.at.line, e.at.col, e.message))?;
+    let terrain = def
+        .get(yog_ids::dimension_field::TERRAIN)
+        .ok_or("no `terrain` — this dimension's chunks come from a generator in code")?;
     let terrain = yog_data::read_value::<Terrain>(terrain).map_err(|ps| {
-        ps.iter().map(|p| format!("terrain.{}: {}", p.path, p.message)).collect::<Vec<_>>().join("\n")
+        ps.iter()
+            .map(|p| format!("terrain.{}: {}", p.path, p.message))
+            .collect::<Vec<_>>()
+            .join("\n")
     })?;
-    let int = |k: &str| def.get(yog_ids::dimension_field::DIMENSION_TYPE).and_then(|t| t.get(k)).and_then(|v| v.as_i64()).map(|v| v as i32);
+    let int = |k: &str| {
+        def.get(yog_ids::dimension_field::DIMENSION_TYPE)
+            .and_then(|t| t.get(k))
+            .and_then(|v| v.as_i64())
+            .map(|v| v as i32)
+    };
     let min_y = int("min_y").unwrap_or(-64);
     let height = int("height").unwrap_or(384);
     let g = Generator::new(terrain);
     let half = size as i32 / 2;
-    let top = preview::top_down(&g, preview::Area { x: -half, z: -half, w: size, h: size }, min_y);
+    let top = preview::top_down(
+        &g,
+        preview::Area {
+            x: -half,
+            z: -half,
+            w: size,
+            h: size,
+        },
+        min_y,
+    );
     // The slice: from a little over the highest ground (or the fluid) down, 160 blocks at most.
     let highest = (-half..half).map(|x| g.surface(x, 0)).max().unwrap_or(0);
     let fluid = g.terrain.fluid.as_ref().map_or(i32::MIN, |f| f.level);
     let slice_top = (highest.max(fluid) + 4).min(min_y + height - 1);
     let slice_bottom = (slice_top - 160).max(min_y);
     let rows = (slice_top - slice_bottom + 1) as u32;
-    let slice = preview::slice(&g, preview::Area { x: -half, z: 0, w: size, h: rows }, slice_top, min_y);
+    let slice = preview::slice(
+        &g,
+        preview::Area {
+            x: -half,
+            z: 0,
+            w: size,
+            h: rows,
+        },
+        slice_top,
+        min_y,
+    );
     Ok(Preview {
         top: png(&top, size, size)?,
         slice: png(&slice, size, (slice_top - slice_bottom + 1) as u32)?,
@@ -66,10 +102,15 @@ mod tests {
             terrain: { seed: 1, base_height: 64, noise: [{ scale: 50, amplitude: 12 }], fill: "@block:minecraft:stone",
                 fluid: { block: "@block:minecraft:water", level: 62 } } }"#;
         let p = super::render(text, 32).unwrap();
-        assert!(p.top.starts_with("data:image/png;base64,") && p.slice.starts_with("data:image/png;base64,"));
+        assert!(
+            p.top.starts_with("data:image/png;base64,")
+                && p.slice.starts_with("data:image/png;base64,")
+        );
         assert_eq!(p.slice_bottom, 0);
         assert!(p.slice_top >= 66);
-        let e = super::render(r#"{ kind: "dimension", id: "x" }"#, 32).err().unwrap();
+        let e = super::render(r#"{ kind: "dimension", id: "x" }"#, 32)
+            .err()
+            .unwrap();
         assert!(e.contains("no `terrain`"), "{e}");
     }
 }

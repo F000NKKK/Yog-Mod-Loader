@@ -44,7 +44,8 @@ static STORE: LazyLock<RwLock<Store>> = LazyLock::new(Default::default);
 
 /// Registers model `id` (`ns:name`) from its compiled `.ymodel`.
 pub fn register_model(id: &str, data: &[u8]) -> Result<(), String> {
-    let file: format::ModelFile = yog_data::read_bytes(data).map_err(|e| format!("model {id}: {e:?}"))?;
+    let file: format::ModelFile =
+        yog_data::read_bytes(data).map_err(|e| format!("model {id}: {e:?}"))?;
     let model = Model::new(&file).map_err(|e| format!("model {id}: {e}"))?;
     STORE.write().models.insert(id.to_owned(), Arc::new(model));
     Ok(())
@@ -52,11 +53,14 @@ pub fn register_model(id: &str, data: &[u8]) -> Result<(), String> {
 
 /// Registers the clips of `id` (`ns:name`) from its compiled `.yanim`.
 pub fn register_anims(id: &str, data: &[u8]) -> Result<(), String> {
-    let file: format::AnimFile = yog_data::read_bytes(data).map_err(|e| format!("animations {id}: {e:?}"))?;
+    let file: format::AnimFile =
+        yog_data::read_bytes(data).map_err(|e| format!("animations {id}: {e:?}"))?;
     let clips = anim::Clips::new(&file).map_err(|e| format!("animations {id}: {e}"))?;
     let mut store = STORE.write();
     for c in clips.0 {
-        store.clips.insert((id.to_owned(), c.name.clone()), Arc::new(c));
+        store
+            .clips
+            .insert((id.to_owned(), c.name.clone()), Arc::new(c));
     }
     Ok(())
 }
@@ -68,5 +72,9 @@ pub fn model(id: &str) -> Option<Arc<Model>> {
 
 /// Clip `name` of animations `id`, if registered.
 pub fn clip(id: &str, name: &str) -> Option<Arc<Clip>> {
-    STORE.read().clips.get(&(id.to_owned(), name.to_owned())).cloned()
+    STORE
+        .read()
+        .clips
+        .get(&(id.to_owned(), name.to_owned()))
+        .cloned()
 }

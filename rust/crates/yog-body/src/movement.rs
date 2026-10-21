@@ -77,7 +77,11 @@ pub fn elytra(f: &TravelFrame) -> Vec3 {
         vx += (lx / d1 * d3 - vx) * glide::STEER;
         vz += (lz / d1 * d3 - vz) * glide::STEER;
     }
-    Vec3::new((vx * glide::DRAG) as f32, (vy * glide::DRAG_Y) as f32, (vz * glide::DRAG) as f32)
+    Vec3::new(
+        (vx * glide::DRAG) as f32,
+        (vy * glide::DRAG_Y) as f32,
+        (vz * glide::DRAG) as f32,
+    )
 }
 
 #[cfg(test)]
@@ -86,7 +90,12 @@ mod tests {
 
     #[test]
     fn gliding_level_falls_slowly_and_keeps_going() {
-        let f = TravelFrame { velocity: Vec3::new(0.0, 0.0, 1.0), look: Vec3::new(0.0, 0.0, 1.0), gravity: 0.08, ..Default::default() };
+        let f = TravelFrame {
+            velocity: Vec3::new(0.0, 0.0, 1.0),
+            look: Vec3::new(0.0, 0.0, 1.0),
+            gravity: 0.08,
+            ..Default::default()
+        };
         let v = elytra(&f);
         assert!(v.y < 0.0 && v.y > -0.08, "{v:?}");
         assert!(v.z > 0.9);

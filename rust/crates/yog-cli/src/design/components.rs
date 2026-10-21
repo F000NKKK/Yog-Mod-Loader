@@ -7,11 +7,11 @@
 //! (`{x:Bind caption()}`) are *compiled*: the designer host draws those with
 //! the mod's library ([`custom`](super::custom)).
 
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use yog_ids::Format;
 use yog_ids::prop_kind;
 use yog_ids::yui_component as ca;
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use yog_sync::{Arc, Mutex, OnceLock};
 
 use quick_xml::events::{BytesStart, Event};
@@ -54,10 +54,7 @@ fn element(e: &BytesStart, uid: String) -> Result<YuiNode, String> {
         let value = a
             .normalized_value(XmlVersion::Implicit1_0)
             .map_err(|e| e.to_string())?;
-        attrs.insert(
-            a.key.into_inner().to_string(),
-            value.into_owned(),
-        );
+        attrs.insert(a.key.into_inner().to_string(), value.into_owned());
     }
     Ok(YuiNode {
         uid,
@@ -121,7 +118,10 @@ fn pascal(stem: &str) -> String {
 /// The component a `<Component>` tree declares (`None`: not a component —
 /// a book's kind of page or a recipe layout isn't one to place on screens).
 pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
-    if root.kind != yog_ids::yui::COMPONENT || root.attr("book_page").is_some() || root.attr(yog_ids::yui_attr::RECIPE_LAYOUT).is_some() {
+    if root.kind != yog_ids::yui::COMPONENT
+        || root.attr("book_page").is_some()
+        || root.attr(yog_ids::yui_attr::RECIPE_LAYOUT).is_some()
+    {
         return None;
     }
     let name = root
@@ -138,10 +138,16 @@ pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
             let kind = if c.kind == yog_ids::yui::EVENT {
                 prop_kind::EVENT.to_string()
             } else {
-                c.attr(ca::TYPE).unwrap_or(prop_kind::TEXT).trim().to_string()
+                c.attr(ca::TYPE)
+                    .unwrap_or(prop_kind::TEXT)
+                    .trim()
+                    .to_string()
             };
             let options = crate::yui_component::options_of(c.attr(ca::OPTIONS));
-            let default = c.attr(ca::DEFAULT).map_or_else(|| crate::yui_component::default_of(&kind, &options), str::to_string);
+            let default = c.attr(ca::DEFAULT).map_or_else(
+                || crate::yui_component::default_of(&kind, &options),
+                str::to_string,
+            );
             PropInfo {
                 name: c.attr(ca::NAME).unwrap_or_default().trim().to_string(),
                 kind,
@@ -174,7 +180,9 @@ pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
         category: text(ca::CATEGORY),
         design_w: size(ca::DESIGN_W),
         design_h: size(ca::DESIGN_H),
-        toolbox: root.attr(ca::TOOLBOX).is_none_or(|v| v.trim() != yog_ids::yui_value::FALSE),
+        toolbox: root
+            .attr(ca::TOOLBOX)
+            .is_none_or(|v| v.trim() != yog_ids::yui_value::FALSE),
         props,
         file: Some(file.to_string_lossy().into_owned()),
     };
@@ -306,7 +314,9 @@ pub fn design_root(root: &YuiNode) -> YuiNode {
     // A recipe layout is its own size; a component's design size is a preview's.
     let layout = root.attr(yog_ids::yui_attr::RECIPE_LAYOUT).is_some();
     let size = |own: &str, design: &str, default: &'static str| {
-        root.attr(if layout { own } else { design }).unwrap_or(default).to_string()
+        root.attr(if layout { own } else { design })
+            .unwrap_or(default)
+            .to_string()
     };
     let mut attrs = HashMap::from([
         ("width".to_string(), size("width", ca::DESIGN_W, "120")),
@@ -357,9 +367,7 @@ pub fn scan_with_revision(mod_root: &Path) -> (u64, Arc<Vec<Def>>) {
     let files = yui_files(mod_root);
     let fp = crate::files::fingerprint(&files);
     let cache = CACHE.get_or_init(Default::default);
-    if let Some((seen, defs)) = cache
-        .lock()
-        .get(mod_root)
+    if let Some((seen, defs)) = cache.lock().get(mod_root)
         && *seen == fp
     {
         return (fp, defs.clone());

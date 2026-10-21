@@ -147,7 +147,12 @@ impl Recipe {
             Cooking::Blasting | Cooking::Smoking => FAST_COOK_TICKS,
             Cooking::Campfire => CAMPFIRE_TICKS,
         };
-        let kind = RecipeKind::Cooking { method, ingredient: vec![ingredient.into()], experience: COOK_EXPERIENCE as f32, cook_time };
+        let kind = RecipeKind::Cooking {
+            method,
+            ingredient: vec![ingredient.into()],
+            experience: COOK_EXPERIENCE as f32,
+            cook_time,
+        };
         Self::of(id, kind, result, count)
     }
 

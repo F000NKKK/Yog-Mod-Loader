@@ -106,7 +106,10 @@ pub enum LayoutPart {
 
 /// The game's kinds' layouts.
 pub static BUILT_IN: LazyLock<Vec<RecipeLayout>> = LazyLock::new(|| {
-    yog_data::built_in("yog-formats' built-in recipe layouts", include_str!("../../../assets/layouts.ydata"))
+    yog_data::built_in(
+        "yog-formats' built-in recipe layouts",
+        include_str!("../../../assets/layouts.ydata"),
+    )
 });
 
 /// The layout for recipes of `kind`: one of `own` (a book's), else built in.

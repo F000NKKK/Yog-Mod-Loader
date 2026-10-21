@@ -13,7 +13,11 @@ use crate::registry::{Registry, global_api, guard};
 
 /// The bus's handler for provider `ud`: the request read as `S`, the
 /// mod's answer written as the reply.
-unsafe extern "C" fn on_call<S: Service, F>(ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus
+unsafe extern "C" fn on_call<S: Service, F>(
+    ud: *mut c_void,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus
 where
     F: Fn(&S, &EventCx) -> S::Reply + Send + Sync,
 {
@@ -31,13 +35,20 @@ where
 impl Registry {
     /// Answers every call to `S` — one provider per address: `false` if
     /// someone answers it already.
-    pub fn provide<S: Service + 'static>(&mut self, handler: impl Fn(&S, &EventCx) -> S::Reply + Send + Sync + 'static) -> bool {
+    pub fn provide<S: Service + 'static>(
+        &mut self,
+        handler: impl Fn(&S, &EventCx) -> S::Reply + Send + Sync + 'static,
+    ) -> bool {
         self.providing::<S, _>(S::ADDRESS, Arc::new(handler))
     }
 
     /// [`Registry::provide`] for a keyed service's `key` only (`S::KEY`):
     /// the inserts into one block.
-    pub fn provide_key<S: Service + 'static>(&mut self, key: &str, handler: impl Fn(&S, &EventCx) -> S::Reply + Send + Sync + 'static) -> bool {
+    pub fn provide_key<S: Service + 'static>(
+        &mut self,
+        key: &str,
+        handler: impl Fn(&S, &EventCx) -> S::Reply + Send + Sync + 'static,
+    ) -> bool {
         self.providing::<S, _>(&keyed(S::ADDRESS, key), Arc::new(handler))
     }
 
@@ -56,9 +67,23 @@ impl Registry {
 
     /// Describes service `address` on the bus (`bus/declare`): what
     /// `bus/describe` answers, what `bus/find` finds by `interfaces`.
-    pub(crate) fn declare(&self, address: &str, doc: &str, shape: &yog_data::Shape, reply: &yog_data::Shape, interfaces: Vec<String>) {
+    pub(crate) fn declare(
+        &self,
+        address: &str,
+        doc: &str,
+        shape: &yog_data::Shape,
+        reply: &yog_data::Shape,
+        interfaces: Vec<String>,
+    ) {
         use yog_event::bus::{AddressKind, Descriptor};
-        let d = Descriptor { address: address.to_owned(), kind: AddressKind::Service, doc: doc.to_owned(), shape: shape.describe(), reply: Some(reply.describe()), interfaces };
+        let d = Descriptor {
+            address: address.to_owned(),
+            kind: AddressKind::Service,
+            doc: doc.to_owned(),
+            shape: shape.describe(),
+            reply: Some(reply.describe()),
+            interfaces,
+        };
         self.call(&d);
     }
 
@@ -68,7 +93,10 @@ impl Registry {
     {
         let api = self.api();
         let bus = unsafe { &*api.bus };
-        let sub = Box::into_raw(Box::new(Subscription::<S, F>::new(handler, EventPhase::Post)));
+        let sub = Box::into_raw(Box::new(Subscription::<S, F>::new(
+            handler,
+            EventPhase::Post,
+        )));
         let st = unsafe {
             let at = (bus.resolve)(bus.ctx, YogStr::from_str(address));
             (bus.provide)(bus.ctx, at, sub.cast::<c_void>(), on_call::<S, F>)
@@ -120,7 +148,10 @@ pub(crate) fn call_at(address: yog_event::Address, payload: &[u8]) -> Option<Vec
 
 /// The runtime's atom table (`yog_data::atom`), for this mod's copy of
 /// `yog-data`: the same numbers as every mod's and the host's.
-pub(crate) const ATOMS: yog_data::atom::Table = yog_data::atom::Table { intern: atom, name: atom_name };
+pub(crate) const ATOMS: yog_data::atom::Table = yog_data::atom::Table {
+    intern: atom,
+    name: atom_name,
+};
 
 fn atom(name: &str) -> u32 {
     let bus = unsafe { &*(*global_api()).bus };
@@ -131,13 +162,22 @@ fn atom_name(n: u32) -> Option<&'static str> {
     let bus = unsafe { &*(*global_api()).bus };
     let s = unsafe { (bus.atom_name)(bus.ctx, n) };
     // The runtime keeps its atoms' names for good.
-    (!s.ptr.is_null()).then(|| unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(s.ptr, s.len as usize)) })
+    (!s.ptr.is_null()).then(|| unsafe {
+        std::str::from_utf8_unchecked(std::slice::from_raw_parts(s.ptr, s.len as usize))
+    })
 }
 
 fn call_bytes(api: &YogApi, address: yog_event::Address, payload: &[u8]) -> Option<Vec<u8>> {
     let bus = unsafe { &*api.bus };
     let mut out = Vec::new();
-    let st = unsafe { (bus.call)(bus.ctx, address, YogBytes::new(payload), &YogReply::to_vec(&mut out)) };
+    let st = unsafe {
+        (bus.call)(
+            bus.ctx,
+            address,
+            YogBytes::new(payload),
+            &YogReply::to_vec(&mut out),
+        )
+    };
     (st == status::OK).then_some(out)
 }
 
@@ -147,16 +187,31 @@ mod tests {
     use yog_event::block::Insert;
 
     /// Runs `on_call` for `handler` on `request`: its status and reply.
-    fn answer<F: Fn(&Insert, &EventCx) -> bool + Send + Sync>(handler: F, request: &[u8]) -> (YogStatus, Vec<u8>) {
+    fn answer<F: Fn(&Insert, &EventCx) -> bool + Send + Sync>(
+        handler: F,
+        request: &[u8],
+    ) -> (YogStatus, Vec<u8>) {
         let sub = Subscription::<Insert, F>::new(Arc::new(handler), EventPhase::Post);
         let mut out = Vec::new();
-        let ud = (&sub as *const Subscription<Insert, F>).cast_mut().cast::<c_void>();
-        let st = unsafe { on_call::<Insert, F>(ud, YogBytes::new(request), &YogReply::to_vec(&mut out)) };
+        let ud = (&sub as *const Subscription<Insert, F>)
+            .cast_mut()
+            .cast::<c_void>();
+        let st = unsafe {
+            on_call::<Insert, F>(ud, YogBytes::new(request), &YogReply::to_vec(&mut out))
+        };
         (st, out)
     }
 
     fn insert(item: &str) -> Insert {
-        Insert { block_id: "mymod:crate".into(), pos: yog_core::BlockPos { x: 0, y: 64, z: 0 }, dimension: "minecraft:overworld".into(), item_id: item.into(), count: 1, nbt: String::new(), simulate: true }
+        Insert {
+            block_id: "mymod:crate".into(),
+            pos: yog_core::BlockPos { x: 0, y: 64, z: 0 },
+            dimension: "minecraft:overworld".into(),
+            item_id: item.into(),
+            count: 1,
+            nbt: String::new(),
+            simulate: true,
+        }
     }
 
     #[test]
@@ -173,6 +228,9 @@ mod tests {
         let ok = |_: &Insert, _: &EventCx| true;
         assert_eq!(answer(ok, b"junk").0, status::BAD_PAYLOAD);
         let panics = |_: &Insert, _: &EventCx| -> bool { panic!("mod bug") };
-        assert_eq!(answer(panics, &insert("minecraft:stone").to_bytes()).0, status::FAILED);
+        assert_eq!(
+            answer(panics, &insert("minecraft:stone").to_bytes()).0,
+            status::FAILED
+        );
     }
 }

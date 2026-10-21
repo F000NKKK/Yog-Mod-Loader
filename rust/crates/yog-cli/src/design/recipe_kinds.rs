@@ -5,15 +5,15 @@
 //! by (built in, or a `.yui` `recipe_layout`) — the picture (images, the
 //! station, slot frames) with where slots, result and texts go on it.
 
-use yog_ids::Format;
 use std::path::{Path, PathBuf};
+use yog_ids::Format;
 
 use base64::Engine as _;
 use serde::Serialize;
 use yog_book::layout_picture::{Piece, pieces};
 use yog_book::renderer::{BLOCK_PITCH, SLOT_YAW};
-use yog_formats::book::layout::{LayoutPart, RecipeLayout};
 use yog_data::Schema;
+use yog_formats::book::layout::{LayoutPart, RecipeLayout};
 use yog_formats::def::{Def, RecipeKindDef};
 use yog_gfx::{Color, Vec2};
 use yog_registry::recipe_kinds::{self, fields};
@@ -53,11 +53,22 @@ pub struct ValueSpec {
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum Spot {
     /// The `index`-th ingredient of `slot`.
-    Slot { slot: String, index: usize, at: [f32; 2] },
-    Result { at: [f32; 2] },
-    Count { at: [f32; 2] },
+    Slot {
+        slot: String,
+        index: usize,
+        at: [f32; 2],
+    },
+    Result {
+        at: [f32; 2],
+    },
+    Count {
+        at: [f32; 2],
+    },
     /// `{name}` is the recipe's value of that name.
-    Text { text: String, at: [f32; 2] },
+    Text {
+        text: String,
+        at: [f32; 2],
+    },
 }
 
 #[derive(Debug, Serialize)]
@@ -134,7 +145,10 @@ pub fn all(root: Option<&Path>) -> Kinds {
 /// mod's own `recipe_layout` for one.
 pub fn game_kinds(root: &Path) -> Vec<Kind> {
     let layouts = crate::design::mod_ui::recipe_layouts(root);
-    recipe_kinds::GAME.iter().map(|k| describe(root, k, k.id.clone(), String::new(), &layouts)).collect()
+    recipe_kinds::GAME
+        .iter()
+        .map(|k| describe(root, k, k.id.clone(), String::new(), &layouts))
+        .collect()
 }
 
 /// The kinds the mod at `root` declares, by id.
@@ -146,9 +160,21 @@ pub fn kinds(root: &Path) -> Vec<Kind> {
         .iter()
         .filter_map(|file| {
             let text = std::fs::read_to_string(file).ok()?;
-            let Def::RecipeKind(k) = yog_data::from_text::<Def>(&text).ok()?.value else { return None };
-            let id = if k.id.contains(':') { k.id.clone() } else { format!("{ns}:{}", k.id) };
-            Some(describe(root, &k, id, file.to_string_lossy().into_owned(), &layouts))
+            let Def::RecipeKind(k) = yog_data::from_text::<Def>(&text).ok()?.value else {
+                return None;
+            };
+            let id = if k.id.contains(':') {
+                k.id.clone()
+            } else {
+                format!("{ns}:{}", k.id)
+            };
+            Some(describe(
+                root,
+                &k,
+                id,
+                file.to_string_lossy().into_owned(),
+                &layouts,
+            ))
         })
         .collect();
     out.sort_by(|a, b| a.id.cmp(&b.id));
@@ -157,9 +183,19 @@ pub fn kinds(root: &Path) -> Vec<Kind> {
 
 /// Kind `k` (as `id`, declared in `file`) for the editor: the mod's layout
 /// for it, else a built-in one.
-fn describe(root: &Path, k: &RecipeKindDef, id: String, file: String, layouts: &[(PathBuf, RecipeLayout)]) -> Kind {
+fn describe(
+    root: &Path,
+    k: &RecipeKindDef,
+    id: String,
+    file: String,
+    layouts: &[(PathBuf, RecipeLayout)],
+) -> Kind {
     let own: Vec<RecipeLayout> = layouts.iter().map(|(_, l)| l.clone()).collect();
-    let layout_file = layouts.iter().find(|(_, l)| l.kinds.contains(&id)).map(|(f, _)| f.clone()).unwrap_or_default();
+    let layout_file = layouts
+        .iter()
+        .find(|(_, l)| l.kinds.contains(&id))
+        .map(|(f, _)| f.clone())
+        .unwrap_or_default();
     Kind {
         label: k.name.clone(),
         file,
@@ -199,22 +235,36 @@ fn layout(root: &Path, file: &Path, layout: &RecipeLayout) -> Layout {
     for p in &layout.parts {
         match p {
             LayoutPart::Slots { slot, at, .. } => {
-                spots.extend(at.iter().enumerate().map(|(index, at)| Spot::Slot { slot: slot.clone(), index, at: *at }));
+                spots.extend(at.iter().enumerate().map(|(index, at)| Spot::Slot {
+                    slot: slot.clone(),
+                    index,
+                    at: *at,
+                }));
             }
             LayoutPart::Result { at, .. } => spots.push(Spot::Result { at: *at }),
             LayoutPart::Count { at } => spots.push(Spot::Count { at: *at }),
-            LayoutPart::Text { text, at } => spots.push(Spot::Text { text: text.clone(), at: *at }),
+            LayoutPart::Text { text, at } => spots.push(Spot::Text {
+                text: text.clone(),
+                at: *at,
+            }),
             LayoutPart::Image { .. } | LayoutPart::Item { .. } | LayoutPart::Block { .. } => {}
         }
     }
-    let (w, h) = (size[0].ceil().max(1.0) as u32, size[1].ceil().max(1.0) as u32);
+    let (w, h) = (
+        size[0].ceil().max(1.0) as u32,
+        size[1].ceil().max(1.0) as u32,
+    );
     let ops = gfx::record(w as i32, h as i32, |ctx| {
         let d = ctx.draw2d();
         for piece in pieces(layout) {
             match piece {
-                Piece::Image { source, uv, at } => d.image_region(source, at, Some(uv), Color::WHITE),
+                Piece::Image { source, uv, at } => {
+                    d.image_region(source, at, Some(uv), Color::WHITE)
+                }
                 Piece::Item { item, at } => d.item(item, Vec2::new(at.x, at.y), at.w),
-                Piece::Block { block, at } => d.blocks(&[((0, 0, 0), block)], at, SLOT_YAW, BLOCK_PITCH),
+                Piece::Block { block, at } => {
+                    d.blocks(&[((0, 0, 0), block)], at, SLOT_YAW, BLOCK_PITCH)
+                }
             }
         }
     });
@@ -223,8 +273,19 @@ fn layout(root: &Path, file: &Path, layout: &RecipeLayout) -> Layout {
     let image = raster::rasterize(&ops, w, h, SCALE, &res)
         .png()
         .ok()
-        .map(|png| format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png)));
-    Layout { file: file.to_string_lossy().into_owned(), size, image, scale: SCALE, spots }
+        .map(|png| {
+            format!(
+                "data:image/png;base64,{}",
+                base64::engine::general_purpose::STANDARD.encode(png)
+            )
+        });
+    Layout {
+        file: file.to_string_lossy().into_owned(),
+        size,
+        image,
+        scale: SCALE,
+        spots,
+    }
 }
 
 /// Where a new kind's layout goes, under the mod's sources, and what its name ends with.
@@ -240,8 +301,13 @@ pub fn create(file: &Path, name: &str) -> Result<PathBuf, String> {
     if !yog_ids::valid_name(name) {
         return Err("a kind's name: a-z, 0-9 and _".into());
     }
-    let def = root.join(yog_ids::project::CONTENT).join(Format::Def.file(name));
-    let layout = root.join(yog_ids::project::SRC).join(LAYOUT_DIR).join(Format::Ui.file(&format!("{name}{LAYOUT_SUFFIX}")));
+    let def = root
+        .join(yog_ids::project::CONTENT)
+        .join(Format::Def.file(name));
+    let layout = root
+        .join(yog_ids::project::SRC)
+        .join(LAYOUT_DIR)
+        .join(Format::Ui.file(&format!("{name}{LAYOUT_SUFFIX}")));
     if let Some(taken) = [&def, &layout].into_iter().find(|f| f.exists()) {
         return Err(format!("{} exists", taken.display()));
     }
@@ -300,36 +366,123 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("content/machines")).unwrap();
         std::fs::write(dir.join("yog.toml"), "[mod]\nid = \"mymod\"\n").unwrap();
-        std::fs::write(dir.join("content/machines/crusher.ydef"), template("crusher")).unwrap();
+        std::fs::write(
+            dir.join("content/machines/crusher.ydef"),
+            template("crusher"),
+        )
+        .unwrap();
         std::fs::create_dir_all(dir.join("src/ui")).unwrap();
-        std::fs::write(dir.join("src/ui/crusher_layout.yui"), layout_template("crusher")).unwrap();
-        std::fs::write(dir.join("content/other.ydef"), r#"{ kind: "sound_group", id: "x" }"#).unwrap();
+        std::fs::write(
+            dir.join("src/ui/crusher_layout.yui"),
+            layout_template("crusher"),
+        )
+        .unwrap();
+        std::fs::write(
+            dir.join("content/other.ydef"),
+            r#"{ kind: "sound_group", id: "x" }"#,
+        )
+        .unwrap();
         let ks = kinds(&dir);
         assert_eq!(ks.len(), 1);
         let k = &ks[0];
         assert_eq!(k.id, "mymod:crusher");
-        assert_eq!(k.slots.iter().map(|s| (s.name.as_str(), s.max, s.required)).collect::<Vec<_>>(), [("input", 1, true), ("extra", 2, false)]);
+        assert_eq!(
+            k.slots
+                .iter()
+                .map(|s| (s.name.as_str(), s.max, s.required))
+                .collect::<Vec<_>>(),
+            [("input", 1, true), ("extra", 2, false)]
+        );
         assert_eq!(k.values[0].kind, "number");
         let l = k.layout.as_ref().unwrap();
-        assert!(l.image.as_deref().is_some_and(|i| i.starts_with("data:image/png")));
-        assert_eq!(l.spots.iter().filter(|s| matches!(s, Spot::Slot { .. })).count(), 3);
-        assert!(l.spots.iter().any(|s| matches!(s, Spot::Text { text, .. } if text == "{time} ticks")));
+        assert!(
+            l.image
+                .as_deref()
+                .is_some_and(|i| i.starts_with("data:image/png"))
+        );
+        assert_eq!(
+            l.spots
+                .iter()
+                .filter(|s| matches!(s, Spot::Slot { .. }))
+                .count(),
+            3
+        );
+        assert!(
+            l.spots
+                .iter()
+                .any(|s| matches!(s, Spot::Text { text, .. } if text == "{time} ticks"))
+        );
         assert!(l.file.ends_with("crusher_layout.yui"));
         let game = game_kinds(&dir);
-        assert_eq!(game.iter().map(|k| k.id.as_str()).collect::<Vec<_>>(), recipe_kinds::ids::ALL, "the registry's kinds, in its order");
+        assert_eq!(
+            game.iter().map(|k| k.id.as_str()).collect::<Vec<_>>(),
+            recipe_kinds::ids::ALL,
+            "the registry's kinds, in its order"
+        );
         let shaped = game[0].layout.as_ref().unwrap();
-        assert_eq!(shaped.spots.iter().filter(|s| matches!(s, Spot::Slot { slot, .. } if slot == "grid")).count(), 9, "the crafting table's own picture");
-        let smithing = game.iter().find(|k| k.id == recipe_kinds::ids::SMITHING).unwrap().layout.as_ref().unwrap();
-        let parts: Vec<&str> = smithing.spots.iter().filter_map(|s| if let Spot::Slot { slot, .. } = s { Some(slot.as_str()) } else { None }).collect();
-        assert_eq!(parts, ["base", "addition", "template"], "Patchouli's smithing strip");
-        assert!(smithing.spots.iter().any(|s| matches!(s, Spot::Result { .. })));
+        assert_eq!(
+            shaped
+                .spots
+                .iter()
+                .filter(|s| matches!(s, Spot::Slot { slot, .. } if slot == "grid"))
+                .count(),
+            9,
+            "the crafting table's own picture"
+        );
+        let smithing = game
+            .iter()
+            .find(|k| k.id == recipe_kinds::ids::SMITHING)
+            .unwrap()
+            .layout
+            .as_ref()
+            .unwrap();
+        let parts: Vec<&str> = smithing
+            .spots
+            .iter()
+            .filter_map(|s| {
+                if let Spot::Slot { slot, .. } = s {
+                    Some(slot.as_str())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert_eq!(
+            parts,
+            ["base", "addition", "template"],
+            "Patchouli's smithing strip"
+        );
+        assert!(
+            smithing
+                .spots
+                .iter()
+                .any(|s| matches!(s, Spot::Result { .. }))
+        );
         assert!(smithing.image.is_some());
-        let brewing = game.iter().find(|k| k.id == recipe_kinds::ids::BREWING).unwrap();
-        assert_eq!(brewing.slots.iter().map(|s| s.field.as_deref()).collect::<Vec<_>>(), [Some("from"), Some("ingredient")]);
-        assert!(brewing.layout.as_ref().is_some_and(|l| l.image.is_some()), "Yog's own brewing strip");
+        let brewing = game
+            .iter()
+            .find(|k| k.id == recipe_kinds::ids::BREWING)
+            .unwrap();
+        assert_eq!(
+            brewing
+                .slots
+                .iter()
+                .map(|s| s.field.as_deref())
+                .collect::<Vec<_>>(),
+            [Some("from"), Some("ingredient")]
+        );
+        assert!(
+            brewing.layout.as_ref().is_some_and(|l| l.image.is_some()),
+            "Yog's own brewing strip"
+        );
         // What the recipe editor reads (recipeModel.ts `RecipeKind`).
         let json = serde_json::to_value(&l.spots).unwrap();
-        let types: Vec<&str> = json.as_array().unwrap().iter().map(|s| s["type"].as_str().unwrap()).collect();
+        let types: Vec<&str> = json
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["type"].as_str().unwrap())
+            .collect();
         assert_eq!(types, ["slot", "slot", "slot", "result", "text"]);
         let _ = std::fs::remove_dir_all(&dir);
     }

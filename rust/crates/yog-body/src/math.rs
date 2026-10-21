@@ -13,8 +13,15 @@ mod tests {
 
     #[test]
     fn a_part_moves_after_turning() {
-        let m = part(Vec3::new(5.0, 0.0, 0.0), Vec3::new(0.0, 0.0, std::f32::consts::FRAC_PI_2), Vec3::ONE);
+        let m = part(
+            Vec3::new(5.0, 0.0, 0.0),
+            Vec3::new(0.0, 0.0, std::f32::consts::FRAC_PI_2),
+            Vec3::ONE,
+        );
         let p = m.transform_point(Vec3::new(1.0, 0.0, 0.0));
-        assert!((p.x - 5.0).abs() < 1e-5 && (p.y - 1.0).abs() < 1e-5, "{p:?}");
+        assert!(
+            (p.x - 5.0).abs() < 1e-5 && (p.y - 1.0).abs() < 1e-5,
+            "{p:?}"
+        );
     }
 }

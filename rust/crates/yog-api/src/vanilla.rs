@@ -237,7 +237,8 @@ pub mod blocks {
     pub const CRACKED_DEEPSLATE_BRICKS: &str = "minecraft:cracked_deepslate_bricks";
     pub const CRACKED_DEEPSLATE_TILES: &str = "minecraft:cracked_deepslate_tiles";
     pub const CRACKED_NETHER_BRICKS: &str = "minecraft:cracked_nether_bricks";
-    pub const CRACKED_POLISHED_BLACKSTONE_BRICKS: &str = "minecraft:cracked_polished_blackstone_bricks";
+    pub const CRACKED_POLISHED_BLACKSTONE_BRICKS: &str =
+        "minecraft:cracked_polished_blackstone_bricks";
     pub const CRACKED_STONE_BRICKS: &str = "minecraft:cracked_stone_bricks";
     /// Only in 1.21.1.
     pub const CRAFTER: &str = "minecraft:crafter";
@@ -716,7 +717,8 @@ pub mod blocks {
     pub const POLISHED_BLACKSTONE_BRICK_WALL: &str = "minecraft:polished_blackstone_brick_wall";
     pub const POLISHED_BLACKSTONE_BRICKS: &str = "minecraft:polished_blackstone_bricks";
     pub const POLISHED_BLACKSTONE_BUTTON: &str = "minecraft:polished_blackstone_button";
-    pub const POLISHED_BLACKSTONE_PRESSURE_PLATE: &str = "minecraft:polished_blackstone_pressure_plate";
+    pub const POLISHED_BLACKSTONE_PRESSURE_PLATE: &str =
+        "minecraft:polished_blackstone_pressure_plate";
     pub const POLISHED_BLACKSTONE_SLAB: &str = "minecraft:polished_blackstone_slab";
     pub const POLISHED_BLACKSTONE_STAIRS: &str = "minecraft:polished_blackstone_stairs";
     pub const POLISHED_BLACKSTONE_WALL: &str = "minecraft:polished_blackstone_wall";
@@ -1075,7 +1077,8 @@ pub mod blocks {
     pub const WAXED_WEATHERED_COPPER_TRAPDOOR: &str = "minecraft:waxed_weathered_copper_trapdoor";
     pub const WAXED_WEATHERED_CUT_COPPER: &str = "minecraft:waxed_weathered_cut_copper";
     pub const WAXED_WEATHERED_CUT_COPPER_SLAB: &str = "minecraft:waxed_weathered_cut_copper_slab";
-    pub const WAXED_WEATHERED_CUT_COPPER_STAIRS: &str = "minecraft:waxed_weathered_cut_copper_stairs";
+    pub const WAXED_WEATHERED_CUT_COPPER_STAIRS: &str =
+        "minecraft:waxed_weathered_cut_copper_stairs";
     /// Only in 1.21.1.
     pub const WEATHERED_CHISELED_COPPER: &str = "minecraft:weathered_chiseled_copper";
     pub const WEATHERED_COPPER: &str = "minecraft:weathered_copper";
@@ -1268,7 +1271,8 @@ pub mod items {
     /// Only in 1.21.1.
     pub const BOGGED_SPAWN_EGG: &str = "minecraft:bogged_spawn_egg";
     /// Only in 1.21.1.
-    pub const BOLT_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:bolt_armor_trim_smithing_template";
+    pub const BOLT_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:bolt_armor_trim_smithing_template";
     pub const BONE: &str = "minecraft:bone";
     pub const BONE_BLOCK: &str = "minecraft:bone_block";
     pub const BONE_MEAL: &str = "minecraft:bone_meal";
@@ -1381,7 +1385,8 @@ pub mod items {
     pub const COAL_BLOCK: &str = "minecraft:coal_block";
     pub const COAL_ORE: &str = "minecraft:coal_ore";
     pub const COARSE_DIRT: &str = "minecraft:coarse_dirt";
-    pub const COAST_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:coast_armor_trim_smithing_template";
+    pub const COAST_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:coast_armor_trim_smithing_template";
     pub const COBBLED_DEEPSLATE: &str = "minecraft:cobbled_deepslate";
     pub const COBBLED_DEEPSLATE_SLAB: &str = "minecraft:cobbled_deepslate_slab";
     pub const COBBLED_DEEPSLATE_STAIRS: &str = "minecraft:cobbled_deepslate_stairs";
@@ -1425,7 +1430,8 @@ pub mod items {
     pub const CRACKED_DEEPSLATE_BRICKS: &str = "minecraft:cracked_deepslate_bricks";
     pub const CRACKED_DEEPSLATE_TILES: &str = "minecraft:cracked_deepslate_tiles";
     pub const CRACKED_NETHER_BRICKS: &str = "minecraft:cracked_nether_bricks";
-    pub const CRACKED_POLISHED_BLACKSTONE_BRICKS: &str = "minecraft:cracked_polished_blackstone_bricks";
+    pub const CRACKED_POLISHED_BLACKSTONE_BRICKS: &str =
+        "minecraft:cracked_polished_blackstone_bricks";
     pub const CRACKED_STONE_BRICKS: &str = "minecraft:cracked_stone_bricks";
     /// Only in 1.21.1.
     pub const CRAFTER: &str = "minecraft:crafter";
@@ -1562,7 +1568,8 @@ pub mod items {
     pub const DRIPSTONE_BLOCK: &str = "minecraft:dripstone_block";
     pub const DROPPER: &str = "minecraft:dropper";
     pub const DROWNED_SPAWN_EGG: &str = "minecraft:drowned_spawn_egg";
-    pub const DUNE_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:dune_armor_trim_smithing_template";
+    pub const DUNE_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:dune_armor_trim_smithing_template";
     pub const ECHO_SHARD: &str = "minecraft:echo_shard";
     pub const EGG: &str = "minecraft:egg";
     pub const ELDER_GUARDIAN_SPAWN_EGG: &str = "minecraft:elder_guardian_spawn_egg";
@@ -1621,7 +1628,8 @@ pub mod items {
     pub const FLINT: &str = "minecraft:flint";
     pub const FLINT_AND_STEEL: &str = "minecraft:flint_and_steel";
     /// Only in 1.21.1.
-    pub const FLOW_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:flow_armor_trim_smithing_template";
+    pub const FLOW_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:flow_armor_trim_smithing_template";
     /// Only in 1.21.1.
     pub const FLOW_BANNER_PATTERN: &str = "minecraft:flow_banner_pattern";
     /// Only in 1.21.1.
@@ -1729,7 +1737,8 @@ pub mod items {
     pub const HORN_CORAL_BLOCK: &str = "minecraft:horn_coral_block";
     pub const HORN_CORAL_FAN: &str = "minecraft:horn_coral_fan";
     pub const HORSE_SPAWN_EGG: &str = "minecraft:horse_spawn_egg";
-    pub const HOST_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:host_armor_trim_smithing_template";
+    pub const HOST_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:host_armor_trim_smithing_template";
     pub const HOWL_POTTERY_SHERD: &str = "minecraft:howl_pottery_sherd";
     pub const HUSK_SPAWN_EGG: &str = "minecraft:husk_spawn_egg";
     pub const ICE: &str = "minecraft:ice";
@@ -1964,7 +1973,8 @@ pub mod items {
     pub const NETHERITE_SCRAP: &str = "minecraft:netherite_scrap";
     pub const NETHERITE_SHOVEL: &str = "minecraft:netherite_shovel";
     pub const NETHERITE_SWORD: &str = "minecraft:netherite_sword";
-    pub const NETHERITE_UPGRADE_SMITHING_TEMPLATE: &str = "minecraft:netherite_upgrade_smithing_template";
+    pub const NETHERITE_UPGRADE_SMITHING_TEMPLATE: &str =
+        "minecraft:netherite_upgrade_smithing_template";
     pub const NETHERRACK: &str = "minecraft:netherrack";
     pub const NOTE_BLOCK: &str = "minecraft:note_block";
     pub const OAK_BOAT: &str = "minecraft:oak_boat";
@@ -2072,7 +2082,8 @@ pub mod items {
     pub const POLISHED_BLACKSTONE_BRICK_WALL: &str = "minecraft:polished_blackstone_brick_wall";
     pub const POLISHED_BLACKSTONE_BRICKS: &str = "minecraft:polished_blackstone_bricks";
     pub const POLISHED_BLACKSTONE_BUTTON: &str = "minecraft:polished_blackstone_button";
-    pub const POLISHED_BLACKSTONE_PRESSURE_PLATE: &str = "minecraft:polished_blackstone_pressure_plate";
+    pub const POLISHED_BLACKSTONE_PRESSURE_PLATE: &str =
+        "minecraft:polished_blackstone_pressure_plate";
     pub const POLISHED_BLACKSTONE_SLAB: &str = "minecraft:polished_blackstone_slab";
     pub const POLISHED_BLACKSTONE_STAIRS: &str = "minecraft:polished_blackstone_stairs";
     pub const POLISHED_BLACKSTONE_WALL: &str = "minecraft:polished_blackstone_wall";
@@ -2146,7 +2157,8 @@ pub mod items {
     pub const RABBIT_SPAWN_EGG: &str = "minecraft:rabbit_spawn_egg";
     pub const RABBIT_STEW: &str = "minecraft:rabbit_stew";
     pub const RAIL: &str = "minecraft:rail";
-    pub const RAISER_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:raiser_armor_trim_smithing_template";
+    pub const RAISER_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:raiser_armor_trim_smithing_template";
     pub const RAVAGER_SPAWN_EGG: &str = "minecraft:ravager_spawn_egg";
     pub const RAW_COPPER: &str = "minecraft:raw_copper";
     pub const RAW_COPPER_BLOCK: &str = "minecraft:raw_copper_block";
@@ -2215,8 +2227,10 @@ pub mod items {
     pub const SEA_LANTERN: &str = "minecraft:sea_lantern";
     pub const SEA_PICKLE: &str = "minecraft:sea_pickle";
     pub const SEAGRASS: &str = "minecraft:seagrass";
-    pub const SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:sentry_armor_trim_smithing_template";
-    pub const SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:shaper_armor_trim_smithing_template";
+    pub const SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:sentry_armor_trim_smithing_template";
+    pub const SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:shaper_armor_trim_smithing_template";
     pub const SHEAF_POTTERY_SHERD: &str = "minecraft:sheaf_pottery_sherd";
     pub const SHEARS: &str = "minecraft:shears";
     pub const SHEEP_SPAWN_EGG: &str = "minecraft:sheep_spawn_egg";
@@ -2228,7 +2242,8 @@ pub mod items {
     pub const SHULKER_BOX: &str = "minecraft:shulker_box";
     pub const SHULKER_SHELL: &str = "minecraft:shulker_shell";
     pub const SHULKER_SPAWN_EGG: &str = "minecraft:shulker_spawn_egg";
-    pub const SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:silence_armor_trim_smithing_template";
+    pub const SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:silence_armor_trim_smithing_template";
     pub const SILVERFISH_SPAWN_EGG: &str = "minecraft:silverfish_spawn_egg";
     pub const SKELETON_HORSE_SPAWN_EGG: &str = "minecraft:skeleton_horse_spawn_egg";
     pub const SKELETON_SKULL: &str = "minecraft:skeleton_skull";
@@ -2257,7 +2272,8 @@ pub mod items {
     pub const SNIFFER_EGG: &str = "minecraft:sniffer_egg";
     pub const SNIFFER_SPAWN_EGG: &str = "minecraft:sniffer_spawn_egg";
     pub const SNORT_POTTERY_SHERD: &str = "minecraft:snort_pottery_sherd";
-    pub const SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:snout_armor_trim_smithing_template";
+    pub const SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:snout_armor_trim_smithing_template";
     pub const SNOW: &str = "minecraft:snow";
     pub const SNOW_BLOCK: &str = "minecraft:snow_block";
     pub const SNOW_GOLEM_SPAWN_EGG: &str = "minecraft:snow_golem_spawn_egg";
@@ -2271,7 +2287,8 @@ pub mod items {
     pub const SPECTRAL_ARROW: &str = "minecraft:spectral_arrow";
     pub const SPIDER_EYE: &str = "minecraft:spider_eye";
     pub const SPIDER_SPAWN_EGG: &str = "minecraft:spider_spawn_egg";
-    pub const SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:spire_armor_trim_smithing_template";
+    pub const SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:spire_armor_trim_smithing_template";
     pub const SPLASH_POTION: &str = "minecraft:splash_potion";
     pub const SPONGE: &str = "minecraft:sponge";
     pub const SPORE_BLOSSOM: &str = "minecraft:spore_blossom";
@@ -2349,7 +2366,8 @@ pub mod items {
     pub const TALL_GRASS: &str = "minecraft:tall_grass";
     pub const TARGET: &str = "minecraft:target";
     pub const TERRACOTTA: &str = "minecraft:terracotta";
-    pub const TIDE_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:tide_armor_trim_smithing_template";
+    pub const TIDE_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:tide_armor_trim_smithing_template";
     pub const TINTED_GLASS: &str = "minecraft:tinted_glass";
     pub const TIPPED_ARROW: &str = "minecraft:tipped_arrow";
     pub const TNT: &str = "minecraft:tnt";
@@ -2402,7 +2420,8 @@ pub mod items {
     pub const VINDICATOR_SPAWN_EGG: &str = "minecraft:vindicator_spawn_egg";
     pub const VINE: &str = "minecraft:vine";
     pub const WANDERING_TRADER_SPAWN_EGG: &str = "minecraft:wandering_trader_spawn_egg";
-    pub const WARD_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:ward_armor_trim_smithing_template";
+    pub const WARD_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:ward_armor_trim_smithing_template";
     pub const WARDEN_SPAWN_EGG: &str = "minecraft:warden_spawn_egg";
     pub const WARPED_BUTTON: &str = "minecraft:warped_button";
     pub const WARPED_DOOR: &str = "minecraft:warped_door";
@@ -2478,8 +2497,10 @@ pub mod items {
     pub const WAXED_WEATHERED_COPPER_TRAPDOOR: &str = "minecraft:waxed_weathered_copper_trapdoor";
     pub const WAXED_WEATHERED_CUT_COPPER: &str = "minecraft:waxed_weathered_cut_copper";
     pub const WAXED_WEATHERED_CUT_COPPER_SLAB: &str = "minecraft:waxed_weathered_cut_copper_slab";
-    pub const WAXED_WEATHERED_CUT_COPPER_STAIRS: &str = "minecraft:waxed_weathered_cut_copper_stairs";
-    pub const WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:wayfinder_armor_trim_smithing_template";
+    pub const WAXED_WEATHERED_CUT_COPPER_STAIRS: &str =
+        "minecraft:waxed_weathered_cut_copper_stairs";
+    pub const WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:wayfinder_armor_trim_smithing_template";
     /// Only in 1.21.1.
     pub const WEATHERED_CHISELED_COPPER: &str = "minecraft:weathered_chiseled_copper";
     pub const WEATHERED_COPPER: &str = "minecraft:weathered_copper";
@@ -2512,7 +2533,8 @@ pub mod items {
     pub const WHITE_TERRACOTTA: &str = "minecraft:white_terracotta";
     pub const WHITE_TULIP: &str = "minecraft:white_tulip";
     pub const WHITE_WOOL: &str = "minecraft:white_wool";
-    pub const WILD_ARMOR_TRIM_SMITHING_TEMPLATE: &str = "minecraft:wild_armor_trim_smithing_template";
+    pub const WILD_ARMOR_TRIM_SMITHING_TEMPLATE: &str =
+        "minecraft:wild_armor_trim_smithing_template";
     /// Only in 1.21.1.
     pub const WIND_CHARGE: &str = "minecraft:wind_charge";
     pub const WITCH_SPAWN_EGG: &str = "minecraft:witch_spawn_egg";
@@ -2981,15 +3003,19 @@ pub mod sounds {
     pub const AMBIENT_NETHER_WASTES_ADDITIONS: &str = "minecraft:ambient.nether_wastes.additions";
     pub const AMBIENT_NETHER_WASTES_LOOP: &str = "minecraft:ambient.nether_wastes.loop";
     pub const AMBIENT_NETHER_WASTES_MOOD: &str = "minecraft:ambient.nether_wastes.mood";
-    pub const AMBIENT_SOUL_SAND_VALLEY_ADDITIONS: &str = "minecraft:ambient.soul_sand_valley.additions";
+    pub const AMBIENT_SOUL_SAND_VALLEY_ADDITIONS: &str =
+        "minecraft:ambient.soul_sand_valley.additions";
     pub const AMBIENT_SOUL_SAND_VALLEY_LOOP: &str = "minecraft:ambient.soul_sand_valley.loop";
     pub const AMBIENT_SOUL_SAND_VALLEY_MOOD: &str = "minecraft:ambient.soul_sand_valley.mood";
     pub const AMBIENT_UNDERWATER_ENTER: &str = "minecraft:ambient.underwater.enter";
     pub const AMBIENT_UNDERWATER_EXIT: &str = "minecraft:ambient.underwater.exit";
     pub const AMBIENT_UNDERWATER_LOOP: &str = "minecraft:ambient.underwater.loop";
-    pub const AMBIENT_UNDERWATER_LOOP_ADDITIONS: &str = "minecraft:ambient.underwater.loop.additions";
-    pub const AMBIENT_UNDERWATER_LOOP_ADDITIONS_RARE: &str = "minecraft:ambient.underwater.loop.additions.rare";
-    pub const AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE: &str = "minecraft:ambient.underwater.loop.additions.ultra_rare";
+    pub const AMBIENT_UNDERWATER_LOOP_ADDITIONS: &str =
+        "minecraft:ambient.underwater.loop.additions";
+    pub const AMBIENT_UNDERWATER_LOOP_ADDITIONS_RARE: &str =
+        "minecraft:ambient.underwater.loop.additions.rare";
+    pub const AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE: &str =
+        "minecraft:ambient.underwater.loop.additions.ultra_rare";
     pub const AMBIENT_WARPED_FOREST_ADDITIONS: &str = "minecraft:ambient.warped_forest.additions";
     pub const AMBIENT_WARPED_FOREST_LOOP: &str = "minecraft:ambient.warped_forest.loop";
     pub const AMBIENT_WARPED_FOREST_MOOD: &str = "minecraft:ambient.warped_forest.mood";
@@ -3041,19 +3067,30 @@ pub mod sounds {
     pub const BLOCK_BAMBOO_WOOD_HIT: &str = "minecraft:block.bamboo_wood.hit";
     pub const BLOCK_BAMBOO_WOOD_PLACE: &str = "minecraft:block.bamboo_wood.place";
     pub const BLOCK_BAMBOO_WOOD_STEP: &str = "minecraft:block.bamboo_wood.step";
-    pub const BLOCK_BAMBOO_WOOD_BUTTON_CLICK_OFF: &str = "minecraft:block.bamboo_wood_button.click_off";
-    pub const BLOCK_BAMBOO_WOOD_BUTTON_CLICK_ON: &str = "minecraft:block.bamboo_wood_button.click_on";
+    pub const BLOCK_BAMBOO_WOOD_BUTTON_CLICK_OFF: &str =
+        "minecraft:block.bamboo_wood_button.click_off";
+    pub const BLOCK_BAMBOO_WOOD_BUTTON_CLICK_ON: &str =
+        "minecraft:block.bamboo_wood_button.click_on";
     pub const BLOCK_BAMBOO_WOOD_DOOR_CLOSE: &str = "minecraft:block.bamboo_wood_door.close";
     pub const BLOCK_BAMBOO_WOOD_DOOR_OPEN: &str = "minecraft:block.bamboo_wood_door.open";
-    pub const BLOCK_BAMBOO_WOOD_FENCE_GATE_CLOSE: &str = "minecraft:block.bamboo_wood_fence_gate.close";
-    pub const BLOCK_BAMBOO_WOOD_FENCE_GATE_OPEN: &str = "minecraft:block.bamboo_wood_fence_gate.open";
-    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_BREAK: &str = "minecraft:block.bamboo_wood_hanging_sign.break";
-    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_FALL: &str = "minecraft:block.bamboo_wood_hanging_sign.fall";
-    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_HIT: &str = "minecraft:block.bamboo_wood_hanging_sign.hit";
-    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_PLACE: &str = "minecraft:block.bamboo_wood_hanging_sign.place";
-    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_STEP: &str = "minecraft:block.bamboo_wood_hanging_sign.step";
-    pub const BLOCK_BAMBOO_WOOD_PRESSURE_PLATE_CLICK_OFF: &str = "minecraft:block.bamboo_wood_pressure_plate.click_off";
-    pub const BLOCK_BAMBOO_WOOD_PRESSURE_PLATE_CLICK_ON: &str = "minecraft:block.bamboo_wood_pressure_plate.click_on";
+    pub const BLOCK_BAMBOO_WOOD_FENCE_GATE_CLOSE: &str =
+        "minecraft:block.bamboo_wood_fence_gate.close";
+    pub const BLOCK_BAMBOO_WOOD_FENCE_GATE_OPEN: &str =
+        "minecraft:block.bamboo_wood_fence_gate.open";
+    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_BREAK: &str =
+        "minecraft:block.bamboo_wood_hanging_sign.break";
+    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_FALL: &str =
+        "minecraft:block.bamboo_wood_hanging_sign.fall";
+    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_HIT: &str =
+        "minecraft:block.bamboo_wood_hanging_sign.hit";
+    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_PLACE: &str =
+        "minecraft:block.bamboo_wood_hanging_sign.place";
+    pub const BLOCK_BAMBOO_WOOD_HANGING_SIGN_STEP: &str =
+        "minecraft:block.bamboo_wood_hanging_sign.step";
+    pub const BLOCK_BAMBOO_WOOD_PRESSURE_PLATE_CLICK_OFF: &str =
+        "minecraft:block.bamboo_wood_pressure_plate.click_off";
+    pub const BLOCK_BAMBOO_WOOD_PRESSURE_PLATE_CLICK_ON: &str =
+        "minecraft:block.bamboo_wood_pressure_plate.click_on";
     pub const BLOCK_BAMBOO_WOOD_TRAPDOOR_CLOSE: &str = "minecraft:block.bamboo_wood_trapdoor.close";
     pub const BLOCK_BAMBOO_WOOD_TRAPDOOR_OPEN: &str = "minecraft:block.bamboo_wood_trapdoor.open";
     pub const BLOCK_BARREL_CLOSE: &str = "minecraft:block.barrel.close";
@@ -3089,10 +3126,14 @@ pub mod sounds {
     pub const BLOCK_BONE_BLOCK_STEP: &str = "minecraft:block.bone_block.step";
     pub const BLOCK_BREWING_STAND_BREW: &str = "minecraft:block.brewing_stand.brew";
     pub const BLOCK_BUBBLE_COLUMN_BUBBLE_POP: &str = "minecraft:block.bubble_column.bubble_pop";
-    pub const BLOCK_BUBBLE_COLUMN_UPWARDS_AMBIENT: &str = "minecraft:block.bubble_column.upwards_ambient";
-    pub const BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE: &str = "minecraft:block.bubble_column.upwards_inside";
-    pub const BLOCK_BUBBLE_COLUMN_WHIRLPOOL_AMBIENT: &str = "minecraft:block.bubble_column.whirlpool_ambient";
-    pub const BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE: &str = "minecraft:block.bubble_column.whirlpool_inside";
+    pub const BLOCK_BUBBLE_COLUMN_UPWARDS_AMBIENT: &str =
+        "minecraft:block.bubble_column.upwards_ambient";
+    pub const BLOCK_BUBBLE_COLUMN_UPWARDS_INSIDE: &str =
+        "minecraft:block.bubble_column.upwards_inside";
+    pub const BLOCK_BUBBLE_COLUMN_WHIRLPOOL_AMBIENT: &str =
+        "minecraft:block.bubble_column.whirlpool_ambient";
+    pub const BLOCK_BUBBLE_COLUMN_WHIRLPOOL_INSIDE: &str =
+        "minecraft:block.bubble_column.whirlpool_inside";
     pub const BLOCK_CAKE_ADD_CANDLE: &str = "minecraft:block.cake.add_candle";
     pub const BLOCK_CALCITE_BREAK: &str = "minecraft:block.calcite.break";
     pub const BLOCK_CALCITE_FALL: &str = "minecraft:block.calcite.fall";
@@ -3133,19 +3174,30 @@ pub mod sounds {
     pub const BLOCK_CHERRY_WOOD_HIT: &str = "minecraft:block.cherry_wood.hit";
     pub const BLOCK_CHERRY_WOOD_PLACE: &str = "minecraft:block.cherry_wood.place";
     pub const BLOCK_CHERRY_WOOD_STEP: &str = "minecraft:block.cherry_wood.step";
-    pub const BLOCK_CHERRY_WOOD_BUTTON_CLICK_OFF: &str = "minecraft:block.cherry_wood_button.click_off";
-    pub const BLOCK_CHERRY_WOOD_BUTTON_CLICK_ON: &str = "minecraft:block.cherry_wood_button.click_on";
+    pub const BLOCK_CHERRY_WOOD_BUTTON_CLICK_OFF: &str =
+        "minecraft:block.cherry_wood_button.click_off";
+    pub const BLOCK_CHERRY_WOOD_BUTTON_CLICK_ON: &str =
+        "minecraft:block.cherry_wood_button.click_on";
     pub const BLOCK_CHERRY_WOOD_DOOR_CLOSE: &str = "minecraft:block.cherry_wood_door.close";
     pub const BLOCK_CHERRY_WOOD_DOOR_OPEN: &str = "minecraft:block.cherry_wood_door.open";
-    pub const BLOCK_CHERRY_WOOD_FENCE_GATE_CLOSE: &str = "minecraft:block.cherry_wood_fence_gate.close";
-    pub const BLOCK_CHERRY_WOOD_FENCE_GATE_OPEN: &str = "minecraft:block.cherry_wood_fence_gate.open";
-    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_BREAK: &str = "minecraft:block.cherry_wood_hanging_sign.break";
-    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_FALL: &str = "minecraft:block.cherry_wood_hanging_sign.fall";
-    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_HIT: &str = "minecraft:block.cherry_wood_hanging_sign.hit";
-    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_PLACE: &str = "minecraft:block.cherry_wood_hanging_sign.place";
-    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_STEP: &str = "minecraft:block.cherry_wood_hanging_sign.step";
-    pub const BLOCK_CHERRY_WOOD_PRESSURE_PLATE_CLICK_OFF: &str = "minecraft:block.cherry_wood_pressure_plate.click_off";
-    pub const BLOCK_CHERRY_WOOD_PRESSURE_PLATE_CLICK_ON: &str = "minecraft:block.cherry_wood_pressure_plate.click_on";
+    pub const BLOCK_CHERRY_WOOD_FENCE_GATE_CLOSE: &str =
+        "minecraft:block.cherry_wood_fence_gate.close";
+    pub const BLOCK_CHERRY_WOOD_FENCE_GATE_OPEN: &str =
+        "minecraft:block.cherry_wood_fence_gate.open";
+    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_BREAK: &str =
+        "minecraft:block.cherry_wood_hanging_sign.break";
+    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_FALL: &str =
+        "minecraft:block.cherry_wood_hanging_sign.fall";
+    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_HIT: &str =
+        "minecraft:block.cherry_wood_hanging_sign.hit";
+    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_PLACE: &str =
+        "minecraft:block.cherry_wood_hanging_sign.place";
+    pub const BLOCK_CHERRY_WOOD_HANGING_SIGN_STEP: &str =
+        "minecraft:block.cherry_wood_hanging_sign.step";
+    pub const BLOCK_CHERRY_WOOD_PRESSURE_PLATE_CLICK_OFF: &str =
+        "minecraft:block.cherry_wood_pressure_plate.click_off";
+    pub const BLOCK_CHERRY_WOOD_PRESSURE_PLATE_CLICK_ON: &str =
+        "minecraft:block.cherry_wood_pressure_plate.click_on";
     pub const BLOCK_CHERRY_WOOD_TRAPDOOR_CLOSE: &str = "minecraft:block.cherry_wood_trapdoor.close";
     pub const BLOCK_CHERRY_WOOD_TRAPDOOR_OPEN: &str = "minecraft:block.cherry_wood_trapdoor.open";
     pub const BLOCK_CHEST_CLOSE: &str = "minecraft:block.chest.close";
@@ -3155,9 +3207,11 @@ pub mod sounds {
     pub const BLOCK_CHISELED_BOOKSHELF_FALL: &str = "minecraft:block.chiseled_bookshelf.fall";
     pub const BLOCK_CHISELED_BOOKSHELF_HIT: &str = "minecraft:block.chiseled_bookshelf.hit";
     pub const BLOCK_CHISELED_BOOKSHELF_INSERT: &str = "minecraft:block.chiseled_bookshelf.insert";
-    pub const BLOCK_CHISELED_BOOKSHELF_INSERT_ENCHANTED: &str = "minecraft:block.chiseled_bookshelf.insert.enchanted";
+    pub const BLOCK_CHISELED_BOOKSHELF_INSERT_ENCHANTED: &str =
+        "minecraft:block.chiseled_bookshelf.insert.enchanted";
     pub const BLOCK_CHISELED_BOOKSHELF_PICKUP: &str = "minecraft:block.chiseled_bookshelf.pickup";
-    pub const BLOCK_CHISELED_BOOKSHELF_PICKUP_ENCHANTED: &str = "minecraft:block.chiseled_bookshelf.pickup.enchanted";
+    pub const BLOCK_CHISELED_BOOKSHELF_PICKUP_ENCHANTED: &str =
+        "minecraft:block.chiseled_bookshelf.pickup.enchanted";
     pub const BLOCK_CHISELED_BOOKSHELF_PLACE: &str = "minecraft:block.chiseled_bookshelf.place";
     pub const BLOCK_CHISELED_BOOKSHELF_STEP: &str = "minecraft:block.chiseled_bookshelf.step";
     pub const BLOCK_CHORUS_FLOWER_DEATH: &str = "minecraft:block.chorus_flower.death";
@@ -3327,7 +3381,8 @@ pub mod sounds {
     pub const BLOCK_HANGING_SIGN_PLACE: &str = "minecraft:block.hanging_sign.place";
     pub const BLOCK_HANGING_SIGN_STEP: &str = "minecraft:block.hanging_sign.step";
     /// Only in 1.21.1.
-    pub const BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL: &str = "minecraft:block.hanging_sign.waxed_interact_fail";
+    pub const BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL: &str =
+        "minecraft:block.hanging_sign.waxed_interact_fail";
     /// Only in 1.21.1.
     pub const BLOCK_HEAVY_CORE_BREAK: &str = "minecraft:block.heavy_core.break";
     /// Only in 1.21.1.
@@ -3382,8 +3437,10 @@ pub mod sounds {
     pub const BLOCK_METAL_HIT: &str = "minecraft:block.metal.hit";
     pub const BLOCK_METAL_PLACE: &str = "minecraft:block.metal.place";
     pub const BLOCK_METAL_STEP: &str = "minecraft:block.metal.step";
-    pub const BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF: &str = "minecraft:block.metal_pressure_plate.click_off";
-    pub const BLOCK_METAL_PRESSURE_PLATE_CLICK_ON: &str = "minecraft:block.metal_pressure_plate.click_on";
+    pub const BLOCK_METAL_PRESSURE_PLATE_CLICK_OFF: &str =
+        "minecraft:block.metal_pressure_plate.click_off";
+    pub const BLOCK_METAL_PRESSURE_PLATE_CLICK_ON: &str =
+        "minecraft:block.metal_pressure_plate.click_on";
     pub const BLOCK_MOSS_BREAK: &str = "minecraft:block.moss.break";
     pub const BLOCK_MOSS_FALL: &str = "minecraft:block.moss.fall";
     pub const BLOCK_MOSS_HIT: &str = "minecraft:block.moss.hit";
@@ -3435,19 +3492,30 @@ pub mod sounds {
     pub const BLOCK_NETHER_WOOD_HIT: &str = "minecraft:block.nether_wood.hit";
     pub const BLOCK_NETHER_WOOD_PLACE: &str = "minecraft:block.nether_wood.place";
     pub const BLOCK_NETHER_WOOD_STEP: &str = "minecraft:block.nether_wood.step";
-    pub const BLOCK_NETHER_WOOD_BUTTON_CLICK_OFF: &str = "minecraft:block.nether_wood_button.click_off";
-    pub const BLOCK_NETHER_WOOD_BUTTON_CLICK_ON: &str = "minecraft:block.nether_wood_button.click_on";
+    pub const BLOCK_NETHER_WOOD_BUTTON_CLICK_OFF: &str =
+        "minecraft:block.nether_wood_button.click_off";
+    pub const BLOCK_NETHER_WOOD_BUTTON_CLICK_ON: &str =
+        "minecraft:block.nether_wood_button.click_on";
     pub const BLOCK_NETHER_WOOD_DOOR_CLOSE: &str = "minecraft:block.nether_wood_door.close";
     pub const BLOCK_NETHER_WOOD_DOOR_OPEN: &str = "minecraft:block.nether_wood_door.open";
-    pub const BLOCK_NETHER_WOOD_FENCE_GATE_CLOSE: &str = "minecraft:block.nether_wood_fence_gate.close";
-    pub const BLOCK_NETHER_WOOD_FENCE_GATE_OPEN: &str = "minecraft:block.nether_wood_fence_gate.open";
-    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_BREAK: &str = "minecraft:block.nether_wood_hanging_sign.break";
-    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_FALL: &str = "minecraft:block.nether_wood_hanging_sign.fall";
-    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_HIT: &str = "minecraft:block.nether_wood_hanging_sign.hit";
-    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_PLACE: &str = "minecraft:block.nether_wood_hanging_sign.place";
-    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_STEP: &str = "minecraft:block.nether_wood_hanging_sign.step";
-    pub const BLOCK_NETHER_WOOD_PRESSURE_PLATE_CLICK_OFF: &str = "minecraft:block.nether_wood_pressure_plate.click_off";
-    pub const BLOCK_NETHER_WOOD_PRESSURE_PLATE_CLICK_ON: &str = "minecraft:block.nether_wood_pressure_plate.click_on";
+    pub const BLOCK_NETHER_WOOD_FENCE_GATE_CLOSE: &str =
+        "minecraft:block.nether_wood_fence_gate.close";
+    pub const BLOCK_NETHER_WOOD_FENCE_GATE_OPEN: &str =
+        "minecraft:block.nether_wood_fence_gate.open";
+    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_BREAK: &str =
+        "minecraft:block.nether_wood_hanging_sign.break";
+    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_FALL: &str =
+        "minecraft:block.nether_wood_hanging_sign.fall";
+    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_HIT: &str =
+        "minecraft:block.nether_wood_hanging_sign.hit";
+    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_PLACE: &str =
+        "minecraft:block.nether_wood_hanging_sign.place";
+    pub const BLOCK_NETHER_WOOD_HANGING_SIGN_STEP: &str =
+        "minecraft:block.nether_wood_hanging_sign.step";
+    pub const BLOCK_NETHER_WOOD_PRESSURE_PLATE_CLICK_OFF: &str =
+        "minecraft:block.nether_wood_pressure_plate.click_off";
+    pub const BLOCK_NETHER_WOOD_PRESSURE_PLATE_CLICK_ON: &str =
+        "minecraft:block.nether_wood_pressure_plate.click_on";
     pub const BLOCK_NETHER_WOOD_TRAPDOOR_CLOSE: &str = "minecraft:block.nether_wood_trapdoor.close";
     pub const BLOCK_NETHER_WOOD_TRAPDOOR_OPEN: &str = "minecraft:block.nether_wood_trapdoor.open";
     pub const BLOCK_NETHERITE_BLOCK_BREAK: &str = "minecraft:block.netherite_block.break";
@@ -3473,10 +3541,13 @@ pub mod sounds {
     pub const BLOCK_NOTE_BLOCK_HARP: &str = "minecraft:block.note_block.harp";
     pub const BLOCK_NOTE_BLOCK_HAT: &str = "minecraft:block.note_block.hat";
     pub const BLOCK_NOTE_BLOCK_IMITATE_CREEPER: &str = "minecraft:block.note_block.imitate.creeper";
-    pub const BLOCK_NOTE_BLOCK_IMITATE_ENDER_DRAGON: &str = "minecraft:block.note_block.imitate.ender_dragon";
+    pub const BLOCK_NOTE_BLOCK_IMITATE_ENDER_DRAGON: &str =
+        "minecraft:block.note_block.imitate.ender_dragon";
     pub const BLOCK_NOTE_BLOCK_IMITATE_PIGLIN: &str = "minecraft:block.note_block.imitate.piglin";
-    pub const BLOCK_NOTE_BLOCK_IMITATE_SKELETON: &str = "minecraft:block.note_block.imitate.skeleton";
-    pub const BLOCK_NOTE_BLOCK_IMITATE_WITHER_SKELETON: &str = "minecraft:block.note_block.imitate.wither_skeleton";
+    pub const BLOCK_NOTE_BLOCK_IMITATE_SKELETON: &str =
+        "minecraft:block.note_block.imitate.skeleton";
+    pub const BLOCK_NOTE_BLOCK_IMITATE_WITHER_SKELETON: &str =
+        "minecraft:block.note_block.imitate.wither_skeleton";
     pub const BLOCK_NOTE_BLOCK_IMITATE_ZOMBIE: &str = "minecraft:block.note_block.imitate.zombie";
     pub const BLOCK_NOTE_BLOCK_IRON_XYLOPHONE: &str = "minecraft:block.note_block.iron_xylophone";
     pub const BLOCK_NOTE_BLOCK_PLING: &str = "minecraft:block.note_block.pling";
@@ -3500,10 +3571,14 @@ pub mod sounds {
     pub const BLOCK_PISTON_CONTRACT: &str = "minecraft:block.piston.contract";
     pub const BLOCK_PISTON_EXTEND: &str = "minecraft:block.piston.extend";
     pub const BLOCK_POINTED_DRIPSTONE_BREAK: &str = "minecraft:block.pointed_dripstone.break";
-    pub const BLOCK_POINTED_DRIPSTONE_DRIP_LAVA: &str = "minecraft:block.pointed_dripstone.drip_lava";
-    pub const BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON: &str = "minecraft:block.pointed_dripstone.drip_lava_into_cauldron";
-    pub const BLOCK_POINTED_DRIPSTONE_DRIP_WATER: &str = "minecraft:block.pointed_dripstone.drip_water";
-    pub const BLOCK_POINTED_DRIPSTONE_DRIP_WATER_INTO_CAULDRON: &str = "minecraft:block.pointed_dripstone.drip_water_into_cauldron";
+    pub const BLOCK_POINTED_DRIPSTONE_DRIP_LAVA: &str =
+        "minecraft:block.pointed_dripstone.drip_lava";
+    pub const BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON: &str =
+        "minecraft:block.pointed_dripstone.drip_lava_into_cauldron";
+    pub const BLOCK_POINTED_DRIPSTONE_DRIP_WATER: &str =
+        "minecraft:block.pointed_dripstone.drip_water";
+    pub const BLOCK_POINTED_DRIPSTONE_DRIP_WATER_INTO_CAULDRON: &str =
+        "minecraft:block.pointed_dripstone.drip_water_into_cauldron";
     pub const BLOCK_POINTED_DRIPSTONE_FALL: &str = "minecraft:block.pointed_dripstone.fall";
     pub const BLOCK_POINTED_DRIPSTONE_HIT: &str = "minecraft:block.pointed_dripstone.hit";
     pub const BLOCK_POINTED_DRIPSTONE_LAND: &str = "minecraft:block.pointed_dripstone.land";
@@ -3658,8 +3733,10 @@ pub mod sounds {
     pub const BLOCK_STONE_STEP: &str = "minecraft:block.stone.step";
     pub const BLOCK_STONE_BUTTON_CLICK_OFF: &str = "minecraft:block.stone_button.click_off";
     pub const BLOCK_STONE_BUTTON_CLICK_ON: &str = "minecraft:block.stone_button.click_on";
-    pub const BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF: &str = "minecraft:block.stone_pressure_plate.click_off";
-    pub const BLOCK_STONE_PRESSURE_PLATE_CLICK_ON: &str = "minecraft:block.stone_pressure_plate.click_on";
+    pub const BLOCK_STONE_PRESSURE_PLATE_CLICK_OFF: &str =
+        "minecraft:block.stone_pressure_plate.click_off";
+    pub const BLOCK_STONE_PRESSURE_PLATE_CLICK_ON: &str =
+        "minecraft:block.stone_pressure_plate.click_on";
     pub const BLOCK_SUSPICIOUS_GRAVEL_BREAK: &str = "minecraft:block.suspicious_gravel.break";
     pub const BLOCK_SUSPICIOUS_GRAVEL_FALL: &str = "minecraft:block.suspicious_gravel.fall";
     pub const BLOCK_SUSPICIOUS_GRAVEL_HIT: &str = "minecraft:block.suspicious_gravel.hit";
@@ -3671,20 +3748,25 @@ pub mod sounds {
     pub const BLOCK_SUSPICIOUS_SAND_PLACE: &str = "minecraft:block.suspicious_sand.place";
     pub const BLOCK_SUSPICIOUS_SAND_STEP: &str = "minecraft:block.suspicious_sand.step";
     pub const BLOCK_SWEET_BERRY_BUSH_BREAK: &str = "minecraft:block.sweet_berry_bush.break";
-    pub const BLOCK_SWEET_BERRY_BUSH_PICK_BERRIES: &str = "minecraft:block.sweet_berry_bush.pick_berries";
+    pub const BLOCK_SWEET_BERRY_BUSH_PICK_BERRIES: &str =
+        "minecraft:block.sweet_berry_bush.pick_berries";
     pub const BLOCK_SWEET_BERRY_BUSH_PLACE: &str = "minecraft:block.sweet_berry_bush.place";
     /// Only in 1.21.1.
-    pub const BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM: &str = "minecraft:block.trial_spawner.about_to_spawn_item";
+    pub const BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM: &str =
+        "minecraft:block.trial_spawner.about_to_spawn_item";
     /// Only in 1.21.1.
     pub const BLOCK_TRIAL_SPAWNER_AMBIENT: &str = "minecraft:block.trial_spawner.ambient";
     /// Only in 1.21.1.
-    pub const BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS: &str = "minecraft:block.trial_spawner.ambient_ominous";
+    pub const BLOCK_TRIAL_SPAWNER_AMBIENT_OMINOUS: &str =
+        "minecraft:block.trial_spawner.ambient_ominous";
     /// Only in 1.21.1.
     pub const BLOCK_TRIAL_SPAWNER_BREAK: &str = "minecraft:block.trial_spawner.break";
     /// Only in 1.21.1.
-    pub const BLOCK_TRIAL_SPAWNER_CLOSE_SHUTTER: &str = "minecraft:block.trial_spawner.close_shutter";
+    pub const BLOCK_TRIAL_SPAWNER_CLOSE_SHUTTER: &str =
+        "minecraft:block.trial_spawner.close_shutter";
     /// Only in 1.21.1.
-    pub const BLOCK_TRIAL_SPAWNER_DETECT_PLAYER: &str = "minecraft:block.trial_spawner.detect_player";
+    pub const BLOCK_TRIAL_SPAWNER_DETECT_PLAYER: &str =
+        "minecraft:block.trial_spawner.detect_player";
     /// Only in 1.21.1.
     pub const BLOCK_TRIAL_SPAWNER_EJECT_ITEM: &str = "minecraft:block.trial_spawner.eject_item";
     /// Only in 1.21.1.
@@ -3692,7 +3774,8 @@ pub mod sounds {
     /// Only in 1.21.1.
     pub const BLOCK_TRIAL_SPAWNER_HIT: &str = "minecraft:block.trial_spawner.hit";
     /// Only in 1.21.1.
-    pub const BLOCK_TRIAL_SPAWNER_OMINOUS_ACTIVATE: &str = "minecraft:block.trial_spawner.ominous_activate";
+    pub const BLOCK_TRIAL_SPAWNER_OMINOUS_ACTIVATE: &str =
+        "minecraft:block.trial_spawner.ominous_activate";
     /// Only in 1.21.1.
     pub const BLOCK_TRIAL_SPAWNER_OPEN_SHUTTER: &str = "minecraft:block.trial_spawner.open_shutter";
     /// Only in 1.21.1.
@@ -3700,7 +3783,8 @@ pub mod sounds {
     /// Only in 1.21.1.
     pub const BLOCK_TRIAL_SPAWNER_SPAWN_ITEM: &str = "minecraft:block.trial_spawner.spawn_item";
     /// Only in 1.21.1.
-    pub const BLOCK_TRIAL_SPAWNER_SPAWN_ITEM_BEGIN: &str = "minecraft:block.trial_spawner.spawn_item_begin";
+    pub const BLOCK_TRIAL_SPAWNER_SPAWN_ITEM_BEGIN: &str =
+        "minecraft:block.trial_spawner.spawn_item_begin";
     /// Only in 1.21.1.
     pub const BLOCK_TRIAL_SPAWNER_SPAWN_MOB: &str = "minecraft:block.trial_spawner.spawn_mob";
     /// Only in 1.21.1.
@@ -3749,7 +3833,8 @@ pub mod sounds {
     /// Only in 1.21.1.
     pub const BLOCK_VAULT_PLACE: &str = "minecraft:block.vault.place";
     /// Only in 1.21.1.
-    pub const BLOCK_VAULT_REJECT_REWARDED_PLAYER: &str = "minecraft:block.vault.reject_rewarded_player";
+    pub const BLOCK_VAULT_REJECT_REWARDED_PLAYER: &str =
+        "minecraft:block.vault.reject_rewarded_player";
     /// Only in 1.21.1.
     pub const BLOCK_VAULT_STEP: &str = "minecraft:block.vault.step";
     pub const BLOCK_VINE_BREAK: &str = "minecraft:block.vine.break";
@@ -3794,8 +3879,10 @@ pub mod sounds {
     pub const BLOCK_WOODEN_BUTTON_CLICK_ON: &str = "minecraft:block.wooden_button.click_on";
     pub const BLOCK_WOODEN_DOOR_CLOSE: &str = "minecraft:block.wooden_door.close";
     pub const BLOCK_WOODEN_DOOR_OPEN: &str = "minecraft:block.wooden_door.open";
-    pub const BLOCK_WOODEN_PRESSURE_PLATE_CLICK_OFF: &str = "minecraft:block.wooden_pressure_plate.click_off";
-    pub const BLOCK_WOODEN_PRESSURE_PLATE_CLICK_ON: &str = "minecraft:block.wooden_pressure_plate.click_on";
+    pub const BLOCK_WOODEN_PRESSURE_PLATE_CLICK_OFF: &str =
+        "minecraft:block.wooden_pressure_plate.click_off";
+    pub const BLOCK_WOODEN_PRESSURE_PLATE_CLICK_ON: &str =
+        "minecraft:block.wooden_pressure_plate.click_on";
     pub const BLOCK_WOODEN_TRAPDOOR_CLOSE: &str = "minecraft:block.wooden_trapdoor.close";
     pub const BLOCK_WOODEN_TRAPDOOR_OPEN: &str = "minecraft:block.wooden_trapdoor.open";
     pub const BLOCK_WOOL_BREAK: &str = "minecraft:block.wool.break";
@@ -3805,7 +3892,8 @@ pub mod sounds {
     pub const BLOCK_WOOL_STEP: &str = "minecraft:block.wool.step";
     pub const ENCHANT_THORNS_HIT: &str = "minecraft:enchant.thorns.hit";
     pub const ENTITY_ALLAY_AMBIENT_WITH_ITEM: &str = "minecraft:entity.allay.ambient_with_item";
-    pub const ENTITY_ALLAY_AMBIENT_WITHOUT_ITEM: &str = "minecraft:entity.allay.ambient_without_item";
+    pub const ENTITY_ALLAY_AMBIENT_WITHOUT_ITEM: &str =
+        "minecraft:entity.allay.ambient_without_item";
     pub const ENTITY_ALLAY_DEATH: &str = "minecraft:entity.allay.death";
     pub const ENTITY_ALLAY_HURT: &str = "minecraft:entity.allay.hurt";
     pub const ENTITY_ALLAY_ITEM_GIVEN: &str = "minecraft:entity.allay.item_given";
@@ -3972,7 +4060,8 @@ pub mod sounds {
     pub const ENTITY_DROWNED_SWIM: &str = "minecraft:entity.drowned.swim";
     pub const ENTITY_EGG_THROW: &str = "minecraft:entity.egg.throw";
     pub const ENTITY_ELDER_GUARDIAN_AMBIENT: &str = "minecraft:entity.elder_guardian.ambient";
-    pub const ENTITY_ELDER_GUARDIAN_AMBIENT_LAND: &str = "minecraft:entity.elder_guardian.ambient_land";
+    pub const ENTITY_ELDER_GUARDIAN_AMBIENT_LAND: &str =
+        "minecraft:entity.elder_guardian.ambient_land";
     pub const ENTITY_ELDER_GUARDIAN_CURSE: &str = "minecraft:entity.elder_guardian.curse";
     pub const ENTITY_ELDER_GUARDIAN_DEATH: &str = "minecraft:entity.elder_guardian.death";
     pub const ENTITY_ELDER_GUARDIAN_DEATH_LAND: &str = "minecraft:entity.elder_guardian.death_land";
@@ -4011,12 +4100,15 @@ pub mod sounds {
     pub const ENTITY_EXPERIENCE_ORB_PICKUP: &str = "minecraft:entity.experience_orb.pickup";
     pub const ENTITY_FIREWORK_ROCKET_BLAST: &str = "minecraft:entity.firework_rocket.blast";
     pub const ENTITY_FIREWORK_ROCKET_BLAST_FAR: &str = "minecraft:entity.firework_rocket.blast_far";
-    pub const ENTITY_FIREWORK_ROCKET_LARGE_BLAST: &str = "minecraft:entity.firework_rocket.large_blast";
-    pub const ENTITY_FIREWORK_ROCKET_LARGE_BLAST_FAR: &str = "minecraft:entity.firework_rocket.large_blast_far";
+    pub const ENTITY_FIREWORK_ROCKET_LARGE_BLAST: &str =
+        "minecraft:entity.firework_rocket.large_blast";
+    pub const ENTITY_FIREWORK_ROCKET_LARGE_BLAST_FAR: &str =
+        "minecraft:entity.firework_rocket.large_blast_far";
     pub const ENTITY_FIREWORK_ROCKET_LAUNCH: &str = "minecraft:entity.firework_rocket.launch";
     pub const ENTITY_FIREWORK_ROCKET_SHOOT: &str = "minecraft:entity.firework_rocket.shoot";
     pub const ENTITY_FIREWORK_ROCKET_TWINKLE: &str = "minecraft:entity.firework_rocket.twinkle";
-    pub const ENTITY_FIREWORK_ROCKET_TWINKLE_FAR: &str = "minecraft:entity.firework_rocket.twinkle_far";
+    pub const ENTITY_FIREWORK_ROCKET_TWINKLE_FAR: &str =
+        "minecraft:entity.firework_rocket.twinkle_far";
     pub const ENTITY_FISH_SWIM: &str = "minecraft:entity.fish.swim";
     pub const ENTITY_FISHING_BOBBER_RETRIEVE: &str = "minecraft:entity.fishing_bobber.retrieve";
     pub const ENTITY_FISHING_BOBBER_SPLASH: &str = "minecraft:entity.fishing_bobber.splash";
@@ -4060,8 +4152,10 @@ pub mod sounds {
     pub const ENTITY_GLOW_ITEM_FRAME_ADD_ITEM: &str = "minecraft:entity.glow_item_frame.add_item";
     pub const ENTITY_GLOW_ITEM_FRAME_BREAK: &str = "minecraft:entity.glow_item_frame.break";
     pub const ENTITY_GLOW_ITEM_FRAME_PLACE: &str = "minecraft:entity.glow_item_frame.place";
-    pub const ENTITY_GLOW_ITEM_FRAME_REMOVE_ITEM: &str = "minecraft:entity.glow_item_frame.remove_item";
-    pub const ENTITY_GLOW_ITEM_FRAME_ROTATE_ITEM: &str = "minecraft:entity.glow_item_frame.rotate_item";
+    pub const ENTITY_GLOW_ITEM_FRAME_REMOVE_ITEM: &str =
+        "minecraft:entity.glow_item_frame.remove_item";
+    pub const ENTITY_GLOW_ITEM_FRAME_ROTATE_ITEM: &str =
+        "minecraft:entity.glow_item_frame.rotate_item";
     pub const ENTITY_GLOW_SQUID_AMBIENT: &str = "minecraft:entity.glow_squid.ambient";
     pub const ENTITY_GLOW_SQUID_DEATH: &str = "minecraft:entity.glow_squid.death";
     pub const ENTITY_GLOW_SQUID_HURT: &str = "minecraft:entity.glow_squid.hurt";
@@ -4082,7 +4176,8 @@ pub mod sounds {
     pub const ENTITY_GOAT_SCREAMING_HURT: &str = "minecraft:entity.goat.screaming.hurt";
     pub const ENTITY_GOAT_SCREAMING_LONG_JUMP: &str = "minecraft:entity.goat.screaming.long_jump";
     pub const ENTITY_GOAT_SCREAMING_MILK: &str = "minecraft:entity.goat.screaming.milk";
-    pub const ENTITY_GOAT_SCREAMING_PREPARE_RAM: &str = "minecraft:entity.goat.screaming.prepare_ram";
+    pub const ENTITY_GOAT_SCREAMING_PREPARE_RAM: &str =
+        "minecraft:entity.goat.screaming.prepare_ram";
     pub const ENTITY_GOAT_SCREAMING_RAM_IMPACT: &str = "minecraft:entity.goat.screaming.ram_impact";
     pub const ENTITY_GOAT_STEP: &str = "minecraft:entity.goat.step";
     pub const ENTITY_GUARDIAN_AMBIENT: &str = "minecraft:entity.guardian.ambient";
@@ -4096,7 +4191,8 @@ pub mod sounds {
     pub const ENTITY_HOGLIN_AMBIENT: &str = "minecraft:entity.hoglin.ambient";
     pub const ENTITY_HOGLIN_ANGRY: &str = "minecraft:entity.hoglin.angry";
     pub const ENTITY_HOGLIN_ATTACK: &str = "minecraft:entity.hoglin.attack";
-    pub const ENTITY_HOGLIN_CONVERTED_TO_ZOMBIFIED: &str = "minecraft:entity.hoglin.converted_to_zombified";
+    pub const ENTITY_HOGLIN_CONVERTED_TO_ZOMBIFIED: &str =
+        "minecraft:entity.hoglin.converted_to_zombified";
     pub const ENTITY_HOGLIN_DEATH: &str = "minecraft:entity.hoglin.death";
     pub const ENTITY_HOGLIN_HURT: &str = "minecraft:entity.hoglin.hurt";
     pub const ENTITY_HOGLIN_RETREAT: &str = "minecraft:entity.hoglin.retreat";
@@ -4130,7 +4226,8 @@ pub mod sounds {
     pub const ENTITY_ILLUSIONER_DEATH: &str = "minecraft:entity.illusioner.death";
     pub const ENTITY_ILLUSIONER_HURT: &str = "minecraft:entity.illusioner.hurt";
     pub const ENTITY_ILLUSIONER_MIRROR_MOVE: &str = "minecraft:entity.illusioner.mirror_move";
-    pub const ENTITY_ILLUSIONER_PREPARE_BLINDNESS: &str = "minecraft:entity.illusioner.prepare_blindness";
+    pub const ENTITY_ILLUSIONER_PREPARE_BLINDNESS: &str =
+        "minecraft:entity.illusioner.prepare_blindness";
     pub const ENTITY_ILLUSIONER_PREPARE_MIRROR: &str = "minecraft:entity.illusioner.prepare_mirror";
     pub const ENTITY_IRON_GOLEM_ATTACK: &str = "minecraft:entity.iron_golem.attack";
     pub const ENTITY_IRON_GOLEM_DAMAGE: &str = "minecraft:entity.iron_golem.damage";
@@ -4167,7 +4264,8 @@ pub mod sounds {
     pub const ENTITY_MAGMA_CUBE_SQUISH: &str = "minecraft:entity.magma_cube.squish";
     pub const ENTITY_MAGMA_CUBE_SQUISH_SMALL: &str = "minecraft:entity.magma_cube.squish_small";
     pub const ENTITY_MINECART_INSIDE: &str = "minecraft:entity.minecart.inside";
-    pub const ENTITY_MINECART_INSIDE_UNDERWATER: &str = "minecraft:entity.minecart.inside.underwater";
+    pub const ENTITY_MINECART_INSIDE_UNDERWATER: &str =
+        "minecraft:entity.minecart.inside.underwater";
     pub const ENTITY_MINECART_RIDING: &str = "minecraft:entity.minecart.riding";
     pub const ENTITY_MOOSHROOM_CONVERT: &str = "minecraft:entity.mooshroom.convert";
     pub const ENTITY_MOOSHROOM_EAT: &str = "minecraft:entity.mooshroom.eat";
@@ -4210,8 +4308,10 @@ pub mod sounds {
     pub const ENTITY_PARROT_IMITATE_BREEZE: &str = "minecraft:entity.parrot.imitate.breeze";
     pub const ENTITY_PARROT_IMITATE_CREEPER: &str = "minecraft:entity.parrot.imitate.creeper";
     pub const ENTITY_PARROT_IMITATE_DROWNED: &str = "minecraft:entity.parrot.imitate.drowned";
-    pub const ENTITY_PARROT_IMITATE_ELDER_GUARDIAN: &str = "minecraft:entity.parrot.imitate.elder_guardian";
-    pub const ENTITY_PARROT_IMITATE_ENDER_DRAGON: &str = "minecraft:entity.parrot.imitate.ender_dragon";
+    pub const ENTITY_PARROT_IMITATE_ELDER_GUARDIAN: &str =
+        "minecraft:entity.parrot.imitate.elder_guardian";
+    pub const ENTITY_PARROT_IMITATE_ENDER_DRAGON: &str =
+        "minecraft:entity.parrot.imitate.ender_dragon";
     pub const ENTITY_PARROT_IMITATE_ENDERMITE: &str = "minecraft:entity.parrot.imitate.endermite";
     pub const ENTITY_PARROT_IMITATE_EVOKER: &str = "minecraft:entity.parrot.imitate.evoker";
     pub const ENTITY_PARROT_IMITATE_GHAST: &str = "minecraft:entity.parrot.imitate.ghast";
@@ -4222,7 +4322,8 @@ pub mod sounds {
     pub const ENTITY_PARROT_IMITATE_MAGMA_CUBE: &str = "minecraft:entity.parrot.imitate.magma_cube";
     pub const ENTITY_PARROT_IMITATE_PHANTOM: &str = "minecraft:entity.parrot.imitate.phantom";
     pub const ENTITY_PARROT_IMITATE_PIGLIN: &str = "minecraft:entity.parrot.imitate.piglin";
-    pub const ENTITY_PARROT_IMITATE_PIGLIN_BRUTE: &str = "minecraft:entity.parrot.imitate.piglin_brute";
+    pub const ENTITY_PARROT_IMITATE_PIGLIN_BRUTE: &str =
+        "minecraft:entity.parrot.imitate.piglin_brute";
     pub const ENTITY_PARROT_IMITATE_PILLAGER: &str = "minecraft:entity.parrot.imitate.pillager";
     pub const ENTITY_PARROT_IMITATE_RAVAGER: &str = "minecraft:entity.parrot.imitate.ravager";
     pub const ENTITY_PARROT_IMITATE_SHULKER: &str = "minecraft:entity.parrot.imitate.shulker";
@@ -4236,10 +4337,12 @@ pub mod sounds {
     pub const ENTITY_PARROT_IMITATE_WARDEN: &str = "minecraft:entity.parrot.imitate.warden";
     pub const ENTITY_PARROT_IMITATE_WITCH: &str = "minecraft:entity.parrot.imitate.witch";
     pub const ENTITY_PARROT_IMITATE_WITHER: &str = "minecraft:entity.parrot.imitate.wither";
-    pub const ENTITY_PARROT_IMITATE_WITHER_SKELETON: &str = "minecraft:entity.parrot.imitate.wither_skeleton";
+    pub const ENTITY_PARROT_IMITATE_WITHER_SKELETON: &str =
+        "minecraft:entity.parrot.imitate.wither_skeleton";
     pub const ENTITY_PARROT_IMITATE_ZOGLIN: &str = "minecraft:entity.parrot.imitate.zoglin";
     pub const ENTITY_PARROT_IMITATE_ZOMBIE: &str = "minecraft:entity.parrot.imitate.zombie";
-    pub const ENTITY_PARROT_IMITATE_ZOMBIE_VILLAGER: &str = "minecraft:entity.parrot.imitate.zombie_villager";
+    pub const ENTITY_PARROT_IMITATE_ZOMBIE_VILLAGER: &str =
+        "minecraft:entity.parrot.imitate.zombie_villager";
     pub const ENTITY_PARROT_STEP: &str = "minecraft:entity.parrot.step";
     pub const ENTITY_PHANTOM_AMBIENT: &str = "minecraft:entity.phantom.ambient";
     pub const ENTITY_PHANTOM_BITE: &str = "minecraft:entity.phantom.bite";
@@ -4256,7 +4359,8 @@ pub mod sounds {
     pub const ENTITY_PIGLIN_AMBIENT: &str = "minecraft:entity.piglin.ambient";
     pub const ENTITY_PIGLIN_ANGRY: &str = "minecraft:entity.piglin.angry";
     pub const ENTITY_PIGLIN_CELEBRATE: &str = "minecraft:entity.piglin.celebrate";
-    pub const ENTITY_PIGLIN_CONVERTED_TO_ZOMBIFIED: &str = "minecraft:entity.piglin.converted_to_zombified";
+    pub const ENTITY_PIGLIN_CONVERTED_TO_ZOMBIFIED: &str =
+        "minecraft:entity.piglin.converted_to_zombified";
     pub const ENTITY_PIGLIN_DEATH: &str = "minecraft:entity.piglin.death";
     pub const ENTITY_PIGLIN_HURT: &str = "minecraft:entity.piglin.hurt";
     pub const ENTITY_PIGLIN_JEALOUS: &str = "minecraft:entity.piglin.jealous";
@@ -4264,7 +4368,8 @@ pub mod sounds {
     pub const ENTITY_PIGLIN_STEP: &str = "minecraft:entity.piglin.step";
     pub const ENTITY_PIGLIN_BRUTE_AMBIENT: &str = "minecraft:entity.piglin_brute.ambient";
     pub const ENTITY_PIGLIN_BRUTE_ANGRY: &str = "minecraft:entity.piglin_brute.angry";
-    pub const ENTITY_PIGLIN_BRUTE_CONVERTED_TO_ZOMBIFIED: &str = "minecraft:entity.piglin_brute.converted_to_zombified";
+    pub const ENTITY_PIGLIN_BRUTE_CONVERTED_TO_ZOMBIFIED: &str =
+        "minecraft:entity.piglin_brute.converted_to_zombified";
     pub const ENTITY_PIGLIN_BRUTE_DEATH: &str = "minecraft:entity.piglin_brute.death";
     pub const ENTITY_PIGLIN_BRUTE_HURT: &str = "minecraft:entity.piglin_brute.hurt";
     pub const ENTITY_PIGLIN_BRUTE_STEP: &str = "minecraft:entity.piglin_brute.step";
@@ -4286,7 +4391,8 @@ pub mod sounds {
     pub const ENTITY_PLAYER_HURT_DROWN: &str = "minecraft:entity.player.hurt_drown";
     pub const ENTITY_PLAYER_HURT_FREEZE: &str = "minecraft:entity.player.hurt_freeze";
     pub const ENTITY_PLAYER_HURT_ON_FIRE: &str = "minecraft:entity.player.hurt_on_fire";
-    pub const ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH: &str = "minecraft:entity.player.hurt_sweet_berry_bush";
+    pub const ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH: &str =
+        "minecraft:entity.player.hurt_sweet_berry_bush";
     pub const ENTITY_PLAYER_LEVELUP: &str = "minecraft:entity.player.levelup";
     pub const ENTITY_PLAYER_SMALL_FALL: &str = "minecraft:entity.player.small_fall";
     pub const ENTITY_PLAYER_SPLASH: &str = "minecraft:entity.player.splash";
@@ -4344,15 +4450,18 @@ pub mod sounds {
     pub const ENTITY_SILVERFISH_HURT: &str = "minecraft:entity.silverfish.hurt";
     pub const ENTITY_SILVERFISH_STEP: &str = "minecraft:entity.silverfish.step";
     pub const ENTITY_SKELETON_AMBIENT: &str = "minecraft:entity.skeleton.ambient";
-    pub const ENTITY_SKELETON_CONVERTED_TO_STRAY: &str = "minecraft:entity.skeleton.converted_to_stray";
+    pub const ENTITY_SKELETON_CONVERTED_TO_STRAY: &str =
+        "minecraft:entity.skeleton.converted_to_stray";
     pub const ENTITY_SKELETON_DEATH: &str = "minecraft:entity.skeleton.death";
     pub const ENTITY_SKELETON_HURT: &str = "minecraft:entity.skeleton.hurt";
     pub const ENTITY_SKELETON_SHOOT: &str = "minecraft:entity.skeleton.shoot";
     pub const ENTITY_SKELETON_STEP: &str = "minecraft:entity.skeleton.step";
     pub const ENTITY_SKELETON_HORSE_AMBIENT: &str = "minecraft:entity.skeleton_horse.ambient";
-    pub const ENTITY_SKELETON_HORSE_AMBIENT_WATER: &str = "minecraft:entity.skeleton_horse.ambient_water";
+    pub const ENTITY_SKELETON_HORSE_AMBIENT_WATER: &str =
+        "minecraft:entity.skeleton_horse.ambient_water";
     pub const ENTITY_SKELETON_HORSE_DEATH: &str = "minecraft:entity.skeleton_horse.death";
-    pub const ENTITY_SKELETON_HORSE_GALLOP_WATER: &str = "minecraft:entity.skeleton_horse.gallop_water";
+    pub const ENTITY_SKELETON_HORSE_GALLOP_WATER: &str =
+        "minecraft:entity.skeleton_horse.gallop_water";
     pub const ENTITY_SKELETON_HORSE_HURT: &str = "minecraft:entity.skeleton_horse.hurt";
     pub const ENTITY_SKELETON_HORSE_JUMP_WATER: &str = "minecraft:entity.skeleton_horse.jump_water";
     pub const ENTITY_SKELETON_HORSE_STEP_WATER: &str = "minecraft:entity.skeleton_horse.step_water";
@@ -4440,12 +4549,14 @@ pub mod sounds {
     pub const ENTITY_VILLAGER_TRADE: &str = "minecraft:entity.villager.trade";
     pub const ENTITY_VILLAGER_WORK_ARMORER: &str = "minecraft:entity.villager.work_armorer";
     pub const ENTITY_VILLAGER_WORK_BUTCHER: &str = "minecraft:entity.villager.work_butcher";
-    pub const ENTITY_VILLAGER_WORK_CARTOGRAPHER: &str = "minecraft:entity.villager.work_cartographer";
+    pub const ENTITY_VILLAGER_WORK_CARTOGRAPHER: &str =
+        "minecraft:entity.villager.work_cartographer";
     pub const ENTITY_VILLAGER_WORK_CLERIC: &str = "minecraft:entity.villager.work_cleric";
     pub const ENTITY_VILLAGER_WORK_FARMER: &str = "minecraft:entity.villager.work_farmer";
     pub const ENTITY_VILLAGER_WORK_FISHERMAN: &str = "minecraft:entity.villager.work_fisherman";
     pub const ENTITY_VILLAGER_WORK_FLETCHER: &str = "minecraft:entity.villager.work_fletcher";
-    pub const ENTITY_VILLAGER_WORK_LEATHERWORKER: &str = "minecraft:entity.villager.work_leatherworker";
+    pub const ENTITY_VILLAGER_WORK_LEATHERWORKER: &str =
+        "minecraft:entity.villager.work_leatherworker";
     pub const ENTITY_VILLAGER_WORK_LIBRARIAN: &str = "minecraft:entity.villager.work_librarian";
     pub const ENTITY_VILLAGER_WORK_MASON: &str = "minecraft:entity.villager.work_mason";
     pub const ENTITY_VILLAGER_WORK_SHEPHERD: &str = "minecraft:entity.villager.work_shepherd";
@@ -4458,12 +4569,16 @@ pub mod sounds {
     pub const ENTITY_VINDICATOR_HURT: &str = "minecraft:entity.vindicator.hurt";
     pub const ENTITY_WANDERING_TRADER_AMBIENT: &str = "minecraft:entity.wandering_trader.ambient";
     pub const ENTITY_WANDERING_TRADER_DEATH: &str = "minecraft:entity.wandering_trader.death";
-    pub const ENTITY_WANDERING_TRADER_DISAPPEARED: &str = "minecraft:entity.wandering_trader.disappeared";
-    pub const ENTITY_WANDERING_TRADER_DRINK_MILK: &str = "minecraft:entity.wandering_trader.drink_milk";
-    pub const ENTITY_WANDERING_TRADER_DRINK_POTION: &str = "minecraft:entity.wandering_trader.drink_potion";
+    pub const ENTITY_WANDERING_TRADER_DISAPPEARED: &str =
+        "minecraft:entity.wandering_trader.disappeared";
+    pub const ENTITY_WANDERING_TRADER_DRINK_MILK: &str =
+        "minecraft:entity.wandering_trader.drink_milk";
+    pub const ENTITY_WANDERING_TRADER_DRINK_POTION: &str =
+        "minecraft:entity.wandering_trader.drink_potion";
     pub const ENTITY_WANDERING_TRADER_HURT: &str = "minecraft:entity.wandering_trader.hurt";
     pub const ENTITY_WANDERING_TRADER_NO: &str = "minecraft:entity.wandering_trader.no";
-    pub const ENTITY_WANDERING_TRADER_REAPPEARED: &str = "minecraft:entity.wandering_trader.reappeared";
+    pub const ENTITY_WANDERING_TRADER_REAPPEARED: &str =
+        "minecraft:entity.wandering_trader.reappeared";
     pub const ENTITY_WANDERING_TRADER_TRADE: &str = "minecraft:entity.wandering_trader.trade";
     pub const ENTITY_WANDERING_TRADER_YES: &str = "minecraft:entity.wandering_trader.yes";
     pub const ENTITY_WARDEN_AGITATED: &str = "minecraft:entity.warden.agitated";
@@ -4525,7 +4640,8 @@ pub mod sounds {
     pub const ENTITY_ZOMBIE_ATTACK_IRON_DOOR: &str = "minecraft:entity.zombie.attack_iron_door";
     pub const ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR: &str = "minecraft:entity.zombie.attack_wooden_door";
     pub const ENTITY_ZOMBIE_BREAK_WOODEN_DOOR: &str = "minecraft:entity.zombie.break_wooden_door";
-    pub const ENTITY_ZOMBIE_CONVERTED_TO_DROWNED: &str = "minecraft:entity.zombie.converted_to_drowned";
+    pub const ENTITY_ZOMBIE_CONVERTED_TO_DROWNED: &str =
+        "minecraft:entity.zombie.converted_to_drowned";
     pub const ENTITY_ZOMBIE_DEATH: &str = "minecraft:entity.zombie.death";
     pub const ENTITY_ZOMBIE_DESTROY_EGG: &str = "minecraft:entity.zombie.destroy_egg";
     pub const ENTITY_ZOMBIE_HURT: &str = "minecraft:entity.zombie.hurt";
@@ -4575,9 +4691,11 @@ pub mod sounds {
     pub const ITEM_BOTTLE_FILL_DRAGONBREATH: &str = "minecraft:item.bottle.fill_dragonbreath";
     pub const ITEM_BRUSH_BRUSHING_GENERIC: &str = "minecraft:item.brush.brushing.generic";
     pub const ITEM_BRUSH_BRUSHING_GRAVEL: &str = "minecraft:item.brush.brushing.gravel";
-    pub const ITEM_BRUSH_BRUSHING_GRAVEL_COMPLETE: &str = "minecraft:item.brush.brushing.gravel.complete";
+    pub const ITEM_BRUSH_BRUSHING_GRAVEL_COMPLETE: &str =
+        "minecraft:item.brush.brushing.gravel.complete";
     pub const ITEM_BRUSH_BRUSHING_SAND: &str = "minecraft:item.brush.brushing.sand";
-    pub const ITEM_BRUSH_BRUSHING_SAND_COMPLETE: &str = "minecraft:item.brush.brushing.sand.complete";
+    pub const ITEM_BRUSH_BRUSHING_SAND_COMPLETE: &str =
+        "minecraft:item.brush.brushing.sand.complete";
     pub const ITEM_BUCKET_EMPTY: &str = "minecraft:item.bucket.empty";
     pub const ITEM_BUCKET_EMPTY_AXOLOTL: &str = "minecraft:item.bucket.empty_axolotl";
     pub const ITEM_BUCKET_EMPTY_FISH: &str = "minecraft:item.bucket.empty_fish";
@@ -4849,7 +4967,8 @@ pub mod block_tags {
     pub const PARROTS_SPAWNABLE_ON: &str = "minecraft:parrots_spawnable_on";
     pub const PIGLIN_REPELLENTS: &str = "minecraft:piglin_repellents";
     pub const PLANKS: &str = "minecraft:planks";
-    pub const POLAR_BEARS_SPAWNABLE_ON_ALTERNATE: &str = "minecraft:polar_bears_spawnable_on_alternate";
+    pub const POLAR_BEARS_SPAWNABLE_ON_ALTERNATE: &str =
+        "minecraft:polar_bears_spawnable_on_alternate";
     pub const PORTALS: &str = "minecraft:portals";
     pub const PRESSURE_PLATES: &str = "minecraft:pressure_plates";
     pub const PREVENT_MOB_SPAWNING_INSIDE: &str = "minecraft:prevent_mob_spawning_inside";

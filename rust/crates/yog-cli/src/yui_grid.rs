@@ -25,10 +25,15 @@
 //! checks all of this and turns it into builder calls (raw-call attributes),
 //! so the screen, view-model and component generators need no Grid logic.
 
-use yog_ids::{yui, yui_attr as at};
 use crate::yui::{Element, RAW_CALL, err};
+use yog_ids::{yui, yui_attr as at};
 
-const ATTACHED: &[&str] = &[at::GRID_ROW, at::GRID_COLUMN, at::GRID_ROWSPAN, at::GRID_COLUMNSPAN];
+const ATTACHED: &[&str] = &[
+    at::GRID_ROW,
+    at::GRID_COLUMN,
+    at::GRID_ROWSPAN,
+    at::GRID_COLUMNSPAN,
+];
 
 fn num(v: &str) -> Option<f32> {
     v.trim()
@@ -80,9 +85,19 @@ fn compact(el: &Element, key: &str, value: &str, what: &str) -> Result<Vec<Strin
 /// `<Grid.RowDefinitions>` → track expressions.
 fn elements(prop: &Element, row: bool) -> Result<Vec<String>, String> {
     let (def, size, min, max) = if row {
-        (yui::ROW_DEFINITION, at::HEIGHT, at::MIN_HEIGHT, at::MAX_HEIGHT)
+        (
+            yui::ROW_DEFINITION,
+            at::HEIGHT,
+            at::MIN_HEIGHT,
+            at::MAX_HEIGHT,
+        )
     } else {
-        (yui::COLUMN_DEFINITION, at::WIDTH, at::MIN_WIDTH, at::MAX_WIDTH)
+        (
+            yui::COLUMN_DEFINITION,
+            at::WIDTH,
+            at::MIN_WIDTH,
+            at::MAX_WIDTH,
+        )
     };
     if !prop.attrs.is_empty() {
         return err(prop, "takes no attributes");
@@ -193,7 +208,10 @@ pub fn normalize(el: &mut Element) -> Result<(), String> {
         let calls = grid_calls(el, &mut tracks)?;
         push_calls(el, calls, "g");
     }
-    let size = (tracks.rows.as_ref().map_or(1, Vec::len), tracks.cols.as_ref().map_or(1, Vec::len));
+    let size = (
+        tracks.rows.as_ref().map_or(1, Vec::len),
+        tracks.cols.as_ref().map_or(1, Vec::len),
+    );
     let name = el.name.clone();
     for child in &mut el.children {
         cell(child, is_grid.then_some(size), &name)?;
@@ -214,7 +232,10 @@ fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, String> {
             yui::ROW_DEFINITIONS => true,
             yui::COLUMN_DEFINITIONS => false,
             n if n.starts_with(GRID_MEMBER) => {
-                return err(&child, "isn't a Grid property (expected <Grid.RowDefinitions> or <Grid.ColumnDefinitions>)");
+                return err(
+                    &child,
+                    "isn't a Grid property (expected <Grid.RowDefinitions> or <Grid.ColumnDefinitions>)",
+                );
             }
             _ => {
                 kept.push(child);
@@ -222,7 +243,10 @@ fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, String> {
             }
         };
         if !is_grid {
-            return err(&child, format_args!("only goes directly inside a <Grid>, not <{}>", el.name));
+            return err(
+                &child,
+                format_args!("only goes directly inside a <Grid>, not <{}>", el.name),
+            );
         }
         if tracks.slot(row).is_some() {
             return err(&child, "is given twice");
@@ -242,14 +266,30 @@ fn grid_calls(el: &mut Element, tracks: &mut Tracks) -> Result<Vec<String>, Stri
             at::ROWS | at::COLUMNS => {
                 let row = k == at::ROWS;
                 if tracks.slot(row).is_some() {
-                    let prop = if row { yui::ROW_DEFINITIONS } else { yui::COLUMN_DEFINITIONS };
-                    return err(el, format_args!("{k}=\"...\" and <{prop}> both define the {k} — keep one"));
+                    let prop = if row {
+                        yui::ROW_DEFINITIONS
+                    } else {
+                        yui::COLUMN_DEFINITIONS
+                    };
+                    return err(
+                        el,
+                        format_args!("{k}=\"...\" and <{prop}> both define the {k} — keep one"),
+                    );
                 }
                 *tracks.slot(row) = Some(compact(el, &k, &v, if row { "row" } else { "column" })?);
             }
             at::ROW_SPACING | at::COLUMN_SPACING => {
-                let n = num(&v).ok_or_else(|| format!("line {}: <Grid> {k}=\"{v}\": expected a number of pixels", el.line))?;
-                let m = if k == at::ROW_SPACING { "row_spacing" } else { "col_spacing" };
+                let n = num(&v).ok_or_else(|| {
+                    format!(
+                        "line {}: <Grid> {k}=\"{v}\": expected a number of pixels",
+                        el.line
+                    )
+                })?;
+                let m = if k == at::ROW_SPACING {
+                    "row_spacing"
+                } else {
+                    "col_spacing"
+                };
                 calls.push(format!("{m}({n:?})"));
             }
             _ => attrs.push((k, v)),
@@ -274,30 +314,58 @@ fn cell(child: &mut Element, grid: Option<(usize, usize)>, parent: &str) -> Resu
     for (k, v) in std::mem::take(&mut child.attrs) {
         let Some(i) = ATTACHED.iter().position(|a| *a == k) else {
             if k.starts_with(GRID_MEMBER) {
-                return err(child, format_args!("has no attribute `{k}` (attached: {})", ATTACHED.join(", ")));
+                return err(
+                    child,
+                    format_args!("has no attribute `{k}` (attached: {})", ATTACHED.join(", ")),
+                );
             }
             attrs.push((k, v));
             continue;
         };
         if grid.is_none() {
-            return err(child, format_args!("{k}: only children of a <Grid> have grid cells (this is in a <{parent}>)"));
+            return err(
+                child,
+                format_args!(
+                    "{k}: only children of a <Grid> have grid cells (this is in a <{parent}>)"
+                ),
+            );
         }
         if v.trim_start().starts_with(BINDING_START) {
-            return err(child, format_args!("{k}=\"{v}\": grid cells can't be bound"));
+            return err(
+                child,
+                format_args!("{k}=\"{v}\": grid cells can't be bound"),
+            );
         }
         cell[i] = index(child, &k, &v, if i < 2 { 0 } else { 1 })?;
         any = true;
     }
     child.attrs = attrs;
-    let Some((n_rows, n_cols)) = grid else { return Ok(()) };
+    let Some((n_rows, n_cols)) = grid else {
+        return Ok(());
+    };
     let [r, c, rs, cs] = cell;
-    for (start, span, n, what, key) in [(r, rs, n_rows, "row", at::GRID_ROW), (c, cs, n_cols, "column", at::GRID_COLUMN)] {
+    for (start, span, n, what, key) in [
+        (r, rs, n_rows, "row", at::GRID_ROW),
+        (c, cs, n_cols, "column", at::GRID_COLUMN),
+    ] {
         let (start, span) = (start as usize, span as usize);
         if start >= n {
-            return err(child, format_args!("{key}=\"{start}\" is past the grid's last {what} (it has {}, numbered from 0)", plural(n, what)));
+            return err(
+                child,
+                format_args!(
+                    "{key}=\"{start}\" is past the grid's last {what} (it has {}, numbered from 0)",
+                    plural(n, what)
+                ),
+            );
         }
         if start + span > n {
-            return err(child, format_args!("{key}Span=\"{span}\" from {what} {start} runs past the grid's last {what} (it has {})", plural(n, what)));
+            return err(
+                child,
+                format_args!(
+                    "{key}Span=\"{span}\" from {what} {start} runs past the grid's last {what} (it has {})",
+                    plural(n, what)
+                ),
+            );
         }
     }
     if any {

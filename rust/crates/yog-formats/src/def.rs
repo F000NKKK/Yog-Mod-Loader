@@ -380,8 +380,14 @@ pub struct OreReplaces;
 pub const ORE_STONES: [(&str, &str); 4] = [
     ("stone", "#minecraft:stone_ore_replaceables"),
     ("deepslate", "#minecraft:deepslate_ore_replaceables"),
-    ("netherrack", yog_ids::id!(yog_ids::ns::MINECRAFT, "netherrack")),
-    ("end_stone", yog_ids::id!(yog_ids::ns::MINECRAFT, "end_stone")),
+    (
+        "netherrack",
+        yog_ids::id!(yog_ids::ns::MINECRAFT, "netherrack"),
+    ),
+    (
+        "end_stone",
+        yog_ids::id!(yog_ids::ns::MINECRAFT, "end_stone"),
+    ),
 ];
 
 impl yog_data::with::With<String> for OreReplaces {

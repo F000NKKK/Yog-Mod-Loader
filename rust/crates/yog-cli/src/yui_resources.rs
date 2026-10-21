@@ -32,7 +32,8 @@ pub struct Resources {
 /// The resource `v` names (`@Accent` → `Accent`); none for anything else
 /// (`@@x`, `@Set.key`, words).
 pub fn local_name(v: &str) -> Option<&str> {
-    v.strip_prefix(TYPED).filter(|n| !n.is_empty() && !n.starts_with(TYPED) && !n.contains('.'))
+    v.strip_prefix(TYPED)
+        .filter(|n| !n.is_empty() && !n.starts_with(TYPED) && !n.contains('.'))
 }
 
 /// A style's own attributes that aren't for its elements.
@@ -46,7 +47,8 @@ impl Resources {
         let mut pending: Vec<&Entry> = Vec::new();
         for r in entries {
             let Some(key) = r.attr(yui_attr::X_KEY) else {
-                out.problems.push((r.line, format!("<{}> needs an x:Key", r.kind)));
+                out.problems
+                    .push((r.line, format!("<{}> needs an x:Key", r.kind)));
                 continue;
             };
             if r.kind == yui::STYLE {
@@ -54,14 +56,23 @@ impl Resources {
             } else if let Some(v) = r.attr(yui_attr::VALUE) {
                 out.values.insert(key.to_string(), v.to_string());
             } else {
-                out.problems.push((r.line, format!("<{}> needs a value (e.g. <Color x:Key=\"Accent\" value=\"#FFD700\"/>)", r.kind)));
+                out.problems.push((
+                    r.line,
+                    format!(
+                        "<{}> needs a value (e.g. <Color x:Key=\"Accent\" value=\"#FFD700\"/>)",
+                        r.kind
+                    ),
+                ));
             }
         }
         while !pending.is_empty() {
             let before = pending.len();
             pending.retain(|s| !out.style(s));
             if pending.len() == before {
-                out.problems.push((pending[0].line, "<Style> based_on names an unknown (or circular) style".into()));
+                out.problems.push((
+                    pending[0].line,
+                    "<Style> based_on names an unknown (or circular) style".into(),
+                ));
                 break;
             }
         }
@@ -70,7 +81,10 @@ impl Resources {
 
     /// Style `s` read when its base is (true); its attributes over its base's.
     fn style(&mut self, s: &Entry) -> bool {
-        let mut attrs = match s.attr(yui_attr::BASED_ON).map(|b| b.trim().trim_start_matches(TYPED)) {
+        let mut attrs = match s
+            .attr(yui_attr::BASED_ON)
+            .map(|b| b.trim().trim_start_matches(TYPED))
+        {
             Some(b) => match self.styles.get(b) {
                 Some(a) => a.clone(),
                 None => return false,
@@ -82,7 +96,8 @@ impl Resources {
                 Some(n) => match self.values.get(n) {
                     Some(r) => r.clone(),
                     None => {
-                        self.problems.push((s.line, format!("<Style> {k}=\"{v}\": no resource `{n}`")));
+                        self.problems
+                            .push((s.line, format!("<Style> {k}=\"{v}\": no resource `{n}`")));
                         v.to_string()
                     }
                 },

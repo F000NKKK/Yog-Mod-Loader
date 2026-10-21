@@ -170,7 +170,10 @@ mod tests {
         c.set("on", "yes");
         c.set("name", "a = b");
         c.save().unwrap();
-        assert!(dir.join("yog-config/my_mod_x.cfg").is_file(), "`:` and `/` become `_`");
+        assert!(
+            dir.join("yog-config/my_mod_x.cfg").is_file(),
+            "`:` and `/` become `_`"
+        );
         let c = Config::load(&game, "my:mod/x");
         assert_eq!(c.get_float("speed"), Some(2.5));
         assert_eq!(c.get_int_or("lives", 0), 3);

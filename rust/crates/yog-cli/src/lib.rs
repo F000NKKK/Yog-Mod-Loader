@@ -6,9 +6,7 @@
 //! its benches share the code. No API stability, not published separately.
 
 pub mod bench;
-pub(crate) mod rust_code;
 pub mod book_page;
-pub mod recipe_area;
 pub mod cargo_toml;
 mod consts;
 pub mod content;
@@ -17,6 +15,8 @@ pub mod exports;
 pub mod files;
 pub mod manifest;
 pub mod media;
+pub mod recipe_area;
+pub(crate) mod rust_code;
 pub mod serve;
 pub mod yres;
 pub mod yui;
@@ -38,7 +38,10 @@ pub(crate) fn shown_path(root: &std::path::Path, path: &std::path::Path) -> Stri
 /// Writes generated `code` to `path` (creating its directory) unless it's
 /// already there — unchanged files keep their mtime, so cargo doesn't
 /// rebuild for nothing.
-pub(crate) fn write_if_changed(path: &std::path::Path, code: impl AsRef<[u8]>) -> Result<(), String> {
+pub(crate) fn write_if_changed(
+    path: &std::path::Path,
+    code: impl AsRef<[u8]>,
+) -> Result<(), String> {
     let code = code.as_ref();
     if std::fs::read(path).ok().as_deref() == Some(code) {
         return Ok(());

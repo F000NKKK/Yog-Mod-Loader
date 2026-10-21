@@ -42,7 +42,11 @@ pub fn export_address(mod_id: &str, name: &str) -> String {
 /// # Safety
 /// `payload` and `reply` are what the bus hands a handler (valid for the call).
 #[doc(hidden)]
-pub unsafe fn __yog_serve<A: Schema, R: Schema>(payload: YogBytes, reply: *const YogReply, run: impl FnOnce(A) -> R) -> YogStatus {
+pub unsafe fn __yog_serve<A: Schema, R: Schema>(
+    payload: YogBytes,
+    reply: *const YogReply,
+    run: impl FnOnce(A) -> R,
+) -> YogStatus {
     let Some(args) = A::from_bytes(unsafe { payload.as_slice() }) else {
         return status::BAD_PAYLOAD;
     };
@@ -56,7 +60,10 @@ pub unsafe fn __yog_serve<A: Schema, R: Schema>(payload: YogBytes, reply: *const
 /// Calls mod `mod_id`'s export `name` with `args`: its answer, `None` when
 /// it isn't there (the mod isn't loaded) or failed.
 pub fn call_export<A: Schema, R: Schema>(mod_id: &str, name: &str, args: &A) -> Option<R> {
-    R::from_bytes(&call_at(yog_event::resolve(&export_address(mod_id, name)), &args.to_bytes())?)
+    R::from_bytes(&call_at(
+        yog_event::resolve(&export_address(mod_id, name)),
+        &args.to_bytes(),
+    )?)
 }
 
 impl crate::Registry {

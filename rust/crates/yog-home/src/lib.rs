@@ -51,7 +51,12 @@ impl Home {
         }
         dirs::home_dir()
             .map(|h| Self::at(h.join(HOME_DIR)))
-            .ok_or_else(|| format!("no home folder to keep Yog's in — set {}", yog_ids::env::HOME))
+            .ok_or_else(|| {
+                format!(
+                    "no home folder to keep Yog's in — set {}",
+                    yog_ids::env::HOME
+                )
+            })
     }
 
     pub fn at(root: PathBuf) -> Self {
@@ -82,7 +87,10 @@ impl Home {
 
     /// A JDK: `jdk/<major>/<version>`.
     pub fn jdk_dir(&self, major: u32, version: &str) -> PathBuf {
-        self.root.join(JDK_DIR).join(major.to_string()).join(version)
+        self.root
+            .join(JDK_DIR)
+            .join(major.to_string())
+            .join(version)
     }
 
     pub fn instances_dir(&self) -> PathBuf {
@@ -127,5 +135,9 @@ pub(crate) fn resolve_in(base: &Path, path: &str) -> PathBuf {
         _ if path == "~" => dirs::home_dir().unwrap_or_default(),
         _ => PathBuf::from(path),
     };
-    if expanded.is_absolute() { expanded } else { base.join(expanded) }
+    if expanded.is_absolute() {
+        expanded
+    } else {
+        base.join(expanded)
+    }
 }

@@ -72,7 +72,11 @@ impl<T> ItemsHost<T> {
 
     /// Starts an update of the items under `root` (the tree `path` is
     /// relative to); none when `root` has no widget there.
-    pub fn begin<'a>(&'a mut self, root: &'a mut Widget, u: &'a mut Update) -> Option<ItemsCursor<'a, T>> {
+    pub fn begin<'a>(
+        &'a mut self,
+        root: &'a mut Widget,
+        u: &'a mut Update,
+    ) -> Option<ItemsCursor<'a, T>> {
         let container = root.get_path_mut(self.path)?;
         let mut old_children = std::mem::take(&mut container.children);
         if self.showing_empty {

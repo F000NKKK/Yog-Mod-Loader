@@ -228,9 +228,24 @@ impl GfxContext {
     }
 
     /// Draws `elements` (an index buffer's) from `vao` with `prog`.
-    pub fn draw_elements(&self, vao: &gl::VertexArray, prog: &gl::ShaderProgram, mode: core::DrawMode, elements: Elements<'_>) {
+    pub fn draw_elements(
+        &self,
+        vao: &gl::VertexArray,
+        prog: &gl::ShaderProgram,
+        mode: core::DrawMode,
+        elements: Elements<'_>,
+    ) {
         let wide = elements.width == core::IndexWidth::U32;
-        unsafe { (self.api().draw_elements)(vao.handle, elements.ebo.handle, prog.handle, mode as u8, elements.count, wide) }
+        unsafe {
+            (self.api().draw_elements)(
+                vao.handle,
+                elements.ebo.handle,
+                prog.handle,
+                mode as u8,
+                elements.count,
+                wide,
+            )
+        }
     }
 
     // ── Render state ──────────────────────────────────────────────────────────

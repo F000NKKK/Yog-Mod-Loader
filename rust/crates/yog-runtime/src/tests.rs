@@ -196,7 +196,9 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
             ctx,
             "item",
             "mymod:helm",
-            &ItemDef::new("mymod:helm").armor(yog_registry::ArmorSlot::Head, "diamond").write(),
+            &ItemDef::new("mymod:helm")
+                .armor(yog_registry::ArmorSlot::Head, "diamond")
+                .write(),
         );
         content(
             ctx,
@@ -221,7 +223,10 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
     );
     let armor = c.items[1].armor.as_ref().unwrap();
     assert_eq!(armor.material.defense.chest, 8);
-    assert!(c.items[2].tool.is_none(), "an unknown material: a plain item");
+    assert!(
+        c.items[2].tool.is_none(),
+        "an unknown material: a plain item"
+    );
 }
 
 #[test]
@@ -286,7 +291,10 @@ fn a_blocks_sound_group_arrives_whole() {
         sound(1).map(|g| g.step.as_str()),
         Some("minecraft:block.amethyst_block.step")
     );
-    assert!(sound(2).is_none(), "an unknown group is left to the default");
+    assert!(
+        sound(2).is_none(),
+        "an unknown group is left to the default"
+    );
 }
 
 #[test]
@@ -319,7 +327,11 @@ fn a_block_of_a_game_kind_arrives_with_its_base_and_set() {
     );
     let (button, plain, stairs) = (&c.blocks[0], &c.blocks[1], &c.blocks[2]);
     assert_eq!(
-        (stairs.kind.as_str(), stairs.base.as_deref(), stairs.set.as_deref()),
+        (
+            stairs.kind.as_str(),
+            stairs.base.as_deref(),
+            stairs.set.as_deref()
+        ),
         ("stairs", Some("mymod:planks"), None)
     );
     assert_eq!(

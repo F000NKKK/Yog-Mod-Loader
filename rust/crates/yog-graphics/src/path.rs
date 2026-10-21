@@ -11,12 +11,30 @@ use crate::rect::Rect;
 #[data(tag = "s")]
 pub enum Seg {
     /// Starts a contour at `x, y`.
-    Move { x: f32, y: f32 },
-    Line { x: f32, y: f32 },
+    Move {
+        x: f32,
+        y: f32,
+    },
+    Line {
+        x: f32,
+        y: f32,
+    },
     /// A quadratic curve through control point `x1, y1`.
-    Quad { x1: f32, y1: f32, x: f32, y: f32 },
+    Quad {
+        x1: f32,
+        y1: f32,
+        x: f32,
+        y: f32,
+    },
     /// A cubic curve through control points `x1, y1` and `x2, y2`.
-    Cubic { x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32 },
+    Cubic {
+        x1: f32,
+        y1: f32,
+        x2: f32,
+        y2: f32,
+        x: f32,
+        y: f32,
+    },
     /// Closes the contour.
     Close,
 }
@@ -26,7 +44,14 @@ pub fn bounds(path: &[Seg], r: f32) -> Option<Rect> {
     let points = path.iter().flat_map(|s| match *s {
         Seg::Move { x, y } | Seg::Line { x, y } => vec![Vec2::new(x, y)],
         Seg::Quad { x1, y1, x, y } => vec![Vec2::new(x1, y1), Vec2::new(x, y)],
-        Seg::Cubic { x1, y1, x2, y2, x, y } => vec![Vec2::new(x1, y1), Vec2::new(x2, y2), Vec2::new(x, y)],
+        Seg::Cubic {
+            x1,
+            y1,
+            x2,
+            y2,
+            x,
+            y,
+        } => vec![Vec2::new(x1, y1), Vec2::new(x2, y2), Vec2::new(x, y)],
         Seg::Close => vec![],
     });
     Rect::around(points).map(|b| b.outset(r))
@@ -61,8 +86,20 @@ pub fn flatten(path: &[Seg], to: impl Fn(Vec2) -> Vec2) -> Vec<Vec<Vec2>> {
                 }
                 at = p;
             }
-            Seg::Cubic { x1, y1, x2, y2, x, y } => {
-                let (c1, c2, p, from) = (to(Vec2::new(x1, y1)), to(Vec2::new(x2, y2)), to(Vec2::new(x, y)), at);
+            Seg::Cubic {
+                x1,
+                y1,
+                x2,
+                y2,
+                x,
+                y,
+            } => {
+                let (c1, c2, p, from) = (
+                    to(Vec2::new(x1, y1)),
+                    to(Vec2::new(x2, y2)),
+                    to(Vec2::new(x, y)),
+                    at,
+                );
                 let n = steps(from.distance(c1) + c1.distance(c2) + c2.distance(p));
                 for i in 1..=n {
                     let t = i as f32 / n as f32;

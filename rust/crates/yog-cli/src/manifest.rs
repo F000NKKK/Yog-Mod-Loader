@@ -138,13 +138,23 @@ fn toml_inline(v: &Value) -> String {
             let fields: Vec<String> = m
                 .iter()
                 .map(|(k, v)| {
-                    let key = if k.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') { k.to_string() } else { quote(k) };
+                    let key = if k
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+                    {
+                        k.to_string()
+                    } else {
+                        quote(k)
+                    };
                     format!("{key} = {}", toml_inline(v))
                 })
                 .collect();
             format!("{{ {} }}", fields.join(", "))
         }
-        Value::List(items) => format!("[{}]", items.iter().map(toml_inline).collect::<Vec<_>>().join(", ")),
+        Value::List(items) => format!(
+            "[{}]",
+            items.iter().map(toml_inline).collect::<Vec<_>>().join(", ")
+        ),
         Value::Bool(b) => b.to_string(),
         Value::Int(n) => n.to_string(),
         Value::Float(f) => f.to_string(),
@@ -157,7 +167,9 @@ fn text_form(t: Text) -> Result<String, String> {
     match t {
         Text::Literal(s) => Ok(yog_data::typed::escape_at(&s)),
         Text::Res(r) => Ok(r.to_string()),
-        Text::NameOf(_) | Text::Lang(_) => Err("a mod's name and description are text or a `.yres` text (`@Strings.mod_name`)".into()),
+        Text::NameOf(_) | Text::Lang(_) => Err(
+            "a mod's name and description are text or a `.yres` text (`@Strings.mod_name`)".into(),
+        ),
     }
 }
 
@@ -166,7 +178,16 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let read = yog_data::schema::from_toml::<ManifestFile>(text).map_err(|e| {
         e.0.iter()
             .map(|l| match l.at {
-                Some(at) => format!("yog.toml:{}: {}{}", at.line, if l.path.is_root() { String::new() } else { format!("{}: ", l.path) }, l.message),
+                Some(at) => format!(
+                    "yog.toml:{}: {}{}",
+                    at.line,
+                    if l.path.is_root() {
+                        String::new()
+                    } else {
+                        format!("{}: ", l.path)
+                    },
+                    l.message
+                ),
                 None => format!("yog.toml: {}", l.message),
             })
             .collect::<Vec<_>>()
@@ -179,8 +200,19 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let mut yog_api_version = None;
     for (name, spec) in f.dependencies.0 {
         match (name.as_str(), &spec) {
-            ("exports", Value::Map(exports)) => mod_dependencies.extend(exports.iter().map(|(k, v)| (k.to_string(), toml_inline(v)))),
-            (n, _) if n == rust_crate::API || n == rust_crate::API_RUST_NAME || n == rust_crate::API_VERSION_KEY => yog_api_version = Some(spec.as_str().map(str::to_string).unwrap_or_else(|| toml_inline(&spec))),
+            ("exports", Value::Map(exports)) => mod_dependencies
+                .extend(exports.iter().map(|(k, v)| (k.to_string(), toml_inline(v)))),
+            (n, _)
+                if n == rust_crate::API
+                    || n == rust_crate::API_RUST_NAME
+                    || n == rust_crate::API_VERSION_KEY =>
+            {
+                yog_api_version = Some(
+                    spec.as_str()
+                        .map(str::to_string)
+                        .unwrap_or_else(|| toml_inline(&spec)),
+                )
+            }
             _ => dependencies.push((name, toml_inline(&spec))),
         }
     }
@@ -190,10 +222,15 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         .into_iter()
         .map(|(namespace, e)| External {
             namespace,
-            ids: [(RefKind::Item, e.items), (RefKind::Block, e.blocks), (RefKind::Entity, e.entities), (RefKind::Recipe, e.recipes)]
-                .into_iter()
-                .filter(|(_, v)| !v.is_empty())
-                .collect(),
+            ids: [
+                (RefKind::Item, e.items),
+                (RefKind::Block, e.blocks),
+                (RefKind::Entity, e.entities),
+                (RefKind::Recipe, e.recipes),
+            ]
+            .into_iter()
+            .filter(|(_, v)| !v.is_empty())
+            .collect(),
         })
         .collect();
     let name = m.name.map(text_form).transpose()?;
@@ -218,7 +255,12 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         yog_api_version,
         dependencies,
         mod_dependencies,
-        dev_dependencies: f.dev_dependencies.0.into_iter().map(|(k, v)| (k, toml_inline(&v))).collect(),
+        dev_dependencies: f
+            .dev_dependencies
+            .0
+            .into_iter()
+            .map(|(k, v)| (k, toml_inline(&v)))
+            .collect(),
         externals,
         id: m.id,
     })
@@ -308,33 +350,62 @@ blocks = ["stove"]
     #[test]
     fn reads_a_real_manifest() {
         let t = parse_yog_toml(VLSI).unwrap();
-        assert_eq!((t.id.as_str(), t.name.as_str(), t.version.as_str()), ("yog-vlsi", "@Strings.mod_name", "0.3.0"));
+        assert_eq!(
+            (t.id.as_str(), t.name.as_str(), t.version.as_str()),
+            ("yog-vlsi", "@Strings.mod_name", "0.3.0")
+        );
         assert_eq!(t.authors, ["F000NK", "Yog Team"]);
         assert_eq!(t.license, "AGPL-3.0-only");
-        assert_eq!(t.yog_api_version.as_deref(), Some("0.93"), "yog-api is taken out of the dependencies");
+        assert_eq!(
+            t.yog_api_version.as_deref(),
+            Some("0.93"),
+            "yog-api is taken out of the dependencies"
+        );
         let deps: Vec<&str> = t.dependencies.iter().map(|(n, _)| n.as_str()).collect();
         assert_eq!(deps, ["serde", "serde_json", "yog-kit"]);
-        assert_eq!(t.mod_dependencies, [("yog-pipes".to_string(), "\"0.5\"".to_string())]);
+        assert_eq!(
+            t.mod_dependencies,
+            [("yog-pipes".to_string(), "\"0.5\"".to_string())]
+        );
         let ext = &t.externals[0];
         assert_eq!(ext.namespace, "farmersdelight");
-        assert_eq!(ext.ids[0], (RefKind::Item, vec!["cutting_board".to_string(), "tomato".to_string()]));
+        assert_eq!(
+            ext.ids[0],
+            (
+                RefKind::Item,
+                vec!["cutting_board".to_string(), "tomato".to_string()]
+            )
+        );
     }
 
     #[test]
     fn problems_say_where() {
-        let e = parse_yog_toml("[mod]\nid = \"m\"\nautors = [\"me\"]\n\n[external.create]\nitem = [\"wrench\"]\n").unwrap_err();
-        assert_eq!(e.lines().collect::<Vec<_>>(), [
-            "yog.toml:3: mod.autors: unknown field `autors` — did you mean `authors`?",
-            "yog.toml:6: external.create.item: unknown field `item` — did you mean `items`?",
-        ]);
+        let e = parse_yog_toml(
+            "[mod]\nid = \"m\"\nautors = [\"me\"]\n\n[external.create]\nitem = [\"wrench\"]\n",
+        )
+        .unwrap_err();
+        assert_eq!(
+            e.lines().collect::<Vec<_>>(),
+            [
+                "yog.toml:3: mod.autors: unknown field `autors` — did you mean `authors`?",
+                "yog.toml:6: external.create.item: unknown field `item` — did you mean `items`?",
+            ]
+        );
         let t = parse_yog_toml("[mod]\nid = \"m\"\nname = \"@@me\"\n").unwrap();
-        assert_eq!(t.name, "@@me", "a literal @ stays escaped for resolve_metadata");
+        assert_eq!(
+            t.name, "@@me",
+            "a literal @ stays escaped for resolve_metadata"
+        );
     }
 
     #[test]
     fn needs_an_id() {
         assert!(parse_yog_toml("[mod]\nname = \"x\"").is_err());
         let t = parse_yog_toml("[mod]\nid = \"m\"").unwrap();
-        assert_eq!((t.name.as_str(), t.version.as_str()), ("m", "0.1.0"), "defaults");
+        assert_eq!(
+            (t.name.as_str(), t.version.as_str()),
+            ("m", "0.1.0"),
+            "defaults"
+        );
     }
 }

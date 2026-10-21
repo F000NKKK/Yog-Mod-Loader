@@ -11,8 +11,8 @@ use std::collections::HashMap;
 use yog_sync::{Arc, Mutex, RwLock};
 
 use jni::JNIEnv;
-use yog_font::Font;
 use yog_event::content::Font as Atlas;
+use yog_font::Font;
 use yog_graphics::Color;
 
 /// GUI pixels an em is: the game's line height.

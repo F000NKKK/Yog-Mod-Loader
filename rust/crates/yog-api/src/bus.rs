@@ -67,10 +67,13 @@ pub(crate) struct Subscription<E, F> {
     event: PhantomData<fn(&E)>,
 }
 
-
 /// The bus's handler for subscription `ud`: the payload read as `E`, the
 /// mod's handler run; a cancel before the event stops it.
-unsafe extern "C" fn on_event<E: Event, F, R>(ud: *mut c_void, payload: YogBytes, _reply: *const YogReply) -> YogStatus
+unsafe extern "C" fn on_event<E: Event, F, R>(
+    ud: *mut c_void,
+    payload: YogBytes,
+    _reply: *const YogReply,
+) -> YogStatus
 where
     F: Fn(&E, &EventCx) -> R + Send + Sync,
     R: IntoFlow,
@@ -80,13 +83,21 @@ where
         return status::BAD_PAYLOAD;
     };
     let flow = guard(Flow::Continue, || (s.handler)(&event, &s.cx()).into_flow());
-    if s.phase == EventPhase::Pre && flow == Flow::Cancel { status::CANCELLED } else { status::OK }
+    if s.phase == EventPhase::Pre && flow == Flow::Cancel {
+        status::CANCELLED
+    } else {
+        status::OK
+    }
 }
 
 /// The bus's handler for changing subscription `ud`: the mod's handler
 /// changes the event, and the changed event is the reply the next handler
 /// (and the game) sees.
-unsafe extern "C" fn on_change<E: Event, F>(ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus
+unsafe extern "C" fn on_change<E: Event, F>(
+    ud: *mut c_void,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus
 where
     F: Fn(&mut E, &EventCx) + Send + Sync,
 {
@@ -101,7 +112,11 @@ where
 
 impl<E, F> Subscription<E, F> {
     pub(crate) fn new(handler: Arc<F>, phase: EventPhase) -> Self {
-        Self { handler, phase, event: PhantomData }
+        Self {
+            handler,
+            phase,
+            event: PhantomData,
+        }
     }
 
     pub(crate) fn handler(&self) -> &F {
@@ -136,53 +151,91 @@ pub fn emit<E: Event>(event: &E) -> bool {
 impl Registry {
     /// Runs `handler` on every `E`, before the game does it (if `E` can be
     /// stopped — [`Flow::Cancel`] / `false` stops it) and after.
-    pub fn on<E: Event + 'static, R: IntoFlow + 'static>(&mut self, handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static) {
+    pub fn on<E: Event + 'static, R: IntoFlow + 'static>(
+        &mut self,
+        handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static,
+    ) {
         self.both::<E, _, R>(E::PRE.map(str::to_owned), E::ADDRESS.to_owned(), handler);
     }
 
     /// [`Registry::on`] for a keyed event's `key` only (`E::KEY`): the ticks
     /// of one entity type, the presses of one key binding.
-    pub fn on_key<E: Event + 'static, R: IntoFlow + 'static>(&mut self, key: &str, handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static) {
-        self.both::<E, _, R>(E::PRE.map(|p| keyed(p, key)), keyed(E::ADDRESS, key), handler);
+    pub fn on_key<E: Event + 'static, R: IntoFlow + 'static>(
+        &mut self,
+        key: &str,
+        handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static,
+    ) {
+        self.both::<E, _, R>(
+            E::PRE.map(|p| keyed(p, key)),
+            keyed(E::ADDRESS, key),
+            handler,
+        );
     }
 
     /// Runs `handler` before the game does `E` — it can cancel it. Nothing
     /// for an event that can't be stopped.
-    pub fn before<E: Event + 'static, R: IntoFlow + 'static>(&mut self, handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static) {
+    pub fn before<E: Event + 'static, R: IntoFlow + 'static>(
+        &mut self,
+        handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static,
+    ) {
         if let Some(pre) = E::PRE {
             self.at::<E, _, R>(pre, EventPhase::Pre, Arc::new(handler));
         }
     }
 
     /// [`Registry::before`] for a keyed event's `key` only.
-    pub fn before_key<E: Event + 'static, R: IntoFlow + 'static>(&mut self, key: &str, handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static) {
+    pub fn before_key<E: Event + 'static, R: IntoFlow + 'static>(
+        &mut self,
+        key: &str,
+        handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static,
+    ) {
         if let Some(pre) = E::PRE {
             self.at::<E, _, R>(&keyed(pre, key), EventPhase::Pre, Arc::new(handler));
         }
     }
 
     /// Runs `handler` after the game did `E`.
-    pub fn after<E: Event + 'static, R: IntoFlow + 'static>(&mut self, handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static) {
+    pub fn after<E: Event + 'static, R: IntoFlow + 'static>(
+        &mut self,
+        handler: impl Fn(&E, &EventCx) -> R + Send + Sync + 'static,
+    ) {
         self.at::<E, _, R>(E::ADDRESS, EventPhase::Post, Arc::new(handler));
     }
 
     /// [`Registry::after`] at `priority` among `E`'s handlers (higher first).
-    pub(crate) fn after_at<E: Event + 'static, R: IntoFlow + 'static, F>(&self, priority: i32, handler: F)
-    where
+    pub(crate) fn after_at<E: Event + 'static, R: IntoFlow + 'static, F>(
+        &self,
+        priority: i32,
+        handler: F,
+    ) where
         F: Fn(&E, &EventCx) -> R + Send + Sync + 'static,
     {
-        self.subscribe_at::<E, F>(E::ADDRESS, priority, EventPhase::Post, Arc::new(handler), on_event::<E, F, R>);
+        self.subscribe_at::<E, F>(
+            E::ADDRESS,
+            priority,
+            EventPhase::Post,
+            Arc::new(handler),
+            on_event::<E, F, R>,
+        );
     }
 
     /// Lets `handler` change every `E` before it's used (a loot table's
     /// items); each handler sees the one before's result.
-    pub fn change<E: Event + 'static>(&mut self, handler: impl Fn(&mut E, &EventCx) + Send + Sync + 'static) {
+    pub fn change<E: Event + 'static>(
+        &mut self,
+        handler: impl Fn(&mut E, &EventCx) + Send + Sync + 'static,
+    ) {
         self.changing::<E, _>(E::ADDRESS, priority::DEFAULT, Arc::new(handler));
     }
 
     /// [`Registry::change`] for a keyed event's `key` only, at `priority`
     /// among its handlers (higher first).
-    pub(crate) fn change_key_at<E: Event + 'static>(&mut self, key: &str, priority: i32, handler: impl Fn(&mut E, &EventCx) + Send + Sync + 'static) {
+    pub(crate) fn change_key_at<E: Event + 'static>(
+        &mut self,
+        key: &str,
+        priority: i32,
+        handler: impl Fn(&mut E, &EventCx) + Send + Sync + 'static,
+    ) {
         self.changing::<E, _>(&keyed(E::ADDRESS, key), priority, Arc::new(handler));
     }
 
@@ -212,14 +265,33 @@ impl Registry {
     where
         F: Fn(&mut E, &EventCx) + Send + Sync + 'static,
     {
-        self.subscribe_at::<E, F>(address, priority, EventPhase::Post, handler, on_change::<E, F>);
+        self.subscribe_at::<E, F>(
+            address,
+            priority,
+            EventPhase::Post,
+            handler,
+            on_change::<E, F>,
+        );
     }
 
-    fn subscribe<E: 'static, F: Send + Sync + 'static>(&mut self, address: &str, phase: EventPhase, handler: Arc<F>, run: YogHandlerFn) {
+    fn subscribe<E: 'static, F: Send + Sync + 'static>(
+        &mut self,
+        address: &str,
+        phase: EventPhase,
+        handler: Arc<F>,
+        run: YogHandlerFn,
+    ) {
         self.subscribe_at::<E, F>(address, priority::DEFAULT, phase, handler, run);
     }
 
-    fn subscribe_at<E: 'static, F: Send + Sync + 'static>(&self, address: &str, priority: i32, phase: EventPhase, handler: Arc<F>, run: YogHandlerFn) {
+    fn subscribe_at<E: 'static, F: Send + Sync + 'static>(
+        &self,
+        address: &str,
+        priority: i32,
+        phase: EventPhase,
+        handler: Arc<F>,
+        run: YogHandlerFn,
+    ) {
         let api = self.api();
         let bus = unsafe { &*api.bus };
         let sub = Box::into_raw(Box::new(Subscription::<E, F>::new(handler, phase)));
@@ -236,46 +308,86 @@ mod tests {
     use yog_event::{block, player};
 
     /// Runs `on_event` for `handler` in `phase` on `bytes`.
-    fn deliver_bytes<E: Event, R: IntoFlow, F: Fn(&E, &EventCx) -> R + Send + Sync>(handler: F, phase: EventPhase, bytes: &[u8]) -> YogStatus {
+    fn deliver_bytes<E: Event, R: IntoFlow, F: Fn(&E, &EventCx) -> R + Send + Sync>(
+        handler: F,
+        phase: EventPhase,
+        bytes: &[u8],
+    ) -> YogStatus {
         let sub = Subscription::<E, F>::new(Arc::new(handler), phase);
-        unsafe { on_event::<E, F, R>((&sub as *const Subscription<E, F>).cast_mut().cast::<c_void>(), YogBytes::new(bytes), std::ptr::null()) }
+        unsafe {
+            on_event::<E, F, R>(
+                (&sub as *const Subscription<E, F>)
+                    .cast_mut()
+                    .cast::<c_void>(),
+                YogBytes::new(bytes),
+                std::ptr::null(),
+            )
+        }
     }
 
-    fn deliver<E: Event, R: IntoFlow, F: Fn(&E, &EventCx) -> R + Send + Sync>(handler: F, phase: EventPhase, event: &E) -> YogStatus {
+    fn deliver<E: Event, R: IntoFlow, F: Fn(&E, &EventCx) -> R + Send + Sync>(
+        handler: F,
+        phase: EventPhase,
+        event: &E,
+    ) -> YogStatus {
         deliver_bytes(handler, phase, &event.to_bytes())
     }
 
     fn chat(message: &str) -> player::chat::Message {
-        player::chat::Message { player_name: "Dev".into(), message: message.into(), dimension: "minecraft:overworld".into() }
+        player::chat::Message {
+            player_name: "Dev".into(),
+            message: message.into(),
+            dimension: "minecraft:overworld".into(),
+        }
     }
 
     #[test]
     fn events_arrive_read_with_their_phase_and_a_pre_false_cancels() {
         let allow = |e: &player::chat::Message, _: &EventCx| e.message != "cancel me";
         assert_eq!(deliver(allow, EventPhase::Pre, &chat("hi")), status::OK);
-        assert_eq!(deliver(allow, EventPhase::Pre, &chat("cancel me")), status::CANCELLED);
-        assert_eq!(deliver(allow, EventPhase::Post, &chat("cancel me")), status::OK, "only a pre-event can be cancelled");
+        assert_eq!(
+            deliver(allow, EventPhase::Pre, &chat("cancel me")),
+            status::CANCELLED
+        );
+        assert_eq!(
+            deliver(allow, EventPhase::Post, &chat("cancel me")),
+            status::OK,
+            "only a pre-event can be cancelled"
+        );
     }
 
     #[test]
     fn a_panicking_handler_allows_the_action() {
         let handler = |_: &block::Break, _: &EventCx| -> bool { panic!("mod bug") };
-        let event = block::Break { player_name: "Dev".into(), block_id: "minecraft:stone".into(), pos: yog_core::BlockPos { x: 1, y: 2, z: 3 }, dimension: "minecraft:overworld".into() };
+        let event = block::Break {
+            player_name: "Dev".into(),
+            block_id: "minecraft:stone".into(),
+            pos: yog_core::BlockPos { x: 1, y: 2, z: 3 },
+            dimension: "minecraft:overworld".into(),
+        };
         assert_eq!(deliver(handler, EventPhase::Pre, &event), status::OK);
     }
 
     #[test]
     fn a_payload_that_isnt_the_event_is_refused() {
         let handler = |_: &player::chat::Message, _: &EventCx| true;
-        assert_eq!(deliver_bytes(handler, EventPhase::Post, b"junk"), status::BAD_PAYLOAD);
+        assert_eq!(
+            deliver_bytes(handler, EventPhase::Post, b"junk"),
+            status::BAD_PAYLOAD
+        );
     }
 
     /// Runs `on_change` for `handler` on `event`: its status and reply.
-    fn change<E: Event, F: Fn(&mut E, &EventCx) + Send + Sync>(handler: F, event: &E) -> (YogStatus, Vec<u8>) {
+    fn change<E: Event, F: Fn(&mut E, &EventCx) + Send + Sync>(
+        handler: F,
+        event: &E,
+    ) -> (YogStatus, Vec<u8>) {
         let sub = Subscription::<E, F>::new(Arc::new(handler), EventPhase::Post);
         let mut out = Vec::<u8>::new();
         let reply = YogReply::to_vec(&mut out);
-        let ud = (&sub as *const Subscription<E, F>).cast_mut().cast::<c_void>();
+        let ud = (&sub as *const Subscription<E, F>)
+            .cast_mut()
+            .cast::<c_void>();
         let st = unsafe { on_change::<E, F>(ud, YogBytes::new(&event.to_bytes()), &reply) };
         (st, out)
     }
@@ -284,8 +396,15 @@ mod tests {
     fn a_changing_handler_replies_with_the_changed_event() {
         use yog_event::Message;
         use yog_event::world::loot::{Roll, Stack};
-        let more = |loot: &mut Roll, _: &EventCx| loot.items.push(Stack::new("minecraft:diamond", 1));
-        let (st, out) = change(more, &Roll { table: "minecraft:chests/igloo_chest".into(), ..Default::default() });
+        let more =
+            |loot: &mut Roll, _: &EventCx| loot.items.push(Stack::new("minecraft:diamond", 1));
+        let (st, out) = change(
+            more,
+            &Roll {
+                table: "minecraft:chests/igloo_chest".into(),
+                ..Default::default()
+            },
+        );
         assert_eq!(st, status::OK);
         let changed = Roll::from_bytes(&out).expect("the reply is the event");
         assert_eq!(changed.items, vec![Stack::new("minecraft:diamond", 1)]);
@@ -296,6 +415,9 @@ mod tests {
         let handler = |_: &player::chat::Message, _: &EventCx| {};
         assert_eq!(deliver(handler, EventPhase::Pre, &chat("hi")), status::OK);
         let cancel = |_: &player::chat::Message, _: &EventCx| Flow::Cancel;
-        assert_eq!(deliver(cancel, EventPhase::Pre, &chat("hi")), status::CANCELLED);
+        assert_eq!(
+            deliver(cancel, EventPhase::Pre, &chat("hi")),
+            status::CANCELLED
+        );
     }
 }

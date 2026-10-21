@@ -35,13 +35,24 @@ pub struct Rig {
 
 impl Rig {
     pub fn new(model: Arc<Model>, anchor: Anchor) -> Rig {
-        Rig { model, anchor, layers: Vec::new(), manual: Pose::default(), look: Look::default() }
+        Rig {
+            model,
+            anchor,
+            layers: Vec::new(),
+            manual: Pose::default(),
+            look: Look::default(),
+        }
     }
 
     /// Plays `clip` from `now` (replacing the same clip if it plays).
     pub fn play(&mut self, clip: Arc<Clip>, now: f32) {
         self.layers.retain(|l| l.clip.name != clip.name);
-        self.layers.push(Layer { clip, start: now, speed: 1.0, weight: 1.0 });
+        self.layers.push(Layer {
+            clip,
+            start: now,
+            speed: 1.0,
+            weight: 1.0,
+        });
     }
 
     /// Stops `clip`.
@@ -56,7 +67,8 @@ impl Rig {
     /// The pose at `now`: the clips by weight, then the manual pose. Clips
     /// that ended (`once`) are dropped.
     pub fn pose(&mut self, now: f32) -> Pose {
-        self.layers.retain(|l| !l.clip.finished((now - l.start) * l.speed));
+        self.layers
+            .retain(|l| !l.clip.finished((now - l.start) * l.speed));
         let mut pose = Pose::default();
         for l in &self.layers {
             pose.add(&l.clip.sample((now - l.start) * l.speed), l.weight);
@@ -82,14 +94,22 @@ impl Rig {
     /// The model's faces, posed, in the anchor's space.
     pub fn quads(&self, pose: &Pose) -> Vec<Quad> {
         let m = self.matrices(pose);
-        self.model.bones.iter().zip(&m).flat_map(|(b, m)| b.quads.iter().map(move |q| q.transformed(m))).collect()
+        self.model
+            .bones
+            .iter()
+            .zip(&m)
+            .flat_map(|(b, m)| b.quads.iter().map(move |q| q.transformed(m)))
+            .collect()
     }
 
     /// Where locator `name` is now, in the anchor's space.
     pub fn locator(&self, name: &str, pose: &Pose) -> Option<Vec3> {
         let m = self.matrices(pose);
         self.model.bones.iter().zip(&m).find_map(|(b, m)| {
-            b.locators.iter().find(|(n, _)| n == name).map(|(_, p)| m.transform_point(*p))
+            b.locators
+                .iter()
+                .find(|(n, _)| n == name)
+                .map(|(_, p)| m.transform_point(*p))
         })
     }
 
@@ -128,13 +148,26 @@ mod tests {
             texture: "m:x".into(),
             texture_size: [64, 32],
             bones: vec![
-                BoneDef { name: "a".into(), parent: None, pivot: [0.0, 0.0, 0.0], rotation: [0.0; 3], cubes: vec![], locators: Ordered::default() },
+                BoneDef {
+                    name: "a".into(),
+                    parent: None,
+                    pivot: [0.0, 0.0, 0.0],
+                    rotation: [0.0; 3],
+                    cubes: vec![],
+                    locators: Ordered::default(),
+                },
                 BoneDef {
                     name: "b".into(),
                     parent: Some("a".into()),
                     pivot: [0.0, 10.0, 0.0],
                     rotation: [0.0; 3],
-                    cubes: vec![CubeDef { origin: [0.0; 3], size: [1.0; 3], uv: [0.0; 2], inflate: 0.0, mirror: false }],
+                    cubes: vec![CubeDef {
+                        origin: [0.0; 3],
+                        size: [1.0; 3],
+                        uv: [0.0; 2],
+                        inflate: 0.0,
+                        mirror: false,
+                    }],
                     locators: Ordered(vec![("tip".into(), [0.0, 5.0, 0.0])]),
                 },
             ],
@@ -148,7 +181,10 @@ mod tests {
         rig.manual.bone("a").rotation = Vec3::new(0.0, 0.0, std::f32::consts::FRAC_PI_2);
         let pose = rig.pose(0.0);
         let tip = rig.locator("tip", &pose).unwrap();
-        assert!((tip - Vec3::new(-15.0, 0.0, 0.0)).length() < 1e-4, "{tip:?}");
+        assert!(
+            (tip - Vec3::new(-15.0, 0.0, 0.0)).length() < 1e-4,
+            "{tip:?}"
+        );
         assert_eq!(rig.quads(&pose).len(), 6);
     }
 }

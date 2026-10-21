@@ -16,14 +16,22 @@ use crate::call;
 
 /// Asks the body handlers about entity `uuid` each frame (`on`), or stops.
 pub fn track(uuid: &str, on: bool) {
-    call(&client::BodyTrack { uuid: uuid.to_owned(), on });
+    call(&client::BodyTrack {
+        uuid: uuid.to_owned(),
+        on,
+    });
 }
 
 /// What this client was told entity `uuid` keeps under `key`
 /// (`entity::SetData`); body frames carry it too
 /// ([`Frame::data`]).
 pub fn entity_data(uuid: &str, key: &str) -> Option<Vec<u8>> {
-    call(&client::EntityData { uuid: uuid.to_owned(), key: key.to_owned() }).flatten().map(|v| v.bytes)
+    call(&client::EntityData {
+        uuid: uuid.to_owned(),
+        key: key.to_owned(),
+    })
+    .flatten()
+    .map(|v| v.bytes)
 }
 
 /// This client's side of `entity::SetDimensions`: the
@@ -32,10 +40,18 @@ pub fn entity_data(uuid: &str, key: &str) -> Option<Vec<u8>> {
 /// player moves and collides with it.
 pub fn set_dimensions(uuid: &str, size: Option<(f32, f32, f32)>) {
     let [width, height, eye] = size.map_or(VANILLA_SIZE, |(w, h, e)| [w, h, e]);
-    call(&client::SetDimensions { uuid: uuid.to_owned(), width, height, eye });
+    call(&client::SetDimensions {
+        uuid: uuid.to_owned(),
+        width,
+        height,
+        eye,
+    });
 }
 
 /// Asks the body handlers about every entity of `entity_type` (`on`), or stops.
 pub fn track_type(entity_type: &str, on: bool) {
-    call(&client::BodyTrackType { entity_type: entity_type.to_owned(), on });
+    call(&client::BodyTrackType {
+        entity_type: entity_type.to_owned(),
+        on,
+    });
 }

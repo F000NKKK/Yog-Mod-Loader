@@ -5,9 +5,9 @@
 //! Each open `.ybook` keeps its own reader (the page it's on); an edit
 //! swaps the book under it without losing the place.
 
-use yog_ids::Format;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use yog_ids::Format;
 use yog_sync::{LazyLock, Mutex};
 
 use base64::Engine as _;
@@ -71,11 +71,14 @@ struct Session {
     json: String,
 }
 
-static SESSIONS: LazyLock<Mutex<HashMap<String, Session>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+static SESSIONS: LazyLock<Mutex<HashMap<String, Session>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// The mod a content file belongs to: the folder with its `yog.toml`.
 fn mod_root(path: &Path) -> Option<PathBuf> {
-    path.ancestors().find(|p| p.join("yog.toml").is_file()).map(Path::to_path_buf)
+    path.ancestors()
+        .find(|p| p.join("yog.toml").is_file())
+        .map(Path::to_path_buf)
 }
 
 /// The texts a player reading in `locale` sees: `Set.name` → text (for
@@ -88,13 +91,21 @@ struct Texts {
 }
 
 fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Texts {
-    let mut t = Texts { refs: HashMap::new(), lang: HashMap::new() };
+    let mut t = Texts {
+        refs: HashMap::new(),
+        lang: HashMap::new(),
+    };
     // The game's (and the mod's assets') language files, the mod's own on top.
     let lang_file = locale.unwrap_or(yog_ids::game::LOCALE);
-    let mod_id = mod_root.and_then(crate::design::project::mod_id).unwrap_or_default();
+    let mod_id = mod_root
+        .and_then(crate::design::project::mod_id)
+        .unwrap_or_default();
     for ns in [yog_ids::ns::MINECRAFT, mod_id.as_str()] {
         for file in [yog_ids::game::LOCALE, lang_file] {
-            if let Some(Value::Object(map)) = res.read(ns, &yog_ids::lang_file(file)).and_then(|b| serde_json::from_slice(&b).ok()) {
+            if let Some(Value::Object(map)) = res
+                .read(ns, &yog_ids::lang_file(file))
+                .and_then(|b| serde_json::from_slice(&b).ok())
+            {
                 for (k, v) in map {
                     if let Value::String(v) = v {
                         t.lang.insert(k, v);
@@ -113,9 +124,19 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
     }
     let Some(root) = mod_root else { return t };
     let mut files: Vec<(String, Option<String>, PathBuf)> = Vec::new();
-    for f in std::fs::read_dir(root.join(crate::yres::RESOURCES_DIR)).into_iter().flatten().flatten() {
+    for f in std::fs::read_dir(root.join(crate::yres::RESOURCES_DIR))
+        .into_iter()
+        .flatten()
+        .flatten()
+    {
         let p = f.path();
-        let Some((set, loc)) = p.file_name().and_then(|n| n.to_str()).and_then(yog_formats::yres::split_file_name) else { continue };
+        let Some((set, loc)) = p
+            .file_name()
+            .and_then(|n| n.to_str())
+            .and_then(yog_formats::yres::split_file_name)
+        else {
+            continue;
+        };
         let (set, loc) = (set.to_string(), loc.map(str::to_string));
         if loc.is_none() || loc.as_deref() == locale {
             files.push((set, loc, p));
@@ -124,7 +145,10 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
     // Neutral first, the locale's over it.
     files.sort_by_key(|(_, loc, _)| loc.is_some());
     for (set, _, p) in files {
-        let Some(Value::Object(map)) = std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str(&t).ok()) else {
+        let Some(Value::Object(map)) = std::fs::read_to_string(&p)
+            .ok()
+            .and_then(|t| serde_json::from_str(&t).ok())
+        else {
             continue;
         };
         for (k, v) in map {
@@ -156,7 +180,9 @@ fn locales(mod_root: Option<&Path>) -> Vec<String> {
                 .flatten()
                 .filter_map(|f| {
                     let name = f.file_name().to_string_lossy().into_owned();
-                    yog_formats::yres::split_file_name(&name)?.1.map(str::to_string)
+                    yog_formats::yres::split_file_name(&name)?
+                        .1
+                        .map(str::to_string)
                 })
                 .collect()
         })
@@ -168,11 +194,14 @@ fn locales(mod_root: Option<&Path>) -> Vec<String> {
 
 /// The game's name of an item or block: `item.<ns>.<path>`, else `block.…`.
 fn item_name(lang: &HashMap<String, String>, id: &str) -> Option<String> {
-    [yog_ids::kind::ITEM, yog_ids::kind::BLOCK].iter().find_map(|k| lang.get(&yog_ids::lang_key(k, id)).cloned())
+    [yog_ids::kind::ITEM, yog_ids::kind::BLOCK]
+        .iter()
+        .find_map(|k| lang.get(&yog_ids::lang_key(k, id)).cloned())
 }
 
 /// What the book's renderer looks names up in (it takes a plain `fn`).
-static LANG: LazyLock<Mutex<HashMap<String, String>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+static LANG: LazyLock<Mutex<HashMap<String, String>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 fn translate(key: &str) -> Option<String> {
     LANG.lock().get(key).cloned()
@@ -194,11 +223,18 @@ fn recipes(mod_root: &Path) -> Vec<(String, yog_data::Value)> {
             if !Format::Recipe.is(&p) {
                 continue;
             }
-            let Some(mut v) = std::fs::read_to_string(&p).ok().and_then(|t| crate::design::data::read_object(&t)).map(Value::Object) else {
+            let Some(mut v) = std::fs::read_to_string(&p)
+                .ok()
+                .and_then(|t| crate::design::data::read_object(&t))
+                .map(Value::Object)
+            else {
                 continue;
             };
             crate::design::data::runtime_ids(&mut v);
-            let stem = p.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+            let stem = p
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_default();
             let id = match v.get("id").and_then(Value::as_str) {
                 Some(id) if id.contains(':') => id.to_string(),
                 Some(id) => format!("{mod_id}:{id}"),
@@ -217,7 +253,9 @@ fn humanize(id: &str) -> String {
         .filter(|w| !w.is_empty())
         .map(|w| {
             let mut c = w.chars();
-            c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
+            c.next()
+                .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
+                .unwrap_or_default()
         })
         .collect::<Vec<_>>()
         .join(" ")
@@ -239,16 +277,22 @@ impl yog_data::Resolve for Reader<'_> {
             yog_data::Text::NameOf(r) => {
                 let id = yog_formats::book::refs::bare(&r.id);
                 let name = match r.kind.as_str() {
-                    yog_ids::kind::ENTITY => self.texts.lang.get(&yog_ids::lang_key(yog_ids::kind::ENTITY, id)).cloned(),
+                    yog_ids::kind::ENTITY => self
+                        .texts
+                        .lang
+                        .get(&yog_ids::lang_key(yog_ids::kind::ENTITY, id))
+                        .cloned(),
                     _ => item_name(&self.texts.lang, id),
                 };
                 name.unwrap_or_else(|| humanize(id))
             }
             yog_data::Text::Lang(k) => self.texts.lang.get(k).cloned().unwrap_or_else(|| k.clone()),
-            yog_data::Text::Res(r) => self.texts.refs.get(&r.name()).cloned().unwrap_or_else(|| {
-                self.missing.push(r.to_string());
-                r.to_string()
-            }),
+            yog_data::Text::Res(r) => {
+                self.texts.refs.get(&r.name()).cloned().unwrap_or_else(|| {
+                    self.missing.push(r.to_string());
+                    r.to_string()
+                })
+            }
         })
     }
 
@@ -263,7 +307,10 @@ fn repair(v: &mut yog_data::Value, path: &yog_data::Path, message: &str) -> bool
     use yog_data::{Seg, Value};
     let segs = path.segments();
     // A missing field: an empty one, in the object the problem is about.
-    if let Some(field) = message.strip_prefix("missing `").and_then(|r| r.split('`').next()) {
+    if let Some(field) = message
+        .strip_prefix("missing `")
+        .and_then(|r| r.split('`').next())
+    {
         let mut at = &mut *v;
         for seg in segs {
             at = match (seg, at) {
@@ -285,7 +332,9 @@ fn repair(v: &mut yog_data::Value, path: &yog_data::Path, message: &str) -> bool
             return true;
         }
     }
-    if let Some(i) = segs.iter().position(|s| matches!(s, Seg::Key(k) if k == "pages"))
+    if let Some(i) = segs
+        .iter()
+        .position(|s| matches!(s, Seg::Key(k) if k == "pages"))
         && let Some(Seg::Index(page)) = segs.get(i + 1)
     {
         let mut at = &mut *v;
@@ -340,13 +389,20 @@ fn repair(v: &mut yog_data::Value, path: &yog_data::Path, message: &str) -> bool
 
 /// The `.ybook` text → the book a player would see, and the first problem
 /// in it (what's wrong is left out of the drawing).
-pub fn parse(text: &str, mod_root: Option<&Path>, locale: Option<&str>) -> Result<(Book, Option<String>), String> {
+pub fn parse(
+    text: &str,
+    mod_root: Option<&Path>,
+    locale: Option<&str>,
+) -> Result<(Book, Option<String>), String> {
     let doc = yog_data::text::parse(text).map_err(|e| format!("{}: {}", e.at, e.message))?;
     let res = Resources::for_mod(mod_root);
     let texts = texts(mod_root, &res, locale);
     let mut value = doc.value.clone();
     let mut first: Option<String> = None;
-    let mut reader = Reader { texts: &texts, missing: Vec::new() };
+    let mut reader = Reader {
+        texts: &texts,
+        missing: Vec::new(),
+    };
     let mut book = None;
     for _ in 0..32 {
         match yog_data::from_value_with::<Book>(&value, &mut reader) {
@@ -359,7 +415,11 @@ pub fn parse(text: &str, mod_root: Option<&Path>, locale: Option<&str>) -> Resul
                     && let Some(p) = problems.first()
                 {
                     let at = doc.locate(text, &p.path);
-                    first = Some(if p.path.is_root() { format!("{at}: {}", p.message) } else { format!("{at}: {}: {}", p.path, p.message) });
+                    first = Some(if p.path.is_root() {
+                        format!("{at}: {}", p.message)
+                    } else {
+                        format!("{at}: {}: {}", p.path, p.message)
+                    });
                 }
                 // Missing fields of the book itself are filled in first, then the rest repaired.
                 let mut changed = false;
@@ -376,9 +436,23 @@ pub fn parse(text: &str, mod_root: Option<&Path>, locale: Option<&str>) -> Resul
     // The reader shows texts, not keys.
     book.i18n = false;
     // The mod's own recipe layouts and kinds of page, as the build adds them.
-    book.layouts = mod_root.map(|r| crate::design::mod_ui::recipe_layouts(r).into_iter().map(|(_, l)| l).collect()).unwrap_or_default();
-    book.page_types = mod_root.map(crate::design::mod_ui::page_types).unwrap_or_default();
-    let first = first.or_else(|| reader.missing.first().map(|m| format!("{m}: no such text in resources/*.yres")));
+    book.layouts = mod_root
+        .map(|r| {
+            crate::design::mod_ui::recipe_layouts(r)
+                .into_iter()
+                .map(|(_, l)| l)
+                .collect()
+        })
+        .unwrap_or_default();
+    book.page_types = mod_root
+        .map(crate::design::mod_ui::page_types)
+        .unwrap_or_default();
+    let first = first.or_else(|| {
+        reader
+            .missing
+            .first()
+            .map(|m| format!("{m}: no such text in resources/*.yres"))
+    });
     let mut lang = LANG.lock();
     *lang = texts.lang;
     Ok((book, first))
@@ -411,10 +485,17 @@ static BOOK_MOD: yog_sync::Mutex<Option<PathBuf>> = yog_sync::Mutex::new(None);
 /// An item tag's items for the book being drawn (`yog_book::set_tag_items`).
 fn book_tag_items(tag: &str) -> Vec<String> {
     let root = BOOK_MOD.lock().clone();
-    root.map(|r| super::tags::item_tag(&r.join(yog_ids::file::MANIFEST), tag)).unwrap_or_default()
+    root.map(|r| super::tags::item_tag(&r.join(yog_ids::file::MANIFEST), tag))
+        .unwrap_or_default()
 }
 
-fn render_book(args: &BookArgs, book: yog_formats::book::Book, problem: Option<String>, root: Option<&Path>, locales: Vec<String>) -> BookRendered {
+fn render_book(
+    args: &BookArgs,
+    book: yog_formats::book::Book,
+    problem: Option<String>,
+    root: Option<&Path>,
+    locales: Vec<String>,
+) -> BookRendered {
     yog_book::set_tag_items(book_tag_items);
     let mut m = BOOK_MOD.lock();
     *m = root.map(Path::to_path_buf);
@@ -437,7 +518,10 @@ fn render_book(args: &BookArgs, book: yog_formats::book::Book, problem: Option<S
         for (id, recipe) in root.map(recipes).unwrap_or_default() {
             renderer.add_recipe(id, &recipe);
         }
-        Session { renderer, json: json.clone() }
+        Session {
+            renderer,
+            json: json.clone(),
+        }
     });
     if session.json != json {
         session.renderer.set_book(book);
@@ -446,7 +530,9 @@ fn render_book(args: &BookArgs, book: yog_formats::book::Book, problem: Option<S
     let r = &mut session.renderer;
 
     // Lay out first: a click hits what was last drawn at this size.
-    gfx::record(sw as i32, sh as i32, |ctx| r.render(ctx, sw as f32, sh as f32));
+    gfx::record(sw as i32, sh as i32, |ctx| {
+        r.render(ctx, sw as f32, sh as f32)
+    });
     let action = match &args.action {
         Some(BookAction::Click { x, y }) => r.click(*x, *y),
         Some(BookAction::Show { entry, page }) => {
@@ -461,13 +547,18 @@ fn render_book(args: &BookArgs, book: yog_formats::book::Book, problem: Option<S
     };
 
     images::set_document(root);
-    let ops = gfx::record(sw as i32, sh as i32, |ctx| r.render(ctx, sw as f32, sh as f32));
+    let ops = gfx::record(sw as i32, sh as i32, |ctx| {
+        r.render(ctx, sw as f32, sh as f32)
+    });
     let res = Resources::for_mod(root);
     let scale = raster::fit_scale(sw, sh, args.scale);
     let canvas = raster::rasterize(&ops, sw, sh, scale, &res);
     match canvas.png() {
         Ok(png) => BookRendered {
-            image: Some(format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png))),
+            image: Some(format!(
+                "data:image/png;base64,{}",
+                base64::engine::general_purpose::STANDARD.encode(png)
+            )),
             scale,
             shown: r.shown(),
             action,
@@ -488,11 +579,17 @@ fn sample(p: &yog_formats::book::page_type::PageProperty) -> serde_json::Value {
     }
     match p.kind {
         PropKind::Text => serde_json::Value::String(format!("‹{}›", p.name)),
-        PropKind::BookText => serde_json::Value::String(format!("‹{}› — the page's text, as a book wraps it.", p.name)),
+        PropKind::BookText => serde_json::Value::String(format!(
+            "‹{}› — the page's text, as a book wraps it.",
+            p.name
+        )),
         PropKind::Number => serde_json::json!(1),
         PropKind::Bool => serde_json::json!(true),
         PropKind::Item => serde_json::json!(yog_ids::game::BOOK),
-        PropKind::Image => serde_json::json!(yog_ids::join(yog_ids::image_scheme::ITEM, yog_ids::game::BOOK)),
+        PropKind::Image => serde_json::json!(yog_ids::join(
+            yog_ids::image_scheme::ITEM,
+            yog_ids::game::BOOK
+        )),
         PropKind::Data => serde_json::Value::Null,
     }
 }
@@ -503,9 +600,22 @@ fn sample(p: &yog_formats::book::page_type::PageProperty) -> serde_json::Value {
 pub fn page_preview(args: &BookArgs) -> BookRendered {
     let root = mod_root(Path::new(&args.path));
     let locales = locales(root.as_deref());
-    let fail = |error: String| BookRendered { image: None, scale: args.scale, shown: None, action: None, animated: false, locales: locales.clone(), error: Some(error) };
-    let ns = root.as_deref().map(crate::design::mod_ui::ns).unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
-    let kind = match yog_formats::yui::parse(&args.text).and_then(|el| yog_formats::book::page_type::compile(&el, &ns)) {
+    let fail = |error: String| BookRendered {
+        image: None,
+        scale: args.scale,
+        shown: None,
+        action: None,
+        animated: false,
+        locales: locales.clone(),
+        error: Some(error),
+    };
+    let ns = root
+        .as_deref()
+        .map(crate::design::mod_ui::ns)
+        .unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
+    let kind = match yog_formats::yui::parse(&args.text)
+        .and_then(|el| yog_formats::book::page_type::compile(&el, &ns))
+    {
         Ok(k) => k,
         Err(e) => return fail(e),
     };
@@ -532,7 +642,10 @@ pub fn page_preview(args: &BookArgs) -> BookRendered {
     };
     book.page_types.retain(|t| t.id != kind.id);
     book.page_types.push(kind);
-    let args = BookArgs { action: Some(BookAction::Show { entry, page: 0 }), ..args.clone() };
+    let args = BookArgs {
+        action: Some(BookAction::Show { entry, page: 0 }),
+        ..args.clone()
+    };
     render_book(&args, book, problem, root.as_deref(), locales)
 }
 
@@ -547,9 +660,16 @@ mod tests {
 
     #[test]
     fn resolves_references_to_their_texts() {
-        let mut texts = Texts { refs: HashMap::new(), lang: HashMap::new() };
-        texts.refs.insert("Book.title".to_string(), "Guide".to_string());
-        texts.lang.insert("item.mymod.sapphire".to_string(), "Сапфир".to_string());
+        let mut texts = Texts {
+            refs: HashMap::new(),
+            lang: HashMap::new(),
+        };
+        texts
+            .refs
+            .insert("Book.title".to_string(), "Guide".to_string());
+        texts
+            .lang
+            .insert("item.mymod.sapphire".to_string(), "Сапфир".to_string());
         let v = yog_data::text::parse_value(
             r#"{
             name: "@Book.title", subtitle: "@item:mymod:ruby_block", landing_text: "@@x",
@@ -559,12 +679,25 @@ mod tests {
         }"#,
         )
         .unwrap();
-        let mut r = Reader { texts: &texts, missing: Vec::new() };
-        let b = yog_data::from_value_with::<Book>(&v, &mut r).unwrap_or_else(|p| panic!("{p:?}")).value;
+        let mut r = Reader {
+            texts: &texts,
+            missing: Vec::new(),
+        };
+        let b = yog_data::from_value_with::<Book>(&v, &mut r)
+            .unwrap_or_else(|p| panic!("{p:?}"))
+            .value;
         assert_eq!(b.name, "Guide");
-        assert_eq!(b.subtitle.as_deref(), Some("Ruby Block"), "no translation: made from the id");
+        assert_eq!(
+            b.subtitle.as_deref(),
+            Some("Ruby Block"),
+            "no translation: made from the id"
+        );
         assert_eq!(b.categories[0].name, "Сапфир", "a name in a text");
-        assert_eq!(b.categories[0].icon.as_deref(), Some("mymod:sapphire"), "an id in an id field");
+        assert_eq!(
+            b.categories[0].icon.as_deref(),
+            Some("mymod:sapphire"),
+            "an id in an id field"
+        );
         assert_eq!(b.entries[0].category, "m:c");
         assert_eq!(b.landing_text, "@x");
         assert_eq!(r.missing, ["@Book.nope"]);
@@ -580,8 +713,15 @@ mod tests {
             ] }] }"#;
         let (book, problem) = parse(text, None, None).unwrap();
         let problem = problem.unwrap();
-        assert!(problem.starts_with("3:23: entries[0]: missing `name`"), "{problem}");
-        assert_eq!(book.entries[0].pages.len(), 1, "the broken page is left out");
+        assert!(
+            problem.starts_with("3:23: entries[0]: missing `name`"),
+            "{problem}"
+        );
+        assert_eq!(
+            book.entries[0].pages.len(),
+            1,
+            "the broken page is left out"
+        );
     }
 
     #[test]
@@ -590,11 +730,22 @@ mod tests {
             "categories": [{ "id": "t:c", "name": "Basics" }],
             "entries": [{ "id": "t:e", "name": "First", "category": "@category:t:c",
                 "pages": [{ "type": "text", "text": "one" }, { "type": "text", "text": "two" }] }] }"#;
-        let args = |action| BookArgs { path: "/tmp/test.ybook".into(), text: text.into(), screen_w: 400, screen_h: 240, scale: 1, action, locale: None };
+        let args = |action| BookArgs {
+            path: "/tmp/test.ybook".into(),
+            text: text.into(),
+            screen_w: 400,
+            screen_h: 240,
+            scale: 1,
+            action,
+            locale: None,
+        };
         let r = render(&args(None));
         assert!(r.error.is_none() && r.image.is_some(), "{:?}", r.error);
         assert_eq!(r.shown, None);
-        let r = render(&args(Some(BookAction::Show { entry: "t:e".into(), page: 1 })));
+        let r = render(&args(Some(BookAction::Show {
+            entry: "t:e".into(),
+            page: 1,
+        })));
         assert_eq!(r.shown, Some(("t:e".into(), 1)));
         let r = render(&args(Some(BookAction::Home)));
         assert_eq!(r.shown, None);
@@ -603,7 +754,8 @@ mod tests {
 
     #[test]
     fn a_book_page_component_is_drawn_as_the_book_shows_it() {
-        let dir = std::env::temp_dir().join(format!("yog-idle-page-preview-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("yog-idle-page-preview-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("src/ui")).unwrap();
         std::fs::write(dir.join("yog.toml"), "[mod]\nid = \"mymod\"\n").unwrap();
@@ -629,5 +781,4 @@ mod tests {
         assert_eq!(r.shown, Some(("mymod:page_preview".to_string(), 0)));
         let _ = std::fs::remove_dir_all(&dir);
     }
-
 }

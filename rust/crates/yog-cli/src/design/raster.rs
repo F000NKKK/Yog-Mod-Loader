@@ -124,7 +124,13 @@ impl DrawOp {
             | DrawOp::Svg { x, y, .. }
             | DrawOp::Entity { x, y, .. } => (*x, *y) = (*x + dx, *y + dy),
             DrawOp::Scissor { .. } | DrawOp::ClearScissor => {
-                return DrawOp::Rect { x1: 0.0, y1: 0.0, x2: 0.0, y2: 0.0, color: 0 };
+                return DrawOp::Rect {
+                    x1: 0.0,
+                    y1: 0.0,
+                    x2: 0.0,
+                    y2: 0.0,
+                    color: 0,
+                };
             }
         }
         self
@@ -167,7 +173,11 @@ const TEXT_MIN_ALPHA: u8 = 4;
 /// The game draws text whose alpha is (almost) 0 fully opaque.
 fn text_color(c: u32) -> u32 {
     let c = Color(c);
-    if c.a() < TEXT_MIN_ALPHA { c.with_alpha(u8::MAX).0 } else { c.0 }
+    if c.a() < TEXT_MIN_ALPHA {
+        c.with_alpha(u8::MAX).0
+    } else {
+        c.0
+    }
 }
 
 /// The game's text shadow: each channel a quarter of the text's (`rgb & 0xFCFCFC >> 2`).
@@ -251,7 +261,12 @@ impl<'r> Canvas<'r> {
                 if !(0.0..1.0).contains(&u) || !(0.0..1.0).contains(&v) {
                     continue;
                 }
-                let t = img.pixel((u * img.width as f32) as u32, (v * img.width.min(img.height) as f32) as u32).to_rgba8();
+                let t = img
+                    .pixel(
+                        (u * img.width as f32) as u32,
+                        (v * img.width.min(img.height) as f32) as u32,
+                    )
+                    .to_rgba8();
                 if t[3] == 0 {
                     continue;
                 }
@@ -291,7 +306,13 @@ impl<'r> Canvas<'r> {
 
     /// Draws `img` texels `(u, v)`–`(u + w·tw/…)` into GUI box `x, y, w, h`
     /// — UVs normalized against the declared texture size `tw × th`.
-    pub(super) fn blit(&mut self, img: &Image, [x, y, w, h]: [f32; 4], uv: [f32; 4], tint: [f32; 4]) {
+    pub(super) fn blit(
+        &mut self,
+        img: &Image,
+        [x, y, w, h]: [f32; 4],
+        uv: [f32; 4],
+        tint: [f32; 4],
+    ) {
         let (xa, xb) = self.span(x, x + w, false);
         let (ya, yb) = self.span(y, y + h, true);
         let [u0, v0, u1, v1] = uv;
@@ -322,7 +343,12 @@ impl<'r> Canvas<'r> {
             height: b.h,
             rgba: b.rgba.clone(),
         };
-        let at = [x, y + b.top * k, b.w as f32 / b.oversample * k, b.h as f32 / b.oversample * k];
+        let at = [
+            x,
+            y + b.top * k,
+            b.w as f32 / b.oversample * k,
+            b.h as f32 / b.oversample * k,
+        ];
         self.blit(&img, at, [0.0, 0.0, 1.0, 1.0], argb(color));
     }
 
@@ -331,10 +357,18 @@ impl<'r> Canvas<'r> {
     /// the pose: no rounding.
     pub fn text(&mut self, text: &str, at: [f32; 2], style: &TextStyle) {
         let k = style.scale;
-        let [x, y] = if k == 1.0 { at.map(|v| (v as i32) as f32) } else { at };
+        let [x, y] = if k == 1.0 {
+            at.map(|v| (v as i32) as f32)
+        } else {
+            at
+        };
         let font = self.font(style.font);
         let chars = styled(text, text_color(style.color.0));
-        let passes: &[bool] = if style.shadow { &[true, false] } else { &[false] };
+        let passes: &[bool] = if style.shadow {
+            &[true, false]
+        } else {
+            &[false]
+        };
         for &is_shadow in passes {
             let mut pen = x;
             for s in &chars {
@@ -353,7 +387,16 @@ impl<'r> Canvas<'r> {
                 }
                 for (on, (top, bottom)) in [(s.underline, UNDERLINE), (s.strike, STRIKE)] {
                     if on {
-                        self.fill([pen + off - 1.0, y + off + top, pen + off + adv, y + off + bottom], c, c);
+                        self.fill(
+                            [
+                                pen + off - 1.0,
+                                y + off + top,
+                                pen + off + adv,
+                                y + off + bottom,
+                            ],
+                            c,
+                            c,
+                        );
                     }
                 }
                 pen += adv;
@@ -385,18 +428,54 @@ impl<'r> Canvas<'r> {
                 y,
                 color,
                 shadow,
-            } => self.text(text, [*x, *y], &TextStyle { font, scale: 1.0, color: Color(*color), shadow: *shadow }),
-            DrawOp::TextScaled { text, font, x, y, scale, color, shadow } => {
-                self.text(text, [*x, *y], &TextStyle { font, scale: *scale, color: Color(*color), shadow: *shadow })
-            }
-            DrawOp::Blocks { list, x, y, w, h, yaw, pitch } => {
-                super::blocks3d::draw(self, list, [*x, *y, *w, *h], *yaw, *pitch)
-            }
+            } => self.text(
+                text,
+                [*x, *y],
+                &TextStyle {
+                    font,
+                    scale: 1.0,
+                    color: Color(*color),
+                    shadow: *shadow,
+                },
+            ),
+            DrawOp::TextScaled {
+                text,
+                font,
+                x,
+                y,
+                scale,
+                color,
+                shadow,
+            } => self.text(
+                text,
+                [*x, *y],
+                &TextStyle {
+                    font,
+                    scale: *scale,
+                    color: Color(*color),
+                    shadow: *shadow,
+                },
+            ),
+            DrawOp::Blocks {
+                list,
+                x,
+                y,
+                w,
+                h,
+                yaw,
+                pitch,
+            } => super::blocks3d::draw(self, list, [*x, *y, *w, *h], *yaw, *pitch),
             DrawOp::Item { id, x, y, size } => {
                 // As the game shows it in a slot (blocks and heads in 3D;
                 // mod items: from their `content/` file).
                 let source = format!("item:{id}");
-                super::images::draw(self, &source, [*x, *y, *size, *size], [0.0; 4], Color::WHITE.0);
+                super::images::draw(
+                    self,
+                    &source,
+                    [*x, *y, *size, *size],
+                    [0.0; 4],
+                    Color::WHITE.0,
+                );
             }
             DrawOp::Image {
                 source,
@@ -407,8 +486,12 @@ impl<'r> Canvas<'r> {
                 region,
                 tint,
             } => super::images::draw(self, source, [*x, *y, *w, *h], *region, *tint),
-            DrawOp::Svg { data, x, y, w, h } => super::images::draw_svg(self, data, [*x, *y, *w, *h], Color::WHITE.0),
-            DrawOp::Entity { entity, x, y, w, h } => super::images::draw_entity(self, entity, [*x, *y, *w, *h]),
+            DrawOp::Svg { data, x, y, w, h } => {
+                super::images::draw_svg(self, data, [*x, *y, *w, *h], Color::WHITE.0)
+            }
+            DrawOp::Entity { entity, x, y, w, h } => {
+                super::images::draw_entity(self, entity, [*x, *y, *w, *h])
+            }
             DrawOp::Scissor { x, y, w, h } => self.clip = Some((*x, *y, *w, *h)),
             DrawOp::ClearScissor => self.clip = None,
         }
@@ -527,7 +610,16 @@ mod tests {
     fn missing_font_draws_boxes_with_the_shadow_first() {
         let r = res();
         let mut c = Canvas::new(16, 10, 1, &r);
-        c.text("A", [0.0, 0.0], &TextStyle { font: "", scale: 1.0, color: Color::WHITE, shadow: true });
+        c.text(
+            "A",
+            [0.0, 0.0],
+            &TextStyle {
+                font: "",
+                scale: 1.0,
+                color: Color::WHITE,
+                shadow: true,
+            },
+        );
         // Missing glyph box: top-left texel white, shadow at (1,1) under the text's own (1,1)? (1,1) is the box's inside → shadow shows.
         assert_eq!(&c.rgba[0..4], &[255, 255, 255, 255]);
         let i = (16 + 1) * 4;

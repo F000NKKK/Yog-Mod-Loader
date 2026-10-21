@@ -135,14 +135,21 @@ impl Font {
                 errors.push(format!("chars[{i}].char is not a Unicode scalar value"));
             }
             if m.glyph as usize >= self.glyphs.len() {
-                errors.push(format!("chars[{i}].glyph {} does not name a glyph", m.glyph));
+                errors.push(format!(
+                    "chars[{i}].glyph {} does not name a glyph",
+                    m.glyph
+                ));
             }
         }
         for (i, ligature) in self.ligatures.iter().enumerate() {
             if ligature.glyphs.len() < 2 {
                 errors.push(format!("ligatures[{i}] must contain at least two glyphs"));
             }
-            for &glyph in ligature.glyphs.iter().chain(std::iter::once(&ligature.glyph)) {
+            for &glyph in ligature
+                .glyphs
+                .iter()
+                .chain(std::iter::once(&ligature.glyph))
+            {
                 if glyph as usize >= self.glyphs.len() {
                     errors.push(format!("ligatures[{i}] references missing glyph {glyph}"));
                 }
@@ -157,35 +164,54 @@ impl Font {
                 }
                 for &glyph in &class.glyphs {
                     if glyph as usize >= self.glyphs.len() {
-                        errors.push(format!("machines[{i}] class {} references missing glyph {glyph}", class.class));
+                        errors.push(format!(
+                            "machines[{i}] class {} references missing glyph {glyph}",
+                            class.class
+                        ));
                     }
                     if !members.insert(glyph) {
-                        errors.push(format!("machines[{i}] assigns glyph {glyph} to more than one class"));
+                        errors.push(format!(
+                            "machines[{i}] assigns glyph {glyph} to more than one class"
+                        ));
                     }
                 }
             }
             let mut transitions = std::collections::HashSet::new();
             for transition in &machine.transitions {
                 if !classes.contains(&transition.class) {
-                    errors.push(format!("machines[{i}] transition references missing class {}", transition.class));
+                    errors.push(format!(
+                        "machines[{i}] transition references missing class {}",
+                        transition.class
+                    ));
                 }
                 if !transitions.insert((transition.state, transition.class)) {
-                    errors.push(format!("machines[{i}] repeats transition from state {} for class {}", transition.state, transition.class));
+                    errors.push(format!(
+                        "machines[{i}] repeats transition from state {} for class {}",
+                        transition.state, transition.class
+                    ));
                 }
                 if let Some(glyph) = transition.glyph
                     && glyph as usize >= self.glyphs.len()
                 {
-                    errors.push(format!("machines[{i}] transition references missing glyph {glyph}"));
+                    errors.push(format!(
+                        "machines[{i}] transition references missing glyph {glyph}"
+                    ));
                 }
             }
         }
         let mut kerning = std::collections::HashSet::new();
         for kern in &self.kerning {
             if kern.left as usize >= self.glyphs.len() || kern.right as usize >= self.glyphs.len() {
-                errors.push(format!("kerning pair ({}, {}) references a missing glyph", kern.left, kern.right));
+                errors.push(format!(
+                    "kerning pair ({}, {}) references a missing glyph",
+                    kern.left, kern.right
+                ));
             }
             if !kerning.insert((kern.left, kern.right)) {
-                errors.push(format!("kerning pair ({}, {}) is repeated", kern.left, kern.right));
+                errors.push(format!(
+                    "kerning pair ({}, {}) is repeated",
+                    kern.left, kern.right
+                ));
             }
         }
         if let Some(fit) = self.fit
@@ -193,7 +219,11 @@ impl Font {
         {
             errors.push("fit.height must be positive and fit values must be finite".to_string());
         }
-        if errors.is_empty() { Ok(()) } else { Err(errors) }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     /// A built font from its file's bytes.

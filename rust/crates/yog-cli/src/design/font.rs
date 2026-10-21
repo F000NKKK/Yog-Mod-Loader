@@ -272,19 +272,45 @@ fn ttf(res: &Resources, p: &Value) -> Option<TtfProvider> {
     let (ns, path) = yog_ids::split(file);
     let bytes = res.read(ns, &format!("font/{path}"))?;
     let size = p.get("size").and_then(Value::as_f64).unwrap_or(TTF_SIZE) as f32;
-    let oversample = p.get("oversample").and_then(Value::as_f64).unwrap_or(1.0).max(MIN_OVERSAMPLE) as f32;
-    let font = fontdue::Font::from_bytes(bytes, fontdue::FontSettings { scale: size * oversample, ..Default::default() }).ok()?;
+    let oversample = p
+        .get("oversample")
+        .and_then(Value::as_f64)
+        .unwrap_or(1.0)
+        .max(MIN_OVERSAMPLE) as f32;
+    let font = fontdue::Font::from_bytes(
+        bytes,
+        fontdue::FontSettings {
+            scale: size * oversample,
+            ..Default::default()
+        },
+    )
+    .ok()?;
     let shift = p
         .get("shift")
         .and_then(Value::as_array)
-        .map(|a| (a.first().and_then(Value::as_f64).unwrap_or(0.0) as f32, a.get(1).and_then(Value::as_f64).unwrap_or(0.0) as f32))
+        .map(|a| {
+            (
+                a.first().and_then(Value::as_f64).unwrap_or(0.0) as f32,
+                a.get(1).and_then(Value::as_f64).unwrap_or(0.0) as f32,
+            )
+        })
         .unwrap_or((0.0, 0.0));
     let skip = match p.get("skip") {
         Some(Value::String(s)) => s.chars().collect(),
-        Some(Value::Array(a)) => a.iter().filter_map(Value::as_str).flat_map(str::chars).collect(),
+        Some(Value::Array(a)) => a
+            .iter()
+            .filter_map(Value::as_str)
+            .flat_map(str::chars)
+            .collect(),
         _ => Vec::new(),
     };
-    Some(TtfProvider { font, size, oversample, shift, skip })
+    Some(TtfProvider {
+        font,
+        size,
+        oversample,
+        shift,
+        skip,
+    })
 }
 
 impl TtfProvider {
@@ -296,10 +322,17 @@ impl TtfProvider {
         let (m, coverage) = self.font.rasterize(ch, px);
         let advance = m.advance_width / self.oversample;
         if m.width == 0 || m.height == 0 {
-            return Some(Glyph { advance, shadow_offset: 1.0, bold_offset: 1.0, bitmap: None });
+            return Some(Glyph {
+                advance,
+                shadow_offset: 1.0,
+                bold_offset: 1.0,
+                bitmap: None,
+            });
         }
         // Left bearing as blank columns, so the bitmap starts at the pen.
-        let pad = (m.xmin.max(0) as f32 + self.shift.0 * self.oversample).round().max(0.0) as usize;
+        let pad = (m.xmin.max(0) as f32 + self.shift.0 * self.oversample)
+            .round()
+            .max(0.0) as usize;
         let w = m.width + pad;
         let mut rgba = vec![0u8; w * m.height * 4];
         for y in 0..m.height {
@@ -315,7 +348,13 @@ impl TtfProvider {
             advance,
             shadow_offset: 1.0,
             bold_offset: 1.0,
-            bitmap: Some(GlyphBitmap { w: w as u32, h: m.height as u32, rgba, oversample: self.oversample, top }),
+            bitmap: Some(GlyphBitmap {
+                w: w as u32,
+                h: m.height as u32,
+                rgba,
+                oversample: self.oversample,
+                top,
+            }),
         })
     }
 }
@@ -323,7 +362,9 @@ impl TtfProvider {
 fn bitmap(res: &Resources, p: &Value) -> Option<BitmapProvider> {
     let file = p.get("file")?.as_str()?;
     let (ns, path) = yog_ids::split(file);
-    let image = Arc::new(decode_png(&res.read(ns, &format!("{}{path}", yog_ids::res::TEXTURES))?)?);
+    let image = Arc::new(decode_png(
+        &res.read(ns, &format!("{}{path}", yog_ids::res::TEXTURES))?,
+    )?);
     let rows: Vec<Vec<char>> = p
         .get("chars")?
         .as_array()?
@@ -336,7 +377,10 @@ fn bitmap(res: &Resources, p: &Value) -> Option<BitmapProvider> {
     }
     let cell_w = image.width / cols;
     let cell_h = image.height / rows.len() as u32;
-    let height = p.get("height").and_then(Value::as_f64).unwrap_or(BITMAP_HEIGHT) as f32;
+    let height = p
+        .get("height")
+        .and_then(Value::as_f64)
+        .unwrap_or(BITMAP_HEIGHT) as f32;
     let mut chars = HashMap::new();
     for (r, row) in rows.iter().enumerate() {
         for (c, &ch) in row.iter().enumerate() {
@@ -452,7 +496,16 @@ impl Font {
     /// one of the mod's own (`mymod:font/fancy`); `""` is the default font.
     pub fn load(res: &Resources, font_id: &str) -> Arc<Font> {
         // A mod's own font is read again once its file changes.
-        type Cache = Mutex<HashMap<(Option<std::path::PathBuf>, String, Option<std::time::SystemTime>), Arc<Font>>>;
+        type Cache = Mutex<
+            HashMap<
+                (
+                    Option<std::path::PathBuf>,
+                    String,
+                    Option<std::time::SystemTime>,
+                ),
+                Arc<Font>,
+            >,
+        >;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let named = font_id.trim();
         let game = yog_ids::game_font_of(named);
@@ -461,7 +514,11 @@ impl Font {
             None if named.is_empty() => yog_ids::game::DEFAULT_FONT,
             None => named,
         };
-        let key = (res.mod_root.clone(), id.to_string(), super::font_yog::changed(res, id));
+        let key = (
+            res.mod_root.clone(),
+            id.to_string(),
+            super::font_yog::changed(res, id),
+        );
         let cache = CACHE.get_or_init(Default::default);
         if let Some(f) = cache.lock().get(&key).cloned() {
             return f;
@@ -494,9 +551,17 @@ impl Font {
                 match p {
                     Provider::Space(a) => a.keys().copied().collect(),
                     Provider::Bitmap(b) => b.chars.keys().copied().collect(),
-                    Provider::Unihex(u) if unihex => u.glyphs.keys().filter_map(|&c| char::from_u32(c)).collect(),
+                    Provider::Unihex(u) if unihex => {
+                        u.glyphs.keys().filter_map(|&c| char::from_u32(c)).collect()
+                    }
                     Provider::Unihex(_) => Vec::new(),
-                    Provider::Ttf(t) => t.font.chars().keys().filter(|c| !t.skip.contains(c)).copied().collect(),
+                    Provider::Ttf(t) => t
+                        .font
+                        .chars()
+                        .keys()
+                        .filter(|c| !t.skip.contains(c))
+                        .copied()
+                        .collect(),
                     Provider::Yog(y) => y.chars().collect(),
                 }
             })
@@ -568,7 +633,8 @@ pub struct Styled {
 
 /// A legacy chat color's code: `5` dark purple, `a` green.
 pub fn chat_color(code: char) -> Option<u32> {
-    code.to_digit(CODE_RADIX).map(|i| yog_gfx::Color::rgb(CODES[i as usize]).0)
+    code.to_digit(CODE_RADIX)
+        .map(|i| yog_gfx::Color::rgb(CODES[i as usize]).0)
 }
 
 /// Chat color codes are hex digits.
@@ -584,7 +650,9 @@ const CODES: [u32; 16] = [
 /// `StringDecomposer.iterateFormatted`.
 /// Color `rgb` with `color`'s alpha.
 fn with_alpha_of(color: u32, rgb: u32) -> u32 {
-    yog_gfx::Color::rgb(rgb).with_alpha(yog_gfx::Color(color).a()).0
+    yog_gfx::Color::rgb(rgb)
+        .with_alpha(yog_gfx::Color(color).a())
+        .0
 }
 
 pub fn styled(text: &str, color: u32) -> Vec<Styled> {

@@ -58,17 +58,22 @@ impl Components {
 
     /// The newest installed `id` (versions compared part by part).
     pub fn newest(&self, id: &str) -> Option<&Installed> {
-        self.installed.iter().filter(|c| c.id == id).max_by(|a, b| crate::version::compare(&a.version, &b.version))
+        self.installed
+            .iter()
+            .filter(|c| c.id == id)
+            .max_by(|a, b| crate::version::compare(&a.version, &b.version))
     }
 
     /// Installs `c`, replacing the same id and version.
     pub fn put(&mut self, c: Installed) {
-        self.installed.retain(|i| !(i.id == c.id && i.version == c.version));
+        self.installed
+            .retain(|i| !(i.id == c.id && i.version == c.version));
         self.installed.push(c);
     }
 
     /// Forgets `id` at `version`.
     pub fn remove(&mut self, id: &str, version: &str) {
-        self.installed.retain(|i| !(i.id == id && i.version == version));
+        self.installed
+            .retain(|i| !(i.id == id && i.version == version));
     }
 }

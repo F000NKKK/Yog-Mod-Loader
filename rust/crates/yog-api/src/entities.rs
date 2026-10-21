@@ -18,8 +18,8 @@ use yog_registry::EntityDef;
 /// every client that sees it).
 pub use yog_ids::yog::{HANGING, STATE};
 
-pub use yog_event::entity::Hanging;
 use yog_event::Message as _;
+pub use yog_event::entity::Hanging;
 
 /// The hanging entity a body frame is about, if it is one.
 pub fn hanging_of(frame: &Frame) -> Option<Hanging> {
@@ -28,7 +28,13 @@ pub fn hanging_of(frame: &Frame) -> Option<Hanging> {
 
 /// Hanging entity `uuid` on the server, if it is one.
 pub fn hanging(uuid: &str) -> Option<Hanging> {
-    Hanging::from_bytes(&crate::call(&yog_event::entity::Data { uuid: uuid.to_owned(), key: HANGING.to_owned() })??.bytes)
+    Hanging::from_bytes(
+        &crate::call(&yog_event::entity::Data {
+            uuid: uuid.to_owned(),
+            key: HANGING.to_owned(),
+        })??
+        .bytes,
+    )
 }
 
 /// Above this limb swing an entity walks.
@@ -46,12 +52,17 @@ static HOOKED: AtomicBool = AtomicBool::new(false);
 /// Remembers how `def` looks; `true` for the first such type (the caller
 /// hooks [`draw`] then).
 pub(crate) fn drawn(def: &EntityDef) -> bool {
-    let Some(model) = &def.model else { return false };
+    let Some(model) = &def.model else {
+        return false;
+    };
     LOOKS.lock().insert(
         def.id.clone(),
         Look {
             model: yog_ids::qualify_in(yog_ids::split(&def.id).0, model),
-            animations: def.animations.as_ref().map(|a| yog_ids::qualify_in(yog_ids::split(&def.id).0, a)),
+            animations: def
+                .animations
+                .as_ref()
+                .map(|a| yog_ids::qualify_in(yog_ids::split(&def.id).0, a)),
             clips: def.clips.0.clone(),
         },
     );
@@ -61,15 +72,31 @@ pub(crate) fn drawn(def: &EntityDef) -> bool {
 
 pub(crate) fn draw(f: &Frame, ops: &mut Ops) {
     let looks = LOOKS.lock();
-    let Some(look) = looks.get(&f.entity_type) else { return };
-    let Some(model) = yog_body::model(&look.model) else { return };
+    let Some(look) = looks.get(&f.entity_type) else {
+        return;
+    };
+    let Some(model) = yog_body::model(&look.model) else {
+        return;
+    };
     let state = f
         .data(STATE)
         .and_then(|s| std::str::from_utf8(s).ok())
         .map(str::to_owned)
-        .unwrap_or_else(|| if f.limb_amount > WALKING { "walk" } else { "idle" }.to_owned());
+        .unwrap_or_else(|| {
+            if f.limb_amount > WALKING {
+                "walk"
+            } else {
+                "idle"
+            }
+            .to_owned()
+        });
     let mut rig = Rig::new(model, Anchor::Model);
-    let clip = look.clips.iter().find(|(s, _)| *s == state).map(|(_, c)| c.as_str()).unwrap_or(state.as_str());
+    let clip = look
+        .clips
+        .iter()
+        .find(|(s, _)| *s == state)
+        .map(|(_, c)| c.as_str())
+        .unwrap_or(state.as_str());
     if let Some(anims) = &look.animations
         && let Some(c) = yog_body::clip(anims, clip)
     {

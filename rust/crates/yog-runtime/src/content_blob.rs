@@ -4,8 +4,7 @@
 //! through the Java records generated from it (`YogTypes.Content`).
 
 use yog_event::content::{
-    Armor, Block, Content, Dimension, Hangs, Inventory, InventorySlot, Item, Machine, Recipe,
-    Tool,
+    Armor, Block, Content, Dimension, Hangs, Inventory, InventorySlot, Item, Machine, Recipe, Tool,
 };
 
 use crate::handlers::RuntimeHandlers;

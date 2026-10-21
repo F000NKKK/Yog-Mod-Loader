@@ -7,9 +7,9 @@
 //! loaders' tags they stand for, and a loader's (`c:`, `forge:`) holds what
 //! `yog_formats::tags` says.
 
-use yog_ids::Format;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use yog_ids::Format;
 
 use serde_json::Value;
 
@@ -18,36 +18,76 @@ use super::assets::vanilla_versions;
 /// The tags shown: item tags.
 const REGISTRY: &str = yog_ids::kind::ITEM;
 
-
 /// The mod's item tags, as the CLI listed them (`yog content check` / `yog build`).
 fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
-    let Some(root) = root else { return BTreeMap::new() };
-    let mut tags = crate::content::read_tags(root).remove(REGISTRY).unwrap_or_default();
-    let Some(ns) = crate::design::project::mod_id(root) else { return tags };
+    let Some(root) = root else {
+        return BTreeMap::new();
+    };
+    let mut tags = crate::content::read_tags(root)
+        .remove(REGISTRY)
+        .unwrap_or_default();
+    let Some(ns) = crate::design::project::mod_id(root) else {
+        return tags;
+    };
     for format in [Format::Block, Format::Item, Format::Def] {
         for file in crate::files::of(&root.join(yog_ids::project::CONTENT), format) {
-            let Ok(text) = std::fs::read_to_string(&file) else { continue };
-            let Some(doc) = crate::design::data::read_object(&text) else { continue };
+            let Ok(text) = std::fs::read_to_string(&file) else {
+                continue;
+            };
+            let Some(doc) = crate::design::data::read_object(&text) else {
+                continue;
+            };
             let value = Value::Object(doc);
             if format == Format::Def {
-                if value.get(yog_ids::content_field::KIND).and_then(Value::as_str) != Some(yog_ids::kind::TAG) || value.get(yog_ids::content_field::OF).and_then(Value::as_str) != Some(yog_ids::kind::ITEM) {
+                if value
+                    .get(yog_ids::content_field::KIND)
+                    .and_then(Value::as_str)
+                    != Some(yog_ids::kind::TAG)
+                    || value
+                        .get(yog_ids::content_field::OF)
+                        .and_then(Value::as_str)
+                        != Some(yog_ids::kind::ITEM)
+                {
                     continue;
                 }
-                let Some(raw_id) = value.get(yog_ids::tag_file::ID).and_then(Value::as_str) else { continue };
+                let Some(raw_id) = value.get(yog_ids::tag_file::ID).and_then(Value::as_str) else {
+                    continue;
+                };
                 let tag = yog_ids::qualify_in(&ns, raw_id);
                 let entries = tags.entry(tag).or_default();
-                for values in [yog_ids::tag_file::VALUES, yog_ids::tag_file::OPTIONAL].into_iter().filter_map(|k| value.get(k).and_then(Value::as_array)) {
-                    for entry in values.iter().filter_map(Value::as_str).map(|v| tag_entry(&ns, v)) {
+                for values in [yog_ids::tag_file::VALUES, yog_ids::tag_file::OPTIONAL]
+                    .into_iter()
+                    .filter_map(|k| value.get(k).and_then(Value::as_array))
+                {
+                    for entry in values
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(|v| tag_entry(&ns, v))
+                    {
                         if !entries.contains(&entry) {
                             entries.push(entry);
                         }
                     }
                 }
             } else {
-                let Some(raw_id) = value.get(yog_ids::tag_file::ID).and_then(Value::as_str).or_else(|| file.file_stem().and_then(|s| s.to_str())) else { continue };
+                let Some(raw_id) = value
+                    .get(yog_ids::tag_file::ID)
+                    .and_then(Value::as_str)
+                    .or_else(|| file.file_stem().and_then(|s| s.to_str()))
+                else {
+                    continue;
+                };
                 let item_id = yog_ids::qualify_in(&ns, raw_id);
-                for raw_tag in value.get("tags").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str) {
-                    let entries = tags.entry(yog_ids::qualify_in(&ns, raw_tag.trim_start_matches('#'))).or_default();
+                for raw_tag in value
+                    .get("tags")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                {
+                    let entries = tags
+                        .entry(yog_ids::qualify_in(&ns, raw_tag.trim_start_matches('#')))
+                        .or_default();
                     if !entries.contains(&item_id) {
                         entries.push(item_id.clone());
                     }
@@ -59,7 +99,9 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
 }
 
 fn tag_entry(ns: &str, value: &str) -> String {
-    let tag = value.strip_prefix("@tag:item:").or_else(|| value.strip_prefix("@tag:block:"));
+    let tag = value
+        .strip_prefix("@tag:item:")
+        .or_else(|| value.strip_prefix("@tag:block:"));
     if let Some(tag) = tag {
         return format!("#{}", yog_ids::qualify_in(ns, tag));
     }
@@ -69,7 +111,10 @@ fn tag_entry(ns: &str, value: &str) -> String {
     value
         .strip_prefix("@item:")
         .or_else(|| value.strip_prefix("@block:"))
-        .map_or_else(|| yog_ids::qualify_in(ns, value), |id| yog_ids::qualify_in(ns, id))
+        .map_or_else(
+            || yog_ids::qualify_in(ns, value),
+            |id| yog_ids::qualify_in(ns, id),
+        )
 }
 
 /// Tag `tag`'s entries: the mod's, then the game's from the newest version with it.
@@ -88,11 +133,28 @@ fn entries(roots: &[PathBuf], own: &BTreeMap<String, Vec<String>>, tag: &str) ->
     }
     'versions: for v in vanilla_versions(roots) {
         for dir in yog_ids::registry_dirs(REGISTRY) {
-            let rel = format!("{ns}/{}/{dir}/{path}{}", yog_ids::pack::TAGS, yog_ids::res::JSON);
-            let Some(file) = v.read_data(&rel).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else { continue };
-            for e in file.get(yog_ids::tag_file::VALUES).and_then(Value::as_array).into_iter().flatten() {
+            let rel = format!(
+                "{ns}/{}/{dir}/{path}{}",
+                yog_ids::pack::TAGS,
+                yog_ids::res::JSON
+            );
+            let Some(file) = v
+                .read_data(&rel)
+                .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+            else {
+                continue;
+            };
+            for e in file
+                .get(yog_ids::tag_file::VALUES)
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
                 // `"id"` or `{ "id": …, "required": false }`.
-                if let Some(id) = e.as_str().or_else(|| e.get(yog_ids::tag_file::ID).and_then(Value::as_str)) {
+                if let Some(id) = e
+                    .as_str()
+                    .or_else(|| e.get(yog_ids::tag_file::ID).and_then(Value::as_str))
+                {
                     out.push(id.to_owned());
                 }
             }
@@ -137,10 +199,23 @@ impl Gather<'_> {
 /// file at `path` belongs to; empty if the tag is unknown.
 pub fn item_tag(path: &Path, tag: &str) -> Vec<String> {
     let root = super::mod_root(path);
-    let roots: Vec<PathBuf> = root.iter().flat_map(|r| [r.clone(), r.parent().map(Path::to_path_buf).unwrap_or_default()]).collect();
+    let roots: Vec<PathBuf> = root
+        .iter()
+        .flat_map(|r| {
+            [
+                r.clone(),
+                r.parent().map(Path::to_path_buf).unwrap_or_default(),
+            ]
+        })
+        .collect();
     let own = mod_tags(root.as_deref());
     let full = yog_ids::qualify(tag.trim_start_matches(yog_ids::sep::TAG_SHOWN));
-    let mut gather = Gather { roots: &roots, own: &own, seen: BTreeSet::new(), out: Vec::new() };
+    let mut gather = Gather {
+        roots: &roots,
+        own: &own,
+        seen: BTreeSet::new(),
+        out: Vec::new(),
+    };
     gather.open(&full, 0);
     gather.out
 }
@@ -153,9 +228,14 @@ mod tests {
     #[test]
     #[ignore = "needs ../HexMod-Yog"]
     fn a_mods_item_tag_has_its_items() {
-        let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../HexMod-Yog").join(yog_ids::file::MANIFEST);
+        let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../HexMod-Yog")
+            .join(yog_ids::file::MANIFEST);
         let items = item_tag(&manifest, "#hexcasting:edified_planks");
-        assert!(items.iter().any(|i| i.contains("edified_planks")), "{items:?}");
+        assert!(
+            items.iter().any(|i| i.contains("edified_planks")),
+            "{items:?}"
+        );
     }
 
     #[test]
@@ -166,7 +246,11 @@ mod tests {
         std::fs::create_dir_all(root.join("content/tags")).unwrap();
         std::fs::create_dir_all(root.join("content/recipes")).unwrap();
         std::fs::write(root.join("yog.toml"), "[mod]\nid = \"mymod\"\n").unwrap();
-        std::fs::write(root.join("content/blocks/wood.yblock"), r#"{ tags: ["planks"] }"#).unwrap();
+        std::fs::write(
+            root.join("content/blocks/wood.yblock"),
+            r#"{ tags: ["planks"] }"#,
+        )
+        .unwrap();
         std::fs::write(
             root.join("content/tags/all_wood.ydef"),
             r#"{ kind: "tag", of: "item", id: "all_wood", values: ["@tag:item:mymod:planks"] }"#,
@@ -181,6 +265,9 @@ mod tests {
     #[test]
     fn yog_tags_open_into_the_tags_they_stand_for() {
         let items = item_tag(Path::new("/nowhere/r.yrecipe"), "#yog:ingots/iron");
-        assert!(items.iter().any(|i| i == "minecraft:iron_ingot"), "{items:?}");
+        assert!(
+            items.iter().any(|i| i == "minecraft:iron_ingot"),
+            "{items:?}"
+        );
     }
 }

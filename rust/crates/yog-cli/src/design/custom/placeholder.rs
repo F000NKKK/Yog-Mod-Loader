@@ -2,7 +2,6 @@
 //! and why (building, or the build failed).
 use crate::design::raster::DrawOp;
 
-
 /// A placeholder's size when its element gives none, and its look: a dark
 /// box, its border and message bluish while the library builds, red when
 /// it failed; text padded, a line apart, wrapped at a few columns at least.
@@ -26,7 +25,11 @@ pub(super) const BUILDING: &str = "Building";
 /// The box shown for a component that can't be drawn: its name and why.
 pub fn placeholder(name: &str, message: &str, w: f32, h: f32) -> Vec<DrawOp> {
     let building = message.starts_with(BUILDING);
-    let border = if building { BUILDING_BORDER } else { FAILED_BORDER };
+    let border = if building {
+        BUILDING_BORDER
+    } else {
+        FAILED_BORDER
+    };
     let mut ops = vec![
         DrawOp::Rect {
             x1: 0.0,

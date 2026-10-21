@@ -12,10 +12,11 @@ use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use yog_sync::Arc;
 
-use yog_gfx::{Color, Rect, Vec2};
 use yog_gfx::image::{
-    ImageSource, LegacyRegion, SPRITES, Sprite, SpriteSource, Stretch, atlas_texture, fit, sprite as find_sprite,
+    ImageSource, LegacyRegion, SPRITES, Sprite, SpriteSource, Stretch, atlas_texture, fit,
+    sprite as find_sprite,
 };
+use yog_gfx::{Color, Rect, Vec2};
 use yog_ui::widget::{self, Widget};
 
 use super::assets::{Image, Resources};
@@ -150,7 +151,9 @@ fn resolve(sp: &Sprite) -> Option<SpriteSource<'_>> {
 /// that version renamed it to (`minecraft:chain` is `iron_chain` from 1.21.9).
 fn in_game_files(kind: RefKind, id: String) -> String {
     let version = with_doc(|d| d.and_then(|d| d.res.vanilla.as_ref().map(|v| v.version.clone())));
-    version.and_then(|v| crate::content::refs::equivalent(kind, &id, &v)).unwrap_or(id)
+    version
+        .and_then(|v| crate::content::refs::equivalent(kind, &id, &v))
+        .unwrap_or(id)
 }
 
 /// The texture an item/block icon is drawn with (the designer doesn't run
@@ -158,7 +161,8 @@ fn in_game_files(kind: RefKind, id: String) -> String {
 fn item_texture(id: &str, block: bool) -> Option<Arc<Image>> {
     // Its item model's layers, when it has some.
     if !block
-        && let Some(super::item_models::Look::Flat(img)) = with_doc(|d| d.and_then(|d| super::item_models::look(&d.res, id)))
+        && let Some(super::item_models::Look::Flat(img)) =
+            with_doc(|d| d.and_then(|d| super::item_models::look(&d.res, id)))
     {
         return Some(img);
     }
@@ -172,7 +176,10 @@ fn item_texture(id: &str, block: bool) -> Option<Arc<Image>> {
     } else {
         order.insert(0, &item);
     }
-    order.into_iter().find_map(|t| texture(t)).or_else(|| content_icon(id))
+    order
+        .into_iter()
+        .find_map(|t| texture(t))
+        .or_else(|| content_icon(id))
 }
 
 /// A mod item's icon from its `content/` file (cached per id).
@@ -185,7 +192,9 @@ fn content_icon(id: &str) -> Option<Arc<Image>> {
     if let Some(hit) = cache.lock().get(&key) {
         return hit.clone();
     }
-    let img = crate::design::content::content_icon(&root, id).and_then(|b| super::assets::decode_png(&b)).map(Arc::new);
+    let img = crate::design::content::content_icon(&root, id)
+        .and_then(|b| super::assets::decode_png(&b))
+        .map(Arc::new);
     cache.lock().insert(key, img.clone());
     img
 }
@@ -200,11 +209,23 @@ fn item_3d(c: &mut Canvas, id: &str, [x, y, w, h]: [f32; 4]) -> bool {
         Some(super::item_models::Look::Flat(_)) => false,
         Some(super::item_models::Look::Head(faces)) => {
             let m = w.min(h) * HEAD_MARGIN;
-            super::blocks3d::draw_cube(c, faces, [x + m, y + m, w - 2.0 * m, h - 2.0 * m], SLOT_YAW, SLOT_PITCH);
+            super::blocks3d::draw_cube(
+                c,
+                faces,
+                [x + m, y + m, w - 2.0 * m, h - 2.0 * m],
+                SLOT_YAW,
+                SLOT_PITCH,
+            );
             true
         }
         None if super::blocks3d::is_block(c.resources(), id) => {
-            super::blocks3d::draw(c, &format!("0 0 0 {id}"), [x, y, w, h], SLOT_YAW, SLOT_PITCH);
+            super::blocks3d::draw(
+                c,
+                &format!("0 0 0 {id}"),
+                [x, y, w, h],
+                SLOT_YAW,
+                SLOT_PITCH,
+            );
             true
         }
         None => false,
@@ -220,12 +241,16 @@ const HEAD_MARGIN: f32 = 0.1;
 /// can't be resolved.
 pub fn source_size(source: &str) -> Option<(f32, f32)> {
     match ImageSource::parse(source)? {
-        ImageSource::Item(_) | ImageSource::Block(_) => Some((yog_ui::ICON_SIZE, yog_ui::ICON_SIZE)),
+        ImageSource::Item(_) | ImageSource::Block(_) => {
+            Some((yog_ui::ICON_SIZE, yog_ui::ICON_SIZE))
+        }
         ImageSource::Sprite(name) => find_sprite(&name).map(|s| match resolve(s) {
             Some(SpriteSource::Region(r)) => (r.region.w, r.region.h),
             _ => (s.size.x, s.size.y),
         }),
-        ImageSource::Texture(id) if id.ends_with(".svg") => svg_document(&id).and_then(|d| yog_media::svg::size(&d)),
+        ImageSource::Texture(id) if id.ends_with(".svg") => {
+            svg_document(&id).and_then(|d| yog_media::svg::size(&d))
+        }
         ImageSource::Texture(id) => texture(&id).map(|i| (i.width as f32, i.height as f32)),
         ImageSource::ModPath(_) => None,
     }
@@ -244,7 +269,12 @@ fn blit_px(c: &mut Canvas, img: &Image, dest: [f32; 4], src: [f32; 4], t: u32) {
         return;
     }
     let (iw, ih) = (img.width as f32, img.height as f32);
-    c.blit(img, [x, y, w, h], [u / iw, v / ih, (u + uw) / iw, (v + vh) / ih], tint(t));
+    c.blit(
+        img,
+        [x, y, w, h],
+        [u / iw, v / ih, (u + uw) / iw, (v + vh) / ih],
+        tint(t),
+    );
 }
 
 /// The inventory slot (drawn by Yog on every version).
@@ -266,7 +296,18 @@ fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
             }
         } else {
             let k = src[2] / natural;
-            blit_px(c, img, dest, [src[0] + part[0] * k, src[1] + part[1] * k, part[2] * k, part[3] * k], t);
+            blit_px(
+                c,
+                img,
+                dest,
+                [
+                    src[0] + part[0] * k,
+                    src[1] + part[1] * k,
+                    part[2] * k,
+                    part[3] * k,
+                ],
+                t,
+            );
         }
     };
     if sp.is_procedural() {
@@ -284,7 +325,12 @@ fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
         } else {
             img.height as f32
         };
-        put(&img, [0.0, 0.0, img.width as f32, frame_h], size.x, sp.border);
+        put(
+            &img,
+            [0.0, 0.0, img.width as f32, frame_h],
+            size.x,
+            sp.border,
+        );
         return;
     }
     if let Some(SpriteSource::Region(LegacyRegion {
@@ -296,7 +342,12 @@ fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
     {
         // Resource packs may ship the sheet at a higher resolution.
         let k = img.width as f32 / texture_size.x;
-        put(&img, [region.x * k, region.y * k, region.w * k, region.h * k], region.w, sp.border * k);
+        put(
+            &img,
+            [region.x * k, region.y * k, region.w * k, region.h * k],
+            region.w,
+            sp.border * k,
+        );
         return;
     }
     missing(c, dest);
@@ -317,7 +368,11 @@ const SVG_OVERSAMPLE: f32 = 4.0;
 
 /// An SVG document as an image, `w`×`h` — as the runtime rasterizes it in game.
 fn svg_image(data: &str, w: u32, h: u32) -> Option<Image> {
-    Some(Image { width: w, height: h, rgba: yog_media::svg::rasterize(data, w, h)? })
+    Some(Image {
+        width: w,
+        height: h,
+        rgba: yog_media::svg::rasterize(data, w, h)?,
+    })
 }
 
 /// The document of an `.svg` texture id (`ns:textures/x.svg`) of the mod.
@@ -334,7 +389,13 @@ pub fn draw_svg(c: &mut Canvas, data: &str, dest: [f32; 4], t: u32) {
     }
     let side = |v: f32| ((v * SVG_OVERSAMPLE).ceil() as u32).clamp(1, 2048);
     match svg_image(data, side(dest[2]), side(dest[3])) {
-        Some(img) => blit_px(c, &img, dest, [0.0, 0.0, img.width as f32, img.height as f32], t),
+        Some(img) => blit_px(
+            c,
+            &img,
+            dest,
+            [0.0, 0.0, img.width as f32, img.height as f32],
+            t,
+        ),
         None => missing(c, dest),
     }
 }
@@ -349,7 +410,13 @@ pub fn draw_entity(c: &mut Canvas, entity: &str, [x, y, w, h]: [f32; 4]) {
     let side = w.min(h).min(ENTITY_EGG_MAX);
     let dest = [x + (w - side) / 2.0, y + (h - side) / 2.0, side, side];
     let egg = yog_ids::join(ns, &format!("{path}{}", yog_ids::res::SPAWN_EGG_SUFFIX));
-    draw(c, &yog_ids::join(yog_ids::image_scheme::ITEM, &egg), dest, [0.0; 4], Color::WHITE.0);
+    draw(
+        c,
+        &yog_ids::join(yog_ids::image_scheme::ITEM, &egg),
+        dest,
+        [0.0; 4],
+        Color::WHITE.0,
+    );
 }
 
 /// `draw2d_image`: `source` into `dest` (`x y w h`, already fitted by
@@ -390,7 +457,13 @@ pub fn draw(c: &mut Canvas, source: &str, dest: [f32; 4], region: [f32; 4], t: u
                 .split_once(':')
                 .and_then(|(ns, p)| texture(&atlas_texture(ns, p)))
             {
-                Some(img) => blit_px(c, &img, dest, [0.0, 0.0, img.width as f32, img.height as f32], t),
+                Some(img) => blit_px(
+                    c,
+                    &img,
+                    dest,
+                    [0.0, 0.0, img.width as f32, img.height as f32],
+                    t,
+                ),
                 None => missing(c, dest),
             },
         },
@@ -483,7 +556,11 @@ fn draw_preview(path: &Path, source: &str, size: u32) -> Option<String> {
     let source = resolve_mod(source);
     let (nw, nh) = source_size(&source).unwrap_or((ICON_SIDE, ICON_SIDE));
     let size = size.clamp(MIN_PREVIEW, MAX_PREVIEW);
-    let (dest, _) = fit(Stretch::Uniform, Vec2::new(nw, nh), Rect::new(0.0, 0.0, size as f32, size as f32));
+    let (dest, _) = fit(
+        Stretch::Uniform,
+        Vec2::new(nw, nh),
+        Rect::new(0.0, 0.0, size as f32, size as f32),
+    );
     let mut c = Canvas::new(size, size, 1, &res);
     let [x, y, w, h] = [dest.x, dest.y, dest.w, dest.h];
     draw(&mut c, &source, [x, y, w, h], [0.0; 4], Color::WHITE.0);
@@ -497,7 +574,6 @@ fn draw_preview(path: &Path, source: &str, size: u32) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     /// `YOG_IMAGES_PNG=out.png cargo test --lib designer::images -- --ignored`:
     /// every kind of source drawn with the local game files, for eyeballing.

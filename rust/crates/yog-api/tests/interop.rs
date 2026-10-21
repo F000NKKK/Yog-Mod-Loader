@@ -40,9 +40,18 @@ import! {
 /// Runs export `name`'s provider on `payload` (a frame of its arguments): its status and reply.
 fn serve(name: &str, payload: &[u8]) -> (u32, Vec<u8>) {
     let exports = yog_api::__yog_export_registry().lock();
-    let entry = exports.iter().find(|e| e.name == name).expect("the export registered itself");
+    let entry = exports
+        .iter()
+        .find(|e| e.name == name)
+        .expect("the export registered itself");
     let mut out = Vec::new();
-    let st = unsafe { (entry.handler)(std::ptr::null_mut(), YogBytes::new(payload), &YogReply::to_vec(&mut out)) };
+    let st = unsafe {
+        (entry.handler)(
+            std::ptr::null_mut(),
+            YogBytes::new(payload),
+            &YogReply::to_vec(&mut out),
+        )
+    };
     (st, out)
 }
 
@@ -57,27 +66,49 @@ fn args(put: impl FnOnce(&mut Packer)) -> Vec<u8> {
 
 #[test]
 fn exports_register_themselves_when_the_library_loads() {
-    let names: Vec<&str> = yog_api::__yog_export_registry().lock().iter().map(|e| e.name).collect();
+    let names: Vec<&str> = yog_api::__yog_export_registry()
+        .lock()
+        .iter()
+        .map(|e| e.name)
+        .collect();
     for n in ["scale", "explode", "rename"] {
         assert!(names.contains(&n), "{n} in {names:?}");
     }
-    assert_eq!(yog_api::export_address("yog-pipes", "attach"), "yog-pipes:attach");
+    assert_eq!(
+        yog_api::export_address("yog-pipes", "attach"),
+        "yog-pipes:attach"
+    );
 }
 
 #[test]
 fn an_export_answers_its_arguments_by_name() {
-    let (st, out) = serve("scale", &args(|p| {
-        21i32.pack(p);
-        2i32.pack(p);
-    }));
+    let (st, out) = serve(
+        "scale",
+        &args(|p| {
+            21i32.pack(p);
+            2i32.pack(p);
+        }),
+    );
     assert_eq!(st, yog_abi::status::OK);
     assert_eq!(read_frame::<i32>(&out), Some(42));
-    let pipe = Pipe { id: 7, name: "old".into() };
-    let (_, out) = serve("rename", &args(|p| {
-        pipe.pack(p);
-        "new".to_owned().pack(p);
-    }));
-    assert_eq!(read_frame::<Pipe>(&out), Some(Pipe { id: 7, name: "new".into() }));
+    let pipe = Pipe {
+        id: 7,
+        name: "old".into(),
+    };
+    let (_, out) = serve(
+        "rename",
+        &args(|p| {
+            pipe.pack(p);
+            "new".to_owned().pack(p);
+        }),
+    );
+    assert_eq!(
+        read_frame::<Pipe>(&out),
+        Some(Pipe {
+            id: 7,
+            name: "new".into()
+        })
+    );
 }
 
 #[test]
@@ -102,7 +133,10 @@ pub fn stored() -> u64 {
 #[test]
 fn an_export_carries_its_description() {
     let exports = yog_api::__yog_export_registry().lock();
-    let entry = exports.iter().find(|e| e.name == "stored").expect("registered");
+    let entry = exports
+        .iter()
+        .find(|e| e.name == "stored")
+        .expect("registered");
     assert_eq!(entry.doc, "Energy stored, in FE.");
     assert_eq!(entry.implements, ["test:energy/storage"]);
     let (_, answer) = (entry.shapes)();

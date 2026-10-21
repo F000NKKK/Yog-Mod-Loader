@@ -7,9 +7,9 @@
 //! or every multipart part whose `when` it meets; elements keep their own
 //! rotations.
 
+use std::collections::{HashMap, HashSet};
 use yog_ids::direction::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
 use yog_ids::texture_slot::{ALL, BOTTOM, END, FRONT, SIDE, TEXTURE, TOP};
-use std::collections::{HashMap, HashSet};
 use yog_sync::Arc;
 
 use serde_json::Value;
@@ -72,7 +72,12 @@ impl Turn {
 
     /// A direction turned (no origin, no rescale).
     fn apply_dir(&self, v: [f32; 3]) -> [f32; 3] {
-        Turn { origin: [0.0; 3], rescale: false, ..*self }.apply(v)
+        Turn {
+            origin: [0.0; 3],
+            rescale: false,
+            ..*self
+        }
+        .apply(v)
     }
 }
 
@@ -85,7 +90,12 @@ type CubeFace = ([i32; 3], [f32; 3], [f32; 3], [f32; 3], usize, f32);
 
 pub fn cube(faces: Faces) -> Shape {
     let faces = faces.map(|f| Some(f.unwrap_or_else(|| Arc::new(missing_image()))));
-    vec![Cuboid { from: [0.0; 3], to: [BLOCK_UNITS; 3], faces, turns: Vec::new() }]
+    vec![Cuboid {
+        from: [0.0; 3],
+        to: [BLOCK_UNITS; 3],
+        faces,
+        turns: Vec::new(),
+    }]
 }
 
 const FACE_NAMES: [&str; 6] = [UP, DOWN, NORTH, SOUTH, WEST, EAST];
@@ -110,54 +120,103 @@ fn default_uv(slot: usize, f: [f32; 3], t: [f32; 3]) -> [f32; 4] {
     match slot {
         0 => [f[0], f[2], t[0], t[2]],
         1 => [f[0], BLOCK_UNITS - t[2], t[0], BLOCK_UNITS - f[2]],
-        2 => [BLOCK_UNITS - t[0], BLOCK_UNITS - t[1], BLOCK_UNITS - f[0], BLOCK_UNITS - f[1]],
+        2 => [
+            BLOCK_UNITS - t[0],
+            BLOCK_UNITS - t[1],
+            BLOCK_UNITS - f[0],
+            BLOCK_UNITS - f[1],
+        ],
         3 => [f[0], BLOCK_UNITS - t[1], t[0], BLOCK_UNITS - f[1]],
         4 => [f[2], BLOCK_UNITS - t[1], t[2], BLOCK_UNITS - f[1]],
-        _ => [BLOCK_UNITS - t[2], BLOCK_UNITS - t[1], BLOCK_UNITS - f[2], BLOCK_UNITS - f[1]],
+        _ => [
+            BLOCK_UNITS - t[2],
+            BLOCK_UNITS - t[1],
+            BLOCK_UNITS - f[2],
+            BLOCK_UNITS - f[1],
+        ],
     }
 }
 
 /// `img`'s part `uv` (sixteenths of it; reversed: mirrored).
 fn cut(img: &Image, [u0, v0, u1, v1]: [f32; 4]) -> Image {
-    let (sx, sy) = (img.width as f32 / BLOCK_UNITS, img.width.min(img.height) as f32 / BLOCK_UNITS);
+    let (sx, sy) = (
+        img.width as f32 / BLOCK_UNITS,
+        img.width.min(img.height) as f32 / BLOCK_UNITS,
+    );
     let (x0, x1) = ((u0 * sx).round() as i32, (u1 * sx).round() as i32);
     let (y0, y1) = ((v0 * sy).round() as i32, (v1 * sy).round() as i32);
-    let (w, h) = ((x1 - x0).unsigned_abs().max(1), (y1 - y0).unsigned_abs().max(1));
+    let (w, h) = (
+        (x1 - x0).unsigned_abs().max(1),
+        (y1 - y0).unsigned_abs().max(1),
+    );
     let mut rgba = Vec::with_capacity((w * h * 4) as usize);
     for y in 0..h as i32 {
         for x in 0..w as i32 {
             let px = if x1 >= x0 { x0 + x } else { x0 - 1 - x };
             let py = if y1 >= y0 { y0 + y } else { y0 - 1 - y };
-            let (px, py) = (px.clamp(0, img.width as i32 - 1) as u32, py.clamp(0, img.height as i32 - 1) as u32);
+            let (px, py) = (
+                px.clamp(0, img.width as i32 - 1) as u32,
+                py.clamp(0, img.height as i32 - 1) as u32,
+            );
             rgba.extend_from_slice(&img.pixel(px, py).to_rgba8());
         }
     }
-    Image { width: w, height: h, rgba }
+    Image {
+        width: w,
+        height: h,
+        rgba,
+    }
 }
 
 /// A model's `elements` as boxes; `texture("#var" or "var")` gives a face's texture.
 pub fn shape_of(elements: &[Value], texture: &mut dyn FnMut(&str) -> Option<Arc<Image>>) -> Shape {
     let triple = |v: Option<&Value>| -> Option<[f32; 3]> {
         let a = v?.as_array()?;
-        Some([a.first()?.as_f64()? as f32, a.get(1)?.as_f64()? as f32, a.get(2)?.as_f64()? as f32])
+        Some([
+            a.first()?.as_f64()? as f32,
+            a.get(1)?.as_f64()? as f32,
+            a.get(2)?.as_f64()? as f32,
+        ])
     };
     elements
         .iter()
         .filter_map(|e| {
-            let (from, to) = (triple(e.get(yog_ids::model::FROM))?, triple(e.get(yog_ids::model::TO))?);
-            let (f, t) = ([0, 1, 2].map(|i| from[i].min(to[i])), [0, 1, 2].map(|i| from[i].max(to[i])));
+            let (from, to) = (
+                triple(e.get(yog_ids::model::FROM))?,
+                triple(e.get(yog_ids::model::TO))?,
+            );
+            let (f, t) = (
+                [0, 1, 2].map(|i| from[i].min(to[i])),
+                [0, 1, 2].map(|i| from[i].max(to[i])),
+            );
             let faces = e.get(yog_ids::model::FACES)?;
             let faces: Faces = std::array::from_fn(|slot| {
                 let face = faces.get(FACE_NAMES[slot])?;
-                let img = face.get(yog_ids::model::TEXTURE).and_then(Value::as_str).and_then(&mut *texture).unwrap_or_else(|| Arc::new(missing_image()));
+                let img = face
+                    .get(yog_ids::model::TEXTURE)
+                    .and_then(Value::as_str)
+                    .and_then(&mut *texture)
+                    .unwrap_or_else(|| Arc::new(missing_image()));
                 let uv = face
                     .get(yog_ids::model::UV)
                     .and_then(Value::as_array)
-                    .and_then(|a| Some([a.first()?.as_f64()? as f32, a.get(1)?.as_f64()? as f32, a.get(2)?.as_f64()? as f32, a.get(3)?.as_f64()? as f32]))
+                    .and_then(|a| {
+                        Some([
+                            a.first()?.as_f64()? as f32,
+                            a.get(1)?.as_f64()? as f32,
+                            a.get(2)?.as_f64()? as f32,
+                            a.get(3)?.as_f64()? as f32,
+                        ])
+                    })
                     .unwrap_or_else(|| default_uv(slot, f, t));
                 Some(Arc::new(cut(&img, uv)))
             });
-            Some(Cuboid { from: f, to: t, faces, turns: element_turn(e).into_iter().collect() })
+            Some(Cuboid {
+                from: f,
+                to: t,
+                faces,
+                turns: element_turn(e).into_iter().collect(),
+            })
         })
         .collect()
 }
@@ -166,10 +225,24 @@ pub fn shape_of(elements: &[Value], texture: &mut dyn FnMut(&str) -> Option<Arc<
 fn element_turn(e: &Value) -> Option<Turn> {
     let r = e.get(yog_ids::model::ROTATION)?;
     let o = r.get(yog_ids::model::ORIGIN)?.as_array()?;
-    let origin = [o.first()?.as_f64()? as f32, o.get(1)?.as_f64()? as f32, o.get(2)?.as_f64()? as f32];
-    let axis = ["x", "y", "z"].iter().position(|a| r.get(yog_ids::model::AXIS).and_then(Value::as_str) == Some(*a))?;
+    let origin = [
+        o.first()?.as_f64()? as f32,
+        o.get(1)?.as_f64()? as f32,
+        o.get(2)?.as_f64()? as f32,
+    ];
+    let axis = ["x", "y", "z"]
+        .iter()
+        .position(|a| r.get(yog_ids::model::AXIS).and_then(Value::as_str) == Some(*a))?;
     let degrees = r.get(yog_ids::model::ANGLE)?.as_f64()? as f32;
-    Some(Turn { origin, axis, degrees, rescale: r.get(yog_ids::model::RESCALE).and_then(Value::as_bool).unwrap_or(false) })
+    Some(Turn {
+        origin,
+        axis,
+        degrees,
+        rescale: r
+            .get(yog_ids::model::RESCALE)
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+    })
 }
 
 /// The first `elements` up a model's parents.
@@ -178,7 +251,9 @@ fn model_elements(res: &Resources, model: &str, depth: usize) -> Option<Vec<Valu
         return None;
     }
     let (ns, path) = yog_ids::split(model);
-    let path = path.strip_prefix("block/").map_or(format!("block/{path}"), |p| format!("block/{p}"));
+    let path = path
+        .strip_prefix("block/")
+        .map_or(format!("block/{path}"), |p| format!("block/{p}"));
     let json: Value = serde_json::from_slice(&res.read(ns, &yog_ids::model_file(&path))?).ok()?;
     if let Some(e) = json.get(yog_ids::model::ELEMENTS).and_then(Value::as_array) {
         return Some(e.clone());
@@ -193,14 +268,22 @@ fn model_textures(res: &Resources, model: &str, depth: usize) -> HashMap<String,
         return out;
     }
     let (ns, path) = yog_ids::split(model);
-    let path = path.strip_prefix("block/").map_or(format!("block/{path}"), |p| format!("block/{p}"));
-    let Some(json) = res.read(ns, &yog_ids::model_file(&path)).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else {
+    let path = path
+        .strip_prefix("block/")
+        .map_or(format!("block/{path}"), |p| format!("block/{p}"));
+    let Some(json) = res
+        .read(ns, &yog_ids::model_file(&path))
+        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+    else {
         return out;
     };
     if let Some(parent) = json.get(yog_ids::model::PARENT).and_then(Value::as_str) {
         out = model_textures(res, parent, depth + 1);
     }
-    if let Some(t) = json.get(yog_ids::model::TEXTURES).and_then(Value::as_object) {
+    if let Some(t) = json
+        .get(yog_ids::model::TEXTURES)
+        .and_then(Value::as_object)
+    {
         for (k, v) in t {
             if let Some(v) = v.as_str() {
                 out.insert(k.clone(), v.to_string());
@@ -213,7 +296,12 @@ fn model_textures(res: &Resources, model: &str, depth: usize) -> HashMap<String,
 /// A block state's id and its properties: `minecraft:furnace[facing=north]`.
 fn split_state(state: &str) -> (&str, HashMap<&str, &str>) {
     let (id, props) = state.split_once('[').unwrap_or((state, ""));
-    let props = props.trim_end_matches(']').split(',').filter_map(|kv| kv.split_once('=')).map(|(k, v)| (k.trim(), v.trim())).collect();
+    let props = props
+        .trim_end_matches(']')
+        .split(',')
+        .filter_map(|kv| kv.split_once('='))
+        .map(|(k, v)| (k.trim(), v.trim()))
+        .collect();
     (id, props)
 }
 
@@ -221,7 +309,9 @@ fn split_state(state: &str) -> (&str, HashMap<&str, &str>) {
 /// `a|b` values; `OR`/`AND`: any/all of a list). A property the state
 /// doesn't name meets nothing.
 fn meets(when: &Value, props: &HashMap<&str, &str>) -> bool {
-    let Some(map) = when.as_object() else { return true };
+    let Some(map) = when.as_object() else {
+        return true;
+    };
     if let Some(any) = map.get(yog_ids::model::OR).and_then(Value::as_array) {
         return any.iter().any(|w| meets(w, props));
     }
@@ -229,8 +319,13 @@ fn meets(when: &Value, props: &HashMap<&str, &str>) -> bool {
         return all.iter().all(|w| meets(w, props));
     }
     map.iter().all(|(k, v)| {
-        let want = v.as_str().map(str::to_string).unwrap_or_else(|| v.to_string());
-        props.get(k.as_str()).is_some_and(|have| want.split('|').any(|w| w == *have))
+        let want = v
+            .as_str()
+            .map(str::to_string)
+            .unwrap_or_else(|| v.to_string());
+        props
+            .get(k.as_str())
+            .is_some_and(|have| want.split('|').any(|w| w == *have))
     })
 }
 
@@ -244,7 +339,12 @@ fn applied(v: &Value) -> Option<(String, Vec<Turn>)> {
     for (axis, key) in [(0, "x"), (1, "y")] {
         let deg = v.get(key).and_then(Value::as_f64).unwrap_or(0.0) as f32;
         if deg != 0.0 {
-            turns.push(Turn { origin: CENTRE, axis, degrees: -deg, rescale: false });
+            turns.push(Turn {
+                origin: CENTRE,
+                axis,
+                degrees: -deg,
+                rescale: false,
+            });
         }
     }
     Some((model, turns))
@@ -255,19 +355,36 @@ fn applied(v: &Value) -> Option<(String, Vec<Turn>)> {
 fn block_models(res: &Resources, state: &str) -> Vec<(String, Vec<Turn>)> {
     let (id, props) = split_state(state);
     let (ns, path) = yog_ids::split(id);
-    let Some(json) = res.read(ns, &yog_ids::blockstate_file(path)).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else {
+    let Some(json) = res
+        .read(ns, &yog_ids::blockstate_file(path))
+        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+    else {
         return Vec::new();
     };
-    if let Some(variants) = json.get(yog_ids::model::VARIANTS).and_then(Value::as_object) {
-        let fits = |key: &str| key.split(',').filter(|kv| !kv.is_empty()).all(|kv| kv.split_once('=').is_some_and(|(k, v)| props.get(k) == Some(&v)));
-        let chosen = variants.iter().find(|(k, _)| fits(k)).or_else(|| variants.iter().next());
+    if let Some(variants) = json
+        .get(yog_ids::model::VARIANTS)
+        .and_then(Value::as_object)
+    {
+        let fits = |key: &str| {
+            key.split(',').filter(|kv| !kv.is_empty()).all(|kv| {
+                kv.split_once('=')
+                    .is_some_and(|(k, v)| props.get(k) == Some(&v))
+            })
+        };
+        let chosen = variants
+            .iter()
+            .find(|(k, _)| fits(k))
+            .or_else(|| variants.iter().next());
         return chosen.and_then(|(_, v)| applied(v)).into_iter().collect();
     }
     json.get(yog_ids::model::MULTIPART)
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter(|part| part.get(yog_ids::model::WHEN).is_none_or(|w| meets(w, &props)))
+        .filter(|part| {
+            part.get(yog_ids::model::WHEN)
+                .is_none_or(|w| meets(w, &props))
+        })
         .filter_map(|part| applied(part.get(yog_ids::model::APPLY)?))
         .collect()
 }
@@ -277,7 +394,10 @@ pub fn is_block(res: &Resources, id: &str) -> bool {
     let id = split_state(id).0;
     let (ns, path) = yog_ids::split(id);
     res.read(ns, &yog_ids::blockstate_file(path)).is_some()
-        || res.mod_root.as_deref().is_some_and(|root| crate::design::content::content_block_faces(root, id).is_some())
+        || res
+            .mod_root
+            .as_deref()
+            .is_some_and(|root| crate::design::content::content_block_faces(root, id).is_some())
 }
 
 fn shape(res: &Resources, state: &str, cache: &mut HashMap<String, Shape>) -> Shape {
@@ -297,14 +417,18 @@ fn mod_shape(res: &Resources, id: &str) -> Option<Shape> {
         let mut decoded: HashMap<String, Option<Arc<Image>>> = HashMap::new();
         let mut texture = |var: &str| -> Option<Arc<Image>> {
             let var = var.trim_start_matches('#');
-            decoded.entry(var.to_string()).or_insert_with(|| textures.get(var).and_then(|b| decode_png(b)).map(Arc::new)).clone()
+            decoded
+                .entry(var.to_string())
+                .or_insert_with(|| textures.get(var).and_then(|b| decode_png(b)).map(Arc::new))
+                .clone()
         };
         let s = shape_of(&elements, &mut texture);
         if !s.is_empty() {
             return Some(s);
         }
     }
-    crate::design::content::content_block_faces(root, id).map(|faces| cube(faces.map(|b| b.and_then(|b| decode_png(&b)).map(Arc::new))))
+    crate::design::content::content_block_faces(root, id)
+        .map(|faces| cube(faces.map(|b| b.and_then(|b| decode_png(&b)).map(Arc::new))))
 }
 
 /// The game's block state: every model its blockstate shows for it, each
@@ -359,7 +483,11 @@ fn parse(list: &str) -> Vec<([i32; 3], String)> {
     list.lines()
         .filter_map(|l| {
             let mut p = l.trim().splitn(4, ' ');
-            let at = [p.next()?.parse().ok()?, p.next()?.parse().ok()?, p.next()?.parse().ok()?];
+            let at = [
+                p.next()?.parse().ok()?,
+                p.next()?.parse().ok()?,
+                p.next()?.parse().ok()?,
+            ];
             Some((at, p.next()?.to_string()))
         })
         .collect()
@@ -367,12 +495,20 @@ fn parse(list: &str) -> Vec<([i32; 3], String)> {
 
 pub fn draw(c: &mut Canvas, list: &str, rect: [f32; 4], yaw: f32, pitch: f32) {
     let mut cache = HashMap::new();
-    draw_with(c, &parse(list), rect, (yaw, pitch), |res, id| shape(res, id, &mut cache));
+    draw_with(c, &parse(list), rect, (yaw, pitch), |res, id| {
+        shape(res, id, &mut cache)
+    });
 }
 
 /// One cube with its own `faces` (a mob's head, say), as [`draw`] draws a block.
 pub fn draw_cube(c: &mut Canvas, faces: Faces, rect: [f32; 4], yaw: f32, pitch: f32) {
-    draw_with(c, &[([0, 0, 0], String::new())], rect, (yaw, pitch), |_, _| cube(faces.clone()));
+    draw_with(
+        c,
+        &[([0, 0, 0], String::new())],
+        rect,
+        (yaw, pitch),
+        |_, _| cube(faces.clone()),
+    );
 }
 
 /// The game's shading of a block's faces by the way they look: up, down,
@@ -386,12 +522,54 @@ const FIT: f32 = 1.7;
 
 /// (normal, corner offset, a, b, slot, shade) per face of a unit cube.
 const FACES: [CubeFace; 6] = [
-    ([0, 1, 0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], 0, SHADE_UP),
-    ([0, -1, 0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, -1.0], 1, SHADE_DOWN),
-    ([0, 0, -1], [1.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], 2, SHADE_NORTH_SOUTH),
-    ([0, 0, 1], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, -1.0, 0.0], 3, SHADE_NORTH_SOUTH),
-    ([-1, 0, 0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0], 4, SHADE_WEST_EAST),
-    ([1, 0, 0], [1.0, 1.0, 1.0], [0.0, 0.0, -1.0], [0.0, -1.0, 0.0], 5, SHADE_WEST_EAST),
+    (
+        [0, 1, 0],
+        [0.0, 1.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0],
+        0,
+        SHADE_UP,
+    ),
+    (
+        [0, -1, 0],
+        [0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 0.0, -1.0],
+        1,
+        SHADE_DOWN,
+    ),
+    (
+        [0, 0, -1],
+        [1.0, 1.0, 0.0],
+        [-1.0, 0.0, 0.0],
+        [0.0, -1.0, 0.0],
+        2,
+        SHADE_NORTH_SOUTH,
+    ),
+    (
+        [0, 0, 1],
+        [0.0, 1.0, 1.0],
+        [1.0, 0.0, 0.0],
+        [0.0, -1.0, 0.0],
+        3,
+        SHADE_NORTH_SOUTH,
+    ),
+    (
+        [-1, 0, 0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [0.0, -1.0, 0.0],
+        4,
+        SHADE_WEST_EAST,
+    ),
+    (
+        [1, 0, 0],
+        [1.0, 1.0, 1.0],
+        [0.0, 0.0, -1.0],
+        [0.0, -1.0, 0.0],
+        5,
+        SHADE_WEST_EAST,
+    ),
 ];
 
 /// How the blocks are seen: their centre, the turn (yaw's and pitch's sine
@@ -437,7 +615,10 @@ impl Camera {
     /// A view point on the canvas.
     fn screen(&self, v: [f32; 3]) -> [f32; 2] {
         let [x, y, w, h] = self.rect;
-        [x + w / 2.0 + v[0] * self.scale, y + h / 2.0 - v[1] * self.scale]
+        [
+            x + w / 2.0 + v[0] * self.scale,
+            y + h / 2.0 - v[1] * self.scale,
+        ]
     }
 }
 
@@ -473,32 +654,61 @@ fn draw_with(
 
 /// The faces of `cuboid` (of the block at `p`) that can be seen: not against
 /// a neighbour, not facing away.
-fn seen_faces(cam: &Camera, p: [i32; 3], cuboid: &Cuboid, occupied: &HashSet<[i32; 3]>, quads: &mut Vec<Quad>) {
+fn seen_faces(
+    cam: &Camera,
+    p: [i32; 3],
+    cuboid: &Cuboid,
+    occupied: &HashSet<[i32; 3]>,
+    quads: &mut Vec<Quad>,
+) {
     let (f, t) = (cuboid.from, cuboid.to);
     // A unit cube's corner → this box's (in sixteenths, turned), in the world.
     let at = |u: [f32; 3]| {
-        let q = cuboid.turns.iter().fold([0, 1, 2].map(|i| f[i] + u[i] * (t[i] - f[i])), |q, turn| turn.apply(q));
+        let q = cuboid
+            .turns
+            .iter()
+            .fold([0, 1, 2].map(|i| f[i] + u[i] * (t[i] - f[i])), |q, turn| {
+                turn.apply(q)
+            });
         [0, 1, 2].map(|i| p[i] as f32 + q[i] / BLOCK_UNITS)
     };
     for (n, corner, a, b, slot, shade) in FACES {
         // On the block's side, against a neighbour: hidden (a turned box is never flush).
         let on_side = cuboid.turns.is_empty()
-            && (0..3).all(|i| n[i] == 0 || (n[i] > 0 && t[i] >= BLOCK_UNITS) || (n[i] < 0 && f[i] <= 0.0));
+            && (0..3).all(|i| {
+                n[i] == 0 || (n[i] > 0 && t[i] >= BLOCK_UNITS) || (n[i] < 0 && f[i] <= 0.0)
+            });
         if on_side && occupied.contains(&[p[0] + n[0], p[1] + n[1], p[2] + n[2]]) {
             continue;
         }
         // Facing away from the viewer: unseen.
-        let normal = cuboid.turns.iter().fold(n.map(|v| v as f32), |v, turn| turn.apply_dir(v));
+        let normal = cuboid
+            .turns
+            .iter()
+            .fold(n.map(|v| v as f32), |v, turn| turn.apply_dir(v));
         if cam.view([0, 1, 2].map(|i| cam.centre[i] + normal[i]))[2] <= 0.0 {
             continue;
         }
-        let Some(img) = cuboid.faces[slot].clone() else { continue };
+        let Some(img) = cuboid.faces[slot].clone() else {
+            continue;
+        };
         let o = at(corner);
         let oa = at([0, 1, 2].map(|i| corner[i] + a[i]));
         let ob = at([0, 1, 2].map(|i| corner[i] + b[i]));
         let mid = cam.view([0, 1, 2].map(|i| (oa[i] + ob[i]) / 2.0));
-        let (so, sa, sb) = (cam.screen(cam.view(o)), cam.screen(cam.view(oa)), cam.screen(cam.view(ob)));
-        quads.push((mid[2], Some(img), so, [sa[0] - so[0], sa[1] - so[1]], [sb[0] - so[0], sb[1] - so[1]], shade));
+        let (so, sa, sb) = (
+            cam.screen(cam.view(o)),
+            cam.screen(cam.view(oa)),
+            cam.screen(cam.view(ob)),
+        );
+        quads.push((
+            mid[2],
+            Some(img),
+            so,
+            [sa[0] - so[0], sa[1] - so[1]],
+            [sb[0] - so[0], sb[1] - so[1]],
+            shade,
+        ));
     }
 }
 
@@ -507,14 +717,32 @@ mod tests {
     use super::*;
 
     fn solid(w: u32, h: u32) -> Image {
-        Image { width: w, height: h, rgba: (0..w * h).flat_map(|i| [i as u8, 0, 0, 255]).collect() }
+        Image {
+            width: w,
+            height: h,
+            rgba: (0..w * h).flat_map(|i| [i as u8, 0, 0, 255]).collect(),
+        }
     }
 
     fn opaque(shape: Shape) -> usize {
-        let res = Resources { mod_root: None, vanilla: None };
+        let res = Resources {
+            mod_root: None,
+            vanilla: None,
+        };
         let mut c = Canvas::new(32, 32, 1, &res);
-        draw_with(&mut c, &[([0, 0, 0], "x".into())], [0.0, 0.0, 32.0, 32.0], (225.0, 30.0), |_, _| shape.clone());
-        c.rgba.as_chunks::<{ yog_graphics::BYTES_PER_PIXEL }>().0.iter().filter(|p| p[3] > 0).count()
+        draw_with(
+            &mut c,
+            &[([0, 0, 0], "x".into())],
+            [0.0, 0.0, 32.0, 32.0],
+            (225.0, 30.0),
+            |_, _| shape.clone(),
+        );
+        c.rgba
+            .as_chunks::<{ yog_graphics::BYTES_PER_PIXEL }>()
+            .0
+            .iter()
+            .filter(|p| p[3] > 0)
+            .count()
     }
 
     #[test]
@@ -531,43 +759,79 @@ mod tests {
         assert_eq!((up.width, up.height), (6, 6), "the uv's part");
         assert_eq!(up.pixel(0, 0), img.pixel(5, 5));
         let north = shape[0].faces[2].as_ref().unwrap();
-        assert_eq!((north.width, north.height), (6, 6), "no uv: the box's own part");
-        assert!(shape[0].faces[1].is_none(), "a face the model leaves out isn't drawn");
+        assert_eq!(
+            (north.width, north.height),
+            (6, 6),
+            "no uv: the box's own part"
+        );
+        assert!(
+            shape[0].faces[1].is_none(),
+            "a face the model leaves out isn't drawn"
+        );
 
         let small = opaque(shape);
         let full = opaque(cube(std::array::from_fn(|_| Some(img.clone()))));
-        assert!(small > 0 && small * 4 < full, "a cable's core, not a whole block: {small} vs {full}");
+        assert!(
+            small > 0 && small * 4 < full,
+            "a cable's core, not a whole block: {small} vs {full}"
+        );
     }
 
     #[test]
     fn parses_block_lines() {
         let b = parse("0 0 0 minecraft:stone\n1 2 -1 minecraft:furnace[facing=north]\nbad");
-        assert_eq!(b, [([0, 0, 0], "minecraft:stone".to_string()), ([1, 2, -1], "minecraft:furnace[facing=north]".to_string())]);
+        assert_eq!(
+            b,
+            [
+                ([0, 0, 0], "minecraft:stone".to_string()),
+                ([1, 2, -1], "minecraft:furnace[facing=north]".to_string())
+            ]
+        );
     }
 
     #[test]
     fn a_state_meets_multipart_conditions() {
-        let (id, props) = split_state("minecraft:brewing_stand[has_bottle_0=true,has_bottle_1=false]");
+        let (id, props) =
+            split_state("minecraft:brewing_stand[has_bottle_0=true,has_bottle_1=false]");
         assert_eq!(id, "minecraft:brewing_stand");
         let when = |j: &str| serde_json::from_str::<Value>(j).unwrap();
         assert!(meets(&when(r#"{ "has_bottle_0": "true" }"#), &props));
         assert!(!meets(&when(r#"{ "has_bottle_1": "true" }"#), &props));
         assert!(meets(&when(r#"{ "has_bottle_1": "true|false" }"#), &props));
-        assert!(meets(&when(r#"{ "OR": [{ "has_bottle_2": "true" }, { "has_bottle_0": "true" }] }"#), &props));
-        assert!(!meets(&when(r#"{ "has_bottle_2": "false" }"#), &props), "a property the state doesn't name");
+        assert!(meets(
+            &when(r#"{ "OR": [{ "has_bottle_2": "true" }, { "has_bottle_0": "true" }] }"#),
+            &props
+        ));
+        assert!(
+            !meets(&when(r#"{ "has_bottle_2": "false" }"#), &props),
+            "a property the state doesn't name"
+        );
     }
 
     #[test]
     fn turns_turn_about_their_origin() {
         let close = |a: [f32; 3], b: [f32; 3]| (0..3).all(|i| (a[i] - b[i]).abs() < 1e-4);
         // A quarter turn about y through the centre: east goes north.
-        let y = Turn { origin: CENTRE, axis: 1, degrees: 90.0, rescale: false };
-        assert!(close(y.apply([16.0, 8.0, 8.0]), [8.0, 8.0, 0.0]), "{:?}", y.apply([16.0, 8.0, 8.0]));
+        let y = Turn {
+            origin: CENTRE,
+            axis: 1,
+            degrees: 90.0,
+            rescale: false,
+        };
+        assert!(
+            close(y.apply([16.0, 8.0, 8.0]), [8.0, 8.0, 0.0]),
+            "{:?}",
+            y.apply([16.0, 8.0, 8.0])
+        );
         assert!(close(y.apply(CENTRE), CENTRE));
         // Rescaled at 45°: the diagonal is stretched back to the block.
-        let r = Turn { origin: CENTRE, axis: 1, degrees: 45.0, rescale: true };
+        let r = Turn {
+            origin: CENTRE,
+            axis: 1,
+            degrees: 45.0,
+            rescale: true,
+        };
         let d = r.apply([16.0, 8.0, 8.0]);
         assert!(((d[0] - 8.0).powi(2) + (d[2] - 8.0).powi(2)).sqrt() > 8.0 * 1.4);
     }
 }
-

@@ -39,7 +39,12 @@ mod sdk {
 /// How a target's game starts.
 #[derive(Debug, Clone)]
 enum How {
-    Loader { sdk: PathBuf, loader: String, mc: String, java: Option<u32> },
+    Loader {
+        sdk: PathBuf,
+        loader: String,
+        mc: String,
+        java: Option<u32>,
+    },
     Custom(RunSection),
 }
 
@@ -78,23 +83,29 @@ pub struct Resolver {
 
 impl Resolver {
     pub fn new(home: &Home) -> Result<Self, String> {
-        Ok(Self { local_file: home.local_file(), local: home.local()?, components: home.components()? })
+        Ok(Self {
+            local_file: home.local_file(),
+            local: home.local()?,
+            components: home.components()?,
+        })
     }
 
     /// The loader SDK: the local patch's checkout, else the newest installed.
     pub fn loader_sdk(&self) -> Option<PathBuf> {
-        self.local
-            .loader_sdk
-            .clone()
-            .or_else(|| self.components.newest(components::id::LOADER_SDK).map(|c| c.path.clone()))
+        self.local.loader_sdk.clone().or_else(|| {
+            self.components
+                .newest(components::id::LOADER_SDK)
+                .map(|c| c.path.clone())
+        })
     }
 
     /// Java `major`'s JDK: the local patch's, else the newest installed (none: the SDK finds one).
     pub fn jdk(&self, major: u32) -> Option<PathBuf> {
-        self.local
-            .jdk(major)
-            .map(Path::to_path_buf)
-            .or_else(|| self.components.newest(&components::id::jdk(major)).map(|c| c.path.clone()))
+        self.local.jdk(major).map(Path::to_path_buf).or_else(|| {
+            self.components
+                .newest(&components::id::jdk(major))
+                .map(|c| c.path.clone())
+        })
     }
 
     /// The folders the targets are read from — the home, each loader's
@@ -102,7 +113,11 @@ impl Resolver {
     pub fn sources(&self, home: &Home) -> Vec<PathBuf> {
         let mut out = vec![home.root().to_path_buf()];
         if let Some(sdk) = self.loader_sdk() {
-            let loaders = std::fs::read_dir(&sdk).into_iter().flatten().flatten().map(|e| e.path().join(sdk::VERSIONS_DIR));
+            let loaders = std::fs::read_dir(&sdk)
+                .into_iter()
+                .flatten()
+                .flatten()
+                .map(|e| e.path().join(sdk::VERSIONS_DIR));
             out.extend(loaders.filter(|v| v.is_dir()));
         }
         out.sort();
@@ -139,27 +154,44 @@ impl Resolver {
             ));
         }
         let ids: Vec<&str> = all.iter().map(|t| t.id.as_str()).collect();
-        Err(format!("no run target `{id}`. There are: {}", ids.join(", ")))
+        Err(format!(
+            "no run target `{id}`. There are: {}",
+            ids.join(", ")
+        ))
     }
 
     /// How `target` launches (a local target's relative paths are the home's).
     pub fn plan(&self, target: &Target) -> Plan {
         let mut plan = match &target.how {
-            How::Loader { sdk, loader, mc, java } => {
+            How::Loader {
+                sdk,
+                loader,
+                mc,
+                java,
+            } => {
                 let mut env = Vec::new();
                 if let Some(jdk) = java.and_then(|j| self.jdk(j).map(|p| (j, p))) {
                     env.push((yog_ids::env::java_home(jdk.0), jdk.1.display().to_string()));
                 }
                 Plan {
-                    export_dir: Some(sdk.join(loader).join(sdk::RUN_DIR).join(yog_ids::game_dir::MODS)),
+                    export_dir: Some(
+                        sdk.join(loader)
+                            .join(sdk::RUN_DIR)
+                            .join(yog_ids::game_dir::MODS),
+                    ),
                     command: Some(sdk.join(sdk::SCRIPT).display().to_string()),
-                    args: [sdk::RUN, loader, sdk::CLIENT, sdk::MC, mc, sdk::NO_BUILD].map(str::to_string).to_vec(),
+                    args: [sdk::RUN, loader, sdk::CLIENT, sdk::MC, mc, sdk::NO_BUILD]
+                        .map(str::to_string)
+                        .to_vec(),
                     cwd: Some(sdk.clone()),
                     env,
                 }
             }
             How::Custom(r) => Plan {
-                export_dir: r.export_dir.as_deref().map(|d| resolve_in(&self.local.base, d)),
+                export_dir: r
+                    .export_dir
+                    .as_deref()
+                    .map(|d| resolve_in(&self.local.base, d)),
                 command: r.command.clone(),
                 args: r.args.clone(),
                 cwd: r.cwd.as_deref().map(|d| resolve_in(&self.local.base, d)),
@@ -177,24 +209,36 @@ impl Resolver {
 
 /// Every loader and ported version in the SDK at `sdk`.
 fn loader_targets(sdk: &Path) -> Result<Vec<Target>, String> {
-    let entries = std::fs::read_dir(sdk).map_err(|e| format!("loader SDK {}: {e}", sdk.display()))?;
-    let mut loaders: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.join(sdk::VERSIONS_DIR).is_dir()).collect();
+    let entries =
+        std::fs::read_dir(sdk).map_err(|e| format!("loader SDK {}: {e}", sdk.display()))?;
+    let mut loaders: Vec<PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.join(sdk::VERSIONS_DIR).is_dir())
+        .collect();
     loaders.sort();
     let mut out = Vec::new();
     for dir in loaders {
-        let Some(loader) = dir.file_name().and_then(|n| n.to_str()).map(str::to_string) else { continue };
-        let group_label = properties(&dir.join(sdk::LOADER_PROPERTIES), sdk::LOADER_NAME).unwrap_or_else(|| loader.clone());
-        let mut versions: Vec<(String, Option<u32>)> = std::fs::read_dir(dir.join(sdk::VERSIONS_DIR))
-            .map_err(|e| format!("{}: {e}", dir.display()))?
-            .flatten()
-            .map(|e| e.path())
-            .filter(|p| p.extension().is_some_and(|x| x == sdk::PROPERTIES_EXT))
-            .filter(|p| properties(p, sdk::STATUS).as_deref() == Some(sdk::PORTED))
-            .filter_map(|p| {
-                let mc = p.file_stem()?.to_str()?.to_string();
-                Some((mc, properties(&p, sdk::JAVA_VERSION).and_then(|j| j.parse().ok())))
-            })
-            .collect();
+        let Some(loader) = dir.file_name().and_then(|n| n.to_str()).map(str::to_string) else {
+            continue;
+        };
+        let group_label = properties(&dir.join(sdk::LOADER_PROPERTIES), sdk::LOADER_NAME)
+            .unwrap_or_else(|| loader.clone());
+        let mut versions: Vec<(String, Option<u32>)> =
+            std::fs::read_dir(dir.join(sdk::VERSIONS_DIR))
+                .map_err(|e| format!("{}: {e}", dir.display()))?
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.extension().is_some_and(|x| x == sdk::PROPERTIES_EXT))
+                .filter(|p| properties(p, sdk::STATUS).as_deref() == Some(sdk::PORTED))
+                .filter_map(|p| {
+                    let mc = p.file_stem()?.to_str()?.to_string();
+                    Some((
+                        mc,
+                        properties(&p, sdk::JAVA_VERSION).and_then(|j| j.parse().ok()),
+                    ))
+                })
+                .collect();
         versions.sort_by(|a, b| crate::version::compare(&a.0, &b.0));
         for (mc, java) in versions {
             out.push(Target {
@@ -203,7 +247,12 @@ fn loader_targets(sdk: &Path) -> Result<Vec<Target>, String> {
                 group: loader.clone(),
                 group_label: group_label.clone(),
                 variant: Some(mc.clone()),
-                how: How::Loader { sdk: sdk.to_path_buf(), loader: loader.clone(), mc, java },
+                how: How::Loader {
+                    sdk: sdk.to_path_buf(),
+                    loader: loader.clone(),
+                    mc,
+                    java,
+                },
             });
         }
     }
@@ -240,10 +289,22 @@ mod tests {
     fn a_checkout_gives_its_loaders_versions_and_the_patch_its_launch() {
         let root = temp("targets");
         let sdk = root.join("loader");
-        write(&sdk.join("fabric/gradle.properties"), "loader_name=Fabric\n");
-        write(&sdk.join("fabric/versions/26.2.properties"), "java_version=25\nstatus=ported\n");
-        write(&sdk.join("fabric/versions/1.21.1.properties"), "java_version=21\nstatus=ported\n");
-        write(&sdk.join("fabric/versions/27.1.properties"), "java_version=25\nstatus=scaffold\n");
+        write(
+            &sdk.join("fabric/gradle.properties"),
+            "loader_name=Fabric\n",
+        );
+        write(
+            &sdk.join("fabric/versions/26.2.properties"),
+            "java_version=25\nstatus=ported\n",
+        );
+        write(
+            &sdk.join("fabric/versions/1.21.1.properties"),
+            "java_version=21\nstatus=ported\n",
+        );
+        write(
+            &sdk.join("fabric/versions/27.1.properties"),
+            "java_version=25\nstatus=scaffold\n",
+        );
         let home = Home::at(root.join("home"));
         write(
             &home.local_file(),
@@ -256,18 +317,40 @@ mod tests {
         let targets = r.targets().unwrap();
         let ids: Vec<&str> = targets.iter().map(|t| t.id.as_str()).collect();
         assert_eq!(ids, ["fabric-1.21.1", "fabric-26.2", "prism"]);
-        assert_eq!((targets[0].group_label.as_str(), targets[0].variant.as_deref()), ("Fabric", Some("1.21.1")));
+        assert_eq!(
+            (
+                targets[0].group_label.as_str(),
+                targets[0].variant.as_deref()
+            ),
+            ("Fabric", Some("1.21.1"))
+        );
 
         let plan = r.plan(&targets[0]);
         assert_eq!(plan.export_dir, Some(sdk.join("fabric/run/yog-mods")));
-        assert_eq!(plan.args, ["run", "fabric", "--client", "--mc", "1.21.1", "--no-build"]);
-        assert_eq!(plan.env, [("GPU".to_string(), "nvidia".to_string()), ("YOG_JAVA21_HOME".to_string(), "/jdk21".to_string())]);
+        assert_eq!(
+            plan.args,
+            ["run", "fabric", "--client", "--mc", "1.21.1", "--no-build"]
+        );
+        assert_eq!(
+            plan.env,
+            [
+                ("GPU".to_string(), "nvidia".to_string()),
+                ("YOG_JAVA21_HOME".to_string(), "/jdk21".to_string())
+            ]
+        );
 
-        assert_eq!(r.sources(&home), [home.root().to_path_buf(), sdk.join("fabric/versions")]);
+        assert_eq!(
+            r.sources(&home),
+            [home.root().to_path_buf(), sdk.join("fabric/versions")]
+        );
 
         let prism = r.plan(&targets[2]);
         assert_eq!(prism.export_dir, Some(home.root().join("inst/yog-mods")));
-        assert!(r.target("forge-1.20.1").unwrap_err().contains("There are: fabric-1.21.1"));
+        assert!(
+            r.target("forge-1.20.1")
+                .unwrap_err()
+                .contains("There are: fabric-1.21.1")
+        );
         let _ = std::fs::remove_dir_all(&root);
     }
 }

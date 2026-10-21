@@ -295,18 +295,21 @@ fn region(l: LegacyDef) -> LegacyRegion {
 
 /// Yog's GUI sprite names (`assets/sprites.ydata`).
 pub static SPRITES: LazyLock<Vec<Sprite>> = LazyLock::new(|| {
-    yog_data::built_in::<Vec<SpriteDef>>("yog-gfx's sprites", include_str!("../assets/sprites.ydata"))
-        .into_iter()
-        .map(|d| Sprite {
-            name: d.name,
-            description: d.description,
-            size: Vec2::new(d.size[0], d.size[1]),
-            atlas: d.atlas,
-            legacy: d.legacy.map(region),
-            own: d.own.map(region),
-            border: d.border,
-        })
-        .collect()
+    yog_data::built_in::<Vec<SpriteDef>>(
+        "yog-gfx's sprites",
+        include_str!("../assets/sprites.ydata"),
+    )
+    .into_iter()
+    .map(|d| Sprite {
+        name: d.name,
+        description: d.description,
+        size: Vec2::new(d.size[0], d.size[1]),
+        atlas: d.atlas,
+        legacy: d.legacy.map(region),
+        own: d.own.map(region),
+        border: d.border,
+    })
+    .collect()
 });
 
 /// How an image fills the box it's given — WPF's `Stretch`.
@@ -363,8 +366,16 @@ pub fn nine_slice(dest: [f32; 4], region: [f32; 4], border: f32) -> Vec<([f32; 4
         return vec![(dest, region)];
     }
     // Columns / rows: (where, how long, from, how long there).
-    let cols = [(x, b, u, b), (x + b, w - 2.0 * b, u + b, rw - 2.0 * b), (x + w - b, b, u + rw - b, b)];
-    let rows = [(y, b, v, b), (y + b, h - 2.0 * b, v + b, rh - 2.0 * b), (y + h - b, b, v + rh - b, b)];
+    let cols = [
+        (x, b, u, b),
+        (x + b, w - 2.0 * b, u + b, rw - 2.0 * b),
+        (x + w - b, b, u + rw - b, b),
+    ];
+    let rows = [
+        (y, b, v, b),
+        (y + b, h - 2.0 * b, v + b, rh - 2.0 * b),
+        (y + h - b, b, v + rh - b, b),
+    ];
     let mut out = Vec::with_capacity(cols.len() * rows.len());
     for (dy, dh, sv, sh) in rows {
         for (dx, dw, su, sw) in cols {
@@ -410,7 +421,9 @@ mod tests {
 
     #[test]
     fn the_sprite_table_reads() {
-        assert!(yog_data::from_text::<Vec<SpriteDef>>(include_str!("../assets/sprites.ydata")).is_ok());
+        assert!(
+            yog_data::from_text::<Vec<SpriteDef>>(include_str!("../assets/sprites.ydata")).is_ok()
+        );
     }
 
     #[test]

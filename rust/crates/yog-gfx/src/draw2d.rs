@@ -119,7 +119,17 @@ impl<'ctx> Draw2D<'ctx> {
     /// `text` at `at` in `style`.
     pub fn text_scaled(&self, text: &str, at: Vec2, style: &TextStyle<'_>) {
         let a = self.0.api();
-        unsafe { (a.draw2d_text_scaled)(YogStr::from_str(text), YogStr::from_str(style.font), at.x, at.y, style.scale, style.color.0, style.shadow) }
+        unsafe {
+            (a.draw2d_text_scaled)(
+                YogStr::from_str(text),
+                YogStr::from_str(style.font),
+                at.x,
+                at.y,
+                style.scale,
+                style.color.0,
+                style.shadow,
+            )
+        }
     }
 
     /// Draws blocks in 3D, as big as fits in `r` — a multiblock structure,

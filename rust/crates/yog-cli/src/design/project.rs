@@ -12,5 +12,7 @@ pub fn path(root: &Path) -> PathBuf {
 
 /// The mod `file` belongs to: the nearest folder (itself included) with a `yog.toml`.
 pub fn mod_root(file: &Path) -> Option<PathBuf> {
-    file.ancestors().find(|d| path(d).is_file()).map(Path::to_path_buf)
+    file.ancestors()
+        .find(|d| path(d).is_file())
+        .map(Path::to_path_buf)
 }

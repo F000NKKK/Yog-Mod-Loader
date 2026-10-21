@@ -8,10 +8,18 @@ use yog_event::advancement;
 /// Awards advancement `id` to the player `uuid`; `false` without such a
 /// player or advancement.
 pub fn grant(uuid: &str, id: &str) -> bool {
-    crate::call(&advancement::Grant { uuid: uuid.to_owned(), id: id.to_owned() }).unwrap_or(false)
+    crate::call(&advancement::Grant {
+        uuid: uuid.to_owned(),
+        id: id.to_owned(),
+    })
+    .unwrap_or(false)
 }
 
 /// Whether the player `uuid` has advancement `id`.
 pub fn done(uuid: &str, id: &str) -> bool {
-    crate::call(&advancement::Done { uuid: uuid.to_owned(), id: id.to_owned() }).unwrap_or(false)
+    crate::call(&advancement::Done {
+        uuid: uuid.to_owned(),
+        id: id.to_owned(),
+    })
+    .unwrap_or(false)
 }

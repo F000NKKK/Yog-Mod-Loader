@@ -9,10 +9,10 @@ use jni::objects::JClass;
 use jni::objects::JString;
 use jni::sys::jint;
 use jni::sys::jstring;
-use yog_sync::RwLock;
 use yog_abi::YogStr;
 use yog_core::BlockPos;
 use yog_event::container::machine::Craft;
+use yog_sync::RwLock;
 
 // ── Machines (ABI 2.5) ───────────────────────────────────────────────────────
 
@@ -167,5 +167,11 @@ pub(super) fn translate(key: &str) -> Option<String> {
     if key.is_empty() {
         return None;
     }
-    unsafe { host!("dev/yog/YogGameActions", "translate", [S(YogStr::from_str(key))]) }
+    unsafe {
+        host!(
+            "dev/yog/YogGameActions",
+            "translate",
+            [S(YogStr::from_str(key))]
+        )
+    }
 }

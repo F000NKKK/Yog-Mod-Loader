@@ -115,7 +115,10 @@ impl Schema for CustomPage {
 
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let map = cx.map(v)?;
-        let kind = map.get(TYPE_FIELD).and_then(|t| t.as_str()).unwrap_or_default();
+        let kind = map
+            .get(TYPE_FIELD)
+            .and_then(|t| t.as_str())
+            .unwrap_or_default();
         if !kind.contains(yog_ids::sep::NAMESPACE) {
             cx.at(yog_data::Seg::Key(TYPE_FIELD.into()), |cx| {
                 cx.problem(format!(
@@ -278,7 +281,10 @@ fn needs(el: &Element, key: &str, what: &str) -> Result<String, String> {
 /// `root` (a `<Component book_page="…">`) as a page type; `ns`: the mod's
 /// namespace, for a `book_page` written without one.
 pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
-    let id = yog_ids::qualify_in(ns, root.attr(yui_attr::BOOK_PAGE).unwrap_or_default().trim());
+    let id = yog_ids::qualify_in(
+        ns,
+        root.attr(yui_attr::BOOK_PAGE).unwrap_or_default().trim(),
+    );
     let mut properties: Vec<PageProperty> = Vec::new();
     let mut body = Vec::new();
     for el in elements(root) {
@@ -297,7 +303,10 @@ pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
         for (key, value) in &el.attrs {
             for name in binding::names(value) {
                 if !properties.iter().any(|p| p.name == name) {
-                    return err(el, format_args!("{key}: `{name}` isn't a property of this page"));
+                    return err(
+                        el,
+                        format_args!("{key}: `{name}` isn't a property of this page"),
+                    );
                 }
             }
         }
@@ -335,7 +344,9 @@ fn property(el: &Element) -> Result<PageProperty, String> {
             format_args!("`{name}` is every page's own field — pick another name"),
         );
     }
-    let ty = el.attr(yui_attr::TYPE).map_or_else(|| word(&PropKind::Text), str::to_string);
+    let ty = el
+        .attr(yui_attr::TYPE)
+        .map_or_else(|| word(&PropKind::Text), str::to_string);
     let Some(kind) = PropKind::named(&ty) else {
         let all: Vec<String> = PropKind::ALL.iter().map(word).collect();
         return err(el, format_args!("type=\"{ty}\": one of {}", all.join(", ")));
@@ -344,7 +355,10 @@ fn property(el: &Element) -> Result<PageProperty, String> {
         (None, _) => None,
         (Some(d), PropKind::Data | PropKind::Number | PropKind::Bool) => {
             Some(yog_data::text::parse_value(d).map_err(|e| {
-                format!("line {}: <{}> default=\"{d}\": {}", el.line, el.name, e.message)
+                format!(
+                    "line {}: <{}> default=\"{d}\": {}",
+                    el.line, el.name, e.message
+                )
             })?)
         }
         (Some(d), _) => Some(Value::from(d)),

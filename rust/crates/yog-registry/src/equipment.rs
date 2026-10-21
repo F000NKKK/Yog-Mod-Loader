@@ -40,7 +40,11 @@ pub struct GameTool {
 }
 
 /// Where a piece of armor, or something else worn, is worn.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "snake_case"))]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(rename_all = "snake_case")
+)]
 #[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArmorSlot {
     Head,
@@ -172,9 +176,15 @@ impl ToolMaterial {
         let made = if self.game_tools.is_empty() {
             Self::built_in(REFERENCE_MATERIAL)?
         } else {
-            Self::built_ins().iter().find(|m| m.game_tools == self.game_tools)?
+            Self::built_ins()
+                .iter()
+                .find(|m| m.game_tools == self.game_tools)?
         };
-        let kind = if TOOL_KINDS.contains(&kind) { kind } else { REFERENCE_KIND };
+        let kind = if TOOL_KINDS.contains(&kind) {
+            kind
+        } else {
+            REFERENCE_KIND
+        };
         Some(GameTool {
             item: yog_ids::qualify(&format!("{}{kind}", made.game_tools)),
             material_damage: made.attack_damage,

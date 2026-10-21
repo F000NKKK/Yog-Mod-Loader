@@ -135,15 +135,25 @@ impl Schema for KeyDef {
 
     fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::Reader) -> Option<Self> {
         if v.as_list().is_some() {
-            return <[f32; 3]>::read(v, cx).map(|value| KeyDef { value, ease: Ease::Linear });
+            return <[f32; 3]>::read(v, cx).map(|value| KeyDef {
+                value,
+                ease: Ease::Linear,
+            });
         }
-        KeyObject::read(v, cx).map(|k| KeyDef { value: k.value, ease: k.ease })
+        KeyObject::read(v, cx).map(|k| KeyDef {
+            value: k.value,
+            ease: k.ease,
+        })
     }
 
     fn write(&self) -> yog_data::Value {
         if self.ease == Ease::Linear {
             return self.value.write();
         }
-        KeyObject { value: self.value, ease: self.ease }.write()
+        KeyObject {
+            value: self.value,
+            ease: self.ease,
+        }
+        .write()
     }
 }

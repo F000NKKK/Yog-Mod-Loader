@@ -21,7 +21,11 @@ pub(crate) fn frame_gfx() -> Option<GfxContext> {
 impl Registry {
     /// Runs `draw` with the frame's graphics on every `E` (only `key`'s,
     /// if given — a screen's id).
-    pub(crate) fn on_draw<E: Event + 'static>(&mut self, key: Option<&str>, draw: impl Fn(&GfxContext) + Send + Sync + 'static) {
+    pub(crate) fn on_draw<E: Event + 'static>(
+        &mut self,
+        key: Option<&str>,
+        draw: impl Fn(&GfxContext) + Send + Sync + 'static,
+    ) {
         let handler = move |_: &E, _: &EventCx| {
             if let Some(gfx) = frame_gfx() {
                 draw(&gfx);

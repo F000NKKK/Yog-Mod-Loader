@@ -27,12 +27,20 @@ pub fn is_book_ui(root: &Element) -> bool {
 pub fn find(root: &Path, ns: &str, errors: &mut Vec<String>) -> Vec<PageType> {
     let mut out = Vec::new();
     for file in yui::find_yui_files(&root.join("src")) {
-        let Ok(text) = std::fs::read_to_string(&file) else { continue };
-        let Ok(el) = yui::parse_xml(&text) else { continue };
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        let Ok(el) = yui::parse_xml(&text) else {
+            continue;
+        };
         if !is_book_page(&el) {
             continue;
         }
-        let shown = file.strip_prefix(root).unwrap_or(&file).display().to_string();
+        let shown = file
+            .strip_prefix(root)
+            .unwrap_or(&file)
+            .display()
+            .to_string();
         match compile(&el, ns) {
             Ok(t) => out.push(t),
             Err(e) => errors.push(format!("{shown}: {e}")),
@@ -42,15 +50,27 @@ pub fn find(root: &Path, ns: &str, errors: &mut Vec<String>) -> Vec<PageType> {
 }
 
 /// The mod's recipe layouts: every `recipe_layout` component under `src/`.
-pub fn find_layouts(root: &Path, ns: &str, errors: &mut Vec<String>) -> Vec<(String, yog_formats::book::layout::RecipeLayout)> {
+pub fn find_layouts(
+    root: &Path,
+    ns: &str,
+    errors: &mut Vec<String>,
+) -> Vec<(String, yog_formats::book::layout::RecipeLayout)> {
     let mut out = Vec::new();
     for file in yui::find_yui_files(&root.join("src")) {
-        let Ok(text) = std::fs::read_to_string(&file) else { continue };
-        let Ok(el) = yui::parse_xml(&text) else { continue };
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        let Ok(el) = yui::parse_xml(&text) else {
+            continue;
+        };
         if !yog_formats::book::layout::is_recipe_layout(&el) {
             continue;
         }
-        let shown = file.strip_prefix(root).unwrap_or(&file).display().to_string();
+        let shown = file
+            .strip_prefix(root)
+            .unwrap_or(&file)
+            .display()
+            .to_string();
         match yog_formats::book::layout::compile(&el, ns) {
             Ok(l) => out.push((shown, l)),
             Err(e) => errors.push(format!("{shown}: {e}")),

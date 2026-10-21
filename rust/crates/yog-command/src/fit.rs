@@ -34,14 +34,20 @@ impl Fit {
 
     /// Where it's tried: earlier ways rank higher.
     pub fn rank(self) -> usize {
-        Self::ORDER.len() - Self::ORDER.iter().position(|f| *f == self).unwrap_or(Self::ORDER.len())
+        Self::ORDER.len()
+            - Self::ORDER
+                .iter()
+                .position(|f| *f == self)
+                .unwrap_or(Self::ORDER.len())
     }
 
     /// `args` as a handler with `schema` takes them this way, or `None` if
     /// they don't fit it.
     pub fn take(self, schema: Option<&str>, args: &[String]) -> Option<Vec<String>> {
         match (self, schema) {
-            (Fit::Exact, Some(schema)) => (schema.split_whitespace().count() == args.len()).then(|| args.to_vec()),
+            (Fit::Exact, Some(schema)) => {
+                (schema.split_whitespace().count() == args.len()).then(|| args.to_vec())
+            }
             (Fit::Joined, Some(schema)) => {
                 let types: Vec<&str> = schema.split_whitespace().collect();
                 let k = types.len();
@@ -68,16 +74,29 @@ mod tests {
 
     #[test]
     fn exact_takes_as_many_arguments_as_the_schema_has() {
-        assert_eq!(Fit::Exact.take(Some("int word"), &v(&["1", "x"])), Some(v(&["1", "x"])));
+        assert_eq!(
+            Fit::Exact.take(Some("int word"), &v(&["1", "x"])),
+            Some(v(&["1", "x"]))
+        );
         assert_eq!(Fit::Exact.take(Some("int word"), &v(&["1"])), None);
         assert_eq!(Fit::Exact.take(Some(""), &[]), Some(Vec::new()));
     }
 
     #[test]
     fn joined_folds_the_extra_words_into_a_last_greedy_string() {
-        assert_eq!(Fit::Joined.take(Some("int string"), &v(&["1", "a", "b"])), Some(v(&["1", "a b"])));
-        assert_eq!(Fit::Joined.take(Some("int word"), &v(&["1", "a", "b"])), None);
-        assert_eq!(Fit::Joined.take(Some("int string"), &v(&["1", "a"])), None, "an exact fit isn't a join");
+        assert_eq!(
+            Fit::Joined.take(Some("int string"), &v(&["1", "a", "b"])),
+            Some(v(&["1", "a b"]))
+        );
+        assert_eq!(
+            Fit::Joined.take(Some("int word"), &v(&["1", "a", "b"])),
+            None
+        );
+        assert_eq!(
+            Fit::Joined.take(Some("int string"), &v(&["1", "a"])),
+            None,
+            "an exact fit isn't a join"
+        );
     }
 
     #[test]

@@ -6,9 +6,9 @@
 //! `.ydef`s of a kind with what they say (an advancement's parent, an
 //! effect's color), for the designers that draw several at once.
 
-use yog_ids::Format;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use yog_ids::Format;
 use yog_sync::{Mutex, OnceLock};
 
 use serde::Serialize;
@@ -32,7 +32,10 @@ const BODY_FORMATS: [Format; 2] = [Format::Model, Format::Anim];
 
 /// Resources defined by files of their own under `resources/`, named by
 /// their path there without the extension (`block/glass`).
-const RESOURCE_KINDS: [(&str, Format); 2] = [(yog_ids::kind::TEXTURE, Format::Texture), (yog_ids::kind::MATERIAL, Format::Material)];
+const RESOURCE_KINDS: [(&str, Format); 2] = [
+    (yog_ids::kind::TEXTURE, Format::Texture),
+    (yog_ids::kind::MATERIAL, Format::Material),
+];
 
 /// Where the game's ids of a kind are in its client jar: translation keys
 /// of its lang (`entity.minecraft.pig` → `pig`; `dotted`: the rest may hold
@@ -40,7 +43,10 @@ const RESOURCE_KINDS: [(&str, Format); 2] = [(yog_ids::kind::TEXTURE, Format::Te
 /// keys of one of its assets (`sounds.json`: sound events).
 enum GameIds {
     /// Keys starting with the game's `<kind>.minecraft.` of each of these kinds.
-    Lang { kinds: &'static [&'static str], dotted: bool },
+    Lang {
+        kinds: &'static [&'static str],
+        dotted: bool,
+    },
     /// A prefix of its own (`attribute.name.`).
     LangPrefix(&'static str),
     Data,
@@ -55,13 +61,52 @@ const ATTRIBUTE_LANG_PREFIX: &str = "attribute.name.";
 const POTION_LANG_PREFIX: &str = "potion.effect.";
 
 const GAME_IDS: [(&str, GameIds); 12] = [
-    (yog_ids::kind::ITEM, GameIds::Lang { kinds: &[yog_ids::kind::ITEM, yog_ids::kind::BLOCK], dotted: false }),
-    (yog_ids::kind::BLOCK, GameIds::Lang { kinds: &[yog_ids::kind::BLOCK], dotted: false }),
-    (yog_ids::kind::ENTITY, GameIds::Lang { kinds: &[yog_ids::kind::ENTITY], dotted: false }),
-    (yog_ids::kind::EFFECT, GameIds::Lang { kinds: &[yog_ids::kind::EFFECT], dotted: false }),
-    (yog_ids::kind::ATTRIBUTE, GameIds::LangPrefix(ATTRIBUTE_LANG_PREFIX)),
-    (yog_ids::kind::BIOME, GameIds::Lang { kinds: &[yog_ids::kind::BIOME], dotted: false }),
-    (ENCHANTMENT, GameIds::Lang { kinds: &[ENCHANTMENT], dotted: false }),
+    (
+        yog_ids::kind::ITEM,
+        GameIds::Lang {
+            kinds: &[yog_ids::kind::ITEM, yog_ids::kind::BLOCK],
+            dotted: false,
+        },
+    ),
+    (
+        yog_ids::kind::BLOCK,
+        GameIds::Lang {
+            kinds: &[yog_ids::kind::BLOCK],
+            dotted: false,
+        },
+    ),
+    (
+        yog_ids::kind::ENTITY,
+        GameIds::Lang {
+            kinds: &[yog_ids::kind::ENTITY],
+            dotted: false,
+        },
+    ),
+    (
+        yog_ids::kind::EFFECT,
+        GameIds::Lang {
+            kinds: &[yog_ids::kind::EFFECT],
+            dotted: false,
+        },
+    ),
+    (
+        yog_ids::kind::ATTRIBUTE,
+        GameIds::LangPrefix(ATTRIBUTE_LANG_PREFIX),
+    ),
+    (
+        yog_ids::kind::BIOME,
+        GameIds::Lang {
+            kinds: &[yog_ids::kind::BIOME],
+            dotted: false,
+        },
+    ),
+    (
+        ENCHANTMENT,
+        GameIds::Lang {
+            kinds: &[ENCHANTMENT],
+            dotted: false,
+        },
+    ),
     (yog_ids::kind::LOOT_TABLE, GameIds::Data),
     (yog_ids::kind::ADVANCEMENT, GameIds::Data),
     (yog_ids::kind::DAMAGE_TYPE, GameIds::Data),
@@ -74,7 +119,14 @@ const ENCHANTMENT: &str = "enchantment";
 const SOUND: &str = "sound";
 
 /// The kinds whose game tags a reference may name (`tag:<kind>`).
-const GAME_TAG_KINDS: [&str; 6] = [yog_ids::kind::ITEM, yog_ids::kind::BLOCK, yog_ids::kind::ENTITY, yog_ids::kind::FLUID, yog_ids::kind::BIOME, yog_ids::kind::DAMAGE_TYPE];
+const GAME_TAG_KINDS: [&str; 6] = [
+    yog_ids::kind::ITEM,
+    yog_ids::kind::BLOCK,
+    yog_ids::kind::ENTITY,
+    yog_ids::kind::FLUID,
+    yog_ids::kind::BIOME,
+    yog_ids::kind::DAMAGE_TYPE,
+];
 
 /// One of the mod's own: its id and the file that defines it.
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -135,34 +187,70 @@ fn own(root: &Path, kind: &str) -> Vec<OwnRef> {
     let tag_of = format!("{}{}", yog_ids::typed::TAG, yog_ids::sep::NAMESPACE);
     if let Some(of) = kind.strip_prefix(tag_of.as_str()) {
         for d in defs(root, yog_ids::kind::TAG) {
-            if d.value.get(yog_ids::content_field::OF).and_then(Value::as_str) == Some(of) {
-                out.push(OwnRef { id: d.id, file: d.file });
+            if d.value
+                .get(yog_ids::content_field::OF)
+                .and_then(Value::as_str)
+                == Some(of)
+            {
+                out.push(OwnRef {
+                    id: d.id,
+                    file: d.file,
+                });
             }
         }
         return out;
     }
     // Files named by their path: body files under content/, resources under resources/.
-    let by_path = body_format(kind).map(|f| (yog_ids::project::CONTENT, f)).or_else(|| {
-        RESOURCE_KINDS.iter().find(|(k, _)| *k == kind).map(|(_, f)| (yog_ids::project::RESOURCES, *f))
-    });
+    let by_path = body_format(kind)
+        .map(|f| (yog_ids::project::CONTENT, f))
+        .or_else(|| {
+            RESOURCE_KINDS
+                .iter()
+                .find(|(k, _)| *k == kind)
+                .map(|(_, f)| (yog_ids::project::RESOURCES, *f))
+        });
     if let Some((dir, format)) = by_path {
         let dir = root.join(dir);
         for f in crate::files::of(&dir, format) {
             let rel = f.strip_prefix(&dir).unwrap_or(&f).with_extension("");
-            out.push(OwnRef { id: yog_ids::join(&ns, &rel.to_string_lossy().replace('\\', yog_ids::sep::PATH)), file: f.to_string_lossy().into_owned() });
+            out.push(OwnRef {
+                id: yog_ids::join(
+                    &ns,
+                    &rel.to_string_lossy().replace('\\', yog_ids::sep::PATH),
+                ),
+                file: f.to_string_lossy().into_owned(),
+            });
         }
         return out;
     }
     if let Some((_, exts)) = FILE_KINDS.iter().find(|(k, _)| *k == kind) {
         for format in *exts {
             for f in files(root, *format) {
-                let given = read(&f).and_then(|d| d.get(yog_ids::content_field::ID).and_then(Value::as_str).map(str::to_string));
-                let id = given.unwrap_or_else(|| f.file_stem().unwrap_or_default().to_string_lossy().into_owned());
-                out.push(OwnRef { id: yog_ids::qualify_in(&ns, &id), file: f.to_string_lossy().into_owned() });
+                let given = read(&f).and_then(|d| {
+                    d.get(yog_ids::content_field::ID)
+                        .and_then(Value::as_str)
+                        .map(str::to_string)
+                });
+                let id = given.unwrap_or_else(|| {
+                    f.file_stem()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .into_owned()
+                });
+                out.push(OwnRef {
+                    id: yog_ids::qualify_in(&ns, &id),
+                    file: f.to_string_lossy().into_owned(),
+                });
             }
         }
     } else {
-        out = defs(root, kind).into_iter().map(|d| OwnRef { id: d.id, file: d.file }).collect();
+        out = defs(root, kind)
+            .into_iter()
+            .map(|d| OwnRef {
+                id: d.id,
+                file: d.file,
+            })
+            .collect();
     }
     out.sort_by(|a, b| a.id.cmp(&b.id));
     out.dedup_by(|a, b| a.id == b.id);
@@ -175,11 +263,21 @@ fn defs(root: &Path, kind: &str) -> Vec<OwnDef> {
     let mut out = Vec::new();
     for f in files(root, Format::Def) {
         let Some(doc) = read(&f) else { continue };
-        if doc.get(yog_ids::content_field::KIND).and_then(Value::as_str) != Some(kind) {
+        if doc
+            .get(yog_ids::content_field::KIND)
+            .and_then(Value::as_str)
+            != Some(kind)
+        {
             continue;
         }
-        let Some(id) = doc.get("id").and_then(Value::as_str) else { continue };
-        out.push(OwnDef { id: yog_ids::qualify_in(&ns, id), file: f.to_string_lossy().into_owned(), value: Value::Object(doc) });
+        let Some(id) = doc.get("id").and_then(Value::as_str) else {
+            continue;
+        };
+        out.push(OwnDef {
+            id: yog_ids::qualify_in(&ns, id),
+            file: f.to_string_lossy().into_owned(),
+            value: Value::Object(doc),
+        });
     }
     out
 }
@@ -190,12 +288,19 @@ pub fn own_defs(file: &Path, kind: &str) -> Vec<OwnDef> {
 }
 
 fn external(root: &Path, kind: &str) -> Vec<String> {
-    let Some(kind) = crate::content::refs::RefKind::from_word(kind) else { return Vec::new() };
-    let Ok(manifest) = crate::manifest::YogToml::read(&project::path(root)) else { return Vec::new() };
+    let Some(kind) = crate::content::refs::RefKind::from_word(kind) else {
+        return Vec::new();
+    };
+    let Ok(manifest) = crate::manifest::YogToml::read(&project::path(root)) else {
+        return Vec::new();
+    };
     let mut out = Vec::new();
     for external in &manifest.externals {
         for (_, ids) in external.ids.iter().filter(|(k, _)| *k == kind) {
-            out.extend(ids.iter().map(|id| yog_ids::qualify_in(&external.namespace, id)));
+            out.extend(
+                ids.iter()
+                    .map(|id| yog_ids::qualify_in(&external.namespace, id)),
+            );
         }
     }
     out
@@ -204,16 +309,26 @@ fn external(root: &Path, kind: &str) -> Vec<String> {
 /// The game's ids of `kind`, from the client jar (cached per jar).
 fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
     let tag_of = format!("{}{}", yog_ids::typed::TAG, yog_ids::sep::NAMESPACE);
-    let tags = kind.strip_prefix(tag_of.as_str()).filter(|of| GAME_TAG_KINDS.contains(of)).map(yog_ids::registry_dirs);
+    let tags = kind
+        .strip_prefix(tag_of.as_str())
+        .filter(|of| GAME_TAG_KINDS.contains(of))
+        .map(yog_ids::registry_dirs);
     let how = GAME_IDS.iter().find(|(k, _)| *k == kind).map(|(_, h)| h);
     if tags.is_none() && how.is_none() {
         return Vec::new();
     }
-    let Some(vanilla) = Resources::for_mod(root).vanilla else { return Vec::new() };
+    let Some(vanilla) = Resources::for_mod(root).vanilla else {
+        return Vec::new();
+    };
     type Cache = Mutex<HashMap<(PathBuf, String), Vec<String>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let key = (vanilla.jar.clone(), kind.to_string());
-    if let Some(hit) = CACHE.get_or_init(Default::default).lock().get(&key).cloned() {
+    if let Some(hit) = CACHE
+        .get_or_init(Default::default)
+        .lock()
+        .get(&key)
+        .cloned()
+    {
         return hit;
     }
     let keys = |asset: &str| {
@@ -227,29 +342,57 @@ fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
     // The `.json` files under `data/minecraft/<dir>/`, as ids.
     let data_ids = |dirs: Vec<String>| -> Vec<String> {
         dirs.iter()
-            .flat_map(|d| vanilla.names_under(&format!("{}/{}/{d}/", yog_ids::pack::DATA, yog_ids::ns::MINECRAFT)))
+            .flat_map(|d| {
+                vanilla.names_under(&format!(
+                    "{}/{}/{d}/",
+                    yog_ids::pack::DATA,
+                    yog_ids::ns::MINECRAFT
+                ))
+            })
             .filter_map(|n| n.strip_suffix(yog_ids::res::JSON).map(game))
             .collect()
     };
     let lang_ids = |prefixes: Vec<String>, dotted: bool| -> Vec<String> {
-        keys(&format!("{}/{}", yog_ids::ns::MINECRAFT, yog_ids::lang_file(yog_ids::game::LOCALE)))
-            .keys()
-            .filter_map(|k| prefixes.iter().find_map(|p| k.strip_prefix(p.as_str())))
-            .filter(|rest| rest.starts_with(POTION_LANG_PREFIX) || dotted || !rest.contains('.'))
-            .map(|rest| match rest.strip_prefix(POTION_LANG_PREFIX).filter(|_| kind == yog_ids::kind::ITEM) {
+        keys(&format!(
+            "{}/{}",
+            yog_ids::ns::MINECRAFT,
+            yog_ids::lang_file(yog_ids::game::LOCALE)
+        ))
+        .keys()
+        .filter_map(|k| prefixes.iter().find_map(|p| k.strip_prefix(p.as_str())))
+        .filter(|rest| rest.starts_with(POTION_LANG_PREFIX) || dotted || !rest.contains('.'))
+        .map(|rest| {
+            match rest
+                .strip_prefix(POTION_LANG_PREFIX)
+                .filter(|_| kind == yog_ids::kind::ITEM)
+            {
                 // `item.minecraft.potion.effect.swiftness` → `yog:potion/swiftness`.
                 Some(name) => format!("{}{name}", yog_ids::yog::POTION_ALIAS),
                 None => game(rest),
-            })
-            .collect()
+            }
+        })
+        .collect()
     };
     let mut out: Vec<String> = match (tags, how) {
-        (Some(dirs), _) => data_ids(dirs.iter().map(|d| format!("{}/{d}", yog_ids::pack::TAGS)).collect()),
+        (Some(dirs), _) => data_ids(
+            dirs.iter()
+                .map(|d| format!("{}/{d}", yog_ids::pack::TAGS))
+                .collect(),
+        ),
         (None, None) => Vec::new(),
-        (None, Some(GameIds::Lang { kinds, dotted })) => lang_ids(kinds.iter().map(|k| yog_ids::lang_prefix(k, yog_ids::ns::MINECRAFT)).collect(), *dotted),
+        (None, Some(GameIds::Lang { kinds, dotted })) => lang_ids(
+            kinds
+                .iter()
+                .map(|k| yog_ids::lang_prefix(k, yog_ids::ns::MINECRAFT))
+                .collect(),
+            *dotted,
+        ),
         (None, Some(GameIds::LangPrefix(prefix))) => lang_ids(vec![prefix.to_string()], true),
         (None, Some(GameIds::Data)) => data_ids(yog_ids::registry_dirs(kind)),
-        (None, Some(GameIds::Keys(asset))) => keys(&format!("{}/{asset}", yog_ids::ns::MINECRAFT)).keys().map(|k| game(k)).collect(),
+        (None, Some(GameIds::Keys(asset))) => keys(&format!("{}/{asset}", yog_ids::ns::MINECRAFT))
+            .keys()
+            .map(|k| game(k))
+            .collect(),
     };
     out.sort();
     out.dedup();
@@ -263,7 +406,12 @@ fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
 /// as `yog-formats` has them.
 pub fn block_kinds() -> Value {
     use yog_data::Schema;
-    Value::Array(yog_formats::content::BlockKind::built_ins().iter().map(|k| crate::design::data::to_json(&k.write())).collect())
+    Value::Array(
+        yog_formats::content::BlockKind::built_ins()
+            .iter()
+            .map(|k| crate::design::data::to_json(&k.write()))
+            .collect(),
+    )
 }
 
 #[cfg(test)]
@@ -280,18 +428,60 @@ mod tests {
     fn a_mods_own_content_external_ids_and_defs() {
         let dir = std::env::temp_dir().join(format!("yog-idle-refs-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        write(&dir, "yog.toml", "[mod]\nid = \"mymod\"\n\n[external.create]\nentities = [\"seat\"]\n");
+        write(
+            &dir,
+            "yog.toml",
+            "[mod]\nid = \"mymod\"\n\n[external.create]\nentities = [\"seat\"]\n",
+        );
         write(&dir, "content/items/wand.yitem", "{ name: \"Wand\" }");
-        write(&dir, "content/items/potion.yitem", "{ item: { potion: { effects: [] } } }");
-        write(&dir, "content/blocks/lamp.yblock", "// a lamp\n{ id: \"glow_lamp\" }");
-        write(&dir, "content/mobs/wisp.yentity", "{ kind: \"mob\", width: 0.5, height: 0.5 }");
-        write(&dir, "content/body/wisp.ymodel", "{ texture: \"\", bones: [] }");
-        write(&dir, "content/fx/glow.ydef", "{ kind: \"effect\", id: \"glow\", category: \"beneficial\", color: 255 }");
-        write(&dir, "content/fx/dim.ydef", "{ kind: \"attribute\", id: \"dim\", default: 1, min: 0, max: 2 }");
-        write(&dir, "content/tags/plants.ydef", "{ kind: \"tag\", of: \"block\", id: \"plants\", values: [] }");
+        write(
+            &dir,
+            "content/items/potion.yitem",
+            "{ item: { potion: { effects: [] } } }",
+        );
+        write(
+            &dir,
+            "content/blocks/lamp.yblock",
+            "// a lamp\n{ id: \"glow_lamp\" }",
+        );
+        write(
+            &dir,
+            "content/mobs/wisp.yentity",
+            "{ kind: \"mob\", width: 0.5, height: 0.5 }",
+        );
+        write(
+            &dir,
+            "content/body/wisp.ymodel",
+            "{ texture: \"\", bones: [] }",
+        );
+        write(
+            &dir,
+            "content/fx/glow.ydef",
+            "{ kind: \"effect\", id: \"glow\", category: \"beneficial\", color: 255 }",
+        );
+        write(
+            &dir,
+            "content/fx/dim.ydef",
+            "{ kind: \"attribute\", id: \"dim\", default: 1, min: 0, max: 2 }",
+        );
+        write(
+            &dir,
+            "content/tags/plants.ydef",
+            "{ kind: \"tag\", of: \"block\", id: \"plants\", values: [] }",
+        );
         let probe = dir.join("content/items/wand.yitem");
-        let ids = |kind: &str| refs(&probe, kind).own.into_iter().map(|r| r.id).collect::<Vec<_>>();
-        assert_eq!(ids("item"), ["mymod:glow_lamp", "mymod:potion", "mymod:wand"], "items include potion-only .yitems and a block's item form");
+        let ids = |kind: &str| {
+            refs(&probe, kind)
+                .own
+                .into_iter()
+                .map(|r| r.id)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            ids("item"),
+            ["mymod:glow_lamp", "mymod:potion", "mymod:wand"],
+            "items include potion-only .yitems and a block's item form"
+        );
         assert_eq!(ids("block"), ["mymod:glow_lamp"]);
         assert_eq!(ids("entity"), ["mymod:wisp"]);
         assert_eq!(ids("ymodel"), ["mymod:body/wisp"]);
@@ -308,7 +498,15 @@ mod tests {
     #[test]
     fn the_games_block_kinds_are_listed() {
         let kinds = block_kinds();
-        let names: Vec<&str> = kinds.as_array().unwrap().iter().filter_map(|k| k["name"].as_str()).collect();
-        assert!(names.contains(&"stairs") && names.contains(&"pressure_plate"), "{names:?}");
+        let names: Vec<&str> = kinds
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|k| k["name"].as_str())
+            .collect();
+        assert!(
+            names.contains(&"stairs") && names.contains(&"pressure_plate"),
+            "{names:?}"
+        );
     }
 }

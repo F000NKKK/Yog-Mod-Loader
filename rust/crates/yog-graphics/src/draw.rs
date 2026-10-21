@@ -69,11 +69,20 @@ impl Canvas {
     pub fn draw(&mut self, ops: &[Op], to_px: impl Fn(Vec2) -> Vec2, scale: f32, current: Color) {
         for op in ops {
             match op {
-                Op::Fill(f) => self.fill(&path::flatten(&f.path, &to_px), f.color.unwrap_or(current)),
-                Op::Stroke(s) => self.stroke(&path::flatten(&s.path, &to_px), s.width * scale, s.color.unwrap_or(current)),
+                Op::Fill(f) => {
+                    self.fill(&path::flatten(&f.path, &to_px), f.color.unwrap_or(current))
+                }
+                Op::Stroke(s) => self.stroke(
+                    &path::flatten(&s.path, &to_px),
+                    s.width * scale,
+                    s.color.unwrap_or(current),
+                ),
                 Op::Image(i) => {
                     let r = i.rect;
-                    let dst = Rect::from_corners(to_px(Vec2::new(r.x, r.y)), to_px(Vec2::new(r.right(), r.bottom())));
+                    let dst = Rect::from_corners(
+                        to_px(Vec2::new(r.x, r.y)),
+                        to_px(Vec2::new(r.right(), r.bottom())),
+                    );
                     self.image(&i.image, dst, i.tinted.then_some(current));
                 }
             }

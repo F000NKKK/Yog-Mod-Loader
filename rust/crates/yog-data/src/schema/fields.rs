@@ -11,7 +11,10 @@ pub trait Fields {
 /// `ident`'s name in files among `fields` — a compile error when it's used
 /// in a constant (as [`field!`](crate::field) does) and there's no such field.
 #[must_use]
-pub const fn field_name(fields: &'static [(&'static str, &'static str)], ident: &str) -> &'static str {
+pub const fn field_name(
+    fields: &'static [(&'static str, &'static str)],
+    ident: &str,
+) -> &'static str {
     let mut i = 0;
     while i < fields.len() {
         if same(fields[i].0, ident) {
@@ -42,8 +45,10 @@ const fn same(a: &str, b: &str) -> bool {
 #[macro_export]
 macro_rules! field {
     ($t:ty, $f:ident) => {{
-        const NAME: &str =
-            $crate::schema::field_name(<$t as $crate::schema::Fields>::FIELDS, ::core::stringify!($f));
+        const NAME: &str = $crate::schema::field_name(
+            <$t as $crate::schema::Fields>::FIELDS,
+            ::core::stringify!($f),
+        );
         NAME
     }};
 }

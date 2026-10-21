@@ -60,7 +60,13 @@ mod tests {
     use super::*;
 
     fn ctx(args: &[&str]) -> CommandContext {
-        CommandContext { name: "hex".into(), args: args.iter().map(|a| (*a).to_owned()).collect(), source: "Dev".into(), uuid: String::new(), dimension: String::new() }
+        CommandContext {
+            name: "hex".into(),
+            args: args.iter().map(|a| (*a).to_owned()).collect(),
+            source: "Dev".into(),
+            uuid: String::new(),
+            dimension: String::new(),
+        }
     }
 
     #[test]

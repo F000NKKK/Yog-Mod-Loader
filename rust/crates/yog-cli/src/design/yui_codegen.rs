@@ -4,8 +4,8 @@
 //! and the same for `.yres` resource files (`resources/<Set>.g.rs`,
 //! through `yog res check`).
 
-use yog_ids::Format;
 use std::path::PathBuf;
+use yog_ids::Format;
 
 /// Runs `yog ui gen <path>` in the file's folder, so a saved screen's
 /// generated `foo.g.rs` is current without a full build (`yog` finds the
@@ -62,7 +62,9 @@ pub fn codegen(path: &str) -> Result<Codegen, String> {
                 message.trim().to_string()
             }
         }),
-        root: dir.map(|d| d.to_string_lossy().into_owned()).unwrap_or_default(),
+        root: dir
+            .map(|d| d.to_string_lossy().into_owned())
+            .unwrap_or_default(),
         log,
     })
 }

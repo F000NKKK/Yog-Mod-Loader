@@ -23,10 +23,16 @@ pub struct YogBytes {
 }
 
 impl YogBytes {
-    pub const EMPTY: YogBytes = YogBytes { ptr: std::ptr::null(), len: 0 };
+    pub const EMPTY: YogBytes = YogBytes {
+        ptr: std::ptr::null(),
+        len: 0,
+    };
 
     pub fn new(bytes: &[u8]) -> YogBytes {
-        YogBytes { ptr: bytes.as_ptr(), len: bytes.len() }
+        YogBytes {
+            ptr: bytes.as_ptr(),
+            len: bytes.len(),
+        }
     }
 
     /// # Safety
@@ -52,12 +58,18 @@ pub struct YogReply {
 impl YogReply {
     /// A reply that appends to `out`; valid while `out` is.
     pub fn to_vec(out: &mut Vec<u8>) -> Self {
-        Self { sink: (out as *mut Vec<u8>).cast::<c_void>(), write: append_to_vec }
+        Self {
+            sink: (out as *mut Vec<u8>).cast::<c_void>(),
+            write: append_to_vec,
+        }
     }
 
     /// A reply no one reads: what's written is dropped.
     pub fn discard() -> Self {
-        Self { sink: std::ptr::null_mut(), write: append_to_vec }
+        Self {
+            sink: std::ptr::null_mut(),
+            write: append_to_vec,
+        }
     }
 
     /// Writes `bytes` to `reply` — if there's a reply and anything to write.
@@ -117,7 +129,8 @@ pub mod status {
 /// A provider or an event handler: `ud` as registered, the payload, where
 /// its reply goes. For an event, a reply replaces the payload the next
 /// handler (and finally the emitter) sees.
-pub type YogHandlerFn = unsafe extern "C" fn(ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus;
+pub type YogHandlerFn =
+    unsafe extern "C" fn(ud: *mut c_void, payload: YogBytes, reply: *const YogReply) -> YogStatus;
 
 /// The bus table — the whole boundary for everything but the per-frame
 /// direct tables ([`crate::YogGfxApi`]).
@@ -130,15 +143,36 @@ pub struct YogBus {
     /// `address`'s handle; the same address always gives the same handle.
     pub resolve: unsafe extern "C" fn(ctx: *mut c_void, address: YogStr) -> YogAddress,
     /// Calls the provider of `to`; its reply goes to `reply`.
-    pub call: unsafe extern "C" fn(ctx: *mut c_void, to: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus,
+    pub call: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        to: YogAddress,
+        payload: YogBytes,
+        reply: *const YogReply,
+    ) -> YogStatus,
     /// Runs `event`'s handlers in priority order (highest first); the last
     /// payload (the handlers' replies chained) goes to `reply`.
-    pub emit: unsafe extern "C" fn(ctx: *mut c_void, event: YogAddress, payload: YogBytes, reply: *const YogReply) -> YogStatus,
+    pub emit: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        event: YogAddress,
+        payload: YogBytes,
+        reply: *const YogReply,
+    ) -> YogStatus,
     /// Subscribes `handler` to `event`; dropped with the registering mod.
-    pub on: unsafe extern "C" fn(ctx: *mut c_void, event: YogAddress, priority: i32, ud: *mut c_void, handler: YogHandlerFn),
+    pub on: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        event: YogAddress,
+        priority: i32,
+        ud: *mut c_void,
+        handler: YogHandlerFn,
+    ),
     /// Makes `handler` answer calls to `address`; [`status::FAILED`] if
     /// someone else does already.
-    pub provide: unsafe extern "C" fn(ctx: *mut c_void, address: YogAddress, ud: *mut c_void, handler: YogHandlerFn) -> YogStatus,
+    pub provide: unsafe extern "C" fn(
+        ctx: *mut c_void,
+        address: YogAddress,
+        ud: *mut c_void,
+        handler: YogHandlerFn,
+    ) -> YogStatus,
     /// Whether anyone provides `address` (a feature this host has).
     pub provided: unsafe extern "C" fn(ctx: *mut c_void, address: YogAddress) -> bool,
     /// `name`'s atom (`yog_data::Atom`): the process's number for it, made

@@ -41,7 +41,10 @@ pub fn names(attr: &str) -> impl Iterator<Item = &str> {
 
 /// The name `attr` binds when it's one binding and nothing else.
 pub fn whole(attr: &str) -> Option<&str> {
-    let name = attr.trim().strip_prefix(BIND_OPEN)?.strip_suffix(BIND_CLOSE)?;
+    let name = attr
+        .trim()
+        .strip_prefix(BIND_OPEN)?
+        .strip_suffix(BIND_CLOSE)?;
     (!name.contains(BIND_CLOSE)).then(|| name.trim())
 }
 
@@ -53,7 +56,12 @@ mod tests {
     fn pieces_and_whole_bindings() {
         assert_eq!(
             pieces("{u|{x:Bind input}} → {x:Bind  output }"),
-            [Piece::Text("{u|"), Piece::Bind("input"), Piece::Text("} → "), Piece::Bind("output")]
+            [
+                Piece::Text("{u|"),
+                Piece::Bind("input"),
+                Piece::Text("} → "),
+                Piece::Bind("output")
+            ]
         );
         assert_eq!(pieces("{x:Bind open"), [Piece::Text("{x:Bind open")]);
         assert_eq!(whole(" {x:Bind patterns} "), Some("patterns"));

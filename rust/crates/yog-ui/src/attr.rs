@@ -46,7 +46,11 @@ pub const HEX_MARKS: [&str; 3] = ["#", "0x", "0X"];
 /// written with its `#` or `0x`, never as a decimal).
 pub fn written_color(value: &str) -> Option<Color> {
     let v = value.trim();
-    HEX_MARKS.iter().any(|p| v.starts_with(p)).then(|| Color::parse(v)).flatten()
+    HEX_MARKS
+        .iter()
+        .any(|p| v.starts_with(p))
+        .then(|| Color::parse(v))
+        .flatten()
 }
 
 /// A size: pixels, `50%`, or `auto` (and empty).
@@ -64,7 +68,11 @@ pub fn size(value: &str) -> Option<Units> {
 /// CSS-style shorthand: 1 value = all sides, 2 = vertical horizontal, 4 =
 /// top right bottom left.
 pub fn sides(value: &str) -> Option<[f32; 4]> {
-    let parts: Vec<f32> = value.split([' ', ',']).filter(|s| !s.is_empty()).map(|s| s.parse().ok()).collect::<Option<_>>()?;
+    let parts: Vec<f32> = value
+        .split([' ', ','])
+        .filter(|s| !s.is_empty())
+        .map(|s| s.parse().ok())
+        .collect::<Option<_>>()?;
     match parts.as_slice() {
         [all] => Some([*all; 4]),
         [v, h] => Some([*v, *h, *v, *h]),
@@ -76,10 +84,14 @@ pub fn sides(value: &str) -> Option<[f32; 4]> {
 /// The word `value` is among `words`, as its value; the words when it isn't one.
 fn pick<T: Copy>(value: &str, words: &[(&str, T)]) -> Result<T, String> {
     let v = value.trim();
-    words.iter().find(|(k, _)| *k == v).map(|(_, t)| *t).ok_or_else(|| {
-        let all: Vec<&str> = words.iter().map(|(k, _)| *k).collect();
-        format!("one of {}", all.join(", "))
-    })
+    words
+        .iter()
+        .find(|(k, _)| *k == v)
+        .map(|(_, t)| *t)
+        .ok_or_else(|| {
+            let all: Vec<&str> = words.iter().map(|(k, _)| *k).collect();
+            format!("one of {}", all.join(", "))
+        })
 }
 
 const DOCKS: [(&str, Dock); 6] = [
@@ -90,13 +102,28 @@ const DOCKS: [(&str, Dock); 6] = [
     (w::TOP, Dock::Top),
     (w::BOTTOM, Dock::Bottom),
 ];
-const ALIGNS: [(&str, Align); 3] = [(w::START, Align::Start), (w::CENTER, Align::Center), (w::END, Align::End)];
-const FOCUS_STYLES: [(&str, FocusStyle); 3] =
-    [(w::OUTLINE, FocusStyle::Outline), (w::FILL, FocusStyle::Fill), (w::NONE, FocusStyle::None)];
-const HALIGNS: [(&str, HAlign); 4] =
-    [(w::LEFT, HAlign::Left), (w::CENTER, HAlign::Center), (w::RIGHT, HAlign::Right), (w::STRETCH, HAlign::Stretch)];
-const VALIGNS: [(&str, VAlign); 4] =
-    [(w::TOP, VAlign::Top), (w::CENTER, VAlign::Center), (w::BOTTOM, VAlign::Bottom), (w::STRETCH, VAlign::Stretch)];
+const ALIGNS: [(&str, Align); 3] = [
+    (w::START, Align::Start),
+    (w::CENTER, Align::Center),
+    (w::END, Align::End),
+];
+const FOCUS_STYLES: [(&str, FocusStyle); 3] = [
+    (w::OUTLINE, FocusStyle::Outline),
+    (w::FILL, FocusStyle::Fill),
+    (w::NONE, FocusStyle::None),
+];
+const HALIGNS: [(&str, HAlign); 4] = [
+    (w::LEFT, HAlign::Left),
+    (w::CENTER, HAlign::Center),
+    (w::RIGHT, HAlign::Right),
+    (w::STRETCH, HAlign::Stretch),
+];
+const VALIGNS: [(&str, VAlign); 4] = [
+    (w::TOP, VAlign::Top),
+    (w::CENTER, VAlign::Center),
+    (w::BOTTOM, VAlign::Bottom),
+    (w::STRETCH, VAlign::Stretch),
+];
 const BOOLS: [(&str, bool); 2] = [(w::TRUE, true), (w::FALSE, false)];
 
 /// An image-like value: an image source with its scheme or namespace.
@@ -108,7 +135,12 @@ impl Attr {
     /// `key="value"` as an attribute; none when `key` isn't one of these
     /// (an id, an event, a text, a kind's own); what's wrong otherwise.
     pub fn parse(key: &str, value: &str) -> Result<Option<Attr>, String> {
-        let num = || value.trim().parse::<f32>().map_err(|_| "a number".to_string());
+        let num = || {
+            value
+                .trim()
+                .parse::<f32>()
+                .map_err(|_| "a number".to_string())
+        };
         let color = || written_color(value).ok_or_else(|| "#RRGGBB or #AARRGGBB".to_string());
         let flag = || pick(value, &BOOLS).map_err(|_| "true or false".to_string());
         Ok(Some(match key {
@@ -134,14 +166,28 @@ impl Attr {
             a::ENABLED => Attr::Enabled(flag()?),
             a::NO_WRAP => Attr::NoWrap(flag()?),
             a::ELLIPSIS => Attr::Ellipsis(flag()?),
-            a::MAX_LENGTH => Attr::MaxLength(value.trim().parse().map_err(|_| "a whole number".to_string())?),
+            a::MAX_LENGTH => Attr::MaxLength(
+                value
+                    .trim()
+                    .parse()
+                    .map_err(|_| "a whole number".to_string())?,
+            ),
             _ => return Ok(None),
         }))
     }
 
     /// Whether it styles the widget — not where it goes or how big it is.
     pub fn is_style(&self) -> bool {
-        !matches!(self, Attr::W(_) | Attr::H(_) | Attr::Flex(_) | Attr::Dock(_) | Attr::Margin(_) | Attr::HAlign(_) | Attr::VAlign(_))
+        !matches!(
+            self,
+            Attr::W(_)
+                | Attr::H(_)
+                | Attr::Flex(_)
+                | Attr::Dock(_)
+                | Attr::Margin(_)
+                | Attr::HAlign(_)
+                | Attr::VAlign(_)
+        )
     }
 
     /// The attribute set on `widget`.

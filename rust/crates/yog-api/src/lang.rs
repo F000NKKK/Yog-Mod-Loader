@@ -11,7 +11,10 @@ use std::fmt::{Display, Write as _};
 /// The text of translation `key` in the current language, unformatted —
 /// `None` when no lang file defines it (or before the mod registered).
 pub fn translation(key: &str) -> Option<String> {
-    crate::call(&yog_event::game::Translate { key: key.to_owned() }).flatten()
+    crate::call(&yog_event::game::Translate {
+        key: key.to_owned(),
+    })
+    .flatten()
 }
 
 /// The text of translation `key` in the current language, or `key` itself

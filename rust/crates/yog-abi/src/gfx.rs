@@ -1,6 +1,5 @@
 //! The low-level GPU pipeline table (ABI 14).
-use super::{YogStr};
-
+use super::YogStr;
 
 // ── ABI minor 14 — low-level GPU pipeline ────────────────────────────────────
 

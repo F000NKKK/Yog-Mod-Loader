@@ -18,12 +18,13 @@ pub mod yui_codegen;
 /// This CLI as a command, for a design call that runs one of its
 /// subcommands: the running binary when it's `yog`, else the `yog` on `PATH`.
 pub fn this_cli() -> std::process::Command {
-    let exe = std::env::current_exe().ok().filter(|e| e.file_stem().is_some_and(|s| s == yog_ids::program::CLI));
+    let exe = std::env::current_exe()
+        .ok()
+        .filter(|e| e.file_stem().is_some_and(|s| s == yog_ids::program::CLI));
     std::process::Command::new(exe.unwrap_or_else(|| yog_ids::program::CLI.into()))
 }
 pub mod assets;
 pub mod blocks3d;
-pub mod item_models;
 pub mod book;
 pub mod codebehind;
 pub mod components;
@@ -34,10 +35,11 @@ mod font_yog;
 pub mod gfx;
 pub mod host;
 pub mod images;
+pub mod item_models;
 pub mod markup;
 pub mod raster;
-pub mod tags;
 pub mod recipe_area;
+pub mod tags;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -365,7 +367,9 @@ pub fn event(args: &EventArgs) -> EventResult {
                 .to_string()
         });
         if args.event.starts_with("click:") && !out.scrolled {
-            out.clicked = found.and_then(|n| n.attr(yog_ids::yui_attr::ON_CLICK)).map(str::to_string);
+            out.clicked = found
+                .and_then(|n| n.attr(yog_ids::yui_attr::ON_CLICK))
+                .map(str::to_string);
         }
     }
     out
@@ -373,9 +377,7 @@ pub fn event(args: &EventArgs) -> EventResult {
 
 /// Forgets a file's preview state (scroll positions).
 pub fn reset(path: &str) {
-    previews()
-        .lock()
-        .remove(path);
+    previews().lock().remove(path);
 }
 
 #[cfg(test)]

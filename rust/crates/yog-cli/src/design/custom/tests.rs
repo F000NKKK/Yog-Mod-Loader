@@ -1,5 +1,5 @@
-use super::*;
 use super::fit::marker;
+use super::*;
 use crate::design::markup::YuiNode;
 
 fn node(uid: &str, kind: &str, attrs: &[(&str, &str)], children: Vec<YuiNode>) -> YuiNode {
@@ -64,9 +64,10 @@ fn custom_elements_become_marked_spacers_with_placeholders() {
             h: 24
         }
     ));
-    assert!(ops.iter().any(
-        |o| matches!(o, DrawOp::Text { text, x, .. } if text == "<StatBar>" && *x == 7.0)
-    ));
+    assert!(
+        ops.iter()
+            .any(|o| matches!(o, DrawOp::Text { text, x, .. } if text == "<StatBar>" && *x == 7.0))
+    );
 }
 
 /// The whole path — `yog designer-lib`, the host process, splicing — on a real mod:

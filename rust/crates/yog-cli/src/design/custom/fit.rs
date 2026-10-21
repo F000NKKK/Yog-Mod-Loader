@@ -136,7 +136,8 @@ impl Cx<'_> {
                 s.error.clone().unwrap_or_default()
             )),
             Status::Ready => {
-                let registered = state(mod_root).lock()
+                let registered = state(mod_root)
+                    .lock()
                     .components
                     .iter()
                     .any(|c| c.name == name);
@@ -153,7 +154,10 @@ impl Cx<'_> {
             .filter(|(k, _)| !LAYOUT_ATTRS.contains(&k.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
-        let (w, h) = (px(node.attr(yog_ids::yui_attr::W)), px(node.attr(yog_ids::yui_attr::H)));
+        let (w, h) = (
+            px(node.attr(yog_ids::yui_attr::W)),
+            px(node.attr(yog_ids::yui_attr::H)),
+        );
         let req = RenderReq {
             name,
             props,
@@ -164,7 +168,11 @@ impl Cx<'_> {
         };
         let (mut nw, mut nh) = (
             w.unwrap_or(PLACEHOLDER_W),
-            h.unwrap_or(if problem.is_some() { PROBLEM_H } else { PLACEHOLDER_H }),
+            h.unwrap_or(if problem.is_some() {
+                PROBLEM_H
+            } else {
+                PLACEHOLDER_H
+            }),
         );
         let problem = match (problem, self.mod_root) {
             (None, Some(root)) if w.is_none() || h.is_none() => {
@@ -186,8 +194,12 @@ impl Cx<'_> {
             .filter(|(k, _)| LAYOUT_ATTRS.contains(&k.as_str()))
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
-        attrs.entry(yog_ids::yui_attr::W.into()).or_insert_with(|| nw.to_string());
-        attrs.entry(yog_ids::yui_attr::H.into()).or_insert_with(|| nh.to_string());
+        attrs
+            .entry(yog_ids::yui_attr::W.into())
+            .or_insert_with(|| nw.to_string());
+        attrs
+            .entry(yog_ids::yui_attr::H.into())
+            .or_insert_with(|| nh.to_string());
         attrs.insert(yog_ids::yui_attr::BG.into(), format!("#{:08X}", marker(i)));
         self.slots.push(Slot {
             uid: node.uid.clone(),
@@ -240,7 +252,8 @@ pub fn splice(ops: &mut Vec<DrawOp>, prepared: &Prepared, rects: &HashMap<String
         let drawn = match (&slot.problem, &shared) {
             (Some(p), _) => Err(p.clone()),
             (None, None) => Err("not inside a mod".into()),
-            (None, Some(sh)) => sh.lock()
+            (None, Some(sh)) => sh
+                .lock()
                 .render(&RenderReq {
                     w,
                     h,

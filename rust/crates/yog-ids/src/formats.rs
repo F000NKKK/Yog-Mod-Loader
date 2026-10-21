@@ -133,7 +133,8 @@ pub fn registry_of(kind: &str) -> &str {
 
 /// Whether folder `dir` (a data or tag folder) was plural before 1.21.
 fn renamed_in_1_21(dir: &str) -> bool {
-    crate::renamed_data_dir::ALL_VALUES.contains(&dir) || crate::renamed_tag_dir::ALL_VALUES.contains(&dir)
+    crate::renamed_data_dir::ALL_VALUES.contains(&dir)
+        || crate::renamed_tag_dir::ALL_VALUES.contains(&dir)
 }
 
 /// The folders of content `kind`'s data or tags, the current one first, then
@@ -174,7 +175,10 @@ pub fn join(ns: &str, path: &str) -> String {
 
 /// A namespace as the game takes it: `[a-z0-9_.-]+`.
 pub fn valid_namespace(s: &str) -> bool {
-    !s.is_empty() && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-'))
+    !s.is_empty()
+        && s.bytes().all(|b| {
+            b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-')
+        })
 }
 
 /// A resource path as the game takes it: `[a-z0-9_./-]+`, not starting or
@@ -184,7 +188,12 @@ pub fn valid_path(s: &str) -> bool {
     !s.is_empty()
         && !s.starts_with(sep::PATH)
         && !s.ends_with(sep::PATH)
-        && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-') || b == sep)
+        && s.bytes().all(|b| {
+            b.is_ascii_lowercase()
+                || b.is_ascii_digit()
+                || matches!(b, b'_' | b'.' | b'-')
+                || b == sep
+        })
 }
 
 /// `ns:path` (or `path`, the game's) as the game takes it.
@@ -197,7 +206,9 @@ pub fn valid_id(s: &str) -> bool {
 
 /// A name of Yog's in snake case: `[a-z0-9_]+` (a state's property, a kind of recipe).
 pub fn valid_name(s: &str) -> bool {
-    !s.is_empty() && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == sep::WORD.as_bytes()[0])
+    !s.is_empty()
+        && s.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == sep::WORD.as_bytes()[0])
 }
 
 /// `id`'s namespace and path; a bare path is the game's.

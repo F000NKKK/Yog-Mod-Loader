@@ -55,7 +55,12 @@ impl Vanilla {
     #[cfg(test)]
     pub fn from_jar(jar: PathBuf, version: &str) -> Option<Vanilla> {
         let zip = zip::ZipArchive::new(File::open(&jar).ok()?).ok()?;
-        Some(Vanilla { jar, version: version.to_string(), zip: Mutex::new(zip), objects: None })
+        Some(Vanilla {
+            jar,
+            version: version.to_string(),
+            zip: Mutex::new(zip),
+            objects: None,
+        })
     }
 
     /// `key` from the jar and from the asset objects — both, for files the
@@ -64,8 +69,7 @@ impl Vanilla {
     pub fn read_all(&self, key: &str) -> Vec<Vec<u8>> {
         let mut out = Vec::new();
         let mut zip = self.zip.lock();
-        if let Ok(mut entry) = zip.by_name(&format!("assets/{key}"))
-        {
+        if let Ok(mut entry) = zip.by_name(&format!("assets/{key}")) {
             let mut bytes = Vec::new();
             if entry.read_to_end(&mut bytes).is_ok() {
                 out.push(bytes);
@@ -126,8 +130,7 @@ impl Vanilla {
     fn read(&self, key: &str) -> Option<Vec<u8>> {
         // `key` is `namespace/path` — `assets/<key>` in the jar.
         let mut zip = self.zip.lock();
-        if let Ok(mut entry) = zip.by_name(&format!("assets/{key}"))
-        {
+        if let Ok(mut entry) = zip.by_name(&format!("assets/{key}")) {
             let mut out = Vec::new();
             if entry.read_to_end(&mut out).is_ok() {
                 return Some(out);
@@ -176,7 +179,11 @@ fn client_jars(extra_roots: &[PathBuf]) -> Vec<(String, PathBuf)> {
     }
     for root in extra_roots {
         // A Yog workspace: the loader's NeoGradle caches beside the mod.
-        for loader in [yog_ids::loader::NEOFORGE, yog_ids::loader::FABRIC, yog_ids::loader::FORGE] {
+        for loader in [
+            yog_ids::loader::NEOFORGE,
+            yog_ids::loader::FABRIC,
+            yog_ids::loader::FORGE,
+        ] {
             for base in [root.join("Yog-Mod-Loader"), root.join("../Yog-Mod-Loader")] {
                 version_dirs.push((
                     base.join(loader).join(".gradle/caches/minecraft/versions"),
@@ -209,7 +216,10 @@ fn client_jars(extra_roots: &[PathBuf]) -> Vec<(String, PathBuf)> {
 
 /// The newest client jar on this machine (`YOG_MC_CLIENT_JAR` first).
 pub(crate) fn newest_client_jar(extra_roots: &[PathBuf]) -> Option<PathBuf> {
-    client_jars(extra_roots).into_iter().max_by_key(|(v, _)| version_key(v)).map(|(_, p)| p)
+    client_jars(extra_roots)
+        .into_iter()
+        .max_by_key(|(v, _)| version_key(v))
+        .map(|(_, p)| p)
 }
 
 /// The asset objects dir and the index for `version` (any index that knows
@@ -299,12 +309,16 @@ pub fn vanilla_versions(extra_roots: &[PathBuf]) -> &'static [Arc<Vanilla>] {
         jars.into_iter()
             .filter_map(|(version, jar)| {
                 let zip = zip::ZipArchive::new(File::open(&jar).ok()?).ok()?;
-                Some(Arc::new(Vanilla { objects: asset_objects(&version), jar, version, zip: Mutex::new(zip) }))
+                Some(Arc::new(Vanilla {
+                    objects: asset_objects(&version),
+                    jar,
+                    version,
+                    zip: Mutex::new(zip),
+                }))
             })
             .collect()
     })
 }
-
 
 /// Resolves `namespace:path` resources for one mod: its `.yres` images, then the game's.
 #[derive(Clone)]
@@ -312,7 +326,6 @@ pub struct Resources {
     pub mod_root: Option<PathBuf>,
     pub vanilla: Option<Arc<Vanilla>>,
 }
-
 
 impl Resources {
     pub fn for_mod(mod_root: Option<&Path>) -> Resources {
@@ -330,7 +343,11 @@ impl Resources {
     /// The bytes of resource `<ns>:<path>` (`textures/gui/x.png`): the mod's
     /// own are its `.yres` images (a mod has no `assets/`), the rest the game's.
     pub fn read(&self, ns: &str, path: &str) -> Option<Vec<u8>> {
-        if let Some(bytes) = self.mod_root.as_deref().and_then(|root| crate::media::built_asset(root, ns, path)) {
+        if let Some(bytes) = self
+            .mod_root
+            .as_deref()
+            .and_then(|root| crate::media::built_asset(root, ns, path))
+        {
             return Some(bytes);
         }
         // Yog's own assets, as every host ships them.

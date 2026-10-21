@@ -82,7 +82,10 @@ impl RecipeKindDef {
 /// (a typed body, a host's recipe JSON) names it by. The data ([`GAME`])
 /// has exactly these, in this order.
 pub mod ids {
-    pub use yog_ids::recipe_kind::{BLASTING, BREWING, CAMPFIRE_COOKING, SHAPED, SHAPELESS, SMELTING, SMITHING, SMOKING, STONECUTTING};
+    pub use yog_ids::recipe_kind::{
+        BLASTING, BREWING, CAMPFIRE_COOKING, SHAPED, SHAPELESS, SMELTING, SMITHING, SMOKING,
+        STONECUTTING,
+    };
 
     /// Every one, in [`super::GAME`]'s order.
     pub const ALL: &[&str] = yog_ids::recipe_kind::ALL_VALUES;

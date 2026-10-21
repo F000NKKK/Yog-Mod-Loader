@@ -552,7 +552,11 @@ fn fields_of(input: &DeriveInput) -> syn::Result<Tokens> {
     let krate = krate();
     let name = &input.ident;
     let (impl_g, ty_g, where_g) = input.generics.split_for_impl();
-    let Data::Struct(syn::DataStruct { fields: Fields::Named(named), .. }) = &input.data else {
+    let Data::Struct(syn::DataStruct {
+        fields: Fields::Named(named),
+        ..
+    }) = &input.data
+    else {
         return Ok(quote! {});
     };
     let pairs = named_fields(named)?.into_iter().map(|f| {

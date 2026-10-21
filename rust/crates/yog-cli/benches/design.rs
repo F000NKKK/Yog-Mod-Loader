@@ -6,7 +6,9 @@ use std::hint::black_box;
 use criterion::{Criterion, criterion_group, criterion_main};
 use yog_cli::design::{RenderArgs, render};
 
-const WORDS: &[&str] = &["project", "window", "state", "screen", "button", "label", "texture", "model", "block", "item"];
+const WORDS: &[&str] = &[
+    "project", "window", "state", "screen", "button", "label", "texture", "model", "block", "item",
+];
 
 fn word(i: usize) -> &'static str {
     WORDS[i % WORDS.len()]

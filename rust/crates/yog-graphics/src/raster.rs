@@ -25,7 +25,11 @@ pub struct Canvas {
 impl Canvas {
     /// A transparent `w × h` canvas.
     pub fn new(w: u32, h: u32) -> Canvas {
-        Canvas { w: w as usize, h: h as usize, px: vec![[0.0; 4]; (w * h) as usize] }
+        Canvas {
+            w: w as usize,
+            h: h as usize,
+            px: vec![[0.0; 4]; (w * h) as usize],
+        }
     }
 
     pub fn width(&self) -> u32 {
@@ -39,7 +43,11 @@ impl Canvas {
     /// The inside of `contours` (closed polylines; an open one is closed)
     /// painted `color`.
     pub fn fill(&mut self, contours: &[Vec<Vec2>], color: Color) {
-        let lines = contours.iter().flat_map(|c| c.iter().zip(c.iter().cycle().skip(1)).map(|(a, b)| (*a, *b)));
+        let lines = contours.iter().flat_map(|c| {
+            c.iter()
+                .zip(c.iter().cycle().skip(1))
+                .map(|(a, b)| (*a, *b))
+        });
         let cov = coverage(self.w, self.h, lines);
         self.paint(&cov, color);
     }
@@ -56,7 +64,11 @@ impl Canvas {
                 pieces.push(circle(p, r));
             }
         }
-        let lines = pieces.iter().flat_map(|c| c.iter().zip(c.iter().cycle().skip(1)).map(|(a, b)| (*a, *b)));
+        let lines = pieces.iter().flat_map(|c| {
+            c.iter()
+                .zip(c.iter().cycle().skip(1))
+                .map(|(a, b)| (*a, *b))
+        });
         let cov = coverage(self.w, self.h, lines);
         self.paint(&cov, color);
     }
@@ -68,8 +80,12 @@ impl Canvas {
             return;
         }
         let tint = tint.map(Color::to_f32);
-        for py in (dst.y.floor().max(0.0) as usize)..(dst.bottom().ceil().min(self.h as f32) as usize) {
-            for px in (dst.x.floor().max(0.0) as usize)..(dst.right().ceil().min(self.w as f32) as usize) {
+        for py in
+            (dst.y.floor().max(0.0) as usize)..(dst.bottom().ceil().min(self.h as f32) as usize)
+        {
+            for px in
+                (dst.x.floor().max(0.0) as usize)..(dst.right().ceil().min(self.w as f32) as usize)
+            {
                 let u = ((px as f32 + 0.5 - dst.x) / dst.w * image.width as f32).floor();
                 let v = ((py as f32 + 0.5 - dst.y) / dst.h * image.height as f32).floor();
                 if u < 0.0 || v < 0.0 || u >= image.width as f32 || v >= image.height as f32 {
@@ -102,7 +118,11 @@ impl Canvas {
             let un = |c: f32| if a > 0.0 { c / a } else { 0.0 };
             rgba.extend(Color::from_f32([un(p[0]), un(p[1]), un(p[2]), a]).to_rgba8());
         }
-        Image { width: self.w as u32, height: self.h as u32, rgba }
+        Image {
+            width: self.w as u32,
+            height: self.h as u32,
+            rgba,
+        }
     }
 }
 
@@ -137,7 +157,11 @@ fn circle(c: Vec2, r: f32) -> Vec<Vec2> {
 /// `poly` wound the same way as every other stroke piece, so where they
 /// overlap they add up instead of cancelling.
 fn oriented(mut poly: Vec<Vec2>) -> Vec<Vec2> {
-    let area: f32 = poly.iter().zip(poly.iter().cycle().skip(1)).map(|(a, b)| a.x * b.y - b.x * a.y).sum();
+    let area: f32 = poly
+        .iter()
+        .zip(poly.iter().cycle().skip(1))
+        .map(|(a, b)| a.x * b.y - b.x * a.y)
+        .sum();
     if area < 0.0 {
         poly.reverse();
     }
@@ -168,7 +192,11 @@ fn accumulate(acc: &mut [f32], w: usize, h: usize, p0: Vec2, p1: Vec2) {
     if (p0.y - p1.y).abs() <= f32::EPSILON {
         return;
     }
-    let (dir, p0, p1) = if p0.y < p1.y { (1.0, p0, p1) } else { (-1.0, p1, p0) };
+    let (dir, p0, p1) = if p0.y < p1.y {
+        (1.0, p0, p1)
+    } else {
+        (-1.0, p1, p0)
+    };
     let clamp_x = |x: f32| x.clamp(0.0, w as f32 - EDGE_INSET);
     let dxdy = (p1.x - p0.x) / (p1.y - p0.y);
     let mut x = p0.x;
@@ -182,7 +210,11 @@ fn accumulate(acc: &mut [f32], w: usize, h: usize, p0: Vec2, p1: Vec2) {
         let dy = ((y + 1) as f32).min(p1.y) - (y as f32).max(p0.y);
         let xnext = x + dxdy * dy;
         let d = dy * dir;
-        let (x0, x1) = if x < xnext { (clamp_x(x), clamp_x(xnext)) } else { (clamp_x(xnext), clamp_x(x)) };
+        let (x0, x1) = if x < xnext {
+            (clamp_x(x), clamp_x(xnext))
+        } else {
+            (clamp_x(xnext), clamp_x(x))
+        };
         let x0f = x0.floor();
         let x0i = x0f as usize;
         let x1i = x1.ceil() as usize;
@@ -221,8 +253,20 @@ mod tests {
     #[test]
     fn shapes_fill_and_strokes_round() {
         let mut c = Canvas::new(20, 20);
-        c.fill(&[vec![Vec2::new(2.0, 2.0), Vec2::new(10.0, 2.0), Vec2::new(10.0, 10.0), Vec2::new(2.0, 10.0)]], Color::WHITE);
-        c.stroke(&[vec![Vec2::new(4.0, 15.0), Vec2::new(16.0, 15.0)]], 2.0, Color::rgb(0xff0000));
+        c.fill(
+            &[vec![
+                Vec2::new(2.0, 2.0),
+                Vec2::new(10.0, 2.0),
+                Vec2::new(10.0, 10.0),
+                Vec2::new(2.0, 10.0),
+            ]],
+            Color::WHITE,
+        );
+        c.stroke(
+            &[vec![Vec2::new(4.0, 15.0), Vec2::new(16.0, 15.0)]],
+            2.0,
+            Color::rgb(0xff0000),
+        );
         let img = c.into_image();
         assert_eq!(img.pixel(5, 5), Color::WHITE);
         assert_eq!(img.pixel(11, 5).a(), 0);
@@ -233,8 +277,18 @@ mod tests {
     #[test]
     fn a_square_with_a_hole_keeps_it() {
         let mut c = Canvas::new(12, 12);
-        let outer = vec![Vec2::new(1.0, 1.0), Vec2::new(11.0, 1.0), Vec2::new(11.0, 11.0), Vec2::new(1.0, 11.0)];
-        let inner = vec![Vec2::new(4.0, 4.0), Vec2::new(4.0, 8.0), Vec2::new(8.0, 8.0), Vec2::new(8.0, 4.0)];
+        let outer = vec![
+            Vec2::new(1.0, 1.0),
+            Vec2::new(11.0, 1.0),
+            Vec2::new(11.0, 11.0),
+            Vec2::new(1.0, 11.0),
+        ];
+        let inner = vec![
+            Vec2::new(4.0, 4.0),
+            Vec2::new(4.0, 8.0),
+            Vec2::new(8.0, 8.0),
+            Vec2::new(8.0, 4.0),
+        ];
         c.fill(&[outer, inner], Color::WHITE);
         let img = c.into_image();
         assert_eq!(img.pixel(2, 2), Color::WHITE);

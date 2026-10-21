@@ -1,6 +1,5 @@
 //! Entities: what a mod declares an entity type as.
 
-
 /// What kind of entity a type is.
 #[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EntityKind {
@@ -131,8 +130,10 @@ impl EntityDef {
 
     /// Itself with the sounds it doesn't name: a painting's.
     pub fn with_default_sounds(mut self) -> Self {
-        self.place_sound.get_or_insert_with(|| HANGING_PLACE_SOUND.into());
-        self.break_sound.get_or_insert_with(|| HANGING_BREAK_SOUND.into());
+        self.place_sound
+            .get_or_insert_with(|| HANGING_PLACE_SOUND.into());
+        self.break_sound
+            .get_or_insert_with(|| HANGING_BREAK_SOUND.into());
         self
     }
 }

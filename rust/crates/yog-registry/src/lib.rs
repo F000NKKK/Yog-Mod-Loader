@@ -13,7 +13,6 @@
 //! BlockDef::new("mymod:lamp").light_level(15).sound("stone");
 //! ```
 
-
 pub mod atlases;
 pub mod effects;
 pub mod item_looks;
@@ -79,8 +78,8 @@ mod worldgen;
 pub use blocks::{BlockDef, BlockProperty, Facing, Placement};
 pub use entities::{EntityDef, EntityKind};
 pub use equipment::{
-    ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, DIGGERS, GameTool, REFERENCE_KIND, REFERENCE_MATERIAL, TOOL_KINDS, ToolItem,
-    ToolMaterial,
+    ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, DIGGERS, GameTool, REFERENCE_KIND,
+    REFERENCE_MATERIAL, TOOL_KINDS, ToolItem, ToolMaterial,
 };
 pub use items::{FoodDef, Hangs, ItemDef};
 pub use recipes::{COOK_EXPERIENCE, Cooking, Recipe, RecipeKind, StartupGrant};

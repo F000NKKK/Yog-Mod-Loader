@@ -71,7 +71,11 @@ impl Color {
         if !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit()) {
             return v.parse().ok().map(Color);
         }
-        let hex = v.strip_prefix('#').or_else(|| v.strip_prefix("0x")).or_else(|| v.strip_prefix("0X"))?.replace('_', "");
+        let hex = v
+            .strip_prefix('#')
+            .or_else(|| v.strip_prefix("0x"))
+            .or_else(|| v.strip_prefix("0X"))?
+            .replace('_', "");
         let n = u32::from_str_radix(&hex, 16).ok()?;
         match hex.len() {
             6 => Some(Color::rgb(n)),
@@ -100,10 +104,12 @@ impl yog_data::Schema for Color {
     fn read(v: &yog_data::ValueRef<'_>, cx: &mut yog_data::schema::Reader) -> Option<Self> {
         match v {
             yog_data::ValueRef::Color(c) => Some(Color(*c)),
-            yog_data::ValueRef::Str(s) if s.starts_with('#') => yog_data::typed::parse_color(s).map(Color).or_else(|| {
-                cx.problem(format!("`{s}` isn't a color (#RRGGBB or #AARRGGBB)"));
-                None
-            }),
+            yog_data::ValueRef::Str(s) if s.starts_with('#') => {
+                yog_data::typed::parse_color(s).map(Color).or_else(|| {
+                    cx.problem(format!("`{s}` isn't a color (#RRGGBB or #AARRGGBB)"));
+                    None
+                })
+            }
             other => {
                 cx.expected("a color (#RRGGBB or #AARRGGBB)", other);
                 None

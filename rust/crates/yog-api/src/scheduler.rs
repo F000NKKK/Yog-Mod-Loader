@@ -21,7 +21,10 @@ struct Tasks<T> {
 
 impl<T: Clone> Tasks<T> {
     const fn new() -> Self {
-        Self { once: Vec::new(), repeating: Vec::new() }
+        Self {
+            once: Vec::new(),
+            repeating: Vec::new(),
+        }
     }
 
     /// One tick: the tasks due now — once tasks whose delay ran out (`d`
@@ -68,7 +71,10 @@ impl Registry {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        TASKS.lock().repeating.push((period_ticks, period_ticks.max(1), Arc::new(handler)));
+        TASKS
+            .lock()
+            .repeating
+            .push((period_ticks, period_ticks.max(1), Arc::new(handler)));
         self.tick_tasks();
     }
 

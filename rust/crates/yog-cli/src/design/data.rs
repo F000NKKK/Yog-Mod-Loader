@@ -10,10 +10,14 @@ pub fn to_json(v: &yog_data::Value) -> Value {
         yog_data::Value::Null => Value::Null,
         yog_data::Value::Bool(b) => Value::Bool(*b),
         yog_data::Value::Int(n) => Value::from(*n),
-        yog_data::Value::Float(f) => serde_json::Number::from_f64(*f).map_or(Value::Null, Value::Number),
+        yog_data::Value::Float(f) => {
+            serde_json::Number::from_f64(*f).map_or(Value::Null, Value::Number)
+        }
         yog_data::Value::Str(s) => Value::String(s.clone()),
         yog_data::Value::List(items) => Value::Array(items.iter().map(to_json).collect()),
-        yog_data::Value::Map(m) => Value::Object(m.iter().map(|(k, v)| (k.to_string(), to_json(v))).collect()),
+        yog_data::Value::Map(m) => {
+            Value::Object(m.iter().map(|(k, v)| (k.to_string(), to_json(v))).collect())
+        }
         typed => Value::String(yog_data::typed::typed_string(typed).unwrap_or_default()),
     }
 }
@@ -23,7 +27,10 @@ pub fn from_json(v: &Value) -> yog_data::Value {
     match v {
         Value::Null => yog_data::Value::Null,
         Value::Bool(b) => yog_data::Value::Bool(*b),
-        Value::Number(n) => n.as_i64().map_or_else(|| yog_data::Value::Float(n.as_f64().unwrap_or(0.0)), yog_data::Value::Int),
+        Value::Number(n) => n.as_i64().map_or_else(
+            || yog_data::Value::Float(n.as_f64().unwrap_or(0.0)),
+            yog_data::Value::Int,
+        ),
         Value::String(s) => yog_data::Value::Str(s.clone()),
         Value::Array(items) => yog_data::Value::List(items.iter().map(from_json).collect()),
         Value::Object(m) => {

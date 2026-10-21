@@ -19,7 +19,12 @@ use super::{gfx, images, raster};
 const SCREEN: (f32, f32) = (427.0, 240.0);
 /// The window, and its tab's view inside it.
 const WINDOW: (f32, f32) = (252.0, 140.0);
-const VIEW: Rect = Rect { x: 9.0, y: 18.0, w: 234.0, h: 113.0 };
+const VIEW: Rect = Rect {
+    x: 9.0,
+    y: 18.0,
+    w: 234.0,
+    h: 113.0,
+};
 /// Where the tab's title is written.
 const TITLE_AT: Vec2 = Vec2 { x: 8.0, y: 6.0 };
 /// A tree position's step (column, row) and a widget's frame.
@@ -133,9 +138,16 @@ pub fn render(args: &Args) -> Rendered {
     images::set_document(root.as_deref());
     let res = Resources::for_mod(root.as_deref());
     let (tab, drag) = lay_out(args);
-    let ops = gfx::record(SCREEN.0 as i32, SCREEN.1 as i32, |ctx| draw(&ctx.draw2d(), args, &tab));
+    let ops = gfx::record(SCREEN.0 as i32, SCREEN.1 as i32, |ctx| {
+        draw(&ctx.draw2d(), args, &tab)
+    });
     let canvas = raster::rasterize(&ops, SCREEN.0 as u32, SCREEN.1 as u32, SCALE, &res);
-    let image = canvas.png().ok().map(|png| format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png)));
+    let image = canvas.png().ok().map(|png| {
+        format!(
+            "data:image/png;base64,{}",
+            base64::engine::general_purpose::STANDARD.encode(png)
+        )
+    });
     let o = tab.origin;
     Rendered {
         image,
@@ -144,7 +156,10 @@ pub fn render(args: &Args) -> Rendered {
         spots: tab
             .spots
             .iter()
-            .map(|(i, p, _)| Spot { id: args.nodes[*i].id.clone(), rect: [o.x + p.x, o.y + p.y, FRAME + 1.0, FRAME + 1.0] })
+            .map(|(i, p, _)| Spot {
+                id: args.nodes[*i].id.clone(),
+                rect: [o.x + p.x, o.y + p.y, FRAME + 1.0, FRAME + 1.0],
+            })
             .collect(),
         drag,
     }
@@ -154,7 +169,11 @@ pub fn render(args: &Args) -> Rendered {
 /// (`AdvancementTab.addWidget`, `drawContents`, `scroll`); the drag accepted.
 fn lay_out(args: &Args) -> (Tab, [f32; 2]) {
     let at = layout(&args.nodes);
-    let place = |id: &str| at.iter().find(|(i, _)| i == id).map(|(_, p)| Vec2::new((p.0 * STEP.0).floor(), (p.1 * STEP.1).floor()));
+    let place = |id: &str| {
+        at.iter()
+            .find(|(i, _)| i == id)
+            .map(|(_, p)| Vec2::new((p.0 * STEP.0).floor(), (p.1 * STEP.1).floor()))
+    };
     let spots: Vec<(usize, Vec2, Option<Vec2>)> = args
         .nodes
         .iter()
@@ -162,19 +181,47 @@ fn lay_out(args: &Args) -> (Tab, [f32; 2]) {
         .filter_map(|(i, n)| Some((i, place(&n.id)?, n.parent.as_deref().and_then(place))))
         .collect();
     let min_x = spots.iter().map(|(_, p, _)| p.x).fold(f32::MAX, f32::min);
-    let max_x = spots.iter().map(|(_, p, _)| p.x + STEP.0).fold(f32::MIN, f32::max);
+    let max_x = spots
+        .iter()
+        .map(|(_, p, _)| p.x + STEP.0)
+        .fold(f32::MIN, f32::max);
     let min_y = spots.iter().map(|(_, p, _)| p.y).fold(f32::MAX, f32::min);
-    let max_y = spots.iter().map(|(_, p, _)| p.y + STEP.1).fold(f32::MIN, f32::max);
-    let centre = Vec2::new((VIEW.w / 2.0 - ((max_x + min_x) / 2.0).trunc()).trunc(), ((VIEW.h / 2.0).floor() - ((max_y + min_y) / 2.0).trunc()).trunc());
+    let max_y = spots
+        .iter()
+        .map(|(_, p, _)| p.y + STEP.1)
+        .fold(f32::MIN, f32::max);
+    let centre = Vec2::new(
+        (VIEW.w / 2.0 - ((max_x + min_x) / 2.0).trunc()).trunc(),
+        ((VIEW.h / 2.0).floor() - ((max_y + min_y) / 2.0).trunc()).trunc(),
+    );
     let axis = |centre: f32, drag: f32, extent: f32, min: f32, view: f32| {
-        if extent - min > view { (centre + drag).clamp(-(extent - view), 0.0) - centre } else { 0.0 }
+        if extent - min > view {
+            (centre + drag).clamp(-(extent - view), 0.0) - centre
+        } else {
+            0.0
+        }
     };
-    let drag = [axis(centre.x, args.drag[0], max_x, min_x, VIEW.w), axis(centre.y, args.drag[1], max_y, min_y, VIEW.h)];
+    let drag = [
+        axis(centre.x, args.drag[0], max_x, min_x, VIEW.w),
+        axis(centre.y, args.drag[1], max_y, min_y, VIEW.h),
+    ];
     let scroll = Vec2::new((centre.x + drag[0]).floor(), (centre.y + drag[1]).floor());
-    let window = Vec2::new(((SCREEN.0 - WINDOW.0) / 2.0).floor(), ((SCREEN.1 - WINDOW.1) / 2.0).floor());
+    let window = Vec2::new(
+        ((SCREEN.0 - WINDOW.0) / 2.0).floor(),
+        ((SCREEN.1 - WINDOW.1) / 2.0).floor(),
+    );
     let view = Vec2::new(window.x + VIEW.x, window.y + VIEW.y);
     let origin = Vec2::new(view.x + scroll.x, view.y + scroll.y);
-    (Tab { spots, scroll, window, view, origin }, drag)
+    (
+        Tab {
+            spots,
+            scroll,
+            window,
+            view,
+            origin,
+        },
+        drag,
+    )
 }
 
 /// The screen: the world behind dimmed, the view, the window, the title,
@@ -182,14 +229,27 @@ fn lay_out(args: &Args) -> (Tab, [f32; 2]) {
 fn draw(d: &Draw2D, args: &Args, tab: &Tab) {
     // The world behind, dimmed (here: nothing behind).
     d.rect(Rect::new(0.0, 0.0, SCREEN.0, SCREEN.1), BLACK);
-    d.gradient(Rect::new(0.0, 0.0, SCREEN.0, SCREEN.1), BACKDROP.0, BACKDROP.1);
+    d.gradient(
+        Rect::new(0.0, 0.0, SCREEN.0, SCREEN.1),
+        BACKDROP.0,
+        BACKDROP.1,
+    );
     draw_background(d, args, tab);
     draw_tree(d, args, tab);
     let w = tab.window;
     d.image(WINDOW_SPRITE, Rect::new(w.x, w.y, WINDOW.0, WINDOW.1));
-    d.text(&args.title, Vec2::new(w.x + TITLE_AT.x, w.y + TITLE_AT.y), TITLE_COLOR, false);
+    d.text(
+        &args.title,
+        Vec2::new(w.x + TITLE_AT.x, w.y + TITLE_AT.y),
+        TITLE_COLOR,
+        false,
+    );
     // The hover (`AdvancementTab.drawTooltips`, `AdvancementWidget.drawHover`).
-    if let Some((i, p, _)) = args.hover.as_deref().and_then(|h| tab.spots.iter().find(|(i, _, _)| args.nodes[*i].id == h)) {
+    if let Some((i, p, _)) = args
+        .hover
+        .as_deref()
+        .and_then(|h| tab.spots.iter().find(|(i, _, _)| args.nodes[*i].id == h))
+    {
         d.rect(tab.view_rect(), HOVER_FADE);
         hover(d, &args.nodes[*i], tab.origin, *p, w);
     }
@@ -197,12 +257,20 @@ fn draw(d: &Draw2D, args: &Args, tab: &Tab) {
 
 /// The view's background, tiled from the scroll (clipped by the view).
 fn draw_background(d: &Draw2D, args: &Args, tab: &Tab) {
-    let background = args.background.as_deref().map_or_else(|| yog_ids::game::MISSING_TEXTURE.to_string(), yog_gfx::image::short_source);
+    let background = args.background.as_deref().map_or_else(
+        || yog_ids::game::MISSING_TEXTURE.to_string(),
+        yog_gfx::image::short_source,
+    );
     let (ox, oy) = (tab.scroll.x % TILE, tab.scroll.y % TILE);
     let view = tab.view;
     for i in -1..=(VIEW.w / TILE) as i32 {
         for j in -1..=(VIEW.h / TILE) as i32 {
-            let tile = Rect::new(view.x + ox + TILE * i as f32, view.y + oy + TILE * j as f32, TILE, TILE);
+            let tile = Rect::new(
+                view.x + ox + TILE * i as f32,
+                view.y + oy + TILE * j as f32,
+                TILE,
+                TILE,
+            );
             if let Some(t) = clip(tile, tab.view_rect()) {
                 let uv = Rect::new(t.x - tile.x, t.y - tile.y, t.w, t.h);
                 d.image_region(&background, t, Some(uv), WHITE);
@@ -233,7 +301,11 @@ fn draw_tree(d: &Draw2D, args: &Args, tab: &Tab) {
         if clip(frame, view_rect).is_some() {
             d.image(&frame_sprite(&n.frame, n.obtained), frame);
             if let Some(icon) = &n.icon {
-                d.item(icon, Vec2::new(o.x + p.x + ICON_AT.x, o.y + p.y + ICON_AT.y), ICON);
+                d.item(
+                    icon,
+                    Vec2::new(o.x + p.x + ICON_AT.x, o.y + p.y + ICON_AT.y),
+                    ICON,
+                );
             }
         }
     }
@@ -242,10 +314,17 @@ fn draw_tree(d: &Draw2D, args: &Args, tab: &Tab) {
 /// The window's sprite and a frame's (`yog-gfx/assets/sprites.ydata`).
 const WINDOW_SPRITE: &str = "sprite:advancement_window";
 fn frame_sprite(frame: &str, obtained: bool) -> String {
-    format!("sprite:advancement/{frame}{}", if obtained { "_obtained" } else { "" })
+    format!(
+        "sprite:advancement/{frame}{}",
+        if obtained { "_obtained" } else { "" }
+    )
 }
 fn bar_sprite(obtained: bool) -> &'static str {
-    if obtained { "sprite:advancement/box_obtained" } else { "sprite:advancement/box" }
+    if obtained {
+        "sprite:advancement/box_obtained"
+    } else {
+        "sprite:advancement/box"
+    }
 }
 const DESCRIPTION_SPRITE: &str = "sprite:advancement/description";
 
@@ -256,16 +335,31 @@ const GREEN: char = 'a';
 
 /// The colour a frame's description is written in (`FrameType`'s chat colour).
 fn description_color(frame: &str) -> Color {
-    let code = if frame == CHALLENGE { DARK_PURPLE } else { GREEN };
+    let code = if frame == CHALLENGE {
+        DARK_PURPLE
+    } else {
+        GREEN
+    };
     Color(super::font::chat_color(code).unwrap_or(Color::WHITE.0))
 }
 
 /// `AdvancementWidget.drawConnectivity`: `GuiGraphics.hLine` / `vLine` rectangles.
 fn connector(fill: &impl Fn(Rect, Color), o: Vec2, parent: Vec2, child: Vec2, shadow: bool) {
-    let (i, j, k) = (o.x + parent.x + CONNECT_MID, o.x + parent.x + CONNECT_OUT, o.y + parent.y + CONNECT_MID);
+    let (i, j, k) = (
+        o.x + parent.x + CONNECT_MID,
+        o.x + parent.x + CONNECT_OUT,
+        o.y + parent.y + CONNECT_MID,
+    );
     let (l, m) = (o.x + child.x + CONNECT_MID, o.y + child.y + CONNECT_MID);
-    let h = |a: f32, b: f32, y: f32, c: Color| fill(Rect::new(a.min(b), y, (a - b).abs() + 1.0, 1.0), c);
-    let v = |x: f32, a: f32, b: f32, c: Color| fill(Rect::new(x, a.min(b) + 1.0, 1.0, ((a - b).abs() - 1.0).max(0.0)), c);
+    let h = |a: f32, b: f32, y: f32, c: Color| {
+        fill(Rect::new(a.min(b), y, (a - b).abs() + 1.0, 1.0), c)
+    };
+    let v = |x: f32, a: f32, b: f32, c: Color| {
+        fill(
+            Rect::new(x, a.min(b) + 1.0, 1.0, ((a - b).abs() - 1.0).max(0.0)),
+            c,
+        )
+    };
     if shadow {
         h(j, i, k - 1.0, BLACK);
         h(j + 1.0, i, k, BLACK);
@@ -295,8 +389,13 @@ fn hover(d: &yog_gfx::draw2d::Draw2D<'_>, n: &Node, o: Vec2, p: Vec2, window: Ve
     let y = o.y + p.y;
     // Flipped left when it would run off the screen; the description above when below has no room.
     let flip = o.x + p.x + width + FRAME >= SCREEN.0;
-    let up = VIEW.h - (o.y - window.y - VIEW.y) - p.y - FRAME <= FLIP_ROOM + lines.len() as f32 * LINE_H;
-    let x = if flip { o.x + p.x - width + FRAME + FLIP_ROOM } else { o.x + p.x };
+    let up =
+        VIEW.h - (o.y - window.y - VIEW.y) - p.y - FRAME <= FLIP_ROOM + lines.len() as f32 * LINE_H;
+    let x = if flip {
+        o.x + p.x - width + FRAME + FLIP_ROOM
+    } else {
+        o.x + p.x
+    };
     let box_h = DESCRIPTION_PAD + lines.len() as f32 * LINE_H;
     if !lines.is_empty() {
         let top = if up { y + FRAME - box_h } else { y };
@@ -304,14 +403,35 @@ fn hover(d: &yog_gfx::draw2d::Draw2D<'_>, n: &Node, o: Vec2, p: Vec2, window: Ve
     }
     let half = (width / 2.0).floor();
     let rest = width - half;
-    d.image_region(bar_sprite(n.obtained), Rect::new(x, y, half, FRAME), Some(Rect::new(0.0, 0.0, half, FRAME)), WHITE);
-    d.image_region(bar_sprite(n.obtained), Rect::new(x + half, y, rest, FRAME), Some(Rect::new(BAR_W - rest, 0.0, rest, FRAME)), WHITE);
-    d.image(&frame_sprite(&n.frame, n.obtained), Rect::new(o.x + p.x + FRAME_DX, y, FRAME, FRAME));
-    let title_x = if flip { x + TEXT_LEFT } else { o.x + p.x + BAR_TEXT.x };
+    d.image_region(
+        bar_sprite(n.obtained),
+        Rect::new(x, y, half, FRAME),
+        Some(Rect::new(0.0, 0.0, half, FRAME)),
+        WHITE,
+    );
+    d.image_region(
+        bar_sprite(n.obtained),
+        Rect::new(x + half, y, rest, FRAME),
+        Some(Rect::new(BAR_W - rest, 0.0, rest, FRAME)),
+        WHITE,
+    );
+    d.image(
+        &frame_sprite(&n.frame, n.obtained),
+        Rect::new(o.x + p.x + FRAME_DX, y, FRAME, FRAME),
+    );
+    let title_x = if flip {
+        x + TEXT_LEFT
+    } else {
+        o.x + p.x + BAR_TEXT.x
+    };
     d.text(&title, Vec2::new(title_x, y + BAR_TEXT.y), WHITE, true);
     let color = description_color(&n.frame);
     for (i, line) in lines.iter().enumerate() {
-        let ly = if up { y + FRAME - box_h + DESCRIPTION_TOP_UP + i as f32 * LINE_H } else { y + BAR_TEXT.y + DESCRIPTION_TOP + i as f32 * LINE_H };
+        let ly = if up {
+            y + FRAME - box_h + DESCRIPTION_TOP_UP + i as f32 * LINE_H
+        } else {
+            y + BAR_TEXT.y + DESCRIPTION_TOP + i as f32 * LINE_H
+        };
         d.text(line, Vec2::new(x + TEXT_LEFT, ly), color, false);
     }
     if let Some(icon) = &n.icon {
@@ -355,7 +475,11 @@ fn split_lines(text: &str, max: f32, width: &impl Fn(&str) -> f32) -> Vec<String
     for para in text.split('\n') {
         let mut line = String::new();
         for word in para.split(' ') {
-            let candidate = if line.is_empty() { word.to_string() } else { format!("{line} {word}") };
+            let candidate = if line.is_empty() {
+                word.to_string()
+            } else {
+                format!("{line} {word}")
+            };
             if width(&candidate) <= max || line.is_empty() && width(word) <= max {
                 line = candidate;
                 continue;
@@ -382,7 +506,10 @@ fn split_lines(text: &str, max: f32, width: &impl Fn(&str) -> f32) -> Vec<String
 /// The part of `r` inside `within`.
 fn clip(r: Rect, within: Rect) -> Option<Rect> {
     let (x0, y0) = (r.x.max(within.x), r.y.max(within.y));
-    let (x1, y1) = ((r.x + r.w).min(within.x + within.w), (r.y + r.h).min(within.y + within.h));
+    let (x1, y1) = (
+        (r.x + r.w).min(within.x + within.w),
+        (r.y + r.h).min(within.y + within.h),
+    );
     (x1 > x0 && y1 > y0).then(|| Rect::new(x0, y0, x1 - x0, y1 - y0))
 }
 
@@ -420,7 +547,9 @@ pub fn layout(nodes: &[Node]) -> Vec<(String, (f32, f32))> {
 
 /// `n`'s parent among `ids` (none: a root).
 fn parent_in<'a>(n: &'a Node, ids: &[&str]) -> Option<&'a str> {
-    n.parent.as_deref().filter(|p| ids.contains(p) && *p != n.id)
+    n.parent
+        .as_deref()
+        .filter(|p| ids.contains(p) && *p != n.id)
 }
 
 /// The advancements a tree is built from, and their ids.
@@ -450,12 +579,36 @@ struct TreeNode {
 }
 
 impl Tree {
-    fn build(&mut self, id: &str, parent: Option<usize>, previous: Option<usize>, child_index: usize, src: &Source) -> usize {
+    fn build(
+        &mut self,
+        id: &str,
+        parent: Option<usize>,
+        previous: Option<usize>,
+        child_index: usize,
+        src: &Source,
+    ) -> usize {
         let me = self.n.len();
         let x = parent.map_or(0, |p| self.n[p].x + 1);
-        self.n.push(TreeNode { id: id.to_string(), parent, previous, child_index, children: Vec::new(), ancestor: me, thread: None, x, y: -1.0, modifier: 0.0, change: 0.0, shift: 0.0 });
+        self.n.push(TreeNode {
+            id: id.to_string(),
+            parent,
+            previous,
+            child_index,
+            children: Vec::new(),
+            ancestor: me,
+            thread: None,
+            x,
+            y: -1.0,
+            modifier: 0.0,
+            change: 0.0,
+            shift: 0.0,
+        });
         let mut prev = None;
-        for child in src.nodes.iter().filter(|c| parent_in(c, src.ids) == Some(id)) {
+        for child in src
+            .nodes
+            .iter()
+            .filter(|c| parent_in(c, src.ids) == Some(id))
+        {
             if self.n.iter().any(|t| t.id == child.id) {
                 continue;
             }
@@ -486,7 +639,9 @@ impl Tree {
             default = Some(self.apportion(c, default.unwrap_or(c)));
         }
         self.execute_shifts(v);
-        let (Some(&first), Some(&last)) = (children.first(), children.last()) else { return };
+        let (Some(&first), Some(&last)) = (children.first(), children.last()) else {
+            return;
+        };
         let mid = (self.n[first].y + self.n[last].y) / 2.0;
         match self.n[v].previous {
             Some(p) => {
@@ -526,23 +681,38 @@ impl Tree {
     }
 
     fn previous_or_thread(&self, v: usize) -> Option<usize> {
-        self.n[v].thread.or_else(|| self.n[v].children.first().copied())
+        self.n[v]
+            .thread
+            .or_else(|| self.n[v].children.first().copied())
     }
 
     fn next_or_thread(&self, v: usize) -> Option<usize> {
-        self.n[v].thread.or_else(|| self.n[v].children.last().copied())
+        self.n[v]
+            .thread
+            .or_else(|| self.n[v].children.last().copied())
     }
 
     fn apportion(&mut self, v: usize, mut default: usize) -> usize {
-        let (Some(previous), Some(parent)) = (self.n[v].previous, self.n[v].parent) else { return default };
-        let (mut in_right, mut out_right, mut in_left, mut out_left) = (v, v, previous, self.n[parent].children[0]);
+        let (Some(previous), Some(parent)) = (self.n[v].previous, self.n[v].parent) else {
+            return default;
+        };
+        let (mut in_right, mut out_right, mut in_left, mut out_left) =
+            (v, v, previous, self.n[parent].children[0]);
         let (mut s_in_right, mut s_out_right) = (self.n[v].modifier, self.n[v].modifier);
         let (mut s_in_left, mut s_out_left) = (self.n[in_left].modifier, self.n[out_left].modifier);
-        while let (Some(nl), Some(pr)) = (self.next_or_thread(in_left), self.previous_or_thread(in_right)) {
+        while let (Some(nl), Some(pr)) = (
+            self.next_or_thread(in_left),
+            self.previous_or_thread(in_right),
+        ) {
             in_left = nl;
             in_right = pr;
             // The outer contours are as deep as the inner ones.
-            let (Some(ol), Some(or)) = (self.previous_or_thread(out_left), self.next_or_thread(out_right)) else { break };
+            let (Some(ol), Some(or)) = (
+                self.previous_or_thread(out_left),
+                self.next_or_thread(out_right),
+            ) else {
+                break;
+            };
             (out_left, out_right) = (ol, or);
             self.n[out_right].ancestor = v;
             let gap = self.n[in_left].y + s_in_left - (self.n[in_right].y + s_in_right) + 1.0;
@@ -561,7 +731,9 @@ impl Tree {
             self.n[out_right].thread = self.next_or_thread(in_left);
             self.n[out_right].modifier += s_in_left - s_out_right;
         } else {
-            if self.previous_or_thread(in_right).is_some() && self.previous_or_thread(out_left).is_none() {
+            if self.previous_or_thread(in_right).is_some()
+                && self.previous_or_thread(out_left).is_none()
+            {
                 self.n[out_left].thread = self.previous_or_thread(in_right);
                 self.n[out_left].modifier += s_in_right - s_out_left;
             }
@@ -573,7 +745,11 @@ impl Tree {
     fn ancestor_of(&self, of: usize, v: usize, other: usize) -> usize {
         let a = self.n[of].ancestor;
         let siblings = self.n[v].parent.map(|p| &self.n[p].children);
-        if siblings.is_some_and(|s| s.contains(&a)) { a } else { other }
+        if siblings.is_some_and(|s| s.contains(&a)) {
+            a
+        } else {
+            other
+        }
     }
 
     fn move_subtree(&mut self, from: usize, to: usize, shift: f32) {
@@ -595,7 +771,15 @@ mod tests {
     fn nodes(pairs: &[(&str, Option<&str>)]) -> Vec<Node> {
         pairs
             .iter()
-            .map(|(id, parent)| Node { id: id.to_string(), parent: parent.map(str::to_string), icon: None, frame: "task".into(), title: String::new(), description: String::new(), obtained: false })
+            .map(|(id, parent)| Node {
+                id: id.to_string(),
+                parent: parent.map(str::to_string),
+                icon: None,
+                frame: "task".into(),
+                title: String::new(),
+                description: String::new(),
+                obtained: false,
+            })
             .collect()
     }
 
@@ -605,14 +789,28 @@ mod tests {
 
     #[test]
     fn a_parent_is_centred_on_its_children() {
-        let l = layout(&nodes(&[("r", None), ("a", Some("r")), ("b", Some("r")), ("c", Some("r"))]));
+        let l = layout(&nodes(&[
+            ("r", None),
+            ("a", Some("r")),
+            ("b", Some("r")),
+            ("c", Some("r")),
+        ]));
         assert_eq!(at(&l, "r"), (0.0, 1.0));
-        assert_eq!([at(&l, "a"), at(&l, "b"), at(&l, "c")], [(1.0, 0.0), (1.0, 1.0), (1.0, 2.0)]);
+        assert_eq!(
+            [at(&l, "a"), at(&l, "b"), at(&l, "c")],
+            [(1.0, 0.0), (1.0, 1.0), (1.0, 2.0)]
+        );
     }
 
     #[test]
     fn subtrees_keep_apart() {
-        let l = layout(&nodes(&[("r", None), ("a", Some("r")), ("a1", Some("a")), ("a2", Some("a")), ("b", Some("r"))]));
+        let l = layout(&nodes(&[
+            ("r", None),
+            ("a", Some("r")),
+            ("a1", Some("a")),
+            ("a2", Some("a")),
+            ("b", Some("r")),
+        ]));
         assert_eq!(at(&l, "a1"), (2.0, 0.0));
         assert_eq!(at(&l, "a2"), (2.0, 1.0));
         assert_eq!(at(&l, "a"), (1.0, 0.5));
@@ -622,7 +820,10 @@ mod tests {
 
     #[test]
     fn a_cycle_is_still_shown() {
-        assert_eq!(layout(&nodes(&[("a", Some("b")), ("b", Some("a"))])).len(), 2);
+        assert_eq!(
+            layout(&nodes(&[("a", Some("b")), ("b", Some("a"))])).len(),
+            2
+        );
     }
 
     #[test]
@@ -632,4 +833,3 @@ mod tests {
         assert_eq!(cut_to_width("abcdef", 18.0, &w), "abc");
     }
 }
-

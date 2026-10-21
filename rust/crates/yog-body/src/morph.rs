@@ -22,19 +22,35 @@ struct Face<'a> {
 }
 
 fn faces(meshes: &[Mesh]) -> Vec<Face<'_>> {
-    meshes.iter().flat_map(|m| m.quads.iter().map(move |q| Face { texture: &m.texture, quad: *q })).collect()
+    meshes
+        .iter()
+        .flat_map(|m| {
+            m.quads.iter().map(move |q| Face {
+                texture: &m.texture,
+                quad: *q,
+            })
+        })
+        .collect()
 }
 
 fn middle(faces: &[Face<'_>]) -> Vec3 {
     if faces.is_empty() {
         return Vec3::ZERO;
     }
-    faces.iter().map(|f| f.quad.center()).fold(Vec3::ZERO, |a, b| a + b) * (1.0 / faces.len() as f32)
+    faces
+        .iter()
+        .map(|f| f.quad.center())
+        .fold(Vec3::ZERO, |a, b| a + b)
+        * (1.0 / faces.len() as f32)
 }
 
 /// A face shrunk to a point.
 fn point(at: Vec3, like: &Quad) -> Quad {
-    Quad { pos: [at; 4], uv: like.uv, normal: like.normal }
+    Quad {
+        pos: [at; 4],
+        uv: like.uv,
+        normal: like.normal,
+    }
 }
 
 fn lerp(a: &Quad, b: &Quad, t: f32) -> [Vec3; 4] {
@@ -63,13 +79,25 @@ pub fn blend(ops: &mut Ops, from: &[Mesh], to: &[Mesh], t: f32) {
         let pos = lerp(&qa, &qb, t);
         let normal = qa.normal.lerp(qb.normal, t).normalize();
         if let Some((tex, q)) = fa {
-            old.entry(tex).or_default().push(Quad { pos, uv: q.uv, normal });
+            old.entry(tex).or_default().push(Quad {
+                pos,
+                uv: q.uv,
+                normal,
+            });
         }
         if let Some((tex, q)) = fb {
-            new.entry(tex).or_default().push(Quad { pos, uv: q.uv, normal });
+            new.entry(tex).or_default().push(Quad {
+                pos,
+                uv: q.uv,
+                normal,
+            });
         }
     }
-    let faded = |k: f32| Look { mode: Mode::Translucent, glint: false, tint: Color::WHITE.with_alpha((k.clamp(0.0, 1.0) * f32::from(u8::MAX)).round() as u8) };
+    let faded = |k: f32| Look {
+        mode: Mode::Translucent,
+        glint: false,
+        tint: Color::WHITE.with_alpha((k.clamp(0.0, 1.0) * f32::from(u8::MAX)).round() as u8),
+    };
     for (tex, quads) in &old {
         if t < 1.0 {
             ops.mesh(&Anchor::Entity, tex, faded(1.0 - t), quads);
@@ -92,8 +120,15 @@ mod tests {
     use super::*;
 
     fn mesh(tex: &str, at: f32, n: usize) -> Mesh {
-        let q = Quad { pos: [Vec3::new(at, 0.0, 0.0); 4], uv: [[0.0; 2]; 4], normal: Vec3::new(0.0, 1.0, 0.0) };
-        Mesh { texture: tex.into(), quads: vec![q; n] }
+        let q = Quad {
+            pos: [Vec3::new(at, 0.0, 0.0); 4],
+            uv: [[0.0; 2]; 4],
+            normal: Vec3::new(0.0, 1.0, 0.0),
+        };
+        Mesh {
+            texture: tex.into(),
+            quads: vec![q; n],
+        }
     }
 
     #[test]

@@ -38,6 +38,13 @@ pub struct CameraOut {
 
 impl Default for CameraOut {
     fn default() -> Self {
-        Self { local_offset: Vec3::ZERO, world_offset: Vec3::ZERO, yaw: 0.0, pitch: 0.0, roll: 0.0, fov: 1.0 }
+        Self {
+            local_offset: Vec3::ZERO,
+            world_offset: Vec3::ZERO,
+            yaw: 0.0,
+            pitch: 0.0,
+            roll: 0.0,
+            fov: 1.0,
+        }
     }
 }

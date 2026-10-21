@@ -24,7 +24,11 @@ pub struct Image {
 impl Image {
     /// A transparent `width × height` image.
     pub fn new(width: u32, height: u32) -> Image {
-        Image { width, height, rgba: vec![0; width as usize * height as usize * BYTES_PER_PIXEL] }
+        Image {
+            width,
+            height,
+            rgba: vec![0; width as usize * height as usize * BYTES_PER_PIXEL],
+        }
     }
 
     /// The pixels, row by row from the top.

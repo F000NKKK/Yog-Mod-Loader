@@ -82,7 +82,11 @@ pub struct Look {
 
 impl Default for Look {
     fn default() -> Self {
-        Look { mode: Mode::Cutout, glint: false, tint: Color::WHITE }
+        Look {
+            mode: Mode::Cutout,
+            glint: false,
+            tint: Color::WHITE,
+        }
     }
 }
 
@@ -281,7 +285,11 @@ impl Reader<'_> {
         let n = self.u32()? as usize / 4;
         let mut out = Vec::with_capacity(n.min(1 << 16));
         for _ in 0..n {
-            let mut q = Quad { pos: [Vec3::ZERO; 4], uv: [[0.0; 2]; 4], normal: Vec3::ZERO };
+            let mut q = Quad {
+                pos: [Vec3::ZERO; 4],
+                uv: [[0.0; 2]; 4],
+                normal: Vec3::ZERO,
+            };
             for i in 0..4 {
                 q.pos[i] = self.vec()?;
                 q.uv[i] = [self.f32()?, self.f32()?];
@@ -322,7 +330,10 @@ impl Frame {
             let source = r.str()?;
             let mut meshes = Vec::new();
             for _ in 0..r.u16()? {
-                meshes.push(Mesh { texture: r.str()?, quads: r.quads()? });
+                meshes.push(Mesh {
+                    texture: r.str()?,
+                    quads: r.quads()?,
+                });
             }
             f.captures.push(Capture { source, meshes });
         }
@@ -339,7 +350,16 @@ impl Frame {
         let mut b = vec![2u8];
         put_str(&mut b, &self.uuid);
         put_str(&mut b, &self.entity_type);
-        for f in [self.partial, self.age, self.limb_swing, self.limb_amount, self.head_yaw, self.head_pitch, self.body_yaw, self.pitch] {
+        for f in [
+            self.partial,
+            self.age,
+            self.limb_swing,
+            self.limb_amount,
+            self.head_yaw,
+            self.head_pitch,
+            self.body_yaw,
+            self.pitch,
+        ] {
             put_f32(&mut b, f);
         }
         for p in self.pos {
@@ -388,7 +408,10 @@ impl Frame {
 
     /// The value the entity keeps under `key`.
     pub fn data(&self, key: &str) -> Option<&[u8]> {
-        self.data.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_slice())
+        self.data
+            .iter()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.as_slice())
     }
 }
 
@@ -398,7 +421,11 @@ mod tests {
 
     #[test]
     fn a_frame_reads_back() {
-        let q = Quad { pos: [Vec3::new(1.0, 2.0, 3.0); 4], uv: [[0.5, 0.25]; 4], normal: Vec3::new(0.0, 1.0, 0.0) };
+        let q = Quad {
+            pos: [Vec3::new(1.0, 2.0, 3.0); 4],
+            uv: [[0.5, 0.25]; 4],
+            normal: Vec3::new(0.0, 1.0, 0.0),
+        };
         let f = Frame {
             uuid: "u".into(),
             entity_type: "minecraft:player".into(),
@@ -407,7 +434,13 @@ mod tests {
             flags: 5,
             game_time: 1234.5,
             data: vec![("m:k".into(), vec![1, 2])],
-            captures: vec![Capture { source: "self".into(), meshes: vec![Mesh { texture: "t".into(), quads: vec![q] }] }],
+            captures: vec![Capture {
+                source: "self".into(),
+                meshes: vec![Mesh {
+                    texture: "t".into(),
+                    quads: vec![q],
+                }],
+            }],
             ..Default::default()
         };
         assert_eq!(Frame::decode(&f.encode()), Some(f));

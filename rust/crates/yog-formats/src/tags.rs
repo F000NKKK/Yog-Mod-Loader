@@ -29,11 +29,11 @@ struct Tags {
     namespaces: BTreeSet<String>,
 }
 
+/// Where a tag is everywhere.
+use yog_ids::tag_table::EVERYWHERE;
 /// The table's records: a tag and where it is, a `yog:` tag and the tags
 /// it is, what the game's content a `yog:` tag holds, what a loader's holds.
 use yog_ids::tag_table::{BASE, HAS, TAG, YOG};
-/// Where a tag is everywhere.
-use yog_ids::tag_table::EVERYWHERE;
 
 static TAGS: LazyLock<Tags> = LazyLock::new(|| {
     let mut loaders = Vec::new();
@@ -153,11 +153,7 @@ pub fn yog_tag_for(registry: &str, id: &str) -> Option<String> {
 
 /// `hosts` for people: `Fabric 1.20.1, Minecraft 1.21.1` (every loader of a version).
 pub fn describe_hosts(hosts: &BTreeSet<String>) -> String {
-    let versions: BTreeSet<&str> = TAGS
-        .hosts
-        .iter()
-        .filter_map(|h| host_version(h))
-        .collect();
+    let versions: BTreeSet<&str> = TAGS.hosts.iter().filter_map(|h| host_version(h)).collect();
     let mut out = Vec::new();
     for v in versions {
         let all: Vec<&String> = TAGS

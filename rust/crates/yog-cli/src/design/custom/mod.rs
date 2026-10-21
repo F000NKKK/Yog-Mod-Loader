@@ -19,9 +19,9 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Stdio};
+use std::time::{Duration, Instant};
 use yog_sync::mpsc::{self, Receiver, RecvTimeoutError};
 use yog_sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -225,10 +225,7 @@ impl HostProc {
         let _ = self.child.wait();
         // Give the stderr reader a moment to drain the last words.
         std::thread::sleep(Duration::from_millis(50));
-        let tail = self
-            .stderr
-            .lock()
-            .clone();
+        let tail = self.stderr.lock().clone();
         let tail: Vec<&str> = tail
             .lines()
             .rev()

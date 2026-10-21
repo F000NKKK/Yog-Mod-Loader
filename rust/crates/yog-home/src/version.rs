@@ -25,7 +25,11 @@ fn lenient(v: &str) -> Option<semver::Version> {
     semver::Version::parse(v).ok().or_else(|| {
         let core = v.split(['-', '+']).next().unwrap_or(v);
         let parts = core.split('.').count();
-        let filled = format!("{core}{}{}", ".0".repeat(3usize.saturating_sub(parts)), &v[core.len()..]);
+        let filled = format!(
+            "{core}{}{}",
+            ".0".repeat(3usize.saturating_sub(parts)),
+            &v[core.len()..]
+        );
         semver::Version::parse(&filled).ok()
     })
 }

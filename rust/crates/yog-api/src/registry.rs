@@ -8,14 +8,16 @@
 //! correct for a game server.
 
 use yog_abi::YogApi;
-use yog_formats::book::Book;
 use yog_command::CommandContext;
 use yog_dimensions::{GeneratedChunk, YogDimensionDef};
-use yog_gfx::GfxContext;
 use yog_event::client::net::Packet as ClientPacketEvent;
 use yog_event::server::net::Packet as PacketEvent;
+use yog_formats::book::Book;
+use yog_gfx::GfxContext;
 use yog_network::Packet;
-use yog_registry::{ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial};
+use yog_registry::{
+    ArmorMaterial, BlockDef, ItemDef, Recipe, SoundGroup, StartupGrant, ToolMaterial,
+};
 
 // ── Trampoline helpers ────────────────────────────────────────────────────────
 //
@@ -74,7 +76,11 @@ pub fn installed_mods() -> Vec<ModInfo> {
 /// servers). `modal` blocks game input, `pause` pauses singleplayer. Callable
 /// from any handler after registration — e.g. an `on_client_packet` handler.
 pub fn open_ui(ui_id: &str, modal: bool, pause: bool) {
-    crate::call(&yog_event::ui::Open { ui_id: ui_id.to_owned(), modal, pause });
+    crate::call(&yog_event::ui::Open {
+        ui_id: ui_id.to_owned(),
+        modal,
+        pause,
+    });
 }
 
 /// Close the Yog UI screen showing `ui_id` — e.g. from that screen's own
@@ -82,7 +88,9 @@ pub fn open_ui(ui_id: &str, modal: bool, pause: bool) {
 /// render thread, so the handler that calls it finishes first. Client side;
 /// a no-op on dedicated servers.
 pub fn close_ui(ui_id: &str) {
-    crate::call(&yog_event::ui::Close { ui_id: ui_id.to_owned() });
+    crate::call(&yog_event::ui::Close {
+        ui_id: ui_id.to_owned(),
+    });
 }
 
 /// What a [`Registry::register_ui`] handler returns: `()` (never marks
@@ -115,7 +123,10 @@ unsafe impl Sync for Registry {}
 /// A record of this mod's (`yog_api::info!`…): the `log/record` event, which
 /// the runtime writes to the game's log.
 fn log_to_host(level: yog_logging::Level, message: &str) {
-    crate::emit(&yog_event::log::Record { level: level as u32, message: message.to_owned() });
+    crate::emit(&yog_event::log::Record {
+        level: level as u32,
+        message: message.to_owned(),
+    });
 }
 
 impl Registry {
@@ -133,7 +144,9 @@ impl Registry {
         yog_event::set_caller(crate::service::call_at);
         // Atoms number the same in every mod: the runtime's table.
         if !yog_data::atom::install(crate::service::ATOMS) {
-            yog_logging::warn!("atoms were made before the mod was registered: their numbers are this mod's own");
+            yog_logging::warn!(
+                "atoms were made before the mod was registered: their numbers are this mod's own"
+            );
         }
         Self { api }
     }
@@ -146,7 +159,11 @@ impl Registry {
     /// Hands the runtime content of `kind` named `id`, its definition a Yog
     /// Data blob (`content/register`, one service for every kind).
     fn register_blob(&mut self, kind: &str, id: &str, data: &[u8]) {
-        let register = yog_event::content::Register { kind: kind.to_owned(), id: id.to_owned(), data: data.to_vec() };
+        let register = yog_event::content::Register {
+            kind: kind.to_owned(),
+            id: id.to_owned(),
+            data: data.to_vec(),
+        };
         if self.call(&register) != Some(true) {
             crate::error!("{kind} {id}: the runtime didn't take it");
         }
@@ -166,8 +183,12 @@ impl Registry {
     /// `int`, `float`, `word`, `string` (greedy, must be last), `player`, `blockpos`.
     ///
     /// In the handler use `ctx.arg_int(0)`, `ctx.arg_blockpos(1)`, etc.
-    pub fn on_typed_command<F>(&mut self, name: impl AsRef<str>, schema: impl AsRef<str>, handler: F)
-    where
+    pub fn on_typed_command<F>(
+        &mut self,
+        name: impl AsRef<str>,
+        schema: impl AsRef<str>,
+        handler: F,
+    ) where
         F: Fn(&CommandContext) -> Option<String> + Send + Sync + 'static,
     {
         self.command(name.as_ref(), Some(schema.as_ref()), handler);
@@ -180,21 +201,36 @@ impl Registry {
     where
         F: Fn(&CommandContext) -> Option<String> + Send + Sync + 'static,
     {
-        let declare = yog_event::command::CommandSpec { name: name.to_owned(), schema: schema.map(str::to_owned) };
+        let declare = yog_event::command::CommandSpec {
+            name: name.to_owned(),
+            schema: schema.map(str::to_owned),
+        };
         if self.call(&declare) != Some(true) {
             crate::error!("command {name}: the host wasn't told of it");
         }
         let handler = yog_sync::Arc::new(handler);
         for &fit in yog_command::Fit::ways(schema) {
             let (handler, schema) = (yog_sync::Arc::clone(&handler), declare.schema.clone());
-            self.change_key_at::<yog_event::server::command::Run>(name, fit.rank() as i32, move |run, _| {
-                if run.reply.is_some() {
-                    return;
-                }
-                let Some(args) = fit.take(schema.as_deref(), &run.args) else { return };
-                let ctx = CommandContext { name: run.name.clone(), args, source: run.source.clone(), uuid: run.uuid.clone(), dimension: run.dimension.clone() };
-                run.reply = handler(&ctx);
-            });
+            self.change_key_at::<yog_event::server::command::Run>(
+                name,
+                fit.rank() as i32,
+                move |run, _| {
+                    if run.reply.is_some() {
+                        return;
+                    }
+                    let Some(args) = fit.take(schema.as_deref(), &run.args) else {
+                        return;
+                    };
+                    let ctx = CommandContext {
+                        name: run.name.clone(),
+                        args,
+                        source: run.source.clone(),
+                        uuid: run.uuid.clone(),
+                        dimension: run.dimension.clone(),
+                    };
+                    run.reply = handler(&ctx);
+                },
+            );
         }
     }
 
@@ -294,7 +330,11 @@ impl Registry {
     /// `step` (`underground_ores`). An ore `.ydef` does this for you.
     pub fn add_biome_feature(&mut self, feature: &str, biomes: &str, step: &str) {
         use yog_data::Schema;
-        let f = yog_registry::BiomeFeature { feature: feature.into(), biomes: biomes.into(), step: step.into() };
+        let f = yog_registry::BiomeFeature {
+            feature: feature.into(),
+            biomes: biomes.into(),
+            step: step.into(),
+        };
         self.content(yog_ids::kind::BIOME_FEATURE, feature, &f.write());
     }
 
@@ -302,21 +342,33 @@ impl Registry {
     /// (`ItemDef::tool`) are made of. The game's are built in.
     pub fn register_tool_material(&mut self, material: ToolMaterial) {
         use yog_data::Schema;
-        self.content(yog_ids::kind::TOOL_MATERIAL, &material.id.clone(), &material.write());
+        self.content(
+            yog_ids::kind::TOOL_MATERIAL,
+            &material.id.clone(),
+            &material.write(),
+        );
     }
 
     /// Register an armor material — what armor items naming it
     /// (`ItemDef::armor`) are made of. The game's are built in.
     pub fn register_armor_material(&mut self, material: ArmorMaterial) {
         use yog_data::Schema;
-        self.content(yog_ids::kind::ARMOR_MATERIAL, &material.id.clone(), &material.write());
+        self.content(
+            yog_ids::kind::ARMOR_MATERIAL,
+            &material.id.clone(),
+            &material.write(),
+        );
     }
 
     /// Register a sound group — what blocks naming it (`BlockDef::sound`)
     /// sound like. The game's groups are built in.
     pub fn register_sound_group(&mut self, group: SoundGroup) {
         use yog_data::Schema;
-        self.content(yog_ids::kind::SOUND_GROUP, &group.id.clone(), &group.write());
+        self.content(
+            yog_ids::kind::SOUND_GROUP,
+            &group.id.clone(),
+            &group.write(),
+        );
     }
 
     /// Register a real Container/Menu inventory screen — see
@@ -332,7 +384,11 @@ impl Registry {
     /// Register a startup grant: items/books to give once when a player first joins.
     pub fn register_startup_grant(&mut self, grant: StartupGrant) {
         use yog_data::Schema;
-        self.content(yog_ids::kind::STARTUP_GRANT, &grant.id.clone(), &grant.write());
+        self.content(
+            yog_ids::kind::STARTUP_GRANT,
+            &grant.id.clone(),
+            &grant.write(),
+        );
     }
 
     /// Register a book.
@@ -402,7 +458,11 @@ impl Registry {
     where
         F: Fn(&mut GeneratedChunk) + Send + Sync + 'static,
     {
-        self.change_key_at::<GeneratedChunk>(generator_type_id, yog_abi::priority::DEFAULT, move |chunk, _| generator(chunk));
+        self.change_key_at::<GeneratedChunk>(
+            generator_type_id,
+            yog_abi::priority::DEFAULT,
+            move |chunk, _| generator(chunk),
+        );
     }
 
     /// Register a menu entry — the host renders a button on vanilla screens
@@ -415,14 +475,17 @@ impl Registry {
         installed_mods()
     }
 
-
     /// The raw `YogApi` table.
     pub fn raw_api(&self) -> *const yog_abi::YogApi {
         self.api
     }
 
     pub fn register_menu_entry(&mut self, label: &str, ui_id: &str) {
-        if self.call(&yog_event::menu::MenuEntry { label: label.to_owned(), ui_id: ui_id.to_owned() }) != Some(true) {
+        if self.call(&yog_event::menu::MenuEntry {
+            label: label.to_owned(),
+            ui_id: ui_id.to_owned(),
+        }) != Some(true)
+        {
             crate::error!("menu entry {ui_id}: the host wasn't told of it");
         }
     }
@@ -440,7 +503,9 @@ impl Registry {
         F: Fn(&str, &str) -> R + Send + Sync + 'static,
         R: UiHandled,
     {
-        self.before_key::<yog_event::client::ui::Input, _>(ui_id, move |input, _| !handler(&input.ui_id, &input.event).handled());
+        self.before_key::<yog_event::client::ui::Input, _>(ui_id, move |input, _| {
+            !handler(&input.ui_id, &input.event).handled()
+        });
     }
 
     // ── client-side hooks (ABI minor 10) ─────────────────────────────────────
@@ -489,7 +554,9 @@ impl Registry {
         S: Fn(&str, &str) -> Option<(f32, f32)> + Send + Sync + 'static,
         D: Fn(&GfxContext, &str, &str, [f32; 4]) + Send + Sync + 'static,
     {
-        self.provide_key::<yog_event::item::Picture>(item, move |p, _| size(&p.item, &p.snbt).map(|(w, h)| [w, h]));
+        self.provide_key::<yog_event::item::Picture>(item, move |p, _| {
+            size(&p.item, &p.snbt).map(|(w, h)| [w, h])
+        });
         self.on_key::<yog_event::client::render::Tooltip, _>(item, move |t, _| {
             if let Some(gfx) = crate::draw::frame_gfx() {
                 draw(&gfx, &t.item, &t.snbt, t.rect);
@@ -512,7 +579,9 @@ impl Registry {
     where
         F: Fn(&str, &str) -> Option<(Option<String>, Vec<String>)> + Send + Sync + 'static,
     {
-        self.provide_key::<yog_event::item::Text>(item, move |t, _| text(&t.item, &t.snbt).map(|(name, lines)| yog_event::item::Shown { name, lines }));
+        self.provide_key::<yog_event::item::Text>(item, move |t, _| {
+            text(&t.item, &t.snbt).map(|(name, lines)| yog_event::item::Shown { name, lines })
+        });
     }
 
     /// A compiled `.ymodel` (the generated code calls this): found later by
@@ -540,7 +609,9 @@ impl Registry {
         F: Fn(&yog_body::Frame, &mut yog_body::Ops) + Send + Sync + 'static,
     {
         self.change::<yog_event::client::render::Body>(move |e, _| {
-            let Some(frame) = yog_body::Frame::decode(&e.frame) else { return };
+            let Some(frame) = yog_body::Frame::decode(&e.frame) else {
+                return;
+            };
             let mut ops = yog_body::Ops::default();
             handler(&frame, &mut ops);
             e.ops.extend_from_slice(&ops.0);
@@ -549,7 +620,9 @@ impl Registry {
 
     /// Change the loot of some tables as `modifier` says.
     pub fn add_loot_modifier(&mut self, modifier: crate::loot::LootModifier) {
-        self.change::<yog_event::world::loot::Roll>(move |loot, _| crate::loot::apply(&modifier, loot));
+        self.change::<yog_event::world::loot::Roll>(move |loot, _| {
+            crate::loot::apply(&modifier, loot)
+        });
     }
 
     /// Register an attribute every player has — what effects change and
@@ -656,14 +729,16 @@ impl Registry {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        let declare = yog_event::key_binding::KeyBindingSpec { id: id.to_owned(), name: name.to_owned(), default_key: default_key.unwrap_or(crate::client::keys::UNBOUND) };
+        let declare = yog_event::key_binding::KeyBindingSpec {
+            id: id.to_owned(),
+            name: name.to_owned(),
+            default_key: default_key.unwrap_or(crate::client::keys::UNBOUND),
+        };
         if self.call(&declare) != Some(true) {
             crate::error!("key binding {id}: the host wasn't told of it");
         }
         self.on_key::<yog_event::client::input::Binding, _>(id, move |_, _| handler());
     }
-
-
 }
 
 // ── Mod trait ─────────────────────────────────────────────────────────────────

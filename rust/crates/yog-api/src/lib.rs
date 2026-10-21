@@ -7,13 +7,13 @@
 
 pub mod advancements;
 pub mod body;
+mod bus;
 pub mod client;
+mod draw;
 pub mod entities;
 pub mod java;
 pub mod loot;
 pub mod vanilla;
-mod bus;
-mod draw;
 pub use bus::{EventCx, Flow, IntoFlow, emit};
 pub use service::call;
 mod interop;
@@ -23,12 +23,10 @@ mod scheduler;
 mod service;
 
 #[doc(hidden)]
-pub use interop::{YogExportEntry, __yog_export_registry, __yog_serve};
+pub use interop::{__yog_export_registry, __yog_serve, YogExportEntry};
 pub use interop::{call_export, export_address};
 pub use lang::{format_translation, tag_name, tr, tr_args, translation};
-pub use registry::{
-    Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui,
-};
+pub use registry::{Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui};
 pub use yog_gfx::{
     GfxContext, core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image,
 };
@@ -116,9 +114,7 @@ macro_rules! export_mod {
                 // Blocks and items of `content/**/*.yblock|*.yitem`
                 // (`yog_api::content!()`, self-registered by `ctor`).
                 let content: ::std::vec::Vec<fn(&mut $crate::Registry)> =
-                    $crate::__yog_content_registrars()
-                        .lock()
-                        .clone();
+                    $crate::__yog_content_registrars().lock().clone();
                 for register in content {
                     register(&mut registry);
                 }
@@ -233,27 +229,30 @@ std::thread_local! {
 }
 
 pub use yog_book::BookRenderer;
-pub use yog_formats::book::{Book, BookCategory, BookEntry, BookPage};
 pub use yog_command::CommandContext;
 pub use yog_config::Config;
-pub use yog_core::{BlockHit, BlockInfo, BlockPos, EntityInfo, Face, PlacedBlock, PlayerInfo, Point, Rotation, ScreenSlot, SlotStack, Stack, entity_flags, split_state};
+pub use yog_core::{
+    BlockHit, BlockInfo, BlockPos, EntityInfo, Face, PlacedBlock, PlayerInfo, Point, Rotation,
+    ScreenSlot, SlotStack, Stack, entity_flags, split_state,
+};
 pub use yog_dimensions::{GeneratedChunk, YogDimensionDef, YogDimensionTypeDef};
 pub use yog_event::{Entity, Event, EventPhase, Message, Player, Service, World};
+/// A packet the server or the client received (`on_packet` / `on_client_packet`).
+pub use yog_event::{client::net::Packet as ClientPacketEvent, server::net::Packet as PacketEvent};
+pub use yog_formats::book::{Book, BookCategory, BookEntry, BookPage};
 pub use yog_inventory::{InventoryDef, SlotLayout};
 #[doc(inline)]
 pub use yog_network::packet;
 pub use yog_network::{Packet, PacketField};
-/// A packet the server or the client received (`on_packet` / `on_client_packet`).
-pub use yog_event::{client::net::Packet as ClientPacketEvent, server::net::Packet as PacketEvent};
 pub use yog_registry::{
-    BlockDef, BlockProperty, Facing, Placement, Cooking, EntityDef, EntityKind, FoodDef, ItemDef, Recipe,
-    ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, RecipeKind, SoundGroup, StartupGrant, ToolItem, ToolMaterial,
+    ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, BlockDef, BlockProperty, Cooking,
+    EntityDef, EntityKind, Facing, FoodDef, ItemDef, Placement, Recipe, RecipeKind, SoundGroup,
+    StartupGrant, ToolItem, ToolMaterial,
 };
 pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_ui::{
     Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, Stretch, UiRoot, Units, widget,
 };
-
 
 /// Logging macros (`yog_api::info!`, `warn!`, `error!`).
 pub use yog_logging::{error, info, warn};
@@ -272,7 +271,9 @@ pub mod event {
 /// The bus's domains: each one's actions as functions
 /// (`world::get_block(dim, pos)`, `entity::position(uuid)`,
 /// `player::give_item(name, item, count)`) beside its events.
-pub use yog_event::{block, bossbar, chat, entity, game, item, net, particle, player, scoreboard, sound, tag, world};
+pub use yog_event::{
+    block, bossbar, chat, entity, game, item, net, particle, player, scoreboard, sound, tag, world,
+};
 
 /// Content registration (custom items / blocks / food).
 pub mod content {

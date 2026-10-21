@@ -14,7 +14,6 @@
 
 use yog_data::Value;
 
-
 /// Whether mod `id` is loaded: a Yog mod, or a Java mod in Fabric's,
 /// Forge's or NeoForge's mod list. Content and code for another mod —
 /// an optional integration — go behind it.
@@ -30,5 +29,9 @@ pub fn mod_loaded(id: &str) -> bool {
 /// failed (the log says why) or answered null. For other mods' APIs only: Minecraft's own
 /// classes are renamed at run time on some loaders.
 pub fn call(expr: &str, args: &[Value]) -> Option<Value> {
-    crate::call(&yog_event::jvm::Call { expr: expr.to_owned(), args: args.to_vec() }).flatten()
+    crate::call(&yog_event::jvm::Call {
+        expr: expr.to_owned(),
+        args: args.to_vec(),
+    })
+    .flatten()
 }

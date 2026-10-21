@@ -16,7 +16,11 @@ pub struct BonePose {
 
 impl Default for BonePose {
     fn default() -> Self {
-        Self { rotation: Vec3::ZERO, position: Vec3::ZERO, scale: Vec3::ONE }
+        Self {
+            rotation: Vec3::ZERO,
+            position: Vec3::ZERO,
+            scale: Vec3::ONE,
+        }
     }
 }
 
@@ -70,7 +74,10 @@ impl Track {
     fn new(keys: &[(String, KeyDef)], f: impl Fn(Vec3) -> Vec3) -> Result<Track, String> {
         let mut out = Vec::with_capacity(keys.len());
         for (t, k) in keys {
-            let time: f32 = t.trim().parse().map_err(|_| format!("`{t}` isn't a time in seconds"))?;
+            let time: f32 = t
+                .trim()
+                .parse()
+                .map_err(|_| format!("`{t}` isn't a time in seconds"))?;
             out.push((time, f(Vec3::from_array(k.value)), k.ease));
         }
         out.sort_by(|a, b| a.0.total_cmp(&b.0));
@@ -105,13 +112,25 @@ impl Track {
 
 /// The Catmull-Rom spline's basis, doubled: row `i` weighs the four
 /// points for `tⁱ`.
-const CATMULL_ROM: [[f32; 4]; 4] = [[0.0, 2.0, 0.0, 0.0], [-1.0, 0.0, 1.0, 0.0], [2.0, -5.0, 4.0, -1.0], [-1.0, 3.0, -3.0, 1.0]];
+const CATMULL_ROM: [[f32; 4]; 4] = [
+    [0.0, 2.0, 0.0, 0.0],
+    [-1.0, 0.0, 1.0, 0.0],
+    [2.0, -5.0, 4.0, -1.0],
+    [-1.0, 3.0, -3.0, 1.0],
+];
 
 fn catmull_rom(p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, t: f32) -> Vec3 {
     let (points, powers) = ([p0, p1, p2, p3], [1.0, t, t * t, t * t * t]);
-    let doubled = CATMULL_ROM.iter().zip(powers).fold(Vec3::ZERO, |sum, (row, tp)| {
-        sum + row.iter().zip(points).fold(Vec3::ZERO, |s, (&w, p)| s + p * w) * tp
-    });
+    let doubled = CATMULL_ROM
+        .iter()
+        .zip(powers)
+        .fold(Vec3::ZERO, |sum, (row, tp)| {
+            sum + row
+                .iter()
+                .zip(points)
+                .fold(Vec3::ZERO, |s, (&w, p)| s + p * w)
+                * tp
+        });
     doubled * 0.5
 }
 
@@ -148,9 +167,18 @@ impl Clip {
             .bones
             .0
             .iter()
-            .map(|(b, t)| Tracks::new(t).map(|t| (b.clone(), t)).map_err(|e| format!("clip `{name}`, bone `{b}`: {e}")))
+            .map(|(b, t)| {
+                Tracks::new(t)
+                    .map(|t| (b.clone(), t))
+                    .map_err(|e| format!("clip `{name}`, bone `{b}`: {e}"))
+            })
             .collect::<Result<_, _>>()?;
-        Ok(Clip { name: name.to_owned(), length: d.length.max(0.0), repeat: d.repeat, bones })
+        Ok(Clip {
+            name: name.to_owned(),
+            length: d.length.max(0.0),
+            repeat: d.repeat,
+            bones,
+        })
     }
 
     /// The clip's time `t` seconds after it started, by its loop; `None`
@@ -174,7 +202,9 @@ impl Clip {
     /// The pose `t` seconds after the clip started.
     pub fn sample(&self, t: f32) -> Pose {
         let mut pose = Pose::default();
-        let Some(t) = self.local_time(t) else { return pose };
+        let Some(t) = self.local_time(t) else {
+            return pose;
+        };
         for (bone, tracks) in &self.bones {
             let p = pose.bone(bone);
             if let Some(r) = tracks.rotation.sample(t) {
@@ -197,7 +227,12 @@ pub struct Clips(pub Vec<Clip>);
 
 impl Clips {
     pub fn new(file: &AnimFile) -> Result<Clips, String> {
-        file.0.0.iter().map(|(n, c)| Clip::new(n, c)).collect::<Result<_, _>>().map(Clips)
+        file.0
+            .0
+            .iter()
+            .map(|(n, c)| Clip::new(n, c))
+            .collect::<Result<_, _>>()
+            .map(Clips)
     }
 
     pub fn get(&self, name: &str) -> Option<&Clip> {
@@ -212,20 +247,41 @@ mod tests {
 
     fn clip(repeat: Loop, ease: Ease) -> Clip {
         let rot = Ordered(vec![
-            ("0".into(), KeyDef { value: [0.0, 0.0, 0.0], ease }),
-            ("1".into(), KeyDef { value: [90.0, 0.0, 0.0], ease }),
+            (
+                "0".into(),
+                KeyDef {
+                    value: [0.0, 0.0, 0.0],
+                    ease,
+                },
+            ),
+            (
+                "1".into(),
+                KeyDef {
+                    value: [90.0, 0.0, 0.0],
+                    ease,
+                },
+            ),
         ]);
         let def = ClipDef {
             length: 1.0,
             repeat,
-            bones: Ordered(vec![("arm".into(), TracksDef { rotation: rot, ..Default::default() })]),
+            bones: Ordered(vec![(
+                "arm".into(),
+                TracksDef {
+                    rotation: rot,
+                    ..Default::default()
+                },
+            )]),
         };
         Clip::new("swing", &def).unwrap()
     }
 
     #[test]
     fn keys_are_blended() {
-        let r = clip(Loop::Once, Ease::Linear).sample(0.5).get("arm").rotation;
+        let r = clip(Loop::Once, Ease::Linear)
+            .sample(0.5)
+            .get("arm")
+            .rotation;
         assert!((r.x - std::f32::consts::FRAC_PI_4).abs() < 1e-5);
         let s = clip(Loop::Once, Ease::Step).sample(0.5).get("arm").rotation;
         assert_eq!(s.x, 0.0);
@@ -234,7 +290,10 @@ mod tests {
     #[test]
     fn loops() {
         let c = clip(Loop::Loop, Ease::Linear);
-        assert!((c.sample(1.5).get("arm").rotation.x - c.sample(0.5).get("arm").rotation.x).abs() < 1e-5);
+        assert!(
+            (c.sample(1.5).get("arm").rotation.x - c.sample(0.5).get("arm").rotation.x).abs()
+                < 1e-5
+        );
         assert!(clip(Loop::Once, Ease::Linear).finished(1.5));
         assert!(!clip(Loop::Hold, Ease::Linear).finished(1.5));
     }

@@ -101,7 +101,11 @@ impl Vec3 {
     }
 
     pub fn cross(self, o: Self) -> Self {
-        Self::new(self.y * o.z - self.z * o.y, self.z * o.x - self.x * o.z, self.x * o.y - self.y * o.x)
+        Self::new(
+            self.y * o.z - self.z * o.y,
+            self.z * o.x - self.x * o.z,
+            self.x * o.y - self.y * o.x,
+        )
     }
 
     pub fn length(self) -> f32 {
@@ -163,7 +167,9 @@ impl Default for Mat4 {
 }
 
 impl Mat4 {
-    pub const IDENTITY: Self = Self([1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]);
+    pub const IDENTITY: Self = Self([
+        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+    ]);
 
     fn at(&self, row: usize, col: usize) -> f32 {
         self.0[col * 4 + row]
@@ -188,17 +194,23 @@ impl Mat4 {
     /// Turned `a` radians about x (right-handed, as `Axis.XP`).
     pub fn rotation_x(a: f32) -> Self {
         let (s, c) = a.sin_cos();
-        Self([1.0, 0.0, 0.0, 0.0, 0.0, c, s, 0.0, 0.0, -s, c, 0.0, 0.0, 0.0, 0.0, 1.0])
+        Self([
+            1.0, 0.0, 0.0, 0.0, 0.0, c, s, 0.0, 0.0, -s, c, 0.0, 0.0, 0.0, 0.0, 1.0,
+        ])
     }
 
     pub fn rotation_y(a: f32) -> Self {
         let (s, c) = a.sin_cos();
-        Self([c, 0.0, -s, 0.0, 0.0, 1.0, 0.0, 0.0, s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0])
+        Self([
+            c, 0.0, -s, 0.0, 0.0, 1.0, 0.0, 0.0, s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0,
+        ])
     }
 
     pub fn rotation_z(a: f32) -> Self {
         let (s, c) = a.sin_cos();
-        Self([c, s, 0.0, 0.0, -s, c, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+        Self([
+            c, s, 0.0, 0.0, -s, c, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        ])
     }
 
     /// JOML's `rotationZYX(z, y, x)` (a model part's turn) — z, then y,
@@ -269,14 +281,28 @@ mod tests {
     #[test]
     fn rotations_are_right_handed() {
         let half = std::f32::consts::FRAC_PI_2;
-        assert!(close(Mat4::rotation_x(half).transform_point(Vec3::new(0.0, 1.0, 0.0)), Vec3::new(0.0, 0.0, 1.0)));
-        assert!(close(Mat4::rotation_y(half).transform_point(Vec3::new(0.0, 0.0, 1.0)), Vec3::new(1.0, 0.0, 0.0)));
-        assert!(close(Mat4::rotation_z(half).transform_point(Vec3::new(1.0, 0.0, 0.0)), Vec3::new(0.0, 1.0, 0.0)));
+        assert!(close(
+            Mat4::rotation_x(half).transform_point(Vec3::new(0.0, 1.0, 0.0)),
+            Vec3::new(0.0, 0.0, 1.0)
+        ));
+        assert!(close(
+            Mat4::rotation_y(half).transform_point(Vec3::new(0.0, 0.0, 1.0)),
+            Vec3::new(1.0, 0.0, 0.0)
+        ));
+        assert!(close(
+            Mat4::rotation_z(half).transform_point(Vec3::new(1.0, 0.0, 0.0)),
+            Vec3::new(0.0, 1.0, 0.0)
+        ));
     }
 
     #[test]
     fn moving_comes_after_turning() {
-        let m = Mat4::translation(Vec3::new(5.0, 0.0, 0.0)) * Mat4::rotation_zyx(Vec3::new(0.0, 0.0, std::f32::consts::FRAC_PI_2)) * Mat4::scaling(Vec3::ONE);
-        assert!(close(m.transform_point(Vec3::new(1.0, 0.0, 0.0)), Vec3::new(5.0, 1.0, 0.0)));
+        let m = Mat4::translation(Vec3::new(5.0, 0.0, 0.0))
+            * Mat4::rotation_zyx(Vec3::new(0.0, 0.0, std::f32::consts::FRAC_PI_2))
+            * Mat4::scaling(Vec3::ONE);
+        assert!(close(
+            m.transform_point(Vec3::new(1.0, 0.0, 0.0)),
+            Vec3::new(5.0, 1.0, 0.0)
+        ));
     }
 }

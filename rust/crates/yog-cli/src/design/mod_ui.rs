@@ -2,8 +2,8 @@
 //! (`book_page`) and its recipe layouts (`recipe_layout`) — read with
 //! yog-book's own reader and compiler, as `yog build` reads them.
 
-use yog_ids::Format;
 use std::path::{Path, PathBuf};
+use yog_ids::Format;
 
 use yog_formats::book::layout::RecipeLayout;
 use yog_formats::book::page_type::PageType;
@@ -64,7 +64,11 @@ mod tests {
         )
         .unwrap();
         std::fs::write(dir.join("src/ui/page.yui"), r#"<Component book_page="note"><Property name="t" type="book_text"/><BookText text="{x:Bind t}"/></Component>"#).unwrap();
-        std::fs::write(dir.join("src/ui/screen.yui"), r#"<Screen width="10" height="10"/>"#).unwrap();
+        std::fs::write(
+            dir.join("src/ui/screen.yui"),
+            r#"<Screen width="10" height="10"/>"#,
+        )
+        .unwrap();
         let l = super::recipe_layouts(&dir);
         assert_eq!(l.len(), 1);
         assert_eq!(l[0].1.kinds, ["mymod:crusher"]);
