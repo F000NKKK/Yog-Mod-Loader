@@ -2035,7 +2035,6 @@ dependencies = [
  "dirs",
  "semver",
  "serde",
- "serde_json",
  "yog-data",
  "yog-ids",
 ]

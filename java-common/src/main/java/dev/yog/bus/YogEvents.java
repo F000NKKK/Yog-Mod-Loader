@@ -3925,7 +3925,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             private Machine() {}
 
             /** A machine and the recipe its slots make. Pre: whether it may — the result shows only if every handler allows it (a workbench short of a resource says no); `player` empty. Post: a player took the result — the mod takes its share (the host takes the ingredients). */
-            public record Craft(String machine, String kind, String recipe, String resultItem, long resultCount, String values, YogTypes.BlockPos pos, String dimension, String player) {
+            public record Craft(String machine, String kind, String recipe, String resultItem, long resultCount, Object values, YogTypes.BlockPos pos, String dimension, String player) {
                 public java.util.Map<String, Object> toData() {
                     java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("machine", machine);
@@ -3942,7 +3942,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
                 public static Craft fromData(Object data) {
                     java.util.Map<String, Object> m = YogData.map(data);
-                    return new Craft(YogData.str(m.get("machine"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("recipe"), ""), YogData.str(m.get("result_item"), ""), YogData.integer(m.get("result_count"), 0), YogData.str(m.get("values"), ""), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("player"), ""));
+                    return new Craft(YogData.str(m.get("machine"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("recipe"), ""), YogData.str(m.get("result_item"), ""), YogData.integer(m.get("result_count"), 0), m.get("values"), YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("dimension"), ""), YogData.str(m.get("player"), ""));
                 }
 
                 public static Craft fromBytes(byte[] bytes) {
@@ -3956,7 +3956,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     p.putStr(this.recipe);
                     p.putStr(this.resultItem);
                     p.putI(this.resultCount);
-                    p.putStr(this.values);
+                    p.putTagged(this.values);
                     this.pos.pack(p);
                     p.putStr(this.dimension);
                     p.putStr(this.player);
@@ -3970,7 +3970,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     String f_recipe = u.more(end) ? u.getStr() : "";
                     String f_resultItem = u.more(end) ? u.getStr() : "";
                     long f_resultCount = u.more(end) ? u.getI() : 0L;
-                    String f_values = u.more(end) ? u.getStr() : "";
+                    Object f_values = u.more(end) ? u.getTagged() : null;
                     YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
                     String f_dimension = u.more(end) ? u.getStr() : "";
                     String f_player = u.more(end) ? u.getStr() : "";
@@ -4027,7 +4027,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
                         if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
                         if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
-                        if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                        if (u.more(end)) { o5 = u.position(); u.skipBytes(); } else { o5 = -1; }
                         if (u.more(end)) { o6 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o6 = -1; }
                         if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
                         if (u.more(end)) { o8 = u.position(); u.getU(); } else { o8 = -1; }
@@ -4064,10 +4064,10 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         return u.getI();
                     }
 
-                    public String values() {
-                        if (o5 < 0) return "";
+                    public Object values() {
+                        if (o5 < 0) return null;
                         u.seek(o5);
-                        return u.getStr();
+                        return u.getTagged();
                     }
 
                     public YogTypes.BlockPos.View pos() {

@@ -6,13 +6,13 @@
 use yog_data::Value;
 use yog_inventory::Machine;
 
-/// A recipe that fits: its id, what it makes, and its values (JSON).
+/// A recipe that fits: its id, what it makes, and its values.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Found {
     pub recipe: String,
     pub result: String,
     pub count: u32,
-    pub values: String,
+    pub values: Value,
 }
 
 /// Every recipe of `m`'s kind that fits `items` (by inventory slot, `""`
@@ -62,10 +62,10 @@ pub fn find<'r>(
             recipe: id,
             result: r.get("result")?.as_str()?.to_string(),
             count: r.get("count").and_then(Value::as_i64).unwrap_or(1).max(1) as u32,
-            values: r.get("values").map_or_else(
-                || "{}".to_string(),
-                |v| yog_data::json::to_json(v).to_string(),
-            ),
+            values: r
+                .get("values")
+                .cloned()
+                .unwrap_or_else(|| Value::Map(Default::default())),
         })
     })
 }
@@ -106,8 +106,8 @@ mod tests {
     use super::*;
     use yog_inventory::MachinePlace;
 
-    fn recipe(json: &str) -> Value {
-        yog_data::json::from_json_text(json).unwrap()
+    fn recipe(text: &str) -> Value {
+        yog_data::text::parse_value(text).unwrap()
     }
 
     #[test]
@@ -155,7 +155,7 @@ mod tests {
                 recipe: "m:plate".into(),
                 result: "m:plate".into(),
                 count: 2,
-                values: r#"{"energy":4}"#.into()
+                values: recipe("{energy: 4}")
             }]
         );
 

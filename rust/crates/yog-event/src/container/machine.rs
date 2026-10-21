@@ -16,8 +16,8 @@ pub struct Craft {
     pub recipe: String,
     pub result_item: String,
     pub result_count: u32,
-    /// The recipe's values (`{ "energy": 4 }`), as JSON.
-    pub values: String,
+    /// The recipe's values (`{ energy: 4 }`).
+    pub values: yog_data::Value,
     pub pos: BlockPos,
     pub dimension: String,
     /// Who took the result; empty before.

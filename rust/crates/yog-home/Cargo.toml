@@ -10,11 +10,11 @@ description = "Yog's home on a machine (~/.yog): the components Yog Installer pu
 [dependencies]
 # The game folder names Yog's parts share (`yog-mods`).
 yog-ids = { workspace = true }
-# The local patch (`local.toml`) read through a schema: every problem with its line.
+# The local patch (`local.toml`) read through a schema: every problem with
+# its line; what Yog Installer installed (`components.ydata`).
 yog-data = { workspace = true, features = ["toml"] }
-# What Yog Installer installed (`components.json`).
+# Run targets as Yog-IDLE's commands return them.
 serde = { workspace = true }
-serde_json = { workspace = true }
 # Versions ordered and matched (`version`).
 semver = { workspace = true }
 # The user's home folder.

@@ -220,6 +220,31 @@ impl Schema for String {
     }
 }
 
+/// A file's path, as text (a path that isn't Unicode loses what isn't).
+impl Schema for std::path::PathBuf {
+    fn shape() -> Shape {
+        Shape::Str
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        String::read(v, cx).map(Self::from)
+    }
+    fn write(&self) -> Value {
+        Value::Str(self.to_string_lossy().into_owned())
+    }
+    fn encode(&self, w: &mut Writer) {
+        w.str(&self.to_string_lossy());
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        String::decode(d).map(Self::from)
+    }
+    fn pack(&self, p: &mut Packer) {
+        p.put_str(&self.to_string_lossy());
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        u.get_str().map(Self::from)
+    }
+}
+
 /// Text everywhere but in a frame, which carries its number.
 impl Schema for crate::Atom {
     fn shape() -> Shape {
@@ -360,6 +385,26 @@ impl<T: Schema> Schema for Vec<T> {
     }
     fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
         T::unpack_list(u)
+    }
+}
+
+/// A set: a list, in order, each once.
+impl<T: Schema + Ord + Clone> Schema for std::collections::BTreeSet<T> {
+    fn shape() -> Shape {
+        Shape::List(T::shape)
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        Vec::<T>::read(v, cx).map(Self::from_iter)
+    }
+    fn write(&self) -> Value {
+        Value::List(self.iter().map(T::write).collect())
+    }
+    fn encode(&self, w: &mut Writer) {
+        // As a list of them is written (numbers packed).
+        T::encode_list(&self.iter().cloned().collect::<Vec<_>>(), w);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        Vec::<T>::decode(d).map(Self::from_iter)
     }
 }
 

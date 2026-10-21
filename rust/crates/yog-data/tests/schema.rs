@@ -385,3 +385,29 @@ fn raw_bytes_round_trip_through_text() {
     assert!(text.contains("@bytes:"), "{text}");
     assert_eq!(yog_data::from_text::<Blob>(&text).unwrap().value, blob);
 }
+
+#[test]
+fn paths_and_sets_round_trip() {
+    let path = std::path::PathBuf::from("/home/a/.yog/jdk/21");
+    assert_eq!(
+        yog_data::read_bytes::<std::path::PathBuf>(&yog_data::to_bytes(&path)).unwrap(),
+        path
+    );
+    let words: std::collections::BTreeSet<String> = ["b".into(), "a".into()].into();
+    assert_eq!(
+        yog_data::read_bytes::<std::collections::BTreeSet<String>>(&yog_data::to_bytes(&words))
+            .unwrap(),
+        words
+    );
+    let numbers: std::collections::BTreeSet<u32> = [3, 1, 2].into();
+    assert_eq!(
+        yog_data::read_bytes::<std::collections::BTreeSet<u32>>(&yog_data::to_bytes(&numbers))
+            .unwrap(),
+        numbers
+    );
+    let from_text = yog_data::text::parse_value("[2, 1, 2]").unwrap();
+    assert_eq!(
+        yog_data::read_value::<std::collections::BTreeSet<u32>>(&from_text).unwrap(),
+        [1, 2].into()
+    );
+}

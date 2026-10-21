@@ -1,8 +1,8 @@
-//! `components.json` — what Yog Installer installed, and where. Only the
-//! Installer writes it; everything else reads it.
+//! `components.ydata` — what Yog Installer installed, and where (binary Yog
+//! Data). Only the Installer writes it; everything else reads it.
 
-use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use yog_data::Schema;
 
 /// The ids of the components the rest of Yog looks for.
 pub mod id {
@@ -22,7 +22,7 @@ pub mod id {
 }
 
 /// One installed component.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Schema)]
 pub struct Installed {
     pub id: String,
     pub version: String,
@@ -31,17 +31,19 @@ pub struct Installed {
 }
 
 /// Everything installed.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Schema)]
 pub struct Components {
-    #[serde(default)]
+    #[data(default)]
     pub installed: Vec<Installed>,
 }
 
 impl Components {
     /// `path`'s components; none when the file isn't there.
     pub fn read(path: &Path) -> Result<Self, String> {
-        match std::fs::read_to_string(path) {
-            Ok(text) => serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display())),
+        match std::fs::read(path) {
+            Ok(bytes) => {
+                yog_data::read_bytes(&bytes).map_err(|e| format!("{}: {e:?}", path.display()))
+            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
             Err(e) => Err(format!("reading {}: {e}", path.display())),
         }
@@ -52,8 +54,8 @@ impl Components {
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
         }
-        let text = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
-        std::fs::write(path, text).map_err(|e| format!("writing {}: {e}", path.display()))
+        std::fs::write(path, yog_data::to_bytes(self))
+            .map_err(|e| format!("writing {}: {e}", path.display()))
     }
 
     /// The newest installed `id` (versions compared part by part).

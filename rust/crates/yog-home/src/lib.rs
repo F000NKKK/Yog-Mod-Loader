@@ -2,7 +2,7 @@
 //!
 //! Three kinds of thing live there:
 //! - what **Yog Installer** installed: the loader SDKs, JDKs and game
-//!   instances, listed in `components.json` ([`components`]). Only the
+//!   instances, listed in `components.ydata` ([`components`]). Only the
 //!   Installer writes that file.
 //! - this machine's **local patch**, `local.toml` ([`local`]): written by
 //!   hand, it overrides how the defaults are resolved (a loader checkout
@@ -24,7 +24,8 @@ const HOME_DIR: &str = ".yog";
 /// The local patch, under the home.
 const LOCAL_FILE: &str = "local.toml";
 /// What Yog Installer installed, under the home.
-const COMPONENTS_FILE: &str = "components.json";
+const COMPONENTS_FILE: &str =
+    yog_ids::concatcp!("components", yog_ids::sep::EXT, yog_ids::Format::Data.ext());
 /// Where Yog Installer installs, under the home: products (Yog IDLE), loader
 /// SDKs, JDKs, game instances, tools (zig), and its downloads while it does.
 const PRODUCTS_DIR: &str = "products";
