@@ -33,10 +33,10 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
                 if value.get(yog_ids::content_field::KIND).and_then(Value::as_str) != Some(yog_ids::kind::TAG) || value.get(yog_ids::content_field::OF).and_then(Value::as_str) != Some(yog_ids::kind::ITEM) {
                     continue;
                 }
-                let Some(raw_id) = value.get("id").and_then(Value::as_str) else { continue };
+                let Some(raw_id) = value.get(yog_ids::tag_file::ID).and_then(Value::as_str) else { continue };
                 let tag = yog_ids::qualify_in(&ns, raw_id);
                 let entries = tags.entry(tag).or_default();
-                for values in ["values", "optional"].into_iter().filter_map(|k| value.get(k).and_then(Value::as_array)) {
+                for values in [yog_ids::tag_file::VALUES, yog_ids::tag_file::OPTIONAL].into_iter().filter_map(|k| value.get(k).and_then(Value::as_array)) {
                     for entry in values.iter().filter_map(Value::as_str).map(|v| tag_entry(&ns, v)) {
                         if !entries.contains(&entry) {
                             entries.push(entry);
@@ -44,7 +44,7 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
                     }
                 }
             } else {
-                let Some(raw_id) = value.get("id").and_then(Value::as_str).or_else(|| file.file_stem().and_then(|s| s.to_str())) else { continue };
+                let Some(raw_id) = value.get(yog_ids::tag_file::ID).and_then(Value::as_str).or_else(|| file.file_stem().and_then(|s| s.to_str())) else { continue };
                 let item_id = yog_ids::qualify_in(&ns, raw_id);
                 for raw_tag in value.get("tags").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str) {
                     let entries = tags.entry(yog_ids::qualify_in(&ns, raw_tag.trim_start_matches('#'))).or_default();
@@ -90,9 +90,9 @@ fn entries(roots: &[PathBuf], own: &BTreeMap<String, Vec<String>>, tag: &str) ->
         for dir in yog_ids::registry_dirs(REGISTRY) {
             let rel = format!("{ns}/{}/{dir}/{path}{}", yog_ids::pack::TAGS, yog_ids::res::JSON);
             let Some(file) = v.read_data(&rel).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else { continue };
-            for e in file.get("values").and_then(Value::as_array).into_iter().flatten() {
+            for e in file.get(yog_ids::tag_file::VALUES).and_then(Value::as_array).into_iter().flatten() {
                 // `"id"` or `{ "id": …, "required": false }`.
-                if let Some(id) = e.as_str().or_else(|| e.get("id").and_then(Value::as_str)) {
+                if let Some(id) = e.as_str().or_else(|| e.get(yog_ids::tag_file::ID).and_then(Value::as_str)) {
                     out.push(id.to_owned());
                 }
             }

@@ -33,6 +33,7 @@ public final class YogNames {
         private Word() {}
 
         public static final String GUI = "gui";
+        public static final String VALUES = "values";
         public static final String ITEMS = "items";
         public static final String BLOCKS = "blocks";
         public static final String ENTITIES = "entities";
@@ -960,6 +961,16 @@ public final class YogNames {
         public static final String NS = "ns";
         public static final String ASSET = "asset";
         public static final String MCMETA = "mcmeta";
+    }
+
+    public static final class TagFile {
+        private TagFile() {}
+
+        public static final String VALUES = "values";
+        public static final String OPTIONAL = "optional";
+        public static final String REPLACE = "replace";
+        public static final String ID = "id";
+        public static final String REQUIRED = "required";
     }
 
     public static final class AtlasSource {

@@ -40,6 +40,7 @@ names! {
     /// the common fields' names.
     word {
         GUI = "gui",
+        VALUES = "values",
         /// The plurals the game names folders and atlases by.
         ITEMS = "items",
         BLOCKS = "blocks",

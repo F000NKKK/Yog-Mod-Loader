@@ -333,6 +333,17 @@ names! {
         MCMETA = "mcmeta",
     }
 
+    /// The fields of the game's tag files (`data/<ns>/tags/<registry>/<path>.json`).
+    tag_file {
+        VALUES = crate::word::VALUES,
+        /// What a loader reads alongside `values` (Forge's).
+        OPTIONAL = "optional",
+        REPLACE = "replace",
+        /// An entry that may be missing: `{ "id": …, "required": false }`.
+        ID = crate::word::ID,
+        REQUIRED = "required",
+    }
+
     /// The game's atlas definitions (`atlases/<atlas>.json`): their sources —
     /// a whole texture (`single`), or sprites cut from one picture
     /// (`unstitch`, its regions).
