@@ -6,8 +6,9 @@ use yog_event::{client, content, entity, game};
 use super::duties::provide;
 
 /// A Yog mod's `.yres` name or description in the player's language, else as written.
-fn localized(text: &str, key: &str) -> String {
-    crate::machine_api::translate(key).unwrap_or_else(|| text.to_owned())
+fn localized(text: &str, key: Option<&str>) -> String {
+    key.and_then(crate::machine_api::translate)
+        .unwrap_or_else(|| text.to_owned())
 }
 
 /// Every installed mod: the Yog mods loaded, then the loader's.
@@ -17,11 +18,11 @@ fn mods() -> Vec<game::ModInfo> {
         .iter()
         .map(|m| game::ModInfo {
             source: yog_ids::mod_source::YOG.to_owned(),
-            id: m[0].clone(),
-            name: localized(&m[1], &m[5]),
-            version: m[2].clone(),
-            authors: m[3].clone(),
-            description: localized(&m[4], &m[6]),
+            id: m.id.clone(),
+            name: localized(&m.name, m.name_key.as_deref()),
+            version: m.version.clone(),
+            authors: m.authors.join(", "),
+            description: localized(&m.description, m.description_key.as_deref()),
         })
         .collect();
     out.extend(super::call(&game::PlatformMods {}).unwrap_or_default());

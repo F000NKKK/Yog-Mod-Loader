@@ -60,3 +60,29 @@ pub struct ManifestFile {
     #[data(default)]
     pub external: Ordered<ExternalSection>,
 }
+
+/// What a built `.yog` says about its mod (`yog_ids::archive::MANIFEST`):
+/// what the loader shows of it and orders the mods by, without the project.
+#[derive(Schema, Debug, Clone, Default, PartialEq)]
+pub struct Built {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    #[data(default)]
+    pub description: String,
+    #[data(default)]
+    pub authors: Vec<String>,
+    #[data(default)]
+    pub license: String,
+    /// The platforms it has natives for.
+    #[data(default)]
+    pub platforms: Vec<String>,
+    /// The translation keys of `name` and `description`, when they're `.yres` texts.
+    pub name_key: Option<String>,
+    pub description_key: Option<String>,
+    /// Its icon, an image source.
+    pub icon: Option<String>,
+    /// The Yog mods it needs loaded before it, by id.
+    #[data(default)]
+    pub dependencies: Vec<String>,
+}

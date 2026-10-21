@@ -4,9 +4,10 @@
 use std::io::Write as _;
 use std::process::Command;
 
+use yog_ids::platform::{self, Platform};
+
 use super::targets::{
-    RUST_TOOLCHAIN, TARGETS, Target, first_line_of, has_zigbuild, install_targets,
-    installed_targets,
+    RUST_TOOLCHAIN, first_line_of, has_zigbuild, install_targets, installed_targets,
 };
 
 pub(super) fn setup() -> Result<(), String> {
@@ -144,7 +145,7 @@ pub(super) fn try_install_zig() -> bool {
 pub(super) fn check_targets() {
     eprintln!("  [?] rustup cross-compile targets ...");
     let installed = installed_targets();
-    let needed: Vec<&str> = TARGETS
+    let needed: Vec<&str> = platform::ALL
         .iter()
         .map(|t| t.triple)
         .filter(|triple| !installed.iter().any(|s| s == triple))
@@ -157,7 +158,7 @@ pub(super) fn check_targets() {
         "       installing Rust {RUST_TOOLCHAIN}: {} ...",
         needed.join(", ")
     );
-    let all: Vec<&Target> = TARGETS.iter().collect();
+    let all: Vec<&Platform> = platform::ALL.iter().collect();
     install_targets(&all);
     let installed = installed_targets();
     let missing = needed
@@ -191,7 +192,7 @@ pub(super) fn doctor() -> DoctorReport {
         rustup: first_line_of("rustup", &["--version"]),
         cargo_zigbuild: has_zigbuild(),
         zig: first_line_of("zig", &["version"]),
-        targets: TARGETS
+        targets: platform::ALL
             .iter()
             .map(|t| (t.tag, t.triple, installed.iter().any(|s| s == t.triple)))
             .collect(),

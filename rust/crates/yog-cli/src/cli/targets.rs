@@ -5,41 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use yog_cli::manifest::to_snake_name;
-
-/// A platform Yog can target.
-pub(super) struct Target {
-    pub(super) triple: &'static str,
-    pub(super) tag: &'static str,
-    pub(super) os: &'static str,
-}
-
-pub(super) const TARGETS: &[Target] = &[
-    Target {
-        triple: "x86_64-unknown-linux-gnu",
-        tag: "linux-x86_64",
-        os: "linux",
-    },
-    Target {
-        triple: "aarch64-unknown-linux-gnu",
-        tag: "linux-aarch64",
-        os: "linux",
-    },
-    Target {
-        triple: "x86_64-pc-windows-gnu",
-        tag: "windows-x86_64",
-        os: "windows",
-    },
-    Target {
-        triple: "x86_64-apple-darwin",
-        tag: "macos-x86_64",
-        os: "macos",
-    },
-    Target {
-        triple: "aarch64-apple-darwin",
-        tag: "macos-aarch64",
-        os: "macos",
-    },
-];
+use yog_ids::platform::{self, Platform};
 
 pub(super) enum Builder {
     Zig,
@@ -168,7 +134,7 @@ pub(super) const RUST_TOOLCHAIN: &str = env!("CARGO_PKG_RUST_VERSION");
 /// `.yog-build/rust-toolchain.toml` — pins the toolchain and lists every
 /// target so rustup fetches them on its own. Generated, never hand-written.
 pub(super) fn generate_rust_toolchain() -> String {
-    let targets: Vec<String> = TARGETS
+    let targets: Vec<String> = platform::ALL
         .iter()
         .map(|t| format!("    \"{}\",\n", t.triple))
         .collect();
@@ -187,7 +153,7 @@ pub(super) fn generate_rust_toolchain() -> String {
 /// (`rustup toolchain install` would update a channel like `1.99` to its
 /// newest patch, every build); and one `yog` installs at a time — builds
 /// running side by side would break each other's downloads.
-pub(super) fn install_targets(targets: &[&Target]) {
+pub(super) fn install_targets(targets: &[&Platform]) {
     if targets.is_empty() {
         return;
     }

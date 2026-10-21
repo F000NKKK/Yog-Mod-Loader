@@ -40,6 +40,7 @@ mod names {
 pub mod env;
 pub mod export;
 mod formats;
+pub mod platform;
 #[cfg(test)]
 mod tests;
 pub mod time;

@@ -29,6 +29,14 @@ names! {
         LOCK = crate::concatcp!(crate::ns::YOG, crate::sep::EXT, "lock"),
     }
 
+    /// What a built `.yog` holds besides the mod's files.
+    archive {
+        /// What it says about its mod (`yog_formats::manifest::Built`, Yog Data).
+        MANIFEST = crate::concatcp!(crate::word::MOD, crate::sep::EXT, crate::Format::Data.ext()),
+        /// Its native libraries, one folder per platform: `natives/linux-x86_64/libmymod.so`.
+        NATIVES = "natives",
+    }
+
     /// The pack the build writes for the hosts.
     pack {
         /// The game's data: `data/<ns>/…`.

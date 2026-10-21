@@ -1,18 +1,19 @@
 //! `yog build`, `yog check`, `yog bench`, `yog designer-lib`: the mod
 //! compiled, its assets gathered, the `.yog` packaged.
 
-use std::fmt::Write as _;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use yog_cli::manifest::{MANIFEST, YogToml};
+use yog_cli::manifest::YogToml;
 use yog_cli::{bench, content};
 
 use super::prepare::{Prepared, prepare};
+use yog_ids::platform::{self, Platform};
+
 use super::targets::{
-    Builder, TARGETS, Target, filter_benign_warnings, install_targets, installed_targets,
-    lib_filename, selected_targets,
+    Builder, filter_benign_warnings, install_targets, installed_targets, lib_filename,
+    selected_targets,
 };
 
 /// `yog check` — `cargo check` of the mod for the host platform, after the
@@ -138,9 +139,9 @@ pub(super) fn build(debugging_symbols: bool, dev: bool) -> Result<(YogToml, Path
 pub(super) const ARTIFACTS_DIR: &str = "artifacts";
 
 /// The platforms `YOG_TARGETS` picks (all when unset).
-fn wanted_targets() -> Vec<&'static Target> {
+fn wanted_targets() -> Vec<&'static Platform> {
     let selected = selected_targets();
-    TARGETS
+    platform::ALL
         .iter()
         .filter(|t| {
             selected
@@ -312,7 +313,7 @@ pub(super) fn package(
             .file_name()
             .and_then(|n| n.to_str())
             .ok_or("bad native filename")?;
-        let entry = format!("natives/{tag}/{lib_name}");
+        let entry = format!("{}/{tag}/{lib_name}", yog_ids::archive::NATIVES);
         let bytes = std::fs::read(native).map_err(|e| e.to_string())?;
         zip.start_file(&entry, opts).map_err(|e| e.to_string())?;
         zip.write_all(&bytes).map_err(|e| e.to_string())?;
@@ -323,35 +324,27 @@ pub(super) fn package(
         zip.write_all(bytes).map_err(|e| e.to_string())?;
     }
 
-    let platforms = bundled
-        .iter()
-        .map(|(t, _)| format!("{t:?}"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    let authors = meta
-        .authors
-        .iter()
-        .map(|a| format!("{a:?}"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    // The full metadata travels inside the archive so the loader can show it
-    // (mod list UI etc.) without needing the source project.
-    let mut manifest = format!(
-        "id = {:?}\nname = {:?}\nversion = {:?}\ndescription = {:?}\nauthors = [{}]\nlicense = {:?}\nabi = 2\nplatforms = [{platforms}]\n",
-        meta.id, meta.name, meta.version, meta.description, authors, meta.license,
-    );
-    // Localized metadata: the loader shows the translation when it has one.
-    for (field, value) in [
-        ("name_key", &meta.name_key),
-        ("description_key", &meta.description_key),
-        ("icon", &meta.icon),
-    ] {
-        if let Some(v) = value {
-            let _ = writeln!(manifest, "{field} = {v:?}");
-        }
-    }
-    zip.start_file(MANIFEST, opts).map_err(|e| e.to_string())?;
-    zip.write_all(manifest.as_bytes())
+    // What the loader shows of the mod and orders the mods by, without the project.
+    let built = yog_formats::manifest::Built {
+        id: meta.id.clone(),
+        name: meta.name.clone(),
+        version: meta.version.clone(),
+        description: meta.description.clone(),
+        authors: meta.authors.clone(),
+        license: meta.license.clone(),
+        platforms: bundled.iter().map(|(t, _)| t.clone()).collect(),
+        name_key: meta.name_key.clone(),
+        description_key: meta.description_key.clone(),
+        icon: meta.icon.clone(),
+        dependencies: meta
+            .mod_dependencies
+            .iter()
+            .map(|(id, _)| id.clone())
+            .collect(),
+    };
+    zip.start_file(yog_ids::archive::MANIFEST, opts)
+        .map_err(|e| e.to_string())?;
+    zip.write_all(&yog_data::to_bytes(&built))
         .map_err(|e| e.to_string())?;
     zip.finish().map_err(|e| e.to_string())?;
     Ok(())

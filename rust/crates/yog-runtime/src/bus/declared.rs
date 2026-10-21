@@ -28,8 +28,8 @@ fn category(id: &str) -> String {
     let infos = crate::globals::MOD_INFOS.lock();
     infos
         .iter()
-        .find(|m| m[0] == ns)
-        .map_or_else(|| ns.to_owned(), |m| m[1].clone())
+        .find(|m| m.id == ns)
+        .map_or_else(|| ns.to_owned(), |m| m.name.clone())
 }
 
 /// The declaration services; once, at start.

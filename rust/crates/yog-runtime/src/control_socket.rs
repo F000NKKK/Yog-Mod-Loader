@@ -94,9 +94,9 @@ fn mod_list() -> Vec<ModInfo> {
         .lock()
         .iter()
         .map(|m| ModInfo {
-            id: m[0].clone(),
-            name: m[1].clone(),
-            version: m[2].clone(),
+            id: m.id.clone(),
+            name: m.name.clone(),
+            version: m.version.clone(),
         })
         .collect()
 }

@@ -901,6 +901,16 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(MANIFEST, LOCK);
     }
 
+    public static final class Archive {
+        private Archive() {}
+
+        public static final String MANIFEST = "mod.ydata";
+        public static final String NATIVES = "natives";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MANIFEST, NATIVES);
+    }
+
     public static final class Pack {
         private Pack() {}
 

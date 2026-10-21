@@ -30,10 +30,8 @@ pub(super) static HOT_RELOADER: LazyLock<HotReloader<RuntimeModuleRegistry>> =
 /// synchronously inside one `yog_mod_register` call — see `load_mod_lib`
 /// and, in dev builds, `trigger_hot_reload`.
 pub(super) static CURRENT_REGISTRATION: Mutex<Option<LoadedModule>> = Mutex::new(None);
-/// Metadata of loaded .yog mods: [id, name, version, authors, description,
-/// name_key, description_key] (the keys empty unless the mod's yog.toml
-/// gives its name/description as `.yres` texts).
-pub(super) static MOD_INFOS: Mutex<Vec<[String; 7]>> = Mutex::new(Vec::new());
+/// What the loaded `.yog`s say about their mods.
+pub(super) static MOD_INFOS: Mutex<Vec<yog_formats::manifest::Built>> = Mutex::new(Vec::new());
 /// Stable api table. Mods capture this pointer at registration (yog-api's
 /// `installed_mods()` calls through it later, e.g. from UI render) — so it
 /// must outlive `nativeInit`, not live on its stack. `ctx` inside points at

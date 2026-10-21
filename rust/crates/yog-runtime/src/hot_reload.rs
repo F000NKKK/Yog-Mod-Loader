@@ -8,7 +8,7 @@ use yog_abi::{ABI_VERSION, YogApi};
 
 use crate::globals::API_TABLE;
 use crate::handlers::hot_reloader;
-use crate::mod_loading::{AbiVersionFn, extract_yog, invoke_mod_register, platform_tag};
+use crate::mod_loading::{AbiVersionFn, extract_yog, invoke_mod_register};
 
 /// Rebuilds and re-registers `mod_id` from a freshly built `.yog` at
 /// `new_yog_path`: extracts the current platform's native, loads it as a
@@ -24,7 +24,7 @@ pub(crate) fn trigger_hot_reload(mod_id: &str, new_yog_path: &Path) -> bool {
         yog_logging::error!(
             "hot-reload {}: no native for {} in {}",
             mod_id,
-            platform_tag(),
+            yog_ids::platform::host_tag(),
             new_yog_path.display()
         );
         return false;

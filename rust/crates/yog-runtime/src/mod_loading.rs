@@ -9,13 +9,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use yog_abi::ABI_VERSION;
 use yog_abi::YogApi;
+use yog_formats::manifest::Built;
 use yog_hot_reload::LoadedModule;
 
 // ── Mod loading ───────────────────────────────────────────────────────────────
-
-pub(super) fn platform_tag() -> String {
-    format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
-}
 
 pub(super) type AbiVersionFn = unsafe extern "C" fn() -> u32;
 /// Second arg is a null-terminated C string: the mod's `id` from its manifest.
@@ -30,33 +27,27 @@ pub(super) fn load_mods(dir: &Path, api: &YogApi) {
         }
     };
 
-    // First pass: collect (mod_id, dependencies, archive_path)
+    // First pass: what each `.yog` says about its mod.
     struct ModMeta {
-        id: String,
-        deps: Vec<String>,
+        info: Built,
         yog_path: PathBuf,
     }
-    let mut metas: Vec<ModMeta> = Vec::new();
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !yog_ids::Format::Mod.is(&path) {
-            continue;
-        }
-        let info = read_mod_info(&path);
-        let deps = read_mod_deps(&path);
-        metas.push(ModMeta {
-            id: info[0].clone(),
-            deps,
-            yog_path: path,
-        });
-    }
+    let metas: Vec<ModMeta> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| yog_ids::Format::Mod.is(path))
+        .map(|yog_path| ModMeta {
+            info: read_mod_info(&yog_path),
+            yog_path,
+        })
+        .collect();
 
     // Topological sort by dependencies (Kahn's algorithm)
-    let ids: Vec<String> = metas.iter().map(|m| m.id.clone()).collect();
+    let ids: Vec<String> = metas.iter().map(|m| m.info.id.clone()).collect();
     // Known before any registers: a mod's optional integrations with a Yog
     // mod loaded after it still see it.
     YOG_MOD_IDS.write().extend(ids.iter().cloned());
-    let deps_list: Vec<Vec<String>> = metas.iter().map(|m| m.deps.clone()).collect();
+    let deps_list: Vec<Vec<String>> = metas.iter().map(|m| m.info.dependencies.clone()).collect();
     let sorted = match topo_sort_mods(&ids, &deps_list) {
         Some(v) => v,
         None => {
@@ -73,17 +64,17 @@ pub(super) fn load_mods(dir: &Path, api: &YogApi) {
             None => {
                 yog_logging::error!(
                     "no native for {} in {}",
-                    platform_tag(),
+                    yog_ids::platform::host_tag(),
                     meta.yog_path.display()
                 );
                 continue;
             }
         };
-        if let Some(module) = load_mod_lib(&lib_path, api, &meta.id) {
+        if let Some(module) = load_mod_lib(&lib_path, api, &meta.info.id) {
             loaded.push(module);
             #[cfg(feature = "dev")]
-            crate::registrations::record(&meta.id, &meta.yog_path);
-            MOD_INFOS.lock().push(read_mod_info(&meta.yog_path));
+            crate::registrations::record(&meta.info.id, &meta.yog_path);
+            MOD_INFOS.lock().push(meta.info.clone());
         }
     }
     yog_logging::info!("loaded {} mod(s) from {}", loaded.len(), dir.display());
@@ -192,116 +183,38 @@ pub(super) fn invoke_mod_register(
         .unwrap_or_else(|| Err("module was unloaded before registration could run".to_string()))
 }
 
-/// Metadata for a mod file: [id, name, version, authors, description,
-/// name_key, description_key].
-/// For .yog archives this comes from the bundled yog.toml; bare native libs
-/// fall back to the file stem.
-pub(super) fn read_mod_info(path: &Path) -> [String; 7] {
-    let stem = path
-        .file_stem()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    let mut info = [
-        stem.clone(),
-        stem,
-        String::new(),
-        String::new(),
-        String::new(),
-        String::new(),
-        String::new(),
-    ];
-    if !yog_ids::Format::Mod.is(path) {
-        return info;
-    }
-    let Some(text) = (|| {
+/// What a mod file says about its mod: a `.yog`'s manifest; a bare native
+/// library (or a `.yog` without one) goes by its file's stem.
+pub(super) fn read_mod_info(path: &Path) -> Built {
+    let built = yog_ids::Format::Mod.is(path).then(|| {
         let file = std::fs::File::open(path).ok()?;
         let mut archive = zip::ZipArchive::new(file).ok()?;
-        let mut entry = archive.by_name("yog.toml").ok()?;
-        let mut text = String::new();
-        std::io::Read::read_to_string(&mut entry, &mut text).ok()?;
-        Some(text)
-    })() else {
-        return info;
-    };
-    // Minimal parse — enough for id/name/version/description/authors without
-    // pulling in a TOML dependency. Source manifests keep these under [mod];
-    // the packaged manifest (written by yog-cli) has them at top level, so
-    // keys before any section header count too.
-    let mut in_mod = true;
-    for line in text.lines() {
-        let line = line.trim();
-        if line.starts_with('[') {
-            in_mod = line == "[mod]";
-            continue;
+        let mut entry = archive.by_name(yog_ids::archive::MANIFEST).ok()?;
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut entry, &mut bytes).ok()?;
+        yog_data::read_bytes::<Built>(&bytes).ok()
+    });
+    built.flatten().unwrap_or_else(|| {
+        let stem = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        Built {
+            id: stem.clone(),
+            name: stem,
+            ..Built::default()
         }
-        if !in_mod {
-            continue;
-        }
-        let Some((key, value)) = line.split_once('=') else {
-            continue;
-        };
-        let key = key.trim();
-        let value = value.trim();
-        let unquote = |v: &str| v.trim().trim_matches('"').to_string();
-        match key {
-            "id" => info[0] = unquote(value),
-            "name" => info[1] = unquote(value),
-            "version" => info[2] = unquote(value),
-            "description" => info[4] = unquote(value),
-            "name_key" => info[5] = unquote(value),
-            "description_key" => info[6] = unquote(value),
-            "authors" => {
-                let list = value.trim_start_matches('[').trim_end_matches(']');
-                let authors: Vec<String> = list
-                    .split(',')
-                    .map(unquote)
-                    .filter(|a| !a.is_empty())
-                    .collect();
-                info[3] = authors.join(", ");
-            }
-            _ => {}
-        }
-    }
-    info
-}
-
-/// Parse `[dependencies]` section from yog.toml inside a .yog archive.
-pub(super) fn read_mod_deps(path: &Path) -> Vec<String> {
-    if !yog_ids::Format::Mod.is(path) {
-        return Vec::new();
-    }
-    let text = (|| {
-        let file = std::fs::File::open(path).ok()?;
-        let mut archive = zip::ZipArchive::new(file).ok()?;
-        let mut entry = archive.by_name("yog.toml").ok()?;
-        let mut text = String::new();
-        std::io::Read::read_to_string(&mut entry, &mut text).ok()?;
-        Some(text)
-    })();
-    let Some(text) = text else { return Vec::new() };
-    let mut deps = Vec::new();
-    let mut in_deps = false;
-    for line in text.lines() {
-        let line = line.trim();
-        if line.starts_with('[') {
-            in_deps = line == "[dependencies]";
-            continue;
-        }
-        if !in_deps {
-            continue;
-        }
-        // `mod_id = "1.0"` or `mod_id = "*"` — we only care about the key (mod_id)
-        if let Some((key, _)) = line.split_once('=') {
-            deps.push(key.trim().to_string());
-        }
-    }
-    deps
+    })
 }
 
 pub(super) fn extract_yog(path: &Path) -> Option<PathBuf> {
     let file = std::fs::File::open(path).ok()?;
     let mut archive = zip::ZipArchive::new(file).ok()?;
-    let prefix = format!("natives/{}/", platform_tag());
+    let prefix = format!(
+        "{}/{}/",
+        yog_ids::archive::NATIVES,
+        yog_ids::platform::host_tag()
+    );
     let mut entry_name = None;
     for i in 0..archive.len() {
         let f = archive.by_index(i).ok()?;
