@@ -18,7 +18,6 @@ const USAGE: &str = include_str!("usage.txt");
 /// The flags commands take.
 const DEV: &str = "--dev";
 const DEBUG_FLAG: &str = "--debug";
-const JSON: &str = "--json";
 const LIST: &str = "--list";
 const MOD: &str = "--mod";
 const DRY_RUN: &str = "--dry-run";
@@ -64,7 +63,7 @@ pub(crate) fn main(args: &[String]) {
         Some("new") => new::new_mod(rest.first().map(String::as_str)),
         Some("setup") => setup::setup(),
         Some("doctor") => {
-            setup::doctor_cmd(has(JSON));
+            setup::doctor_cmd();
             Ok(())
         }
         Some("-V" | "--version" | "version") => {
@@ -137,7 +136,7 @@ fn dep_name(rest: &[String]) -> Option<&str> {
 fn run_cmd(rest: &[String]) -> Result<(), String> {
     let has = |flag: &str| rest.iter().any(|a| a == flag);
     if has(LIST) {
-        return run::list_run_targets(has(JSON));
+        return run::list_run_targets();
     }
     let (debug, dev) = (has(DEBUG_FLAG), has(DEV));
     let words: Vec<&str> = rest

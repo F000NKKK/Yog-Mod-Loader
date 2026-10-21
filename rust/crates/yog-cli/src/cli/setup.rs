@@ -199,40 +199,7 @@ pub(super) fn doctor() -> DoctorReport {
     }
 }
 
-/// A JSON string literal (the report only holds tool version lines).
-pub(super) fn json_str(s: &str) -> String {
-    serde_json::Value::String(s.to_string()).to_string()
-}
-
-pub(super) fn json_opt(s: &Option<String>) -> String {
-    s.as_deref().map_or_else(|| "null".to_string(), json_str)
-}
-
 impl DoctorReport {
-    fn to_json(&self) -> String {
-        let targets: Vec<String> = self
-            .targets
-            .iter()
-            .map(|(tag, triple, installed)| {
-                format!(
-                    "{{\"tag\":{},\"triple\":{},\"installed\":{installed}}}",
-                    json_str(tag),
-                    json_str(triple)
-                )
-            })
-            .collect();
-        format!(
-            "{{\"cli_version\":{},\"rust_toolchain\":{},\"cargo\":{},\"rustup\":{},\"cargo_zigbuild\":{},\"zig\":{},\"targets\":[{}]}}",
-            json_str(self.cli_version),
-            json_str(self.rust_toolchain),
-            json_opt(&self.cargo),
-            json_opt(&self.rustup),
-            self.cargo_zigbuild,
-            json_opt(&self.zig),
-            targets.join(",")
-        )
-    }
-
     fn print(&self) {
         let show = |name: &str, v: &Option<String>| match v {
             Some(v) => println!("  [ok] {name:<16} {v}"),
@@ -266,14 +233,6 @@ impl DoctorReport {
 }
 
 /// `yog doctor [--json]`: the report, for people or (`json`) for tools.
-pub(super) fn doctor_cmd(json: bool) {
-    let report = doctor();
-    if json {
-        println!("{}", report.to_json());
-    } else {
-        report.print();
-    }
+pub(super) fn doctor_cmd() {
+    doctor().print();
 }
-
-#[cfg(test)]
-mod tests;

@@ -2035,7 +2035,6 @@ version = "0.2.2"
 dependencies = [
  "dirs",
  "semver",
- "serde",
  "yog-data",
  "yog-ids",
 ]

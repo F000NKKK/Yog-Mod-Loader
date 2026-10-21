@@ -10,7 +10,6 @@
 use crate::components::{self, Components};
 use crate::local::{Local, RunSection, pairs};
 use crate::{Home, resolve_in};
-use serde::Serialize;
 use std::path::{Path, PathBuf};
 
 /// What a Yog Mod Loader source tree is laid out as (its `build.sh` and Gradle builds).
@@ -49,8 +48,7 @@ enum How {
 }
 
 /// One run target.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 pub struct Target {
     /// What `yog run` takes: `fabric-26.2`, or a local target's id.
     pub id: String,
@@ -60,7 +58,6 @@ pub struct Target {
     /// The Minecraft version; none for a local target.
     pub variant: Option<String>,
     pub label: String,
-    #[serde(skip)]
     how: How,
 }
 

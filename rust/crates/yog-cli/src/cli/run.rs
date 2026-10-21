@@ -10,17 +10,11 @@ use super::prepare::write_file;
 
 /// `yog run --list`: every run target, a line each. `--json`, for editors:
 /// `{"targets": [...], "sources": [folders they're read from]}`.
-pub(super) fn list_run_targets(json: bool) -> Result<(), String> {
+pub(super) fn list_run_targets() -> Result<(), String> {
     let home = yog_home::Home::locate()?;
     let resolver = yog_home::targets::Resolver::new(&home)?;
-    let targets = resolver.targets()?;
-    if json {
-        let list = serde_json::json!({ "targets": targets, "sources": resolver.sources(&home) });
-        println!("{list}");
-    } else {
-        for t in &targets {
-            println!("{:<20} {}", t.id, t.label);
-        }
+    for t in &resolver.targets()? {
+        println!("{:<20} {}", t.id, t.label);
     }
     Ok(())
 }
