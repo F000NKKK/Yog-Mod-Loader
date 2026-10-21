@@ -8,6 +8,8 @@
 //! the mod's library ([`custom`](super::custom)).
 
 use yog_ids::Format;
+use yog_ids::prop_kind;
+use yog_ids::yui_component as ca;
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -127,7 +129,7 @@ pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
         return None;
     }
     let name = root
-        .attr("name")
+        .attr(ca::NAME)
         .map(str::trim)
         .filter(|n| !n.is_empty())
         .map(str::to_string)
@@ -138,33 +140,18 @@ pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
         .filter(|c| DECLARATIONS.contains(&c.kind.as_str()))
         .map(|c| {
             let kind = if c.kind == yog_ids::yui::EVENT {
-                "event".to_string()
+                prop_kind::EVENT.to_string()
             } else {
-                c.attr("type").unwrap_or("text").trim().to_string()
+                c.attr(ca::TYPE).unwrap_or(prop_kind::TEXT).trim().to_string()
             };
-            let options: Vec<String> = c
-                .attr("options")
-                .unwrap_or_default()
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect();
-            let default =
-                c.attr("default")
-                    .map(str::to_string)
-                    .unwrap_or_else(|| match kind.as_str() {
-                        "number" | "int" => "0".into(),
-                        "bool" => "false".into(),
-                        "color" => "#FFFFFFFF".into(),
-                        "choice" => options.first().cloned().unwrap_or_default(),
-                        _ => String::new(),
-                    });
+            let options = crate::yui_component::options_of(c.attr(ca::OPTIONS));
+            let default = c.attr(ca::DEFAULT).map_or_else(|| crate::yui_component::default_of(&kind, &options), str::to_string);
             PropInfo {
-                name: c.attr("name").unwrap_or_default().trim().to_string(),
+                name: c.attr(ca::NAME).unwrap_or_default().trim().to_string(),
                 kind,
                 default,
-                doc: c.attr("doc").unwrap_or_default().to_string(),
-                category: c.attr("category").unwrap_or_default().to_string(),
+                doc: c.attr(ca::DOC).unwrap_or_default().to_string(),
+                category: c.attr(ca::CATEGORY).unwrap_or_default().to_string(),
                 options,
             }
         })
@@ -185,13 +172,13 @@ pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
     };
     let info = ComponentInfo {
         name,
-        description: text("description"),
-        display_name: text("display_name"),
-        icon: text("icon"),
-        category: text("category"),
-        design_w: size("design_w"),
-        design_h: size("design_h"),
-        toolbox: root.attr("toolbox").is_none_or(|v| v.trim() != "false"),
+        description: text(ca::DESCRIPTION),
+        display_name: text(ca::DISPLAY_NAME),
+        icon: text(ca::ICON),
+        category: text(ca::CATEGORY),
+        design_w: size(ca::DESIGN_W),
+        design_h: size(ca::DESIGN_H),
+        toolbox: root.attr(ca::TOOLBOX).is_none_or(|v| v.trim() != yog_ids::yui_value::FALSE),
         props,
         file: Some(file.to_string_lossy().into_owned()),
     };
@@ -326,8 +313,8 @@ pub fn design_root(root: &YuiNode) -> YuiNode {
         root.attr(if layout { own } else { design }).unwrap_or(default).to_string()
     };
     let mut attrs = HashMap::from([
-        ("width".to_string(), size("width", "design_w", "120")),
-        ("height".to_string(), size("height", "design_h", "40")),
+        ("width".to_string(), size("width", ca::DESIGN_W, "120")),
+        ("height".to_string(), size("height", ca::DESIGN_H, "40")),
         ("anchor".to_string(), "center".to_string()),
     ]);
     if let Some(bg) = root.attr("d:bg") {

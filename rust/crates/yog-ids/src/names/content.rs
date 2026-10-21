@@ -9,7 +9,7 @@ names! {
         FILE = crate::word::FILE,
         SOUND = crate::word::SOUND,
         COLOR = crate::word::COLOR,
-        NUMBER = "number",
+        NUMBER = crate::word::NUMBER,
         BOOL = crate::word::BOOL,
     }
 

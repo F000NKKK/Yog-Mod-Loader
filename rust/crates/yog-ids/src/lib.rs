@@ -33,6 +33,7 @@ mod names {
     pub mod content;
     pub mod datapack;
     pub mod services;
+    pub mod ui;
 }
 pub mod export;
 mod formats;
@@ -48,6 +49,7 @@ pub use names::bus::*;
 pub use names::content::*;
 pub use names::datapack::*;
 pub use names::services::*;
+pub use names::ui::*;
 
 /// A group of names: its name, and each name with its value.
 pub type Group = (&'static str, &'static [(&'static str, &'static str)]);
@@ -59,6 +61,7 @@ pub const ALL: &[&[Group]] = &[
     names::services::ALL,
     names::content::ALL,
     names::datapack::ALL,
+    names::ui::ALL,
 ];
 
 /// Every group of names, in order.

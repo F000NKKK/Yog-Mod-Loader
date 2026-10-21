@@ -1170,9 +1170,15 @@ pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
     find_files(dir, yog_ids::Format::Ui.ext())
 }
 
+/// What [`generate_all`] did: how many screens it read, what to warn of.
+pub struct Generated {
+    pub screens: usize,
+    pub warnings: Vec<String>,
+}
+
 /// `yog build`'s step: regenerates every `src/**/*.yui`'s `.g.rs` and drops
 /// generated files whose `.yui` is gone.
-pub fn generate_all(root: &Path) -> Result<usize, String> {
+pub fn generate_all(root: &Path) -> Result<Generated, String> {
     let files = find_yui_files(&root.join("src"));
     let mut wanted = Vec::new();
     for file in &files {
@@ -1183,7 +1189,8 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
         wanted.push(generate_file(root, file)?);
     }
     // Components without a code-behind, for `ui_components!()`.
-    wanted.push(crate::yui_component::write_index(root)?);
+    let (index, warning) = crate::yui_component::write_index(root)?;
+    wanted.push(index);
     // `.yres` accessors live there too (`crate::yres` cleans those up).
     let res_index = root.join(crate::yres::GENERATED_FILE);
     let res_dir = root.join(crate::yres::GENERATED_DIR);
@@ -1201,7 +1208,7 @@ pub fn generate_all(root: &Path) -> Result<usize, String> {
             let _ = std::fs::remove_file(&stale);
         }
     }
-    Ok(files.len())
+    Ok(Generated { screens: files.len(), warnings: warning.into_iter().collect() })
 }
 
 #[cfg(test)]
@@ -1480,7 +1487,7 @@ mod tests {
         std::fs::write(&yui, r#"<Screen id="a:b"/>"#).unwrap();
         assert_eq!(project_root(&yui).as_deref(), Some(dir.as_path()));
         assert_eq!(include_name(&dir, &yui), "screens/opts");
-        assert_eq!(generate_all(&dir).unwrap(), 1);
+        assert_eq!(generate_all(&dir).unwrap().screens, 1);
         let generated = dir.join(".yog-build/generated/screens/opts.g.rs");
         assert!(generated.is_file());
         std::fs::remove_file(&yui).unwrap();

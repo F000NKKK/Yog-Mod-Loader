@@ -71,6 +71,7 @@ public final class YogNames {
         public static final String NAME = "name";
         public static final String NONE = "none";
         public static final String NORTH = "north";
+        public static final String NUMBER = "number";
         public static final String OUTLINE = "outline";
         public static final String RIGHT = "right";
         public static final String SIZE = "size";
@@ -1345,6 +1346,37 @@ public final class YogNames {
         public static final String IMPOSSIBLE = "minecraft:impossible";
         public static final String INVENTORY_CHANGED = "minecraft:inventory_changed";
         public static final String CONSUME_ITEM = "minecraft:consume_item";
+    }
+
+    public static final class YuiComponent {
+        private YuiComponent() {}
+
+        public static final String NAME = "name";
+        public static final String DISPLAY_NAME = "display_name";
+        public static final String DESCRIPTION = "description";
+        public static final String ICON = "icon";
+        public static final String CATEGORY = "category";
+        public static final String DESIGN_W = "design_w";
+        public static final String DESIGN_H = "design_h";
+        public static final String TOOLBOX = "toolbox";
+        public static final String TYPE = "type";
+        public static final String DEFAULT = "default";
+        public static final String OPTIONS = "options";
+        public static final String DOC = "doc";
+        public static final String DESIGN_PREFIX = "d:";
+    }
+
+    public static final class PropKind {
+        private PropKind() {}
+
+        public static final String TEXT = "text";
+        public static final String NUMBER = "number";
+        public static final String INT = "int";
+        public static final String BOOL = "bool";
+        public static final String COLOR = "color";
+        public static final String CHOICE = "choice";
+        public static final String EVENT = "event";
+        public static final String IMAGE = "image";
     }
 
     /** Yog's file formats' extensions (`Format`). */

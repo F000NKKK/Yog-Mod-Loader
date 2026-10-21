@@ -40,6 +40,7 @@ use yog_ids::{yui_attr as attr, yui_value as value};
 
 use crate::FlexDir;
 use crate::widget::{self, Widget};
+use yog_ids::prop_kind;
 use yog_sync::Locked;
 
 /// A property's type: how `.yui` writes it and how the designer edits it.
@@ -68,14 +69,14 @@ impl PropKind {
     /// The designer's name for the kind.
     pub fn as_str(self) -> &'static str {
         match self {
-            PropKind::Text => "text",
-            PropKind::Number => "number",
-            PropKind::Int => "int",
-            PropKind::Bool => "bool",
-            PropKind::Color => "color",
-            PropKind::Choice(_) => "choice",
-            PropKind::Event => "event",
-            PropKind::Image => "image",
+            PropKind::Text => prop_kind::TEXT,
+            PropKind::Number => prop_kind::NUMBER,
+            PropKind::Int => prop_kind::INT,
+            PropKind::Bool => prop_kind::BOOL,
+            PropKind::Color => prop_kind::COLOR,
+            PropKind::Choice(_) => prop_kind::CHOICE,
+            PropKind::Event => prop_kind::EVENT,
+            PropKind::Image => prop_kind::IMAGE,
         }
     }
 }

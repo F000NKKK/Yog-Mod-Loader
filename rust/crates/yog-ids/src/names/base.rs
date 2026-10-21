@@ -81,6 +81,7 @@ names! {
         NAME = "name",
         NONE = "none",
         NORTH = "north",
+        NUMBER = "number",
         OUTLINE = "outline",
         RIGHT = "right",
         SIZE = "size",

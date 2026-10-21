@@ -71,7 +71,7 @@ fn build(root: &Path, mod_id: &str) -> String {
     }
     yui::set_resource_refs(&res.refs);
     match yui::generate_all(root) {
-        Ok(0) => {}
+        Ok(g) if g.screens == 0 => {}
         Ok(_) => {
             let dir = root.join(yui::GENERATED_DIR);
             let mut files = walk(&dir);

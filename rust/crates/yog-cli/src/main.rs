@@ -369,7 +369,10 @@ fn prepare() -> Result<Prepared, String> {
     let cargo_toml = generate_cargo_toml(&meta, &benches);
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 
-    let screens = yui::generate_all(&root)?;
+    let yui::Generated { screens, warnings } = yui::generate_all(&root)?;
+    for w in warnings {
+        eprintln!("    warning: {w}");
+    }
     if screens > 0 {
         eprintln!(
             "    generated code for {screens} .yui screen(s) into {}/",
@@ -716,7 +719,7 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
             let out = yui::generate_file(&root, &file)?;
             eprintln!("==> {} -> {}", file.display(), out.display());
         }
-        yui_component::write_index(&root)?;
+        warn_index(&root)?;
         return Ok(());
     }
     for file in files.iter().map(PathBuf::from) {
@@ -729,7 +732,15 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
         load_resource_refs(&root);
         let out = yui::generate_file(&root, &file)?;
         eprintln!("==> {} -> {}", file.display(), out.display());
-        yui_component::write_index(&root)?;
+        warn_index(&root)?;
+    }
+    Ok(())
+}
+
+/// Writes the components' index, saying what's wrong with it.
+fn warn_index(root: &Path) -> Result<(), String> {
+    if let (_, Some(w)) = yui_component::write_index(root)? {
+        eprintln!("    warning: {w}");
     }
     Ok(())
 }
