@@ -6,8 +6,7 @@
 use serde_json::json;
 use std::path::Path;
 use yog_ids::{equipment, item_def, res};
-use crate::content::Compiled;
-use crate::content::pretty;
+use crate::content::{Compiled, pretty};
 
 /// An opaque colour from `0xRRGGBB`, as the game's item tints take it (ARGB, signed).
 const OPAQUE: u32 = 0xFF00_0000;

@@ -18,9 +18,9 @@ use yog_formats::content::{BlockFile, ItemFile, Model, Register};
 use yog_ids::{Format, content_field};
 
 use crate::content::file::{check_format, file_id};
-use crate::content::{
-    BlockProps, Compiled, Ctx, Entry, ItemProps, Lang, Loc, TAG_REF, datapack, pretty,
-};
+use crate::content::ctx::{Ctx, Loc, Wanted};
+use crate::content::entry::{BlockProps, Entry, ItemProps};
+use crate::content::{Compiled, Lang, datapack, pretty};
 use crate::yres;
 
 pub(super) use loot::{drops_table, kind_drops};
@@ -224,46 +224,24 @@ fn read_parts(
             return None;
         }
     };
-    for f in &refs {
-        cx.deferred.push((
-            cx.file.clone(),
-            loc(&f.path),
-            f.path.to_string(),
-            f.value.clone(),
-        ));
+    for f in refs {
+        cx.defer(loc(&f.path), &f.path, Wanted::Ref(f.value));
     }
-    for f in &tag_refs {
-        cx.deferred.push((
-            cx.file.clone(),
-            loc(&f.path),
-            f.path.to_string(),
-            yog_data::Ref::new(format!("{TAG_REF}{}", f.value.kind), f.value.id.clone()),
-        ));
+    for f in tag_refs {
+        cx.defer(loc(&f.path), &f.path, Wanted::Tag { kinds: vec![f.value.kind], id: f.value.id });
     }
     // Its tags (checked like the rest): a block's are block or item tags.
-    let of = if kind == Format::Block {
-        BLOCK_OR_ITEM_TAG
-    } else {
-        yog_ids::kind::ITEM
-    };
+    let kinds: &[&str] = if kind == Format::Block { &[yog_ids::kind::BLOCK, yog_ids::kind::ITEM] } else { &[yog_ids::kind::ITEM] };
     for (i, tag) in parts.tags.iter().enumerate() {
         let at = At::root().key(field!(ItemFile, tags)).index(i);
         let tag = yog_ids::qualify_in(
             mod_ns.unwrap_or(yog_ids::ns::MINECRAFT),
-            tag.trim_start_matches(yog_ids::sep::TAG_SHOWN),
+            tag.trim_start_matches(yog_ids::sep::TAG),
         );
-        cx.deferred.push((
-            cx.file.clone(),
-            loc(&at),
-            at.to_string(),
-            yog_data::Ref::new(format!("{TAG_REF}{of}"), tag),
-        ));
+        cx.defer(loc(&at), &at, Wanted::Tag { kinds: kinds.iter().map(|k| k.to_string()).collect(), id: tag });
     }
     Some(parts)
 }
-
-/// A block's tags may be either kind's: what the deferred check takes.
-const BLOCK_OR_ITEM_TAG: &str = yog_ids::concatcp!(yog_ids::kind::BLOCK, "|", yog_ids::kind::ITEM);
 
 /// Materials: their textures under the models' own; a block's render layer,
 /// when it gives none, its model's material's.

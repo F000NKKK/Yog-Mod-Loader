@@ -11,7 +11,8 @@
 //!   one of the game's fonts as the mod's own `.yfont` ([`font`]).
 
 use super::json::{J, V, to_pretty};
-use super::{TEMPLATES, template, valid_namespace, valid_path};
+use super::vocab::{DIRECTIONS, DISPLAY_SLOTS, RENDER_LAYERS, TEMPLATES, Template, template};
+use super::{valid_namespace, valid_path};
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 use std::io::Read as _;
@@ -372,7 +373,7 @@ impl Models<'_> {
 
 
 /// The template a vanilla model id is.
-fn template_of(id: &str) -> Option<&'static super::Template> {
+fn template_of(id: &str) -> Option<&'static Template> {
     let id = yog_ids::qualify(id);
     TEMPLATES.iter().find(|t| t.parent == id)
 }
@@ -586,7 +587,7 @@ fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
     }
     let mut faces = J::obj::<&str>([]);
     if let Some(Value::Object(f)) = e.get("faces") {
-        for dir in super::DIRECTIONS {
+        for dir in DIRECTIONS {
             let Some(face) = f.get(dir) else { continue };
             let mut fo = J::obj([(
                 "texture",
@@ -715,7 +716,7 @@ fn import_block(
     let model_id = model_id.unwrap_or_else(|| format!("{ns}:block/{name}"));
     let (model, render) = convert_model(t, models, pack, &model_id, false)?;
     let mut j = header(t, ns, name, pack, "block");
-    if let Some(r) = render.filter(|r| super::RENDER_LAYERS.contains(&r.as_str()) && r != "solid") {
+    if let Some(r) = render.filter(|r| RENDER_LAYERS.contains(&r.as_str()) && r != "solid") {
         j.set("block", J::obj([("render_layer", J::string(r))]));
     }
     j.set("model", model);
@@ -1059,7 +1060,7 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
             el.set("shade", J::of(V::Bool(false)));
         }
         let mut faces = J::obj::<&str>([]);
-        for dir in super::DIRECTIONS {
+        for dir in DIRECTIONS {
             let Some(f) = e.pointer(&format!("/faces/{dir}")) else {
                 continue;
             };
@@ -1131,7 +1132,7 @@ fn import_bbmodel(t: &mut Target, file: &Path, id: Option<&str>, item: bool) -> 
     if let Some(Value::Object(d)) = bb.get("display") {
         let mut display = J::obj::<&str>([]);
         for (slot, v) in d {
-            if !super::DISPLAY_SLOTS.contains(&slot.as_str()) {
+            if !DISPLAY_SLOTS.contains(&slot.as_str()) {
                 continue;
             }
             let mut o = J::obj::<&str>([]);

@@ -9,7 +9,9 @@ use yog_formats::content::{BlockFile, BlockKind, BlockShape, Drops, TriggeredBy}
 
 use super::{Emit, Parts, drops_table, kind_drops, states};
 use crate::content::model::{KindBlock, kind_models, model};
-use crate::content::{Ctx, Entry, Loc, datapack, pretty, valid_id};
+use crate::content::{datapack, pretty, valid_id};
+use crate::content::ctx::{Ctx, Loc};
+use crate::content::entry::Entry;
 
 /// The block's properties onto `entry`; its models, states, item form,
 /// loot table and tool tags written.

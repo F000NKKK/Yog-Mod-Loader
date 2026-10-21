@@ -106,7 +106,7 @@ pub fn blockstate_file(path: &str) -> String {
 
 /// The registries of entities and biomes, which aren't named as their kind.
 const ENTITY_REGISTRY: &str = crate::concatcp!(kind::ENTITY, sep::WORD, crate::word::TYPE);
-const BIOME_REGISTRY: &str = crate::concatcp!("worldgen", sep::PATH, kind::BIOME);
+const BIOME_REGISTRY: &str = crate::concatcp!(crate::worldgen::DIR, sep::PATH, kind::BIOME);
 
 /// The game's registry of content `kind` — what its tags' and data's
 /// folders are named: `entity` → `entity_type`, `biome` → `worldgen/biome`.

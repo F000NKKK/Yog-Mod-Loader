@@ -8,7 +8,8 @@ use yog_formats::recipe::{
 };
 use yog_registry::recipe_kinds::GRID_SIDE;
 
-use crate::content::{Ctx, Loc, RecipeKind};
+use crate::content::ctx::{Ctx, Loc};
+use crate::content::recipe::registration::RecipeKind;
 
 /// A crafting grid pattern: 1–3 rows of the same 1–3 characters, each
 /// character a key (space: an empty place).

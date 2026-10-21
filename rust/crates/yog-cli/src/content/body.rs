@@ -1,16 +1,12 @@
 //! `.yentity`, `.ymodel`/`.yanim` and `.yfont` files: checked and built.
 
-use yog_ids::Format;
-use std::path::Path;
-use crate::content::BodyFile;
-use crate::content::CONTENT_DIR;
 use crate::content::Compiled;
-use crate::content::Ctx;
-use crate::content::EntityFile;
-use crate::content::FontFile;
 use crate::content::block_item::text_key;
+use crate::content::ctx::{Ctx, Shared};
 use crate::content::file::file_id;
-
+use crate::content::files::{BodyFile, EntityFile, FontFile};
+use std::path::Path;
+use yog_ids::Format;
 
 /// A `.yentity`'s id and name.
 const ID: &str = yog_data::field!(yog_registry::EntityDef, id);
@@ -18,7 +14,13 @@ const NAME: &str = yog_data::field!(yog_registry::EntityDef, name);
 
 /// Checks a `.yentity`: its id (the file's name by default), its name into
 /// the lang (`entity.<ns>.<path>`), the rest by `yog_registry::EntityDef`.
-pub(super) fn compile_entity(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Option<&str>, out: &mut Compiled) -> Option<EntityFile> {
+pub(super) fn compile_entity(
+    cx: &mut Ctx,
+    text: &str,
+    path: &Path,
+    mod_ns: Option<&str>,
+    out: &mut Compiled,
+) -> Option<EntityFile> {
     use yog_data::Value;
     let mut value = match yog_data::text::parse_value(text) {
         Ok(v) => v,
@@ -28,7 +30,10 @@ pub(super) fn compile_entity(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Opti
         }
     };
     let Value::Map(map) = &mut value else {
-        cx.err(1, "an entity is an object: { \"kind\": \"mob\", \"width\": …, \"height\": …, … }");
+        cx.err(
+            1,
+            "an entity is an object: { \"kind\": \"mob\", \"width\": …, \"height\": …, … }",
+        );
         return None;
     };
     let given = map.get(ID).and_then(Value::as_str).map(str::to_owned);
@@ -77,7 +82,13 @@ pub(super) fn compile_entity(cx: &mut Ctx, text: &str, path: &Path, mod_ns: Opti
 }
 
 /// Checks a `.yfont` and stores it as binary Yog Data.
-pub(super) fn compile_font(shown: &str, text: &str, root: &Path, path: &Path, ns: &str, errors: &mut Vec<String>) -> Option<FontFile> {
+pub(super) fn compile_font(
+    cx: &Shared,
+    shown: &str,
+    text: &str,
+    path: &Path,
+    errors: &mut Vec<String>,
+) -> Option<FontFile> {
     let font = match yog_data::from_text::<yog_font::Font>(text) {
         Ok(read) => read.value,
         Err(problems) => {
@@ -88,27 +99,31 @@ pub(super) fn compile_font(shown: &str, text: &str, root: &Path, path: &Path, ns
         }
     };
     if let Err(problems) = font.validate() {
-        errors.extend(problems.into_iter().map(|problem| format!("{shown}: {problem}")));
+        errors.extend(
+            problems
+                .into_iter()
+                .map(|problem| format!("{shown}: {problem}")),
+        );
         return None;
     }
-    let rel = path.strip_prefix(root.join(CONTENT_DIR)).unwrap_or(path).with_extension("");
-    let id = format!("{ns}:{}", rel.to_string_lossy().replace('\\', "/"));
-    Some(FontFile { id, data: font.to_bytes() })
+    Some(FontFile {
+        id: cx.content_id(path),
+        data: font.to_bytes(),
+    })
 }
 
 /// Checks a `.ymodel` (its schema, and that it makes a model: parents
 /// before children, names once) or a `.yanim` (schema, times).
-/// Where a body file is read: the mod's root, its namespace and its textures.
-pub(super) struct BodyCx<'a> {
-    pub root: &'a Path,
-    pub ns: &'a str,
-    pub own_textures: &'a std::collections::BTreeSet<String>,
-}
-
-pub(super) fn compile_body(cx: &BodyCx, shown: &str, text: &str, kind: Format, path: &Path, errors: &mut Vec<String>) -> Option<BodyFile> {
-    let (root, ns) = (cx.root, cx.ns);
-    let rel = path.strip_prefix(root.join(CONTENT_DIR)).unwrap_or(path).with_extension("");
-    let id = format!("{ns}:{}", rel.to_string_lossy().replace('\\', "/"));
+pub(super) fn compile_body(
+    cx: &Shared,
+    shown: &str,
+    text: &str,
+    kind: Format,
+    path: &Path,
+    errors: &mut Vec<String>,
+) -> Option<BodyFile> {
+    let ns = cx.ns;
+    let id = cx.content_id(path);
     let report = |errors: &mut Vec<String>, e: yog_data::Errors| {
         for l in e.0 {
             errors.push(format!("{shown}:{l}"));
@@ -129,7 +144,12 @@ pub(super) fn compile_body(cx: &BodyCx, shown: &str, text: &str, kind: Format, p
         // The mod's own texture must be one of its `.ytexture`s.
         let (tns, tpath) = yog_ids::split(&file.texture);
         if tns == ns && !cx.own_textures.contains(&file.texture) {
-            errors.push(format!("{shown}: texture `{}`: no {}/{}", file.texture, crate::yres::RESOURCES_DIR, Format::Texture.file(tpath)));
+            errors.push(format!(
+                "{shown}: texture `{}`: no {}/{}",
+                file.texture,
+                crate::yres::RESOURCES_DIR,
+                Format::Texture.file(tpath)
+            ));
             return None;
         }
         yog_data::Schema::write(&file)
@@ -147,5 +167,9 @@ pub(super) fn compile_body(cx: &BodyCx, shown: &str, text: &str, kind: Format, p
         }
         yog_data::Schema::write(&file)
     };
-    Some(BodyFile { model: kind == Format::Model, id, data: yog_data::binary::encode(&value) })
+    Some(BodyFile {
+        model: kind == Format::Model,
+        id,
+        data: yog_data::binary::encode(&value),
+    })
 }

@@ -216,7 +216,7 @@ use crate::yui::Element;
 use yog_ids::{yui, yui_attr};
 
 /// The fields every page has: a property can't take their names.
-const OWN_FIELDS: [&str; 2] = [TYPE_FIELD, ANCHOR_FIELD];
+pub const OWN_FIELDS: [&str; 2] = [TYPE_FIELD, ANCHOR_FIELD];
 const ANCHOR_FIELD: &str = "anchor";
 /// A `<Spacer>`'s height, in book pixels, when it gives none.
 const SPACER_HEIGHT: f32 = 4.0;

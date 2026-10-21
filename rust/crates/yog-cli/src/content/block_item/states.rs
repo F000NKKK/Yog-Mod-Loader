@@ -21,7 +21,8 @@ use yog_ids::units::BLOCK_PIXELS;
 
 use super::{Emit, Parts};
 use crate::content::model::{model, turn, variant, with_render_type};
-use crate::content::{BlockProps, Ctx, Entry, Loc};
+use crate::content::ctx::{Ctx, Loc};
+use crate::content::entry::{BlockProps, Entry};
 
 /// The four sides a block faces, and the six.
 const HORIZONTAL: [&str; 4] = [NORTH, EAST, SOUTH, WEST];

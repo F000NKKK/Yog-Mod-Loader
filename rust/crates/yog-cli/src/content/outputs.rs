@@ -1,15 +1,9 @@
 //! Merging what every file produced: tags, lang files, per-version overlays.
 
 use serde_json::{Map, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
-use crate::content::Compiled;
-use crate::content::Output;
-use crate::content::OutputSet;
-use crate::content::{TAGS_FILE, TagLists};
-use crate::content::datapack;
-use crate::content::pretty;
-use crate::content::refs;
+use crate::content::{Compiled, Output, datapack, pretty, refs};
 use yog_ids::tag_file as tf;
 
 
@@ -214,4 +208,62 @@ pub(super) fn is_lang_path(p: &str) -> bool {
     let lang = yog_ids::res::LANG.trim_end_matches(yog_ids::sep::PATH);
     matches!(p.split(yog_ids::sep::PATH).collect::<Vec<_>>().as_slice(),
         [assets, _, dir, file] if *assets == yog_ids::pack::ASSETS && *dir == lang && file.ends_with(yog_ids::res::JSON))
+}
+
+/// Where the mod's tags are listed for tools (`ns:path` → its entries, by
+/// kind), as binary Yog Data — the IDE shows a tag's items from here, as the
+/// build makes them.
+pub const TAGS_FILE: &str = yog_ids::concatcp!(".yog-build/generated/tags.", yog_ids::Format::Data.ext());
+
+/// The mod's tags as [`TAGS_FILE`] lists them: kind → tag → its entries.
+pub type TagLists = BTreeMap<String, BTreeMap<String, Vec<String>>>;
+
+/// [`TAGS_FILE`] of the mod at `root`, as the build last wrote it; empty without one.
+pub fn read_tags(root: &Path) -> TagLists {
+    std::fs::read(root.join(TAGS_FILE)).ok().and_then(|b| yog_data::read_bytes::<TagLists>(&b).ok()).unwrap_or_default()
+}
+
+/// Outputs in order, keyed by path: [`OutputSet::put`] replaces a path's
+/// output (moving it to the end) without rescanning the list.
+#[derive(Default)]
+pub struct OutputSet {
+    items: Vec<Option<Output>>,
+    at: HashMap<String, usize>,
+}
+
+impl OutputSet {
+    pub fn get(&self, path: &str) -> Option<&[u8]> {
+        let i = *self.at.get(path)?;
+        self.items[i].as_ref().map(|(_, b)| b.as_slice())
+    }
+
+    pub fn contains(&self, path: &str) -> bool {
+        self.at.contains_key(path)
+    }
+
+    pub fn paths(&self) -> impl Iterator<Item = &String> {
+        self.at.keys()
+    }
+
+    /// Sets `path`'s output, dropping the one it had.
+    pub fn put(&mut self, path: String, bytes: Vec<u8>) {
+        if let Some(i) = self.at.insert(path.clone(), self.items.len()) {
+            self.items[i] = None;
+        }
+        self.items.push(Some((path, bytes)));
+    }
+
+    pub fn into_vec(self) -> Vec<Output> {
+        self.items.into_iter().flatten().collect()
+    }
+}
+
+impl From<Vec<Output>> for OutputSet {
+    fn from(outputs: Vec<Output>) -> Self {
+        let mut set = OutputSet::default();
+        for (path, bytes) in outputs {
+            set.put(path, bytes);
+        }
+        set
+    }
 }

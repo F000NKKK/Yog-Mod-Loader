@@ -22,6 +22,7 @@ public final class YogNames {
         public static final String HYPHEN = "-";
         public static final String MEMBER = ".";
         public static final String TYPED = "@";
+        public static final String TAG = "#";
         public static final String TAG_SHOWN = "#";
         public static final String ALTERNATIVES = "|";
         public static final String STATE_OPEN = "[";
@@ -1258,6 +1259,64 @@ public final class YogNames {
         public static final String GRID_COLUMN = "Grid.Column";
         public static final String GRID_ROWSPAN = "Grid.RowSpan";
         public static final String GRID_COLUMNSPAN = "Grid.ColumnSpan";
+    }
+
+    public static final class Loader {
+        private Loader() {}
+
+        public static final String FABRIC = "fabric";
+        public static final String FORGE = "forge";
+        public static final String NEOFORGE = "neoforge";
+    }
+
+    public static final class Worldgen {
+        private Worldgen() {}
+
+        public static final String DIR = "worldgen";
+        public static final String CONFIGURED_FEATURE = "configured_feature";
+        public static final String PLACED_FEATURE = "placed_feature";
+        public static final String TREE = "minecraft:tree";
+        public static final String ORE = "minecraft:ore";
+        public static final String SIMPLE_STATE_PROVIDER = "minecraft:simple_state_provider";
+        public static final String WEIGHTED_STATE_PROVIDER = "minecraft:weighted_state_provider";
+        public static final String RULE_BASED_STATE_PROVIDER = "minecraft:rule_based_state_provider";
+        public static final String NOT = "minecraft:not";
+        public static final String MATCHING_BLOCK_TAG = "minecraft:matching_block_tag";
+        public static final String CANNOT_REPLACE_BELOW_TREE_TRUNK = "minecraft:cannot_replace_below_tree_trunk";
+        public static final String TWO_LAYERS_FEATURE_SIZE = "minecraft:two_layers_feature_size";
+        public static final String DIRT = "minecraft:dirt";
+        public static final String TRUNK = "trunk";
+        public static final String FOLIAGE = "foliage";
+        public static final String PLACER = "placer";
+        public static final String TAG_MATCH = "minecraft:tag_match";
+        public static final String BLOCK_MATCH = "minecraft:block_match";
+        public static final String UNIFORM = "minecraft:uniform";
+        public static final String TRAPEZOID = "minecraft:trapezoid";
+        public static final String COUNT = "minecraft:count";
+        public static final String IN_SQUARE = "minecraft:in_square";
+        public static final String HEIGHT_RANGE = "minecraft:height_range";
+        public static final String BIOME = "minecraft:biome";
+        public static final String IS_OVERWORLD = "minecraft:is_overworld";
+        public static final String UNDERGROUND_ORES = "underground_ores";
+    }
+
+    public static final class BiomeModifier {
+        private BiomeModifier() {}
+
+        public static final String DIR = "biome_modifier";
+        public static final String FORGE_ADD_FEATURES = "forge:add_features";
+        public static final String NEOFORGE_ADD_FEATURES = "neoforge:add_features";
+    }
+
+    public static final class Advancement {
+        private Advancement() {}
+
+        public static final String TASK = "task";
+        public static final String GOAL = "goal";
+        public static final String CHALLENGE = "challenge";
+        public static final String IMPOSSIBLE = "minecraft:impossible";
+        public static final String INVENTORY_CHANGED = "minecraft:inventory_changed";
+        public static final String CONSUME_ITEM = "minecraft:consume_item";
     }
 
     /** Yog's file formats' extensions (`Format`). */

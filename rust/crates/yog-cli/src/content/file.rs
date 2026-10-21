@@ -4,7 +4,20 @@ use std::path::Path;
 
 use yog_data::Path as At;
 
-use crate::content::{Ctx, Loc, valid_namespace, valid_path};
+use crate::content::ctx::{Ctx, Loc};
+use crate::content::{valid_namespace, valid_path};
+use yog_ids::Format;
+use yog_ids::sep::{EXT, NAMESPACE, PATH};
+
+/// What joins an id's parts in a generated file's name: `ns__path__more`.
+const NAME_JOIN: &str = "__";
+
+/// Where `id`'s data is kept under `.yog-build/generated/`, in folder
+/// `dir`: `<dir>/<ns>__<path>.<ext>`.
+pub(super) fn generated(dir: &str, id: &str, format: Format) -> String {
+    let name = id.replace(NAMESPACE, NAME_JOIN).replace(PATH, NAME_JOIN);
+    format!("{dir}{PATH}{name}{EXT}{}", format.ext())
+}
 
 /// The one format version of the content files.
 pub(super) const FORMAT: u32 = 1;

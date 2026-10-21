@@ -2,7 +2,7 @@
 
 use std::fmt::Write;
 
-use crate::content::ItemProps;
+use crate::content::entry::ItemProps;
 use crate::content::source::float;
 
 /// The builder calls (`.max_stack(16)`…) for an item's properties; empty

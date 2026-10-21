@@ -12,10 +12,19 @@ use yog_formats::content::Model as YogModel;
 use yog_ids::model as m;
 use yog_ids::units::BLOCK_PIXELS;
 
-use crate::content::{Ctx, Loc, Model, TEMPLATES, Template, num_value, template, valid_id};
+use crate::content::ctx::{Ctx, Loc};
+use crate::content::vocab::{TEMPLATES, Template, template};
+use crate::content::{num_value, valid_id};
 
 pub(super) use kind::{KindBlock, kind_models, with_render_type};
 pub(super) use state::{state_properties, turn, variant};
+
+/// A checked model: Minecraft's JSON, its bounding box.
+pub(in crate::content) struct Model {
+    pub(in crate::content) json: Value,
+    /// Elements' bounding box in pixels, when it has elements.
+    pub(in crate::content) bounds: Option<[f64; 6]>,
+}
 
 pub(super) fn nums(ns: &[f64]) -> Value {
     Value::Array(ns.iter().map(|n| num_value(*n)).collect())

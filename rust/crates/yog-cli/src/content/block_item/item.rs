@@ -7,7 +7,8 @@ use yog_formats::content::{HangsProps, ItemFile};
 
 use super::{Emit, Parts};
 use crate::content::model::model;
-use crate::content::{Ctx, Entry, Loc};
+use crate::content::ctx::{Ctx, Loc};
+use crate::content::entry::Entry;
 
 /// The item's properties onto `entry`, its model (none for a potion-only
 /// file without one) and definition written.

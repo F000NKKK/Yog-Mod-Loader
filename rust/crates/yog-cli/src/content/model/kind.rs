@@ -6,7 +6,7 @@ use yog_data::Path as At;
 
 use super::state::{state_properties, variant};
 use crate::content::block_item::Emit;
-use crate::content::{Ctx, Loc};
+use crate::content::ctx::{Ctx, Loc};
 
 /// A block of one of the game's kinds: the kind, what it's made of, its
 /// render layer.

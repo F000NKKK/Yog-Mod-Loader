@@ -3,25 +3,15 @@
 use yog_ids::Format;
 use std::collections::HashMap;
 use std::path::Path;
-use crate::content::BlockProps;
-use crate::content::BodyFile;
-use crate::content::BookFile;
-use crate::content::Compiled;
-use crate::content::Defs;
-use crate::content::EntityFile;
-use crate::content::Entry;
-use crate::content::FontFile;
-use crate::content::GENERATED_FILE;
-use crate::content::GENERATED_HEADER;
-use crate::content::GENERATED_PARTS_DIR;
-use crate::content::Recipe;
-use crate::content::Source;
+use crate::content::{Compiled, GENERATED_FILE, table};
+use crate::content::defs::Defs;
+use crate::content::entry::{BlockProps, Entry};
+use crate::content::files::{BodyFile, BookFile, EntityFile, FontFile};
+use crate::content::recipe::registration::Recipe;
 use crate::content::block_item::item_props;
-use crate::content::defs::definition_path;
-use crate::content::defs::dimension_path;
-use crate::content::defs::loot_path;
+use crate::content::defs::data::{definition_path, loot_path};
+use crate::content::defs::worldgen::dimension_path;
 use crate::content::outputs::write_tags;
-use crate::content::table;
 use std::fmt::Write;
 
 
@@ -32,7 +22,9 @@ use std::fmt::Write;
 pub(super) fn registrations(entries: &[Entry], entities: &[EntityFile], dimensions: &[(String, Vec<u8>)], defs: &Defs) -> String {
     fn hash(text: &str) -> String {
         // FNV-1a: the same on every build of the CLI.
-        let h = text.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| (h ^ b as u64).wrapping_mul(0x0100_0000_01b3));
+        const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+        const PRIME: u64 = 0x0100_0000_01b3;
+        let h = text.bytes().fold(OFFSET, |h, b| (h ^ u64::from(b)).wrapping_mul(PRIME));
         format!("{h:016x}")
     }
     let mut lines = Vec::new();
@@ -48,19 +40,19 @@ pub(super) fn registrations(entries: &[Entry], entities: &[EntityFile], dimensio
         lines.push(format!("{} {} {}", e.kind.noun(), e.id, hash(&what)));
     }
     for e in entities {
-        lines.push(format!("entity {} {}", e.id, hash(&format!("{:?}", e.data))));
+        lines.push(format!("{} {} {}", yog_ids::kind::ENTITY, e.id, hash(&format!("{:?}", e.data))));
     }
     for (id, data) in dimensions {
-        lines.push(format!("dimension {id} {}", hash(&format!("{data:?}"))));
+        lines.push(format!("{} {id} {}", yog_ids::kind::DIMENSION, hash(&format!("{data:?}"))));
     }
     for g in &defs.sound_groups {
-        lines.push(format!("sound_group {} {}", g.id, hash(&format!("{g:?}"))));
+        lines.push(format!("{} {} {}", yog_ids::kind::SOUND_GROUP, g.id, hash(&format!("{g:?}"))));
     }
     for m in &defs.tool_materials {
-        lines.push(format!("tool_material {} {}", m.id, hash(&format!("{m:?}"))));
+        lines.push(format!("{} {} {}", yog_ids::kind::TOOL_MATERIAL, m.id, hash(&format!("{m:?}"))));
     }
     for m in &defs.armor_materials {
-        lines.push(format!("armor_material {} {}", m.id, hash(&format!("{m:?}"))));
+        lines.push(format!("{} {} {}", yog_ids::kind::ARMOR_MATERIAL, m.id, hash(&format!("{m:?}"))));
     }
     lines.sort();
     lines.join("\n") + "\n"
@@ -157,6 +149,26 @@ pub(super) struct Content<'a> {
     pub fonts: &'a [FontFile],
     pub defs: &'a Defs,
     pub textures: &'a std::collections::BTreeSet<String>,
+}
+
+impl Content<'_> {
+    /// Whether the content registers anything: its code's `register` must run.
+    pub(super) fn registers_anything(&self) -> bool {
+        let d = self.defs;
+        self.entries.iter().any(|e| e.auto)
+            || !self.recipes.is_empty()
+            || !self.books.is_empty()
+            || !self.bodies.is_empty()
+            || !self.entities.is_empty()
+            || !self.fonts.is_empty()
+            || !d.sound_groups.is_empty()
+            || !d.tool_materials.is_empty()
+            || !d.armor_materials.is_empty()
+            || !d.biome_features.is_empty()
+            || !d.dimensions.is_empty()
+            || !d.loot_modifiers.is_empty()
+            || !d.definitions.is_empty()
+    }
 }
 
 pub(super) fn rust_source(c: &Content) -> Source {
@@ -418,7 +430,7 @@ pub(super) fn rust_source(c: &Content) -> Source {
         let _ = writeln!(
             code,
             "    registry.register_body_{}({:?}, include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{}\")));",
-            if b.model { "model" } else { "anims" },
+            if b.model { yog_ids::word::MODEL } else { "anims" },
             b.id,
             b.path()
         );
@@ -432,7 +444,7 @@ pub(super) fn rust_source(c: &Content) -> Source {
         );
     }
     code.push_str("}\n");
-    if entries.iter().any(|e| e.auto) || !recipes.is_empty() || !books.is_empty() || !bodies.is_empty() || !entities.is_empty() || !fonts.is_empty() || !sound_groups.is_empty() || !defs.tool_materials.is_empty() || !defs.armor_materials.is_empty() || !defs.biome_features.is_empty() || !defs.dimensions.is_empty() {
+    if c.registers_anything() {
         code.push_str(
             "\n// Runs when the mod's library loads: `export_mod!` calls `register` after\n// `Mod::register`.\n#[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]\nfn __yog_content_auto_register() {\n    ::yog_api::__yog_content_registrars()\n        .lock()\n        .unwrap_or_else(|e| e.into_inner())\n        .push(register);\n}\n",
         );
@@ -494,4 +506,33 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// The generated files' header.
+pub(super) const GENERATED_HEADER: &str = "// <auto-generated>\n//     Generated by `yog build` from content/** — don't edit, it's rewritten\n//     on every build. Included by `yog_api::content!()`.\n// </auto-generated>\n";
+
+/// Where the content's code goes besides the root file, under
+/// `.yog-build/generated/`: one file a part (`items.g.rs`, `register.g.rs`, …).
+pub const GENERATED_PARTS_DIR: &str = "content";
+
+/// The content's code: the root file ([`GENERATED_FILE`]), which only
+/// includes the parts, and the parts — (name, code) each.
+#[derive(Debug, Clone, Default)]
+pub struct Source {
+    pub root: String,
+    pub parts: Vec<(String, String)>,
+}
+
+impl Source {
+    /// Part `name`'s code (`"items"`).
+    #[cfg(test)]
+    pub fn part(&self, name: &str) -> &str {
+        self.parts.iter().find(|(n, _)| n == name).map_or("", |(_, c)| c.as_str())
+    }
+
+    /// Every part's code, for tests that look for a line wherever it is.
+    #[cfg(test)]
+    pub fn all(&self) -> String {
+        self.parts.iter().map(|(_, c)| c.as_str()).collect()
+    }
 }

@@ -114,7 +114,7 @@ pub struct AdvancementDef {
 }
 
 fn task_frame() -> String {
-    "task".into()
+    yog_ids::advancement::TASK.into()
 }
 
 /// One way to earn an advancement — one of: `granted` (the mod's code

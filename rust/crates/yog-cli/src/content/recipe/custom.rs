@@ -8,7 +8,9 @@ use yog_formats::def::{RecipeKindDef, ValueType};
 use yog_formats::recipe::{Custom, TYPE_FIELD, TYPES};
 
 use super::Against;
-use crate::content::{Ctx, Loc, RecipeKind, valid_path};
+use crate::content::valid_path;
+use crate::content::ctx::{Ctx, Loc};
+use crate::content::recipe::registration::RecipeKind;
 
 /// A recipe of kind `kind`: the mod's own (`<mod id>:<kind>`), declared.
 pub(super) fn custom(

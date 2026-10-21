@@ -31,6 +31,7 @@ mod names {
     pub mod base;
     pub mod bus;
     pub mod content;
+    pub mod datapack;
     pub mod services;
 }
 pub mod export;
@@ -45,6 +46,7 @@ pub use formats::*;
 pub use names::base::*;
 pub use names::bus::*;
 pub use names::content::*;
+pub use names::datapack::*;
 pub use names::services::*;
 
 /// A group of names: its name, and each name with its value.
@@ -56,6 +58,7 @@ pub const ALL: &[&[Group]] = &[
     names::bus::ALL,
     names::services::ALL,
     names::content::ALL,
+    names::datapack::ALL,
 ];
 
 /// Every group of names, in order.

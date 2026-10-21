@@ -26,8 +26,10 @@ names! {
         MEMBER = crate::sep::EXT,
         /// What starts a typed value: `@item:minecraft:stick`.
         TYPED = "@",
+        /// What marks a tag among ids: `#minecraft:logs`.
+        TAG = "#",
         /// What marks a tag where an ingredient is shown: `#c:dusts`.
-        TAG_SHOWN = "#",
+        TAG_SHOWN = crate::sep::TAG,
         /// What joins an ingredient's alternatives where it's shown: `a | b`.
         ALTERNATIVES = "|",
         /// A block state's properties: `ns:id[k=v,...]` — what opens and
