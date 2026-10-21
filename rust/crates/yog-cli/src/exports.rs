@@ -5,6 +5,15 @@ use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+/// Mod `mod_id`'s exports crate's name, as it's published to crates.io:
+/// `my-mod` → `my_mod_exports`.
+pub fn crate_name(mod_id: &str) -> String {
+    format!("{}{EXPORTS_SUFFIX}", mod_id.replace('-', "_"))
+}
+
+/// What an exports crate's name adds to its mod's.
+const EXPORTS_SUFFIX: &str = "_exports";
+
 /// What a `#[yog_export]` item is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExportKind {

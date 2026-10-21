@@ -1719,7 +1719,7 @@ fn publish_exports(dry_run: bool) -> Result<(), String> {
         .clone()
         .unwrap_or_else(|| DEFAULT_LICENSE.to_string());
     let authors = manifest.authors.join(", ");
-    let exports_crate_name = format!("{}_exports", mod_id.replace('-', "_"));
+    let exports_crate_name = yog_cli::exports::crate_name(&mod_id);
 
     let src_dir = proj.join("src");
     if !src_dir.exists() {
