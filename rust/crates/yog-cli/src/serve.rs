@@ -71,53 +71,43 @@ fn data_param(params: &Value, name: &str) -> Result<yog_data::Value, Value> {
 /// What a method does with its params; an error is a string, or
 /// `{message, line}` for a file that doesn't parse.
 pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
-    match method {
-        // A file taken into a `.yres` entry: its value (`@bytes:…`) and the type its bytes are.
-        M::MEDIA_IMPORT => {
-            let file = path_param(params, P::FILE)?;
-            let bytes =
-                std::fs::read(&file).map_err(|e| json!(format!("{}: {e}", file.display())))?;
-            let kind = yog_formats::yres::kind_of(&yog_formats::yres::Value::Bytes(bytes.clone()));
-            Ok(
-                json!({ "value": yog_data::typed::typed_string(&yog_data::Value::Bytes(bytes)), "type": kind.name() }),
-            )
-        }
+    if method == M::VERSION {
         // The service's version: a tool restarts it when the binary changes.
-        M::VERSION => Ok(json!(env!("CARGO_PKG_VERSION"))),
-        // `.yres` text → its entries; media values as their text form (`@bytes:…`). With the
-        // file's `set` and the `mod` id, a text's translation key too.
-        M::YRES_PARSE => yres_parse(
-            str_param(params, P::TEXT)?,
-            params
-                .get(P::SET)
-                .and_then(Value::as_str)
-                .zip(params.get(P::MOD_ID).and_then(Value::as_str)),
-        ),
-        // Entries (as `yres.parse` gives them) → `.yres` text.
-        M::YRES_WRITE => yres_write(
-            params
-                .get(P::ENTRIES)
-                .ok_or_else(|| json!("missing `entries`"))?,
-        ),
+        return Ok(json!(env!("CARGO_PKG_VERSION")));
+    }
+    if let Some(reply) = data_method(method, params)? {
+        return Ok(reply);
+    }
+    if let Some(reply) = media_method(method, params)? {
+        return Ok(reply);
+    }
+    // The designers: drawing, pickers' choices, edits of a mod's files.
+    crate::design::service::dispatch(method, params)
+        .unwrap_or_else(|| Err(json!(format!("no method `{method}`"))))
+}
+
+/// Yog Data text and values, typed strings, the formats' shapes; `None`: not one of these.
+fn data_method(method: &str, params: &Value) -> Result<Option<Value>, Value> {
+    Ok(Some(match method {
         // Yog Data text → its value as JSON text (maps in file order, typed values as written).
         M::DATA_PARSE => {
             let value = yog_data::text::parse_value(str_param(params, P::TEXT)?).map_err(
                 |e| json!({ "message": e.to_string(), "line": e.at.line, "col": e.at.col }),
             )?;
-            Ok(json!(yog_data::patch::to_json(&value)))
+            json!(yog_data::patch::to_json(&value))
         }
         // `text` changed to hold `next` (JSON text), comments and layout of the rest kept.
-        M::DATA_PATCH => Ok(json!(yog_data::patch::patch(
+        M::DATA_PATCH => json!(yog_data::patch::patch(
             str_param(params, P::TEXT)?,
             &data_param(params, P::NEXT)?
-        ))),
+        )),
         // A value (JSON text) as Yog's editors write it, at indent `level`.
         M::DATA_FORMAT => {
             let level = params.get(P::LEVEL).and_then(Value::as_u64).unwrap_or(0) as usize;
-            Ok(json!(yog_data::patch::format(
+            json!(yog_data::patch::format(
                 &data_param(params, P::VALUE)?,
                 level
-            )))
+            ))
         }
         // Strings as typed values (`@item:x`, `@tag:item:x`, `@Set.key`, `@image:…`, `@lang:…`,
         // `@@` escaped, else plain text): each `{t, …}` or `{error}`.
@@ -126,38 +116,67 @@ pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
                 .get(P::VALUES)
                 .and_then(Value::as_array)
                 .ok_or_else(|| json!("missing list `values`"))?;
-            Ok(Value::Array(
+            Value::Array(
                 values
                     .iter()
                     .map(|v| typed_json(v.as_str().unwrap_or_default()))
                     .collect(),
-            ))
+            )
         }
         // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
         M::FORMAT_SHAPE => {
             let name = str_param(params, P::FORMAT)?;
             let shape =
                 yog_formats::shape_of(name).ok_or_else(|| json!(format!("no format `{name}`")))?;
-            Ok(yog_data::json::to_json(&shape.describe()))
+            yog_data::json::to_json(&shape.describe())
         }
+        _ => return Ok(None),
+    }))
+}
+
+/// A mod's resources: `.yres` text and the media in it, its pictures, its
+/// id; `None`: not one of these.
+fn media_method(method: &str, params: &Value) -> Result<Option<Value>, Value> {
+    Ok(Some(match method {
+        // A file taken into a `.yres` entry: its value (`@bytes:…`) and the type its bytes are.
+        M::MEDIA_IMPORT => {
+            let file = path_param(params, P::FILE)?;
+            let bytes =
+                std::fs::read(&file).map_err(|e| json!(format!("{}: {e}", file.display())))?;
+            let kind = yog_formats::yres::kind_of(&yog_formats::yres::Value::Bytes(bytes.clone()));
+            json!({ "value": yog_data::typed::typed_string(&yog_data::Value::Bytes(bytes)), "type": kind.name() })
+        }
+        // `.yres` text → its entries; media values as their text form (`@bytes:…`). With the
+        // file's `set` and the `mod` id, a text's translation key too.
+        M::YRES_PARSE => {
+            let set_and_mod = params
+                .get(P::SET)
+                .and_then(Value::as_str)
+                .zip(params.get(P::MOD_ID).and_then(Value::as_str));
+            yres_parse(str_param(params, P::TEXT)?, set_and_mod)?
+        }
+        // Entries (as `yres.parse` gives them) → `.yres` text.
+        M::YRES_WRITE => yres_write(
+            params
+                .get(P::ENTRIES)
+                .ok_or_else(|| json!("missing `entries`"))?,
+        )?,
         // The mod's pictures: set, name, path, file (no bytes).
         M::MEDIA_PICTURES => {
             let root = mod_root(&path_param(params, P::PATH)?)?;
-            let list: Vec<Value> = crate::media::pictures(&root)
+            let list = crate::media::pictures(&root)
                 .into_iter()
                 .map(|p| json!({ "set": p.set, "name": p.name, "path": p.path(), "file": p.file }))
                 .collect();
-            Ok(Value::Array(list))
+            Value::Array(list)
         }
         // The id of the mod a file is in.
-        M::MOD_ID => Ok(json!(crate::media::mod_id(&mod_root(&path_param(
+        M::MOD_ID => json!(crate::media::mod_id(&mod_root(&path_param(
             params,
             P::PATH
-        )?)?))),
-        // The designers: drawing, pickers' choices, edits of a mod's files.
-        other => crate::design::service::dispatch(other, params)
-            .unwrap_or_else(|| Err(json!(format!("no method `{other}`")))),
-    }
+        )?)?)),
+        _ => return Ok(None),
+    }))
 }
 
 /// A string as a typed value, the way a tool takes it: `{t, …}`.

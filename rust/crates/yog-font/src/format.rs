@@ -130,17 +130,44 @@ impl Font {
         if self.glyphs.is_empty() {
             errors.push("a font must have at least one glyph".to_string());
         }
+        self.validate_chars(&mut errors);
+        self.validate_ligatures(&mut errors);
+        for (i, machine) in self.machines.iter().enumerate() {
+            self.validate_machine(i, machine, &mut errors);
+        }
+        self.validate_kerning(&mut errors);
+        if let Some(fit) = self.fit
+            && (!fit.height.is_finite() || fit.height <= 0.0 || !fit.center.is_finite())
+        {
+            errors.push("fit.height must be positive and fit values must be finite".to_string());
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+
+    /// Whether glyph `glyph` is one of the font's.
+    fn has_glyph(&self, glyph: u32) -> bool {
+        (glyph as usize) < self.glyphs.len()
+    }
+
+    fn validate_chars(&self, errors: &mut Vec<String>) {
         for (i, m) in self.chars.iter().enumerate() {
             if char::from_u32(m.char).is_none() {
                 errors.push(format!("chars[{i}].char is not a Unicode scalar value"));
             }
-            if m.glyph as usize >= self.glyphs.len() {
+            if !self.has_glyph(m.glyph) {
                 errors.push(format!(
                     "chars[{i}].glyph {} does not name a glyph",
                     m.glyph
                 ));
             }
         }
+    }
+
+    fn validate_ligatures(&self, errors: &mut Vec<String>) {
         for (i, ligature) in self.ligatures.iter().enumerate() {
             if ligature.glyphs.len() < 2 {
                 errors.push(format!("ligatures[{i}] must contain at least two glyphs"));
@@ -150,58 +177,64 @@ impl Font {
                 .iter()
                 .chain(std::iter::once(&ligature.glyph))
             {
-                if glyph as usize >= self.glyphs.len() {
+                if !self.has_glyph(glyph) {
                     errors.push(format!("ligatures[{i}] references missing glyph {glyph}"));
                 }
             }
         }
-        for (i, machine) in self.machines.iter().enumerate() {
-            let mut classes = std::collections::HashSet::new();
-            let mut members = std::collections::HashSet::new();
-            for class in &machine.classes {
-                if !classes.insert(class.class) {
-                    errors.push(format!("machines[{i}] repeats class {}", class.class));
-                }
-                for &glyph in &class.glyphs {
-                    if glyph as usize >= self.glyphs.len() {
-                        errors.push(format!(
-                            "machines[{i}] class {} references missing glyph {glyph}",
-                            class.class
-                        ));
-                    }
-                    if !members.insert(glyph) {
-                        errors.push(format!(
-                            "machines[{i}] assigns glyph {glyph} to more than one class"
-                        ));
-                    }
-                }
+    }
+
+    /// Machine `i`: each class once, each glyph in one class, transitions
+    /// between known classes, once each, to known glyphs.
+    fn validate_machine(&self, i: usize, machine: &Machine, errors: &mut Vec<String>) {
+        let mut classes = std::collections::HashSet::new();
+        let mut members = std::collections::HashSet::new();
+        for class in &machine.classes {
+            if !classes.insert(class.class) {
+                errors.push(format!("machines[{i}] repeats class {}", class.class));
             }
-            let mut transitions = std::collections::HashSet::new();
-            for transition in &machine.transitions {
-                if !classes.contains(&transition.class) {
+            for &glyph in &class.glyphs {
+                if !self.has_glyph(glyph) {
                     errors.push(format!(
-                        "machines[{i}] transition references missing class {}",
-                        transition.class
+                        "machines[{i}] class {} references missing glyph {glyph}",
+                        class.class
                     ));
                 }
-                if !transitions.insert((transition.state, transition.class)) {
+                if !members.insert(glyph) {
                     errors.push(format!(
-                        "machines[{i}] repeats transition from state {} for class {}",
-                        transition.state, transition.class
-                    ));
-                }
-                if let Some(glyph) = transition.glyph
-                    && glyph as usize >= self.glyphs.len()
-                {
-                    errors.push(format!(
-                        "machines[{i}] transition references missing glyph {glyph}"
+                        "machines[{i}] assigns glyph {glyph} to more than one class"
                     ));
                 }
             }
         }
+        let mut transitions = std::collections::HashSet::new();
+        for t in &machine.transitions {
+            if !classes.contains(&t.class) {
+                errors.push(format!(
+                    "machines[{i}] transition references missing class {}",
+                    t.class
+                ));
+            }
+            if !transitions.insert((t.state, t.class)) {
+                errors.push(format!(
+                    "machines[{i}] repeats transition from state {} for class {}",
+                    t.state, t.class
+                ));
+            }
+            if let Some(glyph) = t.glyph
+                && !self.has_glyph(glyph)
+            {
+                errors.push(format!(
+                    "machines[{i}] transition references missing glyph {glyph}"
+                ));
+            }
+        }
+    }
+
+    fn validate_kerning(&self, errors: &mut Vec<String>) {
         let mut kerning = std::collections::HashSet::new();
         for kern in &self.kerning {
-            if kern.left as usize >= self.glyphs.len() || kern.right as usize >= self.glyphs.len() {
+            if !self.has_glyph(kern.left) || !self.has_glyph(kern.right) {
                 errors.push(format!(
                     "kerning pair ({}, {}) references a missing glyph",
                     kern.left, kern.right
@@ -213,16 +246,6 @@ impl Font {
                     kern.left, kern.right
                 ));
             }
-        }
-        if let Some(fit) = self.fit
-            && (!fit.height.is_finite() || fit.height <= 0.0 || !fit.center.is_finite())
-        {
-            errors.push("fit.height must be positive and fit values must be finite".to_string());
-        }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
         }
     }
 

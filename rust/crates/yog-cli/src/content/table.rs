@@ -197,6 +197,12 @@ pub struct Table {
     rows: Vec<(String, String, Vec<String>)>,
 }
 
+/// Column names every table's code has already (its id, index, lookup, list).
+const RESERVED_COLUMNS: [&str; 4] = ["id", "index", "from_id", "all"];
+
+/// A table's row: its id, its variant's name, each column's expression.
+type Row = (String, String, Vec<String>);
+
 /// Checks a table; its errors as `path: message`.
 pub fn check(
     file: &str,
@@ -215,12 +221,39 @@ pub fn check(
             t.id
         ));
     }
+    let columns = check_columns(&t, &mut errors);
+    let mut rows: Vec<Row> = Vec::new();
+    for (id, v) in &t.rows.0 {
+        if let Some(row) = check_row(id, v, &columns, (refs, known), &mut errors) {
+            if rows.iter().any(|(_, variant, _)| *variant == row.1) {
+                errors.push(format!("rows.{id}: twice"));
+            }
+            rows.push(row);
+        }
+    }
+    if rows.is_empty() {
+        errors.push("rows: none".into());
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    Ok(Table {
+        file: file.to_string(),
+        name,
+        serde: t.serde,
+        columns,
+        rows,
+    })
+}
+
+/// The table's columns, each with its type; a bad name or type is an error.
+fn check_columns(t: &TableDef, errors: &mut Vec<String>) -> Vec<(String, Column)> {
     let mut columns = Vec::new();
     for (c, ty) in &t.columns.0 {
         if !super::valid_path(c) || c.contains('/') || c.starts_with(|ch: char| ch.is_ascii_digit())
         {
             errors.push(format!("columns.{c}: a name like `world_size`"));
-        } else if ["id", "index", "from_id", "all"].contains(&c.as_str()) {
+        } else if RESERVED_COLUMNS.contains(&c.as_str()) {
             errors.push(format!("columns.{c}: taken (every table has it)"));
         }
         match column(ty) {
@@ -228,95 +261,90 @@ pub fn check(
             Err(e) => errors.push(format!("columns.{c}: {e}")),
         }
     }
-    let mut rows = Vec::new();
-    for (id, v) in &t.rows.0 {
-        let variant = pascal(id);
-        if variant.is_empty()
-            || !variant
-                .chars()
-                .next()
-                .is_some_and(|c| c.is_ascii_alphabetic())
-        {
-            errors.push(format!("rows.{id}: a name like `wood`"));
-            continue;
+    columns
+}
+
+/// Row `id`: its variant and each column's expression; `None` (an error
+/// said) when it can't be a row at all.
+fn check_row(
+    id: &str,
+    v: &Value,
+    columns: &[(String, Column)],
+    cx: (&yres::Refs, &refs::Known),
+    errors: &mut Vec<String>,
+) -> Option<Row> {
+    let variant = pascal(id);
+    if !variant
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic())
+    {
+        errors.push(format!("rows.{id}: a name like `wood`"));
+        return None;
+    }
+    let Some(map) = v.as_map() else {
+        errors.push(format!("rows.{id}: a row is a map of its columns"));
+        return None;
+    };
+    for (k, _) in map.iter() {
+        if !columns.iter().any(|(c, _)| c == k) {
+            errors.push(format!("rows.{id}.{k}: no such column"));
         }
-        let Some(map) = v.as_map() else {
-            errors.push(format!("rows.{id}: a row is a map of its columns"));
+    }
+    let mut exprs = Vec::new();
+    for (c, col) in columns {
+        let Some(cell) = map.get(c) else {
+            errors.push(format!("rows.{id}.{c}: missing"));
             continue;
         };
-        for (k, _) in map.iter() {
-            if !columns.iter().any(|(c, _)| c == k) {
-                errors.push(format!("rows.{id}.{k}: no such column"));
-            }
+        match cell_expr(col, cell, cx) {
+            Ok(e) => exprs.push(e),
+            Err(e) => errors.push(format!("rows.{id}.{c}: {e}")),
         }
-        let mut exprs = Vec::new();
-        for (c, col) in &columns {
-            let Some(cell) = map.get(c) else {
-                errors.push(format!("rows.{id}.{c}: missing"));
-                continue;
-            };
-            let e = match col {
-                Column::One(s) => s.expr(cell, refs, known),
-                Column::List(s) => match cell.as_list() {
-                    Some(items) => items
-                        .iter()
-                        .map(|i| s.expr(i, refs, known))
-                        .collect::<Result<Vec<_>, _>>()
-                        .map(|v| format!("&[{}]", v.join(", "))),
-                    None => Err("want a list".into()),
-                },
-                Column::Map(k, val) => match cell.as_map() {
-                    Some(m) => m
-                        .iter()
-                        .map(|(key, x)| {
-                            // A key is written bare: `minecraft:redstone`, not `@item:…`.
-                            let key = match k {
-                                Scalar::Item => {
-                                    Value::Ref(yog_data::Ref::new(yog_ids::kind::ITEM, key))
-                                }
-                                Scalar::Block => {
-                                    Value::Ref(yog_data::Ref::new(yog_ids::kind::BLOCK, key))
-                                }
-                                _ => yog_data::text::parse_value(key)
-                                    .unwrap_or_else(|_| Value::Str(key.to_string())),
-                            };
-                            Ok(format!(
-                                "({}, {})",
-                                k.expr(&key, refs, known)?,
-                                val.expr(x, refs, known)?
-                            ))
-                        })
-                        .collect::<Result<Vec<_>, String>>()
-                        .map(|v| format!("&[{}]", v.join(", "))),
-                    None => Err("want a map".into()),
-                },
-            };
-            match e {
-                Ok(e) => exprs.push(e),
-                Err(e) => errors.push(format!("rows.{id}.{c}: {e}")),
-            }
-        }
-        if rows
-            .iter()
-            .any(|(_, v, _): &(String, String, Vec<String>)| *v == variant)
-        {
-            errors.push(format!("rows.{id}: twice"));
-        }
-        rows.push((id.clone(), variant, exprs));
     }
-    if rows.is_empty() {
-        errors.push("rows: none".into());
+    Some((id.to_string(), variant, exprs))
+}
+
+/// A cell of column `col` as Rust: a value, a list `&[…]`, or `&[(key, value)…]`.
+fn cell_expr(
+    col: &Column,
+    cell: &Value,
+    (refs, known): (&yres::Refs, &refs::Known),
+) -> Result<String, String> {
+    let list = |items: Vec<String>| format!("&[{}]", items.join(", "));
+    match col {
+        Column::One(s) => s.expr(cell, refs, known),
+        Column::List(s) => {
+            let items = cell.as_list().ok_or("want a list")?;
+            items
+                .iter()
+                .map(|i| s.expr(i, refs, known))
+                .collect::<Result<Vec<_>, _>>()
+                .map(list)
+        }
+        Column::Map(k, val) => {
+            let m = cell.as_map().ok_or("want a map")?;
+            m.iter()
+                .map(|(key, x)| {
+                    Ok(format!(
+                        "({}, {})",
+                        k.expr(&map_key(k, key), refs, known)?,
+                        val.expr(x, refs, known)?
+                    ))
+                })
+                .collect::<Result<Vec<_>, String>>()
+                .map(list)
+        }
     }
-    if errors.is_empty() {
-        Ok(Table {
-            file: file.to_string(),
-            name,
-            serde: t.serde,
-            columns,
-            rows,
-        })
-    } else {
-        Err(errors)
+}
+
+/// A map cell's key as the value it stands for — written bare:
+/// `minecraft:redstone`, not `@item:…`.
+fn map_key(k: &Scalar, key: &str) -> Value {
+    match k {
+        Scalar::Item => Value::Ref(yog_data::Ref::new(yog_ids::kind::ITEM, key)),
+        Scalar::Block => Value::Ref(yog_data::Ref::new(yog_ids::kind::BLOCK, key)),
+        _ => yog_data::text::parse_value(key).unwrap_or_else(|_| Value::Str(key.to_string())),
     }
 }
 

@@ -245,22 +245,10 @@ impl Known {
                 self.ns
             ));
         };
-        let what = kind.word();
         // Stable aliases for vanilla potion stacks; backends resolve these to
         // the version's Potion registry entry.
         if kind == RefKind::Item && potion_of(id).is_some() {
-            return if is_vanilla_potion_in(id, &self.datapack) {
-                Ok(())
-            } else if is_vanilla_potion(id) {
-                Err(format!(
-                    "potion alias {id} isn't registered in Minecraft {}",
-                    self.datapack
-                ))
-            } else {
-                Err(format!(
-                    "no item {id} among Yog's versioned default potion aliases"
-                ))
-            };
+            return self.check_potion(id);
         }
         // An item may be a block's item.
         let kinds: &[RefKind] = if kind == RefKind::Item {
@@ -268,47 +256,19 @@ impl Known {
         } else {
             std::slice::from_ref(&kind)
         };
-        // The mod's loot tables are its blocks' and its data's.
-        if ns == self.ns && kind == RefKind::LootTable {
-            return Ok(());
-        }
         if ns == self.ns {
-            return if kinds
-                .iter()
-                .any(|k| self.own.get(k).is_some_and(|s| s.contains(id)))
+            // The mod's loot tables are its blocks' and its data's.
+            if kind == RefKind::LootTable
+                || kinds
+                    .iter()
+                    .any(|k| self.own.get(k).is_some_and(|s| s.contains(id)))
             {
-                Ok(())
-            } else {
-                Err(format!("no {what} {id} in this mod"))
-            };
+                return Ok(());
+            }
+            return Err(format!("no {} {id} in this mod", kind.word()));
         }
         if ns == yog_ids::ns::MINECRAFT {
-            let v = &*VANILLA;
-            if !v.versions.contains(&self.datapack) {
-                return Err(format!(
-                    "the mod's datapack is Minecraft {}, which Yog doesn't know ({})",
-                    self.datapack,
-                    v.versions.join(", ")
-                ));
-            }
-            let found = kinds
-                .iter()
-                .find_map(|k| v.ids.get(&(*k, path.to_string())));
-            return match found {
-                None => Err(format!("no {what} {id} in Minecraft")),
-                Some(_) if kinds.iter().any(|k| in_version(*k, path, &self.datapack)) => Ok(()),
-                Some(Some(only)) => {
-                    let hint = equivalent(kind, id, &self.datapack)
-                        .map(|e| format!(" — there it's {e}"))
-                        .unwrap_or_default();
-                    Err(format!(
-                        "{id} isn't in Minecraft {} (the mod's datapack; it's in {}){hint}",
-                        self.datapack,
-                        only.join(", ")
-                    ))
-                }
-                Some(None) => Ok(()),
-            };
+            return self.check_vanilla(kind, kinds, id, path);
         }
         if kinds
             .iter()
@@ -316,21 +276,88 @@ impl Known {
         {
             return Ok(());
         }
-        let section = format!("[external.{ns}]");
-        Err(if self.external_ns.contains(ns) {
-            format!("{id} isn't declared under {section} in yog.toml")
+        Err(self.undeclared(kind, id, ns, path))
+    }
+
+    /// A vanilla potion alias: registered in the mod's datapack version?
+    fn check_potion(&self, id: &str) -> Result<(), String> {
+        if is_vanilla_potion_in(id, &self.datapack) {
+            Ok(())
+        } else if is_vanilla_potion(id) {
+            Err(format!(
+                "potion alias {id} isn't registered in Minecraft {}",
+                self.datapack
+            ))
         } else {
-            let list = match kind {
-                RefKind::Item => "items",
-                RefKind::Block => "blocks",
-                RefKind::Entity => "entities",
-                RefKind::LootTable => "loot_tables",
-                _ => "recipes",
-            };
-            format!(
+            Err(format!(
+                "no item {id} among Yog's versioned default potion aliases"
+            ))
+        }
+    }
+
+    /// The game's `id` (of one of `kinds`): in the mod's datapack version?
+    fn check_vanilla(
+        &self,
+        kind: RefKind,
+        kinds: &[RefKind],
+        id: &str,
+        path: &str,
+    ) -> Result<(), String> {
+        let v = &*VANILLA;
+        if !v.versions.contains(&self.datapack) {
+            return Err(format!(
+                "the mod's datapack is Minecraft {}, which Yog doesn't know ({})",
+                self.datapack,
+                v.versions.join(", ")
+            ));
+        }
+        match kinds
+            .iter()
+            .find_map(|k| v.ids.get(&(*k, path.to_string())))
+        {
+            None => Err(format!("no {} {id} in Minecraft", kind.word())),
+            Some(_) if kinds.iter().any(|k| in_version(*k, path, &self.datapack)) => Ok(()),
+            Some(Some(only)) => {
+                let hint = equivalent(kind, id, &self.datapack)
+                    .map(|e| format!(" — there it's {e}"))
+                    .unwrap_or_default();
+                Err(format!(
+                    "{id} isn't in Minecraft {} (the mod's datapack; it's in {}){hint}",
+                    self.datapack,
+                    only.join(", ")
+                ))
+            }
+            Some(None) => Ok(()),
+        }
+    }
+
+    /// Why another mod's `id` isn't known: not declared under its
+    /// `[external.<ns>]`, and how to declare it there.
+    fn undeclared(&self, kind: RefKind, id: &str, ns: &str, path: &str) -> String {
+        let section = format!("[external.{ns}]");
+        if self.external_ns.contains(ns) {
+            return format!("{id} isn't declared under {section} in yog.toml");
+        }
+        match external_list(kind) {
+            Some(list) => format!(
                 "{id} is another mod's: declare it in yog.toml — {section} {list} = [\"{path}\"]"
-            )
-        })
+            ),
+            None => format!(
+                "{id} is another mod's, and yog.toml can't declare its {}s",
+                kind.word()
+            ),
+        }
+    }
+}
+
+/// The `[external.<ns>]` list a kind's ids go in, if it has one.
+fn external_list(kind: RefKind) -> Option<&'static str> {
+    match kind {
+        RefKind::Item => Some(yog_ids::word::ITEMS),
+        RefKind::Block => Some(yog_ids::word::BLOCKS),
+        RefKind::Entity => Some(yog_ids::word::ENTITIES),
+        RefKind::Recipe => Some(yog_ids::word::RECIPES),
+        RefKind::LootTable => None,
     }
 }
 

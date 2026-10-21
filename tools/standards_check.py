@@ -275,6 +275,22 @@ def const_fn_lines(lines):
     return out
 
 
+def const_item_lines(lines):
+    """Lines of a `const`/`static` item, all of it to its `;` — rustfmt splits
+    a long one over lines, and a number in it is its definition."""
+    out, depth, inside = set(), 0, False
+    for i, l in enumerate(lines):
+        if not inside and CONST_LINE.search(l) and not re.search(r"\bconst\s+fn\b", l):
+            inside, depth = True, 0
+        if inside:
+            out.add(i)
+            code = LITERALS.sub('""', l.split("//")[0])
+            depth += sum(code.count(c) for c in "([{") - sum(code.count(c) for c in ")]}")
+            if depth <= 0 and code.rstrip().endswith(";"):
+                inside = False
+    return out
+
+
 def check(path, text):
     lang = path.rsplit(".", 1)[1]
     lang = "ts" if lang in ("ts", "tsx") else lang
@@ -289,6 +305,7 @@ def check(path, text):
         if params > MAX_PARAMS and not fixed_signature(lines, line - 1, path):
             f.many_params.append(f"{name}@{line}({params})")
     in_const_fn = const_fn_lines(lines) if lang == "rs" else set()
+    in_const = const_item_lines(lines)
     if IDS_NAMES.search(path):
         repeated = ids_literals()
         f.ids_repeats = sum(1 for l in lines for lit in IDS_LITERAL.findall(ids_code(l)) if repeated[lit] > 1)
@@ -309,7 +326,7 @@ def check(path, text):
             f.glob_imports += 1
         if lang == "rs" and not SYNC_HOME.search(path) and FOREIGN_SYNC.search(LITERALS.sub('""', code)):
             f.foreign_sync += 1
-        if CONST_LINE.search(l) or l.strip().startswith(("///", "//", "*", "/*")):
+        if i in in_const or l.strip().startswith(("///", "//", "*", "/*")):
             continue
         if not FACT_HOME.search(path):
             f.literal_facts += len(LITERAL_FACT.findall(code))

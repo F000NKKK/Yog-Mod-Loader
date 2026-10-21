@@ -265,6 +265,19 @@ impl Value {
         }
         Some(v)
     }
+
+    /// The value `segs` lead to, to change.
+    pub fn at_mut(&mut self, segs: &[Seg]) -> Option<&mut Value> {
+        let mut v = self;
+        for seg in segs {
+            v = match (seg, v) {
+                (Seg::Key(k), Value::Map(m)) => m.get_mut(k)?,
+                (Seg::Index(i), Value::List(l)) => l.get_mut(*i)?,
+                _ => return None,
+            };
+        }
+        Some(v)
+    }
 }
 
 impl From<bool> for Value {

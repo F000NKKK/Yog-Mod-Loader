@@ -49,38 +49,65 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
     {
         return head(res, tex).map(Look::Head);
     }
-    let mut layers = Vec::new();
-    for i in 0.. {
-        let Some(t) = textures.get(&format!("layer{i}")) else {
-            break;
-        };
-        layers.push(t.clone());
-    }
+    let layers: Vec<String> = (0..)
+        .map_while(|i| {
+            textures
+                .get(&format!("{}{i}", yog_ids::model::LAYER))
+                .cloned()
+        })
+        .collect();
     if layers.is_empty() {
         return None;
     }
-    // The tints the game's item colors give each layer.
-    let tints: Vec<Option<u32>> = if is(yog_ids::yog::SPAWN_EGG_MODEL) {
+    let tints = layer_tints(
+        res,
+        looks,
+        &id,
+        &is,
+        appearance.and_then(|(_, color)| color),
+    )?;
+    composite(res, &layers, &tints).map(|i| Look::Flat(Arc::new(i)))
+}
+
+/// The tints the game's item colors give `id`'s layers: a spawn egg's two,
+/// a coloured item's one, a potion's; `None` for an egg of no known mob.
+fn layer_tints(
+    res: &Resources,
+    looks: &ItemLooks,
+    id: &str,
+    is: &dyn Fn(&str) -> bool,
+    color: Option<u32>,
+) -> Option<Vec<Option<u32>>> {
+    let (ns, path) = yog_ids::split(id);
+    if is(yog_ids::yog::SPAWN_EGG_MODEL) {
         // A mod's egg: Yog's egg, tinted as its item definition says.
-        definition_tints(res, ns, path)
-    } else if is(&looks.models.spawn_egg) {
+        return Some(definition_tints(res, ns, path));
+    }
+    if is(&looks.models.spawn_egg) {
         let mob = path.strip_suffix(yog_ids::res::SPAWN_EGG_SUFFIX)?;
         let (base, spots) = looks.spawn_egg(mob)?;
-        vec![Some(base.0), Some(spots.0)]
-    } else if let Some(color) = appearance.as_ref().and_then(|(_, color)| *color) {
-        vec![Some(color)]
+        return Some(vec![Some(base.0), Some(spots.0)]);
+    }
+    if let Some(color) = color {
+        return Some(vec![Some(color)]);
+    }
+    // An alias without effects of its own is the game's plain potion.
+    let tinted_as = if id.starts_with(yog_ids::yog::POTION_ALIAS) {
+        model_item(&looks.models.potion)
     } else {
-        // An alias without effects of its own is the game's plain potion.
-        let tinted_as = if alias {
-            model_item(&looks.models.potion)
-        } else {
-            id.clone()
-        };
+        id.to_string()
+    };
+    Some(
         looks
             .tint(&tinted_as)
             .map(|c| vec![Some(c.0)])
-            .unwrap_or_default()
-    };
+            .unwrap_or_default(),
+    )
+}
+
+/// `layers` (texture ids) drawn over each other, each tinted; a layer of
+/// another size than the first is left out.
+fn composite(res: &Resources, layers: &[String], tints: &[Option<u32>]) -> Option<Image> {
     let mut out: Option<Image> = None;
     for (i, layer) in layers.iter().enumerate() {
         let (lns, lpath) = yog_ids::split(layer);
@@ -100,7 +127,7 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
             Some(_) => {}
         }
     }
-    out.map(|i| Look::Flat(Arc::new(i)))
+    out
 }
 
 /// The constant tints item `ns:path`'s definition (`items/<path>.json`, 1.21.4+) gives its layers, in order.

@@ -175,64 +175,11 @@ fn text_form(t: Text) -> Result<String, String> {
 
 /// Reads `yog.toml` (TOML, through Yog Data's schema: every problem with its line).
 pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
-    let read = yog_data::schema::from_toml::<ManifestFile>(text).map_err(|e| {
-        e.0.iter()
-            .map(|l| match l.at {
-                Some(at) => format!(
-                    "yog.toml:{}: {}{}",
-                    at.line,
-                    if l.path.is_root() {
-                        String::new()
-                    } else {
-                        format!("{}: ", l.path)
-                    },
-                    l.message
-                ),
-                None => format!("yog.toml: {}", l.message),
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    })?;
-    let f = read.value;
+    let f = yog_data::schema::from_toml::<ManifestFile>(text)
+        .map_err(|e| toml_problems(&e))?
+        .value;
     let m = f.module;
-    let mut dependencies = Vec::new();
-    let mut mod_dependencies = Vec::new();
-    let mut yog_api_version = None;
-    for (name, spec) in f.dependencies.0 {
-        match (name.as_str(), &spec) {
-            ("exports", Value::Map(exports)) => mod_dependencies
-                .extend(exports.iter().map(|(k, v)| (k.to_string(), toml_inline(v)))),
-            (n, _)
-                if n == rust_crate::API
-                    || n == rust_crate::API_RUST_NAME
-                    || n == rust_crate::API_VERSION_KEY =>
-            {
-                yog_api_version = Some(
-                    spec.as_str()
-                        .map(str::to_string)
-                        .unwrap_or_else(|| toml_inline(&spec)),
-                )
-            }
-            _ => dependencies.push((name, toml_inline(&spec))),
-        }
-    }
-    let externals = f
-        .external
-        .0
-        .into_iter()
-        .map(|(namespace, e)| External {
-            namespace,
-            ids: [
-                (RefKind::Item, e.items),
-                (RefKind::Block, e.blocks),
-                (RefKind::Entity, e.entities),
-                (RefKind::Recipe, e.recipes),
-            ]
-            .into_iter()
-            .filter(|(_, v)| !v.is_empty())
-            .collect(),
-        })
-        .collect();
+    let deps = dependencies(f.dependencies.0);
     let name = m.name.map(text_form).transpose()?;
     let description = m.description.map(text_form).transpose()?;
     let icon = m.icon.map(|i| match i {
@@ -252,18 +199,94 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         datapack: m.datapack,
         edition: m.edition,
         yog_api_path: f.dev.and_then(|d| d.yog_api_path),
-        yog_api_version,
-        dependencies,
-        mod_dependencies,
+        yog_api_version: deps.yog_api_version,
+        dependencies: deps.crates,
+        mod_dependencies: deps.mods,
         dev_dependencies: f
             .dev_dependencies
             .0
             .into_iter()
             .map(|(k, v)| (k, toml_inline(&v)))
             .collect(),
-        externals,
+        externals: f
+            .external
+            .0
+            .into_iter()
+            .map(|(namespace, e)| external(namespace, e))
+            .collect(),
         id: m.id,
     })
+}
+
+/// What `yog.toml` got wrong, a line each: `yog.toml:<line>: <path>: <message>`.
+fn toml_problems(e: &yog_data::Errors) -> String {
+    e.0.iter()
+        .map(|l| match l.at {
+            Some(at) => {
+                let path = if l.path.is_root() {
+                    String::new()
+                } else {
+                    format!("{}: ", l.path)
+                };
+                format!("yog.toml:{}: {path}{}", at.line, l.message)
+            }
+            None => format!("yog.toml: {}", l.message),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// `[dependencies]` sorted out: crates, the other Yog mods (`exports`), and
+/// the yog-api version pinned there.
+struct Dependencies {
+    crates: Vec<(String, String)>,
+    mods: Vec<(String, String)>,
+    yog_api_version: Option<String>,
+}
+
+fn dependencies(section: Vec<(String, Value)>) -> Dependencies {
+    let mut deps = Dependencies {
+        crates: Vec::new(),
+        mods: Vec::new(),
+        yog_api_version: None,
+    };
+    for (name, spec) in section {
+        match (name.as_str(), &spec) {
+            ("exports", Value::Map(exports)) => deps
+                .mods
+                .extend(exports.iter().map(|(k, v)| (k.to_string(), toml_inline(v)))),
+            (n, _)
+                if [
+                    rust_crate::API,
+                    rust_crate::API_RUST_NAME,
+                    rust_crate::API_VERSION_KEY,
+                ]
+                .contains(&n) =>
+            {
+                deps.yog_api_version = Some(
+                    spec.as_str()
+                        .map(str::to_string)
+                        .unwrap_or_else(|| toml_inline(&spec)),
+                )
+            }
+            _ => deps.crates.push((name, toml_inline(&spec))),
+        }
+    }
+    deps
+}
+
+/// `[external.<namespace>]`: the other mod's ids it lists, by kind.
+fn external(namespace: String, e: yog_formats::manifest::ExternalSection) -> External {
+    let ids = [
+        (RefKind::Item, e.items),
+        (RefKind::Block, e.blocks),
+        (RefKind::Entity, e.entities),
+        (RefKind::Recipe, e.recipes),
+    ]
+    .into_iter()
+    .filter(|(_, v)| !v.is_empty())
+    .collect();
+    External { namespace, ids }
 }
 
 /// Cargo derives a lib crate name from the package `name` by turning `-` into

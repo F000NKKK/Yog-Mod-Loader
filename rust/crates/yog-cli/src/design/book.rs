@@ -310,76 +310,33 @@ fn repair(v: &mut yog_data::Value, path: &yog_data::Path, message: &str) -> bool
     if let Some(field) = message
         .strip_prefix("missing `")
         .and_then(|r| r.split('`').next())
+        && let Some(Value::Map(m)) = v.at_mut(segs)
+        && m.get(field).is_none()
     {
-        let mut at = &mut *v;
-        for seg in segs {
-            at = match (seg, at) {
-                (Seg::Key(k), Value::Map(m)) => match m.get_mut(k) {
-                    Some(x) => x,
-                    None => return false,
-                },
-                (Seg::Index(n), Value::List(l)) => match l.get_mut(*n) {
-                    Some(x) => x,
-                    None => return false,
-                },
-                _ => return false,
-            };
-        }
-        if let Value::Map(m) = at
-            && m.get(field).is_none()
-        {
-            m.insert(field.to_string(), Value::from(""));
-            return true;
-        }
+        m.insert(field.to_string(), Value::from(""));
+        return true;
     }
+    // A problem inside a page: that page goes.
     if let Some(i) = segs
         .iter()
         .position(|s| matches!(s, Seg::Key(k) if k == "pages"))
         && let Some(Seg::Index(page)) = segs.get(i + 1)
     {
-        let mut at = &mut *v;
-        for seg in &segs[..=i] {
-            at = match (seg, at) {
-                (Seg::Key(k), Value::Map(m)) => match m.get_mut(k) {
-                    Some(x) => x,
-                    None => return false,
-                },
-                (Seg::Index(n), Value::List(l)) => match l.get_mut(*n) {
-                    Some(x) => x,
-                    None => return false,
-                },
-                _ => return false,
-            };
-        }
-        if let Value::List(pages) = at
-            && *page < pages.len()
-        {
-            pages.remove(*page);
-            return true;
-        }
-        return false;
-    }
-    let mut at = &mut *v;
-    let (last, parents) = match segs.split_last() {
-        Some(x) => x,
-        None => return false,
-    };
-    for seg in parents {
-        at = match (seg, at) {
-            (Seg::Key(k), Value::Map(m)) => match m.get_mut(k) {
-                Some(x) => x,
-                None => return false,
-            },
-            (Seg::Index(n), Value::List(l)) => match l.get_mut(*n) {
-                Some(x) => x,
-                None => return false,
-            },
-            _ => return false,
+        return match v.at_mut(&segs[..=i]) {
+            Some(Value::List(pages)) if *page < pages.len() => {
+                pages.remove(*page);
+                true
+            }
+            _ => false,
         };
     }
-    match (last, at) {
-        (Seg::Key(k), Value::Map(m)) => m.remove(k).is_some(),
-        (Seg::Index(n), Value::List(l)) if *n < l.len() => {
+    // Else the field itself goes.
+    let Some((last, parents)) = segs.split_last() else {
+        return false;
+    };
+    match (last, v.at_mut(parents)) {
+        (Seg::Key(k), Some(Value::Map(m))) => m.remove(k).is_some(),
+        (Seg::Index(n), Some(Value::List(l))) if *n < l.len() => {
             l.remove(*n);
             true
         }

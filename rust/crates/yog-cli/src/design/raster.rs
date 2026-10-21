@@ -456,6 +456,15 @@ impl<'r> Canvas<'r> {
                     shadow: *shadow,
                 },
             ),
+            DrawOp::Scissor { x, y, w, h } => self.clip = Some((*x, *y, *w, *h)),
+            DrawOp::ClearScissor => self.clip = None,
+            picture => self.draw_picture(picture),
+        }
+    }
+
+    /// The ops that draw a picture: blocks, an item, an image, an SVG, an entity.
+    fn draw_picture(&mut self, op: &DrawOp) {
+        match op {
             DrawOp::Blocks {
                 list,
                 x,
@@ -468,7 +477,11 @@ impl<'r> Canvas<'r> {
             DrawOp::Item { id, x, y, size } => {
                 // As the game shows it in a slot (blocks and heads in 3D;
                 // mod items: from their `content/` file).
-                let source = format!("item:{id}");
+                let source = format!(
+                    "{}{}{id}",
+                    yog_ids::image_scheme::ITEM,
+                    yog_ids::sep::NAMESPACE
+                );
                 super::images::draw(
                     self,
                     &source,
@@ -492,8 +505,7 @@ impl<'r> Canvas<'r> {
             DrawOp::Entity { entity, x, y, w, h } => {
                 super::images::draw_entity(self, entity, [*x, *y, *w, *h])
             }
-            DrawOp::Scissor { x, y, w, h } => self.clip = Some((*x, *y, *w, *h)),
-            DrawOp::ClearScissor => self.clip = None,
+            _ => {}
         }
     }
 

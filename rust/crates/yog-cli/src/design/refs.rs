@@ -14,7 +14,7 @@ use yog_sync::{Mutex, OnceLock};
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::design::assets::Resources;
+use crate::design::assets::{Resources, Vanilla};
 use crate::design::project::{self, mod_root};
 
 /// Kinds of content defined by files of their own, by extension; any other
@@ -331,33 +331,78 @@ fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
     {
         return hit;
     }
-    let keys = |asset: &str| {
-        vanilla
-            .read_all(asset)
-            .into_iter()
-            .find_map(|b| serde_json::from_slice::<serde_json::Map<String, Value>>(&b).ok())
-            .unwrap_or_default()
+    let mut out: Vec<String> = match (tags, how) {
+        (Some(dirs), _) => data_ids(
+            &vanilla,
+            dirs.iter()
+                .map(|d| format!("{}/{d}", yog_ids::pack::TAGS))
+                .collect(),
+        ),
+        (None, None) => Vec::new(),
+        (None, Some(GameIds::Lang { kinds, dotted })) => {
+            let prefixes = kinds
+                .iter()
+                .map(|k| yog_ids::lang_prefix(k, yog_ids::ns::MINECRAFT))
+                .collect();
+            lang_ids(&vanilla, kind, prefixes, *dotted)
+        }
+        (None, Some(GameIds::LangPrefix(prefix))) => {
+            lang_ids(&vanilla, kind, vec![prefix.to_string()], true)
+        }
+        (None, Some(GameIds::Data)) => data_ids(&vanilla, yog_ids::registry_dirs(kind)),
+        (None, Some(GameIds::Keys(asset))) => {
+            asset_keys(&vanilla, &format!("{}/{asset}", yog_ids::ns::MINECRAFT))
+                .keys()
+                .map(|k| game_id(k))
+                .collect()
+        }
     };
-    let game = |path: &str| yog_ids::join(yog_ids::ns::MINECRAFT, path);
-    // The `.json` files under `data/minecraft/<dir>/`, as ids.
-    let data_ids = |dirs: Vec<String>| -> Vec<String> {
-        dirs.iter()
-            .flat_map(|d| {
-                vanilla.names_under(&format!(
-                    "{}/{}/{d}/",
-                    yog_ids::pack::DATA,
-                    yog_ids::ns::MINECRAFT
-                ))
-            })
-            .filter_map(|n| n.strip_suffix(yog_ids::res::JSON).map(game))
-            .collect()
-    };
-    let lang_ids = |prefixes: Vec<String>, dotted: bool| -> Vec<String> {
-        keys(&format!(
-            "{}/{}",
-            yog_ids::ns::MINECRAFT,
-            yog_ids::lang_file(yog_ids::game::LOCALE)
-        ))
+    out.sort();
+    out.dedup();
+    CACHE
+        .get_or_init(Default::default)
+        .lock()
+        .insert(key, out.clone());
+    out
+}
+
+/// `path` as the game's id.
+fn game_id(path: &str) -> String {
+    yog_ids::join(yog_ids::ns::MINECRAFT, path)
+}
+
+/// The keys of the jar's JSON asset `asset` (the first of the jar's copies that reads).
+fn asset_keys(vanilla: &Vanilla, asset: &str) -> serde_json::Map<String, Value> {
+    vanilla
+        .read_all(asset)
+        .into_iter()
+        .find_map(|b| serde_json::from_slice::<serde_json::Map<String, Value>>(&b).ok())
+        .unwrap_or_default()
+}
+
+/// The `.json` files under the game's `data/minecraft/<dir>/`, as ids.
+fn data_ids(vanilla: &Vanilla, dirs: Vec<String>) -> Vec<String> {
+    dirs.iter()
+        .flat_map(|d| {
+            vanilla.names_under(&format!(
+                "{}/{}/{d}/",
+                yog_ids::pack::DATA,
+                yog_ids::ns::MINECRAFT
+            ))
+        })
+        .filter_map(|n| n.strip_suffix(yog_ids::res::JSON).map(game_id))
+        .collect()
+}
+
+/// The ids the game's lang keys under `prefixes` name (`dotted`: the rest
+/// may hold dots); for items, a potion's key is Yog's alias of it.
+fn lang_ids(vanilla: &Vanilla, kind: &str, prefixes: Vec<String>, dotted: bool) -> Vec<String> {
+    let lang = format!(
+        "{}/{}",
+        yog_ids::ns::MINECRAFT,
+        yog_ids::lang_file(yog_ids::game::LOCALE)
+    );
+    asset_keys(vanilla, &lang)
         .keys()
         .filter_map(|k| prefixes.iter().find_map(|p| k.strip_prefix(p.as_str())))
         .filter(|rest| rest.starts_with(POTION_LANG_PREFIX) || dotted || !rest.contains('.'))
@@ -368,37 +413,10 @@ fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
             {
                 // `item.minecraft.potion.effect.swiftness` → `yog:potion/swiftness`.
                 Some(name) => format!("{}{name}", yog_ids::yog::POTION_ALIAS),
-                None => game(rest),
+                None => game_id(rest),
             }
         })
         .collect()
-    };
-    let mut out: Vec<String> = match (tags, how) {
-        (Some(dirs), _) => data_ids(
-            dirs.iter()
-                .map(|d| format!("{}/{d}", yog_ids::pack::TAGS))
-                .collect(),
-        ),
-        (None, None) => Vec::new(),
-        (None, Some(GameIds::Lang { kinds, dotted })) => lang_ids(
-            kinds
-                .iter()
-                .map(|k| yog_ids::lang_prefix(k, yog_ids::ns::MINECRAFT))
-                .collect(),
-            *dotted,
-        ),
-        (None, Some(GameIds::LangPrefix(prefix))) => lang_ids(vec![prefix.to_string()], true),
-        (None, Some(GameIds::Data)) => data_ids(yog_ids::registry_dirs(kind)),
-        (None, Some(GameIds::Keys(asset))) => keys(&format!("{}/{asset}", yog_ids::ns::MINECRAFT))
-            .keys()
-            .map(|k| game(k))
-            .collect(),
-    };
-    out.sort();
-    out.dedup();
-    let mut c = CACHE.get_or_init(Default::default).lock();
-    c.insert(key, out.clone());
-    out
 }
 
 /// The game's kinds of block (`kind: "stairs"` on a `.yblock`): their
