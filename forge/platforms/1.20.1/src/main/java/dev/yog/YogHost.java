@@ -33,7 +33,7 @@ import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.registries.RegisterEvent;
 
 /**
- * Forge's entry point: boots the runtime, registers the mods' content
+ * Forge's entry point (NeoForge 1.20.1's too: Forge 47's API): boots the runtime, registers the mods' content
  * ({@link YogContentRegistry}) registry by registry, and hooks Forge's
  * events up to {@link YogServerEvents}. All it knows is Forge.
  */
@@ -41,7 +41,7 @@ import net.minecraftforge.registries.RegisterEvent;
 public final class YogHost {
     public YogHost() {
         NativeBridge.ensureLoaded();
-        YogLog.info("Forge host initialised.");
+        YogLog.info(YogLoader.NAME + " host initialised.");
         YogContentRegistry.schedule();
         YogPlatform.openChannel();
 

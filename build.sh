@@ -44,8 +44,9 @@ Options:
       --no-build                        run: skip build, just launch client/server
       --mc <version>                    Minecraft platform override (e.g. 1.21.1);
                                         default comes from <loader>/gradle.properties.
-                                        Must match <loader>/platforms/<version>/ and
-                                        <loader>/versions/<version>.properties.
+                                        Must match <loader>/versions/<version>.properties
+                                        (its sources: <loader>/platforms/<version>/,
+                                        or the platform_dir it names).
   -h, --help
 
 Environment:

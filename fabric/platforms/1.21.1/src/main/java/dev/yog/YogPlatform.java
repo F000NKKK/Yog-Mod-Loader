@@ -30,7 +30,7 @@ public final class YogPlatform {
     private YogPlatform() {}
 
     /** The loader's name, as the pack stager and overlays call it. */
-    public static final String LOADER = "fabric";
+    public static final String LOADER = YogLoader.NAME;
 
     public static Path gameDir() {
         return FabricLoader.getInstance().getGameDir();

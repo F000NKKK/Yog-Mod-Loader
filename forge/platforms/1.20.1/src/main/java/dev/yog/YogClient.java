@@ -16,7 +16,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
-/** Forge's client: hooks Forge's client events up to {@link YogClientEvents}. */
+/** Forge's client (NeoForge 1.20.1's too): hooks its client events up to {@link YogClientEvents}. */
 public final class YogClient {
     private YogClient() {}
 

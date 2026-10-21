@@ -32,7 +32,7 @@ public final class YogPlatform {
     private YogPlatform() {}
 
     /** The loader's name, as the pack stager and overlays call it. */
-    public static final String LOADER = "forge";
+    public static final String LOADER = YogLoader.NAME;
     /** The version of Yog's network protocol (its one channel). */
     private static final int PROTOCOL = 1;
 

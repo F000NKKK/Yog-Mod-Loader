@@ -10,14 +10,14 @@ import net.minecraft.world.entity.Entity;
 
 /**
  * What the shared host code ({@code java-common/mc/<version>}) asks of the
- * loader: Forge's answers. Every loader's host has a class of this name
+ * loader: Forge's answers (NeoForge 1.20.1's too). Every loader's host has a class of this name
  * with these methods.
  */
 public final class YogPlatform {
     private YogPlatform() {}
 
     /** The loader's name, as the pack stager and overlays call it. */
-    public static final String LOADER = "forge";
+    public static final String LOADER = YogLoader.NAME;
 
     public static Path gameDir() {
         return net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get();
