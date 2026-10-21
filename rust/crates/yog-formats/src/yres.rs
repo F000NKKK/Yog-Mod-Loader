@@ -146,7 +146,7 @@ const BYTES_PREFIX: &str = yog_ids::concatcp!(
 );
 
 /// A whole `.yres` file: named entries in file order.
-struct YresFile(Vec<Entry>);
+pub struct YresFile(Vec<Entry>);
 
 /// `v` as an entry's scalar value.
 fn scalar(v: &ValueRef, cx: &mut Reader) -> Option<Value> {
@@ -243,7 +243,7 @@ impl Schema for YresFile {
 
     fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
         let ValueRef::Map(map) = v else {
-            cx.problem("expected `{` — a .yres file is one JSON object of named resources");
+            cx.problem("expected `{` — a .yres file is one map of named resources");
             return None;
         };
         let mut entries = Vec::with_capacity(map.len());

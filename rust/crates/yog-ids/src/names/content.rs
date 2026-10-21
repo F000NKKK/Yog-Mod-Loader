@@ -387,6 +387,7 @@ names! {
         MOD_ID = "mod.id",
         RECIPE_KIND_CREATE = "recipe_kind_create",
         RECIPE_KINDS = "recipe_kinds",
+        SOURCE_CHECK = "source.check",
         SOURCE_READ = "source.read",
         SOURCE_WRITE = "source.write",
         TEXTURE_ANIMATION_FORMAT = "texture_animation_format",

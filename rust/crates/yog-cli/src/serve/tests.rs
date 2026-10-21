@@ -225,3 +225,35 @@ fn textures_and_advancements_take_references_as_written() {
     assert!(drawn.is_ok(), "{drawn:?}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_source_being_edited_is_checked_where_it_goes_wrong() {
+    let check = |text: &str| {
+        call(
+            "source.check",
+            &format!(
+                "{{ path: \"/m/content/ruby.yblock\", text: {} }}",
+                yog_data::text::to_string(&Value::from(text))
+            ),
+        )
+        .unwrap()
+    };
+    let problems = |v: &Value| at(v, &["problems"]).as_list().unwrap().to_vec();
+    let clean = problems(&check(
+        "{\n  // Hard.\n  model: {},\n  block: { hardness: 3 }\n}",
+    ));
+    assert!(clean.is_empty(), "{clean:?}");
+    let unknown = problems(&check("{\n  model: {},\n  shiny: true\n}"));
+    assert_eq!(unknown.len(), 1, "{unknown:?}");
+    assert_eq!(
+        unknown[0].get("code").and_then(Value::as_str),
+        Some(yog_ids::problem_code::UNKNOWN_FIELD)
+    );
+    assert_eq!(unknown[0].get("line"), Some(&Value::Int(3)));
+    assert_eq!(unknown[0].get("col"), Some(&Value::Int(3)));
+    let syntax = problems(&check("{ hardness: }"));
+    assert_eq!(
+        syntax[0].get("code").and_then(Value::as_str),
+        Some(yog_ids::problem_code::SYNTAX)
+    );
+}

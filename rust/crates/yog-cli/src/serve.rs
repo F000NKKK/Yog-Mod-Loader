@@ -8,6 +8,7 @@
 //! Methods: the service's own (`data`), a mod's resources (`media`) and
 //! the designers' (`design::service`).
 
+mod check;
 mod data;
 mod error;
 mod media;

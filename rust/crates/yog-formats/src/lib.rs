@@ -14,29 +14,82 @@ pub mod texture;
 pub mod yres;
 pub mod yui;
 
-use yog_data::{Schema, Shape};
+use yog_data::schema::Problem;
+use yog_data::{Schema, Shape, Value};
 
 use yog_ids::{Format, file};
+
+/// `$body` with `$t` the type files of `$format` read as; `$none` for a
+/// format that isn't Yog Data written by hand (screens, compiled data,
+/// built mods). The one list of which type each format is.
+macro_rules! with_type {
+    ($format:expr, $t:ident => $body:expr, else $none:expr) => {
+        match $format {
+            Format::Block => {
+                type $t = content::BlockFile;
+                $body
+            }
+            Format::Item => {
+                type $t = content::ItemFile;
+                $body
+            }
+            Format::Entity => {
+                type $t = yog_registry::EntityDef;
+                $body
+            }
+            Format::Recipe => {
+                type $t = recipe::RecipeFile;
+                $body
+            }
+            Format::Book => {
+                type $t = book::Book;
+                $body
+            }
+            Format::Def => {
+                type $t = def::Def;
+                $body
+            }
+            Format::Res => {
+                type $t = yres::YresFile;
+                $body
+            }
+            Format::Model => {
+                type $t = yog_body::format::ModelFile;
+                $body
+            }
+            Format::Anim => {
+                type $t = yog_body::format::AnimFile;
+                $body
+            }
+            Format::Font => {
+                type $t = yog_font::Font;
+                $body
+            }
+            Format::Texture => {
+                type $t = texture::TextureFile;
+                $body
+            }
+            Format::Material => {
+                type $t = material::MaterialFile;
+                $body
+            }
+            Format::Ui | Format::Data | Format::Mod => $none,
+        }
+    };
+}
 
 /// What files of `format` look like; `None` for one that isn't Yog Data
 /// written by hand (screens, compiled data, built mods).
 #[must_use]
 pub fn shape(format: Format) -> Option<Shape> {
-    Some(match format {
-        Format::Block => content::BlockFile::shape(),
-        Format::Item => content::ItemFile::shape(),
-        Format::Entity => yog_registry::EntityDef::shape(),
-        Format::Recipe => recipe::RecipeFile::shape(),
-        Format::Book => book::Book::shape(),
-        Format::Def => def::Def::shape(),
-        Format::Res => Shape::Map(yres::EntryObject::shape),
-        Format::Model => yog_body::format::ModelFile::shape(),
-        Format::Anim => yog_body::format::AnimFile::shape(),
-        Format::Font => yog_font::Font::shape(),
-        Format::Texture => texture::TextureFile::shape(),
-        Format::Material => material::MaterialFile::shape(),
-        Format::Ui | Format::Data | Format::Mod => return None,
-    })
+    with_type!(format, T => Some(T::shape()), else None)
+}
+
+/// What's wrong with `value` as a file of `format`: every problem, at its
+/// path (none for a format without a shape).
+#[must_use]
+pub fn problems(format: Format, value: &Value) -> Vec<Problem> {
+    with_type!(format, T => yog_data::from_value::<T>(value).err().unwrap_or_default(), else Vec::new())
 }
 
 /// What the file `name` describes looks like: a format's extension (with or

@@ -63,6 +63,10 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
             std::fs::write(p, bytes).map_err(|e| ServiceError::from(format!("{p}: {e}")))?;
             Ok(Value::Null)
         }),
+        // A source as edited (unsaved `text` of the file at `path`), checked:
+        // its syntax, then its format's problems, each at its line and column.
+        M::SOURCE_CHECK => text(params, P::PATH)
+            .and_then(|p| Ok(super::check::check(p, text(params, P::TEXT)?).write())),
         // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
         M::FORMAT_SHAPE => param(params, P::FORMAT).and_then(|name| {
             let name = name.as_str().ok_or("`format` is a name")?;

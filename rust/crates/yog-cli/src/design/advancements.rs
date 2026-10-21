@@ -141,7 +141,9 @@ pub fn render(args: &Args) -> Rendered {
     images::set_document(root.as_deref());
     let res = Resources::for_mod(root.as_deref());
     let (tab, drag) = lay_out(args);
-    let ops = gfx::record(SCREEN.0 as i32, SCREEN.1 as i32, |ctx| draw(ctx, args, &tab));
+    let ops = gfx::record(SCREEN.0 as i32, SCREEN.1 as i32, |ctx| {
+        draw(ctx, args, &tab)
+    });
     let canvas = raster::rasterize(&ops, SCREEN.0 as u32, SCREEN.1 as u32, SCALE, &res);
     let image = canvas.png().ok().map(|png| {
         format!(
