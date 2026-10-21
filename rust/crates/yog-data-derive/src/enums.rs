@@ -1,5 +1,6 @@
 //! Enums: a tagged one (`#[data(tag = "type")]`, its variants by name
-//! under the tag, fields or a wrapped struct alongside) or one of names.
+//! under the tag, fields or a wrapped struct alongside, any other wrapped
+//! value under `yog_data::schema::WRAPPED`) or one of names.
 
 use quote::quote;
 use syn::{Fields, Ident, Type};
@@ -154,7 +155,13 @@ fn enum_shape(vs: &[Variant], top: &Attrs, shape_name: &str, doc: &str) -> Token
             VariantKind::Wrap(ty) => quote! {
                 match <#ty as #krate::Schema>::shape() {
                     #krate::Shape::Struct(s) => s.fields,
-                    _ => ::std::vec::Vec::new(),
+                    _ => ::std::vec![#krate::schema::Field {
+                        name: #krate::schema::WRAPPED,
+                        doc: "",
+                        shape: <#ty as #krate::Schema>::shape,
+                        required: <#ty as #krate::Schema>::absent().is_none(),
+                        range: ::std::option::Option::None,
+                    }],
                 }
             },
         };
@@ -240,7 +247,15 @@ fn tagged_read(v: &Variant, tag: &str) -> Tokens {
             quote! { cx.with_allowed(#tag, |cx| { #read }) }
         }
         VariantKind::Wrap(ty) => quote! {
-            cx.with_allowed(#tag, |cx| <#ty as #krate::Schema>::read(v, cx)).map(Self::#ident)
+            if #krate::schema::flattens::<#ty>() {
+                cx.with_allowed(#tag, |cx| <#ty as #krate::Schema>::read(v, cx)).map(Self::#ident)
+            } else {
+                cx.with_allowed(#tag, |cx| {
+                    cx.unknown_keys(map, &[#krate::schema::WRAPPED]);
+                    cx.own_keys(|cx| cx.field_with::<#krate::with::Plain, #ty>(map, #krate::schema::WRAPPED))
+                })
+                .map(Self::#ident)
+            }
         },
     };
     quote! { #key => { #body } }
@@ -268,12 +283,19 @@ fn tagged_write(v: &Variant, tag: &str) -> Tokens {
                 }
             }
         }
-        VariantKind::Wrap(_) => quote! {
+        VariantKind::Wrap(ty) => quote! {
             Self::#ident(inner) => {
                 m.insert(#tag, #krate::Value::from(#key));
-                if let #krate::Value::Map(fields) = #krate::Schema::write(inner) {
-                    for (k, v) in fields {
-                        m.insert(k, v);
+                match #krate::Schema::write(inner) {
+                    #krate::Value::Map(fields) if #krate::schema::flattens::<#ty>() => {
+                        for (k, v) in fields {
+                            m.insert(k, v);
+                        }
+                    }
+                    value => {
+                        if !#krate::Schema::skip(inner) {
+                            m.insert(#krate::schema::WRAPPED, value);
+                        }
                     }
                 }
             }

@@ -11,6 +11,8 @@ description = "Yog inter-mod communication — proc-macros for #[yog_export] and
 proc-macro = true
 
 [dependencies]
+# The tag an exported enum with data is read by (`word::TYPE`).
+yog-ids = { workspace = true }
 syn = { workspace = true }
 quote = { workspace = true }
 proc-macro2 = { workspace = true }

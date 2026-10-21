@@ -113,8 +113,12 @@ fn an_export_answers_its_arguments_by_name() {
 
 #[test]
 fn a_panic_in_the_export_is_a_failed_call() {
-    let (st, _) = serve("explode", &args(|p| 1u32.pack(p)));
+    // A lone argument crosses as itself.
+    let (st, _) = serve("explode", &yog_api::Message::to_bytes(&1u32));
     assert_eq!(st, yog_abi::status::FAILED);
+    let (st, out) = serve("explode", &yog_api::Message::to_bytes(&0u32));
+    assert_eq!(st, yog_abi::status::OK);
+    assert_eq!(read_frame::<u32>(&out), Some(0));
     let (st, _) = serve("scale", &args(|p| 1i32.pack(p)));
     assert_eq!(st, yog_abi::status::BAD_PAYLOAD, "a missing argument");
 }

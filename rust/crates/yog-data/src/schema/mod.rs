@@ -119,6 +119,18 @@ pub trait Schema: Sized {
     }
 }
 
+/// Where a tagged enum's variant keeps what it wraps when that isn't a
+/// struct (`Id(String)` is `{type: "id", value: "…"}`); a wrapped struct's
+/// fields sit next to the tag instead.
+pub const WRAPPED: &str = yog_ids::word::VALUE;
+
+/// Whether a tagged enum's variant wrapping `T` lays `T`'s fields next to
+/// the tag (a struct) or keeps `T` under [`WRAPPED`].
+#[doc(hidden)]
+pub fn flattens<T: Schema>() -> bool {
+    matches!(T::shape(), Shape::Struct(_))
+}
+
 /// `v` in the binary form, written straight ([`Schema::encode`]).
 pub fn to_bytes<T: Schema>(v: &T) -> Vec<u8> {
     let mut w = Writer::new();

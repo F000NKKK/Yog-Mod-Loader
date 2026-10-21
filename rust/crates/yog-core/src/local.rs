@@ -65,7 +65,8 @@ pub struct BlockArea {
 
 impl BlockArea {
     /// The kind of block at `pos`, if it's inside.
-    pub fn at(&self, pos: BlockPos) -> Option<&BlockKind> {
+    pub fn at(&self, pos: impl Into<BlockPos>) -> Option<&BlockKind> {
+        let pos = pos.into();
         let (w, d) = (self.max.x - self.min.x + 1, self.max.z - self.min.z + 1);
         let (x, y, z) = (pos.x - self.min.x, pos.y - self.min.y, pos.z - self.min.z);
         let inside = (0..w).contains(&x)

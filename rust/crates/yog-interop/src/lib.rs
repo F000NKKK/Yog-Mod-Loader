@@ -19,6 +19,36 @@ fn schema_derive() -> proc_macro2::TokenStream {
     }
 }
 
+/// An exported enum with data is tagged (`#[data(tag = "type")]`) unless
+/// it names its own tag: the mod writes the enum, not its format.
+fn enum_tag(e: &syn::ItemEnum) -> proc_macro2::TokenStream {
+    let has_data = e
+        .variants
+        .iter()
+        .any(|v| !matches!(v.fields, syn::Fields::Unit));
+    let tagged = e
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("data"))
+        .any(|a| {
+            let mut tag = false;
+            // Every `key = value` read past; `tag` noted.
+            let _ = a.parse_nested_meta(|m| {
+                tag |= m.path.is_ident("tag");
+                if m.input.peek(syn::Token![=]) {
+                    m.value()?.parse::<syn::Expr>()?;
+                }
+                Ok(())
+            });
+            tag
+        });
+    if !has_data || tagged {
+        return quote! {};
+    }
+    let tag = yog_ids::word::TYPE;
+    quote! { #[data(tag = #tag)] }
+}
+
 /// Whether `ty` is a `Registry` (a leading `&mut Registry` is the
 /// exporting mod's own, never part of a call).
 fn is_registry_ty(ty: &syn::Type) -> bool {
@@ -61,24 +91,45 @@ fn call_params(sig: &syn::Signature) -> (bool, Vec<(syn::Ident, syn::Type)>) {
     (registry, params)
 }
 
-/// The struct a call's arguments cross as: one field per parameter, named like it.
-fn args_struct(
-    name: &syn::Ident,
-    params: &[(syn::Ident, syn::Type)],
-) -> (syn::Ident, proc_macro2::TokenStream) {
+/// How a call's arguments cross the bus: a lone parameter as itself (so
+/// a caller needs only its type — handlers, callbacks), several as a struct
+/// of them by name (`__YogArgs_name`).
+struct Args {
+    /// The type carried.
+    ty: proc_macro2::TokenStream,
+    /// That struct's definition (nothing for a lone parameter).
+    def: proc_macro2::TokenStream,
+    /// The value carried, made of the parameters (in scope by name).
+    pack: proc_macro2::TokenStream,
+    /// The parameters again, out of the value carried (`a`).
+    unpack: proc_macro2::TokenStream,
+}
+
+fn args_of(name: &syn::Ident, params: &[(syn::Ident, syn::Type)]) -> Args {
+    if let [(param, ty)] = params {
+        return Args {
+            ty: quote! { #ty },
+            def: quote! {},
+            pack: quote! { &#param },
+            unpack: quote! { a },
+        };
+    }
     let args = format_ident!("__YogArgs_{}", name);
     let fields = params.iter().map(|(n, t)| quote! { #n: #t });
+    let names: Vec<&syn::Ident> = params.iter().map(|(n, _)| n).collect();
     let derive = schema_derive();
-    (
-        args.clone(),
-        quote! {
+    Args {
+        ty: quote! { #args },
+        def: quote! {
             #[doc(hidden)]
             // Named after the function (`__YogArgs_give_item`), which is snake case.
             #[allow(non_camel_case_types)]
             #derive
             struct #args { #(#fields),* }
         },
-    )
+        pack: quote! { &#args { #(#names),* } },
+        unpack: quote! { #(a.#names),* },
+    }
 }
 
 fn output_type(sig: &syn::Signature) -> proc_macro2::TokenStream {
@@ -131,11 +182,14 @@ pub fn yog_export(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
     let tokens = proc_macro2::TokenStream::from(item.clone());
-    if syn::parse2::<syn::ItemStruct>(tokens.clone()).is_ok()
-        || syn::parse2::<syn::ItemEnum>(tokens.clone()).is_ok()
-    {
+    if syn::parse2::<syn::ItemStruct>(tokens.clone()).is_ok() {
         let derive = schema_derive();
         return TokenStream::from(quote! { #derive #tokens });
+    }
+    if let Ok(e) = syn::parse2::<syn::ItemEnum>(tokens.clone()) {
+        let derive = schema_derive();
+        let tag = enum_tag(&e);
+        return TokenStream::from(quote! { #derive #tag #tokens });
     }
     let func = syn::parse_macro_input!(item as syn::ItemFn);
     let name = &func.sig.ident;
@@ -143,9 +197,13 @@ pub fn yog_export(attr: TokenStream, item: TokenStream) -> TokenStream {
     let serve_name = format_ident!("__yog_serve_{}", name);
     let ctor_name = format_ident!("__yog_ctor_register_{}", name);
     let (registry, params) = call_params(&func.sig);
-    let (args, args_def) = args_struct(name, &params);
+    let Args {
+        ty: args,
+        def: args_def,
+        unpack,
+        ..
+    } = args_of(name, &params);
     let output = output_type(&func.sig);
-    let names: Vec<&syn::Ident> = params.iter().map(|(n, _)| n).collect();
     let doc = doc_of(&func.attrs);
     // The exporting mod's own `Registry`, from the API it captured at load.
     let (setup, registry_arg) = if registry {
@@ -170,7 +228,7 @@ pub fn yog_export(attr: TokenStream, item: TokenStream) -> TokenStream {
             unsafe {
                 ::yog_api::__yog_serve::<#args, #output>(payload, reply, |a| {
                     #setup
-                    #name(#registry_arg #(a.#names),*)
+                    #name(#registry_arg #unpack)
                 })
             }
         }
@@ -242,7 +300,12 @@ fn generate_import_fn(func: &ImportFn, mod_name: &str) -> proc_macro2::TokenStre
     let name_str = name.to_string();
     let vis = &func.vis;
     let (_, params) = call_params(&func.sig);
-    let (args, args_def) = args_struct(name, &params);
+    let Args {
+        ty: args,
+        def: args_def,
+        pack,
+        ..
+    } = args_of(name, &params);
     let output = output_type(&func.sig);
     let names: Vec<&syn::Ident> = params.iter().map(|(n, _)| n).collect();
     let types: Vec<&syn::Type> = params.iter().map(|(_, t)| t).collect();
@@ -251,7 +314,7 @@ fn generate_import_fn(func: &ImportFn, mod_name: &str) -> proc_macro2::TokenStre
 
         /// The other mod's answer; `None` when it isn't loaded or failed (see its log).
         #vis fn #name(#(#names: #types),*) -> ::std::option::Option<#output> {
-            ::yog_api::call_export::<#args, #output>(#mod_name, #name_str, &#args { #(#names),* })
+            ::yog_api::call_export::<#args, #output>(#mod_name, #name_str, #pack)
         }
     }
 }

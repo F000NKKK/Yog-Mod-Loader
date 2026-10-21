@@ -1,8 +1,9 @@
 //! Mods' exported functions on the bus (`docs/design/bus.md`, stage 4):
 //! `#[yog_export] fn name(..)` of mod `id` is a service at `id:name`; an
-//! `import!` (or a mod's generated `*_exports` crate) calls it. The
-//! arguments cross as a map of the parameters' names, the answer as its
-//! own Yog Data — so a Java mod can call it too, and the bus can describe it.
+//! `import!` (or a mod's generated `*_exports` crate) calls it. A lone
+//! argument crosses as itself (a handler is called knowing only its type),
+//! several as a map of the parameters' names; the answer as its own Yog
+//! Data — so a Java mod can call it too, and the bus can describe it.
 
 use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogStatus, status};
 use yog_data::Schema;

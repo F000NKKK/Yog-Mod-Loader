@@ -45,6 +45,31 @@ impl From<(i32, i32, i32)> for BlockPos {
     }
 }
 
+/// `[x, y, z]`, as math on positions writes them.
+impl From<[i32; 3]> for BlockPos {
+    fn from([x, y, z]: [i32; 3]) -> Self {
+        Self { x, y, z }
+    }
+}
+
+impl From<BlockPos> for [i32; 3] {
+    fn from(p: BlockPos) -> Self {
+        [p.x, p.y, p.z]
+    }
+}
+
+impl From<[f64; 3]> for Point {
+    fn from([x, y, z]: [f64; 3]) -> Self {
+        Self { x, y, z }
+    }
+}
+
+impl From<Point> for [f64; 3] {
+    fn from(p: Point) -> Self {
+        [p.x, p.y, p.z]
+    }
+}
+
 impl From<(f64, f64, f64)> for Point {
     fn from((x, y, z): (f64, f64, f64)) -> Self {
         Self { x, y, z }

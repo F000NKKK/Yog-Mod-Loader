@@ -217,6 +217,15 @@ pub fn __set_current_api_ptr(ptr: usize) {
     API_PTR.store(ptr, yog_sync::atomic::Ordering::Release);
 }
 
+/// The `register` functions of `yog_api::content!()` — the content of
+/// `content/**` the build generates — run by `export_mod!` after
+/// `Mod::register`.
+#[doc(hidden)]
+pub fn __yog_content_registrars() -> &'static yog_sync::Mutex<Vec<fn(&mut Registry)>> {
+    static REG: yog_sync::Mutex<Vec<fn(&mut Registry)>> = yog_sync::Mutex::new(Vec::new());
+    &REG
+}
+
 #[doc(hidden)]
 pub fn __current_api_ptr() -> usize {
     API_PTR.load(yog_sync::atomic::Ordering::Acquire)

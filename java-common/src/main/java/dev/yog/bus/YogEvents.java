@@ -2052,7 +2052,7 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
         /** Fired when a player places a block (server side).
 
-Passed to handlers registered via `Registry::on_player_place_block` with an [`EventPhase`] argument: - `Pre`  — fires before placement; return `false` to cancel. - `Post` — fires after the block has been placed. */
+Subscribed with `Registry::on` / `before` / `after`: - before — fires before placement; return `false` to cancel. - after — fires after the block has been placed. */
         public record Place(String playerName, String blockId, YogTypes.BlockPos pos, String dimension, boolean sneaking) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();

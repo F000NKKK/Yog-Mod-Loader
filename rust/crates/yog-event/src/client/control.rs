@@ -31,3 +31,18 @@ actions! {
     /// Sends `text` to the chat — a command when it starts with `/`.
     Chat { text: String } -> bool = ids::service_client_control::CHAT, "YogClientOps.chat";
 }
+
+/// Every key up: what [`Drive`] holds unless told otherwise
+/// (`Drive { forward: 1.0, ..Default::default() }`).
+impl Default for Drive {
+    fn default() -> Self {
+        Drive {
+            forward: 0.0,
+            strafe: 0.0,
+            jump: false,
+            sneak: false,
+            sprint: false,
+            use_item: false,
+        }
+    }
+}

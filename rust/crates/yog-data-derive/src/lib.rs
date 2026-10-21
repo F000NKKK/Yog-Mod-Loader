@@ -8,8 +8,9 @@
 //! - An enum of unit variants is a string: the variant's name in
 //!   snake_case, or `#[data(rename = "...")]`.
 //! - `#[data(tag = "type")]` on an enum: an object whose `type` names the
-//!   variant; a variant is a unit, has named fields, or wraps one struct
-//!   whose fields sit next to the tag.
+//!   variant; a variant is a unit, has named fields, or wraps one value —
+//!   a struct's fields sit next to the tag, anything else under `value`
+//!   (`yog_data::schema::WRAPPED`).
 //!
 //! - `#[data(view)]` on a struct: `NameView<'a>` too, the struct read out
 //!   of a frame without copying (`yog_data::frame::View`).

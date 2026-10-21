@@ -16,10 +16,9 @@ pub struct Break {
 
 /// Fired when a player places a block (server side).
 ///
-/// Passed to handlers registered via `Registry::on_player_place_block` with an
-/// [`EventPhase`] argument:
-/// - `Pre`  — fires before placement; return `false` to cancel.
-/// - `Post` — fires after the block has been placed.
+/// Subscribed with `Registry::on` / `before` / `after`:
+/// - before — fires before placement; return `false` to cancel.
+/// - after — fires after the block has been placed.
 #[derive(Debug, Clone, Schema)]
 pub struct Place {
     pub player_name: String,

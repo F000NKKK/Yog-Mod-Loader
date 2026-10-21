@@ -443,3 +443,52 @@ fn rename_all_camel_case_names_fields_and_variants() {
     assert_eq!(v.get("item_id").and_then(|t| t.as_str()), Some("i"));
     assert_eq!(yog_data::read_value::<CamelVariants>(&v).unwrap(), s);
 }
+
+/// A small struct a variant wraps.
+#[derive(yog_data::Schema, Debug, Clone, PartialEq)]
+struct Amount {
+    count: u64,
+}
+
+/// Variants wrapping values that aren't structs, beside one that is.
+#[derive(yog_data::Schema, Debug, Clone, PartialEq)]
+#[data(tag = "type")]
+enum Reply {
+    Accepted(u64),
+    Named(String),
+    Gave(Option<Amount>),
+    Counted(Amount),
+    Done,
+}
+
+#[test]
+fn a_wrapped_value_that_isnt_a_struct_sits_under_value() {
+    use yog_data::schema::WRAPPED;
+    let all = [
+        Reply::Accepted(7),
+        Reply::Named("n".into()),
+        Reply::Gave(Some(Amount { count: 2 })),
+        Reply::Gave(None),
+        Reply::Counted(Amount { count: 3 }),
+        Reply::Done,
+    ];
+    for r in &all {
+        let v = r.write();
+        assert_eq!(yog_data::read_value::<Reply>(&v).unwrap(), *r, "{v:?}");
+        let bytes = yog_data::schema::to_bytes(r);
+        assert_eq!(yog_data::read_bytes::<Reply>(&bytes).unwrap(), *r);
+    }
+    let accepted = Reply::Accepted(7).write();
+    assert_eq!(accepted.get(WRAPPED), Some(&Value::Int(7)));
+    // A struct's fields stay beside the tag; a missing Option is left out.
+    let counted = Reply::Counted(Amount { count: 3 }).write();
+    assert!(counted.get(WRAPPED).is_none() && counted.get("count").is_some());
+    assert!(Reply::Gave(None).write().get(WRAPPED).is_none());
+    // The shape says where the value is.
+    let yog_data::Shape::Enum(e) = Reply::shape() else {
+        panic!("an enum")
+    };
+    let named = e.variants.iter().find(|v| v.name == "named").unwrap();
+    assert_eq!(named.fields[0].name, WRAPPED);
+    assert!(named.fields[0].required);
+}
