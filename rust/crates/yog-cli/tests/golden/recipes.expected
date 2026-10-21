@@ -57,7 +57,7 @@ pub fn register(registry: &mut ::yog_api::Registry) {
     registry.add_recipe(::yog_api::Recipe { id: "gm:blast".into(), kind: ::yog_api::RecipeKind::Cooking { method: ::yog_api::Cooking::Blasting, ingredient: vec!["#yog:ores".into()], experience: 0.1_f32, cook_time: 50 }, result: "gm:ruby".into(), count: 1, group: None, category: None });
     registry.add_recipe(::yog_api::Recipe { id: "gm:campfire".into(), kind: ::yog_api::RecipeKind::Cooking { method: ::yog_api::Cooking::Campfire, ingredient: vec!["minecraft:beef".into()], experience: 0.1_f32, cook_time: 600 }, result: "minecraft:cooked_beef".into(), count: 1, group: None, category: None });
     registry.add_recipe(::yog_api::Recipe { id: "gm:cut".into(), kind: ::yog_api::RecipeKind::Stonecutting { ingredient: vec!["minecraft:stone".into()] }, result: "minecraft:stone_bricks".into(), count: 2, group: None, category: None });
-    registry.add_recipe_json("gm:infuse", "{\"result\":\"gm:ruby\",\"slots\":{\"core\":[[\"minecraft:diamond\"]],\"ring\":[[\"minecraft:gold_ingot\",\"minecraft:iron_ingot\"],[\"#yog:gems\"]]},\"type\":\"gm:infusion\",\"values\":{\"energy\":1.5,\"time\":200}}");
+    registry.add_recipe_data("gm:infuse", include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/generated/recipe/gm__infuse.ydata")));
     registry.add_recipe(::yog_api::Recipe { id: "gm:shaped".into(), kind: ::yog_api::RecipeKind::Shaped { pattern: vec!["RR".into(), "RR".into()], key: vec![('R', vec!["gm:ruby".into()])] }, result: "minecraft:redstone_block".into(), count: 1, group: Some("blocks".into()), category: Some("building".into()) });
     registry.add_recipe(::yog_api::Recipe { id: "gm:shapeless".into(), kind: ::yog_api::RecipeKind::Shapeless { ingredients: vec![vec!["gm:ruby".into()], vec!["minecraft:coal".into(), "minecraft:charcoal".into()], vec!["#yog:dusts".into()]] }, result: "minecraft:torch".into(), count: 4, group: None, category: None });
     registry.add_recipe(::yog_api::Recipe { id: "gm:smelt".into(), kind: ::yog_api::RecipeKind::Cooking { method: ::yog_api::Cooking::Smelting, ingredient: vec!["minecraft:redstone_ore".into()], experience: 0.7_f32, cook_time: 200 }, result: "gm:ruby".into(), count: 1, group: None, category: None });
@@ -69,6 +69,32 @@ pub fn register(registry: &mut ::yog_api::Registry) {
 #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
 fn __yog_content_auto_register() {
     ::yog_api::__yog_content_registrars().lock().push(register);
+}
+
+# generated/recipe/gm__infuse.ydata
+{
+  "result": "gm:ruby",
+  "slots": {
+    "core": [
+      [
+        "minecraft:diamond"
+      ]
+    ],
+    "ring": [
+      [
+        "minecraft:gold_ingot",
+        "minecraft:iron_ingot"
+      ],
+      [
+        "#yog:gems"
+      ]
+    ]
+  },
+  "type": "gm:infusion",
+  "values": {
+    "energy": 1.5,
+    "time": 200
+  }
 }
 
 # assets/gm/items/ruby.json

@@ -471,14 +471,15 @@ impl<'a> Build<'a> {
         self.out.books = self.books.len();
     }
 
-    /// The data the code includes: books, bodies, fonts, entities, dimensions,
-    /// loot modifiers, definitions.
+    /// The data the code includes: books, bodies, fonts, entities, the mod's
+    /// own kinds of recipe, dimensions, loot modifiers, definitions.
     fn data_files(&mut self, made: &Made) {
         let files = &mut self.out.data_files;
         files.extend(self.books.iter().map(|b| (b.path(), b.data.clone())));
         files.extend(self.bodies.iter().map(|b| (b.path(), b.data.clone())));
         files.extend(self.fonts.iter().map(|f| (f.path(), f.data.clone())));
         files.extend(self.entities.iter().map(|e| (e.path(), e.data.clone())));
+        files.extend(self.recipes.iter().filter_map(Recipe::data_file));
         files.extend(
             made.dimensions
                 .iter()

@@ -23,13 +23,12 @@ toml = { workspace = true, features = ["std", "parse", "preserve_order"], option
 serde_spanned = { workspace = true, optional = true }
 
 # JSON ⇄ Yog Data (`json` feature).
-serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 yog-sync = { workspace = true }
 
 [features]
 toml = ["dep:toml", "dep:serde_spanned"]
-json = ["dep:serde", "dep:serde_json"]
+json = ["dep:serde_json"]
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }

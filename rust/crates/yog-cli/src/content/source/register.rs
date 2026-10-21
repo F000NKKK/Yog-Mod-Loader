@@ -12,7 +12,7 @@ use crate::content::defs::data::{definition_path, loot_path};
 use crate::content::defs::worldgen::dimension_path;
 
 /// The data at `path` under `.yog-build/generated/`, as the code includes it.
-fn included(path: &str) -> String {
+pub(in crate::content) fn included(path: &str) -> String {
     format!("include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{path}\"))")
 }
 

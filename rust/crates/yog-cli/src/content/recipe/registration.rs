@@ -2,7 +2,8 @@
 
 use serde_json::{Map, Value, json};
 
-use crate::content::source::float;
+use crate::content::defs::data::definition_path;
+use crate::content::source::{float, included};
 
 /// What a recipe takes.
 #[derive(Debug, Clone)]
@@ -53,8 +54,28 @@ pub(in crate::content) struct Recipe {
 }
 
 impl Recipe {
-    /// A recipe of the mod's own kind: Yog's recipe JSON as is (the host
-    /// keeps it out of the game's data).
+    /// A recipe of the mod's own kind as the code hands it over: its file
+    /// under `.yog-build/generated/` and Yog's recipe in it, as Yog Data
+    /// (the host keeps it out of the game's data). `None` for the game's kinds.
+    pub(in crate::content) fn data_file(&self) -> Option<(String, Vec<u8>)> {
+        let RecipeKind::Custom {
+            kind,
+            slots,
+            values,
+        } = &self.kind
+        else {
+            return None;
+        };
+        let recipe = yog_data::json::from_json(&self.custom_json(kind, slots, values));
+        Some((self.data_path(), yog_data::binary::encode(&recipe)))
+    }
+
+    /// Where [`Recipe::data_file`] goes.
+    fn data_path(&self) -> String {
+        definition_path(yog_ids::kind::RECIPE, &self.id)
+    }
+
+    /// A recipe of the mod's own kind: Yog's recipe JSON.
     fn custom_json(
         &self,
         kind: &str,
@@ -118,15 +139,11 @@ impl Recipe {
             RecipeKind::Stonecutting(input) => {
                 format!("Stonecutting {{ ingredient: {} }}", list(input))
             }
-            RecipeKind::Custom {
-                kind,
-                slots,
-                values,
-            } => {
+            RecipeKind::Custom { .. } => {
                 return format!(
-                    "registry.add_recipe_json({:?}, {:?});",
+                    "registry.add_recipe_data({:?}, {});",
                     self.id,
-                    self.custom_json(kind, slots, values).to_string()
+                    included(&self.data_path())
                 );
             }
             RecipeKind::Smithing {

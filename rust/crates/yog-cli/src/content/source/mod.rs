@@ -3,6 +3,8 @@
 mod blocks;
 mod register;
 
+pub(in crate::content) use register::included;
+
 use yog_ids::code_set;
 
 use crate::content::defs::Defs;

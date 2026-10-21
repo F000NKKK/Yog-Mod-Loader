@@ -1,5 +1,5 @@
-//! JSON ⇄ Yog Data (feature `json`): for what still speaks JSON — a
-//! `serde` type, a file of the game's own format — on its way into a blob.
+//! JSON ⇄ Yog Data (feature `json`): for what still speaks JSON — a file
+//! of the game's own format, a tool's protocol — on its way into a blob.
 
 use crate::value::{Map, Value};
 
@@ -42,18 +42,6 @@ pub fn to_json(v: &Value) -> serde_json::Value {
         }
         typed => serde_json::Value::String(crate::typed::typed_string(typed).unwrap_or_default()),
     }
-}
-
-/// A `serde` value as Yog Data.
-pub fn from_serde<T: serde::Serialize>(t: &T) -> Value {
-    serde_json::to_value(t)
-        .map(|j| from_json(&j))
-        .unwrap_or(Value::Null)
-}
-
-/// Yog Data read as a `serde` type.
-pub fn to_serde<T: serde::de::DeserializeOwned>(v: &Value) -> Result<T, String> {
-    serde_json::from_value(to_json(v)).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

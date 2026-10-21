@@ -275,11 +275,6 @@ impl Registry {
         self.register_blob(kind, id, &yog_data::binary::encode(def))
     }
 
-    /// JSON text as Yog Data (recipes and books are written as JSON by their crates).
-    fn json(text: &str) -> yog_data::Value {
-        yog_data::json::from_json_text(text).unwrap_or_default()
-    }
-
     /// Register a recipe (Yog's format — see [`Recipe`]; the host writes
     /// its Minecraft version's JSON).
     pub fn add_recipe(&mut self, recipe: Recipe) {
@@ -288,12 +283,11 @@ impl Registry {
         self.content(yog_ids::kind::RECIPE, &id, &recipe.to_data());
     }
 
-    /// Register a recipe given as Yog's recipe JSON — how `yog build`
-    /// registers the mod's own kinds (`{"type": "mymod:infusion", "slots":
-    /// …}`), which stay the mod's data: for its machines and its books.
-    pub fn add_recipe_json(&mut self, id: &str, json: &str) {
-        let id = yog_ids::qualify(id);
-        self.content(yog_ids::kind::RECIPE, &id, &Self::json(json));
+    /// Register a recipe given as Yog's recipe in Yog Data, binary — how
+    /// `yog build` registers the mod's own kinds (`{type: "mymod:infusion",
+    /// slots: …}`), which stay the mod's data: for its machines and its books.
+    pub fn add_recipe_data(&mut self, id: &str, data: &[u8]) {
+        self.register_blob(yog_ids::kind::RECIPE, &yog_ids::qualify(id), data)
     }
 
     pub fn register_item(&mut self, def: ItemDef) {

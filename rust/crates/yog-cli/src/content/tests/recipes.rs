@@ -180,12 +180,23 @@ fn compiles_a_recipe_of_the_mods_own_kind() {
     .unwrap();
     let src = c.source.unwrap().all();
     assert!(
-        src.contains("registry.add_recipe_json(\"mymod:infusion\""),
+        src.contains("registry.add_recipe_data(\"mymod:infusion\""),
         "{src}"
     );
-    assert!(
-        src.contains(r#"\"type\":\"mymod:infusion\""#) && src.contains(r#"\"time\":200"#),
-        "{src}"
+    let data = &c
+        .data_files
+        .iter()
+        .find(|(p, _)| p.contains("infusion"))
+        .unwrap()
+        .1;
+    let recipe = yog_data::binary::decode(data).unwrap();
+    assert_eq!(
+        recipe.get("type").and_then(|v| v.as_str()),
+        Some("mymod:infusion")
+    );
+    assert_eq!(
+        recipe.get("values").and_then(|v| v.get("time")),
+        Some(&yog_data::Value::Int(200))
     );
 
     // Against its kind: slots, how many, values and their types.
