@@ -44,7 +44,7 @@ mod textures;
 mod vocab;
 
 pub use compile::compile;
-pub use import::import_command;
+pub use import::{Imported, import_command};
 pub use outputs::{OutputSet, TAGS_FILE, TagLists, merge_outputs, read_tags};
 pub use source::{GENERATED_PARTS_DIR, Source, write_source};
 pub use vocab::TEMPLATES;

@@ -81,7 +81,7 @@ pub(crate) fn main(args: &[String]) {
             check::content_check,
             "usage: yog content check",
         ),
-        Some("import") => yog_cli::content::import_command(rest),
+        Some("import") => import(rest),
         Some("ui") => match rest.first().map(String::as_str) {
             Some("gen") => check::ui_gen(rest.get(1..).unwrap_or_default()),
             _ => Err("usage: yog ui gen [file.yui ...]  (no files: every src/**/*.yui)".into()),
@@ -96,6 +96,21 @@ pub(crate) fn main(args: &[String]) {
         eprintln!("yog: error: {e}");
         std::process::exit(1);
     }
+}
+
+/// `yog import ...`: what it wrote, what to warn of.
+fn import(rest: &[String]) -> Result<(), String> {
+    let imported = yog_cli::content::import_command(rest)?;
+    for w in &imported.warnings {
+        eprintln!("warning: {w}");
+    }
+    for f in &imported.written {
+        eprintln!("==> wrote {f}");
+    }
+    eprintln!(
+        "    `yog content check` validates them; register with `yog_api::content!();` in src/lib.rs"
+    );
+    Ok(())
 }
 
 /// `yog <cmd> <word>`: `run` when the word is `word`, else `usage`.

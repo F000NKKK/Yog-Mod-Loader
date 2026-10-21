@@ -208,6 +208,11 @@ fn client_jars(extra_roots: &[PathBuf]) -> Vec<(String, PathBuf)> {
     out
 }
 
+/// The newest client jar on this machine (`YOG_MC_CLIENT_JAR` first).
+pub(crate) fn newest_client_jar(extra_roots: &[PathBuf]) -> Option<PathBuf> {
+    client_jars(extra_roots).into_iter().max_by_key(|(v, _)| version_key(v)).map(|(_, p)| p)
+}
+
 /// The asset objects dir and the index for `version` (any index that knows
 /// the unifont when there's no exact match).
 fn asset_objects(version: &str) -> Option<(PathBuf, HashMap<String, String>)> {
