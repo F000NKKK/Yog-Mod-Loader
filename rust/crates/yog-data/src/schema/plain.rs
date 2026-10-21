@@ -558,8 +558,8 @@ impl<T: Schema, E: Schema> Schema for Result<T, E> {
 }
 
 /// The keys of a [`Result`]'s two sides.
-const RESULT_OK: &str = "ok";
-const RESULT_ERR: &str = "err";
+pub(crate) const RESULT_OK: &str = "ok";
+pub(crate) const RESULT_ERR: &str = "err";
 
 /// A pair, written `[a, b]` (a point, a size).
 impl<A: Schema, B: Schema> Schema for (A, B) {

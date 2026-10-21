@@ -67,31 +67,43 @@ pub const VERSION: u8 = 2;
 /// Nested deeper than this is malformed.
 pub const MAX_DEPTH: usize = 256;
 
-pub(crate) mod tag {
-    pub const NULL: u8 = 0;
-    pub const FALSE: u8 = 1;
-    pub const TRUE: u8 = 2;
-    pub const INT: u8 = 3;
-    pub const FLOAT: u8 = 4;
-    pub const STR: u8 = 5;
-    pub const LIST: u8 = 6;
-    pub const MAP: u8 = 7;
-    pub const REF: u8 = 8;
-    pub const TAG: u8 = 9;
-    pub const RES: u8 = 10;
-    pub const TEXT: u8 = 11;
-    pub const IMAGE: u8 = 12;
-    pub const COLOR: u8 = 13;
-    pub const LANG: u8 = 14;
-    pub const BYTES: u8 = 15;
-    /// A list of ints without a tag each: what a schema of numbers writes its lists as.
-    pub const INTS: u8 = 16;
-    /// A list in a body of its own (its own strings): read lazily, cut out whole ([`crate::Stream`]).
-    pub const STREAM: u8 = 17;
-    pub const FLOAT32: u8 = 18;
-    /// Lists of floats without a tag each.
-    pub const FLOATS: u8 = 19;
-    pub const FLOATS32: u8 = 20;
+/// A value's first byte: what it is.
+pub mod tag {
+    /// The tags, each a constant, and [`ALL`] of them by name.
+    macro_rules! tags {
+        ($($(#[$doc:meta])* $name:ident = $value:expr;)*) => {
+            $($(#[$doc])* pub const $name: u8 = $value;)*
+            /// Every tag, by its name (what other languages' readers are generated from).
+            pub const ALL: &[(&str, u8)] = &[$((stringify!($name), $value)),*];
+        };
+    }
+
+    tags! {
+        NULL = 0;
+        FALSE = 1;
+        TRUE = 2;
+        INT = 3;
+        FLOAT = 4;
+        STR = 5;
+        LIST = 6;
+        MAP = 7;
+        REF = 8;
+        TAG = 9;
+        RES = 10;
+        TEXT = 11;
+        IMAGE = 12;
+        COLOR = 13;
+        LANG = 14;
+        BYTES = 15;
+        /// A list of ints without a tag each: what a schema of numbers writes its lists as.
+        INTS = 16;
+        /// A list in a body of its own (its own strings): read lazily, cut out whole ([`crate::Stream`]).
+        STREAM = 17;
+        FLOAT32 = 18;
+        /// Lists of floats without a tag each.
+        FLOATS = 19;
+        FLOATS32 = 20;
+    }
 }
 
 /// A stream's length: fixed width, so the writer fills it in after its items.
@@ -99,7 +111,7 @@ pub(crate) const STREAM_LEN_BYTES: usize = 4;
 
 /// A string's varint: a new one's (odd, its length) or a reference to the
 /// table (even, its index).
-const NEW_STRING: u64 = 1;
+pub(crate) const NEW_STRING: u64 = 1;
 
 /// The low seven bits of a varint byte, and the bit saying more follow.
 pub(crate) const VARINT_BITS: u64 = 0x7F;

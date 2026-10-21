@@ -1215,6 +1215,16 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(SCREEN, COMPONENT, PROPERTY, EVENT, STYLE, CANVAS, COLUMN, ROW, GRID, ROW_DEFINITION, COLUMN_DEFINITION, ROW_DEFINITIONS, COLUMN_DEFINITIONS, SCROLL_VIEW, LABEL, BUTTON, TOGGLE_BUTTON, TEXT_BOX, IMAGE, SURFACE, SPACER, STAT_BAR, LIST_VIEW, ITEMS_CONTROL, CONTENT_PRESENTER, ITEM_SLOT, INV_SLOT, SLOT, PLAYER_INVENTORY, MACHINE, RECIPE_AREA, RECIPE_SLOT, RECIPE_RESULT, RECIPE_COUNT, BLOCK_SLOT, BOOK_HEADER, BOOK_TEXT, BOOK_ITEM, DRAWN);
     }
 
+    public static final class ServeRequest {
+        private ServeRequest() {}
+
+        public static final String METHOD = "method";
+        public static final String PARAMS = "params";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(METHOD, PARAMS);
+    }
+
     public static final class ServeParam {
         private ServeParam() {}
 

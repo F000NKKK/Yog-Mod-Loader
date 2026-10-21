@@ -113,6 +113,17 @@ pub fn typed_string(v: &Value) -> Option<String> {
     })
 }
 
+/// `v` with its typed values as their strings (`@item:x`): plain values
+/// only, for a tool that knows no typed ones (the IDE, through `yog serve`).
+pub fn flatten(v: &Value) -> Value {
+    match v {
+        Value::List(items) => Value::List(items.iter().map(flatten).collect()),
+        Value::Map(m) => Value::Map(m.iter().map(|(k, x)| (k.to_string(), flatten(x))).collect()),
+        Value::Str(_) => v.clone(),
+        typed => typed_string(typed).map_or_else(|| typed.clone(), Value::Str),
+    }
+}
+
 /// `s` with a leading `@` doubled, so it reads back as plain text.
 pub fn escape_at(s: &str) -> String {
     if s.starts_with('@') {

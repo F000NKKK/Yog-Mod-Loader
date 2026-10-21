@@ -314,7 +314,11 @@ names! {
         DRAWN = "Drawn",
     }
 
-
+    /// A request to the CLI's service (`yog serve`): the method and its parameters.
+    serve_request {
+        METHOD = "method",
+        PARAMS = "params",
+    }
 
     /// The parameters of the CLI's service methods (`yog serve`, what the IDE calls).
     serve_param {

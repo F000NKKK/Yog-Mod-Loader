@@ -1,52 +1,67 @@
-//! `yog serve` — the CLI as a service for tools (Yog-IDLE): one JSON
-//! request per line on stdin, one reply per line on stdout. Every format is
-//! read, written and converted here, so a tool needn't be rebuilt when a
-//! format changes — only this binary.
+//! `yog serve` — the CLI as a service for tools (Yog-IDLE): frames of
+//! binary Yog Data (`yog_data::io`) on stdin and stdout, each request a
+//! [`Request`] and each answer a [`Reply`]. Every format is read, written
+//! and converted here, so a tool needn't be rebuilt when a format changes —
+//! only this binary. Answers hold plain values: a typed one (`@item:x`) is
+//! sent as its string.
 //!
-//! ```text
-//! → {"id": 1, "method": "yres.parse", "params": {"text": "{…}"}}
-//! ← {"id": 1, "result": {"entries": […]}}
-//! ← {"id": 2, "error": "…"}
-//! ```
-//!
-//! Methods: see [`dispatch`] and the designers' (`design::service`).
+//! Methods: see [`answer`], [`dispatch`] and the designers' (`design::service`).
 
-use std::io::{BufRead, Write};
+mod data;
+
 use std::path::{Path, PathBuf};
 use yog_ids::serve_method as M;
 use yog_ids::serve_param as P;
 
 use serde_json::{Map, Value, json};
+use yog_data::Schema;
 use yog_formats::yres::{Entry, Kind};
+
+/// What a tool asks: a method, and its parameters.
+#[derive(Debug, Clone, Schema)]
+pub struct Request {
+    pub method: String,
+    #[data(default)]
+    pub params: yog_data::Value,
+}
+
+/// The answer: the method's result, or what went wrong — a message, or
+/// `{message, line}` for a file that doesn't parse.
+pub type Reply = Result<yog_data::Value, yog_data::Value>;
 
 /// Serves requests until stdin ends.
 pub fn run() -> Result<(), String> {
-    let stdin = std::io::stdin();
+    let mut input = std::io::stdin().lock();
     let mut out = std::io::stdout().lock();
-    for line in stdin.lock().lines() {
-        let line = line.map_err(|e| e.to_string())?;
-        if line.trim().is_empty() {
-            continue;
-        }
-        let reply = match serde_json::from_str::<Value>(&line) {
-            Ok(req) => {
-                let id = req.get("id").cloned().unwrap_or(Value::Null);
-                let method = req
-                    .get("method")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default();
-                let params = req.get("params").cloned().unwrap_or(Value::Null);
-                match dispatch(method, &params) {
-                    Ok(result) => json!({ "id": id, "result": result }),
-                    Err(error) => json!({ "id": id, "error": error }),
-                }
-            }
-            Err(e) => json!({ "id": null, "error": format!("not a request: {e}") }),
+    loop {
+        let reply = match yog_data::io::read_frame_bytes(&mut input) {
+            Ok(None) => return Ok(()),
+            Ok(Some(bytes)) => match yog_data::read_bytes::<Request>(&bytes) {
+                Ok(request) => answer(&request),
+                Err(e) => Err(format!("not a request: {e:?}").into()),
+            },
+            Err(e) => return Err(e.to_string()),
         };
-        writeln!(out, "{reply}").map_err(|e| e.to_string())?;
-        out.flush().map_err(|e| e.to_string())?;
+        yog_data::io::write_frame(&mut out, &reply).map_err(|e| e.to_string())?;
     }
-    Ok(())
+}
+
+/// `request` answered, in plain values.
+pub fn answer(request: &Request) -> Reply {
+    let params = &request.params;
+    let reply = match data::method(&request.method, params) {
+        Some(reply) => reply,
+        // The methods still written over JSON values.
+        None => {
+            let params = yog_data::json::to_json(params);
+            dispatch(&request.method, &params)
+                .map(|v| yog_data::json::from_json(&v))
+                .map_err(|e| yog_data::json::from_json(&e))
+        }
+    };
+    reply
+        .map(|v| yog_data::typed::flatten(&v))
+        .map_err(|e| yog_data::typed::flatten(&e))
 }
 
 /// A request's string parameter.
@@ -62,76 +77,15 @@ fn path_param(params: &Value, name: &str) -> Result<PathBuf, Value> {
     str_param(params, name).map(PathBuf::from)
 }
 
-/// A request's value parameter, given as JSON text (so its maps keep their order).
-fn data_param(params: &Value, name: &str) -> Result<yog_data::Value, Value> {
-    yog_data::text::parse_value(str_param(params, name)?)
-        .map_err(|e| json!(format!("`{name}`: {e}")))
-}
-
 /// What a method does with its params; an error is a string, or
 /// `{message, line}` for a file that doesn't parse.
 pub fn dispatch(method: &str, params: &Value) -> Result<Value, Value> {
-    if method == M::VERSION {
-        // The service's version: a tool restarts it when the binary changes.
-        return Ok(json!(env!("CARGO_PKG_VERSION")));
-    }
-    if let Some(reply) = data_method(method, params)? {
-        return Ok(reply);
-    }
     if let Some(reply) = media_method(method, params)? {
         return Ok(reply);
     }
     // The designers: drawing, pickers' choices, edits of a mod's files.
     crate::design::service::dispatch(method, params)
         .unwrap_or_else(|| Err(json!(format!("no method `{method}`"))))
-}
-
-/// Yog Data text and values, typed strings, the formats' shapes; `None`: not one of these.
-fn data_method(method: &str, params: &Value) -> Result<Option<Value>, Value> {
-    Ok(Some(match method {
-        // Yog Data text → its value as JSON text (maps in file order, typed values as written).
-        M::DATA_PARSE => {
-            let value = yog_data::text::parse_value(str_param(params, P::TEXT)?).map_err(
-                |e| json!({ "message": e.to_string(), "line": e.at.line, "col": e.at.col }),
-            )?;
-            json!(yog_data::patch::to_json(&value))
-        }
-        // `text` changed to hold `next` (JSON text), comments and layout of the rest kept.
-        M::DATA_PATCH => json!(yog_data::patch::patch(
-            str_param(params, P::TEXT)?,
-            &data_param(params, P::NEXT)?
-        )),
-        // A value (JSON text) as Yog's editors write it, at indent `level`.
-        M::DATA_FORMAT => {
-            let level = params.get(P::LEVEL).and_then(Value::as_u64).unwrap_or(0) as usize;
-            json!(yog_data::patch::format(
-                &data_param(params, P::VALUE)?,
-                level
-            ))
-        }
-        // Strings as typed values (`@item:x`, `@tag:item:x`, `@Set.key`, `@image:…`, `@lang:…`,
-        // `@@` escaped, else plain text): each `{t, …}` or `{error}`.
-        M::TYPED_CLASSIFY => {
-            let values = params
-                .get(P::VALUES)
-                .and_then(Value::as_array)
-                .ok_or_else(|| json!("missing list `values`"))?;
-            Value::Array(
-                values
-                    .iter()
-                    .map(|v| typed_json(v.as_str().unwrap_or_default()))
-                    .collect(),
-            )
-        }
-        // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
-        M::FORMAT_SHAPE => {
-            let name = str_param(params, P::FORMAT)?;
-            let shape =
-                yog_formats::shape_of(name).ok_or_else(|| json!(format!("no format `{name}`")))?;
-            yog_data::json::to_json(&shape.describe())
-        }
-        _ => return Ok(None),
-    }))
 }
 
 /// A mod's resources: `.yres` text and the media in it, its pictures, its
@@ -177,46 +131,6 @@ fn media_method(method: &str, params: &Value) -> Result<Option<Value>, Value> {
         )?)?)),
         _ => return Ok(None),
     }))
-}
-
-/// A string as a typed value, the way a tool takes it: `{t, …}`.
-#[derive(serde::Serialize)]
-#[serde(tag = "t", rename_all = "lowercase")]
-enum Typed {
-    Ref { kind: String, id: String },
-    Tag { kind: String, id: String },
-    Res { set: String, key: String },
-    Image { source: String },
-    Lang { key: String },
-    Bytes,
-    Str { v: String },
-}
-
-/// `s` as a typed value; `{error}` when it isn't one.
-fn typed_json(s: &str) -> Value {
-    let typed = match yog_data::typed::classify(s) {
-        Ok(yog_data::Value::Ref(r)) => Typed::Ref {
-            kind: r.kind,
-            id: r.id,
-        },
-        Ok(yog_data::Value::Tag(r)) => Typed::Tag {
-            kind: r.kind,
-            id: r.id,
-        },
-        Ok(yog_data::Value::Res(r)) => Typed::Res {
-            set: r.set,
-            key: r.key,
-        },
-        Ok(yog_data::Value::Image(source)) => Typed::Image { source },
-        Ok(yog_data::Value::Lang(key)) => Typed::Lang { key },
-        Ok(yog_data::Value::Bytes(_)) => Typed::Bytes,
-        Ok(yog_data::Value::Str(v)) => Typed::Str { v },
-        Ok(other) => Typed::Str {
-            v: yog_data::typed::typed_string(&other).unwrap_or_default(),
-        },
-        Err(error) => return json!({ "error": error }),
-    };
-    serde_json::to_value(typed).unwrap_or(Value::Null)
 }
 
 /// The mod a file is in (the folder with its manifest, up from it).
@@ -346,74 +260,4 @@ const KINDS: [Kind; 7] = [
 ];
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn yres_round_trips_through_the_service() {
-        let text = r##"{ "title": "Hi", "n": 3, "logo": "@bytes:iVBORw0KGgo=", "c": { "type": "color", "value": "#FF0000", "comment": "red" } }"##;
-        let parsed = dispatch("yres.parse", &json!({ "text": text })).unwrap();
-        let entries = &parsed["entries"];
-        assert_eq!(entries[2]["type"], "image");
-        assert_eq!(entries[2]["value"], "@bytes:iVBORw0KGgo=");
-        let named = dispatch(
-            "yres.parse",
-            &json!({ "text": "{ \"cad.0_x\": \"a\", \"1a\": \"b\" }", "set": "Items", "mod": "m" }),
-        )
-        .unwrap();
-        assert_eq!(named["entries"][0]["accessor"], "cad_0_x");
-        assert!(named["entries"][0].get("nameProblem").is_none());
-        assert!(named["entries"][1]["nameProblem"].is_string());
-        assert_eq!(named["entries"][0]["translationKey"], "item.m.cad.0_x");
-        let values = dispatch("yres.parse", &json!({ "text": r##"{ "c": { "type": "color", "value": "#F00" }, "d": { "type": "color", "value": "#80FF0000" } }"## })).unwrap();
-        assert!(values["entries"][0]["valueProblem"].is_string());
-        assert_eq!(values["entries"][1]["argb"], 0x80FF_0000_u32);
-        let written = dispatch("yres.write", &json!({ "entries": entries })).unwrap();
-        let again = dispatch("yres.parse", &json!({ "text": written.as_str().unwrap() })).unwrap();
-        assert_eq!(again["entries"][3]["comment"], "red");
-        assert_eq!(
-            dispatch("yres.parse", &json!({ "text": "{ \"a\": [] }" })).unwrap_err()["line"],
-            1
-        );
-        assert!(dispatch("nope", &Value::Null).is_err());
-    }
-
-    #[test]
-    fn typed_values_are_classified_by_the_service() {
-        let r = dispatch("typed.classify", &json!({ "values": ["@item:stick", "@tag:item:c:dusts", "@Strings.a.b", "@@x", "plain", "@lang:gui.done", "@image:sprite:x", "@Item:x"] })).unwrap();
-        assert_eq!(
-            r[0],
-            json!({ "t": "ref", "kind": "item", "id": "minecraft:stick" })
-        );
-        assert_eq!(r[1], json!({ "t": "tag", "kind": "item", "id": "c:dusts" }));
-        assert_eq!(r[2], json!({ "t": "res", "set": "Strings", "key": "a.b" }));
-        assert_eq!(r[3], json!({ "t": "str", "v": "@x" }));
-        assert_eq!(r[4], json!({ "t": "str", "v": "plain" }));
-        assert_eq!(r[5]["t"], "lang");
-        assert_eq!(r[6], json!({ "t": "image", "source": "sprite:x" }));
-        assert!(r[7]["error"].is_string());
-    }
-
-    #[test]
-    fn data_is_read_and_patched_through_the_service() {
-        let text = "{\n  // c\n  a: 1,\n  b: \"@item:x\"\n}";
-        assert_eq!(
-            dispatch("data.parse", &json!({ "text": text })).unwrap(),
-            json!(r#"{"a":1,"b":"@item:x"}"#)
-        );
-        let patched = dispatch(
-            "data.patch",
-            &json!({ "text": text, "next": r#"{"a":2,"b":"@item:x"}"# }),
-        )
-        .unwrap();
-        assert_eq!(patched, json!(text.replace("a: 1", "a: 2")));
-        assert_eq!(
-            dispatch("data.parse", &json!({ "text": "{ a: }" })).unwrap_err()["line"],
-            1
-        );
-        assert_eq!(
-            dispatch("data.format", &json!({ "value": "[1, 2]" })).unwrap(),
-            json!("[1, 2]")
-        );
-    }
-}
+mod tests;
