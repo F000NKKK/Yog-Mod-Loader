@@ -8,7 +8,7 @@ names! {
         DISPLAY_NAME = "display_name",
         DESCRIPTION = "description",
         ICON = "icon",
-        CATEGORY = "category",
+        CATEGORY = crate::word::CATEGORY,
         DESIGN_W = "design_w",
         DESIGN_H = "design_h",
         TOOLBOX = "toolbox",
@@ -44,8 +44,8 @@ names! {
         EMPTY = "Empty",
         COMMAND = "command",
         ITEMS = crate::word::ITEMS,
-        CONTENT = "content",
-        KEY = "key",
+        CONTENT = crate::word::CONTENT,
+        KEY = crate::word::KEY,
         HORIZONTAL = "horizontal",
         /// A binding's options (`{x:Bind name, Mode=TwoWay}`) and modes.
         MODE = "Mode",
@@ -61,11 +61,11 @@ names! {
     prop_kind {
         TEXT = crate::word::TEXT,
         NUMBER = crate::word::NUMBER,
-        INT = "int",
+        INT = crate::word::INT,
         BOOL = crate::word::BOOL,
         COLOR = crate::word::COLOR,
         CHOICE = "choice",
-        EVENT = "event",
+        EVENT = crate::word::EVENT,
         IMAGE = crate::word::IMAGE,
     }
 }

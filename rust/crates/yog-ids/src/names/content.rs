@@ -17,7 +17,7 @@ names! {
     image_scheme {
         ITEM = crate::kind::ITEM,
         BLOCK = crate::kind::BLOCK,
-        SPRITE = "sprite",
+        SPRITE = crate::word::SPRITE,
         MOD = crate::word::MOD,
     }
 
@@ -60,7 +60,7 @@ names! {
         /// Its resources: `.yres` sets, `.ytexture`s, ….
         RESOURCES = "resources",
         /// Its content: blocks, items, recipes, books, definitions.
-        CONTENT = "content",
+        CONTENT = crate::word::CONTENT,
         /// Where a copy of a game font goes, under its content.
         FONT_COPIES = crate::kind::FONT,
         /// Its code and screens.
@@ -239,7 +239,7 @@ names! {
     shape_kind {
         ANY = crate::word::ANY,
         BOOL = crate::word::BOOL,
-        INT = "int",
+        INT = crate::word::INT,
         FLOAT = "float",
         STRING = crate::word::STRING,
         ATOM = "atom",
@@ -254,7 +254,7 @@ names! {
         REF_OR_IMAGE = "ref_or_image",
         LIST = "list",
         MAP = "map",
-        OPTIONAL = "optional",
+        OPTIONAL = crate::word::OPTIONAL,
         STRUCT = "struct",
         ENUM = "enum",
         /// A struct or enum written once in `defs`, referred to by name.
@@ -336,7 +336,7 @@ names! {
         HEIGHT = crate::word::HEIGHT,
         TAG = crate::kind::TAG,
         ARGS = "args",
-        EVENT = "event",
+        EVENT = crate::word::EVENT,
         FILE = crate::word::FILE,
         SET = "set",
         MOD_ID = crate::word::MOD,
@@ -344,7 +344,7 @@ names! {
         NEXT = "next",
         LEVEL = crate::kind::LEVEL,
         VALUE = crate::word::VALUE,
-        VALUES = "values",
+        VALUES = crate::word::VALUES,
         FORMAT = "format",
         NS = "ns",
         ASSET = "asset",
@@ -355,7 +355,7 @@ names! {
     tag_file {
         VALUES = crate::word::VALUES,
         /// What a loader reads alongside `values` (Forge's).
-        OPTIONAL = "optional",
+        OPTIONAL = crate::word::OPTIONAL,
         REPLACE = "replace",
         /// An entry that may be missing: `{ "id": …, "required": false }`.
         ID = crate::word::ID,
@@ -371,7 +371,7 @@ names! {
         SINGLE = "single",
         UNSTITCH = "unstitch",
         RESOURCE = "resource",
-        SPRITE = "sprite",
+        SPRITE = crate::word::SPRITE,
         DIVISOR_X = "divisor_x",
         DIVISOR_Y = "divisor_y",
         REGIONS = "regions",
@@ -394,7 +394,7 @@ names! {
         END = crate::word::END,
         FRONT = "front",
         /// A one-texture model's.
-        TEXTURE = crate::kind::TEXTURE,
+        TEXTURE = crate::word::TEXTURE,
     }
 
     /// The game's block state properties Yog's blocks get, and their values.
@@ -423,11 +423,11 @@ names! {
         CONDITIONS = "conditions",
         CONDITION = "condition",
         FUNCTIONS = "functions",
-        FUNCTION = "function",
+        FUNCTION = crate::word::FUNCTION,
         COUNT = crate::word::COUNT,
         MIN = "min",
         MAX = "max",
-        BLOCK = crate::kind::BLOCK,
+        BLOCK = crate::word::BLOCK,
         PROPERTIES = "properties",
         /// A block's table, and one nothing uses the way of.
         BLOCK_TABLE = crate::id!(crate::ns::MINECRAFT, "block"),
@@ -516,7 +516,7 @@ names! {
         TO = "to",
         UV = crate::word::UV,
         ROTATION = "rotation",
-        TEXTURE = crate::kind::TEXTURE,
+        TEXTURE = crate::word::TEXTURE,
         /// A sprite item's (`item/generated`) first layer.
         LAYER0 = "layer0",
         /// The texture a block's particles take, and what a face falls back to.
@@ -619,7 +619,7 @@ names! {
         UV = crate::word::UV,
         TINT = "tint",
         KIND = crate::word::KIND,
-        RESULT = "result",
+        RESULT = crate::word::RESULT,
         PLACES = "places",
         RECIPE_LAYOUT = "recipe_layout",
         SLOT = "slot",

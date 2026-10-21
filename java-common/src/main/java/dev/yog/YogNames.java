@@ -53,7 +53,22 @@ public final class YogNames {
     public static final class Word {
         private Word() {}
 
+        public static final String BASE = "base";
+        public static final String BLOCK = "block";
+        public static final String CATEGORY = "category";
+        public static final String CONTENT = "content";
+        public static final String DIMENSION = "dimension";
+        public static final String EVENT = "event";
+        public static final String FUNCTION = "function";
         public static final String GUI = "gui";
+        public static final String INT = "int";
+        public static final String ITEM = "item";
+        public static final String KEY = "key";
+        public static final String OPTIONAL = "optional";
+        public static final String RESULT = "result";
+        public static final String SPRITE = "sprite";
+        public static final String TAG = "tag";
+        public static final String TEXTURE = "texture";
         public static final String VALUES = "values";
         public static final String ITEMS = "items";
         public static final String BLOCKS = "blocks";
@@ -108,7 +123,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(GUI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(BASE, BLOCK, CATEGORY, CONTENT, DIMENSION, EVENT, FUNCTION, GUI, INT, ITEM, KEY, OPTIONAL, RESULT, SPRITE, TAG, TEXTURE, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {

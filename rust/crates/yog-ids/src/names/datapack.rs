@@ -13,7 +13,7 @@ names! {
     /// each was its name and [`crate::data_layout::PLURAL`].
     renamed_data_dir {
         ADVANCEMENT = crate::kind::ADVANCEMENT,
-        FUNCTION = "function",
+        FUNCTION = crate::word::FUNCTION,
         ITEM_MODIFIER = "item_modifier",
         LOOT_TABLE = crate::kind::LOOT_TABLE,
         PREDICATE = "predicate",
@@ -26,7 +26,7 @@ names! {
         BLOCK = crate::kind::BLOCK,
         ENTITY_TYPE = crate::concatcp!(crate::kind::ENTITY, crate::sep::WORD, crate::word::TYPE),
         FLUID = crate::kind::FLUID,
-        FUNCTION = "function",
+        FUNCTION = crate::word::FUNCTION,
         GAME_EVENT = "game_event",
         ITEM = crate::kind::ITEM,
     }
@@ -54,23 +54,23 @@ names! {
     /// A recipe's fields as Yog writes it (`.yrecipe`, and what the hosts get).
     recipe_field {
         TYPE = crate::word::TYPE,
-        RESULT = "result",
+        RESULT = crate::word::RESULT,
         COUNT = crate::word::COUNT,
         /// A mod's kind: its slots and values, by name.
         SLOTS = "slots",
         VALUES = crate::word::VALUES,
         /// A grid: rows of key characters, and what each character is.
         PATTERN = "pattern",
-        KEY = "key",
+        KEY = crate::word::KEY,
         INGREDIENTS = "ingredients",
         INGREDIENT = "ingredient",
         TEMPLATE = "template",
-        BASE = "base",
+        BASE = crate::word::BASE,
         ADDITION = "addition",
         EXPERIENCE = "experience",
         COOK_TIME = "cook_time",
         GROUP = "group",
-        CATEGORY = "category",
+        CATEGORY = crate::word::CATEGORY,
     }
 
     /// The game's recipe JSON: the types Yog's kinds become, and its own fields.
@@ -83,8 +83,8 @@ names! {
         COOKING_TIME = "cookingtime",
         /// A result's item: `id` since 1.20.5, `item` before.
         ID = crate::word::ID,
-        ITEM = crate::kind::ITEM,
-        TAG = crate::kind::TAG,
+        ITEM = crate::word::ITEM,
+        TAG = crate::word::TAG,
         /// What a recipe makes when it says nothing.
         AIR = crate::id!(crate::ns::MINECRAFT, "air"),
     }
@@ -106,7 +106,7 @@ names! {
     /// The game's dimensions as a datapack writes them.
     game_dimension {
         DIMENSION_TYPE = crate::dimension_field::DIMENSION_TYPE,
-        DIMENSION = crate::kind::DIMENSION,
+        DIMENSION = crate::word::DIMENSION,
         /// A dimension's biomes: all of one.
         FIXED_BIOMES = crate::id!(crate::ns::MINECRAFT, "fixed"),
         /// The game's own generator and its settings, for a dimension with no generator of Yog's.
@@ -130,7 +130,7 @@ names! {
     tag_table {
         TAG = crate::kind::TAG,
         YOG = crate::ns::YOG,
-        BASE = "base",
+        BASE = crate::word::BASE,
         HAS = "has",
         EVERYWHERE = "*",
         LOADERS = "# loaders:",
