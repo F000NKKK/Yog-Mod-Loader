@@ -225,7 +225,7 @@ pub fn source_size(source: &str) -> Option<(f32, f32)> {
             Some(SpriteSource::Region(r)) => (r.region.w, r.region.h),
             _ => (s.size.x, s.size.y),
         }),
-        ImageSource::Texture(id) if id.ends_with(".svg") => svg_document(&id).and_then(|d| svg_size(&d)),
+        ImageSource::Texture(id) if id.ends_with(".svg") => svg_document(&id).and_then(|d| yog_media::svg::size(&d)),
         ImageSource::Texture(id) => texture(&id).map(|i| (i.width as f32, i.height as f32)),
         ImageSource::ModPath(_) => None,
     }
@@ -315,24 +315,9 @@ fn missing(c: &mut Canvas, dest: [f32; 4]) {
 /// Physical pixels an SVG is rasterized at per GUI pixel.
 const SVG_OVERSAMPLE: f32 = 4.0;
 
-/// An SVG document as straight-alpha RGBA, `w`×`h` — as the runtime
-/// rasterizes it in game.
+/// An SVG document as an image, `w`×`h` — as the runtime rasterizes it in game.
 fn svg_image(data: &str, w: u32, h: u32) -> Option<Image> {
-    let tree = resvg::usvg::Tree::from_str(data, &resvg::usvg::Options::default()).ok()?;
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(w, h)?;
-    let size = tree.size();
-    let t = resvg::tiny_skia::Transform::from_scale(w as f32 / size.width(), h as f32 / size.height());
-    resvg::render(&tree, t, &mut pixmap.as_mut());
-    let mut rgba = pixmap.take();
-    for p in rgba.as_chunks_mut::<4>().0 {
-        let a = p[3] as u32;
-        if a > 0 && a < 255 {
-            for c in &mut p[..3] {
-                *c = ((*c as u32 * 255 + a / 2) / a).min(255) as u8;
-            }
-        }
-    }
-    Some(Image { width: w, height: h, rgba })
+    Some(Image { width: w, height: h, rgba: yog_media::svg::rasterize(data, w, h)? })
 }
 
 /// The document of an `.svg` texture id (`ns:textures/x.svg`) of the mod.
@@ -340,11 +325,6 @@ fn svg_document(id: &str) -> Option<String> {
     let (ns, path) = yog_ids::split(id);
     let bytes = with_doc(|d| d.and_then(|d| d.res.read(ns, path)))?;
     String::from_utf8(bytes).ok()
-}
-
-fn svg_size(data: &str) -> Option<(f32, f32)> {
-    let tree = resvg::usvg::Tree::from_str(data, &resvg::usvg::Options::default()).ok()?;
-    Some((tree.size().width(), tree.size().height()))
 }
 
 /// `draw2d_svg`: `data` into `dest`.

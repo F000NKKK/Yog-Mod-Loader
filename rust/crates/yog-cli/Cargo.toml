@@ -43,7 +43,6 @@ yog-graphics = { workspace = true }
 yog-worldgen = { workspace = true }
 serde = { workspace = true }
 toml = { workspace = true, features = ["std", "parse"] }
-resvg = { workspace = true }
 fontdue = { workspace = true }
 png = { workspace = true }
 libloading = { workspace = true }

@@ -172,6 +172,34 @@ pub fn join(ns: &str, path: &str) -> String {
     format!("{ns}{}{path}", sep::NAMESPACE)
 }
 
+/// A namespace as the game takes it: `[a-z0-9_.-]+`.
+pub fn valid_namespace(s: &str) -> bool {
+    !s.is_empty() && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-'))
+}
+
+/// A resource path as the game takes it: `[a-z0-9_./-]+`, not starting or
+/// ending with a `/`.
+pub fn valid_path(s: &str) -> bool {
+    let sep = sep::PATH.as_bytes()[0];
+    !s.is_empty()
+        && !s.starts_with(sep::PATH)
+        && !s.ends_with(sep::PATH)
+        && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-') || b == sep)
+}
+
+/// `ns:path` (or `path`, the game's) as the game takes it.
+pub fn valid_id(s: &str) -> bool {
+    match s.split_once(sep::NAMESPACE) {
+        Some((ns, path)) => valid_namespace(ns) && valid_path(path),
+        None => valid_path(s),
+    }
+}
+
+/// A name of Yog's in snake case: `[a-z0-9_]+` (a state's property, a kind of recipe).
+pub fn valid_name(s: &str) -> bool {
+    !s.is_empty() && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == sep::WORD.as_bytes()[0])
+}
+
 /// `id`'s namespace and path; a bare path is the game's.
 pub fn split(id: &str) -> (&str, &str) {
     id.split_once(sep::NAMESPACE).unwrap_or((ns::MINECRAFT, id))

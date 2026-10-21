@@ -12,3 +12,4 @@ yog-ids = { workspace = true }
 yog-graphics = { workspace = true }
 image = { workspace = true }
 png = { workspace = true }
+resvg = { workspace = true }

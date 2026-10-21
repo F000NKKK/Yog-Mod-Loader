@@ -237,7 +237,7 @@ const LAYOUT_SUFFIX: &str = "_layout";
 pub fn create(file: &Path, name: &str) -> Result<PathBuf, String> {
     let root = super::mod_root(file).ok_or("not inside a mod")?;
     let name = name.trim();
-    if name.is_empty() || !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
+    if !yog_ids::valid_name(name) {
         return Err("a kind's name: a-z, 0-9 and _".into());
     }
     let def = root.join(yog_ids::project::CONTENT).join(Format::Def.file(name));

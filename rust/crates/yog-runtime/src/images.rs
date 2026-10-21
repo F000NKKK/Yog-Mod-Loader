@@ -288,7 +288,7 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
             },
             Some(ImageSource::Texture(id)) if id.ends_with(".svg") => crate::jni_util::get_env()
                 .and_then(|mut env| crate::svg::file(&mut env, &id))
-                .and_then(|doc| crate::svg::size(&doc)),
+                .and_then(|doc| yog_media::svg::size(&doc)),
             Some(ImageSource::Texture(id)) => {
                 crate::jni_util::get_env().and_then(|mut env| texture_size(&mut env, &id))
             }

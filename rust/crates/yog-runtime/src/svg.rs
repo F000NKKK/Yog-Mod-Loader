@@ -43,36 +43,6 @@ fn hash(data: &str) -> u64 {
     h.finish()
 }
 
-fn tree(data: &str) -> Option<resvg::usvg::Tree> {
-    resvg::usvg::Tree::from_str(data, &resvg::usvg::Options::default()).ok()
-}
-
-/// `data` as RGBA pixels, `w`×`h`.
-pub fn rasterize(data: &str, w: u32, h: u32) -> Option<Vec<u8>> {
-    let tree = tree(data)?;
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(w, h)?;
-    let size = tree.size();
-    let t =
-        resvg::tiny_skia::Transform::from_scale(w as f32 / size.width(), h as f32 / size.height());
-    resvg::render(&tree, t, &mut pixmap.as_mut());
-    // tiny-skia keeps premultiplied alpha; textures want it straight.
-    let mut px = pixmap.take();
-    for p in px.as_chunks_mut::<4>().0 {
-        let a = p[3] as u32;
-        if a > 0 && a < 255 {
-            for c in &mut p[..3] {
-                *c = ((*c as u32 * 255 + a / 2) / a).min(255) as u8;
-            }
-        }
-    }
-    Some(px)
-}
-
-/// The document's own size in pixels.
-pub fn size(data: &str) -> Option<(f32, f32)> {
-    tree(data).map(|t| (t.size().width(), t.size().height()))
-}
-
 /// The document of the `.svg` resource `id` (`ns:textures/x.svg`).
 pub fn file(env: &mut JNIEnv, id: &str) -> Option<String> {
     if let Some(hit) = with(|c| c.files.get(id).cloned()) {
@@ -102,7 +72,7 @@ pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
     let id = match with(|c| c.rasters.get(&key).cloned()) {
         Some(id) => id,
         None => {
-            let Some(px) = rasterize(data, pw, ph) else {
+            let Some(px) = yog_media::svg::rasterize(data, pw, ph) else {
                 return;
             };
             if with(|c| c.rasters.len()) >= MAX_RASTERS {
@@ -156,21 +126,5 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_entity(
                 [S(entity), F(x), F(y), F(w), F(h), F(yaw), F(pitch)]
             )
         };
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const SQUARE: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="20"><rect width="10" height="20" fill="#ff0000" fill-opacity="0.5"/></svg>"##;
-
-    #[test]
-    fn rasterizes_straight_alpha() {
-        assert_eq!(size(SQUARE), Some((10.0, 20.0)));
-        let px = rasterize(SQUARE, 4, 8).unwrap();
-        assert_eq!(px.len(), 4 * 8 * 4);
-        assert_eq!(&px[..4], &[255, 0, 0, 128], "not premultiplied");
-        assert!(rasterize("not svg", 4, 4).is_none());
     }
 }

@@ -110,31 +110,7 @@ pub struct Compiled {
     pub books: usize,
 }
 
-/// `[a-z0-9_.-]+` — a Minecraft namespace.
-pub fn valid_namespace(s: &str) -> bool {
-    !s.is_empty()
-        && s.bytes().all(|b| {
-            b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-')
-        })
-}
-
-/// `[a-z0-9_./-]+` — a Minecraft resource path.
-pub fn valid_path(s: &str) -> bool {
-    !s.is_empty()
-        && !s.starts_with('/')
-        && !s.ends_with('/')
-        && s.bytes().all(|b| {
-            b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'.' | b'-' | b'/')
-        })
-}
-
-/// `ns:path` (or `path`, in `minecraft`) as a valid resource id.
-pub fn valid_id(s: &str) -> bool {
-    match s.split_once(':') {
-        Some((ns, path)) => valid_namespace(ns) && valid_path(path),
-        None => valid_path(s),
-    }
-}
+pub use yog_ids::{valid_id, valid_namespace, valid_path};
 
 /// Every content file (`CONTENT`) under `content/` of the mod at `root`, sorted.
 pub fn find(root: &Path) -> Vec<PathBuf> {

@@ -8,9 +8,7 @@ use serde_json::{Map, Value, json};
 use yog_data::Path as At;
 use yog_data::field;
 use yog_formats::content::BlockProps as Props;
-use yog_formats::content::{
-    BlockFile, BlockShape, Connect, Facing, Model, Rotation, States,
-};
+use yog_formats::content::{BlockFile, BlockShape, Connect, Facing, Model, Rotation, States};
 use yog_ids::block_state::{CEILING, FACE, FACING, FALSE, FLOOR, TRUE, WALL, WATERLOGGED};
 use yog_ids::direction::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
 use yog_ids::model as m;
@@ -18,9 +16,9 @@ use yog_ids::sep::{PROPERTY_IS, PROPERTY_SEP};
 use yog_ids::units::BLOCK_PIXELS;
 
 use super::{Emit, Parts};
-use crate::content::model::{model, turn, variant, with_render_type};
 use crate::content::ctx::{Ctx, Loc};
 use crate::content::entry::{BlockProps, Entry};
+use crate::content::model::{model, turn, variant, with_render_type};
 
 /// The four sides a block faces, and the six.
 const HORIZONTAL: [&str; 4] = [NORTH, EAST, SOUTH, WEST];
@@ -247,12 +245,7 @@ fn own_property(cx: &mut Ctx, loc: Loc, name: &str, values: &[String]) {
         .key(field!(BlockFile, states))
         .key(field!(States, properties))
         .key(name);
-    let word = |w: &str| {
-        !w.is_empty()
-            && w.chars()
-                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
-    };
-    if !word(name) {
+    if !yog_ids::valid_name(name) {
         cx.err_at(
             loc,
             &here,
@@ -266,7 +259,11 @@ fn own_property(cx: &mut Ctx, loc: Loc, name: &str, values: &[String]) {
         );
     }
     let mut seen = HashSet::new();
-    if values.len() < MIN_VALUES || !values.iter().all(|v| word(v) && seen.insert(v.as_str())) {
+    if values.len() < MIN_VALUES
+        || !values
+            .iter()
+            .all(|v| yog_ids::valid_name(v) && seen.insert(v.as_str()))
+    {
         cx.err_at(
             loc,
             &here,

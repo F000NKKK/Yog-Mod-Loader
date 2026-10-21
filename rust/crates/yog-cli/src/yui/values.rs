@@ -238,12 +238,6 @@ pub(crate) fn str_consts(values: &[String]) -> String {
     out
 }
 
-/// Lower case a-z, 0-9, `_`, `-`, `.`, `/` — a resource id's namespace or path.
-pub(super) fn valid_resource_id(s: &str) -> bool {
-    s.chars()
-        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "_-./".contains(c))
-}
-
 /// Whether a `bg` value is an image (`sprite:panel`, `mymod:gui/frame`,
 /// an `@Set.name` image) rather than a color (`#RRGGBB`, `@Colors.name`).
 pub(crate) fn is_image_value(v: &str) -> bool {

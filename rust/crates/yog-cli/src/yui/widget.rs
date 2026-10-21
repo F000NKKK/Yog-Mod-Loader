@@ -14,7 +14,6 @@ use super::elements::{
 };
 use super::values::{
     Names, color_attr, font_attr, image_source, is_image_value, number, text_attr,
-    valid_resource_id,
 };
 use super::{Element, RAW_CALL, err};
 use crate::rust_code::f32_lit;
@@ -372,12 +371,7 @@ fn slot(el: &Element) -> Result<String, String> {
         let id = a.strip_prefix(yog_ids::sep::TAG).unwrap_or(a);
         let ok = id
             .split_once(yog_ids::sep::NAMESPACE)
-            .is_some_and(|(ns, path)| {
-                !ns.is_empty()
-                    && !path.is_empty()
-                    && valid_resource_id(ns)
-                    && valid_resource_id(path)
-            });
+            .is_some_and(|(ns, path)| yog_ids::valid_namespace(ns) && yog_ids::valid_path(path));
         if !ok {
             return Err(format!(
                 "line {}: <Slot> accepts=\"{a}\": expected an item id (minecraft:redstone) or an item tag (#c:dusts), with its namespace",

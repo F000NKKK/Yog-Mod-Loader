@@ -109,14 +109,6 @@ pub struct Picture {
     pub output: String,
 }
 
-/// Whether `path` is a valid resource path: lower case a-z, 0-9, `_`, `-`, `.`, `/`.
-fn valid_resource_path(path: &str) -> bool {
-    !path.is_empty()
-        && path.bytes().all(|b| {
-            b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'-' | b'.' | b'/')
-        })
-}
-
 /// Everything `yog build` makes of a mod's resources.
 #[derive(Debug, Default)]
 pub struct Compiled {
@@ -142,7 +134,7 @@ pub fn value_problem(e: &Entry) -> Option<String> {
     let media = |what: &str| format!("{:?}: {what} are bytes (`@bytes:…`)", e.name);
     match (e.kind, &e.value) {
         (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_))
-            if !valid_resource_path(&e.name.replace('.', yog_ids::sep::PATH)) =>
+            if !yog_ids::valid_path(&e.name.replace('.', yog_ids::sep::PATH)) =>
         {
             Some(format!(
                 "{:?}: Minecraft resource paths are lower case — only a-z, 0-9, `_`, `-`, `.`",

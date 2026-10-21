@@ -1888,7 +1888,6 @@ dependencies = [
  "png",
  "proc-macro2",
  "quick-xml",
- "resvg",
  "serde",
  "serde_json",
  "syn 3.0.9",
@@ -2104,6 +2103,7 @@ version = "0.3.0"
 dependencies = [
  "image",
  "png",
+ "resvg",
  "yog-graphics",
  "yog-ids",
 ]
@@ -2136,7 +2136,6 @@ dependencies = [
  "jni",
  "libc",
  "libloading",
- "resvg",
  "serde_json",
  "yog-abi",
  "yog-body",
