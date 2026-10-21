@@ -31,7 +31,7 @@ public abstract class CameraMixin {
 
     @Inject(method = "alignWithEntity", at = @At("TAIL"))
     private void yog$camera(float partial, CallbackInfo ci) {
-        float[] o = YogBody.camera(entity(), partial, position(), yRot(), xRot(), isDetached());
+        float[] o = YogBody.camera(entity(), partial, position(), new YogBody.Look(yRot(), xRot()), isDetached());
         if (o == null) return;
         if (o[6] != 0 || o[7] != 0) setRotation(yRot() + o[6], xRot() + o[7]);
         if (o[0] != 0 || o[1] != 0 || o[2] != 0) move(o[2], o[1], -o[0]);

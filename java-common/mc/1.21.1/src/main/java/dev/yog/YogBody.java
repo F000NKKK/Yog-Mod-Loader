@@ -97,8 +97,10 @@ public final class YogBody {
     }
 
     /** Render HEAD: asks the mods; true if the entity itself isn't drawn. */
-    public static boolean begin(LivingEntityRenderer<?, ?> self, LivingEntity e, float yaw, float partial,
-                                PoseStack pose, MultiBufferSource buffers, int light) {
+    public static boolean begin(LivingEntityRenderer<?, ?> self, LivingEntity e, float yaw, float partial, Into into) {
+        PoseStack pose = into.pose();
+        MultiBufferSource buffers = into.buffers();
+        int light = into.light();
         if (capturing > 0 || !YogBodyWire.anyTracked() || !YogBodyWire.tracked(e.getUUID(), typeId(e))) {
             DRAWING.push(State.NONE);
             return false;
@@ -132,7 +134,7 @@ public final class YogBody {
                 pose.scale(scale, scale, scale);
                 pose.mulPose(Axis.YP.rotationDegrees(180.0F - body));
                 if (ops.root != null) pose.mulPose(new Matrix4f().set(ops.root));
-                draw(ops, YogBodyWire.ANCHOR_ENTITY, null, pose, buffers, light);
+                draw(ops, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, buffers, light));
                 pose.popPose();
             }
             return true;
@@ -146,7 +148,7 @@ public final class YogBody {
         State s = DRAWING.peek();
         if (s == null || s.ops == Ops.NONE) return;
         if (s.ops.root != null) pose.mulPose(new Matrix4f().set(s.ops.root));
-        draw(s.ops, YogBodyWire.ANCHOR_ENTITY, null, pose, buffers, light);
+        draw(s.ops, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, buffers, light));
     }
 
     /** After vanilla animated the model: the mods' part changes. */
@@ -181,8 +183,8 @@ public final class YogBody {
     public static void drawn(EntityModel<?> model, PoseStack pose, MultiBufferSource buffers, int light) {
         State s = DRAWING.peek();
         if (s == null || s.ops.meshes.isEmpty()) return;
-        draw(s.ops, YogBodyWire.ANCHOR_MODEL, null, pose, buffers, light);
-        if (s.ops.has(YogBodyWire.ANCHOR_BONE)) draw(s.ops, YogBodyWire.ANCHOR_BONE, parts(model), pose, buffers, light);
+        draw(s.ops, YogBodyWire.ANCHOR_MODEL, null, new Into(pose, buffers, light));
+        if (s.ops.has(YogBodyWire.ANCHOR_BONE)) draw(s.ops, YogBodyWire.ANCHOR_BONE, parts(model), new Into(pose, buffers, light));
     }
 
     /** Render RETURN: the parts back as vanilla left them. */
@@ -192,7 +194,10 @@ public final class YogBody {
         for (int i = s.saved.size() - 1; i >= 0; i--) s.saved.get(i).restore();
     }
 
-    private static void draw(Ops ops, int anchor, Map<String, ModelPart[]> parts, PoseStack pose, MultiBufferSource buffers, int light) {
+    private static void draw(Ops ops, int anchor, Map<String, ModelPart[]> parts, Into into) {
+        PoseStack pose = into.pose();
+        MultiBufferSource buffers = into.buffers();
+        int light = into.light();
         for (Mesh m : ops.meshes) {
             if (m.anchor != anchor) continue;
             pose.pushPose();
@@ -255,10 +260,10 @@ public final class YogBody {
             pose.pushPose();
             pose.mulPose(Axis.YP.rotationDegrees(180.0F - body));
             if (ops.root != null) pose.mulPose(new Matrix4f().set(ops.root));
-            draw(ops, YogBodyWire.ANCHOR_ENTITY, null, pose, buffers, light);
+            draw(ops, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, buffers, light));
             pose.scale(-1.0F, -1.0F, 1.0F);
             pose.translate(0.0F, -1.501F, 0.0F);
-            draw(ops, YogBodyWire.ANCHOR_MODEL, null, pose, buffers, light);
+            draw(ops, YogBodyWire.ANCHOR_MODEL, null, new Into(pose, buffers, light));
             pose.popPose();
         } finally {
             overlay = OverlayTexture.NO_OVERLAY;
@@ -425,13 +430,19 @@ public final class YogBody {
     /** The field of view the mods scale the game's by (ViewMixin); the roll goes in the camera's rotation (CameraMixin). */
     public static float fov = 1;
 
+    /** Where a body is drawn: its pose stack, what takes its quads, the light. */
+    public record Into(PoseStack pose, MultiBufferSource buffers, int light) {}
+
+    /** Which way a camera looks. */
+    public record Look(float yaw, float pitch) {}
+
     /**
      * Camera.setup TAIL: {right, up, forward, wx, wy, wz, yaw, pitch, roll,
      * fov} from the mods, or null.
      */
-    public static float[] camera(Entity entity, float partial, Vec3 pos, float yaw, float pitch, boolean detached) {
+    public static float[] camera(Entity entity, float partial, Vec3 pos, Look look, boolean detached) {
         float[] o = entity == null ? null : dev.yog.util.YogBodyBus.camera(new dev.yog.bus.YogTypes.CameraFrame(entity.getStringUUID(), partial,
-                new double[] {pos.x, pos.y, pos.z}, yaw, pitch, detached, NativeBridge.entityFlags(entity)));
+                new double[] {pos.x, pos.y, pos.z}, look.yaw(), look.pitch(), detached, NativeBridge.entityFlags(entity)));
         fov = o == null ? 1 : o[9];
         return o;
     }

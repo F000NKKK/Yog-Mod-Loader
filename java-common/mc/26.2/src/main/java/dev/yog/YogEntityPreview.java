@@ -15,11 +15,16 @@ final class YogEntityPreview {
     private static final float FACING_VIEWER = 180f;
 
     /**
-     * {@code e} standing in the box (x, y, w, h), {@code size} px per block,
-     * turned {@code yaw} degrees (0 = facing the viewer) and tilted {@code pitch}.
+     * How an entity is shown: standing in the box (x, y, w, h), {@code size}
+     * px per block, turned {@code yaw} degrees (0 = facing the viewer) and
+     * tilted {@code pitch}.
      */
-    static void draw(GuiGraphicsExtractor ctx, LivingEntity e, float x, float y, float w, float h, float size, float yaw, float pitch) {
-        Quaternionf tilt = new Quaternionf().rotateX((float) Math.toRadians(pitch));
+    record Shot(float x, float y, float w, float h, float size, float yaw, float pitch) {}
+
+    /** {@code e} as {@code shot} shows it. */
+    static void draw(GuiGraphicsExtractor ctx, LivingEntity e, Shot shot) {
+        float x = shot.x(), y = shot.y(), w = shot.w(), h = shot.h(), size = shot.size(), yaw = shot.yaw();
+        Quaternionf tilt = new Quaternionf().rotateX((float) Math.toRadians(shot.pitch()));
         Quaternionf rotation = new Quaternionf().rotateZ((float) Math.PI).mul(tilt);
         var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(e);
         var state = renderer.createRenderState(e, 1.0F);

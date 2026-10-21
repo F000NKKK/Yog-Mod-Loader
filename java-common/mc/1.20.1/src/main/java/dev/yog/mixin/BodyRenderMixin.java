@@ -22,7 +22,7 @@ public abstract class BodyRenderMixin<T extends LivingEntity, M extends EntityMo
 
     @Inject(method = RENDER, at = @At("HEAD"), cancellable = true)
     private void yog$begin(LivingEntity e, float yaw, float partial, PoseStack pose, MultiBufferSource buffers, int light, CallbackInfo ci) {
-        if (YogBody.begin((LivingEntityRenderer<?, ?>) (Object) this, e, yaw, partial, pose, buffers, light)) ci.cancel();
+        if (YogBody.begin((LivingEntityRenderer<?, ?>) (Object) this, e, yaw, partial, new YogBody.Into(pose, buffers, light))) ci.cancel();
     }
 
     /** The first scale comes right after {@code setupRotations}. */

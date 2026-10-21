@@ -145,7 +145,7 @@ public final class NativeDraw {
         Identifier ident = Identifier.tryParse(id);
         if (ident == null) return;
         int x0 = Math.round(x), y0 = Math.round(y);
-        YogGuiSprites.draw(ctx, ident, x0, y0, Math.round(x + w) - x0, Math.round(y + h) - y0, tint);
+        ctx.blitSprite(RenderPipelines.GUI_TEXTURED, ident, x0, y0, Math.round(x + w) - x0, Math.round(y + h) - y0, tint);
     }
 
     /**
@@ -279,7 +279,7 @@ public final class NativeDraw {
         var e = preview(type);
         if (e == null) return;
         float size = Math.min(h / Math.max(e.getBbHeight(), dev.yog.util.YogGameNumbers.ENTITY_MIN_SIZE), w / Math.max(e.getBbWidth() * dev.yog.util.YogGameNumbers.ENTITY_ARMS, dev.yog.util.YogGameNumbers.ENTITY_MIN_SIZE)) * dev.yog.util.YogGameNumbers.ENTITY_MARGIN;
-        YogEntityPreview.draw(ctx, e, x, y, w, h, size, yaw, pitch);
+        YogEntityPreview.draw(ctx, e, new YogEntityPreview.Shot(x, y, w, h, size, yaw, pitch));
     }
 
     // ── Scaled text, 3D blocks ────────────────────────────────────────────────
@@ -325,9 +325,10 @@ public final class NativeDraw {
         if (blocks.isEmpty()) return;
         float size = Math.max(hi[0] - lo[0], Math.max(hi[1] - lo[1], hi[2] - lo[2])) + 1;
         float s = Math.min(w, h) / (size * BLOCKS_MARGIN);
-        int x0 = Math.round(x), y0 = Math.round(y);
+        int x0 = Math.round(x), y0 = Math.round(y), x1 = Math.round(x + w), y1 = Math.round(y + h);
+        var scissor = ctx.scissorStack.peek();
         ctx.guiRenderState.addPicturesInPictureState(new YogBlocksPip.State(blocks,
                 (lo[0] + hi[0] + 1) / 2f, (lo[1] + hi[1] + 1) / 2f, (lo[2] + hi[2] + 1) / 2f, yaw, pitch, s,
-                x0, y0, Math.round(x + w), Math.round(y + h), ctx.scissorStack.peek()));
+                x0, y0, x1, y1, scissor, net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState.getBounds(x0, y0, x1, y1, scissor)));
     }
 }

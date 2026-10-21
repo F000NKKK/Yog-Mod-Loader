@@ -1,8 +1,6 @@
 package dev.yog;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.resources.Identifier;
@@ -17,10 +15,5 @@ final class YogGuiSprites {
     static boolean has(Identifier id) {
         var sprite = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.GUI).getSprite(id);
         return !sprite.contents().name().equals(MissingTextureAtlasSprite.getLocation());
-    }
-
-    /** Sprite `id` over (x, y, w, h), nine-sliced or tiled per its .mcmeta, colors times `tint` (0xAARRGGBB). */
-    static void draw(GuiGraphicsExtractor ctx, Identifier id, int x, int y, int w, int h, int tint) {
-        ctx.blitSprite(RenderPipelines.GUI_TEXTURED, id, x, y, w, h, tint);
     }
 }

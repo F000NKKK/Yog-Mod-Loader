@@ -35,11 +35,6 @@ final class YogBlocksPip extends PictureInPictureRenderer<YogBlocksPip.State> {
     record State(List<Placed> blocks, float cx, float cy, float cz, float yaw, float pitch, float scale,
                  int x0, int y0, int x1, int y1, @Nullable ScreenRectangle scissorArea, @Nullable ScreenRectangle bounds)
             implements PictureInPictureRenderState {
-        State(List<Placed> blocks, float cx, float cy, float cz, float yaw, float pitch, float scale,
-              int x0, int y0, int x1, int y1, @Nullable ScreenRectangle scissorArea) {
-            this(blocks, cx, cy, cz, yaw, pitch, scale, x0, y0, x1, y1, scissorArea,
-                    PictureInPictureRenderState.getBounds(x0, y0, x1, y1, scissorArea));
-        }
     }
 
     private final BlockModelResolver models = new BlockModelResolver(Minecraft.getInstance().getModelManager());

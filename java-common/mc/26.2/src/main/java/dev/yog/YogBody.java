@@ -162,7 +162,7 @@ public final class YogBody {
             pose.scale(state.scale, state.scale, state.scale);
             pose.mulPose(Axis.YP.rotationDegrees(HALF_TURN - state.bodyRot));
             if (f.ops.root != null) pose.mulPose(new Matrix4f().set(f.ops.root));
-            draw(f, YogBodyWire.ANCHOR_ENTITY, null, pose, out, state.lightCoords);
+            draw(f, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, out, state.lightCoords));
             pose.popPose();
         }
         return true;
@@ -173,7 +173,7 @@ public final class YogBody {
         Frame f = frameOf(state);
         if (f == null) return;
         if (f.ops.root != null) pose.mulPose(new Matrix4f().set(f.ops.root));
-        draw(f, YogBodyWire.ANCHOR_ENTITY, null, pose, out, state.lightCoords);
+        draw(f, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, out, state.lightCoords));
     }
 
     /** After a model was animated for {@code state}: the mods' part changes (it's reset at each animation). */
@@ -209,15 +209,18 @@ public final class YogBody {
     public static void drawn(EntityModel<?> model, LivingEntityRenderState state, PoseStack pose, SubmitNodeCollector out) {
         Frame f = frameOf(state);
         if (f == null || f.ops.meshes.isEmpty()) return;
-        draw(f, YogBodyWire.ANCHOR_MODEL, null, pose, out, state.lightCoords);
+        draw(f, YogBodyWire.ANCHOR_MODEL, null, new Into(pose, out, state.lightCoords));
         if (!f.ops.has(YogBodyWire.ANCHOR_BONE)) return;
         // The parts as they'll be drawn: animated, then changed by the mods.
         ((EntityModel<LivingEntityRenderState>) model).setupAnim(state);
         posed(model, state);
-        draw(f, YogBodyWire.ANCHOR_BONE, parts(model), pose, out, state.lightCoords);
+        draw(f, YogBodyWire.ANCHOR_BONE, parts(model), new Into(pose, out, state.lightCoords));
     }
 
-    private static void draw(Frame f, int anchor, Map<String, ModelPart[]> parts, PoseStack pose, SubmitNodeCollector out, int light) {
+    private static void draw(Frame f, int anchor, Map<String, ModelPart[]> parts, Into into) {
+        PoseStack pose = into.pose();
+        SubmitNodeCollector out = into.out();
+        int light = into.light();
         for (Mesh m : f.ops.meshes) {
             if (m.anchor != anchor) continue;
             ModelPart[] chain = anchor == YogBodyWire.ANCHOR_BONE ? parts.get(m.bone) : null;
@@ -275,10 +278,10 @@ public final class YogBody {
         pose.pushPose();
         pose.mulPose(Axis.YP.rotationDegrees(HALF_TURN - ((YogBodyState) state).yog$bodyYaw()));
         if (f.ops.root != null) pose.mulPose(new Matrix4f().set(f.ops.root));
-        draw(f, YogBodyWire.ANCHOR_ENTITY, null, pose, out, state.lightCoords);
+        draw(f, YogBodyWire.ANCHOR_ENTITY, null, new Into(pose, out, state.lightCoords));
         pose.scale(-1.0F, -1.0F, 1.0F);
         pose.translate(0.0F, -MODEL_DROP, 0.0F);
-        draw(f, YogBodyWire.ANCHOR_MODEL, null, pose, out, state.lightCoords);
+        draw(f, YogBodyWire.ANCHOR_MODEL, null, new Into(pose, out, state.lightCoords));
         pose.popPose();
     }
 
@@ -385,13 +388,19 @@ public final class YogBody {
     public static float roll;
     public static float fov = 1;
 
+    /** Where a body is drawn: its pose stack, what takes its quads, the light. */
+    record Into(PoseStack pose, SubmitNodeCollector out, int light) {}
+
+    /** Which way a camera looks. */
+    public record Look(float yaw, float pitch) {}
+
     /**
      * Camera.update TAIL: {right, up, forward, wx, wy, wz, yaw, pitch, roll,
      * fov} from the mods, or null.
      */
-    public static float[] camera(Entity entity, float partial, Vec3 pos, float yaw, float pitch, boolean detached) {
+    public static float[] camera(Entity entity, float partial, Vec3 pos, Look look, boolean detached) {
         float[] o = entity == null ? null : dev.yog.util.YogBodyBus.camera(new dev.yog.bus.YogTypes.CameraFrame(entity.getStringUUID(), partial,
-                new double[] {pos.x, pos.y, pos.z}, yaw, pitch, detached, NativeBridge.entityFlags(entity)));
+                new double[] {pos.x, pos.y, pos.z}, look.yaw(), look.pitch(), detached, NativeBridge.entityFlags(entity)));
         roll = o == null ? 0 : o[8];
         fov = o == null ? 1 : o[9];
         return o;
