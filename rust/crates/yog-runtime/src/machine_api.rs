@@ -167,5 +167,5 @@ pub(super) fn translate(key: &str) -> Option<String> {
     if key.is_empty() {
         return None;
     }
-    unsafe { bridge!("translate", [S(YogStr::from_str(key))]) }
+    unsafe { host!("dev/yog/YogGameActions", "translate", [S(YogStr::from_str(key))]) }
 }

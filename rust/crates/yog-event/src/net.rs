@@ -5,7 +5,7 @@ use yog_ids as ids;
 
 actions! {
     /// Sends `payload` on `channel` to `player` (server side).
-    SendToPlayer { player: String, channel: String, #[data(with = "Raw")] payload: Vec<u8> } -> bool = ids::service_net::SEND_TO_PLAYER, "sendToPlayer";
+    SendToPlayer { player: String, channel: String, #[data(with = "Raw")] payload: Vec<u8> } -> bool = ids::service_net::SEND_TO_PLAYER, "YogNetActions.sendToPlayer";
     /// Sends `payload` on `channel` to the server (client side).
     SendToServer { channel: String, #[data(with = "Raw")] payload: Vec<u8> } -> bool = ids::service_net::SEND_TO_SERVER, "YogClient.sendToServer";
 }

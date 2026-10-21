@@ -460,8 +460,6 @@ public final class YogBody {
         return o;
     }
 
-
-
     // ── Movement ──────────────────────────────────────────────────────────────
 
     /** LivingEntity.travel HEAD: true if a mod moved the local player instead. */

@@ -1,0 +1,37 @@
+package dev.yog;
+
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+
+/** The host's particle actions: the methods {@code yog_event::particle} names. */
+public final class YogParticleActions {
+    private YogParticleActions() {}
+
+    @YogServiceHost
+    public static boolean spawnParticles(
+            String dimension, double x, double y, double z,
+            String particleTypeId, int count,
+            double dx, double dy, double dz, double speed) {
+        try {
+            ServerLevel w = NativeBridge.worldFor(dimension);
+            if (w == null) return false;
+            if (particleTypeId.indexOf(' ') >= 0) {
+                // Particle with options, /particle syntax (e.g. "minecraft:dust 1 0.5 0 1")
+                net.minecraft.core.particles.ParticleOptions parsed =
+                        net.minecraft.commands.arguments.ParticleArgument.readParticle(
+                                new com.mojang.brigadier.StringReader(particleTypeId), BuiltInRegistries.PARTICLE_TYPE.asLookup());
+                w.sendParticles(parsed, x, y, z, count, dx, dy, dz, speed);
+                return true;
+            }
+            ResourceLocation id = ResourceLocation.tryParse(particleTypeId);
+            if (id == null) return false;
+            net.minecraft.core.particles.ParticleType<?> type = BuiltInRegistries.PARTICLE_TYPE.get(id);
+            if (!(type instanceof net.minecraft.core.particles.ParticleOptions effect)) return false;
+            w.sendParticles(effect, x, y, z, count, dx, dy, dz, speed);
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+}

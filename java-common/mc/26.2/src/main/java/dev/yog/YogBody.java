@@ -270,7 +270,6 @@ public final class YogBody {
         setFrame(state, new Frame(ops, null, null, overlay));
     }
 
-
     /** A mod's own entity: no vanilla model, only what the mods draw — entity space after its yaw, then model space. */
     public static void drawEntity(EntityRenderState state, PoseStack pose, SubmitNodeCollector out) {
         Frame f = frameOf(state);

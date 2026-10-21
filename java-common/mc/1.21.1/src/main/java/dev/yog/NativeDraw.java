@@ -38,7 +38,6 @@ public final class NativeDraw {
         }
     }
 
-
     /** text — its Yog rich-text spans as styles (see {@link dev.yog.util.YogText}) — in the font id font. */
     private static net.minecraft.network.chat.Component styled(String text, String font) {
         ResourceLocation id = YogIds.isDefaultFont(font) ? null : ResourceLocation.tryParse(font);

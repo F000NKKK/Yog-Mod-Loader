@@ -24,7 +24,6 @@ public class YogBlockItem extends BlockItem implements YogTooltipLines {
                 : Component.literal(displayName);
     }
 
-
     @Override
     public void tooltipLines(ItemStack stack, Consumer<Component> tooltipLines) {
         YogTools.hover(this, tooltip, tooltipLines);

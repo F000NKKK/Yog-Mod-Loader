@@ -39,7 +39,6 @@ public final class NativeDraw {
         }
     }
 
-
     /** Alpha bits a color must have some of to be drawn (the font drew colors without any opaque, as before 1.21.6). */
     private static final int ALPHA_SET = 0xFC000000;
     private static final int OPAQUE = 0xFF000000;

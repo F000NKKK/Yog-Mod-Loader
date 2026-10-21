@@ -4,11 +4,11 @@ use yog_ids as ids;
 
 actions! {
     /// The game's directory.
-    Dir {  } -> Option<String> = ids::service_game::DIR, "gameDir";
+    Dir {  } -> Option<String> = ids::service_game::DIR, "YogGameActions.gameDir";
     /// The current world's directory.
-    WorldDir {  } -> Option<String> = ids::service_game::WORLD_DIR, "worldDir";
+    WorldDir {  } -> Option<String> = ids::service_game::WORLD_DIR, "YogGameActions.worldDir";
     /// The game's text for translation `key` in the current language.
-    Translate { key: String } -> Option<String> = ids::service_game::TRANSLATE, "translate";
+    Translate { key: String } -> Option<String> = ids::service_game::TRANSLATE, "YogGameActions.translate";
     /// The loader's own (Java) mods.
     PlatformMods {  } -> Vec<ModInfo> = ids::service_game::PLATFORM_MODS, "YogMods.platformMods";
 }

@@ -217,6 +217,6 @@ public final class YogServerEvents {
     /** Everything entity {@code about} keeps, to {@code to}. */
     private static void sendEntityData(ServerPlayer to, Entity about) {
         byte[] data = NativeBridge.nativeEntityDataFor(about.getStringUUID());
-        if (data != null) NativeBridge.sendToPlayer(name(to), ENTITY_DATA, data);
+        if (data != null) YogNetActions.sendToPlayer(name(to), ENTITY_DATA, data);
     }
 }

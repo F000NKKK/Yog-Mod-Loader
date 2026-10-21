@@ -27,7 +27,6 @@ public class YogItem extends Item implements YogTooltipLines {
                 : Component.literal(displayName);
     }
 
-
     @Override
     public void tooltipLines(ItemStack stack, Consumer<Component> tooltipLines) {
         // A mod's own lines for this stack (a written blueprint, a fabricated

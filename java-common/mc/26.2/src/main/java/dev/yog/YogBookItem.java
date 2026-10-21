@@ -17,7 +17,7 @@ public class YogBookItem extends YogItem {
     @Override
     public InteractionResult use(Level world, Player player, InteractionHand hand) {
         if (world.isClientSide()) {
-            NativeBridge.openUI(bookId, true, false);
+            YogUiActions.openUI(bookId, true, false);
         }
         return InteractionResult.SUCCESS;
     }
