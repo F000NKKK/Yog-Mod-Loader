@@ -190,8 +190,6 @@ names! {
         DESIGNER_SCREEN = crate::id!(crate::ns::YOG, "designer"),
         /// A book's default texture (its sheet is [`BOOK_SHEET`]).
         BOOK_TEXTURE = crate::id!(crate::ns::YOG, crate::concatcp!(crate::word::GUI, crate::sep::PATH, crate::kind::BOOK)),
-        /// An image source that draws nothing (a bare surface).
-        NO_IMAGE = crate::id!(crate::ns::YOG, "none"),
         /// The textures the runtime renders SVG images into: `<prefix><key>_<w>x<h>`.
         DYNAMIC_SVG_PREFIX = crate::id!(crate::ns::YOG, "dynamic/svg_"),
         /// The textures the runtime draws text in Yog's fonts into: `<prefix><n>`.
@@ -281,9 +279,12 @@ names! {
         COLUMN = "Column",
         ROW = "Row",
         GRID = "Grid",
-        /// A `<Grid>`'s rows and columns, as WPF writes them.
-        ROW_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, "RowDefinitions"),
-        COLUMN_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, "ColumnDefinitions"),
+        /// A `<Grid>`'s row and column with limits, and the property elements
+        /// that hold them, as WPF writes them.
+        ROW_DEFINITION = "RowDefinition",
+        COLUMN_DEFINITION = "ColumnDefinition",
+        ROW_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, ROW_DEFINITION, "s"),
+        COLUMN_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, COLUMN_DEFINITION, "s"),
         SCROLL_VIEW = "ScrollView",
         LABEL = "Label",
         BUTTON = "Button",
@@ -292,7 +293,6 @@ names! {
         IMAGE = "Image",
         SURFACE = "Surface",
         SPACER = "Spacer",
-        PILL = "Pill",
         STAT_BAR = "StatBar",
         LIST_VIEW = "ListView",
         ITEMS_CONTROL = "ItemsControl",
@@ -677,10 +677,16 @@ names! {
         STYLE = "style",
         BASED_ON = "based_on",
         ORIENTATION = "orientation",
+        /// A `<Grid>`'s tracks (`rows="Auto,*,26"`), the room between them,
+        /// and a `RowDefinition`'s / `ColumnDefinition`'s limits.
         ROWS = "rows",
         COLUMNS = "columns",
         ROW_SPACING = "row_spacing",
         COLUMN_SPACING = "column_spacing",
+        MIN_HEIGHT = "min_height",
+        MAX_HEIGHT = "max_height",
+        MIN_WIDTH = "min_width",
+        MAX_WIDTH = "max_width",
         VALUE = crate::word::VALUE,
         SELECTED = "selected",
         CHECKED = "checked",

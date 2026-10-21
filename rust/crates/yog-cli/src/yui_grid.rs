@@ -80,9 +80,9 @@ fn compact(el: &Element, key: &str, value: &str, what: &str) -> Result<Vec<Strin
 /// `<Grid.RowDefinitions>` → track expressions.
 fn elements(prop: &Element, row: bool) -> Result<Vec<String>, String> {
     let (def, size, min, max) = if row {
-        ("RowDefinition", "height", "min_height", "max_height")
+        (yui::ROW_DEFINITION, at::HEIGHT, at::MIN_HEIGHT, at::MAX_HEIGHT)
     } else {
-        ("ColumnDefinition", "width", "min_width", "max_width")
+        (yui::COLUMN_DEFINITION, at::WIDTH, at::MIN_WIDTH, at::MAX_WIDTH)
     };
     if !prop.attrs.is_empty() {
         return err(prop, "takes no attributes");

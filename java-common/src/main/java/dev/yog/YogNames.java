@@ -27,14 +27,13 @@ public final class YogNames {
         public static final String TYPED = "@";
         public static final String TAG = "#";
         public static final String TAG_SHOWN = "#";
-        public static final String ALTERNATIVES = "|";
         public static final String STATE_OPEN = "[";
         public static final String STATE_CLOSE = "]";
         public static final String PROPERTY_SEP = ",";
         public static final String PROPERTY_IS = "=";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAMESPACE, PATH, WORD, EXT, HYPHEN, MEMBER, TYPED, TAG, TAG_SHOWN, ALTERNATIVES, STATE_OPEN, STATE_CLOSE, PROPERTY_SEP, PROPERTY_IS);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAMESPACE, PATH, WORD, EXT, HYPHEN, MEMBER, TYPED, TAG, TAG_SHOWN, STATE_OPEN, STATE_CLOSE, PROPERTY_SEP, PROPERTY_IS);
     }
 
     public static final class Word {
@@ -150,19 +149,12 @@ public final class YogNames {
 
         public static final String ITEM = "@item:";
         public static final String BLOCK = "@block:";
-        public static final String ENTITY = "@entity:";
-        public static final String RECIPE = "@recipe:";
-        public static final String ENTRY = "@entry:";
         public static final String CATEGORY = "@category:";
-        public static final String FLUID = "@fluid:";
-        public static final String BIOME = "@biome:";
-        public static final String DIMENSION = "@dimension:";
         public static final String TEXTURE = "@texture:";
-        public static final String MATERIAL = "@material:";
         public static final String TAG = "@tag:";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, ENTITY, RECIPE, ENTRY, CATEGORY, FLUID, BIOME, DIMENSION, TEXTURE, MATERIAL, TAG);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, CATEGORY, TEXTURE, TAG);
     }
 
     public static final class Typed {
@@ -1046,12 +1038,11 @@ public final class YogNames {
         public static final String CRAFTING_SHEET = "yog:gui/book/crafting";
         public static final String DESIGNER_SCREEN = "yog:designer";
         public static final String BOOK_TEXTURE = "yog:gui/book";
-        public static final String NO_IMAGE = "yog:none";
         public static final String DYNAMIC_SVG_PREFIX = "yog:dynamic/svg_";
         public static final String DYNAMIC_TEXT_PREFIX = "yog:dynamic/text_";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, BOOK_TEXTURE, NO_IMAGE, DYNAMIC_SVG_PREFIX, DYNAMIC_TEXT_PREFIX);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_TEXT_PREFIX);
     }
 
     public static final class GameFont {
@@ -1139,6 +1130,8 @@ public final class YogNames {
         public static final String COLUMN = "Column";
         public static final String ROW = "Row";
         public static final String GRID = "Grid";
+        public static final String ROW_DEFINITION = "RowDefinition";
+        public static final String COLUMN_DEFINITION = "ColumnDefinition";
         public static final String ROW_DEFINITIONS = "Grid.RowDefinitions";
         public static final String COLUMN_DEFINITIONS = "Grid.ColumnDefinitions";
         public static final String SCROLL_VIEW = "ScrollView";
@@ -1149,7 +1142,6 @@ public final class YogNames {
         public static final String IMAGE = "Image";
         public static final String SURFACE = "Surface";
         public static final String SPACER = "Spacer";
-        public static final String PILL = "Pill";
         public static final String STAT_BAR = "StatBar";
         public static final String LIST_VIEW = "ListView";
         public static final String ITEMS_CONTROL = "ItemsControl";
@@ -1170,7 +1162,7 @@ public final class YogNames {
         public static final String DRAWN = "Drawn";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(SCREEN, COMPONENT, PROPERTY, EVENT, STYLE, CANVAS, COLUMN, ROW, GRID, ROW_DEFINITIONS, COLUMN_DEFINITIONS, SCROLL_VIEW, LABEL, BUTTON, TOGGLE_BUTTON, TEXT_BOX, IMAGE, SURFACE, SPACER, PILL, STAT_BAR, LIST_VIEW, ITEMS_CONTROL, CONTENT_PRESENTER, ITEM_SLOT, INV_SLOT, SLOT, PLAYER_INVENTORY, MACHINE, RECIPE_AREA, RECIPE_SLOT, RECIPE_RESULT, RECIPE_COUNT, BLOCK_SLOT, BOOK_HEADER, BOOK_TEXT, BOOK_ITEM, DRAWN);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(SCREEN, COMPONENT, PROPERTY, EVENT, STYLE, CANVAS, COLUMN, ROW, GRID, ROW_DEFINITION, COLUMN_DEFINITION, ROW_DEFINITIONS, COLUMN_DEFINITIONS, SCROLL_VIEW, LABEL, BUTTON, TOGGLE_BUTTON, TEXT_BOX, IMAGE, SURFACE, SPACER, STAT_BAR, LIST_VIEW, ITEMS_CONTROL, CONTENT_PRESENTER, ITEM_SLOT, INV_SLOT, SLOT, PLAYER_INVENTORY, MACHINE, RECIPE_AREA, RECIPE_SLOT, RECIPE_RESULT, RECIPE_COUNT, BLOCK_SLOT, BOOK_HEADER, BOOK_TEXT, BOOK_ITEM, DRAWN);
     }
 
     public static final class ItemDef {
@@ -1553,6 +1545,10 @@ public final class YogNames {
         public static final String COLUMNS = "columns";
         public static final String ROW_SPACING = "row_spacing";
         public static final String COLUMN_SPACING = "column_spacing";
+        public static final String MIN_HEIGHT = "min_height";
+        public static final String MAX_HEIGHT = "max_height";
+        public static final String MIN_WIDTH = "min_width";
+        public static final String MAX_WIDTH = "max_width";
         public static final String VALUE = "value";
         public static final String SELECTED = "selected";
         public static final String CHECKED = "checked";
@@ -1571,7 +1567,7 @@ public final class YogNames {
         public static final String GRID_COLUMNSPAN = "Grid.ColumnSpan";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ID, X, Y, W, H, MIN_W, MIN_H, FLEX, DOCK, GAP, PADDING, BG, COLOR, ALIGN, HALIGN, VALIGN, MARGIN, FONT_SCALE, FONT, SHADOW, NO_WRAP, ELLIPSIS, FOCUS_STYLE, FOCUS_COLOR, ENABLED, ON_CLICK, TOOLTIP, WIDTH, HEIGHT, ANCHOR, MODAL, PAUSE, LIVE, THEME, TEXT, PLACEHOLDER, MAX_LENGTH, ON_CHANGE, ON_SUBMIT, ITEM, COUNT, INDEX, ACCEPTS, SOURCE, STRETCH, UV, TINT, KIND, RESULT, PLACES, RECIPE_LAYOUT, SLOT, BLOCK, FRAME, SIZE, BOOK_PAGE, NAME, TYPE, DEFAULT, SRC, DRAWER, DATA, STYLE, BASED_ON, ORIENTATION, ROWS, COLUMNS, ROW_SPACING, COLUMN_SPACING, VALUE, SELECTED, CHECKED, ITEM_HEIGHT, SCROLL_KEY, VISIBLE, X_KEY, X_NAME, X_VIEW_MODEL, X_CREATE, X_DATA_TYPE, TARGET, GRID_ROW, GRID_COLUMN, GRID_ROWSPAN, GRID_COLUMNSPAN);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ID, X, Y, W, H, MIN_W, MIN_H, FLEX, DOCK, GAP, PADDING, BG, COLOR, ALIGN, HALIGN, VALIGN, MARGIN, FONT_SCALE, FONT, SHADOW, NO_WRAP, ELLIPSIS, FOCUS_STYLE, FOCUS_COLOR, ENABLED, ON_CLICK, TOOLTIP, WIDTH, HEIGHT, ANCHOR, MODAL, PAUSE, LIVE, THEME, TEXT, PLACEHOLDER, MAX_LENGTH, ON_CHANGE, ON_SUBMIT, ITEM, COUNT, INDEX, ACCEPTS, SOURCE, STRETCH, UV, TINT, KIND, RESULT, PLACES, RECIPE_LAYOUT, SLOT, BLOCK, FRAME, SIZE, BOOK_PAGE, NAME, TYPE, DEFAULT, SRC, DRAWER, DATA, STYLE, BASED_ON, ORIENTATION, ROWS, COLUMNS, ROW_SPACING, COLUMN_SPACING, MIN_HEIGHT, MAX_HEIGHT, MIN_WIDTH, MAX_WIDTH, VALUE, SELECTED, CHECKED, ITEM_HEIGHT, SCROLL_KEY, VISIBLE, X_KEY, X_NAME, X_VIEW_MODEL, X_CREATE, X_DATA_TYPE, TARGET, GRID_ROW, GRID_COLUMN, GRID_ROWSPAN, GRID_COLUMNSPAN);
     }
 
     public static final class Loader {

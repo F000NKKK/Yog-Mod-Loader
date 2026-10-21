@@ -30,8 +30,6 @@ names! {
         TAG = "#",
         /// What marks a tag where an ingredient is shown: `#c:dusts`.
         TAG_SHOWN = crate::sep::TAG,
-        /// What joins an ingredient's alternatives where it's shown: `a | b`.
-        ALTERNATIVES = "|",
         /// A block state's properties: `ns:id[k=v,...]` — what opens and
         /// closes them, separates them, and a property's name from its value.
         STATE_OPEN = "[",
@@ -148,15 +146,8 @@ names! {
     reference {
         ITEM = crate::concatcp!(crate::sep::TYPED, crate::kind::ITEM, crate::sep::NAMESPACE),
         BLOCK = crate::concatcp!(crate::sep::TYPED, crate::kind::BLOCK, crate::sep::NAMESPACE),
-        ENTITY = crate::concatcp!(crate::sep::TYPED, crate::kind::ENTITY, crate::sep::NAMESPACE),
-        RECIPE = crate::concatcp!(crate::sep::TYPED, crate::kind::RECIPE, crate::sep::NAMESPACE),
-        ENTRY = crate::concatcp!(crate::sep::TYPED, crate::kind::ENTRY, crate::sep::NAMESPACE),
         CATEGORY = crate::concatcp!(crate::sep::TYPED, crate::kind::CATEGORY, crate::sep::NAMESPACE),
-        FLUID = crate::concatcp!(crate::sep::TYPED, crate::kind::FLUID, crate::sep::NAMESPACE),
-        BIOME = crate::concatcp!(crate::sep::TYPED, crate::kind::BIOME, crate::sep::NAMESPACE),
-        DIMENSION = crate::concatcp!(crate::sep::TYPED, crate::kind::DIMENSION, crate::sep::NAMESPACE),
         TEXTURE = crate::concatcp!(crate::sep::TYPED, crate::kind::TEXTURE, crate::sep::NAMESPACE),
-        MATERIAL = crate::concatcp!(crate::sep::TYPED, crate::kind::MATERIAL, crate::sep::NAMESPACE),
         /// A tag, its registry after: `@tag:item:c:ingots`.
         TAG = crate::concatcp!(crate::sep::TYPED, crate::kind::TAG, crate::sep::NAMESPACE),
     }
