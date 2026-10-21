@@ -31,7 +31,9 @@ pub use math::{Mat4, Vec3};
 pub use model::{Model, Quad};
 pub use movement::TravelFrame;
 pub use rig::Rig;
-pub use wire::{Anchor, BoneOp, Capture, Frame, Mesh, Mode, Ops};
+pub use wire::{Anchor, BoneOp, Capture, Frame, Look, Mesh, Mode, Ops};
+/// A [`Look`]'s tint.
+pub use yog_graphics::Color;
 
 #[derive(Default)]
 struct Store {

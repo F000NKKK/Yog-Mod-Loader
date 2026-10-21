@@ -50,6 +50,13 @@ args! {
     BlockPos => Point, |p| p.into();
 }
 
+/// Bytes as an array (`&[on as u8]`).
+impl<const N: usize> Arg<Vec<u8>> for &[u8; N] {
+    fn arg(self) -> Vec<u8> {
+        self.to_vec()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -110,6 +110,18 @@ impl PartialEq<&str> for Atom {
     }
 }
 
+impl PartialEq<String> for Atom {
+    fn eq(&self, other: &String) -> bool {
+        self.as_str() == other
+    }
+}
+
+impl PartialEq<Atom> for String {
+    fn eq(&self, other: &Atom) -> bool {
+        self == other.as_str()
+    }
+}
+
 impl std::ops::Deref for Atom {
     type Target = str;
     fn deref(&self) -> &str {
