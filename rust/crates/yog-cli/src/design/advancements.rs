@@ -3,7 +3,7 @@
 //! `TreeNodePosition` of 1.20.1–1.21.1): the tree laid out by the game's
 //! algorithm, the window, the root's background, the connectors, the frames
 //! and icons, and a hovered advancement's title bar and description — in
-//! the game's font, on a screen of [`SCREEN`] GUI pixels.
+//! the game's font, in [`SCREEN`] GUI pixels around the window.
 
 use std::path::Path;
 
@@ -18,10 +18,12 @@ pub use args::{AdvancementArgs, NodeArgs};
 
 use super::{gfx, images, raster};
 
-/// The screen the preview shows: 1280×720 at GUI scale 3.
-const SCREEN: (f32, f32) = (427.0, 240.0);
 /// The window, and its tab's view inside it.
 const WINDOW: (f32, f32) = (252.0, 140.0);
+/// Around the window: room for the backdrop to show and a hover's box to turn.
+const MARGIN: f32 = 8.0;
+/// What's drawn: the window and its margin, as big as the editor makes it.
+const SCREEN: (f32, f32) = (WINDOW.0 + 2.0 * MARGIN, WINDOW.1 + 2.0 * MARGIN);
 const VIEW: Rect = Rect {
     x: 9.0,
     y: 18.0,

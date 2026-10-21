@@ -216,9 +216,9 @@ fn textures_and_advancements_take_references_as_written() {
     let missing = texture("@texture:mymod:block/none").unwrap_err();
     assert_eq!(missing.problems[0].code, yog_ids::problem_code::NOT_FOUND);
     let args = format!(
-        r#"{{ args: {{ path: "{p}", title: "@lang:gui.done", nodes: [
-            {{ id: "mymod:root", parent: null, icon: "@item:minecraft:stick", frame: "task", title: "Root", description: "@lang:gui.done" }},
-            {{ id: "mymod:next", parent: "@advancement:mymod:root", icon: "@block:minecraft:stone", frame: "goal", title: null, description: null }}
+        r#"{{ args: {{ path: "{p}", selected: "mymod:next", nodes: [
+            {{ id: "mymod:root", parent: null, icon: "@item:minecraft:stick", frame: "task", title: "Root", description: "@lang:gui.done", background: "minecraft:textures/block/calcite.png" }},
+            {{ id: "mymod:next", parent: "@advancement:mymod:root", icon: "@block:minecraft:stone", frame: null, title: null, description: null, background: null }}
         ], hover: null }} }}"#
     );
     let drawn = call("advancement_render", &args);
