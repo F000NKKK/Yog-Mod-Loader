@@ -8,7 +8,6 @@
 use std::path::{Path, PathBuf};
 use yog_ids::Format;
 
-use base64::Engine as _;
 use std::borrow::Cow;
 use yog_book::layout_picture::{Piece, pieces};
 use yog_book::renderer::{BLOCK_PITCH, SLOT_YAW};
@@ -270,15 +269,7 @@ fn layout(root: &Path, file: &Path, layout: &RecipeLayout) -> Layout {
     });
     images::set_document(Some(root));
     let res = Resources::for_mod(Some(root));
-    let image = raster::rasterize(&ops, w, h, SCALE, &res)
-        .png()
-        .ok()
-        .map(|png| {
-            format!(
-                "data:image/png;base64,{}",
-                base64::engine::general_purpose::STANDARD.encode(png)
-            )
-        });
+    let image = raster::rasterize(&ops, w, h, SCALE, &res).png_url();
     Layout {
         file: file.to_string_lossy().into_owned(),
         size,

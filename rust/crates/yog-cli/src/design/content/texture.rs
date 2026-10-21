@@ -1,7 +1,6 @@
 //! A texture as the editors show and paint it: its picture, animation and
 //! whether it's the mod's own to change.
 
-use base64::Engine as _;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
@@ -135,10 +134,7 @@ pub fn texture(file: &Path, texture: &str) -> Result<Texture, ServiceError> {
         Animation::read(&String::from_utf8_lossy(&meta), size)
     });
     Ok(Texture {
-        url: format!(
-            "data:image/png;base64,{}",
-            base64::engine::general_purpose::STANDARD.encode(&bytes)
-        ),
+        url: super::super::raster::png_url(&bytes),
         animation,
         writable: own_texture(file, texture).is_some(),
     })

@@ -7,12 +7,12 @@
 
 use std::path::Path;
 
-use base64::Engine as _;
 use yog_gfx::draw2d::Draw2D;
 use yog_gfx::{Color, GfxContext, Rect, Vec2};
 
 use super::assets::Resources;
 mod args;
+mod layer;
 
 pub use args::{AdvancementArgs, NodeArgs};
 
@@ -117,13 +117,18 @@ pub struct Rendered {
     pub spots: Vec<Spot>,
     /// The drag the tab accepts (clamped as the game clamps its scroll).
     pub drag: [f32; 2],
+    /// The view's contents at every scroll, for a tool to slide while the
+    /// tree is dragged (none while one is hovered: no drag starts on one).
+    pub layer: Option<layer::Layer>,
 }
 
 /// The tab laid out: each shown advancement (its node's index, spot, its
 /// parent's spot), and where the window, its view and the scrolled tree are.
 struct Tab {
     spots: Vec<(usize, Vec2, Option<Vec2>)>,
-    scroll: Vec2,
+    /// The scroll with no drag, and the scrolls it can take, per axis.
+    centre: Vec2,
+    range: [[f32; 2]; 2],
     window: Vec2,
     view: Vec2,
     origin: Vec2,
@@ -145,12 +150,12 @@ pub fn render(args: &Args) -> Rendered {
         draw(ctx, args, &tab)
     });
     let canvas = raster::rasterize(&ops, SCREEN.0 as u32, SCREEN.1 as u32, SCALE, &res);
-    let image = canvas.png().ok().map(|png| {
-        format!(
-            "data:image/png;base64,{}",
-            base64::engine::general_purpose::STANDARD.encode(png)
-        )
-    });
+    let image = canvas.png_url();
+    let layer = args
+        .hover
+        .is_none()
+        .then(|| layer::render(args, &tab, drag, &res))
+        .flatten();
     let o = tab.origin;
     Rendered {
         image,
@@ -165,6 +170,7 @@ pub fn render(args: &Args) -> Rendered {
             })
             .collect(),
         drag,
+        layer,
     }
 }
 
@@ -197,16 +203,23 @@ fn lay_out(args: &Args) -> (Tab, [f32; 2]) {
         (VIEW.w / 2.0 - ((max_x + min_x) / 2.0).trunc()).trunc(),
         ((VIEW.h / 2.0).floor() - ((max_y + min_y) / 2.0).trunc()).trunc(),
     );
-    let axis = |centre: f32, drag: f32, extent: f32, min: f32, view: f32| {
+    // The scrolls an axis takes: any that keeps the view inside the tree
+    // once it's bigger than the view, else none but the centre.
+    let range = |centre: f32, extent: f32, min: f32, view: f32| {
         if extent - min > view {
-            (centre + drag).clamp(-(extent - view), 0.0) - centre
+            [-(extent - view), 0.0]
         } else {
-            0.0
+            [centre, centre]
         }
     };
+    let range = [
+        range(centre.x, max_x, min_x, VIEW.w),
+        range(centre.y, max_y, min_y, VIEW.h),
+    ];
+    let axis = |centre: f32, drag: f32, [lo, hi]: [f32; 2]| (centre + drag).clamp(lo, hi) - centre;
     let drag = [
-        axis(centre.x, args.drag[0], max_x, min_x, VIEW.w),
-        axis(centre.y, args.drag[1], max_y, min_y, VIEW.h),
+        axis(centre.x, args.drag[0], range[0]),
+        axis(centre.y, args.drag[1], range[1]),
     ];
     let scroll = Vec2::new((centre.x + drag[0]).floor(), (centre.y + drag[1]).floor());
     let window = Vec2::new(
@@ -218,7 +231,8 @@ fn lay_out(args: &Args) -> (Tab, [f32; 2]) {
     (
         Tab {
             spots,
-            scroll,
+            centre,
+            range,
             window,
             view,
             origin,
@@ -242,17 +256,11 @@ fn draw(ctx: &GfxContext, args: &Args, tab: &Tab) {
     // `enableScissor`); the rasterizer takes the scissor in GUI pixels.
     let v = tab.view_rect();
     ctx.set_scissor(v.x as i32, v.y as i32, v.w as i32, v.h as i32);
-    draw_background(d, args, tab);
-    draw_tree(d, args, tab);
+    draw_background(d, args, v, tab.origin);
+    draw_tree(d, args, &tab.spots, tab.origin);
     ctx.clear_scissor();
+    draw_window(d, args, tab);
     let w = tab.window;
-    d.image(WINDOW_SPRITE, Rect::new(w.x, w.y, WINDOW.0, WINDOW.1));
-    d.text(
-        &args.title,
-        Vec2::new(w.x + TITLE_AT.x, w.y + TITLE_AT.y),
-        TITLE_COLOR,
-        false,
-    );
     // The hover (`AdvancementTab.drawTooltips`, `AdvancementWidget.drawHover`).
     if let Some((i, p, _)) = args
         .hover
@@ -264,39 +272,48 @@ fn draw(ctx: &GfxContext, args: &Args, tab: &Tab) {
     }
 }
 
-/// The view's background, tiled from the scroll.
-fn draw_background(d: &Draw2D, args: &Args, tab: &Tab) {
+/// The window over the view, and the tab's title.
+fn draw_window(d: &Draw2D, args: &Args, tab: &Tab) {
+    let w = tab.window;
+    d.image(WINDOW_SPRITE, Rect::new(w.x, w.y, WINDOW.0, WINDOW.1));
+    d.text(
+        &args.title,
+        Vec2::new(w.x + TITLE_AT.x, w.y + TITLE_AT.y),
+        TITLE_COLOR,
+        false,
+    );
+}
+
+/// The background over `area`, its tiles laid from the tree's `origin`
+/// (`drawContents`: they move with the tree).
+fn draw_background(d: &Draw2D, args: &Args, area: Rect, origin: Vec2) {
     let background = args.background.as_deref().map_or_else(
         || yog_ids::game::MISSING_TEXTURE.to_string(),
         yog_gfx::image::short_source,
     );
-    let (ox, oy) = (tab.scroll.x % TILE, tab.scroll.y % TILE);
-    let view = tab.view;
-    for i in -1..=(VIEW.w / TILE) as i32 {
-        for j in -1..=(VIEW.h / TILE) as i32 {
-            let tile = Rect::new(
-                view.x + ox + TILE * i as f32,
-                view.y + oy + TILE * j as f32,
-                TILE,
-                TILE,
-            );
-            d.image(&background, tile);
+    let first = |at: f32, o: f32| o + ((at - o) / TILE).floor() * TILE;
+    let mut y = first(area.y, origin.y);
+    while y < area.y + area.h {
+        let mut x = first(area.x, origin.x);
+        while x < area.x + area.w {
+            d.image(&background, Rect::new(x, y, TILE, TILE));
+            x += TILE;
         }
+        y += TILE;
     }
 }
 
 /// The connectors (their shadow first), then each advancement's frame and icon.
-fn draw_tree(d: &Draw2D, args: &Args, tab: &Tab) {
+fn draw_tree(d: &Draw2D, args: &Args, spots: &[(usize, Vec2, Option<Vec2>)], o: Vec2) {
     let fill = |r: Rect, c: Color| d.rect(r, c);
     for shadow in [true, false] {
-        for (_, p, parent) in &tab.spots {
+        for (_, p, parent) in spots {
             if let Some(pp) = parent {
-                connector(&fill, tab.origin, *pp, *p, shadow);
+                connector(&fill, o, *pp, *p, shadow);
             }
         }
     }
-    let o = tab.origin;
-    for (i, p, _) in &tab.spots {
+    for (i, p, _) in spots {
         let n = &args.nodes[*i];
         let frame = Rect::new(o.x + p.x + FRAME_DX, o.y + p.y, FRAME, FRAME);
         d.image(&frame_sprite(&n.frame, n.obtained), frame);

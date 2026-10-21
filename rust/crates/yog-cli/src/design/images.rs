@@ -549,7 +549,6 @@ const MAX_PREVIEW: u32 = 256;
 const ICON_SIDE: f32 = 16.0;
 
 fn draw_preview(path: &Path, source: &str, size: u32) -> Option<String> {
-    use base64::Engine as _;
     let root = super::mod_root(path);
     set_document(root.as_deref());
     let res = Resources::for_mod(root.as_deref());
@@ -564,11 +563,7 @@ fn draw_preview(path: &Path, source: &str, size: u32) -> Option<String> {
     let mut c = Canvas::new(size, size, 1, &res);
     let [x, y, w, h] = [dest.x, dest.y, dest.w, dest.h];
     draw(&mut c, &source, [x, y, w, h], [0.0; 4], Color::WHITE.0);
-    let png = c.png().ok()?;
-    Some(format!(
-        "data:image/png;base64,{}",
-        base64::engine::general_purpose::STANDARD.encode(png)
-    ))
+    c.png_url()
 }
 
 #[cfg(test)]
@@ -669,7 +664,9 @@ mod tests {
             preview: false,
         };
         let r = super::super::render(&args).unwrap();
-        let b64 = r.image.trim_start_matches("data:image/png;base64,");
+        let b64 = r
+            .image
+            .trim_start_matches(super::super::raster::PNG_URL_PREFIX);
         std::fs::write(
             out,
             base64::engine::general_purpose::STANDARD

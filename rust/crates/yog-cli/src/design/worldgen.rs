@@ -2,7 +2,6 @@
 //! yog-worldgen — the code the runtime generates the game's chunks with —
 //! and drawn from above and in a slice.
 
-use base64::Engine;
 use yog_worldgen::{Generator, Terrain, preview};
 
 #[derive(yog_data::Schema)]
@@ -29,10 +28,7 @@ fn png(pixels: &[u32], w: u32, h: u32) -> Result<String, String> {
     let mut writer = enc.write_header().map_err(|e| e.to_string())?;
     writer.write_image_data(&rgba).map_err(|e| e.to_string())?;
     writer.finish().map_err(|e| e.to_string())?;
-    Ok(format!(
-        "data:image/png;base64,{}",
-        base64::engine::general_purpose::STANDARD.encode(out)
-    ))
+    Ok(super::raster::png_url(&out))
 }
 
 /// The terrain of `text` (a `.ydef` of kind `dimension`) around 0, 0: `size` blocks across.
@@ -103,8 +99,8 @@ mod tests {
                 fluid: { block: "@block:minecraft:water", level: 62 } } }"#;
         let p = super::render(text, 32).unwrap();
         assert!(
-            p.top.starts_with("data:image/png;base64,")
-                && p.slice.starts_with("data:image/png;base64,")
+            p.top.starts_with(super::super::raster::PNG_URL_PREFIX)
+                && p.slice.starts_with(super::super::raster::PNG_URL_PREFIX)
         );
         assert_eq!(p.slice_bottom, 0);
         assert!(p.slice_top >= 66);

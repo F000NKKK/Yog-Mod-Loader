@@ -520,6 +520,23 @@ impl<'r> Canvas<'r> {
         writer.finish().map_err(|e| e.to_string())?;
         Ok(out)
     }
+
+    /// The canvas as a PNG `data:` URL (none if it doesn't encode).
+    pub fn png_url(&self) -> Option<String> {
+        self.png().ok().map(|png| png_url(&png))
+    }
+}
+
+/// What a PNG `data:` URL starts with.
+pub const PNG_URL_PREFIX: &str = "data:image/png;base64,";
+
+/// PNG bytes as a `data:` URL, as the editors show pictures.
+pub fn png_url(png: &[u8]) -> String {
+    use base64::Engine as _;
+    format!(
+        "{PNG_URL_PREFIX}{}",
+        base64::engine::general_purpose::STANDARD.encode(png)
+    )
 }
 
 /// The most physical pixels a canvas gets (256 MiB of RGBA).
