@@ -159,7 +159,13 @@ fn model_textures(root: &Path, doc: &Value, field: &str) -> Map {
         .textures
         .0
         .iter()
-        .map(|(slot, t)| (slot.as_str(), yog_data::Schema::write(t)))
+        // As written (`@texture:…`): what the readers here look up.
+        .map(|(slot, t)| {
+            (
+                slot.as_str(),
+                yog_data::typed::flatten(&yog_data::Schema::write(t)),
+            )
+        })
         .collect()
 }
 
@@ -374,6 +380,15 @@ mod tests {
         );
         assert_eq!(own_texture(&file, "@texture:minecraft:item/apple"), None);
         assert_eq!(own_texture(&file, "#layer0"), None);
+        // A block whose model names the texture: its icon and faces are the picture.
+        std::fs::write(
+            &file,
+            r#"{ model: { parent: "cube_all", textures: { all: "@texture:mymod:block/ruby" } } }"#,
+        )
+        .unwrap();
+        assert_eq!(content_icon(&dir, "mymod:ruby"), Some(png.clone()));
+        let faces = content_block_faces(&dir, "mymod:ruby").unwrap();
+        assert!(faces.iter().all(|f| f.as_deref() == Some(&png[..])));
         let _ = std::fs::remove_dir_all(dir);
     }
 
