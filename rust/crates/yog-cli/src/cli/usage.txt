@@ -1,0 +1,34 @@
+yog — Yog mod build tool
+
+Usage: yog <command> [args]
+
+Commands:
+  new <name>          Create a new mod project in ./<name>/
+  build               Compile the current mod and package it as artifacts/<id>.yog
+  build debug         Same, but keep debug info in the native (for yog-debugger)
+  build [debug] --dev For a game that hot-reloads it (Yog-IDLE, dev.sh): what hot reload checks
+  check               Generate .yog-build/ and `cargo check` the mod (host only)
+  bench [filter]      Run the mod's benches/*.rs #[yog_api::bench] functions (host only)
+  designer-lib        Build the mod's library for this machine (Yog-IDLE's designer); prints its path
+  setup               Check and install build dependencies (Rust, Zig, targets)
+  doctor [--json]     Report build dependencies without changing anything
+  version             Print the yog CLI version
+  add <crate>         Add a Rust dependency to yog.toml
+  remove <crate>      Remove a dependency from yog.toml
+  schema <format>     Print a format's schema as JSON (yblock, yitem, yrecipe, ydef, yres, yog.toml, ybook)
+  run <loader> <mc>   Build, put into that loader's dev game, and launch it (`run fabric 26.2`)
+  run <target> --debug  Same, built with debug info kept (see `build debug`)
+  run --list [--json]  The run targets: the loader SDK's, and ~/.yog/local.toml's
+  publish exports     Publish this mod's exported API to crates.io
+  ui gen [files]      Generate .yog-build/generated/**/*.g.rs from .yui screens (build does this too)
+  res check           Validate resources/**/*.yres, regenerate accessors, list untranslated texts
+  content check       Validate content/**/*.yblock|*.yitem (blocks/items), regenerate yog-content.g.rs
+  import resourcepack <zip|dir> [--model <id>|--all]
+                      Turn a resource pack's block/item models into content/ files
+  import bbmodel <file.bbmodel> [--id <name>] [--item]
+                      Turn a Blockbench model (Java block/item) into a content/ file
+  help                Show this message
+
+Mod projects use yog.toml instead of Cargo.toml.
+Cross-compilation requires cargo-zigbuild + zig (yog setup installs them).
+Set YOG_TARGETS=linux-x86_64 (comma-separated tags/triples) to build only those platforms.

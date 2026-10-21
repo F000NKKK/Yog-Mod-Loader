@@ -1,0 +1,13 @@
+use yog_api::{Mod, Registry, chat, event::server::life::Started};
+
+pub struct $STRUCT$;
+
+impl Mod for $STRUCT$ {
+    fn register(registry: &mut Registry) {
+        registry.after::<Started, _>(|_, _| {
+            chat::broadcast("$NAME$ loaded!");
+        });
+    }
+}
+
+yog_api::export_mod!($STRUCT$);

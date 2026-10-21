@@ -1,0 +1,12 @@
+[mod]
+id          = "$NAME$"
+name        = "$DISPLAY$"
+version     = "0.1.0"
+description = "A Yog mod."
+authors     = ["Your Name"]
+license     = "MIT OR Apache-2.0"
+
+# Uncomment for local/monorepo development:
+# [dev]
+# yog_api_path = "../path/to/yog-api"
+
