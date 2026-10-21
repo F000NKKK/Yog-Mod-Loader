@@ -11,10 +11,8 @@ use yog_formats::content::BlockProps as Props;
 use yog_formats::content::{
     BlockFile, BlockShape, Connect, Facing, Model, Placement, Rotation, States, word,
 };
-use yog_ids::block_state::{
-    CEILING, DOWN, EAST, FACE, FACING, FALSE, FLOOR, NORTH, SOUTH, TRUE, UP, WALL, WATERLOGGED,
-    WEST,
-};
+use yog_ids::block_state::{CEILING, FACE, FACING, FALSE, FLOOR, TRUE, WALL, WATERLOGGED};
+use yog_ids::direction::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
 use yog_ids::model as m;
 use yog_ids::sep::{PROPERTY_IS, PROPERTY_SEP};
 use yog_ids::units::BLOCK_PIXELS;

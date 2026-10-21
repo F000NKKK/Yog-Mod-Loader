@@ -7,7 +7,7 @@
 //! or every multipart part whose `when` it meets; elements keep their own
 //! rotations.
 
-use yog_ids::block_state::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
+use yog_ids::direction::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
 use yog_ids::texture_slot::{ALL, BOTTOM, END, FRONT, SIDE, TEXTURE, TOP};
 use std::collections::{HashMap, HashSet};
 use yog_sync::Arc;

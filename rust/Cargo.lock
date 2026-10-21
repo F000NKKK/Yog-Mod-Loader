@@ -2006,6 +2006,7 @@ dependencies = [
  "serde",
  "serde_json",
  "yog-body",
+ "yog-core",
  "yog-data",
  "yog-font",
  "yog-ids",

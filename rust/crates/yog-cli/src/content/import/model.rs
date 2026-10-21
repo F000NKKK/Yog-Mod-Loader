@@ -296,7 +296,7 @@ fn element_from_mc(t: &mut Target, id: &str, i: usize, e: &Value) -> J {
     }
     let mut faces = J::obj::<&str>([]);
     if let Some(Value::Object(fs)) = e.get(mc::FACES) {
-        for dir in DIRECTIONS {
+        for &dir in DIRECTIONS {
             if let Some(face) = fs.get(dir) {
                 faces.set(dir, face_from_mc(face));
             }
@@ -336,7 +336,7 @@ fn face_from_mc(face: &Value) -> J {
         fo.set(
             f::CULLFACE,
             J::string(if c == yog_ids::word::BOTTOM {
-                yog_ids::word::DOWN
+                yog_ids::direction::DOWN
             } else {
                 c
             }),

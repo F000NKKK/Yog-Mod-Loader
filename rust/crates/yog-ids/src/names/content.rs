@@ -425,14 +425,8 @@ names! {
 
     /// The game's block state properties Yog's blocks get, and their values.
     block_state {
-        /// The way a block faces: the four sides, or up and down too.
+        /// The way a block faces (a `direction`): the four sides, or up and down too.
         FACING = "facing",
-        NORTH = crate::word::NORTH,
-        EAST = crate::word::EAST,
-        SOUTH = crate::word::SOUTH,
-        WEST = crate::word::WEST,
-        UP = crate::word::UP,
-        DOWN = crate::word::DOWN,
         /// What an attached block hangs on.
         FACE = "face",
         FLOOR = "floor",

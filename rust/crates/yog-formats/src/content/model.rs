@@ -71,16 +71,6 @@ pub enum Axis {
 }
 
 #[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Direction {
-    Down,
-    Up,
-    North,
-    South,
-    West,
-    East,
-}
-
-#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GuiLight {
     Front,
     Side,
@@ -110,7 +100,7 @@ pub struct Face {
     /// 0, 90, 180 or 270.
     pub rotation: Option<u32>,
     /// Not drawn when this side touches a full block.
-    pub cullface: Option<Direction>,
+    pub cullface: Option<yog_core::Face>,
     /// The tint index (-1: none).
     #[data(range = "-1..=255")]
     pub tint: Option<i64>,

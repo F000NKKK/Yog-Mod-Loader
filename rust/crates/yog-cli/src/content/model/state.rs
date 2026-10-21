@@ -2,7 +2,8 @@
 //! state's properties.
 
 use serde_json::{Map, Value};
-use yog_ids::block_state::{CEILING, DOWN, EAST, SOUTH, UP, WALL, WEST};
+use yog_ids::block_state::{CEILING, WALL};
+use yog_ids::direction::{DOWN, EAST, SOUTH, UP, WEST};
 use yog_ids::model as m;
 use yog_ids::sep::{PROPERTY_IS, PROPERTY_SEP};
 

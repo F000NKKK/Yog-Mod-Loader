@@ -36,6 +36,20 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAMESPACE, PATH, WORD, EXT, HYPHEN, MEMBER, TYPED, TAG, TAG_SHOWN, STATE_OPEN, STATE_CLOSE, PROPERTY_SEP, PROPERTY_IS);
     }
 
+    public static final class Direction {
+        private Direction() {}
+
+        public static final String DOWN = "down";
+        public static final String UP = "up";
+        public static final String NORTH = "north";
+        public static final String SOUTH = "south";
+        public static final String WEST = "west";
+        public static final String EAST = "east";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOWN, UP, NORTH, SOUTH, WEST, EAST);
+    }
+
     public static final class Word {
         private Word() {}
 
@@ -59,8 +73,6 @@ public final class YogNames {
         public static final String COUNT = "count";
         public static final String DATA = "data";
         public static final String DEFAULT = "default";
-        public static final String DOWN = "down";
-        public static final String EAST = "east";
         public static final String END = "end";
         public static final String ENTRIES = "entries";
         public static final String FALSE = "false";
@@ -75,13 +87,11 @@ public final class YogNames {
         public static final String MODEL = "model";
         public static final String NAME = "name";
         public static final String NONE = "none";
-        public static final String NORTH = "north";
         public static final String NUMBER = "number";
         public static final String OUTLINE = "outline";
         public static final String RIGHT = "right";
         public static final String SIZE = "size";
         public static final String SOURCE = "source";
-        public static final String SOUTH = "south";
         public static final String SRC = "src";
         public static final String START = "start";
         public static final String STRETCH = "stretch";
@@ -90,17 +100,15 @@ public final class YogNames {
         public static final String TOP = "top";
         public static final String TRUE = "true";
         public static final String TYPE = "type";
-        public static final String UP = "up";
         public static final String UV = "uv";
         public static final String VALUE = "value";
-        public static final String WEST = "west";
         public static final String WHEN = "when";
         public static final String WIDTH = "width";
         public static final String X = "x";
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(GUI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOWN, EAST, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NORTH, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SOUTH, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UP, UV, VALUE, WEST, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(GUI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {
@@ -1285,12 +1293,6 @@ public final class YogNames {
         private BlockState() {}
 
         public static final String FACING = "facing";
-        public static final String NORTH = "north";
-        public static final String EAST = "east";
-        public static final String SOUTH = "south";
-        public static final String WEST = "west";
-        public static final String UP = "up";
-        public static final String DOWN = "down";
         public static final String FACE = "face";
         public static final String FLOOR = "floor";
         public static final String WALL = "wall";
@@ -1300,7 +1302,7 @@ public final class YogNames {
         public static final String TRUE = "true";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(FACING, NORTH, EAST, SOUTH, WEST, UP, DOWN, FACE, FLOOR, WALL, CEILING, WATERLOGGED, FALSE, TRUE);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(FACING, FACE, FLOOR, WALL, CEILING, WATERLOGGED, FALSE, TRUE);
     }
 
     public static final class Loot {

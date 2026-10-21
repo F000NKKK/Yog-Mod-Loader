@@ -2,10 +2,10 @@
 //! render layers, model templates.
 
 use yog_ids::texture_slot as slot;
-use yog_ids::word::{DOWN, EAST, GUI, NORTH, SOUTH, UP, WEST};
+use yog_ids::word::GUI;
 
 /// A block's faces, in the game's order.
-pub const DIRECTIONS: [&str; 6] = [DOWN, UP, NORTH, SOUTH, WEST, EAST];
+pub const DIRECTIONS: &[&str] = yog_ids::direction::ALL_VALUES;
 /// Where an item's model is shown: its `display` transforms.
 pub const DISPLAY_SLOTS: [&str; 8] = [
     "thirdperson_righthand",

@@ -38,6 +38,17 @@ names! {
         PROPERTY_IS = "=",
     }
 
+    /// The game's six directions, in its order: a block's faces, the way
+    /// it faces, the sides it connects on.
+    direction {
+        DOWN = "down",
+        UP = "up",
+        NORTH = "north",
+        SOUTH = "south",
+        WEST = "west",
+        EAST = "east",
+    }
+
     /// Words other names are made of, said once: sides and places, yes and no,
     /// the common fields' names.
     word {
@@ -62,8 +73,6 @@ names! {
         COUNT = "count",
         DATA = "data",
         DEFAULT = "default",
-        DOWN = "down",
-        EAST = "east",
         END = "end",
         ENTRIES = "entries",
         FALSE = "false",
@@ -78,13 +87,11 @@ names! {
         MODEL = "model",
         NAME = "name",
         NONE = "none",
-        NORTH = "north",
         NUMBER = "number",
         OUTLINE = "outline",
         RIGHT = "right",
         SIZE = "size",
         SOURCE = "source",
-        SOUTH = "south",
         SRC = "src",
         START = "start",
         STRETCH = "stretch",
@@ -93,10 +100,8 @@ names! {
         TOP = "top",
         TRUE = "true",
         TYPE = "type",
-        UP = "up",
         UV = "uv",
         VALUE = "value",
-        WEST = "west",
         WHEN = "when",
         WIDTH = "width",
         X = "x",

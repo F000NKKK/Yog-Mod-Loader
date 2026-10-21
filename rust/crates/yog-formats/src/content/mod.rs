@@ -15,8 +15,8 @@ pub use block::{BlockProps, BlockShape, DropCount, DropItem, Drops, RenderLayer,
 pub use item::{ArmorProps, BlockItemProps, Food, HangsProps, ItemProps, PotionProps, ToolProps};
 pub use kind::{BlockKind, KIND_FIELDS, KindModel, KindPart, KindRef};
 pub use model::{
-    Axis, Connect, Direction, Display, Element, ElementRotation, Face, Faces, Facing, GuiLight,
-    Model, ModelNames, Placement, Rotation, SLOT_MARK, States, Texture, Transform,
+    Axis, Connect, Display, Element, ElementRotation, Face, Faces, Facing, GuiLight, Model,
+    ModelNames, Placement, Rotation, SLOT_MARK, States, Texture, Transform,
 };
 pub use refs::{
     BlockTag, LevelRef, MaterialKind, MaterialRef, OneOrMany, SoundRef, ToolKindRef, ToolTag,

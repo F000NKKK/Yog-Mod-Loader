@@ -7327,7 +7327,7 @@ public final class YogTypes {
         public static final String SERVICE = "service";
     }
 
-    /** The six block faces, in Minecraft's `Direction` order (named as the game names them: `down`, `up`, …). */
+    /** The six block faces, in Minecraft's `Direction` order, named as `yog_ids::direction` names them (a test holds them to it). */
     public static final class Face {
         private Face() {}
         public static final String DOWN = "down";

@@ -74,8 +74,8 @@ impl EntityInfo {
     }
 }
 
-/// The six block faces, in Minecraft's `Direction` order (named as the
-/// game names them: `down`, `up`, …).
+/// The six block faces, in Minecraft's `Direction` order, named as
+/// `yog_ids::direction` names them (a test holds them to it).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Schema)]
 pub enum Face {
     Down,
@@ -240,6 +240,15 @@ mod tests {
 
     fn round_trip<T: Schema>(v: &T) -> T {
         yog_data::read_bytes(&yog_data::binary::encode(&v.write())).unwrap()
+    }
+
+    #[test]
+    fn the_faces_go_by_the_games_direction_names() {
+        let names: Vec<String> = Face::ALL
+            .iter()
+            .map(|f| f.write().as_str().unwrap_or_default().to_string())
+            .collect();
+        assert_eq!(names, yog_ids::direction::ALL_VALUES);
     }
 
     #[test]

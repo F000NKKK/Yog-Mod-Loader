@@ -1,5 +1,7 @@
 package dev.yog.block;
 
+import dev.yog.YogNames;
+
 /**
  * How a Yog block with states turns: the same turn its blockstate gives its
  * model (`yog-cli`'s {@code turn}), so its shape turns with what's drawn.
@@ -16,15 +18,15 @@ public final class YogStateLogic {
      */
     public static int[] turn(String facing, String face) {
         int yaw = switch (facing == null ? "" : facing) {
-            case "east" -> 90;
-            case "south" -> 180;
-            case "west" -> 270;
+            case YogNames.Direction.EAST -> 90;
+            case YogNames.Direction.SOUTH -> 180;
+            case YogNames.Direction.WEST -> 270;
             default -> 0;
         };
         if ("wall".equals(face)) return new int[] {90, yaw};
         if ("ceiling".equals(face)) return new int[] {180, (yaw + 180) % 360};
-        if ("up".equals(facing)) return new int[] {270, 0};
-        if ("down".equals(facing)) return new int[] {90, 0};
+        if (YogNames.Direction.UP.equals(facing)) return new int[] {270, 0};
+        if (YogNames.Direction.DOWN.equals(facing)) return new int[] {90, 0};
         return new int[] {0, facing == null ? 0 : yaw};
     }
 

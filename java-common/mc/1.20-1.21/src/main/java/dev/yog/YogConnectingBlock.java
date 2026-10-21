@@ -22,12 +22,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * `YogConnectingLogic` in java-common.
  */
 public class YogConnectingBlock extends Block {
-    public static final BooleanProperty NORTH = BooleanProperty.create("north");
-    public static final BooleanProperty SOUTH = BooleanProperty.create("south");
-    public static final BooleanProperty EAST  = BooleanProperty.create("east");
-    public static final BooleanProperty WEST  = BooleanProperty.create("west");
-    public static final BooleanProperty UP    = BooleanProperty.create("up");
-    public static final BooleanProperty DOWN  = BooleanProperty.create("down");
+    public static final BooleanProperty NORTH = BooleanProperty.create(YogNames.Direction.NORTH);
+    public static final BooleanProperty SOUTH = BooleanProperty.create(YogNames.Direction.SOUTH);
+    public static final BooleanProperty EAST  = BooleanProperty.create(YogNames.Direction.EAST);
+    public static final BooleanProperty WEST  = BooleanProperty.create(YogNames.Direction.WEST);
+    public static final BooleanProperty UP    = BooleanProperty.create(YogNames.Direction.UP);
+    public static final BooleanProperty DOWN  = BooleanProperty.create(YogNames.Direction.DOWN);
 
     private final double[] core;
 
