@@ -46,14 +46,13 @@ public final class YogTools {
             YogContent.Tool t = p.tool().resolved(YogTools::gameAttack);
             Tier tier = new YogTier(t.material());
             String n = p.name(), tip = p.tooltip();
-            float d = t.attackDamage(), s = t.attackSpeed();
             return switch (t.kind()) {
-                case "pickaxe" -> new Pickaxe(tier, (int) d, s, props, n, tip);
-                case "axe" -> new Axe(tier, d, s, props, n, tip);
-                case "shovel" -> new Shovel(tier, d, s, props, n, tip);
-                case "hoe" -> new Hoe(tier, (int) d, s, props, n, tip);
-                case "sword" -> new Sword(tier, (int) d, s, props, n, tip);
-                default -> new Digger(d, s, tier, mineable(t.kind()), props, n, tip);
+                case YogNames.ToolKind.PICKAXE -> new Pickaxe(tier, t, props, n, tip);
+                case YogNames.ToolKind.AXE -> new Axe(tier, t, props, n, tip);
+                case YogNames.ToolKind.SHOVEL -> new Shovel(tier, t, props, n, tip);
+                case YogNames.ToolKind.HOE -> new Hoe(tier, t, props, n, tip);
+                case YogNames.ToolKind.SWORD -> new Sword(tier, t, props, n, tip);
+                default -> new Digger(tier, t, props, n, tip);
             };
         }
         if (p.armor() != null) {
@@ -161,8 +160,8 @@ public final class YogTools {
     public static final class Pickaxe extends PickaxeItem {
         private final String displayName, tip;
 
-        Pickaxe(Tier tier, int damage, float speed, Properties p, String displayName, String tip) {
-            super(tier, damage, speed, p);
+        Pickaxe(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+            super(tier, (int) t.attackDamage(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
         }
@@ -188,8 +187,8 @@ public final class YogTools {
     public static final class Axe extends AxeItem {
         private final String displayName, tip;
 
-        Axe(Tier tier, float damage, float speed, Properties p, String displayName, String tip) {
-            super(tier, damage, speed, p);
+        Axe(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
         }
@@ -215,8 +214,8 @@ public final class YogTools {
     public static final class Shovel extends ShovelItem {
         private final String displayName, tip;
 
-        Shovel(Tier tier, float damage, float speed, Properties p, String displayName, String tip) {
-            super(tier, damage, speed, p);
+        Shovel(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
         }
@@ -242,8 +241,8 @@ public final class YogTools {
     public static final class Hoe extends HoeItem {
         private final String displayName, tip;
 
-        Hoe(Tier tier, int damage, float speed, Properties p, String displayName, String tip) {
-            super(tier, damage, speed, p);
+        Hoe(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+            super(tier, (int) t.attackDamage(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
         }
@@ -269,8 +268,8 @@ public final class YogTools {
     public static final class Sword extends SwordItem {
         private final String displayName, tip;
 
-        Sword(Tier tier, int damage, float speed, Properties p, String displayName, String tip) {
-            super(tier, damage, speed, p);
+        Sword(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+            super(tier, (int) t.attackDamage(), t.attackSpeed(), p);
             this.displayName = displayName;
             this.tip = tip;
         }
@@ -296,8 +295,8 @@ public final class YogTools {
     public static final class Digger extends DiggerItem {
         private final String displayName, tip;
 
-        Digger(float damage, float speed, Tier tier, TagKey<Block> mines, Properties p, String displayName, String tip) {
-            super(damage, speed, tier, mines, p);
+        Digger(Tier tier, YogContent.Tool t, Properties p, String displayName, String tip) {
+            super(t.attackDamage(), t.attackSpeed(), tier, mineable(t.kind()), p);
             this.displayName = displayName;
             this.tip = tip;
         }

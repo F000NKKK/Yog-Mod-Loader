@@ -47,11 +47,11 @@ public final class YogTools {
             ToolMaterial m = material(t.material());
             float damage = t.attackDamage(), speed = t.attackSpeed();
             Item.Properties tool = switch (t.kind()) {
-                case "pickaxe" -> s.pickaxe(m, damage, speed);
-                case "axe" -> s.axe(m, damage, speed);
-                case "shovel" -> s.shovel(m, damage, speed);
-                case "hoe" -> s.hoe(m, damage, speed);
-                case "sword" -> s.sword(m, damage, speed);
+                case YogNames.ToolKind.PICKAXE -> s.pickaxe(m, damage, speed);
+                case YogNames.ToolKind.AXE -> s.axe(m, damage, speed);
+                case YogNames.ToolKind.SHOVEL -> s.shovel(m, damage, speed);
+                case YogNames.ToolKind.HOE -> s.hoe(m, damage, speed);
+                case YogNames.ToolKind.SWORD -> s.sword(m, damage, speed);
                 default -> s.tool(m, mineable(t.kind()), damage, speed, 0.0F);
             };
             return new Named(repairable(tool, t.material().repair()), p.name(), p.tooltip());

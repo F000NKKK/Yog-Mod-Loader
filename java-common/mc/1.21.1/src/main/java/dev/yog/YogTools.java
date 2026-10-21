@@ -44,11 +44,11 @@ public final class YogTools {
             Tier tier = new YogTier(t.material());
             String n = p.name(), tip = p.tooltip();
             return switch (t.kind()) {
-                case "pickaxe" -> new Pickaxe(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
-                case "axe" -> new Axe(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
-                case "shovel" -> new Shovel(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
-                case "hoe" -> new Hoe(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
-                case "sword" -> new Sword(tier, props.attributes(SwordItem.createAttributes(tier, (int) t.attackDamage(), t.attackSpeed())), n, tip);
+                case YogNames.ToolKind.PICKAXE -> new Pickaxe(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
+                case YogNames.ToolKind.AXE -> new Axe(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
+                case YogNames.ToolKind.SHOVEL -> new Shovel(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
+                case YogNames.ToolKind.HOE -> new Hoe(tier, props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
+                case YogNames.ToolKind.SWORD -> new Sword(tier, props.attributes(SwordItem.createAttributes(tier, (int) t.attackDamage(), t.attackSpeed())), n, tip);
                 default -> new Digger(tier, mineable(t.kind()), props.attributes(DiggerItem.createAttributes(tier, t.attackDamage(), t.attackSpeed())), n, tip);
             };
         }
