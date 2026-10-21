@@ -11,8 +11,7 @@ use std::path::{Path, PathBuf};
 use yog_ids::Format;
 use yog_sync::{Mutex, OnceLock};
 
-use serde::Serialize;
-use serde_json::Value;
+use yog_data::Value;
 
 use crate::design::assets::{Resources, Vanilla};
 use crate::design::project::{self, mod_root};
@@ -129,14 +128,14 @@ const GAME_TAG_KINDS: [&str; 6] = [
 ];
 
 /// One of the mod's own: its id and the file that defines it.
-#[derive(Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, yog_data::Schema)]
 pub struct OwnRef {
     pub id: String,
     pub file: String,
 }
 
 /// What a reference of one kind may name, ids with their namespace.
-#[derive(Serialize, Debug, Default)]
+#[derive(Debug, Default, yog_data::Schema)]
 pub struct RefChoices {
     pub own: Vec<OwnRef>,
     /// Declared in `yog.toml`, another mod's.
@@ -146,7 +145,7 @@ pub struct RefChoices {
 }
 
 /// One of the mod's `.ydef`s: its id, its file and what it says.
-#[derive(Serialize, Debug)]
+#[derive(Debug, yog_data::Schema)]
 pub struct OwnDef {
     pub id: String,
     pub file: String,
@@ -157,8 +156,11 @@ fn files(root: &Path, format: Format) -> Vec<PathBuf> {
     crate::files::of(&root.join(yog_ids::project::CONTENT), format)
 }
 
-fn read(file: &Path) -> Option<serde_json::Map<String, Value>> {
-    crate::design::data::read_object(&std::fs::read_to_string(file).ok()?)
+/// A content file that's one object.
+fn read(file: &Path) -> Option<Value> {
+    yog_data::text::parse_value(&std::fs::read_to_string(file).ok()?)
+        .ok()
+        .filter(|v| matches!(v, Value::Map(_)))
 }
 
 /// The choices for `@<kind>:` in the file at `file` (`kind` may also be a
@@ -270,13 +272,13 @@ fn defs(root: &Path, kind: &str) -> Vec<OwnDef> {
         {
             continue;
         }
-        let Some(id) = doc.get("id").and_then(Value::as_str) else {
+        let Some(id) = doc.get(yog_ids::content_field::ID).and_then(Value::as_str) else {
             continue;
         };
         out.push(OwnDef {
             id: yog_ids::qualify_in(&ns, id),
             file: f.to_string_lossy().into_owned(),
-            value: Value::Object(doc),
+            value: doc,
         });
     }
     out
@@ -372,11 +374,11 @@ fn game_id(path: &str) -> String {
 }
 
 /// The keys of the jar's JSON asset `asset` (the first of the jar's copies that reads).
-fn asset_keys(vanilla: &Vanilla, asset: &str) -> serde_json::Map<String, Value> {
+fn asset_keys(vanilla: &Vanilla, asset: &str) -> serde_json::Map<String, serde_json::Value> {
     vanilla
         .read_all(asset)
         .into_iter()
-        .find_map(|b| serde_json::from_slice::<serde_json::Map<String, Value>>(&b).ok())
+        .find_map(|b| serde_json::from_slice::<serde_json::Map<String, serde_json::Value>>(&b).ok())
         .unwrap_or_default()
 }
 
@@ -424,10 +426,10 @@ fn lang_ids(vanilla: &Vanilla, kind: &str, prefixes: Vec<String>, dotted: bool) 
 /// as `yog-formats` has them.
 pub fn block_kinds() -> Value {
     use yog_data::Schema;
-    Value::Array(
+    Value::List(
         yog_formats::content::BlockKind::built_ins()
             .iter()
-            .map(|k| crate::design::data::to_json(&k.write()))
+            .map(Schema::write)
             .collect(),
     )
 }
@@ -509,7 +511,7 @@ mod tests {
         assert!(ids("tag:item").is_empty());
         let effects = own_defs(&probe, "effect");
         assert_eq!(effects.len(), 1);
-        assert_eq!(effects[0].value["color"], 255);
+        assert_eq!(effects[0].value.get("color"), Some(&Value::Int(255)));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -517,10 +519,10 @@ mod tests {
     fn the_games_block_kinds_are_listed() {
         let kinds = block_kinds();
         let names: Vec<&str> = kinds
-            .as_array()
+            .as_list()
             .unwrap()
             .iter()
-            .filter_map(|k| k["name"].as_str())
+            .filter_map(|k| k.get("name").and_then(Value::as_str))
             .collect();
         assert!(
             names.contains(&"stairs") && names.contains(&"pressure_plate"),

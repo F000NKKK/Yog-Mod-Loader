@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use yog_ids::Format;
 
 use base64::Engine as _;
-use serde::Serialize;
+use std::borrow::Cow;
 use yog_book::layout_picture::{Piece, pieces};
 use yog_book::renderer::{BLOCK_PITCH, SLOT_YAW};
 use yog_data::Schema;
@@ -23,8 +23,8 @@ use crate::design::{assets::Resources, gfx, images, raster};
 /// How much bigger than GUI pixels the picture is drawn.
 const SCALE: u32 = 3;
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct Slot {
     pub name: String,
     /// What editors call it; `name` if none.
@@ -38,8 +38,8 @@ pub struct Slot {
     pub grid: bool,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct ValueSpec {
     pub name: String,
     /// `number`, `text` or `bool` — the format's word for its type.
@@ -49,8 +49,8 @@ pub struct ValueSpec {
 }
 
 /// Something the editor puts on the picture, in GUI pixels.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase", tag = "type")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase", tag = "type")]
 pub enum Spot {
     /// The `index`-th ingredient of `slot`.
     Slot {
@@ -71,8 +71,8 @@ pub enum Spot {
     },
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct Layout {
     /// The `.yui` it's laid out in; empty for a built-in layout.
     pub file: String,
@@ -83,8 +83,8 @@ pub struct Layout {
     pub spots: Vec<Spot>,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct Kind {
     pub id: String,
     /// What editors call it; the id's path if none.
@@ -99,22 +99,22 @@ pub struct Kind {
 /// The fields every `.yrecipe` has, by the names the format gives them
 /// (`yog_registry::recipe_kinds::fields`) — the editor reads and writes
 /// recipes with these.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct Fields {
-    #[serde(rename = "type")]
-    pub kind: &'static str,
-    pub result: &'static str,
-    pub count: &'static str,
-    pub slots: &'static str,
-    pub values: &'static str,
-    pub pattern: &'static str,
-    pub key: &'static str,
+    #[data(rename = "type")]
+    pub kind: Cow<'static, str>,
+    pub result: Cow<'static, str>,
+    pub count: Cow<'static, str>,
+    pub slots: Cow<'static, str>,
+    pub values: Cow<'static, str>,
+    pub pattern: Cow<'static, str>,
+    pub key: Cow<'static, str>,
     pub grid_side: usize,
 }
 
 /// Every kind the editor knows for the mod at `root`, and the fields.
-#[derive(Debug, Serialize)]
+#[derive(Debug, yog_data::Schema)]
 pub struct Kinds {
     pub game: Vec<Kind>,
     pub own: Vec<Kind>,
@@ -122,13 +122,13 @@ pub struct Kinds {
 }
 
 pub const FIELDS: Fields = Fields {
-    kind: fields::TYPE,
-    result: fields::RESULT,
-    count: fields::COUNT,
-    slots: fields::SLOTS,
-    values: fields::VALUES,
-    pattern: fields::PATTERN,
-    key: fields::KEY,
+    kind: Cow::Borrowed(fields::TYPE),
+    result: Cow::Borrowed(fields::RESULT),
+    count: Cow::Borrowed(fields::COUNT),
+    slots: Cow::Borrowed(fields::SLOTS),
+    values: Cow::Borrowed(fields::VALUES),
+    pattern: Cow::Borrowed(fields::PATTERN),
+    key: Cow::Borrowed(fields::KEY),
     grid_side: recipe_kinds::GRID_SIDE,
 };
 
@@ -476,12 +476,12 @@ mod tests {
             "Yog's own brewing strip"
         );
         // What the recipe editor reads (recipeModel.ts `RecipeKind`).
-        let json = serde_json::to_value(&l.spots).unwrap();
-        let types: Vec<&str> = json
-            .as_array()
+        let spots = yog_data::Schema::write(&l.spots);
+        let types: Vec<&str> = spots
+            .as_list()
             .unwrap()
             .iter()
-            .map(|s| s["type"].as_str().unwrap())
+            .map(|s| s.get("type").and_then(yog_data::Value::as_str).unwrap())
             .collect();
         assert_eq!(types, ["slot", "slot", "slot", "result", "text"]);
         let _ = std::fs::remove_dir_all(&dir);

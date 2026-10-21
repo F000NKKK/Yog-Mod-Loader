@@ -558,26 +558,33 @@ mod tests {
     }
 
     #[test]
-    fn describes_and_escapes() {
+    fn describes_its_components() {
         register::<Badge>();
-        let mut out = String::new();
-        unsafe extern "C" fn sink(ud: *mut std::ffi::c_void, s: yog_abi::YogStr) {
-            // SAFETY: `ud` is the `String` below; `s` valid for the call.
-            unsafe { (*(ud as *mut String)).push_str(s.as_str()) };
+        let mut out = Vec::new();
+        unsafe extern "C" fn sink(ud: *mut std::ffi::c_void, b: yog_abi::YogBytes) {
+            // SAFETY: `ud` is the `Vec` below; `b` valid for the call.
+            unsafe { (*(ud as *mut Vec<u8>)).extend_from_slice(b.as_slice()) };
         }
-        let req = "describe";
+        let req = yog_data::to_bytes(&designer::Request::Describe);
         let ok = unsafe {
             designer::call(
-                yog_abi::YogStr::from_str(req),
+                yog_abi::YogBytes::new(&req),
                 std::ptr::null(),
-                &mut out as *mut String as *mut _,
+                &mut out as *mut Vec<u8> as *mut _,
                 sink,
             )
         };
-        assert!(ok, "{out}");
-        assert!(out.contains("\"name\":\"TestBadge\""), "{out}");
-        assert!(out.contains("\"options\":[\"small\",\"large\"]"), "{out}");
-        assert!(out.contains("\"icon\":\"item:apple\",\"category\":\"\",\"design_w\":40,\"design_h\":12,\"toolbox\":true"), "{out}");
-        assert_eq!(designer::unescape(&designer::escape("a\\b\nc")), "a\\b\nc");
+        let reply: designer::Reply = yog_data::read_bytes(&out).unwrap();
+        assert!(ok, "{reply:?}");
+        let Ok(designer::Answer::Described { components }) = reply else {
+            panic!("{reply:?}");
+        };
+        let badge = components.iter().find(|c| c.name == "TestBadge").unwrap();
+        assert_eq!(
+            (badge.icon.as_str(), badge.design_w, badge.design_h),
+            ("item:apple", 40.0, 12.0)
+        );
+        assert!(badge.toolbox && badge.category.is_empty());
+        assert!(badge.props.iter().any(|p| p.options == ["small", "large"]));
     }
 }

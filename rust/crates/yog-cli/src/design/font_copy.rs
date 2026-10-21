@@ -4,13 +4,12 @@
 
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
 use yog_ids::Format;
 
 use super::project;
 
 /// The mod's copy of a game font: its id, and its file.
-#[derive(Serialize)]
+#[derive(yog_data::Schema)]
 pub struct Copy {
     pub id: String,
     pub file: PathBuf,

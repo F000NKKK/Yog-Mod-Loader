@@ -5,7 +5,7 @@
 use base64::Engine;
 use yog_worldgen::{Generator, Terrain, preview};
 
-#[derive(serde::Serialize)]
+#[derive(yog_data::Schema)]
 pub struct Preview {
     /// `size`×`size` blocks from above, `data:image/png;base64,…`.
     top: String,

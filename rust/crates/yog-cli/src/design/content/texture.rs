@@ -2,14 +2,13 @@
 //! whether it's the mod's own to change.
 
 use base64::Engine as _;
-use serde::Serialize;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 use super::{texture_bytes, texture_file, texture_id};
 use crate::design::project::mod_root;
 
-#[derive(Serialize)]
+#[derive(yog_data::Schema)]
 pub struct Texture {
     /// `data:image/png;base64,...`
     pub url: String,
@@ -23,8 +22,8 @@ pub struct Texture {
 /// A texture's animation (`.png.mcmeta`), as the game plays it: frames
 /// `frame_width`×`frame_height` laid row by row over the image, shown in
 /// `frames` order, each for its `time` in ticks.
-#[derive(Serialize, serde::Deserialize, Clone, Debug, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, PartialEq, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct Animation {
     pub frame_width: u32,
     pub frame_height: u32,
@@ -33,7 +32,7 @@ pub struct Animation {
     pub interpolate: bool,
 }
 
-#[derive(Serialize, serde::Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, yog_data::Schema)]
 pub struct AnimationFrame {
     pub index: u32,
     /// Ticks (1/20 s).

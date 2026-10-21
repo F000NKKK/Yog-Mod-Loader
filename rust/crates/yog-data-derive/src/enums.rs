@@ -5,8 +5,8 @@ use quote::quote;
 use syn::{Fields, Ident, Type};
 
 use crate::{
-    Attrs, NamedField, Tokens, attrs, docs, field_shapes, krate, named_fields, read_fields, snake,
-    write_fields,
+    Attrs, NamedField, Tokens, attrs, docs, field_shapes, fields_as_written, krate, named_fields,
+    read_fields, variant_key, write_fields,
 };
 
 /// An enum of unit variants (`names`: each one's ident and key): a string.
@@ -109,7 +109,7 @@ fn variants(e: &syn::DataEnum, top: &Attrs) -> syn::Result<Vec<Variant>> {
         let a = attrs(&v.attrs)?;
         let kind = match &v.fields {
             Fields::Unit => VariantKind::Unit,
-            Fields::Named(n) => VariantKind::Named(named_fields(n)?),
+            Fields::Named(n) => VariantKind::Named(fields_as_written(|| named_fields(n))?),
             Fields::Unnamed(u) if u.unnamed.len() == 1 => {
                 VariantKind::Wrap(Box::new(u.unnamed[0].ty.clone()))
             }
@@ -133,7 +133,7 @@ fn variants(e: &syn::DataEnum, top: &Attrs) -> syn::Result<Vec<Variant>> {
             ));
         }
         vs.push(Variant {
-            key: a.rename.unwrap_or_else(|| snake(&v.ident)),
+            key: a.rename.unwrap_or_else(|| variant_key(&v.ident)),
             ident: v.ident.clone(),
             doc: docs(&v.attrs),
             kind,

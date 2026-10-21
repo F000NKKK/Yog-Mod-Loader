@@ -7,7 +7,6 @@ use crate::yui_resources::{Entry, Resources, local_name};
 use std::collections::HashMap;
 use yog_ui::attr::Attr;
 
-use serde::Deserialize;
 use yog_ui::layout::Align;
 use yog_ui::widget::{self, Widget};
 use yog_ui::{FlexDir, Track, Units};
@@ -15,13 +14,13 @@ use yog_ui::{FlexDir, Track, Units};
 use crate::yui::Anchor;
 
 /// One element of the designer's document (`YuiNode` in `yui.ts`).
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, yog_data::Schema)]
 pub struct YuiNode {
     pub uid: String,
     pub kind: String,
-    #[serde(default)]
+    #[data(default)]
     pub attrs: HashMap<String, String>,
-    #[serde(default)]
+    #[data(default)]
     pub children: Vec<YuiNode>,
 }
 

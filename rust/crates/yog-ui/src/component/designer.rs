@@ -1,23 +1,19 @@
 //! The screen designer's protocol (see the [module docs](super)): one C-ABI
-//! entry point, `yog_ui_designer`, taking a text request and answering
-//! through a write callback.
+//! entry point, `yog_ui_designer`, taking a [`Request`] and answering a
+//! [`Reply`] — binary Yog Data both — through a write callback.
 //!
-//! Requests (lines; values escaped with `\\` and `\n`):
+//! - [`Request::Describe`] → [`Answer::Described`]: the mod's components.
+//! - [`Request::Render`] → [`Answer::Rendered`]: builds the component,
+//!   sizes it `w × h` (≤ 0: its natural size, within `avail_w × avail_h`),
+//!   draws it at the origin through the `YogGfxApi`, and answers its size.
 //!
-//! - `describe` → JSON `{"abi":1,"components":[{"name","doc","props":[{"name","kind","default","doc","options"}]}]}`
-//! - `render` / `<name>` / `<w> <h> <avail_w> <avail_h>` / `key=value`… —
-//!   builds the component, sizes it `w × h` (≤ 0: its natural size, within
-//!   `avail_w × avail_h`), draws it at the origin through the `YogGfxApi`
-//!   and answers `{"w":…,"h":…}`.
-//!
-//! A failure (unknown component, panic in `build`) answers `false` and an
-//! error message.
+//! A failure (unknown component, panic in `build`) answers the error.
 
 use std::ffi::c_void;
-use std::fmt::Write as _;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use yog_abi::{YogGfxApi, YogStr};
+use yog_abi::{YogBytes, YogGfxApi};
+use yog_data::Schema;
 use yog_gfx::GfxContext;
 
 use super::{COMMON_ATTRS, PropKind, Props, apply_style, components, find};
@@ -25,32 +21,118 @@ use crate::widget::{self, Widget};
 use crate::{FlexDir, UiRoot, Units};
 
 /// Version of this protocol; the designer host refuses others.
-pub const ABI: u32 = 1;
+pub const ABI: u32 = 2;
 
-/// `write(user_data, text)`: the host's sink for the answer.
-pub type WriteFn = unsafe extern "C" fn(user_data: *mut c_void, text: YogStr);
+/// `write(user_data, bytes)`: the host's sink for the reply.
+pub type WriteFn = unsafe extern "C" fn(user_data: *mut c_void, reply: YogBytes);
+
+/// What the designer host asks a mod.
+#[derive(Debug, Clone, PartialEq, Schema)]
+#[data(tag = "request")]
+pub enum Request {
+    Describe,
+    Render(Render),
+}
+
+/// A component to draw, at the origin.
+#[derive(Debug, Clone, PartialEq, Schema)]
+pub struct Render {
+    pub name: String,
+    /// Its attributes, as a `.yui` writes them.
+    #[data(default)]
+    pub attrs: Vec<(String, String)>,
+    /// Its size; ≤ 0: its natural size.
+    pub w: f32,
+    pub h: f32,
+    /// The room it has.
+    pub avail_w: f32,
+    pub avail_h: f32,
+}
+
+/// What a mod answers.
+#[derive(Debug, Clone, PartialEq, Schema)]
+#[data(tag = "answer")]
+pub enum Answer {
+    Described { components: Vec<ComponentInfo> },
+    Rendered { w: f32, h: f32 },
+}
+
+/// The answer, or what went wrong.
+pub type Reply = Result<Answer, String>;
+
+/// One component as the mod describes it.
+#[derive(Debug, Clone, PartialEq, Schema)]
+pub struct ComponentInfo {
+    pub name: String,
+    /// Toolbox tooltip and property grid header (may be `@Set.key`).
+    #[data(default)]
+    pub description: String,
+    /// The toolbox label (empty: `name`; may be `@Set.key`).
+    #[data(default)]
+    pub display_name: String,
+    /// The toolbox icon — a Yog image source or `@Icons.x` (empty: a glyph).
+    #[data(default)]
+    pub icon: String,
+    /// The toolbox category (empty: "<mod> Components"; may be `@Set.key`).
+    #[data(default)]
+    pub category: String,
+    /// The canvas size for editing it, and an instance's size when dropped (0: unset).
+    #[data(default)]
+    pub design_w: f32,
+    #[data(default)]
+    pub design_h: f32,
+    /// Whether the toolbox offers it.
+    #[data(default = "yes")]
+    pub toolbox: bool,
+    #[data(default)]
+    pub props: Vec<PropInfo>,
+    /// The `.yui` declaring it (the designer's own listing; never the mod's).
+    #[data(default)]
+    pub file: Option<String>,
+}
+
+/// One property of a component.
+#[derive(Debug, Clone, PartialEq, Schema)]
+pub struct PropInfo {
+    pub name: String,
+    /// `text`, `number`, `int`, `bool`, `color`, `choice`, `event`, `image`.
+    pub kind: String,
+    #[data(default)]
+    pub default: String,
+    #[data(default)]
+    pub doc: String,
+    /// The property grid category (empty: the component's own).
+    #[data(default)]
+    pub category: String,
+    #[data(default)]
+    pub options: Vec<String>,
+}
+
+fn yes() -> bool {
+    true
+}
 
 /// `export_mod!`'s `yog_ui_designer`.
 ///
 /// # Safety
-/// `request` must be valid UTF-8 for the call; `gfx` a valid table (or
+/// `request` must point at its bytes for the call; `gfx` a valid table (or
 /// null for `describe`); `write` sound to call with `user_data`.
 pub unsafe fn call(
-    request: YogStr,
+    request: YogBytes,
     gfx: *const YogGfxApi,
     user_data: *mut c_void,
     write: WriteFn,
 ) -> bool {
     // SAFETY: the caller's contract.
-    let request = unsafe { request.as_str() };
-    let (ok, answer) = match catch_unwind(AssertUnwindSafe(|| answer(request, gfx))) {
-        Ok(Ok(a)) => (true, a),
-        Ok(Err(e)) => (false, e),
-        Err(panic) => (false, panic_message(&*panic)),
+    let request = unsafe { request.as_slice() };
+    let reply: Reply = match catch_unwind(AssertUnwindSafe(|| answer(request, gfx))) {
+        Ok(reply) => reply,
+        Err(panic) => Err(panic_message(&*panic)),
     };
+    let bytes = yog_data::to_bytes(&reply);
     // SAFETY: the caller's contract.
-    unsafe { write(user_data, YogStr::from_str(&answer)) };
-    ok
+    unsafe { write(user_data, YogBytes::new(&bytes)) };
+    reply.is_ok()
 }
 
 fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
@@ -62,45 +144,28 @@ fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
     format!("the component panicked: {msg}")
 }
 
-fn answer(request: &str, gfx: *const YogGfxApi) -> Result<String, String> {
-    let mut lines = request.lines();
-    match lines.next().map(str::trim) {
-        Some("describe") => Ok(describe()),
-        Some("render") => {
+fn answer(request: &[u8], gfx: *const YogGfxApi) -> Reply {
+    let request = yog_data::read_bytes::<Request>(request)
+        .map_err(|e| format!("not a designer request: {e:?}"))?;
+    match request {
+        Request::Describe => Ok(describe()),
+        Request::Render(r) => {
             if gfx.is_null() {
                 return Err("render: no gfx table".into());
             }
-            let name = lines.next().unwrap_or_default().trim().to_string();
-            let size: Vec<f32> = lines
-                .next()
-                .unwrap_or_default()
-                .split_whitespace()
-                .filter_map(|n| n.parse().ok())
-                .collect();
-            let [w, h, aw, ah] = size[..] else {
-                return Err("render: expected `w h avail_w avail_h`".into());
-            };
-            let attrs: Vec<(String, String)> = lines
-                .filter_map(|l| l.split_once('='))
-                .map(|(k, v)| (k.trim().to_string(), unescape(v)))
-                .collect();
             // SAFETY: non-null, valid for the call (the caller's contract).
             let ctx = unsafe { GfxContext::from_raw(gfx) };
-            render(&ctx, &name, &attrs, [w, h, aw, ah])
+            render(&ctx, &r)
         }
-        other => Err(format!("unknown designer request {other:?}")),
     }
 }
 
-fn render(
-    ctx: &GfxContext,
-    name: &str,
-    attrs: &[(String, String)],
-    [w, h, aw, ah]: [f32; 4],
-) -> Result<String, String> {
-    let spec = find(name).ok_or_else(|| format!("no component named {name}"))?;
+fn render(ctx: &GfxContext, r: &Render) -> Reply {
+    let spec = find(&r.name).ok_or_else(|| format!("no component named {}", r.name))?;
+    let (w, h, aw, ah) = (r.w, r.h, r.avail_w, r.avail_h);
     type Attrs<'a> = Vec<(&'a str, &'a str)>;
-    let (common, own): (Attrs, Attrs) = attrs
+    let (common, own): (Attrs, Attrs) = r
+        .attrs
         .iter()
         .map(|(k, v)| (k.as_str(), v.as_str()))
         .partition(|(k, _)| COMMON_ATTRS.contains(k));
@@ -131,91 +196,41 @@ fn render(
         .map(|n| n.rect)
         .unwrap_or_default();
     ui.render(ctx);
-    Ok(format!("{{\"w\":{},\"h\":{}}}", rect.w, rect.h))
+    Ok(Answer::Rendered {
+        w: rect.w,
+        h: rect.h,
+    })
 }
 
-fn describe() -> String {
-    let mut out = format!("{{\"abi\":{ABI},\"components\":[");
-    for (i, c) in components().iter().enumerate() {
-        if i > 0 {
-            out.push(',');
-        }
-        let _ = write!(
-            out,
-            "{{\"name\":{},\"description\":{},\"display_name\":{},\"icon\":{},\"category\":{},\"design_w\":{},\"design_h\":{},\"toolbox\":{},\"props\":[",
-            json(c.name),
-            json(c.doc),
-            json(c.display_name),
-            json(c.icon),
-            json(c.category),
-            c.design_size.0,
-            c.design_size.1,
-            c.toolbox
-        );
-        for (j, p) in c.props.iter().enumerate() {
-            if j > 0 {
-                out.push(',');
-            }
-            let options = match p.kind {
-                PropKind::Choice(o) => o.iter().map(|s| json(s)).collect::<Vec<_>>().join(","),
-                _ => String::new(),
-            };
-            let _ = write!(
-                out,
-                "{{\"name\":{},\"kind\":{},\"default\":{},\"doc\":{},\"category\":{},\"options\":[{options}]}}",
-                json(p.name),
-                json(p.kind.as_str()),
-                json(p.default),
-                json(p.doc),
-                json(p.category)
-            );
-        }
-        out.push_str("]}");
-    }
-    out.push_str("]}");
-    out
-}
-
-/// A JSON string literal.
-fn json(s: &str) -> String {
-    let mut out = String::with_capacity(s.len() + 2);
-    out.push('"');
-    for c in s.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 => {
-                let _ = write!(out, "\\u{:04x}", c as u32);
-            }
-            c => out.push(c),
-        }
-    }
-    out.push('"');
-    out
-}
-
-/// A request value as written by [`escape`].
-pub fn unescape(v: &str) -> String {
-    let mut out = String::with_capacity(v.len());
-    let mut chars = v.chars();
-    while let Some(c) = chars.next() {
-        if c != '\\' {
-            out.push(c);
-            continue;
-        }
-        match chars.next() {
-            Some('n') => out.push('\n'),
-            Some(other) => out.push(other),
-            None => out.push('\\'),
-        }
-    }
-    out
-}
-
-/// A request value: one line, `\\` and `\n` escaped.
-pub fn escape(v: &str) -> String {
-    v.replace('\\', "\\\\").replace('\n', "\\n")
+fn describe() -> Answer {
+    let components = components()
+        .iter()
+        .map(|c| ComponentInfo {
+            name: c.name.into(),
+            description: c.doc.into(),
+            display_name: c.display_name.into(),
+            icon: c.icon.into(),
+            category: c.category.into(),
+            design_w: c.design_size.0,
+            design_h: c.design_size.1,
+            toolbox: c.toolbox,
+            props: c
+                .props
+                .iter()
+                .map(|p| PropInfo {
+                    name: p.name.into(),
+                    kind: p.kind.as_str().into(),
+                    default: p.default.into(),
+                    doc: p.doc.into(),
+                    category: p.category.into(),
+                    options: match p.kind {
+                        PropKind::Choice(o) => o.iter().map(|s| s.to_string()).collect(),
+                        _ => Vec::new(),
+                    },
+                })
+                .collect(),
+            file: None,
+        })
+        .collect();
+    Answer::Described { components }
 }

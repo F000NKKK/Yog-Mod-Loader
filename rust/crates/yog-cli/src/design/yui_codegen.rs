@@ -72,7 +72,7 @@ pub fn codegen(path: &str) -> Result<Codegen, String> {
 /// One regeneration: the generated file (empty on failure), the failure's
 /// message, and `yog`'s full output with the folder it ran in — what the
 /// Error List reads the file's errors and warnings from.
-#[derive(serde::Serialize)]
+#[derive(yog_data::Schema)]
 pub struct Codegen {
     pub generated: String,
     pub error: Option<String>,

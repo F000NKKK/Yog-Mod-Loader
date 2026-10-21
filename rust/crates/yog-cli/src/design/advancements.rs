@@ -8,7 +8,6 @@
 use std::path::Path;
 
 use base64::Engine as _;
-use serde::{Deserialize, Serialize};
 use yog_gfx::draw2d::Draw2D;
 use yog_gfx::{Color, Rect, Vec2};
 
@@ -68,7 +67,7 @@ const BLACK: Color = Color(0xFF00_0000);
 const SCALE: u32 = 1;
 
 /// One advancement of the tab.
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, yog_data::Schema)]
 pub struct Node {
     pub id: String,
     pub parent: Option<String>,
@@ -78,12 +77,12 @@ pub struct Node {
     pub title: String,
     pub description: String,
     /// Drawn as had (the one being edited).
-    #[serde(default)]
+    #[data(default)]
     pub obtained: bool,
 }
 
 /// What to draw.
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, yog_data::Schema)]
 pub struct Args {
     pub path: String,
     pub title: String,
@@ -91,21 +90,21 @@ pub struct Args {
     pub background: Option<String>,
     pub nodes: Vec<Node>,
     /// How far the reader dragged the tree, GUI pixels.
-    #[serde(default)]
+    #[data(default)]
     pub drag: [f32; 2],
     /// The advancement under the pointer.
     pub hover: Option<String>,
 }
 
 /// Where an advancement can be pointed at, in screen GUI pixels.
-#[derive(Serialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, yog_data::Schema)]
 pub struct Spot {
     pub id: String,
     pub rect: [f32; 4],
 }
 
 /// The drawn screen.
-#[derive(Serialize, Debug, Clone)]
+#[derive(Debug, Clone, yog_data::Schema)]
 pub struct Rendered {
     pub image: Option<String>,
     pub size: [f32; 2],

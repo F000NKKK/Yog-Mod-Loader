@@ -49,7 +49,8 @@ fn designer(c: &mut Criterion) {
                 .collect::<Vec<_>>()
         })
     };
-    let args: RenderArgs = serde_json::from_value(serde_json::json!({
+    // The request as the IDE sends it (written here as JSON for brevity).
+    let args: RenderArgs = yog_data::read_value(&yog_data::json::from_json(&serde_json::json!({
         "path": "/nowhere/src/bench.yui",
         "root": {
             "uid": "s", "kind": "Screen",
@@ -61,10 +62,10 @@ fn designer(c: &mut Criterion) {
             }]
         },
         "screenW": 427, "screenH": 240, "scale": 2, "preview": false
-    }))
+    })))
     .unwrap();
     c.bench_function("designer_render/36_widgets", |b| {
-        b.iter(|| serde_json::to_string(&render(black_box(&args)).unwrap()).unwrap())
+        b.iter(|| yog_data::to_bytes(&render(black_box(&args)).unwrap()))
     });
 }
 

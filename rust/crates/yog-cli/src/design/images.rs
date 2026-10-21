@@ -483,7 +483,7 @@ pub fn draw(c: &mut Canvas, source: &str, dest: [f32; 4], region: [f32; 4], t: u
 }
 
 /// An alias the Properties picker offers.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, yog_data::Schema)]
 pub struct Candidate {
     /// The source to write (`item:apple`, `sprite:button`, `mod:gui/logo`).
     pub source: String,
@@ -530,7 +530,7 @@ pub fn candidates(path: &Path) -> Vec<Candidate> {
 /// its PNG data URL (`size` px, nearest-neighbour; `None` if it can't be
 /// drawn) and, for a raw resource path (`minecraft:textures/item/apple.png`),
 /// the alias to write instead (`item:apple`) — which is also what's drawn.
-#[derive(serde::Serialize)]
+#[derive(yog_data::Schema)]
 pub struct Preview {
     pub url: Option<String>,
     pub alias: Option<String>,

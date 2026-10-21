@@ -33,6 +33,8 @@ thread_local! {
     /// The path of `yog_data` for the derive running now: `::yog_data`, or
     /// the container's `#[data(crate = "...")]` (a crate that re-exports it).
     static KRATE: std::cell::RefCell<Tokens> = std::cell::RefCell::new(quote!(::yog_data));
+    /// Whether the container says `#[data(rename_all = "camelCase")]`.
+    static CAMEL: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// The path of `yog_data` the generated code uses.
@@ -43,10 +45,26 @@ fn krate() -> Tokens {
 #[proc_macro_derive(Schema, attributes(data))]
 pub fn derive_schema(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let path = match attrs(&input.attrs) {
-        Ok(a) => a.krate.unwrap_or_else(|| syn::parse_quote!(::yog_data)),
+    let container = match attrs(&input.attrs) {
+        Ok(a) => a,
         Err(e) => return e.to_compile_error().into(),
     };
+    let camel = match container.rename_all.as_deref() {
+        None => false,
+        Some(attr_name::CAMEL_CASE) => true,
+        Some(_) => {
+            return syn::Error::new_spanned(
+                &input.ident,
+                "rename_all = \"camelCase\" is the one case",
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
+    CAMEL.with(|c| c.set(camel));
+    let path = container
+        .krate
+        .unwrap_or_else(|| syn::parse_quote!(::yog_data));
     KRATE.with(|k| *k.borrow_mut() = quote!(#path));
     match expand(&input) {
         Ok(t) => t.into(),
@@ -57,6 +75,8 @@ pub fn derive_schema(input: TokenStream) -> TokenStream {
 #[derive(Default)]
 struct Attrs {
     rename: Option<String>,
+    /// The container's case for its fields' or variants' names.
+    rename_all: Option<String>,
     default: Option<Option<syn::Path>>,
     skip: bool,
     tag: Option<String>,
@@ -76,6 +96,8 @@ fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
         attr.parse_nested_meta(|meta| {
             if meta.path.is_ident(attr_name::RENAME) {
                 a.rename = Some(meta.value()?.parse::<LitStr>()?.value());
+            } else if meta.path.is_ident(attr_name::RENAME_ALL) {
+                a.rename_all = Some(meta.value()?.parse::<LitStr>()?.value());
             } else if meta.path.is_ident(attr_name::TAG) {
                 a.tag = Some(meta.value()?.parse::<LitStr>()?.value());
             } else if meta.path.is_ident(attr_name::DEFAULT) {
@@ -108,7 +130,7 @@ fn attrs(list: &[syn::Attribute]) -> syn::Result<Attrs> {
                 a.krate = Some(meta.value()?.parse::<LitStr>()?.parse()?);
             } else {
                 return Err(meta
-                    .error("unknown `data` attribute (rename, default, skip, tag, with, range, other, crate, view)"));
+                    .error("unknown `data` attribute (rename, rename_all, default, skip, tag, with, range, other, crate, view)"));
             }
             Ok(())
         })?;
@@ -143,6 +165,49 @@ fn docs(list: &[syn::Attribute]) -> String {
         }
     }
     out.trim_end().to_string()
+}
+
+/// A field's name as written: as in Rust, or in camel case (`rename_all`).
+fn field_key(ident: &Ident) -> String {
+    let name = ident.to_string().trim_start_matches("r#").to_string();
+    if !CAMEL.with(std::cell::Cell::get) {
+        return name;
+    }
+    let mut out = String::new();
+    let mut upper = false;
+    for c in name.chars() {
+        match c {
+            '_' => upper = !out.is_empty(),
+            c if upper => {
+                out.push(c.to_ascii_uppercase());
+                upper = false;
+            }
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// `f` with fields named as in Rust: an enum's `rename_all` names its
+/// variants, not their fields.
+fn fields_as_written<T>(f: impl FnOnce() -> T) -> T {
+    let camel = CAMEL.with(|c| c.replace(false));
+    let out = f();
+    CAMEL.with(|c| c.set(camel));
+    out
+}
+
+/// A variant's name as written: in snake case, or camel case (`rename_all`).
+fn variant_key(ident: &Ident) -> String {
+    if !CAMEL.with(std::cell::Cell::get) {
+        return snake(ident);
+    }
+    let name = ident.to_string();
+    let mut chars = name.chars();
+    chars
+        .next()
+        .map(|first| first.to_ascii_lowercase().to_string() + chars.as_str())
+        .unwrap_or_default()
 }
 
 fn snake(ident: &Ident) -> String {
@@ -187,9 +252,7 @@ fn named_fields(fields: &syn::FieldsNamed) -> syn::Result<Vec<NamedField>> {
                     "Schema: a named field without a name",
                 ));
             };
-            let key = a
-                .rename
-                .unwrap_or_else(|| ident.to_string().trim_start_matches("r#").to_string());
+            let key = a.rename.unwrap_or_else(|| field_key(&ident));
             Ok(NamedField {
                 ident,
                 ty: f.ty.clone(),

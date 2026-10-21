@@ -6,9 +6,7 @@ use yog_ids::serve_method as M;
 use yog_ids::serve_param as P;
 
 use base64::Engine as _;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-use serde_json::{Value, json};
+use yog_data::{Schema, Value};
 
 use super::{
     advancements, book, codebehind, content, custom, font_copy, images, project, recipe_kinds,
@@ -18,16 +16,16 @@ use super::{
 type Reply = Result<Value, Value>;
 
 /// A parameter, read as its type.
-fn param<T: DeserializeOwned>(params: &Value, name: &str) -> Result<T, Value> {
-    serde_json::from_value(params.get(name).cloned().unwrap_or(Value::Null))
-        .map_err(|e| json!(format!("`{name}`: {e}")))
+fn param<T: Schema>(params: &Value, name: &str) -> Result<T, Value> {
+    yog_data::read_value(params.get(name).unwrap_or(&Value::Null))
+        .map_err(|e| format!("`{name}`: {e:?}").into())
 }
 
-fn ok<T: Serialize>(v: T) -> Reply {
-    serde_json::to_value(v).map_err(|e| json!(e.to_string()))
+fn ok<T: Schema>(v: T) -> Reply {
+    Ok(v.write())
 }
 
-fn done<T: Serialize>(r: Result<T, String>) -> Reply {
+fn done<T: Schema>(r: Result<T, String>) -> Reply {
     r.map_err(Value::from).and_then(ok)
 }
 
@@ -87,7 +85,7 @@ fn content_method(method: &str, c: &Call) -> Option<Reply> {
         M::CONTENT_SAVE_TEXTURE => c.with(P::TEXTURE, &|p, t| {
             let png = base64::engine::general_purpose::STANDARD
                 .decode(param::<String>(c.params, P::PNG)?)
-                .map_err(|e| json!(e.to_string()))?;
+                .map_err(|e| Value::from(e.to_string()))?;
             done(content::write_texture(p, t, png))
         }),
         M::CONTENT_SAVE_TEXTURE_ANIMATION => c.with(P::TEXTURE, &|p, t| {
@@ -106,7 +104,10 @@ fn content_method(method: &str, c: &Call) -> Option<Reply> {
         M::CONTENT_DEFS => c.with(P::KIND, &|p, k| ok(refs::own_defs(p, k))),
         M::CONTENT_BLOCK_KINDS => Ok(refs::block_kinds()),
         M::CONTENT_TAGS => c.with(P::REGISTRY, &|p, r| ok(content::tags(p, r))),
-        M::CONTENT_PARENT_MODEL => c.with(P::ID, &|p, id| done(content::parent_model(p, id))),
+        // The game's model (its JSON) as Yog Data.
+        M::CONTENT_PARENT_MODEL => c.with(P::ID, &|p, id| {
+            done(content::parent_model(p, id).map(|m| yog_data::json::from_json(&m)))
+        }),
         M::CONTENT_ITEM_POTION_COLOR => c.file(|p| ok(content::item_potion_color(p))),
         // The mod's copy of a game font (by Yog's alias), made if it has none: `{ id, file }`.
         M::FONT_COPY => c.with(P::ALIAS, &|p, alias| done(font_copy::copy(p, alias))),
@@ -124,18 +125,13 @@ fn content_method(method: &str, c: &Call) -> Option<Reply> {
         M::TEXTURE_FILE_ID => c.file(|p| ok(texture_file_id(p))),
         // A `.ytexture`'s `animation` (as the file has it) of a `width × height` picture, every frame resolved.
         M::TEXTURE_ANIMATION_RESOLVE => size(c.params).and_then(|size| {
-            let a = yog_data::read_value::<yog_formats::texture::Animation>(
-                &yog_data::json::from_json(&c.params[P::ANIMATION]),
-            )
-            .map_err(|e| json!(format!("{e:?}")))?;
+            let a: yog_formats::texture::Animation = param(c.params, P::ANIMATION)?;
             ok(content::Animation::of(&a, size))
         }),
         // A resolved animation (as `texture_animation_resolve` gives it) as the file keeps it.
         M::TEXTURE_ANIMATION_FORMAT => size(c.params).and_then(|size| {
             let a: content::Animation = param(c.params, P::ANIMATION)?;
-            ok(yog_data::json::to_json(&yog_data::Schema::write(
-                &a.to_format(size),
-            )))
+            ok(a.to_format(size))
         }),
         M::ITEM_TAG_ITEMS => c.with(P::TAG, &|p, t| ok(tags::item_tag(p, t))),
         _ => return None,
@@ -179,8 +175,8 @@ fn designer_method(method: &str, c: &Call) -> Option<Reply> {
             param(c.params, P::ARGS).and_then(|a| ok(advancements::render(&a)))
         }
         M::YDATA_TEXT => c.file(|p| {
-            let bytes = std::fs::read(p).map_err(|e| json!(e.to_string()))?;
-            let value = yog_data::binary::decode(&bytes).map_err(|e| json!(e.to_string()))?;
+            let bytes = std::fs::read(p).map_err(|e| Value::from(e.to_string()))?;
+            let value = yog_data::binary::decode(&bytes).map_err(|e| Value::from(e.to_string()))?;
             ok(yog_data::text::to_string_pretty(&value))
         }),
 

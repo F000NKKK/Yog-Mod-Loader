@@ -411,3 +411,35 @@ fn paths_and_sets_round_trip() {
         [1, 2].into()
     );
 }
+
+#[derive(yog_data::Schema, Debug, PartialEq)]
+#[data(rename_all = "camelCase")]
+struct Camel {
+    name_problem: Option<String>,
+    r#type: String,
+}
+
+#[derive(yog_data::Schema, Debug, PartialEq)]
+#[data(rename_all = "camelCase", tag = "type")]
+enum CamelVariants {
+    ShapedRecipe { item_id: String },
+    Plain,
+}
+
+#[test]
+fn rename_all_camel_case_names_fields_and_variants() {
+    let c = Camel {
+        name_problem: Some("x".into()),
+        r#type: "t".into(),
+    };
+    let v = yog_data::Schema::write(&c);
+    assert!(v.get("nameProblem").is_some() && v.get("type").is_some());
+    assert_eq!(yog_data::read_value::<Camel>(&v).unwrap(), c);
+    let s = CamelVariants::ShapedRecipe {
+        item_id: "i".into(),
+    };
+    let v = yog_data::Schema::write(&s);
+    assert_eq!(v.get("type").and_then(|t| t.as_str()), Some("shapedRecipe"));
+    assert_eq!(v.get("item_id").and_then(|t| t.as_str()), Some("i"));
+    assert_eq!(yog_data::read_value::<CamelVariants>(&v).unwrap(), s);
+}

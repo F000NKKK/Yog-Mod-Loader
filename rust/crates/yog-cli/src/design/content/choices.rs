@@ -1,20 +1,20 @@
 //! What the editors' pickers offer: the mod's texts, sound groups,
 //! materials, tags and textures.
 
-use serde::Serialize;
 use serde_json::Value;
+use std::borrow::Cow;
 use std::path::Path;
 use yog_ids::Format;
 
 use crate::design::assets::Resources;
 use crate::design::project::mod_root;
 
-#[derive(Serialize)]
+#[derive(yog_data::Schema)]
 pub struct TextureChoice {
     /// What goes in the content file.
     pub value: String,
     /// "Resources", "Resource sets", "Mod assets", "Minecraft blocks", "Minecraft items".
-    pub group: &'static str,
+    pub group: Cow<'static, str>,
 }
 
 /// The `@<Set>.<name>` texts of the mod's `.yres` files — the name/tooltip picker's choices.
@@ -165,7 +165,7 @@ pub fn textures(file: &Path) -> Vec<TextureChoice> {
                 .into_iter()
                 .map(|t| TextureChoice {
                     value: format!("{}{}", yog_ids::reference::TEXTURE, t.id),
-                    group: "Mod textures",
+                    group: Cow::Borrowed("Mod textures"),
                 }),
         );
     }
@@ -180,7 +180,7 @@ pub fn textures(file: &Path) -> Vec<TextureChoice> {
                     &format!("{}{b}", yog_ids::res::BLOCK_DIR)
                 )
             ),
-            group: "Minecraft blocks",
+            group: Cow::Borrowed("Minecraft blocks"),
         }));
         out.extend(items.into_iter().map(|i| TextureChoice {
             value: format!(
@@ -191,7 +191,7 @@ pub fn textures(file: &Path) -> Vec<TextureChoice> {
                     &format!("{}{i}", yog_ids::res::ITEM_DIR)
                 )
             ),
-            group: "Minecraft items",
+            group: Cow::Borrowed("Minecraft items"),
         }));
     }
     out

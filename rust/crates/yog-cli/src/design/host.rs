@@ -5,40 +5,39 @@
 //! out of the IDE's process, so a panicking/crashing/looping component (or
 //! a rebuilt library) costs a restart of the host, never the IDE.
 //!
-//! Protocol: one JSON request per stdin line; one JSON answer per stdout
-//! line, prefixed with [`MARK`] (the mod's code may print to stdout too).
+//! Protocol: a [`HostRequest`] per frame of binary Yog Data on stdin, a
+//! [`HostReply`] per frame on stdout, each after [`MARK`] (the mod's code
+//! may print to stdout too; [`next_answer`] skips what it prints).
 //!
-//! - `{"cmd":"load","lib":…,"modRoot":…}` → `{"ok":true,"components":[…]}`
-//! - `{"cmd":"render","name":…,"props":[[k,v]…],"w":…,"h":…,"availW":…,"availH":…}`
-//!   → `{"ok":true,"w":…,"h":…,"ops":[DrawOp…]}` (drawn at the origin; `w`/`h` ≤ 0: natural size)
-//! - `{"cmd":"png", …render…, "scale":4, "out":"x.png"}` → the same, also
-//!   rasterized into `out` (for checking a component from a shell)
-//!
-//! Failures answer `{"ok":false,"error":…}`.
+//! - `Load` → `Loaded` (the mod's components)
+//! - `Render` → `Drawn` (its size and what it drew, at the origin; `w`/`h` ≤ 0: natural size)
+//! - `Png` → `Written`: the same, rasterized into `out` (for checking a component from a shell)
 
 use std::ffi::c_void;
-use std::io::{BufRead, Write};
+use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 
-use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
-use yog_abi::{YogGfxApi, YogStr};
+use yog_abi::{YogBytes, YogGfxApi};
+use yog_data::Schema;
+use yog_ui::component::designer::{self as protocol, Answer};
+
+pub use yog_ui::component::designer::{ComponentInfo, PropInfo, Render as RenderReq};
 
 use super::raster::DrawOp;
 use super::{gfx, images, raster};
 
-/// Starts every answer line on stdout.
-pub const MARK: &str = "\u{1}yog-designer\u{1}";
+/// Starts every answer on stdout.
+pub const MARK: &[u8] = b"\x01yog-designer\x01";
 
-/// The designer protocol version this host speaks (`yog_ui::component::designer::ABI`).
-pub const DESIGNER_ABI: u32 = 1;
+/// The designer protocol version this host speaks.
+pub const DESIGNER_ABI: u32 = protocol::ABI;
 
-type DesignerFn = unsafe extern "C" fn(
-    YogStr,
-    *const YogGfxApi,
-    *mut c_void,
-    unsafe extern "C" fn(*mut c_void, YogStr),
-) -> bool;
+/// How finely `Png` rasterizes when not told, and the finest it may.
+const PNG_SCALE: u32 = 4;
+const MAX_PNG_SCALE: u32 = 8;
+
+type DesignerFn =
+    unsafe extern "C" fn(YogBytes, *const YogGfxApi, *mut c_void, protocol::WriteFn) -> bool;
 
 /// A loaded mod library.
 pub struct Loaded {
@@ -46,60 +45,9 @@ pub struct Loaded {
     call: DesignerFn,
 }
 
-/// One component as the mod describes it (`describe`).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ComponentInfo {
-    pub name: String,
-    /// Toolbox tooltip and property grid header (may be `@Set.key`).
-    #[serde(default)]
-    pub description: String,
-    /// The toolbox label (empty: `name`; may be `@Set.key`).
-    #[serde(default)]
-    pub display_name: String,
-    /// The toolbox icon — a Yog image source or `@Icons.x` (empty: a glyph).
-    #[serde(default)]
-    pub icon: String,
-    /// The toolbox category (empty: "<mod> Components"; may be `@Set.key`).
-    #[serde(default)]
-    pub category: String,
-    /// The canvas size for editing it, and an instance's size when dropped (0: unset).
-    #[serde(default)]
-    pub design_w: f32,
-    #[serde(default)]
-    pub design_h: f32,
-    /// Whether the toolbox offers it.
-    #[serde(default = "yes")]
-    pub toolbox: bool,
-    #[serde(default)]
-    pub props: Vec<PropInfo>,
-    /// The `.yui` declaring it (the designer's own listing; not from the host).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub file: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct PropInfo {
-    pub name: String,
-    /// `text`, `number`, `int`, `bool`, `color`, `choice`, `event`, `image`.
-    pub kind: String,
-    #[serde(default)]
-    pub default: String,
-    #[serde(default)]
-    pub doc: String,
-    /// The property grid category (empty: the component's own).
-    #[serde(default)]
-    pub category: String,
-    #[serde(default)]
-    pub options: Vec<String>,
-}
-
-fn yes() -> bool {
-    true
-}
-
-unsafe extern "C" fn sink(user_data: *mut c_void, text: YogStr) {
-    // SAFETY: `user_data` is the `String` `Loaded::call` passes; `text` is valid for the call.
-    unsafe { (*(user_data as *mut String)).push_str(text.as_str()) };
+unsafe extern "C" fn sink(user_data: *mut c_void, reply: YogBytes) {
+    // SAFETY: `user_data` is the `Vec` `Loaded::ask` passes; `reply` is valid for the call.
+    unsafe { (*(user_data as *mut Vec<u8>)).extend_from_slice(reply.as_slice()) };
 }
 
 impl Loaded {
@@ -143,95 +91,86 @@ impl Loaded {
         }
     }
 
-    fn call(&self, request: &str, gfx: *const YogGfxApi) -> Result<String, String> {
-        let mut out = String::new();
-        // SAFETY: `request` lives for the call; `gfx` is null or a valid table; `sink` matches `out`.
-        let ok = unsafe {
+    /// The mod's answer to `request` (`gfx`: null, or the table to draw through).
+    fn ask(&self, request: &protocol::Request, gfx: *const YogGfxApi) -> Result<Answer, String> {
+        let request = yog_data::to_bytes(request);
+        let mut reply = Vec::new();
+        // SAFETY: `request` lives for the call; `gfx` is null or a valid table; `sink` matches `reply`.
+        unsafe {
             (self.call)(
-                YogStr::from_str(request),
+                YogBytes::new(&request),
                 gfx,
-                &mut out as *mut String as *mut c_void,
+                &mut reply as *mut Vec<u8> as *mut c_void,
                 sink,
             )
         };
-        if ok { Ok(out) } else { Err(out) }
+        yog_data::read_bytes::<protocol::Reply>(&reply)
+            .map_err(|e| format!("a mod's answer that isn't one: {e:?}"))?
     }
 
     pub fn describe(&self) -> Result<Vec<ComponentInfo>, String> {
-        let answer = self.call("describe", std::ptr::null())?;
-        #[derive(Deserialize)]
-        struct Described {
-            components: Vec<ComponentInfo>,
+        match self.ask(&protocol::Request::Describe, std::ptr::null())? {
+            Answer::Described { components } => Ok(components),
+            other => Err(format!("asked to describe, the mod answered {other:?}")),
         }
-        serde_json::from_str::<Described>(&answer)
-            .map(|d| d.components)
-            .map_err(|e| format!("bad describe answer: {e}"))
     }
 
-    /// Draws `name` at the origin; returns its size and what it drew.
+    /// Draws `req.name` at the origin; returns its size and what it drew.
     pub fn render(&self, req: &RenderReq) -> Result<(f32, f32, Vec<DrawOp>), String> {
-        let mut request = format!(
-            "render\n{}\n{} {} {} {}\n",
-            req.name, req.w, req.h, req.avail_w, req.avail_h
-        );
-        for (k, v) in &req.props {
-            request.push_str(k);
-            request.push('=');
-            request.push_str(&v.replace('\\', "\\\\").replace('\n', "\\n"));
-            request.push('\n');
-        }
         let (aw, ah) = (req.avail_w.max(1.0) as i32, req.avail_h.max(1.0) as i32);
         let mut answer = Err(String::new());
         // The same recording functions as `record`'s own table, so they record into its list.
         let table = gfx::api(aw, ah, 1.0);
-        let ops = gfx::record(aw, ah, |_| answer = self.call(&request, &table));
-        let answer = answer?;
-        let size: Value =
-            serde_json::from_str(&answer).map_err(|e| format!("bad render answer: {e}"))?;
-        let dim = |k: &str| size.get(k).and_then(Value::as_f64).unwrap_or(0.0) as f32;
-        Ok((dim("w"), dim("h"), ops))
+        let request = protocol::Request::Render(req.clone());
+        let ops = gfx::record(aw, ah, |_| answer = self.ask(&request, &table));
+        match answer? {
+            Answer::Rendered { w, h } => Ok((w, h, ops)),
+            other => Err(format!("asked to render, the mod answered {other:?}")),
+        }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RenderReq {
-    pub name: String,
-    #[serde(default)]
-    pub props: Vec<(String, String)>,
-    #[serde(default)]
-    pub w: f32,
-    #[serde(default)]
-    pub h: f32,
-    #[serde(default = "big")]
-    pub avail_w: f32,
-    #[serde(default = "big")]
-    pub avail_h: f32,
-}
-
-/// Room for a component that gives no bound: more than any screen has.
-const UNBOUNDED: f32 = 1024.0;
-
-fn big() -> f32 {
-    UNBOUNDED
-}
-
-#[derive(Deserialize)]
-#[serde(tag = "cmd", rename_all = "camelCase")]
-enum Request {
-    #[serde(rename_all = "camelCase")]
+/// What the IDE's side asks the host.
+#[derive(Debug, Clone, Schema)]
+#[data(tag = "cmd")]
+pub enum HostRequest {
     Load {
         lib: PathBuf,
         mod_root: Option<PathBuf>,
     },
     Render(RenderReq),
     Png {
-        #[serde(flatten)]
         req: RenderReq,
-        #[serde(default)]
         scale: Option<u32>,
         out: PathBuf,
     },
+}
+
+/// What the host answers.
+#[derive(Debug, Clone, Schema)]
+#[data(tag = "answer")]
+pub enum HostAnswer {
+    Loaded { components: Vec<ComponentInfo> },
+    Drawn { w: f32, h: f32, ops: Vec<DrawOp> },
+    Written { w: f32, h: f32, out: PathBuf },
+}
+
+/// The answer, or what went wrong.
+pub type HostReply = Result<HostAnswer, String>;
+
+/// The next answer on the host's stdout: what the mod printed skipped up to
+/// [`MARK`], then the frame; `None` once the host has gone.
+pub fn next_answer(out: &mut impl BufRead) -> io::Result<Option<HostReply>> {
+    let mut seen = Vec::new();
+    let last = MARK[MARK.len() - 1];
+    loop {
+        if out.read_until(last, &mut seen)? == 0 {
+            return Ok(None);
+        }
+        if seen.ends_with(MARK) {
+            return yog_data::io::read_frame(out);
+        }
+    }
 }
 
 struct Host {
@@ -240,42 +179,34 @@ struct Host {
 }
 
 impl Host {
-    fn handle(&mut self, line: &str) -> Value {
-        let request: Request = match serde_json::from_str(line) {
-            Ok(r) => r,
-            Err(e) => return json!({"ok": false, "error": format!("bad request: {e}")}),
-        };
-        let result = match request {
-            Request::Load { lib, mod_root } => {
+    fn handle(&mut self, request: HostRequest) -> HostReply {
+        match request {
+            HostRequest::Load { lib, mod_root } => {
                 if self.lib.is_some() {
-                    return json!({"ok": false, "error": "a library is already loaded (restart the host to reload)"});
+                    return Err("a library is already loaded (restart the host to reload)".into());
                 }
                 images::set_document(mod_root.as_deref());
                 self.mod_root = mod_root;
-                Loaded::open(&lib).and_then(|l| {
-                    let components = l.describe()?;
-                    self.lib = Some(l);
-                    Ok(json!({"ok": true, "components": components}))
-                })
+                let loaded = Loaded::open(&lib)?;
+                let components = loaded.describe()?;
+                self.lib = Some(loaded);
+                Ok(HostAnswer::Loaded { components })
             }
-            Request::Render(req) => self
-                .loaded()
-                .and_then(|l| l.render(&req))
-                .map(|(w, h, ops)| json!({"ok": true, "w": w, "h": h, "ops": ops})),
-            Request::Png { req, scale, out } => self
-                .loaded()
-                .and_then(|l| l.render(&req))
-                .and_then(|(w, h, ops)| {
-                    let res = super::assets::Resources::for_mod(self.mod_root.as_deref());
-                    let (cw, ch) = (w.ceil().max(1.0) as u32, h.ceil().max(1.0) as u32);
-                    let canvas =
-                        raster::rasterize(&ops, cw, ch, scale.unwrap_or(4).clamp(1, 8), &res);
-                    std::fs::write(&out, canvas.png()?)
-                        .map_err(|e| format!("{}: {e}", out.display()))?;
-                    Ok(json!({"ok": true, "w": w, "h": h, "ops": ops.len(), "out": out}))
-                }),
-        };
-        result.unwrap_or_else(|e| json!({"ok": false, "error": e}))
+            HostRequest::Render(req) => self
+                .loaded()?
+                .render(&req)
+                .map(|(w, h, ops)| HostAnswer::Drawn { w, h, ops }),
+            HostRequest::Png { req, scale, out } => {
+                let (w, h, ops) = self.loaded()?.render(&req)?;
+                let res = super::assets::Resources::for_mod(self.mod_root.as_deref());
+                let (cw, ch) = (w.ceil().max(1.0) as u32, h.ceil().max(1.0) as u32);
+                let scale = scale.unwrap_or(PNG_SCALE).clamp(1, MAX_PNG_SCALE);
+                let canvas = raster::rasterize(&ops, cw, ch, scale, &res);
+                std::fs::write(&out, canvas.png()?)
+                    .map_err(|e| format!("{}: {e}", out.display()))?;
+                Ok(HostAnswer::Written { w, h, out })
+            }
+        }
     }
 
     fn loaded(&self) -> Result<&Loaded, String> {
@@ -294,18 +225,17 @@ pub fn serve() {
         lib: None,
         mod_root: None,
     };
-    let stdin = std::io::stdin();
-    for line in stdin.lock().lines() {
-        let Ok(line) = line else { break };
-        if line.trim().is_empty() {
-            continue;
-        }
-        let answer = host.handle(&line);
-        let mut out = std::io::stdout().lock();
-        if writeln!(out, "{MARK}{answer}")
-            .and_then(|_| out.flush())
-            .is_err()
-        {
+    let mut input = io::stdin().lock();
+    while let Ok(Some(bytes)) = yog_data::io::read_frame_bytes(&mut input) {
+        let reply = match yog_data::read_bytes::<HostRequest>(&bytes) {
+            Ok(request) => host.handle(request),
+            Err(e) => Err(format!("bad request: {e:?}")),
+        };
+        let mut out = io::stdout().lock();
+        let sent = out
+            .write_all(MARK)
+            .and_then(|()| yog_data::io::write_frame(&mut out, &reply));
+        if sent.is_err() {
             break;
         }
     }
@@ -316,28 +246,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn requests_parse() {
-        let r: Request = serde_json::from_str(
-            r#"{"cmd":"render","name":"StatBar","props":[["value","0.5"]],"w":0}"#,
-        )
-        .unwrap();
-        assert!(
-            matches!(r, Request::Render(RenderReq { ref name, ref props, avail_w, .. }) if name == "StatBar" && props.len() == 1 && avail_w == 1024.0)
-        );
+    fn requests_are_answered() {
         let mut host = Host {
             lib: None,
             mod_root: None,
         };
-        assert_eq!(
-            host.handle(r#"{"cmd":"render","name":"X"}"#)["error"],
-            "no library loaded"
-        );
-        assert!(
-            host.handle(r#"{"cmd":"load","lib":"/nowhere/libnope.so"}"#)["error"]
-                .as_str()
-                .unwrap()
-                .contains("can't load")
-        );
+        let render = HostRequest::Render(RenderReq {
+            name: "X".into(),
+            attrs: Vec::new(),
+            w: 0.0,
+            h: 0.0,
+            avail_w: 1.0,
+            avail_h: 1.0,
+        });
+        assert_eq!(host.handle(render).unwrap_err(), "no library loaded");
+        let load = HostRequest::Load {
+            lib: "/nowhere/libnope.so".into(),
+            mod_root: None,
+        };
+        assert!(host.handle(load).unwrap_err().contains("can't load"));
+    }
+
+    #[test]
+    fn answers_are_found_past_what_the_mod_printed() {
+        let mut out = b"the mod says hi\n".to_vec();
+        out.extend_from_slice(MARK);
+        yog_data::io::write_frame(&mut out, &HostReply::Err("no".into())).unwrap();
+        let mut r = out.as_slice();
+        assert_eq!(next_answer(&mut r).unwrap().unwrap().unwrap_err(), "no");
+        assert!(next_answer(&mut r).unwrap().is_none());
     }
 
     /// `YOG_DESIGNER_LIB=…/libmod.so YOG_DESIGNER_COMPONENT=StatBar [YOG_DESIGNER_PNG=out.png]
@@ -361,13 +298,16 @@ mod tests {
             lib: None,
             mod_root: None,
         };
-        let loaded = host.handle(&json!({"cmd": "load", "lib": lib}).to_string());
-        eprintln!("{loaded:#}");
+        let loaded = host.handle(HostRequest::Load {
+            lib: lib.into(),
+            mod_root: None,
+        });
+        eprintln!("{loaded:?}");
         let l = host.loaded().unwrap();
         let (w, h, ops) = l
             .render(&RenderReq {
                 name: name.clone(),
-                props,
+                attrs: props,
                 w: 0.0,
                 h: 0.0,
                 avail_w: 400.0,

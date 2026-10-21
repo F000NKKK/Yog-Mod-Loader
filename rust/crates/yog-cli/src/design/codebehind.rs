@@ -7,14 +7,13 @@
 
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
 use syn::visit::Visit;
 
 use crate::yui::const_name;
 
 /// Where the editor should go.
-#[derive(Debug, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, PartialEq, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct HandlerLocation {
     pub path: String,
     /// 1-based.

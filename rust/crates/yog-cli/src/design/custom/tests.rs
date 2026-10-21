@@ -39,7 +39,7 @@ fn custom_elements_become_marked_spacers_with_placeholders() {
     assert_eq!(c.attr("bg"), Some("#01D00000"));
     assert!(c.attr("value").is_none());
     assert_eq!(
-        p.slots[0].req.props,
+        p.slots[0].req.attrs,
         vec![("value".to_string(), "0.5".to_string())]
     );
 

@@ -11,7 +11,6 @@ use yog_ids::Format;
 use yog_sync::{LazyLock, Mutex};
 
 use base64::Engine as _;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use yog_book::BookRenderer;
 use yog_formats::book::Book;
@@ -19,8 +18,8 @@ use yog_formats::book::Book;
 use super::assets::Resources;
 use super::{gfx, images, raster};
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct BookArgs {
     pub path: String,
     /// The `.ybook` as it is in the editor.
@@ -28,16 +27,16 @@ pub struct BookArgs {
     pub screen_w: u32,
     pub screen_h: u32,
     pub scale: u32,
-    #[serde(default)]
+    #[data(default)]
     pub action: Option<BookAction>,
     /// The language to read it in (`ru_ru`, …; none: the neutral texts).
-    #[serde(default)]
+    #[data(default)]
     pub locale: Option<String>,
 }
 
 /// What the reader does before the book is drawn.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[derive(Debug, Clone, yog_data::Schema)]
+#[data(tag = "kind", rename_all = "camelCase")]
 pub enum BookAction {
     /// A click at GUI pixels `x, y`.
     Click { x: f32, y: f32 },
@@ -47,8 +46,8 @@ pub enum BookAction {
     Home,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct BookRendered {
     /// `data:image/png;base64,…` — `scale` physical px per GUI px; `None`
     /// when the book doesn't parse.

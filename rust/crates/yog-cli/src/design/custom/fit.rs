@@ -160,7 +160,7 @@ impl Cx<'_> {
         );
         let req = RenderReq {
             name,
-            props,
+            attrs: props,
             w: w.unwrap_or(0.0),
             h: h.unwrap_or(0.0),
             avail_w: self.screen.0,

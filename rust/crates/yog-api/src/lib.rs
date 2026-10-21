@@ -145,7 +145,7 @@ macro_rules! export_mod {
         /// library built for the developer's machine.
         #[unsafe(no_mangle)]
         pub unsafe extern "C" fn yog_ui_designer(
-            request: $crate::__YogStr,
+            request: $crate::YogBytes,
             gfx: *const $crate::__YogGfxApi,
             user_data: *mut $crate::__c_void,
             write: $crate::ui::component::designer::WriteFn,

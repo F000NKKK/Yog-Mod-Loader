@@ -77,8 +77,7 @@ fn parses_block_lines() {
 
 #[test]
 fn a_state_meets_multipart_conditions() {
-    let (id, props) =
-        split_state("minecraft:brewing_stand[has_bottle_0=true,has_bottle_1=false]");
+    let (id, props) = split_state("minecraft:brewing_stand[has_bottle_0=true,has_bottle_1=false]");
     assert_eq!(id, "minecraft:brewing_stand");
     let when = |j: &str| serde_json::from_str::<Value>(j).unwrap();
     assert!(meets(&when(r#"{ "has_bottle_0": "true" }"#), &props));

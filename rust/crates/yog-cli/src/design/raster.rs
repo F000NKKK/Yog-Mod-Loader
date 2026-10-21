@@ -9,8 +9,6 @@
 use std::collections::HashMap;
 use yog_sync::Arc;
 
-use serde::{Deserialize, Serialize};
-
 use yog_gfx::Color;
 use yog_gfx::draw2d::TextStyle;
 use yog_ui::text::LINE_H;
@@ -19,8 +17,8 @@ use super::assets::{Image, Resources};
 use super::font::{Font, Glyph, styled};
 
 /// One `draw2d_*` call (GUI pixels, colors `0xAARRGGBB`).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "op", rename_all = "snake_case")]
+#[derive(Debug, Clone, yog_data::Schema)]
+#[data(tag = "op")]
 pub enum DrawOp {
     Rect {
         x1: f32,

@@ -16,18 +16,15 @@
 //! could not load"), never an IDE crash.
 
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Stdio};
 use std::time::{Duration, Instant};
 use yog_sync::mpsc::{self, Receiver, RecvTimeoutError};
 use yog_sync::{Arc, Mutex, OnceLock};
 
-use serde::Serialize;
-use serde_json::{Value, json};
-
 use super::components::{self, Def};
-use super::host::{ComponentInfo, MARK, RenderReq};
+use super::host::{ComponentInfo, HostAnswer, HostReply, HostRequest, RenderReq};
 use super::raster::DrawOp;
 use crate::design::project;
 
@@ -92,6 +89,8 @@ const LAYOUT_ATTRS: &[&str] = &[
 const DEBOUNCE: Duration = Duration::from_millis(800);
 /// How long one host answer may take (a component looping forever).
 const ANSWER_TIMEOUT: Duration = Duration::from_secs(10);
+/// How long the host may take to load a library and describe it.
+const LOAD_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub fn is_component(kind: &str) -> bool {
     !BUILT_IN.contains(&kind)
@@ -100,8 +99,8 @@ pub fn is_component(kind: &str) -> bool {
 }
 
 /// The designer library's state, as the toolbox shows it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub enum Status {
     /// The mod has no compiled components (nothing to build).
     None,
@@ -111,8 +110,8 @@ pub enum Status {
     Failed,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct Snapshot {
     pub status: Status,
     pub error: Option<String>,
@@ -130,7 +129,7 @@ pub struct Snapshot {
 struct HostProc {
     child: Child,
     stdin: ChildStdin,
-    answers: Receiver<String>,
+    answers: Receiver<HostReply>,
     stderr: Arc<Mutex<String>>,
     lib_copy: PathBuf,
 }
@@ -150,11 +149,9 @@ impl HostProc {
         let mut stderr_pipe = child.stderr.take().ok_or("no host stderr")?;
         let (tx, answers) = mpsc::channel();
         std::thread::spawn(move || {
-            for line in BufReader::new(stdout).lines() {
-                let Ok(line) = line else { break };
-                if let Some(answer) = line.strip_prefix(MARK)
-                    && tx.send(answer.to_string()).is_err()
-                {
+            let mut stdout = BufReader::new(stdout);
+            while let Ok(Some(answer)) = super::host::next_answer(&mut stdout) {
+                if tx.send(answer).is_err() {
                     break;
                 }
             }
@@ -185,34 +182,20 @@ impl HostProc {
             stderr,
             lib_copy: lib.to_path_buf(),
         };
-        let answer = host.ask(
-            &json!({"cmd": "load", "lib": lib, "modRoot": mod_root}),
-            Duration::from_secs(30),
-        )?;
-        let components =
-            serde_json::from_value(answer.get("components").cloned().unwrap_or_default())
-                .map_err(|e| e.to_string())?;
-        Ok((host, components))
+        let load = HostRequest::Load {
+            lib: lib.to_path_buf(),
+            mod_root: Some(mod_root.to_path_buf()),
+        };
+        match host.ask(&load, LOAD_TIMEOUT)? {
+            HostAnswer::Loaded { components } => Ok((host, components)),
+            other => Err(format!("asked to load, the host answered {other:?}")),
+        }
     }
 
-    fn ask(&mut self, request: &Value, timeout: Duration) -> Result<Value, String> {
-        writeln!(self.stdin, "{request}")
-            .and_then(|_| self.stdin.flush())
-            .map_err(|_| self.died())?;
+    fn ask(&mut self, request: &HostRequest, timeout: Duration) -> Result<HostAnswer, String> {
+        yog_data::io::write_frame(&mut self.stdin, request).map_err(|_| self.died())?;
         match self.answers.recv_timeout(timeout) {
-            Ok(line) => {
-                let v: Value =
-                    serde_json::from_str(&line).map_err(|e| format!("bad host answer: {e}"))?;
-                if v.get("ok").and_then(Value::as_bool) == Some(true) {
-                    Ok(v)
-                } else {
-                    Err(v
-                        .get("error")
-                        .and_then(Value::as_str)
-                        .unwrap_or("the designer host failed")
-                        .to_string())
-                }
-            }
+            Ok(answer) => answer,
             Err(RecvTimeoutError::Timeout) => {
                 let _ = self.child.kill();
                 Err("the designer host stopped responding (a component that never returns?) — it was stopped".into())
@@ -268,7 +251,7 @@ struct ModState {
     building: bool,
     host: Option<HostProc>,
     generation: u64,
-    cache: HashMap<String, Result<Drawn, String>>,
+    cache: HashMap<Vec<u8>, Result<Drawn, String>>,
 }
 
 impl ModState {
@@ -303,7 +286,7 @@ impl ModState {
     }
 
     fn render(&mut self, req: &RenderReq) -> Result<Drawn, String> {
-        let key = serde_json::to_string(req).unwrap_or_default();
+        let key = yog_data::to_bytes(req);
         if let Some(hit) = self.cache.get(&key) {
             return hit.clone();
         }
@@ -313,15 +296,13 @@ impl ModState {
                 .clone()
                 .unwrap_or_else(|| "the designer library isn't loaded".into()));
         };
-        let mut request = serde_json::to_value(req).unwrap_or_default();
-        request["cmd"] = json!("render");
-        let result = host.ask(&request, ANSWER_TIMEOUT).and_then(|v| {
-            let dim = |k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(0.0) as f32;
-            let ops: Vec<DrawOp> =
-                serde_json::from_value(v.get("ops").cloned().unwrap_or_default())
-                    .map_err(|e| e.to_string())?;
-            Ok((dim("w"), dim("h"), ops))
-        });
+        let request = HostRequest::Render(req.clone());
+        let result = host
+            .ask(&request, ANSWER_TIMEOUT)
+            .and_then(|answer| match answer {
+                HostAnswer::Drawn { w, h, ops } => Ok((w, h, ops)),
+                other => Err(format!("asked to render, the host answered {other:?}")),
+            });
         if result.is_err() && host.child.try_wait().ok().flatten().is_some() {
             // The host is gone: say so until the next build brings a new one.
             self.host = None;

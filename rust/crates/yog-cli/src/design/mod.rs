@@ -46,7 +46,6 @@ use std::path::{Path, PathBuf};
 use yog_sync::{Mutex, OnceLock};
 
 use base64::Engine as _;
-use serde::{Deserialize, Serialize};
 use yog_gfx::Vec2;
 use yog_ui::layout::LayoutNode;
 use yog_ui::{ScrollState, UiRoot, Widget};
@@ -55,32 +54,31 @@ use self::assets::Resources;
 use self::markup::YuiNode;
 
 /// A laid-out widget: its border box and its content box (inside padding), GUI px.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, yog_data::Schema)]
 pub struct NodeRect {
     pub uid: String,
     pub rect: [f32; 4],
     pub content: [f32; 4],
     /// A grid's rows and columns, `[start, size]` in GUI px (for its adorners).
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub grid: Option<GridRects>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, yog_data::Schema)]
 pub struct GridRects {
     pub rows: Vec<[f32; 2]>,
     pub cols: Vec<[f32; 2]>,
 }
 
 /// Where the game resources came from (`None`: no client jar found).
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct AssetsInfo {
     pub version: String,
     pub jar: String,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct Rendered {
     /// `data:image/png;base64,…` — `scale` physical px per GUI px.
     pub image: String,
@@ -202,15 +200,15 @@ fn offsets(path: &str, preview: bool) -> HashMap<String, f32> {
         .unwrap_or_default()
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct RenderArgs {
     pub path: String,
     pub root: YuiNode,
     pub screen_w: u32,
     pub screen_h: u32,
     pub scale: u32,
-    #[serde(default)]
+    #[data(default)]
     pub preview: bool,
 }
 
@@ -261,8 +259,8 @@ fn canvas_font_real(res: &Resources) -> bool {
     font::Font::load(res, yog_ids::yog::DEFAULT_FONT).is_real()
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct EventArgs {
     pub path: String,
     pub root: YuiNode,
@@ -271,14 +269,14 @@ pub struct EventArgs {
     /// A Yog UI event: `click:X:Y`, `drag:X:Y`, `release:X:Y`, `scroll:DY`, `move:X:Y` (hover only).
     pub event: String,
     /// The cursor, for the wheel (which carries no position).
-    #[serde(default)]
+    #[data(default)]
     pub x: f32,
-    #[serde(default)]
+    #[data(default)]
     pub y: f32,
 }
 
-#[derive(Debug, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, yog_data::Schema)]
+#[data(rename_all = "camelCase")]
 pub struct EventResult {
     /// A scroll view used the event (wheel, scrollbar).
     pub scrolled: bool,

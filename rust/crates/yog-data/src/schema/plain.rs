@@ -220,6 +220,31 @@ impl Schema for String {
     }
 }
 
+/// Text that may be a constant: borrowed where it's written, owned once read.
+impl Schema for std::borrow::Cow<'static, str> {
+    fn shape() -> Shape {
+        Shape::Str
+    }
+    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+        String::read(v, cx).map(Self::Owned)
+    }
+    fn write(&self) -> Value {
+        Value::Str(self.to_string())
+    }
+    fn encode(&self, w: &mut Writer) {
+        w.str(self);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Option<Self> {
+        String::decode(d).map(Self::Owned)
+    }
+    fn pack(&self, p: &mut Packer) {
+        p.put_str(self);
+    }
+    fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
+        String::unpack(u).map(Self::Owned)
+    }
+}
+
 /// A file's path, as text (a path that isn't Unicode loses what isn't).
 impl Schema for std::path::PathBuf {
     fn shape() -> Shape {
