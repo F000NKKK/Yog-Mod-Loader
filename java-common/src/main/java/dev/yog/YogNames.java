@@ -17,6 +17,9 @@ public final class YogNames {
 
         public static final String NAMESPACE = ":";
         public static final String PATH = "/";
+        public static final String WORD = "_";
+        public static final String EXT = ".";
+        public static final String HYPHEN = "-";
         public static final String TYPED = "@";
         public static final String TAG_SHOWN = "#";
         public static final String ALTERNATIVES = "|";
@@ -24,6 +27,64 @@ public final class YogNames {
         public static final String STATE_CLOSE = "]";
         public static final String PROPERTY_SEP = ",";
         public static final String PROPERTY_IS = "=";
+    }
+
+    public static final class Word {
+        private Word() {}
+
+        public static final String GUI = "gui";
+        public static final String LOOT = "loot";
+        public static final String SPAWN_EGG = "spawn_egg";
+        public static final String SOUND = "sound";
+        public static final String ANIMATION = "animation";
+        public static final String ANY = "any";
+        public static final String AUTO = "auto";
+        public static final String BOOL = "bool";
+        public static final String BOTTOM = "bottom";
+        public static final String BYTES = "bytes";
+        public static final String CENTER = "center";
+        public static final String COLOR = "color";
+        public static final String COUNT = "count";
+        public static final String DATA = "data";
+        public static final String DEFAULT = "default";
+        public static final String DOWN = "down";
+        public static final String EAST = "east";
+        public static final String END = "end";
+        public static final String ENTRIES = "entries";
+        public static final String FALSE = "false";
+        public static final String FILE = "file";
+        public static final String FILL = "fill";
+        public static final String HEIGHT = "height";
+        public static final String ID = "id";
+        public static final String IMAGE = "image";
+        public static final String KIND = "kind";
+        public static final String LEFT = "left";
+        public static final String MOD = "mod";
+        public static final String MODEL = "model";
+        public static final String NAME = "name";
+        public static final String NONE = "none";
+        public static final String NORTH = "north";
+        public static final String OUTLINE = "outline";
+        public static final String RIGHT = "right";
+        public static final String SIZE = "size";
+        public static final String SOURCE = "source";
+        public static final String SOUTH = "south";
+        public static final String SRC = "src";
+        public static final String START = "start";
+        public static final String STRETCH = "stretch";
+        public static final String STRING = "string";
+        public static final String TEXT = "text";
+        public static final String TOP = "top";
+        public static final String TRUE = "true";
+        public static final String TYPE = "type";
+        public static final String UP = "up";
+        public static final String UV = "uv";
+        public static final String VALUE = "value";
+        public static final String WEST = "west";
+        public static final String WHEN = "when";
+        public static final String WIDTH = "width";
+        public static final String X = "x";
+        public static final String Y = "y";
     }
 
     public static final class Kind {

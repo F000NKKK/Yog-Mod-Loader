@@ -104,13 +104,17 @@ pub fn blockstate_file(path: &str) -> String {
     format!("{}{path}{}", res::BLOCKSTATES, res::JSON)
 }
 
+/// The registries of entities and biomes, which aren't named as their kind.
+const ENTITY_REGISTRY: &str = crate::concatcp!(kind::ENTITY, sep::WORD, crate::word::TYPE);
+const BIOME_REGISTRY: &str = crate::concatcp!("worldgen", sep::PATH, kind::BIOME);
+
 /// The game's registry of content `kind` — what its tags' and data's
 /// folders are named: `entity` → `entity_type`, `biome` → `worldgen/biome`.
 #[must_use]
 pub fn registry_of(kind: &str) -> &str {
     match kind {
-        kind::ENTITY => "entity_type",
-        kind::BIOME => "worldgen/biome",
+        kind::ENTITY => ENTITY_REGISTRY,
+        kind::BIOME => BIOME_REGISTRY,
         other => other,
     }
 }

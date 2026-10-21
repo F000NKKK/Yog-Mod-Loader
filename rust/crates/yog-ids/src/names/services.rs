@@ -201,7 +201,7 @@ names! {
     /// Which list an installed mod is on.
     mod_source {
         /// Yog's own mods.
-        YOG = "yog",
+        YOG = crate::ns::YOG,
         /// The loader's (Java) mods.
         PLATFORM = "platform",
     }

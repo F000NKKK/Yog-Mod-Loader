@@ -4,13 +4,13 @@ names! {
 
     /// A `.yres` entry's type (`{ "type": "sound", ... }`).
     res_kind {
-        STRING = "string",
+        STRING = crate::word::STRING,
         IMAGE = crate::typed::IMAGE,
-        FILE = "file",
-        SOUND = "sound",
-        COLOR = "color",
+        FILE = crate::word::FILE,
+        SOUND = crate::word::SOUND,
+        COLOR = crate::word::COLOR,
         NUMBER = "number",
-        BOOL = "bool",
+        BOOL = crate::word::BOOL,
     }
 
     /// What an image source starts with (`item:apple`).
@@ -18,31 +18,31 @@ names! {
         ITEM = crate::kind::ITEM,
         BLOCK = crate::kind::BLOCK,
         SPRITE = "sprite",
-        MOD = "mod",
+        MOD = crate::word::MOD,
     }
 
     /// Yog's files with a fixed name.
     file {
         /// A mod's manifest.
-        MANIFEST = "yog.toml",
+        MANIFEST = crate::concatcp!(crate::ns::YOG, crate::sep::EXT, "toml"),
         /// The versions a mod's build resolved.
-        LOCK = "yog.lock",
+        LOCK = crate::concatcp!(crate::ns::YOG, crate::sep::EXT, "lock"),
     }
 
     /// The pack the build writes for the hosts.
     pack {
         /// The game's data: `data/<ns>/…`.
-        DATA = "data",
+        DATA = crate::word::DATA,
         /// The game's assets: `assets/<ns>/…`.
         ASSETS = "assets",
         /// Tags, under a namespace's data: `data/<ns>/tags/<registry>/<path>.json`.
         TAGS = "tags",
         /// Overlays for one loader and version: `when/<loader>/<version>/<file>`.
-        OVERLAYS = "when",
+        OVERLAYS = crate::word::WHEN,
         /// An overlay's loader when it's for every loader.
-        ANY_LOADER = "any",
+        ANY_LOADER = crate::word::ANY,
         /// An overlay's version when it's for every version.
-        ANY_VERSION = "any",
+        ANY_VERSION = crate::word::ANY,
     }
 
     /// A mod project's folders.
@@ -52,22 +52,22 @@ names! {
         /// Its content: blocks, items, recipes, books, definitions.
         CONTENT = "content",
         /// Where a copy of a game font goes, under its content.
-        FONT_COPIES = "font",
+        FONT_COPIES = crate::kind::FONT,
         /// Its code and screens.
-        SRC = "src",
+        SRC = crate::word::SRC,
         /// Where `yog build` writes: the generated crate, generated code, listings.
-        BUILD = ".yog-build",
+        BUILD = crate::concatcp!(crate::sep::EXT, crate::ns::YOG, crate::sep::HYPHEN, "build"),
     }
 
     /// A game's folders Yog uses.
     game_dir {
         /// The `.yog` mods the game loads: `<game>/yog-mods`.
-        MODS = "yog-mods",
+        MODS = crate::concatcp!(crate::ns::YOG, crate::sep::HYPHEN, "mods"),
     }
 
     /// Yog's folders in a user's cache (`~/.cache/<CACHE>/…`).
     user_cache {
-        CACHE = "yog",
+        CACHE = crate::ns::YOG,
         /// Compiled shaders, by their sources' hash.
         SHADERS = "shaders",
     }
@@ -75,7 +75,7 @@ names! {
     /// Yog's programs.
     program {
         /// The command-line tool (`yog build`, `yog schema`, …).
-        CLI = "yog",
+        CLI = crate::ns::YOG,
         /// The CLI's service command: tools read and write every format through it.
         SERVE = "serve",
     }
@@ -101,11 +101,11 @@ names! {
         /// Between an armor texture's name and its layer's number.
         ARMOR_LAYER = "_layer_",
         /// What a spawn egg's item path ends with: `<mob>_spawn_egg`.
-        SPAWN_EGG_SUFFIX = "_spawn_egg",
+        SPAWN_EGG_SUFFIX = crate::concatcp!(crate::sep::WORD, crate::word::SPAWN_EGG),
         /// Blocks' textures and models: `block/stone`.
         BLOCK_DIR = crate::concatcp!(crate::kind::BLOCK, crate::sep::PATH),
         /// The GUI atlas's sprites under `textures/` (1.20.2+).
-        GUI_SPRITES = crate::concatcp!("gui", crate::sep::PATH, "sprites", crate::sep::PATH),
+        GUI_SPRITES = crate::concatcp!(crate::word::GUI, crate::sep::PATH, "sprites", crate::sep::PATH),
         /// The atlases' definitions: `<ns>:atlases/<atlas>.json` (every pack's sources combine).
         ATLASES = crate::concatcp!("atlases", crate::sep::PATH),
         /// The language files' folder: `<ns>:lang/<locale>.json`.
@@ -125,14 +125,14 @@ names! {
         /// A hanging entity's attachment (its face, size, item).
         HANGING = crate::id!(crate::ns::YOG, "hanging"),
         /// The channel entity data is synced on.
-        ENTITY_DATA = crate::id!(crate::ns::YOG, "entity_data"),
+        ENTITY_DATA = crate::id!(crate::ns::YOG, crate::concatcp!(crate::kind::ENTITY, crate::sep::WORD, crate::word::DATA)),
         /// The entity data key an entity's own hitbox travels under: width,
         /// height, eye height as three little-endian f32.
         DIMENSIONS = crate::id!(crate::ns::YOG, "dimensions"),
         /// An inventory slot widget's id: `yog:slot:<index>`.
         SLOT_PREFIX = crate::id!(crate::ns::YOG, "slot:"),
         /// The player's inventory widget.
-        PLAYER_INVENTORY = crate::id!(crate::ns::YOG, "player_inventory"),
+        PLAYER_INVENTORY = crate::id!(crate::ns::YOG, crate::concatcp!("player", crate::sep::WORD, crate::kind::INVENTORY)),
         /// A machine screen's id: `yog:machine:<id>`.
         MACHINE_PREFIX = crate::id!(crate::ns::YOG, "machine:"),
         /// Yog's alias of a game potion: `yog:potion/<name>`.
@@ -143,26 +143,26 @@ names! {
         /// The font text is drawn in by default (the game's).
         DEFAULT_FONT = crate::concatcp!(FONT_ALIAS, crate::game_font::DEFAULT),
         /// The model every mod's spawn egg inherits: Yog's egg in two layers, base and spots.
-        SPAWN_EGG_MODEL = crate::id!(crate::ns::YOG, "item/spawn_egg"),
+        SPAWN_EGG_MODEL = crate::id!(crate::ns::YOG, crate::concatcp!(crate::res::ITEM_DIR, crate::word::SPAWN_EGG)),
         /// The book's pictures.
-        BOOK_SHEET = crate::id!(crate::ns::YOG, "gui/book/book"),
-        CRAFTING_SHEET = crate::id!(crate::ns::YOG, "gui/book/crafting"),
+        BOOK_SHEET = crate::concatcp!(BOOK_TEXTURE, crate::sep::PATH, crate::kind::BOOK),
+        CRAFTING_SHEET = crate::concatcp!(BOOK_TEXTURE, crate::sep::PATH, "crafting"),
         /// A screen being designed in the IDE.
         DESIGNER_SCREEN = crate::id!(crate::ns::YOG, "designer"),
         /// A book's default texture (its sheet is [`BOOK_SHEET`]).
-        BOOK_TEXTURE = crate::id!(crate::ns::YOG, "gui/book"),
+        BOOK_TEXTURE = crate::id!(crate::ns::YOG, crate::concatcp!(crate::word::GUI, crate::sep::PATH, crate::kind::BOOK)),
         /// An image source that draws nothing (a bare surface).
         NO_IMAGE = crate::id!(crate::ns::YOG, "none"),
         /// The textures the runtime renders SVG images into: `<prefix><key>_<w>x<h>`.
         DYNAMIC_SVG_PREFIX = crate::id!(crate::ns::YOG, "dynamic/svg_"),
         /// The textures the runtime draws text in Yog's fonts into: `<prefix><n>`.
-        DYNAMIC_TEXT_PREFIX = crate::id!(crate::ns::YOG, "dynamic/text_"),
+        DYNAMIC_TEXT_PREFIX = crate::id!(crate::ns::YOG, crate::concatcp!("dynamic", crate::sep::PATH, crate::word::TEXT, crate::sep::WORD)),
     }
 
     /// The game's fonts, by name: Yog aliases each as
     /// `yog:font/<name>` ([`crate::yog::FONT_ALIAS`]).
     game_font {
-        DEFAULT = "default",
+        DEFAULT = crate::word::DEFAULT,
         /// Unifont.
         UNIFORM = "uniform",
         /// The enchanting table's.
@@ -204,19 +204,19 @@ names! {
     /// The kinds of shape a schema describes itself with
     /// (`yog_data::Shape::describe`, read by the IDE's property grids).
     shape_kind {
-        ANY = "any",
-        BOOL = "bool",
+        ANY = crate::word::ANY,
+        BOOL = crate::word::BOOL,
         INT = "int",
         FLOAT = "float",
-        STRING = "string",
+        STRING = crate::word::STRING,
         ATOM = "atom",
-        TEXT = "text",
-        IMAGE = "image",
-        COLOR = "color",
-        BYTES = "bytes",
+        TEXT = crate::word::TEXT,
+        IMAGE = crate::word::IMAGE,
+        COLOR = crate::word::COLOR,
+        BYTES = crate::word::BYTES,
         RES = "res",
         REF = "ref",
-        TAG = "tag",
+        TAG = crate::kind::TAG,
         REF_OR_TAG = "ref_or_tag",
         REF_OR_IMAGE = "ref_or_image",
         LIST = "list",
@@ -278,54 +278,54 @@ names! {
 
     /// The fields and types of the game's item definitions (`items/<path>.json`, 1.21.4+).
     item_def {
-        MODEL = "model",
-        TYPE = "type",
+        MODEL = crate::word::MODEL,
+        TYPE = crate::word::TYPE,
         TINTS = "tints",
-        VALUE = "value",
+        VALUE = crate::word::VALUE,
         /// A plain model.
-        PLAIN = "minecraft:model",
+        PLAIN = crate::id!(crate::ns::MINECRAFT, crate::word::MODEL),
         /// A tint of one colour.
-        CONSTANT = "minecraft:constant",
+        CONSTANT = crate::id!(crate::ns::MINECRAFT, "constant"),
     }
 
     /// The fields and layers of the game's equipment assets (`equipment/<path>.json`, 1.21.4+).
     equipment {
         LAYERS = "layers",
-        TEXTURE = "texture",
+        TEXTURE = crate::kind::TEXTURE,
         /// Worn on the body: helmet, chestplate, boots.
         HUMANOID = "humanoid",
         /// Worn on the legs: leggings.
-        HUMANOID_LEGGINGS = "humanoid_leggings",
+        HUMANOID_LEGGINGS = crate::concatcp!(HUMANOID, crate::sep::WORD, "leggings"),
     }
 
     /// The parameters of the CLI's service methods (`yog serve`, what the IDE calls).
     serve_param {
         PATH = "path",
-        NAME = "name",
-        TEXT = "text",
-        SIZE = "size",
-        TEXTURE = "texture",
+        NAME = crate::word::NAME,
+        TEXT = crate::word::TEXT,
+        SIZE = crate::word::SIZE,
+        TEXTURE = crate::kind::TEXTURE,
         PNG = "png",
-        ANIMATION = "animation",
-        KIND = "kind",
+        ANIMATION = crate::word::ANIMATION,
+        KIND = crate::word::KIND,
         REGISTRY = "registry",
-        ID = "id",
+        ID = crate::word::ID,
         ALIAS = "alias",
-        MODEL = "model",
-        SOURCE = "source",
+        MODEL = crate::word::MODEL,
+        SOURCE = crate::word::SOURCE,
         FORCE = "force",
-        WIDTH = "width",
-        HEIGHT = "height",
-        TAG = "tag",
+        WIDTH = crate::word::WIDTH,
+        HEIGHT = crate::word::HEIGHT,
+        TAG = crate::kind::TAG,
         ARGS = "args",
         EVENT = "event",
-        FILE = "file",
+        FILE = crate::word::FILE,
         SET = "set",
-        MOD_ID = "mod",
-        ENTRIES = "entries",
+        MOD_ID = crate::word::MOD,
+        ENTRIES = crate::word::ENTRIES,
         NEXT = "next",
-        LEVEL = "level",
-        VALUE = "value",
+        LEVEL = crate::kind::LEVEL,
+        VALUE = crate::word::VALUE,
         VALUES = "values",
         FORMAT = "format",
         NS = "ns",
@@ -338,24 +338,24 @@ names! {
     texture_slot {
         ALL = "all",
         SIDE = "side",
-        TOP = "top",
-        BOTTOM = "bottom",
-        END = "end",
+        TOP = crate::word::TOP,
+        BOTTOM = crate::word::BOTTOM,
+        END = crate::word::END,
         FRONT = "front",
         /// A one-texture model's.
-        TEXTURE = "texture",
+        TEXTURE = crate::kind::TEXTURE,
     }
 
     /// The game's block state properties Yog's blocks get, and their values.
     block_state {
         /// The way a block faces: the four sides, or up and down too.
         FACING = "facing",
-        NORTH = "north",
-        EAST = "east",
-        SOUTH = "south",
-        WEST = "west",
-        UP = "up",
-        DOWN = "down",
+        NORTH = crate::word::NORTH,
+        EAST = crate::word::EAST,
+        SOUTH = crate::word::SOUTH,
+        WEST = crate::word::WEST,
+        UP = crate::word::UP,
+        DOWN = crate::word::DOWN,
         /// What an attached block hangs on.
         FACE = "face",
         FLOOR = "floor",
@@ -364,25 +364,25 @@ names! {
         /// Whether it stands in water.
         WATERLOGGED = "waterlogged",
         /// A yes/no property's values.
-        FALSE = "false",
-        TRUE = "true",
+        FALSE = crate::word::FALSE,
+        TRUE = crate::word::TRUE,
     }
 
     /// The fields and kinds of the game's loot tables (`data/<ns>/loot_table/…`).
     loot {
-        TYPE = "type",
+        TYPE = crate::word::TYPE,
         POOLS = "pools",
         ROLLS = "rolls",
-        ENTRIES = "entries",
-        NAME = "name",
+        ENTRIES = crate::word::ENTRIES,
+        NAME = crate::word::NAME,
         CONDITIONS = "conditions",
         CONDITION = "condition",
         FUNCTIONS = "functions",
         FUNCTION = "function",
-        COUNT = "count",
+        COUNT = crate::word::COUNT,
         MIN = "min",
         MAX = "max",
-        BLOCK = "block",
+        BLOCK = crate::kind::BLOCK,
         PROPERTIES = "properties",
         /// A block's table, and one nothing uses the way of.
         BLOCK_TABLE = crate::id!(crate::ns::MINECRAFT, "block"),
@@ -402,9 +402,9 @@ names! {
     /// The fields of a dimension as the build hands it to the runtime and
     /// the runtime to the host.
     dimension_field {
-        ID = "id",
-        DIMENSION_TYPE = "dimension_type",
-        BIOME = "biome",
+        ID = crate::word::ID,
+        DIMENSION_TYPE = crate::concatcp!(crate::kind::DIMENSION, crate::sep::WORD, crate::word::TYPE),
+        BIOME = crate::kind::BIOME,
         STRUCTURES = "structures",
         FEATURES = "features",
         MOB_SPAWNING = "mob_spawning",
@@ -416,22 +416,22 @@ names! {
 
     /// Words a `.yui` attribute's value is.
     yui_value {
-        TRUE = "true",
-        FALSE = "false",
+        TRUE = crate::word::TRUE,
+        FALSE = crate::word::FALSE,
         /// A size the content decides.
-        AUTO = "auto",
-        START = "start",
-        CENTER = "center",
-        END = "end",
-        LEFT = "left",
-        RIGHT = "right",
-        TOP = "top",
-        BOTTOM = "bottom",
+        AUTO = crate::word::AUTO,
+        START = crate::word::START,
+        CENTER = crate::word::CENTER,
+        END = crate::word::END,
+        LEFT = crate::word::LEFT,
+        RIGHT = crate::word::RIGHT,
+        TOP = crate::word::TOP,
+        BOTTOM = crate::word::BOTTOM,
         /// Takes the room there is.
-        FILL = "fill",
-        STRETCH = "stretch",
-        OUTLINE = "outline",
-        NONE = "none",
+        FILL = crate::word::FILL,
+        STRETCH = crate::word::STRETCH,
+        OUTLINE = crate::word::OUTLINE,
+        NONE = crate::word::NONE,
     }
 
     /// The markup of a `.yui` attribute's value: a binding (`{x:Bind name}`)
@@ -450,8 +450,8 @@ names! {
 
     /// The sections of the game's `.mcmeta` beside a texture.
     mcmeta {
-        ANIMATION = "animation",
-        TEXTURE = "texture",
+        ANIMATION = crate::word::ANIMATION,
+        TEXTURE = crate::kind::TEXTURE,
     }
 
     /// The game's kinds of tool (`item.tool.kind`); a mod's kind is the
@@ -474,15 +474,15 @@ names! {
         FACES = "faces",
         FROM = "from",
         TO = "to",
-        UV = "uv",
+        UV = crate::word::UV,
         ROTATION = "rotation",
-        TEXTURE = "texture",
+        TEXTURE = crate::kind::TEXTURE,
         /// A sprite item's (`item/generated`) first layer.
         LAYER0 = "layer0",
         /// The texture a block's particles take, and what a face falls back to.
         PARTICLE = "particle",
         /// A block state variant's model.
-        MODEL = "model",
+        MODEL = crate::word::MODEL,
         /// An element's rotation.
         ORIGIN = "origin",
         AXIS = "axis",
@@ -491,7 +491,7 @@ names! {
         /// Block states: variants by property values, or parts applied when they match.
         VARIANTS = "variants",
         MULTIPART = "multipart",
-        WHEN = "when",
+        WHEN = crate::word::WHEN,
         APPLY = "apply",
         OR = "OR",
         AND = "AND",
@@ -507,33 +507,33 @@ names! {
         TRANSLATION = "translation",
         SCALE = "scale",
         /// The parent a block model of its own elements takes: how it's held and shown in a slot.
-        BLOCK_PARENT = crate::id!(crate::ns::MINECRAFT, "block/block"),
-        X = "x",
-        Y = "y",
+        BLOCK_PARENT = crate::id!(crate::ns::MINECRAFT, crate::concatcp!(crate::res::BLOCK_DIR, crate::kind::BLOCK)),
+        X = crate::word::X,
+        Y = crate::word::Y,
         UVLOCK = "uvlock",
         WEIGHT = "weight",
     }
 
     /// The fields of Yog's content files (`.yblock`, `.yitem`, `.ydef`) the tools read directly.
     content_field {
-        ID = "id",
-        KIND = "kind",
-        MODEL = "model",
-        ITEM_MODEL = "item_model",
-        MATERIAL = "material",
-        ITEM = "item",
-        POTION = "potion",
+        ID = crate::word::ID,
+        KIND = crate::word::KIND,
+        MODEL = crate::word::MODEL,
+        ITEM_MODEL = crate::concatcp!(crate::kind::ITEM, crate::sep::WORD, crate::word::MODEL),
+        MATERIAL = crate::kind::MATERIAL,
+        ITEM = crate::kind::ITEM,
+        POTION = crate::kind::POTION,
         EFFECTS = "effects",
-        EFFECT = "effect",
+        EFFECT = crate::kind::EFFECT,
         OF = "of",
-        COLOR = "color",
+        COLOR = crate::word::COLOR,
     }
 
     /// The attributes of `.yui` elements.
     yui_attr {
-        ID = "id",
-        X = "x",
-        Y = "y",
+        ID = crate::word::ID,
+        X = crate::word::X,
+        Y = crate::word::Y,
         W = "w",
         H = "h",
         MIN_W = "min_w",
@@ -543,13 +543,13 @@ names! {
         GAP = "gap",
         PADDING = "padding",
         BG = "bg",
-        COLOR = "color",
+        COLOR = crate::word::COLOR,
         ALIGN = "align",
         HALIGN = "halign",
         VALIGN = "valign",
         MARGIN = "margin",
         FONT_SCALE = "font_scale",
-        FONT = "font",
+        FONT = crate::kind::FONT,
         SHADOW = "shadow",
         NO_WRAP = "no_wrap",
         ELLIPSIS = "ellipsis",
@@ -558,45 +558,45 @@ names! {
         ENABLED = "enabled",
         ON_CLICK = "on_click",
         TOOLTIP = "tooltip",
-        WIDTH = "width",
-        HEIGHT = "height",
+        WIDTH = crate::word::WIDTH,
+        HEIGHT = crate::word::HEIGHT,
         ANCHOR = "anchor",
         MODAL = "modal",
         PAUSE = "pause",
         LIVE = "live",
         THEME = "theme",
-        TEXT = "text",
+        TEXT = crate::word::TEXT,
         PLACEHOLDER = "placeholder",
         MAX_LENGTH = "max_length",
         ON_CHANGE = "on_change",
         ON_SUBMIT = "on_submit",
-        ITEM = "item",
-        COUNT = "count",
+        ITEM = crate::kind::ITEM,
+        COUNT = crate::word::COUNT,
         INDEX = "index",
         ACCEPTS = "accepts",
-        SOURCE = "source",
-        STRETCH = "stretch",
-        UV = "uv",
+        SOURCE = crate::word::SOURCE,
+        STRETCH = crate::word::STRETCH,
+        UV = crate::word::UV,
         TINT = "tint",
-        KIND = "kind",
+        KIND = crate::word::KIND,
         RESULT = "result",
         PLACES = "places",
         RECIPE_LAYOUT = "recipe_layout",
         SLOT = "slot",
-        BLOCK = "block",
+        BLOCK = crate::kind::BLOCK,
         /// A slot frame behind it, for layouts without their own picture.
         FRAME = "frame",
-        SIZE = "size",
+        SIZE = crate::word::SIZE,
         /// A `<Component>` that is a kind of book page, its id.
         BOOK_PAGE = "book_page",
         /// A `<Property>`'s.
-        NAME = "name",
-        TYPE = "type",
-        DEFAULT = "default",
+        NAME = crate::word::NAME,
+        TYPE = crate::word::TYPE,
+        DEFAULT = crate::word::DEFAULT,
         /// A book page's image and drawn picture.
-        SRC = "src",
+        SRC = crate::word::SRC,
         DRAWER = "drawer",
-        DATA = "data",
+        DATA = crate::word::DATA,
         STYLE = "style",
         BASED_ON = "based_on",
         ORIENTATION = "orientation",
@@ -604,7 +604,7 @@ names! {
         COLUMNS = "columns",
         ROW_SPACING = "row_spacing",
         COLUMN_SPACING = "column_spacing",
-        VALUE = "value",
+        VALUE = crate::word::VALUE,
         SELECTED = "selected",
         CHECKED = "checked",
         ITEM_HEIGHT = "item_height",
