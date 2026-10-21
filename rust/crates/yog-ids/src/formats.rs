@@ -105,7 +105,7 @@ pub fn blockstate_file(path: &str) -> String {
 }
 
 /// The registries of entities and biomes, which aren't named as their kind.
-const ENTITY_REGISTRY: &str = crate::concatcp!(kind::ENTITY, sep::WORD, crate::word::TYPE);
+const ENTITY_REGISTRY: &str = crate::renamed_tag_dir::ENTITY_TYPE;
 const BIOME_REGISTRY: &str = crate::concatcp!(crate::worldgen::DIR, sep::PATH, kind::BIOME);
 
 /// Asset `rel` of namespace `ns`'s, as the pack holds it: `assets/<ns>/<rel>`.
@@ -131,16 +131,10 @@ pub fn registry_of(kind: &str) -> &str {
     }
 }
 
-/// The kinds whose data and tag folders were plural before 1.21 (`items`, `loot_tables`).
-const PLURAL_BEFORE_1_21: &[&str] = &[
-    kind::ITEM,
-    kind::BLOCK,
-    kind::ENTITY,
-    kind::FLUID,
-    kind::LOOT_TABLE,
-    kind::ADVANCEMENT,
-    kind::RECIPE,
-];
+/// Whether folder `dir` (a data or tag folder) was plural before 1.21.
+fn renamed_in_1_21(dir: &str) -> bool {
+    crate::renamed_data_dir::ALL_VALUES.contains(&dir) || crate::renamed_tag_dir::ALL_VALUES.contains(&dir)
+}
 
 /// The folders of content `kind`'s data or tags, the current one first, then
 /// 1.20's plural one when it was named differently: `item` → `item`, `items`.
@@ -148,8 +142,8 @@ const PLURAL_BEFORE_1_21: &[&str] = &[
 pub fn registry_dirs(kind: &str) -> Vec<String> {
     let dir = registry_of(kind);
     let mut out = vec![dir.to_string()];
-    if PLURAL_BEFORE_1_21.contains(&kind) {
-        out.push(format!("{dir}s"));
+    if renamed_in_1_21(dir) {
+        out.push(format!("{dir}{}", crate::data_layout::PLURAL));
     }
     out
 }

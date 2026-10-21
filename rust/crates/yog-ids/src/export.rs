@@ -60,7 +60,11 @@ pub fn java(package: &str, class: &str) -> String {
                 "        public static final String {name} = {value:?};\n"
             ));
         }
-        out.push_str("    }\n");
+        let all: Vec<&str> = names.iter().map(|(name, _)| *name).collect();
+        out.push_str(&format!(
+            "\n        /** Every name of the group, in order. */\n        public static final java.util.List<String> ALL_VALUES = java.util.List.of({});\n    }}\n",
+            all.join(", ")
+        ));
     }
     out.push_str("\n    /** Yog's file formats' extensions (`Format`). */\n    public static final class Ext {\n        private Ext() {}\n\n");
     for f in crate::Format::ALL {

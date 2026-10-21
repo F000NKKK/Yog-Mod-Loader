@@ -1,10 +1,15 @@
 package dev.yog.util;
 
 import dev.yog.YogLog;
+import dev.yog.YogNames;
+import dev.yog.YogNames.GameRecipe;
+import dev.yog.YogNames.RecipeField;
+import dev.yog.YogNames.RecipeKind;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,23 +27,20 @@ public final class YogDataLayout {
     }
 
     /** Top-level {@code data/<ns>/<dir>/} renames (plural, pre-1.21 → singular, 1.21+). */
-    private static final Map<String, String> TOP_LEVEL = Map.of(
-            "advancements", "advancement",
-            "functions", "function",
-            "item_modifiers", "item_modifier",
-            "loot_tables", "loot_table",
-            "predicates", "predicate",
-            "recipes", "recipe",
-            "structures", "structure");
+    private static final Map<String, String> TOP_LEVEL = renamed(YogNames.RenamedDataDir.ALL_VALUES);
 
     /** {@code data/<ns>/tags/<dir>/} renames (plural, pre-1.21 → singular, 1.21+). */
-    private static final Map<String, String> TAGS = Map.of(
-            "blocks", "block",
-            "entity_types", "entity_type",
-            "fluids", "fluid",
-            "functions", "function",
-            "game_events", "game_event",
-            "items", "item");
+    private static final Map<String, String> TAGS = renamed(YogNames.RenamedTagDir.ALL_VALUES);
+
+    /** Each folder's old name → its name. */
+    private static Map<String, String> renamed(java.util.List<String> dirs) {
+        java.util.HashMap<String, String> out = new java.util.HashMap<>();
+        for (String d : dirs) out.put(d + YogNames.DataLayout.PLURAL, d);
+        return Map.copyOf(out);
+    }
+
+    /** What a pack's data paths start with: {@code data/}. */
+    private static final String DATA_DIR = YogNames.Pack.DATA + YogNames.Sep.PATH;
 
     private static final Map<String, String> TOP_LEVEL_REV = invert(TOP_LEVEL);
     private static final Map<String, String> TAGS_REV = invert(TAGS);
@@ -53,11 +55,11 @@ public final class YogDataLayout {
      *                     {@code false} for 1.20.x (plural names)
      */
     public static String remapDataPath(String path, boolean singularDirs) {
-        if (!path.startsWith("data/")) {
+        if (!path.startsWith(DATA_DIR)) {
             return path;
         }
         // data / <ns> / <dir> / <rest...>
-        String[] parts = path.split("/", 5);
+        String[] parts = path.split(YogNames.Sep.PATH, 5);
         if (parts.length < 4) {
             return path;
         }
@@ -65,30 +67,33 @@ public final class YogDataLayout {
         String mapped = top.get(parts[2]);
         if (mapped != null) {
             parts[2] = mapped;
-            return String.join("/", parts);
+            return String.join(YogNames.Sep.PATH, parts);
         }
-        if (parts[2].equals("tags") && parts.length == 5) {
+        if (parts[2].equals(YogNames.Pack.TAGS) && parts.length == 5) {
             Map<String, String> tags = singularDirs ? TAGS : TAGS_REV;
             String tag = tags.get(parts[3]);
             if (tag != null) {
                 parts[3] = tag;
-                return String.join("/", parts);
+                return String.join(YogNames.Sep.PATH, parts);
             }
         }
         return path;
     }
 
+    /** The recipes' folder's name since 1.21. */
+    private static final String RECIPE = YogNames.RenamedDataDir.RECIPE;
+
     /** Name of the recipe directory for the running game version. */
     public static String recipeDir(boolean singularDirs) {
-        return singularDirs ? "recipe" : "recipes";
+        return singularDirs ? RECIPE : RECIPE + YogNames.DataLayout.PLURAL;
     }
 
     /** {@code true} for {@code data/<ns>/recipe/**.json} (after {@link #remapDataPath}). */
     public static boolean isRecipePath(String path) {
-        String[] parts = path.split("/", 4);
-        return parts.length == 4 && parts[0].equals("data")
-                && (parts[2].equals("recipe") || parts[2].equals("recipes"))
-                && path.endsWith(".json");
+        String[] parts = path.split(YogNames.Sep.PATH, 4);
+        return parts.length == 4 && parts[0].equals(YogNames.Pack.DATA)
+                && (parts[2].equals(RECIPE) || parts[2].equals(RECIPE + YogNames.DataLayout.PLURAL))
+                && path.endsWith(YogNames.Res.JSON);
     }
 
     /**
@@ -111,24 +116,24 @@ public final class YogDataLayout {
             return json;
         }
         upgradeIngredients(root);
-        JsonElement result = root.get("result");
+        JsonElement result = root.get(RecipeField.RESULT);
         if (result == null) {
             return root.toString();
         }
         if (result.isJsonPrimitive() && result.getAsJsonPrimitive().isString()) {
             JsonObject stack = new JsonObject();
-            stack.addProperty("id", result.getAsString());
-            JsonElement count = root.remove("count");
+            stack.addProperty(GameRecipe.ID, result.getAsString());
+            JsonElement count = root.remove(RecipeField.COUNT);
             if (count != null) {
-                stack.add("count", count);
+                stack.add(RecipeField.COUNT, count);
             }
-            root.add("result", stack);
+            root.add(RecipeField.RESULT, stack);
         } else if (result.isJsonObject()) {
             JsonObject stack = result.getAsJsonObject();
-            if (stack.has("id") || !stack.has("item")) {
+            if (stack.has(GameRecipe.ID) || !stack.has(GameRecipe.ITEM)) {
                 return root.toString();
             }
-            stack.add("id", stack.remove("item"));
+            stack.add(GameRecipe.ID, stack.remove(GameRecipe.ITEM));
         }
         return root.toString();
     }
@@ -136,9 +141,12 @@ public final class YogDataLayout {
     /** The first version whose ingredients are bare ids and {@code #tags} (not {@code {"item": …}} objects). */
     private static final int[] ID_INGREDIENTS_SINCE = {1, 21, 2};
     /** The fields of a recipe that hold ingredients: a map of them, a list of them, or one. */
-    private static final String KEY = "key", INGREDIENTS = "ingredients";
-    private static final java.util.List<String> ONE_INGREDIENT = java.util.List.of("ingredient", "template", "base", "addition");
-    private static final String ITEM = "item", TAG = "tag", TAG_MARK = "#";
+    private static final String KEY = RecipeField.KEY, INGREDIENTS = RecipeField.INGREDIENTS;
+    private static final java.util.List<String> ONE_INGREDIENT = java.util.List.of(RecipeField.INGREDIENT, RecipeField.TEMPLATE, RecipeField.BASE, RecipeField.ADDITION);
+    private static final String ITEM = GameRecipe.ITEM, TAG = GameRecipe.TAG, TAG_MARK = YogNames.Sep.TAG;
+    /** What a cooking recipe gives and takes when it doesn't say: the game's furnace's. */
+    private static final float COOKING_EXPERIENCE = 0.1f;
+    private static final int COOKING_TICKS = 200;
 
     /** Whether this host's game takes ingredients as bare ids (1.21.2+); set by {@link #setVersion}. */
     private static boolean idIngredients;
@@ -259,69 +267,74 @@ public final class YogDataLayout {
     }
 
     private static String toVanilla(JsonObject in, String namespace, boolean mc121) {
-        String type = in.has("type") ? in.get("type").getAsString() : "";
-        if (type.contains(":")) {
+        String type = in.has(RecipeField.TYPE) ? in.get(RecipeField.TYPE).getAsString() : "";
+        if (type.contains(YogNames.Sep.NAMESPACE)) {
             // The mod's own kind of recipe (`mymod:infusion`): its data, for
             // its machines and books — not the game's.
-            if (type.startsWith(namespace + ":")) return null;
+            if (type.startsWith(namespace + YogNames.Sep.NAMESPACE)) return null;
             // Another mod's (a Java mod's `create:mixing`): as written.
             String json = in.toString();
             return mc121 ? upgradeRecipeJson(json) : json;
         }
+        String result = in.has(RecipeField.RESULT) ? in.get(RecipeField.RESULT).getAsString() : GameRecipe.AIR;
+        int count = in.has(RecipeField.COUNT) ? in.get(RecipeField.COUNT).getAsInt() : 1;
+        JsonObject out = game(in, type, result, count, mc121);
+        if (out == null) return in.toString();
+        upgradeIngredients(out);
+        if (in.has(RecipeField.GROUP)) out.addProperty(RecipeField.GROUP, in.get(RecipeField.GROUP).getAsString());
+        if (in.has(RecipeField.CATEGORY)) out.addProperty(RecipeField.CATEGORY, in.get(RecipeField.CATEGORY).getAsString());
+        return out.toString();
+    }
+
+    /** The game's recipe of Yog's kind {@code type}; none for a kind it hasn't got. */
+    private static JsonObject game(JsonObject in, String type, String result, int count, boolean mc121) {
         JsonObject out = new JsonObject();
-        String result = in.has("result") ? in.get("result").getAsString() : "minecraft:air";
-        int count = in.has("count") ? in.get("count").getAsInt() : 1;
         switch (type) {
-            case "shaped" -> {
-                out.addProperty("type", "minecraft:crafting_shaped");
-                out.add("pattern", in.get("pattern"));
+            case RecipeKind.SHAPED -> {
+                out.addProperty(RecipeField.TYPE, GameRecipe.CRAFTING_SHAPED);
+                out.add(RecipeField.PATTERN, in.get(RecipeField.PATTERN));
                 JsonObject key = new JsonObject();
-                for (Map.Entry<String, JsonElement> e : in.getAsJsonObject("key").entrySet()) {
+                for (Map.Entry<String, JsonElement> e : in.getAsJsonObject(RecipeField.KEY).entrySet()) {
                     key.add(e.getKey(), ingredient(e.getValue()));
                 }
-                out.add("key", key);
-                out.add("result", stack(result, count, mc121));
+                out.add(RecipeField.KEY, key);
+                out.add(RecipeField.RESULT, stack(result, count, mc121));
             }
-            case "shapeless" -> {
-                out.addProperty("type", "minecraft:crafting_shapeless");
+            case RecipeKind.SHAPELESS -> {
+                out.addProperty(RecipeField.TYPE, GameRecipe.CRAFTING_SHAPELESS);
                 com.google.gson.JsonArray list = new com.google.gson.JsonArray();
-                for (JsonElement e : in.getAsJsonArray("ingredients")) list.add(ingredient(e));
-                out.add("ingredients", list);
-                out.add("result", stack(result, count, mc121));
+                for (JsonElement e : in.getAsJsonArray(RecipeField.INGREDIENTS)) list.add(ingredient(e));
+                out.add(RecipeField.INGREDIENTS, list);
+                out.add(RecipeField.RESULT, stack(result, count, mc121));
             }
-            case "smelting", "blasting", "smoking", "campfire_cooking" -> {
-                out.addProperty("type", "minecraft:" + type);
-                out.add("ingredient", ingredient(in.get("ingredient")));
-                if (mc121) out.add("result", stack(result, count, true));
-                else out.addProperty("result", result);
-                out.addProperty("experience", in.has("experience") ? in.get("experience").getAsFloat() : 0.1f);
-                out.addProperty("cookingtime", in.has("cook_time") ? in.get("cook_time").getAsInt() : 200);
+            case RecipeKind.SMELTING, RecipeKind.BLASTING, RecipeKind.SMOKING, RecipeKind.CAMPFIRE_COOKING -> {
+                out.addProperty(RecipeField.TYPE, dev.yog.data.YogIds.join(YogNames.Ns.MINECRAFT, type));
+                out.add(RecipeField.INGREDIENT, ingredient(in.get(RecipeField.INGREDIENT)));
+                if (mc121) out.add(RecipeField.RESULT, stack(result, count, true));
+                else out.addProperty(RecipeField.RESULT, result);
+                out.addProperty(RecipeField.EXPERIENCE, in.has(RecipeField.EXPERIENCE) ? in.get(RecipeField.EXPERIENCE).getAsFloat() : COOKING_EXPERIENCE);
+                out.addProperty(GameRecipe.COOKING_TIME, in.has(RecipeField.COOK_TIME) ? in.get(RecipeField.COOK_TIME).getAsInt() : COOKING_TICKS);
             }
-            case "stonecutting" -> {
-                out.addProperty("type", "minecraft:stonecutting");
-                out.add("ingredient", ingredient(in.get("ingredient")));
+            case RecipeKind.STONECUTTING -> {
+                out.addProperty(RecipeField.TYPE, GameRecipe.STONECUTTING);
+                out.add(RecipeField.INGREDIENT, ingredient(in.get(RecipeField.INGREDIENT)));
                 if (mc121) {
-                    out.add("result", stack(result, count, true));
+                    out.add(RecipeField.RESULT, stack(result, count, true));
                 } else {
-                    out.addProperty("result", result);
-                    out.addProperty("count", count);
+                    out.addProperty(RecipeField.RESULT, result);
+                    out.addProperty(RecipeField.COUNT, count);
                 }
             }
-            case "smithing" -> {
-                out.addProperty("type", "minecraft:smithing_transform");
-                out.add("template", ingredient(in.get("template")));
-                out.add("base", ingredient(in.get("base")));
-                out.add("addition", ingredient(in.get("addition")));
-                out.add("result", stack(result, count, mc121));
+            case RecipeKind.SMITHING -> {
+                out.addProperty(RecipeField.TYPE, GameRecipe.SMITHING_TRANSFORM);
+                for (String part : List.of(RecipeField.TEMPLATE, RecipeField.BASE, RecipeField.ADDITION)) out.add(part, ingredient(in.get(part)));
+                out.add(RecipeField.RESULT, stack(result, count, mc121));
             }
             default -> {
-                return in.toString();
+                return null;
             }
         }
-        upgradeIngredients(out);
-        if (in.has("group")) out.addProperty("group", in.get("group").getAsString());
-        if (in.has("category")) out.addProperty("category", in.get("category").getAsString());
-        return out.toString();
+        return out;
     }
 
     /** An item id, a {@code #tag}, or an array of those (any of them), as a vanilla ingredient. */
@@ -342,12 +355,12 @@ public final class YogDataLayout {
         }
         String item = v.getAsString();
         JsonObject o = new JsonObject();
-        if (item.startsWith("#")) {
-            String tag = item.substring(1);
-            if (!dev.yog.data.YogTags.has("item", tag)) throw new Missing("#" + tag);
-            o.addProperty("tag", tag);
+        if (item.startsWith(TAG_MARK)) {
+            String tag = item.substring(TAG_MARK.length());
+            if (!dev.yog.data.YogTags.has(YogNames.Kind.ITEM, tag)) throw new Missing(TAG_MARK + tag);
+            o.addProperty(GameRecipe.TAG, tag);
         } else {
-            o.addProperty("item", item(item));
+            o.addProperty(GameRecipe.ITEM, item(item));
         }
         return o;
     }
@@ -355,8 +368,8 @@ public final class YogDataLayout {
     /** A result stack: {@code {"item": …}} before 1.21, {@code {"id": …}} since. */
     private static JsonObject stack(String id, int count, boolean mc121) {
         JsonObject o = new JsonObject();
-        o.addProperty(mc121 ? "id" : "item", item(id));
-        if (count != 1) o.addProperty("count", count);
+        o.addProperty(mc121 ? GameRecipe.ID : GameRecipe.ITEM, item(id));
+        if (count != 1) o.addProperty(RecipeField.COUNT, count);
         return o;
     }
 }

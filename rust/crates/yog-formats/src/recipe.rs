@@ -246,7 +246,7 @@ impl Schema for RecipeFile {
                 own if own.contains(':') => read_both::<Common, Custom>(v, cx, also)
                     .map(|(c, b)| (c, Body::Custom(ty.clone(), b)))?,
                 other => {
-                    cx.at(Seg::Key(TYPE_FIELD.into()), |cx| cx.unknown_name(other, &TYPES));
+                    cx.at(Seg::Key(TYPE_FIELD.into()), |cx| cx.unknown_name(other, TYPES));
                     return None;
                 }
             };

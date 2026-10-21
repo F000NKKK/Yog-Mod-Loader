@@ -9,6 +9,86 @@ names! {
         NEOFORGE = "neoforge",
     }
 
+    /// The game's data folders renamed in 1.21 (`data/<ns>/<dir>/`): before,
+    /// each was its name and [`crate::data_layout::PLURAL`].
+    renamed_data_dir {
+        ADVANCEMENT = crate::kind::ADVANCEMENT,
+        FUNCTION = "function",
+        ITEM_MODIFIER = "item_modifier",
+        LOOT_TABLE = crate::kind::LOOT_TABLE,
+        PREDICATE = "predicate",
+        RECIPE = crate::kind::RECIPE,
+        STRUCTURE = "structure",
+    }
+
+    /// The tag folders renamed in 1.21 (`data/<ns>/tags/<dir>/`), likewise.
+    renamed_tag_dir {
+        BLOCK = crate::kind::BLOCK,
+        ENTITY_TYPE = crate::concatcp!(crate::kind::ENTITY, crate::sep::WORD, crate::word::TYPE),
+        FLUID = crate::kind::FLUID,
+        FUNCTION = "function",
+        GAME_EVENT = "game_event",
+        ITEM = crate::kind::ITEM,
+    }
+
+    /// How data folders were named before 1.21.
+    data_layout {
+        /// What an old folder's name adds: `recipes`.
+        PLURAL = "s",
+    }
+
+    /// The game's kinds of recipe, as `.yrecipe` files name them (`type`),
+    /// in the order yog-registry's data has them.
+    recipe_kind {
+        SHAPED = "shaped",
+        SHAPELESS = "shapeless",
+        SMELTING = "smelting",
+        BLASTING = "blasting",
+        SMOKING = "smoking",
+        CAMPFIRE_COOKING = "campfire_cooking",
+        STONECUTTING = "stonecutting",
+        SMITHING = "smithing",
+        BREWING = "brewing",
+    }
+
+    /// A recipe's fields as Yog writes it (`.yrecipe`, and what the hosts get).
+    recipe_field {
+        TYPE = crate::word::TYPE,
+        RESULT = "result",
+        COUNT = crate::word::COUNT,
+        /// A mod's kind: its slots and values, by name.
+        SLOTS = "slots",
+        VALUES = crate::word::VALUES,
+        /// A grid: rows of key characters, and what each character is.
+        PATTERN = "pattern",
+        KEY = "key",
+        INGREDIENTS = "ingredients",
+        INGREDIENT = "ingredient",
+        TEMPLATE = "template",
+        BASE = "base",
+        ADDITION = "addition",
+        EXPERIENCE = "experience",
+        COOK_TIME = "cook_time",
+        GROUP = "group",
+        CATEGORY = "category",
+    }
+
+    /// The game's recipe JSON: the types Yog's kinds become, and its own fields.
+    game_recipe {
+        CRAFTING_SHAPED = crate::id!(crate::ns::MINECRAFT, "crafting_shaped"),
+        CRAFTING_SHAPELESS = crate::id!(crate::ns::MINECRAFT, "crafting_shapeless"),
+        STONECUTTING = crate::id!(crate::ns::MINECRAFT, crate::recipe_kind::STONECUTTING),
+        SMITHING_TRANSFORM = crate::id!(crate::ns::MINECRAFT, "smithing_transform"),
+        /// A cooking recipe's time.
+        COOKING_TIME = "cookingtime",
+        /// A result's item: `id` since 1.20.5, `item` before.
+        ID = crate::word::ID,
+        ITEM = crate::kind::ITEM,
+        TAG = crate::kind::TAG,
+        /// What a recipe makes when it says nothing.
+        AIR = crate::id!(crate::ns::MINECRAFT, "air"),
+    }
+
     /// The game's worldgen data: `data/<ns>/worldgen/…`.
     worldgen {
         DIR = "worldgen",

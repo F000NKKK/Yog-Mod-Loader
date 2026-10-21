@@ -20,6 +20,8 @@ macro_rules! names {
             $(#[$gdoc])*
             pub mod $group {
                 $( $(#[$doc])* pub const $name: &str = $value; )*
+                /// Every name of the group, in order.
+                pub const ALL_VALUES: &[&str] = &[$($name),*];
             }
         )*
         /// Every name of this file, by group — what [`crate::export`] writes.

@@ -82,28 +82,10 @@ impl RecipeKindDef {
 /// (a typed body, a host's recipe JSON) names it by. The data ([`GAME`])
 /// has exactly these, in this order.
 pub mod ids {
-    pub const SHAPED: &str = "shaped";
-    pub const SHAPELESS: &str = "shapeless";
-    pub const SMELTING: &str = "smelting";
-    pub const BLASTING: &str = "blasting";
-    pub const SMOKING: &str = "smoking";
-    pub const CAMPFIRE_COOKING: &str = "campfire_cooking";
-    pub const STONECUTTING: &str = "stonecutting";
-    pub const SMITHING: &str = "smithing";
-    pub const BREWING: &str = "brewing";
+    pub use yog_ids::recipe_kind::{BLASTING, BREWING, CAMPFIRE_COOKING, SHAPED, SHAPELESS, SMELTING, SMITHING, SMOKING, STONECUTTING};
 
     /// Every one, in [`super::GAME`]'s order.
-    pub const ALL: [&str; 9] = [
-        SHAPED,
-        SHAPELESS,
-        SMELTING,
-        BLASTING,
-        SMOKING,
-        CAMPFIRE_COOKING,
-        STONECUTTING,
-        SMITHING,
-        BREWING,
-    ];
+    pub const ALL: &[&str] = yog_ids::recipe_kind::ALL_VALUES;
     /// The cooking kinds: one input, a cook time, experience.
     pub const COOKING: [&str; 4] = [SMELTING, BLASTING, SMOKING, CAMPFIRE_COOKING];
 }
@@ -111,16 +93,7 @@ pub mod ids {
 /// The fields every `.yrecipe` (and its compiled form) has, whatever its
 /// kind; a game kind's slots name theirs in [`SlotSpec::field`].
 pub mod fields {
-    pub const TYPE: &str = "type";
-    pub const RESULT: &str = "result";
-    pub const COUNT: &str = "count";
-    /// A mod's kind: its slots and values, by name.
-    pub const SLOTS: &str = "slots";
-    pub const VALUES: &str = "values";
-    /// A grid slot ([`super::SlotSpec::grid`]): rows of key characters, and
-    /// what each character is.
-    pub const PATTERN: &str = "pattern";
-    pub const KEY: &str = "key";
+    pub use yog_ids::recipe_field::{COUNT, KEY, PATTERN, RESULT, SLOTS, TYPE, VALUES};
 }
 
 /// A crafting grid's side: a grid slot has `GRID_SIDE²` places, row by row.

@@ -213,7 +213,7 @@ Yog-Mod-Loader/java-common/src/main/java/dev/yog/mixin/ModelPartAccess.java		tod
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/mixin/TravelMixin.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogBodyBus.java	params:camera@25(9),travel@36(15)	todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogBodyWire.java	params:frame@285(18)	todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogDataLayout.java	literal_facts:21 magic_numbers:1	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogDataLayout.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogDimensions.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogEntityFlags.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/util/YogInventoryDef.java	params:YogInventoryDef@34(13)	todo
