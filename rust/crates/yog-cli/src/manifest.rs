@@ -129,6 +129,10 @@ impl YogToml {
 
 use yog_data::{Text, Value};
 use yog_formats::manifest::ManifestFile;
+use yog_ids::rust_crate;
+
+/// The manifest's old key for the API's version, beside its crate names.
+const API_VERSION_KEY: &str = "yog_api_version";
 
 /// `v` as TOML's inline syntax — how a dependency is written into Cargo.toml.
 fn toml_inline(v: &Value) -> String {
@@ -180,7 +184,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     for (name, spec) in f.dependencies.0 {
         match (name.as_str(), &spec) {
             ("exports", Value::Map(exports)) => mod_dependencies.extend(exports.iter().map(|(k, v)| (k.to_string(), toml_inline(v)))),
-            ("yog-api" | "yog_api" | "yog_api_version", _) => yog_api_version = Some(spec.as_str().map(str::to_string).unwrap_or_else(|| toml_inline(&spec))),
+            (n, _) if n == rust_crate::API || n == yog_ids::rust_name(rust_crate::API) || n == API_VERSION_KEY => yog_api_version = Some(spec.as_str().map(str::to_string).unwrap_or_else(|| toml_inline(&spec))),
             _ => dependencies.push((name, toml_inline(&spec))),
         }
     }
@@ -252,7 +256,7 @@ pub fn to_snake_name(id: &str) -> String {
 /// Fetch the latest non-yanked version of `yog-api` from crates.io.
 pub fn latest_yog_api_version() -> String {
     match std::process::Command::new("cargo")
-        .args(["search", "yog-api", "--limit", "1"])
+        .args(["search", rust_crate::API, "--limit", "1"])
         .output()
     {
         Ok(out) if out.status.success() => {

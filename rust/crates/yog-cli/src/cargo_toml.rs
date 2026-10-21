@@ -54,7 +54,12 @@ fn authors_line(meta: &YogToml) -> String {
     if meta.authors.is_empty() {
         return String::new();
     }
-    let list = meta.authors.iter().map(|a| format!("{a:?}")).collect::<Vec<_>>().join(", ");
+    let list = meta
+        .authors
+        .iter()
+        .map(|a| format!("{a:?}"))
+        .collect::<Vec<_>>()
+        .join(", ");
     format!("authors      = [{list}]\n")
 }
 
@@ -67,26 +72,35 @@ fn local_patch(meta: &YogToml) -> String {
     let Some(api_path) = meta.yog_api_path.as_deref().or(env_path.as_deref()) else {
         return String::new();
     };
-    let mut extra: Vec<&str> = meta.dependencies.iter().map(|(name, _)| name.as_str()).filter(|n| n.starts_with(YOG_CRATE)).collect();
+    let mut extra: Vec<&str> = meta
+        .dependencies
+        .iter()
+        .map(|(name, _)| name.as_str())
+        .filter(|n| n.starts_with(YOG_CRATE))
+        .collect();
     if !extra.is_empty() {
         extra.push(YOG_API);
     }
     local_api_patch(Path::new(api_path), &extra)
 }
 
-/// Yog's crates are named so; the API's.
-const YOG_CRATE: &str = "yog-";
-const YOG_API: &str = "yog-api";
+use yog_ids::rust_crate::{API as YOG_API, PREFIX as YOG_CRATE};
 
 /// `[dependencies]`: plain crates.io ones exactly as written, then other
 /// Yog mods' (`[dependencies.exports]`) — each its exports crate under the
 /// mod's own name, so mod code imports it as a direct dependency
 /// (`use {name}::...`) and two never collide.
 fn dependency_lines(meta: &YogToml) -> Vec<String> {
-    let mut lines: Vec<String> = meta.dependencies.iter().map(|(name, spec)| format!("{name} = {spec}")).collect();
+    let mut lines: Vec<String> = meta
+        .dependencies
+        .iter()
+        .map(|(name, spec)| format!("{name} = {spec}"))
+        .collect();
     for (name, spec) in &meta.mod_dependencies {
         let exports_name = crate::exports::crate_name(name);
-        let inner = spec.strip_prefix('{').map(|s| s.trim_end_matches('}').trim());
+        let inner = spec
+            .strip_prefix('{')
+            .map(|s| s.trim_end_matches('}').trim());
         lines.push(match inner {
             Some("") => format!("{name} = {{ package = \"{exports_name}\" }}"),
             Some(inner) => format!("{name} = {{ package = \"{exports_name}\", {inner} }}"),

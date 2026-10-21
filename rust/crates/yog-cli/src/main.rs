@@ -27,6 +27,7 @@ use std::io::Write as _;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use yog_ids::rust_crate;
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -415,7 +416,10 @@ fn prepare() -> Result<Prepared, String> {
 /// the current runtime's ABI (1.3) need — a mod's lock pinning older ones
 /// moves up (the runtime refuses a mod of another ABI; screens generated
 /// for a newer yog-kit don't compile).
-const MIN_VERSIONS: &[(&str, (u64, u64, u64))] = &[("yog-api", (0, 93, 0)), ("yog-kit", (0, 4, 0))];
+const MIN_VERSIONS: &[(&str, (u64, u64, u64))] = &[(rust_crate::API, (0, 93, 0)), (rust_crate::KIT, (0, 4, 0))];
+
+/// The loader's crates a mod links, one version each.
+const LOADER_CRATES: [&str; 6] = [rust_crate::API, rust_crate::ABI, rust_crate::UI, rust_crate::KIT, rust_crate::GFX, rust_crate::REGISTRY];
 
 /// Moves crates of the lock at `cargo_lock` older than [`MIN_VERSIONS`] up
 /// to the newest compatible ones (with what they need).
@@ -433,7 +437,7 @@ fn one_loader_version(cargo_lock: &Path) -> Result<(), String> {
         let Some(name) = line.trim().strip_prefix("name = \"").and_then(|n| n.strip_suffix('"')) else {
             continue;
         };
-        if !matches!(name, "yog-api" | "yog-abi" | "yog-ui" | "yog-kit" | "yog-gfx" | "yog-registry") {
+        if !LOADER_CRATES.contains(&name) {
             continue;
         }
         if let Some(v) = lines.next().and_then(|l| l.trim().strip_prefix("version = \"")) {

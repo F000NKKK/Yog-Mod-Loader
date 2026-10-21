@@ -761,6 +761,18 @@ public final class YogNames {
         public static final String SERVE = "serve";
     }
 
+    public static final class RustCrate {
+        private RustCrate() {}
+
+        public static final String PREFIX = "yog-";
+        public static final String API = "yog-api";
+        public static final String ABI = "yog-abi";
+        public static final String UI = "yog-ui";
+        public static final String KIT = "yog-kit";
+        public static final String GFX = "yog-gfx";
+        public static final String REGISTRY = "yog-registry";
+    }
+
     public static final class Res {
         private Res() {}
 

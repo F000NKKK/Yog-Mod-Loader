@@ -108,6 +108,12 @@ pub fn blockstate_file(path: &str) -> String {
 const ENTITY_REGISTRY: &str = crate::concatcp!(kind::ENTITY, sep::WORD, crate::word::TYPE);
 const BIOME_REGISTRY: &str = crate::concatcp!(crate::worldgen::DIR, sep::PATH, kind::BIOME);
 
+/// Crate `name` as Rust code names it: `yog-api` → `yog_api`.
+#[must_use]
+pub fn rust_name(name: &str) -> String {
+    name.replace(sep::HYPHEN, sep::WORD)
+}
+
 /// The game's registry of content `kind` — what its tags' and data's
 /// folders are named: `entity` → `entity_type`, `biome` → `worldgen/biome`.
 #[must_use]

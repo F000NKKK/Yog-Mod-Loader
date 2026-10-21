@@ -80,6 +80,19 @@ names! {
         SERVE = "serve",
     }
 
+    /// Yog's crates a mod's code builds with, as Cargo names them (Rust's
+    /// name has `_` for `-`: [`crate::rust_name`]).
+    rust_crate {
+        /// What every one of Yog's crates is named with.
+        PREFIX = crate::concatcp!(crate::ns::YOG, crate::sep::HYPHEN),
+        API = crate::concatcp!(PREFIX, "api"),
+        ABI = crate::concatcp!(PREFIX, "abi"),
+        UI = crate::concatcp!(PREFIX, "ui"),
+        KIT = crate::concatcp!(PREFIX, "kit"),
+        GFX = crate::concatcp!(PREFIX, "gfx"),
+        REGISTRY = crate::concatcp!(PREFIX, "registry"),
+    }
+
     /// Where the game keeps resources, and what their files end with.
     res {
         /// The textures' folder: `<ns>:textures/<path>.png`.
