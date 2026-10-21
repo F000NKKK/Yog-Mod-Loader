@@ -31,7 +31,7 @@ benchmarks **before** reorganising the APIs further.
 | Runtime ↔ host lists | TSV lines | yog-runtime, Java | — | `\t`/`\n`-joined strings |
 | IDE state | JSON (`state.json`, `workspace.json`, publish profiles) | Yog-IDLE | none | — |
 | mod config (`yog-config/<mod>.cfg`) | `key = value` lines | yog-config | none (a newline in a value breaks the file; comments are lost on save) | — |
-| mod storage (`yog-data/<mod>/**.kv`) | `key\ttype\tvalue` lines | yog-storage | none | — |
+| mod storage (`yog-data/<mod>/**.ydata`) | binary Yog Data (was `key\ttype\tvalue` lines) | yog-storage | Yog Data | — |
 
 **Count:** 6 surface syntaxes (TOML, JSON, XML, `.cfg`, `.kv`, ad hoc string grammars), ~6
 places that parse references, 3 that parse recipes, 2 that parse Yog text,

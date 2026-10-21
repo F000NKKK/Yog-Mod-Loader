@@ -8,3 +8,5 @@ description = "Yog persistent key-value storage for mod data."
 
 [dependencies]
 yog-ids = { workspace = true }
+# The stores' files: binary Yog Data.
+yog-data = { workspace = true }
