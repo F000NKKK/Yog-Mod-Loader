@@ -6,6 +6,17 @@ The one checklist for every Yog repository (Yog-Mod-Loader, Yog-IDLE, Substrate-
 
 Every fact has exactly one source; everything else derives from it (composed constants, imports, re-exports, generated TS/Java). A fact about a lower level is defined at that level and flows upward — namespaces, content kinds, schemes and Yog's own ids live in `yog-ids`, the lowest crate. Before defining anything, search every repository for it.
 
+Where a constant lives — the smallest area that needs it, so nothing else knows it:
+- one module → that module's `consts.rs`;
+- several modules of a crate → the crate's `consts.rs` (or `consts/<area>.rs`), which the modules refer to;
+- several crates, or another language (generated Java/TS), or a copy on the other side of a protocol → `yog-ids`.
+
+Inside `yog-ids`:
+- **[auto]** each literal is written once. A word several groups use is a `word`, and the groups name it.
+- A group refers to another domain's name only where its value derives from it (a service param carrying a texture id). An external schema's field (`min_y`, a model's `texture`) is not made of Yog's kind names: it refers to the base word, or is a literal of its own.
+- An alias belongs to a vocabulary: a group that lists a format's fields, a protocol's params, a set of values. Outside one, use the base name.
+- Compose only names derived from others (`yog.toml` = namespace + extension). A name that happens to contain another word stays whole.
+
 ## 1. Must not be in the code
 
 ### Meaning carried by strings and numbers

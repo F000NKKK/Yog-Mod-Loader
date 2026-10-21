@@ -55,6 +55,23 @@ TODO = re.compile(r"\b(TODO|FIXME|XXX|HACK)\b")
 # A glob import (CODE_STANDARDS: none outside preludes and tests): Rust `use a::*;`, Java
 # `import a.*;`. A `pub use a::*` re-export (a facade's surface, like a prelude) isn't one.
 GLOB_IMPORT = re.compile(r"^\s*use\s+(?![\w:]*\bprelude::\*)[\w:{}, ]*::\*\s*;|^\s*import\s+(static\s+)?[\w.]+\.\*\s*;")
+# A yog-ids name and its value: a literal is written once in the whole crate
+# (CODE_STANDARDS §0); a repeat says the word belongs in `word`.
+IDS_NAMES = re.compile(r"(^|/)rust/crates/yog-ids/src/names/")
+IDS_LITERAL = re.compile(r'^\s{8}[A-Z][A-Z0-9_]* = ("(?:\\.|[^"\\])*"),\s*$')
+
+
+def ids_literals():
+    """Every literal value of yog-ids' names, with how often it's written."""
+    counts = {}
+    for p in (LOADER / "rust/crates/yog-ids/src/names").glob("*.rs"):
+        for line in p.read_text().split("\n"):
+            m = IDS_LITERAL.match(line)
+            if m:
+                counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+    return counts
+
+
 # A sync primitive that isn't Yog's (CODE_STANDARDS: `yog-sync` only).
 FOREIGN_SYNC = re.compile(r"\bstd::sync\b|\bparking_lot\b|\bonce_cell::|\blazy_static\b")
 # Where the sync primitives come from, and the repo that takes no Yog crates.
@@ -76,6 +93,7 @@ class Findings:
     commented_code: int = 0
     glob_imports: int = 0
     foreign_sync: int = 0
+    ids_repeats: int = 0
 
     def summary(self):
         out = []
@@ -85,7 +103,7 @@ class Findings:
             out.append("long-fn:" + ",".join(self.long_fns[:5]) + ("…" if len(self.long_fns) > 5 else ""))
         if self.many_params:
             out.append("params:" + ",".join(self.many_params[:5]) + ("…" if len(self.many_params) > 5 else ""))
-        for name in ("silenced", "panics", "prints", "literal_facts", "magic_numbers", "todos", "commented_code", "glob_imports", "foreign_sync"):
+        for name in ("silenced", "panics", "prints", "literal_facts", "magic_numbers", "todos", "commented_code", "glob_imports", "foreign_sync", "ids_repeats"):
             n = getattr(self, name)
             if n:
                 out.append(f"{name}:{n}")
@@ -266,6 +284,9 @@ def check(path, text):
         if params > MAX_PARAMS and not fixed_signature(lines, line - 1, path):
             f.many_params.append(f"{name}@{line}({params})")
     in_const_fn = const_fn_lines(lines) if lang == "rs" else set()
+    if IDS_NAMES.search(path):
+        repeated = ids_literals()
+        f.ids_repeats = sum(1 for l in lines if (m := IDS_LITERAL.match(l)) and repeated[m.group(1)] > 1)
     for i, l in enumerate(lines[:tests]):
         code = l.split("//")[0] if lang != "java" or "//" in l else l
         if SILENCE.search(l) and "//" not in l and (i == 0 or "//" not in lines[i - 1]):
