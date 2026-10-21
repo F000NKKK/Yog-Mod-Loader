@@ -56,21 +56,25 @@ public final class YogQueries {
 
     // ── entities ─────────────────────────────────────────────────────────────
 
+    @YogServiceHost
     public static YogTypes.Point entityPosition(String uuid) {
         Entity e = NativeBridge.entityByUuid(uuid);
         return e == null ? null : point(e.position());
     }
 
+    @YogServiceHost
     public static YogTypes.Rotation entityRotation(String uuid) {
         Entity e = NativeBridge.entityByUuid(uuid);
         return e == null ? null : new YogTypes.Rotation(e.getYRot(), e.getXRot());
     }
 
+    @YogServiceHost
     public static YogTypes.Point entityVelocity(String uuid) {
         Entity e = NativeBridge.entityByUuid(uuid);
         return e == null ? null : point(e.getDeltaMovement());
     }
 
+    @YogServiceHost
     public static YogTypes.EntityInfo entityInfo(String uuid) {
         Entity e = NativeBridge.entityByUuid(uuid);
         if (e == null) return null;
@@ -81,17 +85,20 @@ public final class YogQueries {
                 NativeBridge.entityFlags(e), e.getName().getString());
     }
 
+    @YogServiceHost
     public static List<String> entityPassengers(String uuid) {
         Entity e = NativeBridge.entityByUuid(uuid);
         return e == null ? List.of() : e.getPassengers().stream().map(Entity::getStringUUID).toList();
     }
 
+    @YogServiceHost
     public static YogTypes.Stack itemEntityStack(String uuid) {
         return NativeBridge.entityByUuid(uuid) instanceof ItemEntity ie ? stack(ie.getItem()) : null;
     }
 
     // ── players ──────────────────────────────────────────────────────────────
 
+    @YogServiceHost
     public static YogTypes.PlayerInfo playerInfo(String player) {
         ServerPlayer p = NativeBridge.playerByName(player);
         if (p == null) return null;
@@ -100,6 +107,7 @@ public final class YogQueries {
                 p.getAbilities().mayfly, p.getAbilities().flying);
     }
 
+    @YogServiceHost
     public static List<YogTypes.SlotStack> playerInventory(String player) {
         ServerPlayer p = NativeBridge.playerByName(player);
         if (p == null) return List.of();
@@ -112,6 +120,7 @@ public final class YogQueries {
         return out;
     }
 
+    @YogServiceHost
     public static YogTypes.Stack getSlotItem(String player, int slot) {
         ServerPlayer p = NativeBridge.playerByName(player);
         if (p == null) return null;
@@ -119,6 +128,7 @@ public final class YogQueries {
         return slot < 0 || slot >= inv.getContainerSize() ? null : stack(inv.getItem(slot));
     }
 
+    @YogServiceHost
     public static List<String> onlinePlayers() {
         MinecraftServer s = NativeBridge.server;
         return s == null ? List.of() : s.getPlayerList().getPlayers().stream().map(p -> p.getName().getString()).toList();
@@ -127,6 +137,7 @@ public final class YogQueries {
     // ── this client ──────────────────────────────────────────────────────────
 
     /** The slots of the inventory screen open on this client: what each holds, where it's drawn. */
+    @YogServiceHost
     public static List<YogTypes.ScreenSlot> screenSlots() {
         YogInventoryMenu menu = NativeBridge.activeInventoryMenu;
         if (menu == null) return List.of();
@@ -135,6 +146,7 @@ public final class YogQueries {
 
     // ── blocks ───────────────────────────────────────────────────────────────
 
+    @YogServiceHost
     public static YogTypes.BlockInfo blockInfo(String dim, int x, int y, int z) {
         ServerLevel w = NativeBridge.worldFor(dim);
         if (w == null) return null;
@@ -147,16 +159,19 @@ public final class YogQueries {
                 fluid, !fs.isEmpty() && fs.isSource(), w.getBestNeighborSignal(pos), inWorld);
     }
 
+    @YogServiceHost
     public static YogTypes.Stack getInventorySlot(String dim, int x, int y, int z, int slot) {
         Container inv = NativeBridge.containerAt(dim, x, y, z);
         return inv == null || slot < 0 || slot >= inv.getContainerSize() ? null : stack(inv.getItem(slot));
     }
 
+    @YogServiceHost
     public static Integer redstonePower(String dim, int x, int y, int z) {
         ServerLevel w = NativeBridge.worldFor(dim);
         return w == null ? null : w.getBestNeighborSignal(new BlockPos(x, y, z));
     }
 
+    @YogServiceHost
     public static Integer redstoneSignal(String dim, int x, int y, int z) {
         ServerLevel w = NativeBridge.worldFor(dim);
         if (w == null) return null;
@@ -171,6 +186,7 @@ public final class YogQueries {
 
     // ── the world ────────────────────────────────────────────────────────────
 
+    @YogServiceHost
     public static List<YogTypes.PlacedBlock> scanRegion(String dim, int x1, int y1, int z1, int x2, int y2, int z2) {
         ServerLevel w = NativeBridge.worldFor(dim);
         if (w == null) return List.of();
@@ -182,6 +198,7 @@ public final class YogQueries {
         return out;
     }
 
+    @YogServiceHost
     public static Integer fillRegion(String dim, int x1, int y1, int z1, int x2, int y2, int z2, String state) {
         ServerLevel w = NativeBridge.worldFor(dim);
         if (w == null) return null;
@@ -198,6 +215,7 @@ public final class YogQueries {
         }
     }
 
+    @YogServiceHost
     public static Integer worldEntityCount(String dim, String entityTypeId) {
         ServerLevel w = NativeBridge.worldFor(dim);
         Identifier id = Identifier.tryParse(entityTypeId);
@@ -208,12 +226,14 @@ public final class YogQueries {
         return count;
     }
 
+    @YogServiceHost
     public static List<String> entitiesInBox(String dim, double x0, double y0, double z0, double x1, double y1, double z1) {
         ServerLevel w = NativeBridge.worldFor(dim);
         if (w == null) return List.of();
         return w.getEntities((Entity) null, new AABB(x0, y0, z0, x1, y1, z1), o -> true).stream().map(Entity::getStringUUID).toList();
     }
 
+    @YogServiceHost
     public static YogTypes.BlockHit raycastBlock(String dim, double fx, double fy, double fz, double tx, double ty, double tz) {
         ServerLevel w = NativeBridge.worldFor(dim);
         if (w == null) return null;

@@ -220,12 +220,14 @@ JNI_SURFACE = re.compile(r"/Native\w*\.java$")
 def fixed_signature(lines, i, path):
     """Whether the function at line `i` can't choose its parameters: an FFI
     entry (`extern`, the JNI surface), a Java override (the overridden
-    method's), a record's components (a data type, not a function)."""
+    method's), a bus service's host (`@YogServiceHost`: the request's
+    components, as the generated code spreads them), a record's components
+    (a data type, not a function)."""
     if "extern" in lines[i] or JNI_SURFACE.search(path) or re.search(r"\brecord\s+\w+\s*\(", lines[i]):
         return True
     k = i - 1
     while k >= 0 and lines[k].strip().startswith(("@", "//", "/*", "*")):
-        if lines[k].strip().startswith("@Override"):
+        if lines[k].strip().startswith(("@Override", "@YogServiceHost")):
             return True
         k -= 1
     return False

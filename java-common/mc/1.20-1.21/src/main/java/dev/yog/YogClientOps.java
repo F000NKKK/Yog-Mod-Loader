@@ -80,6 +80,7 @@ public final class YogClientOps {
 
     // ── what it is and sees ──────────────────────────────────────────────────
 
+    @YogServiceHost
     public static YogTypes.LocalState state() {
         LocalPlayer p = mc().player;
         ClientLevel w = mc().level;
@@ -89,6 +90,7 @@ public final class YogClientOps {
                 w.dimension().location().toString(), p.getInventory().selected, p.getAttackStrengthScale(HALF_TICK));
     }
 
+    @YogServiceHost
     public static List<YogTypes.SlotStack> inventory() {
         LocalPlayer p = mc().player;
         if (p == null) return List.of();
@@ -111,6 +113,7 @@ public final class YogClientOps {
      * chunk, a section whose palette has none of them skipped whole (most
      * of a box is stone and air, the ores a few sections hold).
      */
+    @YogServiceHost
     public static List<YogTypes.PlacedBlock> scan(int x1, int y1, int z1, int x2, int y2, int z2, List<String> ids) {
         ClientLevel w = mc().level;
         if (w == null) return List.of();
@@ -162,6 +165,7 @@ public final class YogClientOps {
         }
     }
 
+    @YogServiceHost
     public static YogTypes.BlockArea area(int x1, int y1, int z1, int x2, int y2, int z2) {
         ClientLevel w = mc().level;
         if (w == null) return null;
@@ -191,6 +195,7 @@ public final class YogClientOps {
                 !st.getFluidState().isEmpty(), st.is(BlockTags.CLIMBABLE), harmful);
     }
 
+    @YogServiceHost
     public static List<YogTypes.NearbyEntity> entities(double radius) {
         LocalPlayer p = mc().player;
         ClientLevel w = mc().level;
@@ -208,6 +213,7 @@ public final class YogClientOps {
 
     // ── what it does ─────────────────────────────────────────────────────────
 
+    @YogServiceHost
     public static boolean drive(float forward, float strafe, boolean jump, boolean sneak, boolean sprint, boolean useItem) {
         if (mc().player == null) return false;
         Options o = mc().options;
@@ -222,6 +228,7 @@ public final class YogClientOps {
         return true;
     }
 
+    @YogServiceHost
     public static boolean release() {
         Options o = mc().options;
         for (KeyMapping k : new KeyMapping[] {o.keyUp, o.keyDown, o.keyLeft, o.keyRight, o.keyJump, o.keyShift, o.keySprint, o.keyUse}) {
@@ -232,6 +239,7 @@ public final class YogClientOps {
         return true;
     }
 
+    @YogServiceHost
     public static boolean look(float yaw, float pitch) {
         LocalPlayer p = mc().player;
         if (p == null) return false;
@@ -240,6 +248,7 @@ public final class YogClientOps {
         return true;
     }
 
+    @YogServiceHost
     public static boolean attack(String uuid) {
         Minecraft mc = mc();
         LocalPlayer p = mc.player;
@@ -257,6 +266,7 @@ public final class YogClientOps {
         return null;
     }
 
+    @YogServiceHost
     public static boolean useItem(boolean offHand) {
         LocalPlayer p = mc().player;
         return p != null && mc().gameMode.useItem(p, offHand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND).consumesAction();
@@ -267,6 +277,7 @@ public final class YogClientOps {
         return d == null ? Direction.UP : d;
     }
 
+    @YogServiceHost
     public static boolean mine(int x, int y, int z, String face) {
         LocalPlayer p = mc().player;
         if (p == null || mc().level == null) return false;
@@ -276,12 +287,14 @@ public final class YogClientOps {
         return !mc().level.getBlockState(at).isAir();
     }
 
+    @YogServiceHost
     public static boolean stopMining() {
         if (mc().player == null) return false;
         mc().gameMode.stopDestroyBlock();
         return true;
     }
 
+    @YogServiceHost
     public static boolean place(int x, int y, int z, String face) {
         LocalPlayer p = mc().player;
         if (p == null) return false;
@@ -293,6 +306,7 @@ public final class YogClientOps {
         return placed;
     }
 
+    @YogServiceHost
     public static boolean selectSlot(int slot) {
         LocalPlayer p = mc().player;
         if (p == null || slot < 0 || slot >= HOTBAR) return false;
@@ -300,6 +314,7 @@ public final class YogClientOps {
         return true;
     }
 
+    @YogServiceHost
     public static boolean click(int slot, int button, String mode) {
         LocalPlayer p = mc().player;
         if (p == null) return false;
@@ -308,6 +323,7 @@ public final class YogClientOps {
         return true;
     }
 
+    @YogServiceHost
     public static boolean chat(String text) {
         var connection = mc().getConnection();
         if (connection == null) return false;

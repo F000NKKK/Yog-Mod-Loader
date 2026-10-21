@@ -24,14 +24,14 @@ Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/YogPlatform.java		todo
 Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/mixin/LevelMainPassMixin.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogBookItem.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientEvents.java		todo
-Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientOps.java	params:ordered@105(6),scan@114(7),area@165(6),drive@211(6)	todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientOps.java	params:ordered@107(6)	todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientTooltip.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogCommands.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogConnectingBlock.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogEntityRenderer.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogInventoryMenu.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogLootTableId.java		todo
-Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogQueries.java	params:scanRegion@173(7),fillRegion@184(8),entitiesInBox@210(7),raycastBlock@216(7)	todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogQueries.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogRedstoneBlock.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogRegistrar.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogServerEvents.java		todo
@@ -125,7 +125,7 @@ Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBookItem.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogCallbackChunkGenerator.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientApi.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientEvents.java		todo
-Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientOps.java	params:ordered@105(6),scan@114(7),area@165(6),drive@211(6)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientOps.java	params:ordered@107(6)	todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientTooltip.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogCommands.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogConnectingBlock.java		todo
@@ -148,7 +148,7 @@ Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogLootTableId.java		to
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogObject.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogPackProvider.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogPayload.java		todo
-Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogQueries.java	params:scanRegion@174(7),fillRegion@185(8),entitiesInBox@211(7),raycastBlock@217(7)	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogQueries.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogRedstoneBlock.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogRegistrar.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogServerEvents.java		todo

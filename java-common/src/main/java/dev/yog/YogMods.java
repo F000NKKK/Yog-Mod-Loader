@@ -7,6 +7,7 @@ import java.util.List;
 public final class YogMods {
     private YogMods() {}
 
+    @YogServiceHost
     public static List<YogTypes.ModInfo> platformMods() {
         return YogPlatform.mods().stream()
                 .map(m -> new YogTypes.ModInfo(YogNames.ModSource.PLATFORM, m.id(), m.name(), m.version(), m.authors(), m.description()))

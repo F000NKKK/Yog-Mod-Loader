@@ -28,6 +28,7 @@ public final class YogClientApi {
     private static final AtomicInteger NEXT = new AtomicInteger(1);
 
     /** Flags: 1 = modal, 2 = pause, 4 = no background. */
+    @YogServiceHost
     public static void openUI(String uiId, int flags) {
         try {
             Minecraft mc = Minecraft.getInstance();
@@ -37,6 +38,7 @@ public final class YogClientApi {
         }
     }
 
+    @YogServiceHost
     public static int playSound(String id, float volume, float pitch, boolean looping) {
         try {
             Minecraft mc = Minecraft.getInstance();
@@ -54,6 +56,7 @@ public final class YogClientApi {
         }
     }
 
+    @YogServiceHost
     public static void stopSound(int handle) {
         SoundInstance s = SOUNDS.remove(handle);
         if (s == null) return;
@@ -65,6 +68,7 @@ public final class YogClientApi {
         }
     }
 
+    @YogServiceHost
     public static String heldItem(boolean offHand) {
         try {
             LocalPlayer p = Minecraft.getInstance().player;
@@ -77,6 +81,7 @@ public final class YogClientApi {
         }
     }
 
+    @YogServiceHost
     public static boolean keyDown(int key) {
         try {
             return InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), key);
@@ -90,6 +95,7 @@ public final class YogClientApi {
     private static final java.util.Map<String, java.util.Map<Long, Integer>> TINTS = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** Tints the block at x, y, z in {@code dim} (its faces with a tint index); color -1 clears it. */
+    @YogServiceHost
     public static void setBlockTint(String dim, int x, int y, int z, int color) {
         long key = net.minecraft.core.BlockPos.asLong(x, y, z);
         java.util.Map<Long, Integer> here = TINTS.computeIfAbsent(dim, d -> new java.util.concurrent.ConcurrentHashMap<>());
@@ -116,16 +122,19 @@ public final class YogClientApi {
     }
 
     /** yog-body: ask the mods about entity {@code uuid}'s body each frame, or stop. */
+    @YogServiceHost
     public static void bodyTrack(String uuid, boolean on) {
         dev.yog.util.YogBodyWire.track(uuid, on);
     }
 
     /** yog-body: the same for every entity of a type. */
+    @YogServiceHost
     public static void bodyTrackType(String type, boolean on) {
         dev.yog.util.YogBodyWire.trackType(type, on);
     }
 
     /** yog-body: entity {@code uuid}'s own hitbox on this client, or vanilla's again (width &lt; 0). */
+    @YogServiceHost
     public static void setDimensions(String uuid, float width, float height, float eye) {
         try {
             java.util.UUID id = java.util.UUID.fromString(uuid);
@@ -140,6 +149,7 @@ public final class YogClientApi {
     }
 
     /** An attribute's value on this client's player: its base changed by every modifier. */
+    @YogServiceHost
     public static double attributeValue(String attributeId) {
         net.minecraft.world.entity.LivingEntity le = net.minecraft.client.Minecraft.getInstance().player;
         if (le == null) return Double.NaN;
@@ -152,6 +162,7 @@ public final class YogClientApi {
     }
 
     /** Whether this client's player has advancement {@code id} (a book's locked entries ask). */
+    @YogServiceHost
     public static boolean advancementDone(String id) {
         var c = net.minecraft.client.Minecraft.getInstance().getConnection();
         if (c == null) return false;
@@ -163,6 +174,7 @@ public final class YogClientApi {
     }
 
     /** The items of item tag {@code id} ({@code hexcasting:edified_planks}), what a book's recipe shows in turn. */
+    @YogServiceHost
     public static java.util.List<String> tagItems(String id) {
         ResourceLocation tag = ResourceLocation.tryParse(id);
         if (tag == null) return java.util.List.of();
