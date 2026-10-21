@@ -15,6 +15,7 @@ serde_json = { workspace = true }
 # Content definitions whose format is the definition itself (`SoundGroup`).
 yog-registry = { workspace = true }
 # A dimension's `terrain`.
+yog-sync = { workspace = true }
 yog-worldgen = { workspace = true }
 yog-body = { workspace = true }
 yog-font = { workspace = true }

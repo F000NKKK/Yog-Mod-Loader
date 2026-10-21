@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 use std::io::Read;
-use std::sync::{Arc, Mutex, OnceLock};
+use yog_sync::{Arc, Mutex, OnceLock};
 
 use serde_json::Value;
 
@@ -134,7 +134,7 @@ fn unihex(res: &Resources, file: &str, overrides: &[Value]) -> Option<Arc<Unihex
     type Cache = Mutex<HashMap<String, Arc<HashMap<u32, ([u32; 16], u32)>>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(Default::default);
-    let glyphs = if let Some(hit) = cache.lock().ok()?.get(file).cloned() {
+    let glyphs = if let Some(hit) = cache.lock().get(file).cloned() {
         hit
     } else {
         let (ns, path) = yog_ids::split(file);
@@ -178,9 +178,8 @@ fn unihex(res: &Resources, file: &str, overrides: &[Value]) -> Option<Arc<Unihex
             }
         }
         let glyphs = Arc::new(glyphs);
-        if let Ok(mut c) = cache.lock() {
-            c.insert(file.to_string(), glyphs.clone());
-        }
+        let mut c = cache.lock();
+        c.insert(file.to_string(), glyphs.clone());
         glyphs
     };
     let overrides = overrides
@@ -464,7 +463,7 @@ impl Font {
         };
         let key = (res.mod_root.clone(), id.to_string(), super::font_yog::changed(res, id));
         let cache = CACHE.get_or_init(Default::default);
-        if let Some(f) = cache.lock().ok().and_then(|c| c.get(&key).cloned()) {
+        if let Some(f) = cache.lock().get(&key).cloned() {
             return f;
         }
         let mut providers = Vec::new();
@@ -480,9 +479,8 @@ impl Font {
             providers,
             cache: Mutex::new(HashMap::new()),
         });
-        if let Ok(mut c) = cache.lock() {
-            c.insert(key, font.clone());
-        }
+        let mut c = cache.lock();
+        c.insert(key, font.clone());
         font
     }
 
@@ -517,7 +515,7 @@ impl Font {
     }
 
     pub fn glyph(&self, ch: char) -> Arc<Glyph> {
-        if let Some(g) = self.cache.lock().ok().and_then(|c| c.get(&ch).cloned()) {
+        if let Some(g) = self.cache.lock().get(&ch).cloned() {
             return g;
         }
         let g = Arc::new(
@@ -537,9 +535,8 @@ impl Font {
                 })
                 .unwrap_or_else(missing_glyph),
         );
-        if let Ok(mut c) = self.cache.lock() {
-            c.insert(ch, g.clone());
-        }
+        let mut c = self.cache.lock();
+        c.insert(ch, g.clone());
         g
     }
 

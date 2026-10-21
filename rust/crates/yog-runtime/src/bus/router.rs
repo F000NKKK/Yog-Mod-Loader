@@ -3,11 +3,10 @@
 
 use std::collections::HashMap;
 use std::os::raw::c_void;
-use std::sync::{Arc, RwLock};
+use yog_sync::{Arc, RwLock};
 
 use yog_abi::{YogAddress, YogBytes, YogHandlerFn, YogReply, YogStatus, status};
 use yog_hot_reload::{CallGuard, LoadedModule, ModuleGeneration};
-use yog_sync::ReadWrite;
 
 /// Who handles a message.
 #[derive(Clone)]
@@ -50,7 +49,7 @@ impl Router {
 
     /// Makes `handler` the provider of `address`; `false` if there is one.
     pub(crate) fn provide(&self, address: YogAddress, handler: Handler) -> bool {
-        let mut providers = self.providers.write_locked();
+        let mut providers = self.providers.write();
         if providers.contains_key(&address) {
             return false;
         }
@@ -59,12 +58,12 @@ impl Router {
     }
 
     pub(crate) fn provided(&self, address: YogAddress) -> bool {
-        self.providers.read_locked().contains_key(&address)
+        self.providers.read().contains_key(&address)
     }
 
     /// Subscribes `handler` to `event`, after those of its priority or higher.
     pub(crate) fn on(&self, event: YogAddress, priority: i32, handler: Handler) {
-        let mut subs = self.subscribers.write_locked();
+        let mut subs = self.subscribers.write();
         let list = Arc::make_mut(subs.entry(event).or_default());
         let at = list
             .iter()
@@ -76,7 +75,7 @@ impl Router {
     /// Whether anyone listens to `event` (an emitter can skip building its payload).
     pub(crate) fn heard(&self, event: YogAddress) -> bool {
         self.subscribers
-            .read_locked()
+            .read()
             .get(&event)
             .is_some_and(|list| !list.is_empty())
     }
@@ -87,7 +86,7 @@ impl Router {
         let branch = yog_event::keyed(address, "");
         let mut keys: Vec<String> = self
             .subscribers
-            .read_locked()
+            .read()
             .iter()
             .filter(|(_, list)| !list.is_empty())
             .filter_map(|(at, _)| {
@@ -108,7 +107,7 @@ impl Router {
         reply: &YogReply,
         java: JavaRunner,
     ) -> YogStatus {
-        let providers = Arc::clone(&self.providers.read_locked());
+        let providers = Arc::clone(&self.providers.read());
         match providers.get(&to) {
             Some(handler) => run(handler, payload, reply, java),
             None => status::NO_HANDLER,
@@ -125,7 +124,7 @@ impl Router {
         reply: &YogReply,
         java: JavaRunner,
     ) -> YogStatus {
-        let Some(subs) = self.subscribers.read_locked().get(&event).cloned() else {
+        let Some(subs) = self.subscribers.read().get(&event).cloned() else {
             return status::OK;
         };
         // The event as it stands and the next handler's reply: two buffers
@@ -211,8 +210,8 @@ impl Router {
     /// Drops what the module of `generation` registered.
     pub(crate) fn purge(&self, generation: ModuleGeneration) {
         let owned_by = |h: &Handler| matches!(h, Handler::Native { owner: Some(m), .. } if m.generation() == generation);
-        Arc::make_mut(&mut self.providers.write_locked()).retain(|_, h| !owned_by(h));
-        for list in self.subscribers.write_locked().values_mut() {
+        Arc::make_mut(&mut self.providers.write()).retain(|_, h| !owned_by(h));
+        for list in self.subscribers.write().values_mut() {
             Arc::make_mut(list).retain(|s| !owned_by(&s.handler));
         }
     }

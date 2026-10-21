@@ -15,11 +15,11 @@
 //!         gfx.draw2d().rect(Rect::from_edges(rect.x, rect.y, rect.x + rect.w, rect.y + 1.0), Color(0xFFFFFFFF));
 //!     }
 //! }
-//! yog_ui::surface::register("mymod:graph", std::sync::Arc::new(Graph));
+//! yog_ui::surface::register("mymod:graph", yog_sync::Arc::new(Graph));
 //! ```
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use yog_sync::{Arc, Mutex};
 
 use yog_gfx::GfxContext;
 
@@ -74,32 +74,26 @@ static SURFACES: Mutex<Option<Registry>> = Mutex::new(None);
 pub fn register(id: impl Into<String>, surface: Arc<dyn Surface>) {
     SURFACES
         .lock()
-        .unwrap_or_else(|e| e.into_inner())
         .get_or_insert_with(HashMap::new)
         .insert(id.into(), surface);
 }
 
 /// Drops the surface registered under `id`.
 pub fn unregister(id: &str) {
-    if let Some(map) = SURFACES.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
+    if let Some(map) = SURFACES.lock().as_mut() {
         map.remove(id);
     }
 }
 
 /// The surface registered under `id`.
 pub fn get(id: &str) -> Option<Arc<dyn Surface>> {
-    SURFACES
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .as_ref()?
-        .get(id)
-        .cloned()
+    SURFACES.lock().as_ref()?.get(id).cloned()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicU32, Ordering};
+    use yog_sync::atomic::{AtomicU32, Ordering};
 
     struct Counter(AtomicU32);
     impl Surface for Counter {

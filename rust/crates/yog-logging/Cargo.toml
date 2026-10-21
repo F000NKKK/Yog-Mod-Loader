@@ -7,3 +7,4 @@ license = "MIT OR Apache-2.0"
 description = "Yog logging — lightweight, zero-overhead logging macros."
 
 [dependencies]
+yog-sync = { workspace = true }

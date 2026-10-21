@@ -2,7 +2,7 @@
 //! (by `yog-api` in a mod, by the runtime in itself), and every action's
 //! function and [`call`] go through it.
 
-use std::sync::OnceLock;
+use yog_sync::OnceLock;
 
 use crate::{Message, Service};
 

@@ -3,7 +3,7 @@
 //! potions, leather) and `builtin/entity` heads, drawn as a 3D head.
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use serde_json::Value;
 
@@ -254,7 +254,7 @@ mod tests {
         }
         let res = Resources {
             mod_root: Some(dir.clone()),
-            vanilla: super::super::assets::Vanilla::from_jar(jar, "1.21.1").map(std::sync::Arc::new),
+            vanilla: super::super::assets::Vanilla::from_jar(jar, "1.21.1").map(yog_sync::Arc::new),
         };
         let Some(Look::Flat(image)) = look(&res, "hexcasting:enlarge_grid") else {
             panic!("content potion should resolve to a layered item model");

@@ -20,7 +20,6 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
-use yog_sync::Locked;
 
 /// Reads `YOG_CONTROL_SOCKET` and `YOG_CONTROL_TOKEN`; with both, listens on
 /// the address (loopback only) on a background thread. Call once, after
@@ -94,7 +93,7 @@ fn write_line(stream: &mut TcpStream, json: &serde_json::Value) {
 
 fn mod_list_json() -> Vec<serde_json::Value> {
     crate::globals::MOD_INFOS
-        .locked()
+        .lock()
         .iter()
         .map(|m| serde_json::json!({ "id": m[0], "name": m[1], "version": m[2] }))
         .collect()

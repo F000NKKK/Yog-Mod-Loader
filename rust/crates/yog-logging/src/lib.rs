@@ -11,7 +11,7 @@
 //! ```
 
 use std::io::Write;
-use std::sync::OnceLock;
+use yog_sync::OnceLock;
 
 /// Severity of a log record.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
+use yog_sync::Arc;
 use std::time::SystemTime;
 
 use yog_graphics::Color;

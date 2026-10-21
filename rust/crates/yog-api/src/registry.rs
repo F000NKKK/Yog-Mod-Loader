@@ -51,12 +51,12 @@ pub(crate) fn guard<R>(fallback: R, call: impl FnOnce() -> R) -> R {
 /// Pointer to the runtime's `YogApi` table (a process-lifetime static in the
 /// runtime), captured when the mod registers. Lets free functions like
 /// [`installed_mods`] work outside of `register()` — e.g. in UI handlers.
-static GLOBAL_API: std::sync::atomic::AtomicPtr<YogApi> =
-    std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());
+static GLOBAL_API: yog_sync::atomic::AtomicPtr<YogApi> =
+    yog_sync::atomic::AtomicPtr::new(std::ptr::null_mut());
 
 /// The runtime's `YogApi` table, null before this mod registered.
 pub(crate) fn global_api() -> *mut YogApi {
-    GLOBAL_API.load(std::sync::atomic::Ordering::Acquire)
+    GLOBAL_API.load(yog_sync::atomic::Ordering::Acquire)
 }
 
 pub use yog_event::game::ModInfo;
@@ -126,7 +126,7 @@ impl Registry {
     /// `api` must point to the runtime's `YogApi` table, valid for the rest of
     /// the process.
     pub unsafe fn from_raw(api: *const YogApi) -> Self {
-        GLOBAL_API.store(api as *mut YogApi, std::sync::atomic::Ordering::Release);
+        GLOBAL_API.store(api as *mut YogApi, yog_sync::atomic::Ordering::Release);
         // The mod's records go to the game's log, through the runtime.
         yog_logging::set_sink(log_to_host);
         // The actions' functions and handles (`player::give_item`, `Player`) reach the bus through it.
@@ -184,9 +184,9 @@ impl Registry {
         if self.call(&declare) != Some(true) {
             crate::error!("command {name}: the host wasn't told of it");
         }
-        let handler = std::sync::Arc::new(handler);
+        let handler = yog_sync::Arc::new(handler);
         for &fit in yog_command::Fit::ways(schema) {
-            let (handler, schema) = (std::sync::Arc::clone(&handler), declare.schema.clone());
+            let (handler, schema) = (yog_sync::Arc::clone(&handler), declare.schema.clone());
             self.change_key_at::<yog_event::server::command::Run>(name, fit.rank() as i32, move |run, _| {
                 if run.reply.is_some() {
                     return;
@@ -592,9 +592,8 @@ impl Registry {
     where
         F: Fn(&mut crate::loot::LootStack, &crate::loot::Loot) + Send + Sync + 'static,
     {
-        if let Ok(mut f) = crate::loot::functions().write() {
-            f.insert(name.to_string(), std::sync::Arc::new(function));
-        }
+        let mut f = crate::loot::functions().write();
+        f.insert(name.to_string(), yog_sync::Arc::new(function));
     }
 
     /// Register a handler that moves, turns or zooms the camera each frame;

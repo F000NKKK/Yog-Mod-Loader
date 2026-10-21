@@ -21,8 +21,8 @@ use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Stdio};
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
-use std::sync::{Arc, Mutex, OnceLock};
+use yog_sync::mpsc::{self, Receiver, RecvTimeoutError};
+use yog_sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant, SystemTime};
 
 use serde::Serialize;
@@ -32,7 +32,6 @@ use super::components::{self, Def};
 use super::host::{ComponentInfo, MARK, RenderReq};
 use super::raster::DrawOp;
 use crate::design::project;
-use yog_sync::Locked;
 
 /// Elements the designer draws itself (yog-ui's and yog-kit's); any other
 /// PascalCase element is a custom component (as for `yog build`).
@@ -170,7 +169,7 @@ impl HostProc {
                 if n == 0 {
                     break;
                 }
-                let mut t = tail.locked();
+                let mut t = tail.lock();
                 t.push_str(&String::from_utf8_lossy(&buf[..n]));
                 if t.len() > 16_000 {
                     let cut = t.len() - 8_000;
@@ -230,7 +229,7 @@ impl HostProc {
         std::thread::sleep(Duration::from_millis(50));
         let tail = self
             .stderr
-            .locked()
+            .lock()
             .clone();
         let tail: Vec<&str> = tail
             .lines()
@@ -353,14 +352,10 @@ fn mods() -> &'static Mutex<HashMap<PathBuf, Shared>> {
 
 fn state(root: &Path) -> Shared {
     mods()
-        .locked()
+        .lock()
         .entry(root.to_path_buf())
         .or_insert_with(|| Arc::new(Mutex::new(ModState::new())))
         .clone()
-}
-
-fn lock(s: &Shared) -> std::sync::MutexGuard<'_, ModState> {
-    s.locked()
 }
 
 /// The mod's Rust sources, `yog.toml` and resources — what the library is built from.
@@ -420,7 +415,7 @@ pub fn status(root: &Path) -> Snapshot {
     let shared = state(root);
     let files = sources(root);
     let fp = fingerprint(&files);
-    let mut s = lock(&shared);
+    let mut s = shared.lock();
     if s.mod_name.is_empty() {
         s.mod_name = mod_name(root);
     }
@@ -463,7 +458,7 @@ pub fn status(root: &Path) -> Snapshot {
 /// may overwrite the original while the host has it loaded).
 fn rebuild(root: &Path, shared: &Shared, fp: u64) {
     let result = build_lib(root).and_then(|lib| {
-        let generation = lock(shared).generation + 1;
+        let generation = shared.lock().generation + 1;
         let copy = std::env::temp_dir().join("yog-idle-designer").join(format!(
             "{}-{}-{generation}{}",
             lib.file_stem().unwrap_or_default().to_string_lossy(),
@@ -479,7 +474,7 @@ fn rebuild(root: &Path, shared: &Shared, fp: u64) {
             let _ = std::fs::remove_file(&copy);
         })
     });
-    let mut s = lock(shared);
+    let mut s = shared.lock();
     s.building = false;
     s.built = Some(fp);
     s.generation += 1;

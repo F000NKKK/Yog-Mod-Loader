@@ -3,7 +3,7 @@
 //! from their ids), editions' ordinals, the sheet it's drawn from.
 
 use std::collections::HashMap;
-use std::sync::{LazyLock, RwLock};
+use yog_sync::{LazyLock, RwLock};
 
 use super::{BOOK_SHEET, LANG};
 
@@ -26,11 +26,11 @@ const HUNDRED: u32 = 100;
 const TEN: u32 = 10;
 
 pub(crate) fn set_translator(tr: Translator) {
-    *TRANSLATOR.write().unwrap_or_else(|e| e.into_inner()) = Some(tr);
+    *TRANSLATOR.write() = Some(tr);
 }
 
 fn translator() -> Option<Translator> {
-    *TRANSLATOR.read().unwrap_or_else(|e| e.into_inner())
+    *TRANSLATOR.read()
 }
 
 /// `key` translated, unless the game has no such key (it answers the key back).

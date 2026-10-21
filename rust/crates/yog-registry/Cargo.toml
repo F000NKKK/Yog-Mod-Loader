@@ -13,6 +13,7 @@ yog-graphics = { workspace = true }
 # Definitions cross the ABI as Yog Data (`register_content`).
 yog-data = { workspace = true }
 serde = { workspace = true, optional = true }
+yog-sync = { workspace = true }
 
 [features]
 serde = ["dep:serde"]

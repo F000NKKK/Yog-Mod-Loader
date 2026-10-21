@@ -55,6 +55,10 @@ TODO = re.compile(r"\b(TODO|FIXME|XXX|HACK)\b")
 # A glob import (CODE_STANDARDS: none outside preludes and tests): Rust `use a::*;`, Java
 # `import a.*;`. A `pub use a::*` re-export (a facade's surface, like a prelude) isn't one.
 GLOB_IMPORT = re.compile(r"^\s*use\s+(?![\w:]*\bprelude::\*)[\w:{}, ]*::\*\s*;|^\s*import\s+(static\s+)?[\w.]+\.\*\s*;")
+# A sync primitive that isn't Yog's (CODE_STANDARDS: `yog-sync` only).
+FOREIGN_SYNC = re.compile(r"\bstd::sync\b|\bparking_lot\b|\bonce_cell::|\blazy_static\b")
+# Where the sync primitives come from, and the repo that takes no Yog crates.
+SYNC_HOME = re.compile(r"(^|/)rust/crates/yog-sync/|^Substrate-Platform/")
 COMMENTED_CODE = re.compile(r"^\s*//\s*(let |fn |pub |use |if \(|for |return |import |const |\}|[\w.]+\(.*\);\s*$)")
 
 
@@ -71,6 +75,7 @@ class Findings:
     todos: int = 0
     commented_code: int = 0
     glob_imports: int = 0
+    foreign_sync: int = 0
 
     def summary(self):
         out = []
@@ -80,7 +85,7 @@ class Findings:
             out.append("long-fn:" + ",".join(self.long_fns[:5]) + ("…" if len(self.long_fns) > 5 else ""))
         if self.many_params:
             out.append("params:" + ",".join(self.many_params[:5]) + ("…" if len(self.many_params) > 5 else ""))
-        for name in ("silenced", "panics", "prints", "literal_facts", "magic_numbers", "todos", "commented_code", "glob_imports"):
+        for name in ("silenced", "panics", "prints", "literal_facts", "magic_numbers", "todos", "commented_code", "glob_imports", "foreign_sync"):
             n = getattr(self, name)
             if n:
                 out.append(f"{name}:{n}")
@@ -276,6 +281,8 @@ def check(path, text):
             f.commented_code += 1
         if GLOB_IMPORT.match(l):
             f.glob_imports += 1
+        if lang == "rs" and not SYNC_HOME.search(path) and FOREIGN_SYNC.search(LITERALS.sub('""', code)):
+            f.foreign_sync += 1
         if CONST_LINE.search(l) or l.strip().startswith(("///", "//", "*", "/*")):
             continue
         if not FACT_HOME.search(path):

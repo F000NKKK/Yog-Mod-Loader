@@ -33,13 +33,12 @@ fn one() -> f32 {
     1.0
 }
 
-static BUILT_IN_SOUND_GROUPS: std::sync::LazyLock<Vec<SoundGroup>> =
-    std::sync::LazyLock::new(|| {
-        yog_data::built_in::<Vec<SoundGroup>>(
-            "yog-registry's built-in sound groups",
-            include_str!("../assets/sound_groups.ydata"),
-        )
-    });
+static BUILT_IN_SOUND_GROUPS: yog_sync::LazyLock<Vec<SoundGroup>> = yog_sync::LazyLock::new(|| {
+    yog_data::built_in::<Vec<SoundGroup>>(
+        "yog-registry's built-in sound groups",
+        include_str!("../assets/sound_groups.ydata"),
+    )
+});
 
 impl SoundGroup {
     /// `mymod:crystal`, its sounds `mymod:crystal.break`, `.step`, `.place`,

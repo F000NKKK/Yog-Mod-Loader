@@ -9,7 +9,7 @@
 use yog_ids::Format;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use yog_sync::{Mutex, OnceLock};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -221,7 +221,7 @@ fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
     type Cache = Mutex<HashMap<(PathBuf, String), Vec<String>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let key = (vanilla.jar.clone(), kind.to_string());
-    if let Some(hit) = CACHE.get_or_init(Default::default).lock().ok().and_then(|c| c.get(&key).cloned()) {
+    if let Some(hit) = CACHE.get_or_init(Default::default).lock().get(&key).cloned() {
         return hit;
     }
     let keys = |asset: &str| {
@@ -261,9 +261,8 @@ fn game(root: Option<&Path>, kind: &str) -> Vec<String> {
     };
     out.sort();
     out.dedup();
-    if let Ok(mut c) = CACHE.get_or_init(Default::default).lock() {
-        c.insert(key, out.clone());
-    }
+    let mut c = CACHE.get_or_init(Default::default).lock();
+    c.insert(key, out.clone());
     out
 }
 

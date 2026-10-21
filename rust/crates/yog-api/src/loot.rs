@@ -6,7 +6,7 @@
 
 use std::cell::Cell;
 use std::collections::HashMap;
-use std::sync::{Arc, OnceLock, RwLock};
+use yog_sync::{Arc, OnceLock, RwLock};
 
 pub use yog_registry::{Loot, LootAdd, LootModifier, LootScale, LootStack};
 
@@ -41,7 +41,7 @@ pub fn random() -> f64 {
 
 /// Applies `modifier` to `loot`, running the mod's loot functions it names.
 pub(crate) fn apply(modifier: &LootModifier, loot: &mut Loot) {
-    let functions = functions().read().map(|f| f.clone()).unwrap_or_default();
+    let functions = functions().read().clone();
     modifier.apply(loot, &mut random, &mut |name, stack, loot| match functions.get(name) {
         Some(f) => f(stack, loot),
         None => crate::error!("loot modifier {}: no loot function {name} (registry.loot_function)", modifier.id),

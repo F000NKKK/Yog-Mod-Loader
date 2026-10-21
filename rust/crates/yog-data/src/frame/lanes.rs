@@ -12,7 +12,7 @@
 //!
 //! Number `i` is found in O(1) ([`get`]), so views read in place.
 
-use std::sync::OnceLock;
+use yog_sync::OnceLock;
 
 /// Lanes of a block: a 256-bit vector of 32-bit words.
 pub const LANES: usize = 8;

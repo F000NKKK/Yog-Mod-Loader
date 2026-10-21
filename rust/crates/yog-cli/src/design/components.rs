@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use yog_sync::{Arc, Mutex, OnceLock};
 use std::time::SystemTime;
 
 use quick_xml::events::{BytesStart, Event};
@@ -22,7 +22,6 @@ use quick_xml::{Reader, XmlVersion};
 
 use super::host::{ComponentInfo, PropInfo};
 use super::markup::YuiNode;
-use yog_sync::Locked;
 
 /// One component of the mod.
 #[derive(Debug, Clone)]
@@ -377,7 +376,7 @@ pub fn scan_with_revision(mod_root: &Path) -> (u64, Arc<Vec<Def>>) {
     let fp = fingerprint(&files);
     let cache = CACHE.get_or_init(Default::default);
     if let Some((seen, defs)) = cache
-        .locked()
+        .lock()
         .get(mod_root)
         && *seen == fp
     {
@@ -396,7 +395,7 @@ pub fn scan_with_revision(mod_root: &Path) -> (u64, Arc<Vec<Def>>) {
         .collect();
     let defs = Arc::new(defs);
     cache
-        .locked()
+        .lock()
         .insert(mod_root.to_path_buf(), (fp, defs.clone()));
     (fp, defs)
 }

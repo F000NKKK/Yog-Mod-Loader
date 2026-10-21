@@ -68,10 +68,7 @@ pub fn register(registry: &mut ::yog_api::Registry) {
 // `Mod::register`.
 #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
 fn __yog_content_auto_register() {
-    ::yog_api::__yog_content_registrars()
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .push(register);
+    ::yog_api::__yog_content_registrars().lock().push(register);
 }
 
 # assets/gm/items/ruby.json

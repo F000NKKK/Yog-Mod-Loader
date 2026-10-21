@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use yog_sync::{Arc, Mutex, OnceLock};
 use std::time::SystemTime;
 
 use yog_data::{Res, Schema};
@@ -60,7 +60,7 @@ static PICTURES: OnceLock<Cache> = OnceLock::new();
 fn pictures_of(file: &Path, set: &str) -> Arc<Vec<Picture>> {
     let modified = std::fs::metadata(file).and_then(|m| m.modified()).unwrap_or(SystemTime::UNIX_EPOCH);
     let cache = PICTURES.get_or_init(Default::default);
-    if let Some((at, pictures)) = cache.lock().ok().and_then(|c| c.get(file).cloned())
+    if let Some((at, pictures)) = cache.lock().get(file).cloned()
         && at == modified
     {
         return pictures;
@@ -75,9 +75,8 @@ fn pictures_of(file: &Path, set: &str) -> Arc<Vec<Picture>> {
             })
             .collect(),
     );
-    if let Ok(mut c) = cache.lock() {
-        c.insert(file.to_path_buf(), (modified, pictures.clone()));
-    }
+    let mut c = cache.lock();
+    c.insert(file.to_path_buf(), (modified, pictures.clone()));
     pictures
 }
 

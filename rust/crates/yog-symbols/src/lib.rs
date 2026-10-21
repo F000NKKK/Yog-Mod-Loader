@@ -36,7 +36,7 @@ mod locals;
 mod unwind;
 
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
+use yog_sync::{Arc, OnceLock};
 
 use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};

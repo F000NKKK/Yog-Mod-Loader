@@ -2,7 +2,7 @@
 //! sets by hand on top — evaluated into quads to draw, vanilla parts to
 //! pose, and locators to follow.
 
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use crate::anim::{BonePose, Clip, Pose};
 use crate::math::{Mat4, Vec3};

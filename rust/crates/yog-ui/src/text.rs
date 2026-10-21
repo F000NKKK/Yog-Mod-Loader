@@ -8,7 +8,7 @@
 //! (`data/glyph_widths.ydata`, generated from the game's font) stand in.
 
 use std::collections::HashMap;
-use std::sync::{LazyLock, Mutex};
+use yog_sync::{LazyLock, Mutex};
 
 use yog_gfx::{GfxContext, TextWidthFn};
 
@@ -105,9 +105,7 @@ static HOST: Mutex<HostMetrics> = Mutex::new(HostMetrics {
 /// module docs). Called by `UiRoot::render`; call it yourself before the
 /// first layout to get exact metrics from the very first frame.
 pub fn use_host_metrics(ctx: &GfxContext) {
-    if let Ok(mut h) = HOST.lock() {
-        h.width = Some(ctx.text_width_fn());
-    }
+    HOST.lock().width = Some(ctx.text_width_fn());
 }
 
 /// Advance width of `c` in `font` at scale 1 — the host's measurement
@@ -115,8 +113,7 @@ pub fn use_host_metrics(ctx: &GfxContext) {
 pub fn char_width_in(c: char, font: &str) -> f32 {
     let font = host_font(font);
     HOST.lock()
-        .ok()
-        .and_then(|mut h| h.advance(c, font))
+        .advance(c, font)
         .unwrap_or_else(|| char_width(c))
 }
 
@@ -128,9 +125,7 @@ pub fn str_width(s: &str, font_scale: f32) -> f32 {
 /// [`str_width`] in `font` (see [`char_width_in`]).
 pub fn str_width_in(s: &str, font_scale: f32, font: &str) -> f32 {
     let font = host_font(font);
-    let Ok(mut h) = HOST.lock() else {
-        return str_width(s, font_scale);
-    };
+    let mut h = HOST.lock();
     crate::rich::width(s, |c| h.advance(c, font).unwrap_or_else(|| char_width(c))) * font_scale
 }
 

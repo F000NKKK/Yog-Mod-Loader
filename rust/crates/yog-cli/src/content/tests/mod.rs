@@ -3,7 +3,7 @@ use crate::yres;
 use serde_json::json;
 
 fn project(files: &[(&str, &str)]) -> PathBuf {
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use yog_sync::atomic::{AtomicUsize, Ordering};
     static N: AtomicUsize = AtomicUsize::new(0);
     let dir = std::env::temp_dir().join(format!(
         "yog-content-test-{}-{}",

@@ -3,7 +3,7 @@
 //! and the widening back — AVX2 where the processor has it, chosen once;
 //! the same bytes either way.
 
-use std::sync::OnceLock;
+use yog_sync::OnceLock;
 
 const F32_BYTES: usize = 4;
 const F64_BYTES: usize = 8;

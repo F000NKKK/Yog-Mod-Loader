@@ -5,8 +5,8 @@
 //! the attached process.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use yog_sync::Arc;
+use yog_sync::atomic::{AtomicBool, Ordering};
 
 use nix::sys::ptrace;
 use nix::sys::signal::Signal;

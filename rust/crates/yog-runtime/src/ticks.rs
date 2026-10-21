@@ -3,7 +3,6 @@ use crate::entity_data;
 use crate::handlers::handlers;
 use crate::jni_util::guard;
 use yog_abi::YogStr;
-use yog_sync::Locked;
 
 /// The command tag a player carries once startup grant `id` was given. It's
 /// saved with the player's own data, so it follows the player — not their
@@ -18,7 +17,7 @@ pub(crate) fn queue_startup_grants(player: &str, uuid: &str) {
     let h = handlers();
     if !h.startup_grants.is_empty() {
         h.pending_grants
-            .locked()
+            .lock()
             .push((player.to_owned(), uuid.to_owned(), 0));
     }
 }
@@ -35,9 +34,8 @@ pub(crate) fn after_tick() {
 /// only marked as given (tagged on the player) after `give_item` succeeds.
 pub(super) fn process_pending_grants() {
     let h = handlers();
-    let mut pending = match h.pending_grants.try_lock() {
-        Ok(g) => g,
-        Err(_) => return,
+    let Some(mut pending) = h.pending_grants.try_lock() else {
+        return;
     };
     if pending.is_empty() {
         return;

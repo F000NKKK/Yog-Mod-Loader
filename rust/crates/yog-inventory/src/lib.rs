@@ -10,7 +10,7 @@
 //! currently covers the data model (phase 2); the Java-side `BlockEntity`/
 //! `Menu`/`Screen` plumbing lands in later phases.
 
-use std::sync::atomic::{AtomicPtr, Ordering};
+use yog_sync::atomic::{AtomicPtr, Ordering};
 
 use serde::Deserialize;
 use yog_abi::YogStr;

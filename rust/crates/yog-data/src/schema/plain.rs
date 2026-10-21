@@ -390,7 +390,7 @@ impl Schema for Box<str> {
 }
 
 /// A string shared without copying.
-impl Schema for std::sync::Arc<str> {
+impl Schema for yog_sync::Arc<str> {
     fn shape() -> Shape {
         Shape::Str
     }

@@ -19,7 +19,7 @@
 //! This module is the shared definition (the runtime and Yog-IDLE's designer
 //! resolve with it); mods normally only pass strings.
 
-use std::sync::LazyLock;
+use yog_sync::LazyLock;
 
 use yog_graphics::{Rect, Vec2};
 

@@ -3,7 +3,7 @@
 
 use std::marker::PhantomData;
 use std::os::raw::c_void;
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, priority, status};
 use yog_event::{Event, EventPhase, keyed};

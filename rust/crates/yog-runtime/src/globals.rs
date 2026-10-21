@@ -4,13 +4,13 @@ use crate::handlers::RuntimeHandlers;
 use crate::handlers::RuntimeModuleRegistry;
 use crate::intermod::build_api_table;
 use jni::JavaVM;
-use std::sync::LazyLock;
-use std::sync::Mutex;
-use std::sync::OnceLock;
-use std::sync::RwLock;
 use yog_abi::YogApi;
 use yog_hot_reload::HotReloader;
 use yog_hot_reload::LoadedModule;
+use yog_sync::LazyLock;
+use yog_sync::Mutex;
+use yog_sync::OnceLock;
+use yog_sync::RwLock;
 
 // ── Static globals ────────────────────────────────────────────────────────────
 

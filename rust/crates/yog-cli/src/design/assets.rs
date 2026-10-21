@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use yog_sync::{Arc, Mutex, OnceLock};
 
 pub use yog_graphics::Image;
 
@@ -63,8 +63,8 @@ impl Vanilla {
     /// empty stub; the real one is an asset object).
     pub fn read_all(&self, key: &str) -> Vec<Vec<u8>> {
         let mut out = Vec::new();
-        if let Ok(mut zip) = self.zip.lock()
-            && let Ok(mut entry) = zip.by_name(&format!("assets/{key}"))
+        let mut zip = self.zip.lock();
+        if let Ok(mut entry) = zip.by_name(&format!("assets/{key}"))
         {
             let mut bytes = Vec::new();
             if entry.read_to_end(&mut bytes).is_ok() {
@@ -83,7 +83,7 @@ impl Vanilla {
 
     /// `data/<key>` from the jar (tags, recipes, …), if there.
     pub fn read_data(&self, key: &str) -> Option<Vec<u8>> {
-        let mut zip = self.zip.lock().ok()?;
+        let mut zip = self.zip.lock();
         let mut entry = zip.by_name(&format!("data/{key}")).ok()?;
         let mut bytes = Vec::new();
         entry.read_to_end(&mut bytes).ok()?;
@@ -92,7 +92,7 @@ impl Vanilla {
 
     /// The jar's file names under `prefix` (`data/minecraft/loot_tables/`), the prefix cut.
     pub fn names_under(&self, prefix: &str) -> Vec<String> {
-        let Ok(zip) = self.zip.lock() else { return Vec::new() };
+        let zip = self.zip.lock();
         zip.file_names()
             .filter_map(|n| Some(n.ok()?.strip_prefix(prefix)?.to_string()))
             .filter(|n| !n.is_empty() && !n.ends_with('/'))
@@ -103,20 +103,19 @@ impl Vanilla {
     /// sorted — what `item:` / `block:` sources can show in the designer.
     pub fn texture_names(&self) -> (Vec<String>, Vec<String>) {
         let (mut items, mut blocks) = (Vec::new(), Vec::new());
-        if let Ok(zip) = self.zip.lock() {
-            for name in zip.file_names() {
-                let Ok(name) = name else { continue };
-                let Some(stem) = name
-                    .strip_prefix("assets/minecraft/textures/")
-                    .and_then(|n| n.strip_suffix(yog_ids::res::PNG))
-                else {
-                    continue;
-                };
-                if let Some(item) = stem.strip_prefix("item/") {
-                    items.push(item.to_string());
-                } else if let Some(block) = stem.strip_prefix("block/") {
-                    blocks.push(block.to_string());
-                }
+        let zip = self.zip.lock();
+        for name in zip.file_names() {
+            let Ok(name) = name else { continue };
+            let Some(stem) = name
+                .strip_prefix("assets/minecraft/textures/")
+                .and_then(|n| n.strip_suffix(yog_ids::res::PNG))
+            else {
+                continue;
+            };
+            if let Some(item) = stem.strip_prefix("item/") {
+                items.push(item.to_string());
+            } else if let Some(block) = stem.strip_prefix("block/") {
+                blocks.push(block.to_string());
             }
         }
         items.sort();
@@ -126,8 +125,8 @@ impl Vanilla {
 
     fn read(&self, key: &str) -> Option<Vec<u8>> {
         // `key` is `namespace/path` — `assets/<key>` in the jar.
-        if let Ok(mut zip) = self.zip.lock()
-            && let Ok(mut entry) = zip.by_name(&format!("assets/{key}"))
+        let mut zip = self.zip.lock();
+        if let Ok(mut entry) = zip.by_name(&format!("assets/{key}"))
         {
             let mut out = Vec::new();
             if entry.read_to_end(&mut out).is_ok() {
@@ -265,7 +264,7 @@ static VANILLA: OnceLock<Mutex<Option<Arc<Vanilla>>>> = OnceLock::new();
 /// The newest client jar found (cached after the first successful lookup).
 pub fn vanilla(extra_roots: &[PathBuf]) -> Option<Arc<Vanilla>> {
     let cell = VANILLA.get_or_init(|| Mutex::new(None));
-    let mut slot = cell.lock().ok()?;
+    let mut slot = cell.lock();
     if let Some(v) = slot.as_ref() {
         return Some(v.clone());
     }
@@ -349,7 +348,7 @@ impl Resources {
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(Default::default);
         let key = (self.mod_root.clone(), id.to_string());
-        if let Some(hit) = cache.lock().ok()?.get(&key) {
+        if let Some(hit) = cache.lock().get(&key) {
             return hit.clone();
         }
         let (ns, path) = yog_ids::split(id);
@@ -357,9 +356,8 @@ impl Resources {
             .read(ns, path)
             .and_then(|b| decode_png(&b))
             .map(Arc::new);
-        if let Ok(mut c) = cache.lock() {
-            c.insert(key, image.clone());
-        }
+        let mut c = cache.lock();
+        c.insert(key, image.clone());
         image
     }
 }

@@ -13,3 +13,4 @@ yog-abi = { workspace = true }
 yog-data = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+yog-sync = { workspace = true }

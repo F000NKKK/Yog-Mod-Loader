@@ -10,7 +10,7 @@
 //! regions, nine-sliced here when stretched.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
+use yog_sync::Mutex;
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
@@ -29,9 +29,7 @@ static TEXTURE_SIZES: Mutex<Option<SizeCache>> = Mutex::new(None);
 static WARNED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
 
 fn warn_once(source: &str, why: &str) {
-    let mut warned = WARNED
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut warned = WARNED.lock();
     if warned
         .get_or_insert_with(HashSet::new)
         .insert(source.to_string())
@@ -58,8 +56,8 @@ fn resolve<'s>(env: &mut JNIEnv, sp: &'s Sprite) -> Option<SpriteSource<'s>> {
     let sources = sp.sources();
     let cached = RESOLVED
         .lock()
-        .ok()
-        .and_then(|r| r.as_ref().and_then(|m| m.get(&sp.name).copied()));
+        .as_ref()
+        .and_then(|m| m.get(&sp.name).copied());
     let index = match cached {
         Some(i) => i,
         None => {
@@ -67,10 +65,9 @@ fn resolve<'s>(env: &mut JNIEnv, sp: &'s Sprite) -> Option<SpriteSource<'s>> {
                 SpriteSource::Atlas(id) => has_gui_sprite(env, id),
                 SpriteSource::Region(r) => texture_size(env, &r.texture).is_some(),
             });
-            if let Ok(mut r) = RESOLVED.lock() {
-                r.get_or_insert_with(HashMap::new)
-                    .insert(sp.name.clone(), found);
-            }
+            let mut r = RESOLVED.lock();
+            r.get_or_insert_with(HashMap::new)
+                .insert(sp.name.clone(), found);
             found
         }
     };
@@ -86,9 +83,7 @@ fn natural_size(sp: &Sprite, source: Option<&SpriteSource<'_>>) -> (f32, f32) {
 }
 
 fn texture_size(env: &mut JNIEnv, id: &str) -> Option<(f32, f32)> {
-    let mut cache = TEXTURE_SIZES
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut cache = TEXTURE_SIZES.lock();
     let cache = cache.get_or_insert_with(HashMap::new);
     if let Some(hit) = cache.get(id) {
         return *hit;

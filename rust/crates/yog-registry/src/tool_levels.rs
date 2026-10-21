@@ -2,7 +2,7 @@
 //! bottom to top, and the block tags that make a block need each level on
 //! every loader and version.
 
-use std::sync::LazyLock;
+use yog_sync::LazyLock;
 
 /// A block tag, and where it applies: `<loader|any>/<version>`, or
 /// everywhere when empty.

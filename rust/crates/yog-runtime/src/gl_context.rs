@@ -1,5 +1,5 @@
 //! The OpenGL context (client side, render thread only).
-use std::sync::OnceLock;
+use yog_sync::OnceLock;
 
 // ── OpenGL context (client-side, render thread only) ─────────────────────────
 

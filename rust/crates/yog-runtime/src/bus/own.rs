@@ -2,7 +2,6 @@
 //! register, the mods it loaded, what this client was told about entities.
 
 use yog_event::{client, content, entity, game};
-use yog_sync::Locked;
 
 use super::duties::provide;
 
@@ -13,7 +12,7 @@ fn localized(text: &str, key: &str) -> String {
 
 /// Every installed mod: the Yog mods loaded, then the loader's.
 fn mods() -> Vec<game::ModInfo> {
-    let infos = crate::globals::MOD_INFOS.locked().clone();
+    let infos = crate::globals::MOD_INFOS.lock().clone();
     let mut out: Vec<game::ModInfo> = infos
         .iter()
         .map(|m| game::ModInfo {

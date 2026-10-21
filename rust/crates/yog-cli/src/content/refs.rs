@@ -7,7 +7,7 @@
 use std::collections::{HashMap, HashSet};
 
 pub use yog_formats::tags::{describe_hosts, hosts, tag_hosts, tags_known, yog_tag_for};
-use std::sync::LazyLock;
+use yog_sync::LazyLock;
 
 use yog_formats::book::refs::bare;
 

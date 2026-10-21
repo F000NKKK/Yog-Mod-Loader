@@ -522,7 +522,6 @@ mod tests {
 
     const SRC: &str = r#"
 use yog_api::prelude::*;
-use yog_sync::Locked;
 
 #[yog_export]
 pub struct Pipe { pub id: u32 }

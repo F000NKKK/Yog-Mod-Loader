@@ -8,7 +8,6 @@ use jni::objects::JString;
 use jni::sys::jint;
 use jni::sys::jstring;
 use yog_abi::YogStr;
-use yog_sync::Locked;
 
 /// Places one block in the chunk being generated, through
 /// `YogCallbackChunkGenerator.setBlockInGeneratingChunk` (same thread: the
@@ -69,9 +68,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeContent<'l>(
 ) -> jni::sys::jbyteArray {
     let h = handlers();
     let bytes = {
-        let mut cached = h.content_blob.locked();
+        let mut cached = h.content_blob.lock();
         cached
-            .get_or_insert_with(|| std::sync::Arc::new(content_blob::blob(&h)))
+            .get_or_insert_with(|| yog_sync::Arc::new(content_blob::blob(&h)))
             .clone()
     };
     env.byte_array_from_slice(&bytes)

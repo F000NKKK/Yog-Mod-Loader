@@ -10,6 +10,7 @@ description = "ptrace-based native debugger for Yog mods, speaking the Debug Ada
 yog-symbols = { workspace = true }
 yog-hot-reload = { workspace = true }
 serde_json = { workspace = true }
+yog-sync = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 nix = { workspace = true }

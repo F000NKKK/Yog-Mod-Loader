@@ -84,7 +84,7 @@ impl std::fmt::Display for Res {
 /// A map: entries in file order, keys unique. Keys are shared: a decoded
 /// document allocates each distinct key once, however many maps have it.
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct Map(Vec<(std::sync::Arc<str>, Value)>);
+pub struct Map(Vec<(yog_sync::Arc<str>, Value)>);
 
 impl Map {
     pub fn new() -> Self {
@@ -126,7 +126,7 @@ impl Map {
     }
 
     /// Appends without checking for the key — for decoders that already did.
-    pub(crate) fn push_unchecked(&mut self, key: std::sync::Arc<str>, value: Value) {
+    pub(crate) fn push_unchecked(&mut self, key: yog_sync::Arc<str>, value: Value) {
         self.0.push((key, value));
     }
 
@@ -159,8 +159,8 @@ impl Map {
 impl IntoIterator for Map {
     type Item = (String, Value);
     type IntoIter = std::iter::Map<
-        std::vec::IntoIter<(std::sync::Arc<str>, Value)>,
-        fn((std::sync::Arc<str>, Value)) -> (String, Value),
+        std::vec::IntoIter<(yog_sync::Arc<str>, Value)>,
+        fn((yog_sync::Arc<str>, Value)) -> (String, Value),
     >;
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter().map(|(k, v)| (k.to_string(), v))

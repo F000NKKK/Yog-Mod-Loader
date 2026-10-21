@@ -10,7 +10,7 @@
 use yog_ids::block_state::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
 use yog_ids::texture_slot::{ALL, BOTTOM, END, FRONT, SIDE, TEXTURE, TOP};
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use serde_json::Value;
 

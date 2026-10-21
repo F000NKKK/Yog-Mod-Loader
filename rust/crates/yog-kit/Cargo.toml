@@ -14,6 +14,7 @@ categories = ["gui", "game-development"]
 yog-api = { workspace = true }
 
 # Its own tests drive screens with TestHost.
+yog-sync = { workspace = true }
 [dev-dependencies]
 yog-kit = { workspace = true, features = ["testing"] }
 

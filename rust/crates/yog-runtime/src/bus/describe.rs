@@ -2,12 +2,11 @@
 //! address's descriptor — the vocabulary's at start, mods' as they provide.
 
 use std::collections::BTreeMap;
-use std::sync::RwLock;
+use yog_sync::RwLock;
 
 use yog_data::Shape;
 use yog_event::bus::{AddressKind, Describe, Descriptor, Find, List};
 use yog_hot_reload::ModuleGeneration;
-use yog_sync::ReadWrite;
 
 use super::duties::provide;
 
@@ -24,22 +23,20 @@ fn doc(shape: &Shape) -> String {
 }
 
 fn declare(d: Descriptor, owner: Option<ModuleGeneration>) {
-    DESCRIPTORS
-        .write_locked()
-        .insert(d.address.clone(), (d, owner));
+    DESCRIPTORS.write().insert(d.address.clone(), (d, owner));
 }
 
 /// Forgets what the mod of `generation` declared (a hot reload declares it again).
 pub(crate) fn purge(generation: ModuleGeneration) {
     DESCRIPTORS
-        .write_locked()
+        .write()
         .retain(|_, (_, owner)| *owner != Some(generation));
 }
 
 /// `address`'s descriptor, or its nearest declared parent's (a keyed
 /// event's branch, `…/tick/mymod:golem`, is its event's).
 fn describe(address: &str) -> Option<Descriptor> {
-    let all = DESCRIPTORS.read_locked();
+    let all = DESCRIPTORS.read();
     let mut at = address;
     loop {
         if let Some((d, _)) = all.get(at) {
@@ -92,7 +89,7 @@ pub(crate) fn register() {
     provide::<Describe>(|d| describe(&d.address));
     provide::<List>(|l| {
         DESCRIPTORS
-            .read_locked()
+            .read()
             .keys()
             .filter(|a| a.starts_with(&l.prefix))
             .cloned()
@@ -100,7 +97,7 @@ pub(crate) fn register() {
     });
     provide::<Find>(|f| {
         DESCRIPTORS
-            .read_locked()
+            .read()
             .values()
             .filter(|(d, _)| d.interfaces.contains(&f.interface))
             .map(|(d, _)| d.address.clone())

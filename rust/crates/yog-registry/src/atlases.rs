@@ -1,7 +1,7 @@
 //! The game's texture atlases as data (`assets/atlases.ydata`): what a
 //! `.ytexture` can be packed into.
 
-use std::sync::LazyLock;
+use yog_sync::LazyLock;
 
 /// One of the game's atlases.
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]

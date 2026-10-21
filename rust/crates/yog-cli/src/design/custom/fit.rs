@@ -3,10 +3,10 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use super::placeholder::{BUILDING, PLACEHOLDER_H, PLACEHOLDER_W, PROBLEM_H, placeholder};
-use super::{LAYOUT_ATTRS, Snapshot, Status, is_component, lock, state, status};
+use super::{LAYOUT_ATTRS, Snapshot, Status, is_component, state, status};
 use crate::design::components::{self, Def};
 use crate::design::host::RenderReq;
 use crate::design::markup::YuiNode;
@@ -136,7 +136,7 @@ impl Cx<'_> {
                 s.error.clone().unwrap_or_default()
             )),
             Status::Ready => {
-                let registered = lock(&state(mod_root))
+                let registered = state(mod_root).lock()
                     .components
                     .iter()
                     .any(|c| c.name == name);
@@ -168,7 +168,7 @@ impl Cx<'_> {
         );
         let problem = match (problem, self.mod_root) {
             (None, Some(root)) if w.is_none() || h.is_none() => {
-                match lock(&state(root)).render(&req) {
+                match state(root).lock().render(&req) {
                     Ok((mw, mh, _)) => {
                         nw = w.unwrap_or(mw);
                         nh = h.unwrap_or(mh);
@@ -240,7 +240,7 @@ pub fn splice(ops: &mut Vec<DrawOp>, prepared: &Prepared, rects: &HashMap<String
         let drawn = match (&slot.problem, &shared) {
             (Some(p), _) => Err(p.clone()),
             (None, None) => Err("not inside a mod".into()),
-            (None, Some(sh)) => lock(sh)
+            (None, Some(sh)) => sh.lock()
                 .render(&RenderReq {
                     w,
                     h,

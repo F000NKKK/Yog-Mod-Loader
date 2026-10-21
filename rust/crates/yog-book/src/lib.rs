@@ -20,7 +20,7 @@ pub use theme::BookTheme;
 /// Whether the reader has advancement `id` — set by the host the book is
 /// read in (the runtime asks the game); everything is unlocked without one
 /// (an editor's preview).
-static UNLOCKED: std::sync::OnceLock<fn(&str) -> bool> = std::sync::OnceLock::new();
+static UNLOCKED: yog_sync::OnceLock<fn(&str) -> bool> = yog_sync::OnceLock::new();
 
 /// Tells the books how to know what the reader has unlocked.
 pub fn set_unlocked(check: fn(&str) -> bool) {
@@ -29,7 +29,7 @@ pub fn set_unlocked(check: fn(&str) -> bool) {
 
 /// The items of an item tag, as the host the book is read in knows them
 /// (the game's tags, the IDE's); a tag shows none without one.
-static TAG_ITEMS: std::sync::OnceLock<fn(&str) -> Vec<String>> = std::sync::OnceLock::new();
+static TAG_ITEMS: yog_sync::OnceLock<fn(&str) -> Vec<String>> = yog_sync::OnceLock::new();
 
 /// Tells the books how to find an item tag's items.
 pub fn set_tag_items(items: fn(&str) -> Vec<String>) {

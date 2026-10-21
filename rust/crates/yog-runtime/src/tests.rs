@@ -3,8 +3,7 @@
 //! test's own `extern "C"` functions, the "mod" is the test process.
 
 use std::ffi::c_void;
-use std::sync::{Mutex, RwLock};
-use yog_sync::{Locked, ReadWrite};
+use yog_sync::{Mutex, RwLock};
 
 use yog_data::Schema;
 use yog_hot_reload::{GenerationAllocator, LoadedModule};
@@ -24,18 +23,18 @@ fn module() -> LoadedModule {
 /// Runs `f` as a mod's `yog_mod_register` would: with a registration
 /// context, against fresh handlers it returns.
 fn registering(f: impl FnOnce(*mut c_void)) -> Box<RwLock<RuntimeHandlers>> {
-    let _serial = SERIAL.locked();
+    let _serial = SERIAL.lock();
     let handlers = Box::new(RwLock::new(RuntimeHandlers::default()));
-    *CURRENT_REGISTRATION.locked() = Some(module());
+    *CURRENT_REGISTRATION.lock() = Some(module());
     f(&*handlers as *const RwLock<RuntimeHandlers> as *mut c_void);
-    *CURRENT_REGISTRATION.locked() = None;
+    *CURRENT_REGISTRATION.lock() = None;
     handlers
 }
 
 /// A blob of content as `content/register` hands it over, into the handlers at `ctx`.
 unsafe fn blob(ctx: *mut c_void, kind: &str, id: &str, bytes: &[u8]) {
     let handlers = unsafe { &*(ctx as *const RwLock<RuntimeHandlers>) };
-    register_blob(&mut handlers.write_locked(), kind, id.to_owned(), bytes);
+    register_blob(&mut handlers.write(), kind, id.to_owned(), bytes);
 }
 
 /// Content as a mod registers it: the definition's blob.
@@ -58,7 +57,7 @@ fn items_arrive_as_their_definition() {
         def.fire_resistant = true;
         content(ctx, "item", "mymod:ruby", &def.write());
     });
-    let h = h.read_locked();
+    let h = h.read();
     let item = &h.items[0];
     assert_eq!(item.id, "mymod:ruby");
     assert_eq!(item.max_stack, 16);
@@ -79,7 +78,7 @@ fn startup_grants_keep_their_items() {
         };
         content(ctx, "startup_grant", "mymod:starter", &g.write());
     });
-    let h = h.read_locked();
+    let h = h.read();
     let g = &h.startup_grants[0];
     assert_eq!(g.items, ["mymod:staff", "minecraft:book"]);
     assert_eq!(g.book, None);
@@ -106,15 +105,15 @@ fn books_get_the_recipes_registered_before_and_after_them() {
         blob(ctx, "book", "mymod:junk", b"junk");
         content(ctx, "spell", "mymod:fireball", &book);
     });
-    let h = h.read_locked();
+    let h = h.read();
     assert_eq!(h.recipes.len(), 2);
     assert_eq!(h.recipes[1].1, "b");
-    assert!(h.book_renderers.locked().contains_key("mymod:guide"));
+    assert!(h.book_renderers.lock().contains_key("mymod:guide"));
     assert!(
         !h.books.contains("mymod:broken"),
         "not a book: none for the host either"
     );
-    assert!(!h.book_renderers.locked().contains_key("mymod:broken"));
+    assert!(!h.book_renderers.lock().contains_key("mymod:broken"));
     assert!(!h.books.contains("mymod:junk"), "not Yog Data: not a book");
 }
 
@@ -129,7 +128,7 @@ fn blocks_and_inventories_arrive_as_their_definitions() {
         inv.background_size = Some((176.0, 120.0));
         content(ctx, "inventory", "mymod:box", &inv.write());
     });
-    let h = h.read_locked();
+    let h = h.read();
     assert_eq!(h.blocks[0].shape, Some([0.0, 0.0, 0.0, 16.0, 8.0, 16.0]));
     assert_eq!(h.blocks[0].inventory_id.as_deref(), Some("mymod:box"));
     assert_eq!(
@@ -164,7 +163,7 @@ fn the_hosts_get_content_as_one_yog_data_blob() {
             &json(r#"{"id":"mymod:guide","name":"Guide","categories":[],"entries":[]}"#),
         );
     });
-    let c = blob_content(&h.read_locked());
+    let c = blob_content(&h.read());
     let item = &c.items[0];
     assert_eq!((item.id.as_str(), item.max_stack), ("mymod:apple", 16));
     assert!(item.tooltip.is_empty(), "an empty tooltip is no tooltip");
@@ -208,7 +207,7 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
                 .write(),
         );
     });
-    let c = blob_content(&h.read_locked());
+    let c = blob_content(&h.read());
     let tool = c.items[0].tool.as_ref().unwrap();
     assert_eq!(
         (tool.kind.as_str(), tool.material.durability),
@@ -228,7 +227,7 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
 #[test]
 fn a_books_entries_about_absent_mods_are_left_out() {
     crate::machine_api::YOG_MOD_IDS
-        .write_locked()
+        .write()
         .insert("othermod".into());
     let book = json(
         r#"{"id":"mymod:guide","name":"G","categories":[{"id":"mymod:c","name":"C"}],"entries":[
@@ -237,8 +236,8 @@ fn a_books_entries_about_absent_mods_are_left_out() {
         {"id":"mymod:c","name":"C","category":"@category:mymod:c","pages":[],"requires":["pehkui"]}]}"#,
     );
     let h = registering(|ctx| unsafe { content(ctx, "book", "mymod:guide", &book) });
-    let h = h.read_locked();
-    let renderers = h.book_renderers.locked();
+    let h = h.read();
+    let renderers = h.book_renderers.lock();
     let ids: Vec<&str> = renderers["mymod:guide"]
         .book()
         .entries
@@ -276,7 +275,7 @@ fn a_blocks_sound_group_arrives_whole() {
             );
         }
     });
-    let c = blob_content(&h.read_locked());
+    let c = blob_content(&h.read());
     let sound = |i: usize| c.blocks[i].sound.as_ref();
     assert_eq!(
         sound(0).map(|g| g.break_sound.as_str()),
@@ -311,7 +310,7 @@ fn a_block_of_a_game_kind_arrives_with_its_base_and_set() {
             &yog_registry::BlockDef::new("mymod:plain").write(),
         );
     });
-    let c = blob_content(&h.read_locked());
+    let c = blob_content(&h.read());
     let ids: Vec<&str> = c.blocks.iter().map(|b| b.id.as_str()).collect();
     assert_eq!(
         ids,
@@ -487,7 +486,7 @@ fn content_exchange() {
         std::hint::black_box(yog_book::BookRenderer::new(parsed.clone()));
     });
     let h = handlers.unwrap();
-    let h = h.read_locked();
+    let h = h.read();
     // Runtime → host. Old: the TSV dialects and `ns\tname\tjson` lines
     // (the runtime kept each recipe's JSON as the mod sent it).
     let recipe_json: Vec<(String, String, String)> = h
@@ -613,7 +612,7 @@ fn a_dimensions_terrain_is_generated_here_and_the_host_gets_the_rest() {
     )
     .unwrap();
     let h = registering(|ctx| unsafe { content(ctx, "dimension", "mymod:flat", &def) });
-    let h = h.read_locked();
+    let h = h.read();
     let kept = &h.dimensions["mymod:flat"];
     assert!(
         kept.get("terrain").is_none(),

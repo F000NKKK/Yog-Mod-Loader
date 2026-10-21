@@ -10,6 +10,7 @@ description = "In-game book/documentation framework for Yog mods (Patchouli-like
 [dependencies]
 yog-ids = { workspace = true }
 yog-registry = { workspace = true, features = ["serde"] }
+yog-sync = { workspace = true }
 yog-ui = { workspace = true }
 yog-gfx = { workspace = true }
 # The .ybook format it draws.

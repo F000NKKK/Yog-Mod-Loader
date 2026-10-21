@@ -1856,6 +1856,7 @@ dependencies = [
  "yog-data",
  "yog-graphics",
  "yog-ids",
+ "yog-sync",
 ]
 
 [[package]]
@@ -1870,6 +1871,7 @@ dependencies = [
  "yog-gfx",
  "yog-ids",
  "yog-registry",
+ "yog-sync",
  "yog-ui",
 ]
 
@@ -1941,6 +1943,7 @@ dependencies = [
  "yog-data-derive",
  "yog-ids",
  "yog-logging",
+ "yog-sync",
 ]
 
 [[package]]
@@ -1961,6 +1964,7 @@ dependencies = [
  "serde_json",
  "yog-hot-reload",
  "yog-symbols",
+ "yog-sync",
 ]
 
 [[package]]
@@ -1984,6 +1988,7 @@ dependencies = [
  "yog-dimensions",
  "yog-ids",
  "yog-registry",
+ "yog-sync",
 ]
 
 [[package]]
@@ -2005,6 +2010,7 @@ dependencies = [
  "yog-font",
  "yog-ids",
  "yog-registry",
+ "yog-sync",
  "yog-worldgen",
 ]
 
@@ -2016,6 +2022,7 @@ dependencies = [
  "yog-data",
  "yog-graphics",
  "yog-ids",
+ "yog-sync",
 ]
 
 [[package]]
@@ -2069,6 +2076,7 @@ dependencies = [
  "serde_json",
  "yog-abi",
  "yog-data",
+ "yog-sync",
 ]
 
 [[package]]
@@ -2077,11 +2085,15 @@ version = "0.11.0"
 dependencies = [
  "yog-api",
  "yog-kit",
+ "yog-sync",
 ]
 
 [[package]]
 name = "yog-logging"
 version = "0.1.1"
+dependencies = [
+ "yog-sync",
+]
 
 [[package]]
 name = "yog-media"
@@ -2109,6 +2121,7 @@ dependencies = [
  "yog-data",
  "yog-graphics",
  "yog-ids",
+ "yog-sync",
 ]
 
 [[package]]
@@ -2161,6 +2174,7 @@ dependencies = [
  "gimli",
  "nix",
  "object",
+ "yog-sync",
 ]
 
 [[package]]

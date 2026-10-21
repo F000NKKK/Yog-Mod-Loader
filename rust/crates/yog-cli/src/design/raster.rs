@@ -7,7 +7,7 @@
 //! to show with nearest-neighbour scaling.
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use serde::{Deserialize, Serialize};
 

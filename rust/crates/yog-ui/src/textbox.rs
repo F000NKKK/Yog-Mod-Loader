@@ -7,12 +7,12 @@
 //! static SEARCH: Mutex<TextBoxState> = Mutex::new(TextBoxState::new());
 //!
 //! // render: feed the text, caret and focus into the tree
-//! SEARCH.lock().unwrap().apply(root.find_mut("search").unwrap());
+//! SEARCH.lock().apply(root.find_mut("search").unwrap());
 //!
 //! // events: with the last frame's layout node of "search"; return `true`
 //! // from the `register_ui` handler when it's consumed, so Esc unfocuses
 //! // the box instead of closing the screen
-//! match SEARCH.lock().unwrap().handle(event, node) {
+//! match SEARCH.lock().handle(event, node) {
 //!     TextBoxEvent::Ignored => { /* not for the box: buttons etc. */ }
 //!     TextBoxEvent::Changed => { /* re-filter */ }
 //!     TextBoxEvent::Submitted => { /* Enter */ }

@@ -3,18 +3,14 @@
 
 use std::any::{Any, TypeId};
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
+use yog_sync::atomic::{AtomicBool, Ordering};
+use yog_sync::{Arc, Mutex, OnceLock};
 
 use crate::host::Host;
 use crate::{ScreenMeta, View, ViewModel};
 
 type Job<V> = Box<dyn FnOnce(&mut V) + Send>;
 type Reader<V> = Box<dyn Fn(&mut dyn FnMut(&V)) -> bool + Send + Sync>;
-
-fn lock<T: ?Sized>(m: &Mutex<T>) -> MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
-}
 
 pub(crate) struct Shared<V> {
     meta: ScreenMeta,
@@ -50,7 +46,7 @@ impl<V: ViewModel> ScreenHandle<V> {
     /// command, ...). Queued: runs on the render thread before the next
     /// frame or event, then the bindings update. Never blocks.
     pub fn update(&self, f: impl FnOnce(&mut V) + Send + 'static) {
-        lock(&self.shared.queue).push(Box::new(f));
+        self.shared.queue.lock().push(Box::new(f));
     }
 
     /// Reads the view model — `None` while the screen is busy (rendering or
@@ -84,7 +80,7 @@ impl<V: ViewModel> ScreenHandle<V> {
     }
 
     pub(crate) fn take_queue(&self) -> Vec<Job<V>> {
-        std::mem::take(&mut *lock(&self.shared.queue))
+        std::mem::take(&mut *self.shared.queue.lock())
     }
 
     pub(crate) fn set_reader(&self, reader: Reader<V>) {
@@ -163,20 +159,20 @@ type Handles = Vec<(TypeId, Box<dyn Any + Send>)>;
 static HANDLES: Mutex<Handles> = Mutex::new(Vec::new());
 
 fn open_id(id: &str) {
-    let meta = lock(&SCREENS).iter().find(|m| m.id == id).copied();
+    let meta = SCREENS.lock().iter().find(|m| m.id == id).copied();
     let (modal, pause) = meta.map_or((true, false), |m| (m.modal, m.pause));
     yog_api::open_ui(id, modal, pause);
 }
 
 pub(crate) fn navigate(from: &'static str, to: &str) {
-    lock(&NAV).push(from);
+    NAV.lock().push(from);
     NAVIGATING.store(true, Ordering::SeqCst);
     open_id(to);
 }
 
 /// Opens the previous screen; `false` when there's none.
 pub(crate) fn go_back() -> bool {
-    let Some(prev) = lock(&NAV).pop() else {
+    let Some(prev) = NAV.lock().pop() else {
         return false;
     };
     NAVIGATING.store(true, Ordering::SeqCst);
@@ -187,13 +183,14 @@ pub(crate) fn go_back() -> bool {
 /// A screen closed: unless it's a navigation, the history is over.
 pub(crate) fn screen_closed() {
     if !NAVIGATING.swap(false, Ordering::SeqCst) {
-        lock(&NAV).clear();
+        NAV.lock().clear();
     }
 }
 
 /// The handle of the registered screen `W`.
 pub fn handle_of<W: View>() -> Option<ScreenHandle<W::Vm>> {
-    lock(&HANDLES)
+    HANDLES
+        .lock()
         .iter()
         .find(|(t, _)| *t == TypeId::of::<W>())
         .and_then(|(_, h)| h.downcast_ref::<ScreenHandle<W::Vm>>().cloned())
@@ -213,26 +210,28 @@ impl<W: View> Screen<W> {
             let Some(host) = weak.upgrade() else {
                 return false;
             };
-            let Ok(h) = host.try_lock() else {
+            let Some(h) = host.try_lock() else {
                 return false;
             };
             f(&h.vm);
             true
         }));
-        lock(&SCREENS).push(W::META);
-        lock(&HANDLES).push((TypeId::of::<W>(), Box::new(handle.clone())));
-        lock(&host).every_frame = W::META.live;
+        SCREENS.lock().push(W::META);
+        HANDLES
+            .lock()
+            .push((TypeId::of::<W>(), Box::new(handle.clone())));
+        host.lock().every_frame = W::META.live;
         // Opened by the game with the block it belongs to, not by `open()`.
         let inventory = inventory_of::<W>();
         let overlay = inventory.is_some();
         if let Some(def) = inventory {
             registry.register_inventory(def);
-            lock(&host).every_frame = true;
+            host.lock().every_frame = true;
         }
 
         let render = host.clone();
         registry.on_ui_render(W::META.id, move |gfx| {
-            let mut h = lock(&render);
+            let mut h = render.lock();
             let (w, hh) = gfx.screen_size();
             h.frame(w as f32, hh as f32);
             h.ui.render(gfx);
@@ -245,9 +244,9 @@ impl<W: View> Screen<W> {
         if overlay {
             let top = host.clone();
             let id: &'static str = Box::leak(format!("{}#overlay", W::META.id).into_boxed_str());
-            registry.on_ui_render(id, move |gfx| lock(&top).draw_tooltip(gfx));
+            registry.on_ui_render(id, move |gfx| top.lock().draw_tooltip(gfx));
         }
-        registry.register_ui(W::META.id, move |_, ev| lock(&host).on_event(ev));
+        registry.register_ui(W::META.id, move |_, ev| host.lock().on_event(ev));
         handle
     }
 }

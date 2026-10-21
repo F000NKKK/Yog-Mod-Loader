@@ -3,7 +3,7 @@
 //! the clip rect.
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use yog_sync::Mutex;
 
 use yog_gfx::draw2d::{self, Draw2D};
 use yog_gfx::image::{self as img, ImageSource, Stretch, fit};
@@ -25,9 +25,7 @@ static HOST: Mutex<Host> = Mutex::new(Host {
 /// version's sprite sizes). Called by `UiRoot::render`; call it yourself
 /// before the first layout to get exact sizes from the very first frame.
 pub fn use_host_images(ctx: &GfxContext) {
-    if let Ok(mut h) = HOST.lock() {
-        h.size = Some(ctx.image_size_fn());
-    }
+    HOST.lock().size = Some(ctx.image_size_fn());
 }
 
 /// The size of an image the host can't tell (an item's, offline).
@@ -48,9 +46,7 @@ fn offline_size(source: &str) -> Vec2 {
 
 /// Natural size of `source` in GUI pixels.
 pub fn source_size(source: &str) -> Vec2 {
-    let Ok(mut h) = HOST.lock() else {
-        return offline_size(source);
-    };
+    let mut h = HOST.lock();
     let Some(size_fn) = h.size else {
         return offline_size(source);
     };

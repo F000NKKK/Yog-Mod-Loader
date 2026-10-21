@@ -19,7 +19,7 @@
 
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::{OnceLock, RwLock};
+use yog_sync::{OnceLock, RwLock};
 
 /// A name kept once a process; see the module.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]

@@ -33,7 +33,7 @@
 //! `h`, `bg`, `on_click`, ...).
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use yog_sync::Mutex;
 
 use yog_gfx::Color;
 use yog_ids::{yui_attr as attr, yui_value as value};
@@ -41,7 +41,6 @@ use yog_ids::{yui_attr as attr, yui_value as value};
 use crate::FlexDir;
 use crate::widget::{self, Widget};
 use yog_ids::prop_kind;
-use yog_sync::Locked;
 
 /// A property's type: how `.yui` writes it and how the designer edits it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -211,19 +210,19 @@ pub fn register<C: Component>() {
 }
 
 pub fn register_spec(spec: ComponentSpec) {
-    let mut all = REGISTRY.locked();
+    let mut all = REGISTRY.lock();
     all.retain(|s| s.name != spec.name);
     all.push(spec);
 }
 
 /// Every registered component, in registration order.
 pub fn components() -> Vec<ComponentSpec> {
-    REGISTRY.locked().clone()
+    REGISTRY.lock().clone()
 }
 
 /// The registered component `name`.
 pub fn find(name: &str) -> Option<ComponentSpec> {
-    REGISTRY.locked().iter().find(|s| s.name == name).copied()
+    REGISTRY.lock().iter().find(|s| s.name == name).copied()
 }
 
 /// The component `name` built from `.yui` attribute values (what generated

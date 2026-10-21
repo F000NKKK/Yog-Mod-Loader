@@ -1,11 +1,10 @@
 //! Tasks a mod schedules in server ticks: kept by the mod itself, run by
 //! its subscription to the server's tick (after the tick's other handlers).
 
-use std::sync::{Arc, Mutex, Once};
+use yog_sync::{Arc, Mutex, Once};
 
 use yog_abi::priority;
 use yog_event::server::game::Tick;
-use yog_sync::Locked;
 
 use crate::registry::Registry;
 
@@ -60,7 +59,7 @@ impl Registry {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        TASKS.locked().once.push((delay_ticks, Arc::new(handler)));
+        TASKS.lock().once.push((delay_ticks, Arc::new(handler)));
         self.tick_tasks();
     }
 
@@ -69,7 +68,7 @@ impl Registry {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        TASKS.locked().repeating.push((period_ticks, period_ticks.max(1), Arc::new(handler)));
+        TASKS.lock().repeating.push((period_ticks, period_ticks.max(1), Arc::new(handler)));
         self.tick_tasks();
     }
 
@@ -77,7 +76,7 @@ impl Registry {
     fn tick_tasks(&self) {
         TICKING.call_once(|| {
             self.after_at::<Tick, _, _>(priority::LATE, |_, _| {
-                let due = TASKS.locked().due();
+                let due = TASKS.lock().due();
                 for task in due {
                     crate::registry::guard((), &*task);
                 }

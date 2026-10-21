@@ -13,6 +13,7 @@ crate-type = ["lib"]
 object = { workspace = true }
 gimli = { workspace = true }
 addr2line = { workspace = true }
+yog-sync = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 nix = { workspace = true }

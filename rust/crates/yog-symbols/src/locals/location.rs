@@ -8,7 +8,7 @@ use crate::{R, SymbolTable};
 use gimli::{
     AttributeValue, DebuggingInformationEntry, EvaluationResult, Location, Reader as _, UnitOffset,
 };
-use std::sync::OnceLock;
+use yog_sync::OnceLock;
 
 impl SymbolTable {
     /// `entry`'s attribute, falling back along `DW_AT_abstract_origin` /

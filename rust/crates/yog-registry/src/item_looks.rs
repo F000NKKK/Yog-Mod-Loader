@@ -2,7 +2,7 @@
 //! spawn eggs, tinted potions and leather — as data
 //! (`assets/item_looks.ydata`), for tools that show items as the game does.
 
-use std::sync::LazyLock;
+use yog_sync::LazyLock;
 
 use yog_data::Ordered;
 use yog_graphics::Color;

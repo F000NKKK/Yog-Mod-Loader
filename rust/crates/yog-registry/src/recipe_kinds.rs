@@ -4,7 +4,7 @@
 //! `data/recipe_kinds.ydata`) — the one list every tool reads them from
 //! (the build, books, the IDE).
 
-use std::sync::LazyLock;
+use yog_sync::LazyLock;
 
 use yog_data::{Ordered, Schema};
 

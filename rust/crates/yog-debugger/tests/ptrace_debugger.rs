@@ -348,9 +348,9 @@ fn step_over_leaves_std_for_the_user_caller() {
 /// the pause request raised, `source_step` gives up with `Interrupted`.
 #[test]
 fn pause_request_interrupts_a_step_over_a_blocking_call() {
-    use std::sync::Arc;
-    use std::sync::atomic::{AtomicBool, Ordering};
     use yog_debugger::StepKind;
+    use yog_sync::Arc;
+    use yog_sync::atomic::{AtomicBool, Ordering};
 
     let exe = build_as("blocking", "blocking_pause");
     let src = std::fs::read_to_string(

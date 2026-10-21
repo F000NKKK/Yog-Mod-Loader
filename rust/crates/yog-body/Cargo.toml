@@ -11,3 +11,4 @@ description = "Bodies for Yog mods: skeletons and animations (.ymodel/.yanim), v
 yog-ids = { workspace = true }
 yog-data = { workspace = true }
 yog-graphics = { workspace = true }
+yog-sync = { workspace = true }

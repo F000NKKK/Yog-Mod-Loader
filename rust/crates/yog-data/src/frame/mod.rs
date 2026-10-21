@@ -46,7 +46,7 @@ mod view;
 pub use shaped::{read_shaped, unpack_shaped};
 pub use view::{Floats, FromF64, Ints, List, ListIter, View, list, read_view};
 
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use bumpalo::Bump;
 

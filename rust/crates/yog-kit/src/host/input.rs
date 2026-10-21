@@ -211,10 +211,7 @@ impl<W: View> Host<W> {
     }
 
     /// The surface at `path` and its content box (rect less padding).
-    fn surface_box(
-        &self,
-        path: &[u16],
-    ) -> Option<(std::sync::Arc<dyn yog_api::ui::Surface>, Rect)> {
+    fn surface_box(&self, path: &[u16]) -> Option<(yog_sync::Arc<dyn yog_api::ui::Surface>, Rect)> {
         let w = self.content().get_path(path)?;
         let WidgetKind::Surface(id) = &w.kind else {
             return None;

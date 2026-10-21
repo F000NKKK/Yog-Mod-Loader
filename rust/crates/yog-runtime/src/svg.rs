@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::sync::Mutex;
+use yog_sync::Mutex;
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
@@ -30,9 +30,7 @@ struct Cache {
 static CACHE: Mutex<Option<Cache>> = Mutex::new(None);
 
 fn with<R>(f: impl FnOnce(&mut Cache) -> R) -> R {
-    let mut c = CACHE
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut c = CACHE.lock();
     f(c.get_or_insert_with(|| Cache {
         rasters: HashMap::new(),
         files: HashMap::new(),

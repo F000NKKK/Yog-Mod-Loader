@@ -10,7 +10,7 @@
 use crate::content::refs::RefKind;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use yog_gfx::{Color, Rect, Vec2};
 use yog_gfx::image::{
@@ -114,7 +114,7 @@ fn texture(id: &str) -> Option<Arc<Image>> {
 /// The book's sprite sheets — shipped in the loader's jars, embedded in
 /// yog-book (see `yog_book::BOOK_SHEET`).
 fn book_sheet(id: &str) -> Option<Arc<Image>> {
-    static SHEETS: std::sync::OnceLock<[Option<Arc<Image>>; 2]> = std::sync::OnceLock::new();
+    static SHEETS: yog_sync::OnceLock<[Option<Arc<Image>>; 2]> = yog_sync::OnceLock::new();
     let [book, crafting] = SHEETS.get_or_init(|| {
         [
             super::assets::decode_png(yog_book::BOOK_PNG).map(Arc::new),
@@ -177,16 +177,16 @@ fn item_texture(id: &str, block: bool) -> Option<Arc<Image>> {
 
 /// A mod item's icon from its `content/` file (cached per id).
 fn content_icon(id: &str) -> Option<Arc<Image>> {
-    type Cache = std::sync::Mutex<std::collections::HashMap<(PathBuf, String), Option<Arc<Image>>>>;
-    static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
+    type Cache = yog_sync::Mutex<std::collections::HashMap<(PathBuf, String), Option<Arc<Image>>>>;
+    static CACHE: yog_sync::OnceLock<Cache> = yog_sync::OnceLock::new();
     let root = with_doc(|d| d.and_then(|d| d.res.mod_root.clone()))?;
     let key = (root.clone(), id.to_string());
     let cache = CACHE.get_or_init(Default::default);
-    if let Some(hit) = cache.lock().ok()?.get(&key) {
+    if let Some(hit) = cache.lock().get(&key) {
         return hit.clone();
     }
     let img = crate::design::content::content_icon(&root, id).and_then(|b| super::assets::decode_png(&b)).map(Arc::new);
-    cache.lock().ok()?.insert(key, img.clone());
+    cache.lock().insert(key, img.clone());
     img
 }
 

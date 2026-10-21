@@ -42,7 +42,7 @@ pub mod recipe_area;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use yog_sync::{Mutex, OnceLock};
 
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
@@ -190,7 +190,7 @@ fn offsets(path: &str, preview: bool) -> HashMap<String, f32> {
     if !preview {
         return HashMap::new();
     }
-    let p = previews().lock().unwrap_or_else(|e| e.into_inner());
+    let p = previews().lock();
     p.get(path)
         .map(|s| {
             s.scroll
@@ -340,7 +340,7 @@ pub fn event(args: &EventArgs) -> EventResult {
                 views.push((n, l));
             }
         });
-        let mut all = previews().lock().unwrap_or_else(|e| e.into_inner());
+        let mut all = previews().lock();
         let state = all.entry(args.path.clone()).or_default();
         let wheel = args.event.starts_with("scroll:");
         // The wheel goes to the innermost view under the cursor; the rest to every view (each checks its own scrollbar).
@@ -376,7 +376,6 @@ pub fn event(args: &EventArgs) -> EventResult {
 pub fn reset(path: &str) {
     previews()
         .lock()
-        .unwrap_or_else(|e| e.into_inner())
         .remove(path);
 }
 

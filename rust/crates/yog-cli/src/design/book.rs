@@ -8,7 +8,7 @@
 use yog_ids::Format;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{LazyLock, Mutex};
+use yog_sync::{LazyLock, Mutex};
 
 use base64::Engine as _;
 use serde::{Deserialize, Serialize};
@@ -175,7 +175,7 @@ fn item_name(lang: &HashMap<String, String>, id: &str) -> Option<String> {
 static LANG: LazyLock<Mutex<HashMap<String, String>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
 
 fn translate(key: &str) -> Option<String> {
-    LANG.lock().ok()?.get(key).cloned()
+    LANG.lock().get(key).cloned()
 }
 
 /// The mod's recipes, as the game gets them: `content/**/*.yrecipe` in
@@ -379,9 +379,8 @@ pub fn parse(text: &str, mod_root: Option<&Path>, locale: Option<&str>) -> Resul
     book.layouts = mod_root.map(|r| crate::design::mod_ui::recipe_layouts(r).into_iter().map(|(_, l)| l).collect()).unwrap_or_default();
     book.page_types = mod_root.map(crate::design::mod_ui::page_types).unwrap_or_default();
     let first = first.or_else(|| reader.missing.first().map(|m| format!("{m}: no such text in resources/*.yres")));
-    if let Ok(mut lang) = LANG.lock() {
-        *lang = texts.lang;
-    }
+    let mut lang = LANG.lock();
+    *lang = texts.lang;
     Ok((book, first))
 }
 
@@ -407,19 +406,18 @@ pub fn render(args: &BookArgs) -> BookRendered {
 
 /// Draws `book` (already read) for `args`: its session's reader, the action.
 /// The mod whose book is being drawn: where its tags come from.
-static BOOK_MOD: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
+static BOOK_MOD: yog_sync::Mutex<Option<PathBuf>> = yog_sync::Mutex::new(None);
 
 /// An item tag's items for the book being drawn (`yog_book::set_tag_items`).
 fn book_tag_items(tag: &str) -> Vec<String> {
-    let root = BOOK_MOD.lock().ok().and_then(|r| r.clone());
+    let root = BOOK_MOD.lock().clone();
     root.map(|r| super::tags::item_tag(&r.join(yog_ids::file::MANIFEST), tag)).unwrap_or_default()
 }
 
 fn render_book(args: &BookArgs, book: yog_formats::book::Book, problem: Option<String>, root: Option<&Path>, locales: Vec<String>) -> BookRendered {
     yog_book::set_tag_items(book_tag_items);
-    if let Ok(mut m) = BOOK_MOD.lock() {
-        *m = root.map(Path::to_path_buf);
-    }
+    let mut m = BOOK_MOD.lock();
+    *m = root.map(Path::to_path_buf);
     let (sw, sh) = (args.screen_w.clamp(1, 4096), args.screen_h.clamp(1, 4096));
     let fail = |error: String| BookRendered {
         image: None,
@@ -432,7 +430,7 @@ fn render_book(args: &BookArgs, book: yog_formats::book::Book, problem: Option<S
     };
     let json = serde_json::to_string(&book).unwrap_or_default();
 
-    let mut sessions = SESSIONS.lock().unwrap_or_else(|e| e.into_inner());
+    let mut sessions = SESSIONS.lock();
     let session = sessions.entry(args.path.clone()).or_insert_with(|| {
         let mut renderer = BookRenderer::new(book.clone());
         renderer.set_translator(translate);
@@ -540,7 +538,7 @@ pub fn page_preview(args: &BookArgs) -> BookRendered {
 
 /// Forgets a closed `.ybook`'s reader.
 pub fn close(path: &str) {
-    SESSIONS.lock().unwrap_or_else(|e| e.into_inner()).remove(path);
+    SESSIONS.lock().remove(path);
 }
 
 #[cfg(test)]

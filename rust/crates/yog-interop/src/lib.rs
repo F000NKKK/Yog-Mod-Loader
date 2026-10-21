@@ -179,7 +179,7 @@ pub fn yog_export(attr: TokenStream, item: TokenStream) -> TokenStream {
         #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
         #[doc(hidden)]
         fn #ctor_name() {
-            ::yog_api::__yog_export_registry().lock().unwrap_or_else(|e| e.into_inner()).push(
+            ::yog_api::__yog_export_registry().lock().push(
                 ::yog_api::YogExportEntry {
                     name: #name_str,
                     handler: #serve_name,

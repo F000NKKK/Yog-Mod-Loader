@@ -7,8 +7,6 @@ use std::os::raw::c_void;
 use yog_abi::{YogBytes, YogReply, YogStatus, status};
 use yog_event::{Event, Message, Service, client, keyed, log, player, server};
 
-use yog_sync::Locked;
-
 use super::{Handler, ROUTER};
 
 use yog_abi::priority::{FIRST, LAST};
@@ -116,7 +114,7 @@ fn listen<E: Event>(address: &str, priority: i32, f: fn(&E)) {
 pub(crate) fn register() {
     // Grants pending for a previous world's players are void.
     after::<server::life::Started>(FIRST, |_| {
-        crate::handlers::handlers().pending_grants.locked().clear()
+        crate::handlers::handlers().pending_grants.lock().clear()
     });
     // Startup grants: giving items inside the join fails for the host of a
     // fresh world (not fully in it yet), so they're given a few ticks later.

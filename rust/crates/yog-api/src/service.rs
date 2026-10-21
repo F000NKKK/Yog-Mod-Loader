@@ -2,7 +2,7 @@
 //! ([`Registry::provide`]), and calls whoever answers one ([`call`]).
 
 use std::os::raw::c_void;
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use yog_abi::{YogApi, YogBytes, YogReply, YogStatus, YogStr, status};
 use yog_data::Schema;

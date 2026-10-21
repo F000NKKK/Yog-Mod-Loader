@@ -39,7 +39,7 @@ import! {
 
 /// Runs export `name`'s provider on `payload` (a frame of its arguments): its status and reply.
 fn serve(name: &str, payload: &[u8]) -> (u32, Vec<u8>) {
-    let exports = yog_api::__yog_export_registry().lock().unwrap();
+    let exports = yog_api::__yog_export_registry().lock();
     let entry = exports.iter().find(|e| e.name == name).expect("the export registered itself");
     let mut out = Vec::new();
     let st = unsafe { (entry.handler)(std::ptr::null_mut(), YogBytes::new(payload), &YogReply::to_vec(&mut out)) };
@@ -57,7 +57,7 @@ fn args(put: impl FnOnce(&mut Packer)) -> Vec<u8> {
 
 #[test]
 fn exports_register_themselves_when_the_library_loads() {
-    let names: Vec<&str> = yog_api::__yog_export_registry().lock().unwrap().iter().map(|e| e.name).collect();
+    let names: Vec<&str> = yog_api::__yog_export_registry().lock().iter().map(|e| e.name).collect();
     for n in ["scale", "explode", "rename"] {
         assert!(names.contains(&n), "{n} in {names:?}");
     }
@@ -101,7 +101,7 @@ pub fn stored() -> u64 {
 
 #[test]
 fn an_export_carries_its_description() {
-    let exports = yog_api::__yog_export_registry().lock().unwrap();
+    let exports = yog_api::__yog_export_registry().lock();
     let entry = exports.iter().find(|e| e.name == "stored").expect("registered");
     assert_eq!(entry.doc, "Energy stored, in FE.");
     assert_eq!(entry.implements, ["test:energy/storage"]);

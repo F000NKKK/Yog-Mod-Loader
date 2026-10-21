@@ -1,7 +1,7 @@
 //! Reading the binary form: as a [`Value`], borrowed as a [`ValueRef`], or
 //! step by step by a schema reading itself ([`crate::Schema::decode`]).
 
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use bumpalo::Bump;
 

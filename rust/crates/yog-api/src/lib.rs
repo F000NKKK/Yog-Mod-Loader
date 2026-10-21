@@ -43,6 +43,8 @@ pub use yog_abi::{YogBytes, YogReply, YogStatus};
 pub use yog_data;
 /// The names Yog shares — kinds, namespaces, lang keys — for a mod to use as the loader does.
 pub use yog_ids;
+/// The sync primitives Yog code uses (locks that outlive a panic) — a mod's too.
+pub use yog_sync as sync;
 
 pub use java::mod_loaded;
 
@@ -116,7 +118,6 @@ macro_rules! export_mod {
                 let content: ::std::vec::Vec<fn(&mut $crate::Registry)> =
                     $crate::__yog_content_registrars()
                         .lock()
-                        .unwrap_or_else(|e| e.into_inner())
                         .clone();
                 for register in content {
                     register(&mut registry);
@@ -124,7 +125,7 @@ macro_rules! export_mod {
 
                 // Every #[yog_export] function (registered by its `ctor`
                 // when the library loaded) provides `mod_id:name`.
-                for entry in $crate::__yog_export_registry().lock().unwrap_or_else(|e| e.into_inner()).iter() {
+                for entry in $crate::__yog_export_registry().lock().iter() {
                     registry.provide_export(mod_id, entry);
                 }
             }));
@@ -217,15 +218,15 @@ pub fn __current_mod_id() -> Option<String> {
 /// after the loading thread's `yog_mod_register` returned.
 #[doc(hidden)]
 pub fn __set_current_api_ptr(ptr: usize) {
-    API_PTR.store(ptr, std::sync::atomic::Ordering::Release);
+    API_PTR.store(ptr, yog_sync::atomic::Ordering::Release);
 }
 
 #[doc(hidden)]
 pub fn __current_api_ptr() -> usize {
-    API_PTR.load(std::sync::atomic::Ordering::Acquire)
+    API_PTR.load(yog_sync::atomic::Ordering::Acquire)
 }
 
-static API_PTR: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static API_PTR: yog_sync::atomic::AtomicUsize = yog_sync::atomic::AtomicUsize::new(0);
 
 std::thread_local! {
     static CURRENT_MOD_ID: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };

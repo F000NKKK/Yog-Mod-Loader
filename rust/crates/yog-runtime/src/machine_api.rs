@@ -9,7 +9,7 @@ use jni::objects::JClass;
 use jni::objects::JString;
 use jni::sys::jint;
 use jni::sys::jstring;
-use std::sync::RwLock;
+use yog_sync::RwLock;
 use yog_abi::YogStr;
 use yog_core::BlockPos;
 use yog_event::container::machine::Craft;
@@ -155,7 +155,7 @@ pub(super) static YOG_MOD_IDS: RwLock<std::collections::BTreeSet<String>> =
 /// Whether mod `id` is loaded: a Yog mod, else one in the host's list
 /// (Fabric's, Forge's, NeoForge's).
 pub(super) fn mod_loaded(id: &str) -> bool {
-    YOG_MOD_IDS.read().unwrap_or_else(|e| e.into_inner()).contains(id)
+    YOG_MOD_IDS.read().contains(id)
         || HOT_RELOADER.all_active().iter().any(|(m, _)| m == id)
         // SAFETY: a host call with a string argument, on the calling thread.
         || unsafe { bridge!("isModLoaded", [S(YogStr::from_str(id))]) }.unwrap_or(false)

@@ -27,7 +27,7 @@
 //! (smithing), `from`/`input` (brewing). A label's bindings are the recipe's values (`time`,
 //! `experience`, or a mod kind's `values`).
 
-use std::sync::LazyLock;
+use yog_sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
 use yog_data::Schema;

@@ -15,3 +15,4 @@ yog-registry = { workspace = true }
 yog-body = { workspace = true }
 yog-dimensions = { workspace = true }
 pastey = { workspace = true }
+yog-sync = { workspace = true }

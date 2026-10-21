@@ -3,7 +3,7 @@
 //! the host's Java. A message type keeps its own once it's resolved, so a
 //! call after the first passes a number, no string looked up.
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use yog_sync::atomic::{AtomicU32, Ordering};
 
 /// An address: its name's atom number.
 pub type Address = u32;

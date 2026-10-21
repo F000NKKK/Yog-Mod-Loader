@@ -25,9 +25,8 @@
 
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
-use yog_sync::Locked;
+use yog_sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use yog_sync::{Arc, Mutex};
 
 use libloading::Library;
 
@@ -79,7 +78,7 @@ fn try_unload(inner: &Inner) {
     if !inner.retiring.load(Ordering::SeqCst) {
         return;
     }
-    let mut library = inner.library.lock().unwrap_or_else(|e| e.into_inner());
+    let mut library = inner.library.lock();
     if library.is_none() {
         return;
     }
@@ -92,7 +91,7 @@ fn try_unload(inner: &Inner) {
         inner.unloaded.store(false, Ordering::SeqCst);
         return;
     }
-    if let Some(on_retire) = inner.on_retire.locked().take() {
+    if let Some(on_retire) = inner.on_retire.lock().take() {
         on_retire();
     }
     *library = None;
@@ -152,7 +151,7 @@ impl LoadedModule {
     /// Whether the underlying native is still `dlopen`'d — `false` once it's
     /// been hard-unloaded (immediately or after a deferred retirement).
     pub fn is_loaded(&self) -> bool {
-        self.0.library.locked().is_some()
+        self.0.library.lock().is_some()
     }
 
     /// Whether this generation has been superseded by a newer one — `true`
@@ -171,7 +170,7 @@ impl LoadedModule {
     /// once it has been unloaded, instead of the dangling-pointer crash
     /// calling into a `dlclose`'d library would otherwise cause.
     pub fn with_library<T>(&self, f: impl FnOnce(&Library) -> T) -> Option<T> {
-        self.0.library.locked().as_ref().map(f)
+        self.0.library.lock().as_ref().map(f)
     }
 
     /// Marks the start of a call into this module's code. Returns `None` if
@@ -199,7 +198,7 @@ impl LoadedModule {
     /// `on_hard_unload` immediately beforehand — the moment nothing is
     /// executing inside it (immediately, if that's already true).
     pub fn retire(&self, on_hard_unload: impl FnOnce() + Send + 'static) {
-        *self.0.on_retire.locked() = Some(Box::new(on_hard_unload));
+        *self.0.on_retire.lock() = Some(Box::new(on_hard_unload));
         self.0.retiring.store(true, Ordering::SeqCst);
         try_unload(&self.0);
     }
@@ -263,7 +262,7 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
     ) -> Result<LoadedModule, libloading::Error> {
         let generation = self.generations.next();
         let module = unsafe { LoadedModule::load(path, generation)? };
-        self.loaded.locked().insert(mod_id.into(), module.clone());
+        self.loaded.lock().insert(mod_id.into(), module.clone());
         Ok(module)
     }
 
@@ -283,7 +282,7 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
 
         let old_module = self
             .loaded
-            .locked()
+            .lock()
             .insert(mod_id.to_string(), new_module.clone());
 
         if let Some(old_module) = old_module {
@@ -299,13 +298,13 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
 
     /// The currently-active module for `mod_id`, if any.
     pub fn active(&self, mod_id: &str) -> Option<LoadedModule> {
-        self.loaded.locked().get(mod_id).cloned()
+        self.loaded.lock().get(mod_id).cloned()
     }
 
     /// Every currently-active module, keyed by mod id.
     pub fn all_active(&self) -> Vec<(String, LoadedModule)> {
         self.loaded
-            .locked()
+            .lock()
             .iter()
             .map(|(id, module)| (id.clone(), module.clone()))
             .collect()
@@ -320,7 +319,7 @@ impl<R: ModuleRegistry + Send + Sync + 'static> HotReloader<R> {
 #[cfg(all(test, feature = "testing"))]
 mod lifecycle_tests {
     use super::*;
-    use std::sync::atomic::AtomicUsize;
+    use yog_sync::atomic::AtomicUsize;
 
     #[test]
     fn a_retired_module_unloads_once_the_last_call_returns() {

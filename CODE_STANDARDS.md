@@ -78,6 +78,7 @@ Every fact has exactly one source; everything else derives from it (composed con
 - [ ] **Common traits derived:** `Debug`, `Clone`, `Default`, `PartialEq`, `Eq`, `Hash` where they make sense (C-COMMON-TRAITS).
 - [ ] **`#[must_use]`** on pure functions and builders whose result matters.
 - [ ] **Doc comments on every public item**; examples where usage isn't obvious.
+- [ ] **Sync primitives from `yog-sync` only**: its locks open whether or not a panic poisoned them, and every other sync type is re-exported from it. No `std::sync`, `parking_lot`, `once_cell` or `lazy_static` elsewhere (Substrate, which takes no Yog crates, excepted).
 - [ ] **[auto]** **`cargo fmt` clean.**
 - [ ] **[auto]** **`cargo clippy --all-targets -- -D warnings` clean**, plus the workspace lint set.
 - [ ] **Tests next to the code they test.** Golden tests for generators; round-trip tests for formats.

@@ -23,7 +23,7 @@ pub mod rig;
 pub mod wire;
 
 use std::collections::HashMap;
-use std::sync::{Arc, LazyLock, RwLock};
+use yog_sync::{Arc, LazyLock, RwLock};
 
 pub use anim::{BonePose, Clip, Pose};
 pub use camera::{CameraFrame, CameraOut};
@@ -46,7 +46,7 @@ static STORE: LazyLock<RwLock<Store>> = LazyLock::new(Default::default);
 pub fn register_model(id: &str, data: &[u8]) -> Result<(), String> {
     let file: format::ModelFile = yog_data::read_bytes(data).map_err(|e| format!("model {id}: {e:?}"))?;
     let model = Model::new(&file).map_err(|e| format!("model {id}: {e}"))?;
-    STORE.write().unwrap_or_else(|e| e.into_inner()).models.insert(id.to_owned(), Arc::new(model));
+    STORE.write().models.insert(id.to_owned(), Arc::new(model));
     Ok(())
 }
 
@@ -54,7 +54,7 @@ pub fn register_model(id: &str, data: &[u8]) -> Result<(), String> {
 pub fn register_anims(id: &str, data: &[u8]) -> Result<(), String> {
     let file: format::AnimFile = yog_data::read_bytes(data).map_err(|e| format!("animations {id}: {e:?}"))?;
     let clips = anim::Clips::new(&file).map_err(|e| format!("animations {id}: {e}"))?;
-    let mut store = STORE.write().unwrap_or_else(|e| e.into_inner());
+    let mut store = STORE.write();
     for c in clips.0 {
         store.clips.insert((id.to_owned(), c.name.clone()), Arc::new(c));
     }
@@ -63,10 +63,10 @@ pub fn register_anims(id: &str, data: &[u8]) -> Result<(), String> {
 
 /// Model `id`, if registered.
 pub fn model(id: &str) -> Option<Arc<Model>> {
-    STORE.read().unwrap_or_else(|e| e.into_inner()).models.get(id).cloned()
+    STORE.read().models.get(id).cloned()
 }
 
 /// Clip `name` of animations `id`, if registered.
 pub fn clip(id: &str, name: &str) -> Option<Arc<Clip>> {
-    STORE.read().unwrap_or_else(|e| e.into_inner()).clips.get(&(id.to_owned(), name.to_owned())).cloned()
+    STORE.read().clips.get(&(id.to_owned(), name.to_owned())).cloned()
 }

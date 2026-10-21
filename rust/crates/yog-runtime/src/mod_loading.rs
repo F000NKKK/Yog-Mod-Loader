@@ -10,7 +10,6 @@ use std::path::PathBuf;
 use yog_abi::ABI_VERSION;
 use yog_abi::YogApi;
 use yog_hot_reload::LoadedModule;
-use yog_sync::Locked;
 
 // ── Mod loading ───────────────────────────────────────────────────────────────
 
@@ -56,10 +55,7 @@ pub(super) fn load_mods(dir: &Path, api: &YogApi) {
     let ids: Vec<String> = metas.iter().map(|m| m.id.clone()).collect();
     // Known before any registers: a mod's optional integrations with a Yog
     // mod loaded after it still see it.
-    YOG_MOD_IDS
-        .write()
-        .unwrap_or_else(|e| e.into_inner())
-        .extend(ids.iter().cloned());
+    YOG_MOD_IDS.write().extend(ids.iter().cloned());
     let deps_list: Vec<Vec<String>> = metas.iter().map(|m| m.deps.clone()).collect();
     let sorted = match topo_sort_mods(&ids, &deps_list) {
         Some(v) => v,
@@ -87,7 +83,7 @@ pub(super) fn load_mods(dir: &Path, api: &YogApi) {
             loaded.push(module);
             #[cfg(feature = "dev")]
             crate::registrations::record(&meta.id, &meta.yog_path);
-            MOD_INFOS.locked().push(read_mod_info(&meta.yog_path));
+            MOD_INFOS.lock().push(read_mod_info(&meta.yog_path));
         }
     }
     yog_logging::info!("loaded {} mod(s) from {}", loaded.len(), dir.display());
@@ -188,9 +184,9 @@ pub(super) fn invoke_mod_register(
                 .map_err(|_| "missing yog_mod_register".to_string())?;
             let mod_id_c = std::ffi::CString::new(mod_id)
                 .map_err(|_| format!("mod id {mod_id:?} holds a NUL"))?;
-            *CURRENT_REGISTRATION.locked() = Some(module.clone());
+            *CURRENT_REGISTRATION.lock() = Some(module.clone());
             register(api as *const YogApi, mod_id_c.as_ptr());
-            *CURRENT_REGISTRATION.locked() = None;
+            *CURRENT_REGISTRATION.lock() = None;
             Ok(())
         })
         .unwrap_or_else(|| Err("module was unloaded before registration could run".to_string()))
@@ -324,8 +320,8 @@ pub(super) fn extract_yog(path: &Path) -> Option<PathBuf> {
     // A fresh name per extraction: a hot reload must never truncate the
     // library the game still has mapped, and `dlopen` of an already-loaded
     // path would just hand back the old module.
-    static EXTRACTIONS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-    let n = EXTRACTIONS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    static EXTRACTIONS: yog_sync::atomic::AtomicU32 = yog_sync::atomic::AtomicU32::new(0);
+    let n = EXTRACTIONS.fetch_add(1, yog_sync::atomic::Ordering::Relaxed);
     let out =
         std::env::temp_dir().join(format!("yog-{}-{}-{}.{}", stem, std::process::id(), n, ext));
     let mut entry = archive.by_name(&entry_name).ok()?;

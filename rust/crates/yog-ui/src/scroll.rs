@@ -6,10 +6,10 @@
 //! static LIST: Mutex<ScrollState> = Mutex::new(ScrollState::new());
 //!
 //! // render: feed the offset into the tree
-//! root.find_mut("list").unwrap().style.scroll_y = LIST.lock().unwrap().offset;
+//! root.find_mut("list").unwrap().style.scroll_y = LIST.lock().offset;
 //!
 //! // events: with the last frame's layout node of "list"
-//! if LIST.lock().unwrap().handle(event, node, WHEEL_STEP) { return; }
+//! if LIST.lock().handle(event, node, WHEEL_STEP) { return; }
 //! ```
 
 use crate::event::UiEvent;

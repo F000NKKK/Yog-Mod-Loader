@@ -7,8 +7,8 @@
 //! entity data [`HANGING`], read with [`hanging`] / [`hanging_of`].
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{LazyLock, Mutex};
+use yog_sync::atomic::{AtomicBool, Ordering};
+use yog_sync::{LazyLock, Mutex};
 
 use yog_body::{Anchor, Frame, Ops, Rig};
 use yog_registry::EntityDef;
@@ -47,7 +47,7 @@ static HOOKED: AtomicBool = AtomicBool::new(false);
 /// hooks [`draw`] then).
 pub(crate) fn drawn(def: &EntityDef) -> bool {
     let Some(model) = &def.model else { return false };
-    LOOKS.lock().unwrap_or_else(|e| e.into_inner()).insert(
+    LOOKS.lock().insert(
         def.id.clone(),
         Look {
             model: yog_ids::qualify_in(yog_ids::split(&def.id).0, model),
@@ -60,7 +60,7 @@ pub(crate) fn drawn(def: &EntityDef) -> bool {
 }
 
 pub(crate) fn draw(f: &Frame, ops: &mut Ops) {
-    let looks = LOOKS.lock().unwrap_or_else(|e| e.into_inner());
+    let looks = LOOKS.lock();
     let Some(look) = looks.get(&f.entity_type) else { return };
     let Some(model) = yog_body::model(&look.model) else { return };
     let state = f

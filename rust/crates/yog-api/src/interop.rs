@@ -25,8 +25,8 @@ pub struct YogExportEntry {
 }
 
 #[doc(hidden)]
-pub fn __yog_export_registry() -> &'static std::sync::Mutex<Vec<YogExportEntry>> {
-    static REG: std::sync::Mutex<Vec<YogExportEntry>> = std::sync::Mutex::new(Vec::new());
+pub fn __yog_export_registry() -> &'static yog_sync::Mutex<Vec<YogExportEntry>> {
+    static REG: yog_sync::Mutex<Vec<YogExportEntry>> = yog_sync::Mutex::new(Vec::new());
     &REG
 }
 

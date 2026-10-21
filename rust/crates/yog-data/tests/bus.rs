@@ -142,7 +142,7 @@ fn streams_go_whole_and_read_lazily() {
 #[derive(Schema, Debug, Clone, PartialEq)]
 struct Compact {
     name: Box<str>,
-    shared: std::sync::Arc<str>,
+    shared: yog_sync::Arc<str>,
     ids: Box<[u32]>,
     weights: Vec<f32>,
     scale: f32,

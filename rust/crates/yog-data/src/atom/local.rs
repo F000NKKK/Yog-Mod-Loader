@@ -15,15 +15,10 @@ fn names() -> &'static RwLock<Names> {
 
 /// `name`'s number, made the first time (its text kept for good).
 pub fn intern(name: &str) -> u32 {
-    if let Some(&n) = names()
-        .read()
-        .unwrap_or_else(|e| e.into_inner())
-        .numbers
-        .get(name)
-    {
+    if let Some(&n) = names().read().numbers.get(name) {
         return n;
     }
-    let mut t = names().write().unwrap_or_else(|e| e.into_inner());
+    let mut t = names().write();
     if let Some(&n) = t.numbers.get(name) {
         return n;
     }
@@ -35,10 +30,5 @@ pub fn intern(name: &str) -> u32 {
 }
 
 pub fn name(n: u32) -> Option<&'static str> {
-    names()
-        .read()
-        .unwrap_or_else(|e| e.into_inner())
-        .names
-        .get(n as usize)
-        .copied()
+    names().read().names.get(n as usize).copied()
 }

@@ -5,7 +5,7 @@
 //! java-common) make `yog:` tags of.
 
 use std::collections::{BTreeSet, HashMap};
-use std::sync::LazyLock;
+use yog_sync::LazyLock;
 
 /// The table, as generated.
 pub const TABLE: &str = include_str!("../data/tags.txt");

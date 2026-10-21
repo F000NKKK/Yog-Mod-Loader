@@ -2,7 +2,7 @@
 //! the release follow it (in its local coordinates), hovering sends moves
 //! and a leave.
 
-use std::sync::{Arc, Mutex};
+use yog_sync::{Arc, Mutex};
 
 use yog_api::GfxContext;
 use yog_api::ui::{Action, FlexDir, Pointer, Rect, Surface, Units, Widget, surface, widget};
@@ -68,7 +68,7 @@ struct Pad {
 impl Surface for Pad {
     fn paint(&self, _: &GfxContext, _: Rect) {}
     fn pointer(&self, ev: Pointer, size: (f32, f32)) -> bool {
-        self.log.lock().unwrap().push((ev, size));
+        self.log.lock().push((ev, size));
         true
     }
 }
@@ -83,7 +83,7 @@ fn surface_takes_the_pointer() {
     let (x, y) = (r.x + 20.0, r.y + 30.0);
 
     assert!(t.drag(&[(x, y), (x + 5.0, y), (x + 300.0, y)]));
-    let log: Vec<_> = pad.log.lock().unwrap().drain(..).collect();
+    let log: Vec<_> = pad.log.lock().drain(..).collect();
     let size = (80.0, 80.0);
     assert_eq!(
         log,
@@ -100,7 +100,7 @@ fn surface_takes_the_pointer() {
     // Leaving it, then clicking elsewhere: a leave, and the button works.
     assert!(t.click_id("ok"));
     assert_eq!(
-        pad.log.lock().unwrap().drain(..).next(),
+        pad.log.lock().drain(..).next(),
         Some((Pointer::Leave, size))
     );
     assert_eq!(t.vm().clicks, 1);

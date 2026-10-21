@@ -1,9 +1,8 @@
 //! `YogApi`'s registration functions.
 
-use std::sync::Arc;
+use yog_sync::Arc;
 
 use yog_ids::dimension_field;
-use yog_sync::Locked;
 
 use yog_registry::{BlockDef, ItemDef};
 
@@ -41,7 +40,7 @@ pub(super) fn register_content(
     id: String,
     value: &yog_data::ValueRef,
 ) {
-    *h.content_blob.get_mut().unwrap_or_else(|e| e.into_inner()) = None;
+    *h.content_blob.get_mut() = None;
     use yog_ids::kind;
     let (k, i, v) = (kind, id.as_str(), value);
     match kind {
@@ -138,7 +137,7 @@ fn none_if_empty(fields: &mut [&mut Option<String>]) {
 fn register_recipe(h: &mut RuntimeHandlers, id: &str, value: &yog_data::ValueRef) {
     let (ns, name) = yog_ids::split(id);
     let recipe = value.to_value();
-    for r in h.book_renderers.locked().values_mut() {
+    for r in h.book_renderers.lock().values_mut() {
         r.add_recipe(yog_ids::join(ns, name), &recipe);
     }
     h.recipes.push((ns.to_string(), name.to_string(), recipe));
@@ -160,10 +159,7 @@ fn register_book(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_da
     for (ns, name, recipe) in &h.recipes {
         renderer.add_recipe(yog_ids::join(ns, name), recipe);
     }
-    h.book_renderers
-        .get_mut()
-        .unwrap_or_else(|e| e.into_inner())
-        .insert(id, renderer);
+    h.book_renderers.get_mut().insert(id, renderer);
 }
 
 /// A dimension: its terrain stays here (the generator this one), the host

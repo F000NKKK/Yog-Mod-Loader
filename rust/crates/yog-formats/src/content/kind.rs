@@ -61,7 +61,7 @@ pub struct KindPart {
 /// The `block` fields only some kinds take (`BlockKind::takes`).
 pub const KIND_FIELDS: [&str; 4] = ["base", "set", "press_ticks", "triggered_by"];
 
-static BUILT_IN_KINDS: std::sync::LazyLock<Vec<BlockKind>> = std::sync::LazyLock::new(|| {
+static BUILT_IN_KINDS: yog_sync::LazyLock<Vec<BlockKind>> = yog_sync::LazyLock::new(|| {
     yog_data::built_in(
         "yog-formats' built-in block kinds",
         include_str!("../../data/block_kinds.ydata"),
