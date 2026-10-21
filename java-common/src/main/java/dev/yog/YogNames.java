@@ -1201,12 +1201,66 @@ public final class YogNames {
         public static final String VALUE = "value";
         public static final String VALUES = "values";
         public static final String FORMAT = "format";
-        public static final String NS = "ns";
-        public static final String ASSET = "asset";
-        public static final String MCMETA = "mcmeta";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PATH, NAME, TEXT, SIZE, TEXTURE, PNG, ANIMATION, KIND, REGISTRY, ID, ALIAS, MODEL, SOURCE, FORCE, WIDTH, HEIGHT, TAG, ARGS, EVENT, FILE, SET, MOD_ID, ENTRIES, NEXT, LEVEL, VALUE, VALUES, FORMAT, NS, ASSET, MCMETA);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PATH, NAME, TEXT, SIZE, TEXTURE, PNG, ANIMATION, KIND, REGISTRY, ID, ALIAS, MODEL, SOURCE, FORCE, WIDTH, HEIGHT, TAG, ARGS, EVENT, FILE, SET, MOD_ID, ENTRIES, NEXT, LEVEL, VALUE, VALUES, FORMAT);
+    }
+
+    public static final class ServeMethod {
+        private ServeMethod() {}
+
+        public static final String ADVANCEMENT_RENDER = "advancement_render";
+        public static final String BODY_TEXTURE = "body_texture";
+        public static final String BOOK_DESIGNER_CLOSE = "book_designer_close";
+        public static final String BOOK_DESIGNER_RENDER = "book_designer_render";
+        public static final String BOOK_PAGE_PREVIEW = "book_page_preview";
+        public static final String CONTENT_ARMOR_MATERIALS = "content_armor_materials";
+        public static final String CONTENT_BLOCK_KINDS = "content_block_kinds";
+        public static final String CONTENT_DEFS = "content_defs";
+        public static final String CONTENT_IMPORT = "content_import";
+        public static final String CONTENT_ITEM_POTION_COLOR = "content_item_potion_color";
+        public static final String CONTENT_MOD_ID = "content_mod_id";
+        public static final String CONTENT_PARENT_MODEL = "content_parent_model";
+        public static final String CONTENT_REFS = "content_refs";
+        public static final String CONTENT_SAVE_TEXTURE = "content_save_texture";
+        public static final String CONTENT_SAVE_TEXTURE_ANIMATION = "content_save_texture_animation";
+        public static final String CONTENT_SOUND_GROUPS = "content_sound_groups";
+        public static final String CONTENT_STRINGS = "content_strings";
+        public static final String CONTENT_TAGS = "content_tags";
+        public static final String CONTENT_TEXTURE = "content_texture";
+        public static final String CONTENT_TEXTURES = "content_textures";
+        public static final String CONTENT_TOOL_MATERIALS = "content_tool_materials";
+        public static final String DATA_FORMAT = "data.format";
+        public static final String DATA_PARSE = "data.parse";
+        public static final String DATA_PATCH = "data.patch";
+        public static final String FONT_COPY = "font_copy";
+        public static final String FORMAT_SHAPE = "format.shape";
+        public static final String ITEM_TAG_ITEMS = "item_tag_items";
+        public static final String MEDIA_IMPORT = "media.import";
+        public static final String MEDIA_PICTURES = "media.pictures";
+        public static final String MOD_ID = "mod.id";
+        public static final String RECIPE_KIND_CREATE = "recipe_kind_create";
+        public static final String RECIPE_KINDS = "recipe_kinds";
+        public static final String TEXTURE_ANIMATION_FORMAT = "texture_animation_format";
+        public static final String TEXTURE_ANIMATION_RESOLVE = "texture_animation_resolve";
+        public static final String TEXTURE_FILE_ID = "texture_file_id";
+        public static final String TYPED_CLASSIFY = "typed.classify";
+        public static final String VERSION = "version";
+        public static final String WORLDGEN_PREVIEW = "worldgen_preview";
+        public static final String YDATA_TEXT = "ydata_text";
+        public static final String YRES_PARSE = "yres.parse";
+        public static final String YRES_WRITE = "yres.write";
+        public static final String YUI_CODEGEN = "yui_codegen";
+        public static final String YUI_DESIGNER_COMPONENTS = "yui_designer_components";
+        public static final String YUI_DESIGNER_EVENT = "yui_designer_event";
+        public static final String YUI_DESIGNER_RENDER = "yui_designer_render";
+        public static final String YUI_DESIGNER_RESET = "yui_designer_reset";
+        public static final String YUI_EVENT_HANDLER = "yui_event_handler";
+        public static final String YUI_IMAGE_PREVIEW = "yui_image_preview";
+        public static final String YUI_IMAGE_SOURCES = "yui_image_sources";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ADVANCEMENT_RENDER, BODY_TEXTURE, BOOK_DESIGNER_CLOSE, BOOK_DESIGNER_RENDER, BOOK_PAGE_PREVIEW, CONTENT_ARMOR_MATERIALS, CONTENT_BLOCK_KINDS, CONTENT_DEFS, CONTENT_IMPORT, CONTENT_ITEM_POTION_COLOR, CONTENT_MOD_ID, CONTENT_PARENT_MODEL, CONTENT_REFS, CONTENT_SAVE_TEXTURE, CONTENT_SAVE_TEXTURE_ANIMATION, CONTENT_SOUND_GROUPS, CONTENT_STRINGS, CONTENT_TAGS, CONTENT_TEXTURE, CONTENT_TEXTURES, CONTENT_TOOL_MATERIALS, DATA_FORMAT, DATA_PARSE, DATA_PATCH, FONT_COPY, FORMAT_SHAPE, ITEM_TAG_ITEMS, MEDIA_IMPORT, MEDIA_PICTURES, MOD_ID, RECIPE_KIND_CREATE, RECIPE_KINDS, TEXTURE_ANIMATION_FORMAT, TEXTURE_ANIMATION_RESOLVE, TEXTURE_FILE_ID, TYPED_CLASSIFY, VERSION, WORLDGEN_PREVIEW, YDATA_TEXT, YRES_PARSE, YRES_WRITE, YUI_CODEGEN, YUI_DESIGNER_COMPONENTS, YUI_DESIGNER_EVENT, YUI_DESIGNER_RENDER, YUI_DESIGNER_RESET, YUI_EVENT_HANDLER, YUI_IMAGE_PREVIEW, YUI_IMAGE_SOURCES);
     }
 
     public static final class TagFile {
