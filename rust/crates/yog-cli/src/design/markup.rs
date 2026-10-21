@@ -225,7 +225,35 @@ pub fn apply_theme(root: &mut YuiNode) {
 /// absolutely. `scroll`: preview scroll offsets by uid.
 pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) -> Widget {
     let a = |k: &str| node.attr(k);
-    let mut w = match node.kind.as_str() {
+    let mut w = grid_and_cell(of_kind(node), node);
+    let (x, y) = (num(a(yog_ids::yui_attr::X)), num(a(yog_ids::yui_attr::Y)));
+    if in_canvas || x.is_some() || y.is_some() {
+        w = w.at(x.unwrap_or(0.0), y.unwrap_or(0.0));
+    }
+    // Attribute order doesn't matter for these builder calls but follows the file's, like the generator.
+    let mut keys: Vec<&String> = node.attrs.keys().collect();
+    keys.sort();
+    for key in keys {
+        w = attribute(w, node, key);
+    }
+    if node.kind == yog_ids::yui::SCROLL_VIEW
+        && let Some(offset) = scroll.get(&node.uid)
+    {
+        w = w.scroll_y(*offset);
+    }
+    if is_container(&node.kind) {
+        let canvas = matches!(node.kind.as_str(), yog_ids::yui::SCREEN | yog_ids::yui::CANVAS);
+        for child in widget_children(node) {
+            w = w.child(widget(child, canvas, scroll));
+        }
+    }
+    w
+}
+
+/// The widget `node`'s kind makes, before its attributes.
+fn of_kind(node: &YuiNode) -> Widget {
+    let a = |k: &str| node.attr(k);
+    match node.kind.as_str() {
         yog_ids::yui::SCREEN | yog_ids::yui::CANVAS | yog_ids::yui::COLUMN => widget::panel(FlexDir::Column),
         yog_ids::yui::ROW => widget::panel(FlexDir::Row),
         yog_ids::yui::GRID => widget::grid(),
@@ -248,7 +276,12 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
         yog_ids::yui::SURFACE => widget::surface(a(yog_ids::yui_attr::SOURCE).unwrap_or_default()),
         yog_ids::yui::TEXT_BOX => widget::text_box(text(a(yog_ids::yui_attr::TEXT))),
         _ => widget::spacer(),
-    };
+    }
+}
+
+/// A screen's size, a grid's tracks and spacing, a grid child's cell and span.
+fn grid_and_cell(mut w: Widget, node: &YuiNode) -> Widget {
+    let a = |k: &str| node.attr(k);
     if node.kind == yog_ids::yui::SCREEN {
         if let Some(v) = num(a(yog_ids::yui_attr::WIDTH)) {
             w = w.w(Units::Px(v));
@@ -281,27 +314,6 @@ pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) ->
     );
     if rs.is_some() || cs.is_some() {
         w = w.span(rs.unwrap_or(1), cs.unwrap_or(1));
-    }
-    let (x, y) = (num(a(yog_ids::yui_attr::X)), num(a(yog_ids::yui_attr::Y)));
-    if in_canvas || x.is_some() || y.is_some() {
-        w = w.at(x.unwrap_or(0.0), y.unwrap_or(0.0));
-    }
-    // Attribute order doesn't matter for these builder calls but follows the file's, like the generator.
-    let mut keys: Vec<&String> = node.attrs.keys().collect();
-    keys.sort();
-    for key in keys {
-        w = attribute(w, node, key);
-    }
-    if node.kind == yog_ids::yui::SCROLL_VIEW
-        && let Some(offset) = scroll.get(&node.uid)
-    {
-        w = w.scroll_y(*offset);
-    }
-    if is_container(&node.kind) {
-        let canvas = matches!(node.kind.as_str(), yog_ids::yui::SCREEN | yog_ids::yui::CANVAS);
-        for child in widget_children(node) {
-            w = w.child(widget(child, canvas, scroll));
-        }
     }
     w
 }

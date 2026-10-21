@@ -108,6 +108,29 @@ pub enum DrawOp {
     ClearScissor,
 }
 
+impl DrawOp {
+    /// The op `dx, dy` further. A scissor drops out (an empty rect): yog-ui
+    /// clips in software, and a component's own scissor would undo its slot's.
+    pub fn moved(mut self, dx: f32, dy: f32) -> DrawOp {
+        match &mut self {
+            DrawOp::Rect { x1, y1, x2, y2, .. } | DrawOp::Gradient { x1, y1, x2, y2, .. } => {
+                (*x1, *x2, *y1, *y2) = (*x1 + dx, *x2 + dx, *y1 + dy, *y2 + dy);
+            }
+            DrawOp::Text { x, y, .. }
+            | DrawOp::TextScaled { x, y, .. }
+            | DrawOp::Item { x, y, .. }
+            | DrawOp::Blocks { x, y, .. }
+            | DrawOp::Image { x, y, .. }
+            | DrawOp::Svg { x, y, .. }
+            | DrawOp::Entity { x, y, .. } => (*x, *y) = (*x + dx, *y + dy),
+            DrawOp::Scissor { .. } | DrawOp::ClearScissor => {
+                return DrawOp::Rect { x1: 0.0, y1: 0.0, x2: 0.0, y2: 0.0, color: 0 };
+            }
+        }
+        self
+    }
+}
+
 /// An RGBA canvas `w × h` physical pixels.
 pub struct Canvas<'r> {
     pub w: u32,
