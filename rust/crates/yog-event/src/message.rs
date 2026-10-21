@@ -90,7 +90,7 @@ macro_rules! handle_method {
         pastey::paste! {
             impl $handle {
                 $($doc)*
-                pub fn [<$name:snake>](&self $(, $f: impl Into<$ft>)*) -> $reply {
+                pub fn [<$name:snake>](&self $(, $f: impl $crate::Arg<$ft>)*) -> $reply {
                     [<$name:snake>](&*self.$key $(, $f)*)
                 }
             }
@@ -128,8 +128,8 @@ macro_rules! actions {
                 $(#[$doc])*
                 #[doc = ""]
                 #[doc = concat!("Calls [`", stringify!($name), "`]; what no one answers reads as the reply's default.")]
-                pub fn [<$name:snake>]($( $field: impl Into<$fty> ),*) -> $reply {
-                    $crate::call(&$name { $( $field: $field.into() ),* }).unwrap_or_default()
+                pub fn [<$name:snake>]($( $field: impl $crate::Arg<$fty> ),*) -> $reply {
+                    $crate::call(&$name { $( $field: $crate::Arg::arg($field) ),* }).unwrap_or_default()
                 }
             }
 

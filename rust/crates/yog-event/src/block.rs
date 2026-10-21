@@ -60,4 +60,6 @@ pub struct Insert {
 }
 
 mod actions;
+mod properties;
 pub use actions::*;
+pub use properties::{property, set_properties};

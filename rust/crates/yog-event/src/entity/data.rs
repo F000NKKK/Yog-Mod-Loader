@@ -4,6 +4,8 @@
 use yog_data::Schema;
 use yog_data::with::Raw;
 
+use crate::Arg;
+
 /// Bytes a mod keeps on an entity under a key.
 #[derive(Debug, Clone, PartialEq, Schema)]
 pub struct DataValue {
@@ -26,6 +28,46 @@ pub struct SetData {
     pub key: String,
     pub value: Option<DataValue>,
     pub persist: bool,
+}
+
+/// What entity `uuid` keeps under `key` (none: nothing, or no runtime).
+pub fn data(uuid: impl Arg<String>, key: impl Arg<String>) -> Option<Vec<u8>> {
+    crate::call(&Data {
+        uuid: uuid.arg(),
+        key: key.arg(),
+    })
+    .flatten()
+    .map(|v| v.bytes)
+}
+
+/// Keeps `value` on entity `uuid` under `key` (`None` forgets it), synced
+/// to the clients that see it; `persist` saves it with the entity.
+pub fn set_data(
+    uuid: impl Arg<String>,
+    key: impl Arg<String>,
+    value: Option<&[u8]>,
+    persist: bool,
+) -> bool {
+    let value = value.map(|bytes| DataValue {
+        bytes: bytes.to_vec(),
+    });
+    let set = SetData {
+        uuid: uuid.arg(),
+        key: key.arg(),
+        value,
+        persist,
+    };
+    crate::call(&set).unwrap_or_default()
+}
+
+/// Entity `uuid`'s size, `[width, height, eye height]` (`None`: vanilla's),
+/// on the server and on every client that sees it.
+pub fn set_dimensions(uuid: impl Arg<String>, size: Option<[f32; 3]>) -> bool {
+    crate::call(&SetDimensions {
+        uuid: uuid.arg(),
+        size,
+    })
+    .unwrap_or_default()
 }
 
 /// What the host reads as "vanilla's size again": a negative width.
