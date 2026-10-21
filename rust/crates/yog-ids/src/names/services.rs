@@ -156,7 +156,7 @@ names! {
         HAS_ITEM = crate::concatcp!(DOMAIN, "has_item"),
         HAS_BLOCK = crate::concatcp!(DOMAIN, "has_block"),
         HAS_ENTITY = crate::concatcp!(DOMAIN, "has_entity"),
-        ITEMS = crate::concatcp!(DOMAIN, "items"),
+        ITEMS = crate::concatcp!(DOMAIN, crate::word::ITEMS),
     }
 
     /// `yog:advancement/…`: advancements.

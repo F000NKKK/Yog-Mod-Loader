@@ -288,16 +288,17 @@ public final class YogPackStager {
     }
 
     /** An atlas definition's list of where its sprites come from. */
-    private static final String ATLAS_SOURCES = "sources";
+    private static final String ATLAS_SOURCES = YogNames.AtlasSource.SOURCES;
     /** The first version whose item textures have an atlas of their own ({@code minecraft:items}), not the blocks'. */
     private static final int[] ITEMS_ATLAS_SINCE = {1, 21, 11};
     /** The atlases' definitions: {@code assets/minecraft/atlases/<name>.json}. */
-    private static final String BLOCKS_ATLAS = "blocks", ITEMS_ATLAS = "items";
+    private static final String BLOCKS_ATLAS = YogNames.AtlasSource.BLOCKS, ITEMS_ATLAS = YogNames.AtlasSource.ITEMS;
     /** The item textures' folder, which the items atlas takes whole: a sprite under it is an item's. */
-    private static final String ITEM_SPRITES = "item/";
+    private static final String ITEM_SPRITES = YogNames.Res.ITEM_DIR;
     /** An atlas source's kind and fields: a whole texture, or sprites cut from one picture. */
-    private static final String SOURCE_TYPE = "type", SINGLE = "single", UNSTITCH = "unstitch",
-            RESOURCE = "resource", SPRITE = "sprite", REGIONS = "regions";
+    private static final String SOURCE_TYPE = YogNames.AtlasSource.TYPE, SINGLE = YogNames.AtlasSource.SINGLE,
+            UNSTITCH = YogNames.AtlasSource.UNSTITCH, RESOURCE = YogNames.AtlasSource.RESOURCE,
+            SPRITE = YogNames.AtlasSource.SPRITE, REGIONS = YogNames.AtlasSource.REGIONS;
 
     /**
      * The mods' item sprites out of the blocks atlas, into the items atlas

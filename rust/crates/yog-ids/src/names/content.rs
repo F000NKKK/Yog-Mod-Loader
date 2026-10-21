@@ -91,7 +91,7 @@ names! {
         /// Items' textures and models: `item/apple`.
         ITEM_DIR = crate::concatcp!(crate::kind::ITEM, crate::sep::PATH),
         /// Item definitions (1.21.4+): `<ns>:items/<path>.json`.
-        ITEM_DEFINITIONS = crate::concatcp!("items", crate::sep::PATH),
+        ITEM_DEFINITIONS = crate::concatcp!(crate::word::ITEMS, crate::sep::PATH),
         /// Equipment's worn looks (1.21.4+): `<ns>:equipment/<path>.json`.
         EQUIPMENT = crate::concatcp!("equipment", crate::sep::PATH),
         /// Worn equipment's textures (1.21.4+): `entity/equipment/<layer>/<path>`.
@@ -195,10 +195,10 @@ names! {
 
     /// What `[external.<namespace>]` in `yog.toml` lists another mod's content under.
     external {
-        ITEMS = "items",
-        BLOCKS = "blocks",
-        ENTITIES = "entities",
-        RECIPES = "recipes",
+        ITEMS = crate::word::ITEMS,
+        BLOCKS = crate::word::BLOCKS,
+        ENTITIES = crate::word::ENTITIES,
+        RECIPES = crate::word::RECIPES,
     }
 
     /// The kinds of shape a schema describes itself with
@@ -333,6 +333,28 @@ names! {
         MCMETA = "mcmeta",
     }
 
+    /// The game's atlas definitions (`atlases/<atlas>.json`): their sources —
+    /// a whole texture (`single`), or sprites cut from one picture
+    /// (`unstitch`, its regions).
+    atlas_source {
+        SOURCES = "sources",
+        TYPE = crate::word::TYPE,
+        SINGLE = "single",
+        UNSTITCH = "unstitch",
+        RESOURCE = "resource",
+        SPRITE = "sprite",
+        DIVISOR_X = "divisor_x",
+        DIVISOR_Y = "divisor_y",
+        REGIONS = "regions",
+        X = crate::word::X,
+        Y = crate::word::Y,
+        WIDTH = crate::word::WIDTH,
+        HEIGHT = crate::word::HEIGHT,
+        /// The game's atlases of blocks and of items.
+        BLOCKS = crate::word::BLOCKS,
+        ITEMS = crate::word::ITEMS,
+    }
+
     /// The texture variables of the game's block models (`cube_all`'s `all`, a
     /// column's `end`, …) — beside the faces' own names (`up`, `north`, …).
     texture_slot {
@@ -396,7 +418,7 @@ names! {
         SURVIVES_EXPLOSION = crate::id!(crate::ns::MINECRAFT, "survives_explosion"),
         BLOCK_STATE_PROPERTY = crate::id!(crate::ns::MINECRAFT, "block_state_property"),
         /// Where blocks' tables are: `loot_table/blocks/<path>`.
-        BLOCKS = crate::concatcp!("blocks", crate::sep::PATH),
+        BLOCKS = crate::concatcp!(crate::word::BLOCKS, crate::sep::PATH),
     }
 
     /// The fields of a dimension as the build hands it to the runtime and

@@ -11,6 +11,7 @@ use std::path::Path;
 use serde_json::{Value, json};
 use yog_formats::texture::TextureFile;
 use yog_ids::Format;
+use yog_ids::atlas_source as src;
 use yog_media::image::Image;
 
 use super::Output;
@@ -27,98 +28,105 @@ pub struct Textures {
 
 /// Where an atlas's packed picture goes under the mod's textures: `atlas/blocks`.
 const ATLAS_DIR: &str = "atlas";
-/// What an atlas source of a whole texture, and of one cut from a picture, is.
-const SINGLE: &str = "single";
-/// A source's sprite name, when it isn't the texture's id.
-const SPRITE: &str = "sprite";
-const UNSTITCH: &str = "unstitch";
+
+/// What the textures make so far: the outputs, and per atlas the textures
+/// packed into its picture (sprite, picture) and its sources of their own.
+#[derive(Default)]
+struct Building {
+    out: Textures,
+    packed: BTreeMap<String, Vec<(String, Image)>>,
+    singles: BTreeMap<String, Vec<Value>>,
+}
 
 /// Every `.ytexture` under `resources/` of the mod at `root`; problems go to `errors`.
 pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>) -> Textures {
     let resources = root.join(RESOURCES_DIR);
-    let mut out = Textures::default();
-    // Atlas → its packed textures (id, picture) and its own sources.
-    let mut packed: BTreeMap<String, Vec<(String, Image)>> = BTreeMap::new();
-    let mut singles: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+    let mut b = Building::default();
     for file in crate::yui::find_files(&resources, Format::Texture.ext()) {
         let shown = super::display(root, &file);
         let rel = file.strip_prefix(&resources).unwrap_or(&file).to_string_lossy().replace('\\', yog_ids::sep::PATH);
         let Some(id) = yog_formats::texture::id_of(mod_id, &rel) else { continue };
-        let texture = match std::fs::read_to_string(&file).map_err(|e| e.to_string()).and_then(|t| yog_data::from_text::<TextureFile>(&t).map_err(|e| e.to_string())) {
-            Ok(r) => r.value,
-            Err(e) => {
-                errors.push(format!("{shown}: {e}"));
-                continue;
-            }
-        };
-        let reference = format!("{}.{}", texture.image.set, texture.image.key);
-        let Some(picture) = refs.pictures.get(&reference) else {
-            errors.push(format!("{shown}: image `@{reference}`: no such image in {RESOURCES_DIR}/*.{}", Format::Res.ext()));
-            continue;
-        };
-        if let Some(atlas) = &texture.atlas
-            && yog_registry::Atlas::find(atlas).is_none()
-        {
-            let known: Vec<&str> = yog_registry::Atlas::game().iter().map(|a| a.id.as_str()).collect();
-            errors.push(format!("{shown}: atlas `{atlas}`: one of {}", known.join(", ")));
-            continue;
+        if let Err(e) = texture(&mut b, &file, &id, refs) {
+            errors.push(format!("{shown}: {e}"));
         }
-        let atlas = texture.atlas.as_deref().map(yog_ids::qualify);
-        // Its sprite's name in the atlas: a bare atlas's without the folder (`mymod:clarity`).
-        let sprite = {
-            let (ns, path) = yog_ids::split(&id);
-            let path = atlas.as_deref().and_then(yog_registry::Atlas::find).map_or(path, |a| a.sprite(path));
-            yog_ids::join(ns, path)
-        };
-        match (&atlas, &texture.animation) {
-            // Packed with the atlas's other textures.
-            (Some(atlas), None) if !texture.blur && !texture.clamp => match yog_media::image::decode(&picture.png) {
-                Ok(img) => {
-                    packed.entry(atlas.clone()).or_default().push((sprite.clone(), img));
-                    out.packed.insert(picture.output.clone());
-                }
-                Err(e) => errors.push(format!("{shown}: {e}")),
-            },
-            // A picture of its own: animated, filtered, or in no atlas.
-            _ => {
-                let (ns, path) = yog_ids::split(&id);
-                let target = format!("{}/{ns}/{}", yog_ids::pack::ASSETS, yog_ids::texture_file(path));
-                if let Some(meta) = texture.game_mcmeta() {
-                    out.outputs.push((format!("{target}{}", yog_ids::res::MCMETA), super::pretty(&meta)));
-                }
-                out.outputs.push((target, picture.png.clone()));
-                if let Some(atlas) = atlas {
-                    let mut single = json!({ "type": SINGLE, "resource": id });
-                    if sprite != id {
-                        single[SPRITE] = json!(sprite);
-                    }
-                    singles.entry(atlas).or_default().push(single);
-                }
-            }
-        }
-        out.ids.insert(id);
     }
-    for atlas in packed.keys().chain(singles.keys()).cloned().collect::<BTreeSet<_>>() {
-        let mut sources = singles.remove(&atlas).unwrap_or_default();
-        if let Some(textures) = packed.remove(&atlas) {
-            let (sheet, regions) = pack(&textures);
-            let picture_id = yog_ids::join(mod_id, &format!("{ATLAS_DIR}{}{}", yog_ids::sep::PATH, yog_ids::split(&atlas).1));
-            match yog_media::image::encode_png(&sheet) {
-                Ok(png) => out.outputs.push((format!("{}/{mod_id}/{}", yog_ids::pack::ASSETS, yog_ids::texture_file(yog_ids::split(&picture_id).1)), png)),
-                Err(e) => errors.push(format!("atlas {atlas}: {e}")),
-            }
-            sources.insert(0, json!({
-                "type": UNSTITCH,
-                "resource": picture_id,
-                "divisor_x": sheet.width,
-                "divisor_y": sheet.height,
-                "regions": regions.iter().map(|(id, x, y, w, h)| json!({ "sprite": id, "x": x, "y": y, "width": w, "height": h })).collect::<Vec<_>>(),
-            }));
+    for atlas in b.packed.keys().chain(b.singles.keys()).cloned().collect::<BTreeSet<_>>() {
+        if let Err(e) = write_atlas(&mut b, &atlas, mod_id) {
+            errors.push(format!("atlas {atlas}: {e}"));
         }
-        let (ns, path) = yog_ids::split(&atlas);
-        out.outputs.push((format!("{}/{ns}/{}{path}{}", yog_ids::pack::ASSETS, yog_ids::res::ATLASES, yog_ids::res::JSON), super::pretty(&json!({ "sources": sources }))));
     }
-    out
+    b.out
+}
+
+/// The `.ytexture` at `file` (texture `id`): packed into its atlas's
+/// picture, or a picture of its own (animated, filtered, or in no atlas).
+fn texture(b: &mut Building, file: &Path, id: &str, refs: &Refs) -> Result<(), String> {
+    let text = std::fs::read_to_string(file).map_err(|e| e.to_string())?;
+    let texture = yog_data::from_text::<TextureFile>(&text).map_err(|e| e.to_string())?.value;
+    let picture = refs
+        .pictures
+        .get(&texture.image.name())
+        .ok_or_else(|| format!("image `{}`: no such image in {RESOURCES_DIR}/*.{}", texture.image, Format::Res.ext()))?;
+    if let Some(atlas) = &texture.atlas
+        && yog_registry::Atlas::find(atlas).is_none()
+    {
+        let known: Vec<&str> = yog_registry::Atlas::game().iter().map(|a| a.id.as_str()).collect();
+        return Err(format!("atlas `{atlas}`: one of {}", known.join(", ")));
+    }
+    let atlas = texture.atlas.as_deref().map(yog_ids::qualify);
+    // Its sprite's name in the atlas: a bare atlas's without the folder (`mymod:clarity`).
+    let (ns, path) = yog_ids::split(id);
+    let sprite = yog_ids::join(ns, atlas.as_deref().and_then(yog_registry::Atlas::find).map_or(path, |a| a.sprite(path)));
+    match (&atlas, &texture.animation) {
+        (Some(atlas), None) if !texture.blur && !texture.clamp => {
+            let img = yog_media::image::decode(&picture.png)?;
+            b.packed.entry(atlas.clone()).or_default().push((sprite, img));
+            b.out.packed.insert(picture.output.clone());
+        }
+        _ => {
+            let target = format!("{}/{ns}/{}", yog_ids::pack::ASSETS, yog_ids::texture_file(path));
+            if let Some(meta) = texture.game_mcmeta() {
+                b.out.outputs.push((format!("{target}{}", yog_ids::res::MCMETA), super::pretty(&meta)));
+            }
+            b.out.outputs.push((target, picture.png.clone()));
+            if let Some(atlas) = atlas {
+                let mut single = json!({ src::TYPE: src::SINGLE, src::RESOURCE: id });
+                if sprite != id {
+                    single[src::SPRITE] = json!(sprite);
+                }
+                b.singles.entry(atlas).or_default().push(single);
+            }
+        }
+    }
+    b.out.ids.insert(id.to_string());
+    Ok(())
+}
+
+/// Atlas `atlas`'s definition: its textures' packed picture, cut up again
+/// (an `unstitch` source first), and its textures of their own.
+fn write_atlas(b: &mut Building, atlas: &str, mod_id: &str) -> Result<(), String> {
+    let mut sources = b.singles.remove(atlas).unwrap_or_default();
+    if let Some(textures) = b.packed.remove(atlas) {
+        let (sheet, regions) = pack(&textures);
+        let picture_path = format!("{ATLAS_DIR}{}{}", yog_ids::sep::PATH, yog_ids::split(atlas).1);
+        let png = yog_media::image::encode_png(&sheet)?;
+        b.out.outputs.push((format!("{}/{mod_id}/{}", yog_ids::pack::ASSETS, yog_ids::texture_file(&picture_path)), png));
+        let regions: Vec<Value> = regions
+            .iter()
+            .map(|(id, x, y, w, h)| json!({ src::SPRITE: id, src::X: x, src::Y: y, src::WIDTH: w, src::HEIGHT: h }))
+            .collect();
+        sources.insert(0, json!({
+            src::TYPE: src::UNSTITCH,
+            src::RESOURCE: yog_ids::join(mod_id, &picture_path),
+            src::DIVISOR_X: sheet.width,
+            src::DIVISOR_Y: sheet.height,
+            src::REGIONS: regions,
+        }));
+    }
+    let (ns, path) = yog_ids::split(atlas);
+    let file = format!("{}/{ns}/{}{path}{}", yog_ids::pack::ASSETS, yog_ids::res::ATLASES, yog_ids::res::JSON);
+    b.out.outputs.push((file, super::pretty(&json!({ src::SOURCES: sources }))));
+    Ok(())
 }
 
 /// A texture's region in a packed picture: id, x, y, width, height.
@@ -184,7 +192,7 @@ mod tests {
         assert!(names.contains("assets/mymod/textures/atlas/blocks.png"), "{names:?}");
         assert!(names.contains("assets/mymod/textures/block/glow.png.mcmeta"), "{names:?}");
         let atlas: Value = serde_json::from_slice(&t.outputs.iter().find(|(p, _)| p == "assets/minecraft/atlases/blocks.json").unwrap().1).unwrap();
-        assert_eq!(atlas["sources"][0]["type"], UNSTITCH);
+        assert_eq!(atlas[src::SOURCES][0][src::TYPE], src::UNSTITCH);
         assert_eq!(atlas["sources"][0]["regions"].as_array().unwrap().len(), 2);
         assert_eq!(atlas["sources"][1], json!({ "type": SINGLE, "resource": "mymod:block/glow" }));
         // A status effect's icon is named without its folder, as the game looks it up.

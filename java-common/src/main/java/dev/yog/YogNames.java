@@ -33,6 +33,10 @@ public final class YogNames {
         private Word() {}
 
         public static final String GUI = "gui";
+        public static final String ITEMS = "items";
+        public static final String BLOCKS = "blocks";
+        public static final String ENTITIES = "entities";
+        public static final String RECIPES = "recipes";
         public static final String LOOT = "loot";
         public static final String SPAWN_EGG = "spawn_egg";
         public static final String SOUND = "sound";
@@ -956,6 +960,26 @@ public final class YogNames {
         public static final String NS = "ns";
         public static final String ASSET = "asset";
         public static final String MCMETA = "mcmeta";
+    }
+
+    public static final class AtlasSource {
+        private AtlasSource() {}
+
+        public static final String SOURCES = "sources";
+        public static final String TYPE = "type";
+        public static final String SINGLE = "single";
+        public static final String UNSTITCH = "unstitch";
+        public static final String RESOURCE = "resource";
+        public static final String SPRITE = "sprite";
+        public static final String DIVISOR_X = "divisor_x";
+        public static final String DIVISOR_Y = "divisor_y";
+        public static final String REGIONS = "regions";
+        public static final String X = "x";
+        public static final String Y = "y";
+        public static final String WIDTH = "width";
+        public static final String HEIGHT = "height";
+        public static final String BLOCKS = "blocks";
+        public static final String ITEMS = "items";
     }
 
     public static final class TextureSlot {
