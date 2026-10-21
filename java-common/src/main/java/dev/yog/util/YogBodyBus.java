@@ -22,8 +22,7 @@ public final class YogBodyBus {
     }
 
     /** {right, up, forward, wx, wy, wz, yaw, pitch, roll, fov} the mods make of this frame's camera. */
-    public static float[] camera(String uuid, float partial, double x, double y, double z, float yaw, float pitch, boolean detached, int flags) {
-        YogTypes.CameraFrame frame = new YogTypes.CameraFrame(uuid, partial, new double[] {x, y, z}, yaw, pitch, detached, flags);
+    public static float[] camera(YogTypes.CameraFrame frame) {
         YogTypes.CameraOut o = new YogEvents.Client.Render.Camera(frame, new YogTypes.CameraOut(ZERO, ZERO, 0, 0, 0, 0)).emitChanged().out();
         return new float[] {
             (float) o.localOffset().x(), (float) o.localOffset().y(), (float) o.localOffset().z(),
@@ -33,11 +32,8 @@ public final class YogBodyBus {
     }
 
     /** The velocity a mod moves the local player by this tick instead of vanilla's travel, or null. */
-    public static float[] travel(String uuid, float vx, float vy, float vz, float lx, float ly, float lz, float yaw, float pitch,
-                                 float forward, float strafe, boolean jumping, boolean sneaking, float gravity, int flags) {
+    public static float[] travel(YogTypes.TravelFrame frame) {
         if (!YogEvents.Client.Game.Travel.heard()) return null;
-        YogTypes.TravelFrame frame = new YogTypes.TravelFrame(uuid, new YogTypes.Vec3(vx, vy, vz), new YogTypes.Vec3(lx, ly, lz),
-                yaw, pitch, forward, strafe, jumping, sneaking, gravity, flags);
         YogTypes.Vec3 v = new YogEvents.Client.Game.Travel(frame, null).emitChanged().velocity();
         return v == null ? null : new float[] {(float) v.x(), (float) v.y(), (float) v.z()};
     }

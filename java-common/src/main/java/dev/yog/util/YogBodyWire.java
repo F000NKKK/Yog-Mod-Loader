@@ -278,17 +278,24 @@ public final class YogBodyWire {
         }
     }
 
+    /** What starts a frame: its kind, {@code yog_body::wire}'s. */
+    private static final int FRAME_TAG = 2;
+
+    /** An entity as a frame tells it: who, how far into the tick, its limbs, look, place, motion, flags, the game's time. */
+    public record Pose(UUID id, String type, float partial, float age, float limbSwing, float limbAmount,
+                       float headYaw, float headPitch, float bodyYaw, float pitch,
+                       double x, double y, double z, float vx, float vy, float vz, int flags, double gameTime) {
+    }
+
     /**
      * The frame the mods read ({@code yog_body::Frame}), with the entity's
      * last captures; the runtime adds the data it keeps.
      */
-    public static byte[] frame(UUID id, String type, float partial, float age, float limbSwing, float limbAmount,
-                               float headYaw, float headPitch, float bodyYaw, float pitch,
-                               double x, double y, double z, float vx, float vy, float vz, int flags, double gameTime) {
-        Out o = new Out().u8(2).str(id.toString()).str(type);
-        o.f32(partial).f32(age).f32(limbSwing).f32(limbAmount).f32(headYaw).f32(headPitch).f32(bodyYaw).f32(pitch);
-        o.f64(x).f64(y).f64(z).f32(vx).f32(vy).f32(vz).u32(flags).f64(gameTime);
-        List<Captured> caps = CAPTURED.remove(id);
+    public static byte[] frame(Pose p) {
+        Out o = new Out().u8(FRAME_TAG).str(p.id().toString()).str(p.type());
+        o.f32(p.partial()).f32(p.age()).f32(p.limbSwing()).f32(p.limbAmount()).f32(p.headYaw()).f32(p.headPitch()).f32(p.bodyYaw()).f32(p.pitch());
+        o.f64(p.x()).f64(p.y()).f64(p.z()).f32(p.vx()).f32(p.vy()).f32(p.vz()).u32(p.flags()).f64(p.gameTime());
+        List<Captured> caps = CAPTURED.remove(p.id());
         if (caps == null) caps = List.of();
         o.u16(caps.size());
         for (Captured c : caps) {

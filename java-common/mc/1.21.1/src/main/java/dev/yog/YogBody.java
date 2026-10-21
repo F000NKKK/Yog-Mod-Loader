@@ -107,11 +107,11 @@ public final class YogBody {
         float head = Mth.rotLerp(partial, e.yHeadRotO, e.yHeadRot);
         boolean alive = e.isAlive() && !e.isPassenger();
         Vec3 v = e.getDeltaMovement();
-        byte[] frame = YogBodyWire.frame(e.getUUID(), typeId(e), partial, e.tickCount + partial,
+        byte[] frame = YogBodyWire.frame(new YogBodyWire.Pose(e.getUUID(), typeId(e), partial, e.tickCount + partial,
                 alive ? e.walkAnimation.position(partial) : 0, alive ? Math.min(1, e.walkAnimation.speed(partial)) : 0,
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
-                (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial);
+                (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial));
         Ops ops = Ops.parse(dev.yog.util.YogBodyBus.bodyPose(frame));
         if (!ops.captures.isEmpty()) capture(self, e, ops.captures, partial, light);
         if (ops.disguise != null) {
@@ -243,11 +243,11 @@ public final class YogBody {
         float head = living != null ? Mth.rotLerp(partial, living.yHeadRotO, living.yHeadRot) : body;
         boolean walks = living != null && living.isAlive() && !living.isPassenger();
         Vec3 v = e.getDeltaMovement();
-        byte[] frame = YogBodyWire.frame(e.getUUID(), typeId(e), partial, e.tickCount + partial,
+        byte[] frame = YogBodyWire.frame(new YogBodyWire.Pose(e.getUUID(), typeId(e), partial, e.tickCount + partial,
                 walks ? living.walkAnimation.position(partial) : 0, walks ? Math.min(1, living.walkAnimation.speed(partial)) : 0,
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
-                (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial);
+                (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.level().getGameTime() + (double) partial));
         Ops ops = Ops.parse(dev.yog.util.YogBodyBus.bodyPose(frame));
         if (ops == Ops.NONE) return;
         overlay = living != null ? LivingEntityRenderer.getOverlayCoords(living, 0) : OverlayTexture.NO_OVERLAY;
@@ -430,8 +430,8 @@ public final class YogBody {
      * fov} from the mods, or null.
      */
     public static float[] camera(Entity entity, float partial, Vec3 pos, float yaw, float pitch, boolean detached) {
-        float[] o = entity == null ? null : dev.yog.util.YogBodyBus.camera(entity.getStringUUID(), partial, pos.x, pos.y, pos.z,
-                yaw, pitch, detached, NativeBridge.entityFlags(entity));
+        float[] o = entity == null ? null : dev.yog.util.YogBodyBus.camera(new dev.yog.bus.YogTypes.CameraFrame(entity.getStringUUID(), partial,
+                new double[] {pos.x, pos.y, pos.z}, yaw, pitch, detached, NativeBridge.entityFlags(entity)));
         fov = o == null ? 1 : o[9];
         return o;
     }
@@ -446,8 +446,9 @@ public final class YogBody {
         Vec3 v = p.getDeltaMovement();
         Vec3 look = p.getLookAngle();
         float gravity = v.y <= 0 && p.hasEffect(MobEffects.SLOW_FALLING) ? 0.01F : 0.08F;
-        float[] out = dev.yog.util.YogBodyBus.travel(p.getStringUUID(), (float) v.x, (float) v.y, (float) v.z, (float) look.x, (float) look.y, (float) look.z,
-                p.getYRot(), p.getXRot(), p.zza, p.xxa, p.input.jumping, p.isShiftKeyDown(), gravity, NativeBridge.entityFlags(p));
+        float[] out = dev.yog.util.YogBodyBus.travel(new dev.yog.bus.YogTypes.TravelFrame(p.getStringUUID(),
+                new dev.yog.bus.YogTypes.Vec3((float) v.x, (float) v.y, (float) v.z), new dev.yog.bus.YogTypes.Vec3((float) look.x, (float) look.y, (float) look.z),
+                p.getYRot(), p.getXRot(), p.zza, p.xxa, p.input.jumping, p.isShiftKeyDown(), gravity, NativeBridge.entityFlags(p)));
         if (out == null) return false;
         Vec3 move = new Vec3(out[0], out[1], out[2]);
         p.setDeltaMovement(move);

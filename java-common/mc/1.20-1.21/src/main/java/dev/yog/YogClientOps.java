@@ -104,8 +104,10 @@ public final class YogClientOps {
     }
 
     /** The box between two corners, each the lesser and the greater. */
-    private static BlockPos[] ordered(int x1, int y1, int z1, int x2, int y2, int z2) {
-        return new BlockPos[] {new BlockPos(Math.min(x1, x2), Math.min(y1, y2), Math.min(z1, z2)), new BlockPos(Math.max(x1, x2), Math.max(y1, y2), Math.max(z1, z2))};
+    private static BlockPos[] ordered(BlockPos a, BlockPos b) {
+        return new BlockPos[] {
+                new BlockPos(Math.min(a.getX(), b.getX()), Math.min(a.getY(), b.getY()), Math.min(a.getZ(), b.getZ())),
+                new BlockPos(Math.max(a.getX(), b.getX()), Math.max(a.getY(), b.getY()), Math.max(a.getZ(), b.getZ()))};
     }
 
     /**
@@ -117,7 +119,7 @@ public final class YogClientOps {
     public static List<YogTypes.PlacedBlock> scan(int x1, int y1, int z1, int x2, int y2, int z2, List<String> ids) {
         ClientLevel w = mc().level;
         if (w == null) return List.of();
-        BlockPos[] b = ordered(x1, y1, z1, x2, y2, z2);
+        BlockPos[] b = ordered(new BlockPos(x1, y1, z1), new BlockPos(x2, y2, z2));
         long columns = (long) ((b[1].getX() >> SECTION_SHIFT) - (b[0].getX() >> SECTION_SHIFT) + 1) * ((b[1].getZ() >> SECTION_SHIFT) - (b[0].getZ() >> SECTION_SHIFT) + 1);
         if (columns > MAX_SCAN_COLUMNS) return List.of();
         Predicate<BlockState> wanted = wanted(ids);
@@ -169,7 +171,7 @@ public final class YogClientOps {
     public static YogTypes.BlockArea area(int x1, int y1, int z1, int x2, int y2, int z2) {
         ClientLevel w = mc().level;
         if (w == null) return null;
-        BlockPos[] b = ordered(x1, y1, z1, x2, y2, z2);
+        BlockPos[] b = ordered(new BlockPos(x1, y1, z1), new BlockPos(x2, y2, z2));
         long volume = (long) (b[1].getX() - b[0].getX() + 1) * (b[1].getY() - b[0].getY() + 1) * (b[1].getZ() - b[0].getZ() + 1);
         if (volume > MAX_BLOCKS) return null;
         Map<BlockState, Integer> index = new HashMap<>();

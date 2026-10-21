@@ -48,6 +48,7 @@ public class YogClient implements ClientModInitializer {
     }
 
     /** Raw bytes to the server (client → server); the runtime calls it by name. */
+    @YogServiceHost
     public static boolean sendToServer(String channel, byte[] data) {
         try {
             YogPlatform.sendToServer(channel, data);
