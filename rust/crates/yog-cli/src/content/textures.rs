@@ -194,7 +194,7 @@ mod tests {
         let atlas: Value = serde_json::from_slice(&t.outputs.iter().find(|(p, _)| p == "assets/minecraft/atlases/blocks.json").unwrap().1).unwrap();
         assert_eq!(atlas[src::SOURCES][0][src::TYPE], src::UNSTITCH);
         assert_eq!(atlas["sources"][0]["regions"].as_array().unwrap().len(), 2);
-        assert_eq!(atlas["sources"][1], json!({ "type": SINGLE, "resource": "mymod:block/glow" }));
+        assert_eq!(atlas[src::SOURCES][1], json!({ src::TYPE: src::SINGLE, src::RESOURCE: "mymod:block/glow" }));
         // A status effect's icon is named without its folder, as the game looks it up.
         std::fs::create_dir_all(dir.join("resources/mob_effect")).unwrap();
         std::fs::write(dir.join("resources/mob_effect/clarity.ytexture"), r#"{ image: "@Images.mob_effect.clarity", atlas: "minecraft:mob_effects" }"#).unwrap();
