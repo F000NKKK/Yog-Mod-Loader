@@ -212,6 +212,25 @@ def functions(lines, lang):
     return out
 
 
+# A Java class whose static methods native code calls (`jcall!`): their
+# signatures are the JNI bridge's, an ABI like Rust's `extern` fns.
+JNI_SURFACE = re.compile(r"/Native\w*\.java$")
+
+
+def fixed_signature(lines, i, path):
+    """Whether the function at line `i` can't choose its parameters: an FFI
+    entry (`extern`, the JNI surface), a Java override (the overridden
+    method's), a record's components (a data type, not a function)."""
+    if "extern" in lines[i] or JNI_SURFACE.search(path) or re.search(r"\brecord\s+\w+\s*\(", lines[i]):
+        return True
+    k = i - 1
+    while k >= 0 and lines[k].strip().startswith(("@", "//", "/*", "*")):
+        if lines[k].strip().startswith("@Override"):
+            return True
+        k -= 1
+    return False
+
+
 def const_fn_lines(lines):
     """Lines inside Rust `const fn`s: a panic there is a compile error, not a runtime one."""
     out, depth, inside = set(), 0, False
@@ -237,7 +256,7 @@ def check(path, text):
     for name, line, length, params in functions(lines[:tests], lang):
         if length > MAX_FN_LINES:
             f.long_fns.append(f"{name}@{line}({length})")
-        if params > MAX_PARAMS and "extern" not in lines[line - 1]:
+        if params > MAX_PARAMS and not fixed_signature(lines, line - 1, path):
             f.many_params.append(f"{name}@{line}({params})")
     in_const_fn = const_fn_lines(lines) if lang == "rs" else set()
     for i, l in enumerate(lines[:tests]):
