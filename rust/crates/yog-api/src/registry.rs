@@ -254,7 +254,7 @@ impl Registry {
 
     /// Register a typed-packet handler.
     ///
-    /// The payload is decoded from raw bytes using `P`'s [`Packet`] impl.
+    /// The payload is read as `P` (a [`Packet`]: any Yog Data type).
     /// Malformed payloads are silently dropped.
     pub fn on_typed_packet<P, F>(&mut self, channel: impl AsRef<str>, handler: F)
     where
@@ -262,7 +262,7 @@ impl Registry {
         F: Fn(&P) + Send + Sync + 'static,
     {
         self.on_packet(channel, move |ev| {
-            if let Some(pkt) = P::decode(&ev.payload) {
+            if let Some(pkt) = P::from_payload(&ev.payload) {
                 handler(&pkt);
             }
         });

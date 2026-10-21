@@ -194,9 +194,10 @@ audit runs:
 - `HexMod-Yog/src/wire.rs` (new, untracked, 191 lines): a third, "self-delimiting" text
   codec that adds `Writer` / `Reader` to fix the previous one.
 
-Meanwhile `yog-network` already has `trait Packet` + `packet!{}` + `PacketField`
-(`yog-network/src/lib.rs:46-180`). It handles flat structs of primitives only: no enums,
-`Option`, `Vec<T>` or nesting. That is why none of the mods uses it. `#[yog_export]` derives
+`yog-network` had `trait Packet` + `packet!{}` + `PacketField` — flat structs of
+primitives only, so none of the mods used it. **Done (ABI 5.0):** they're gone; `Packet` is
+implemented for every `yog_data::Schema` type, so a mod's packet is a Yog Data record
+(enums, `Option`, `Vec<T>`, nesting included). `#[yog_export]` derives
 rkyv for interop types, which is a third serialization mechanism.
 
 **Proposal.** One trait and one derive in yog-api. The proc macro lives in `yog-interop`,

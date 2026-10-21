@@ -241,9 +241,7 @@ pub use yog_event::{Entity, Event, EventPhase, Message, Player, Service, World};
 pub use yog_event::{client::net::Packet as ClientPacketEvent, server::net::Packet as PacketEvent};
 pub use yog_formats::book::{Book, BookCategory, BookEntry, BookPage};
 pub use yog_inventory::{InventoryDef, SlotLayout};
-#[doc(inline)]
-pub use yog_network::packet;
-pub use yog_network::{Packet, PacketField};
+pub use yog_network::Packet;
 pub use yog_registry::{
     ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, BlockDef, BlockProperty, Cooking,
     EntityDef, EntityKind, Facing, FoodDef, ItemDef, Placement, Recipe, RecipeKind, SoundGroup,

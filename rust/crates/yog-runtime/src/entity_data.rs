@@ -6,9 +6,9 @@
 //! `persist` are saved with the entity. Only the server writes them: a
 //! client asks for a change with its mod's packet, the server decides.
 //!
-//! On the wire (`yog:entity_data`), records one after another:
-//! `[op][uuid][key][len u32][bytes]` — `SET`, `REMOVE`, or `CLEAR` (every key
-//! of the entity, key and value empty). Strings are a u16 length and UTF-8.
+//! On the wire (`yog:entity_data`) and in a saved entity: a list of
+//! [`Change`]s, Yog Data — set, remove, or clear (every key of the entity,
+//! key and value empty).
 
 use std::collections::{BTreeMap, HashMap};
 use yog_sync::{LazyLock, Mutex};
@@ -17,12 +17,10 @@ use jni::JNIEnv;
 use jni::objects::{JByteArray, JClass, JString};
 use jni::sys::jbyteArray;
 use yog_abi::YogStr;
+use yog_data::Schema;
+use yog_data::with::Raw;
 
 pub(crate) use yog_ids::yog::{DIMENSIONS, ENTITY_DATA};
-
-const SET: u8 = 1;
-const REMOVE: u8 = 2;
-const CLEAR: u8 = 3;
 
 struct Value {
     bytes: Vec<u8>,
@@ -42,63 +40,46 @@ static SERVER: LazyLock<Mutex<HashMap<String, Values>>> = LazyLock::new(Default:
 static PENDING: LazyLock<Mutex<HashMap<String, PendingChanges>>> = LazyLock::new(Default::default);
 static CLIENT: LazyLock<Mutex<HashMap<String, EncodedValues>>> = LazyLock::new(Default::default);
 
-// ── Records ──────────────────────────────────────────────────────────────────
+// ── Changes ──────────────────────────────────────────────────────────────────
 
-fn put_str(b: &mut Vec<u8>, s: &str) {
-    let s = &s.as_bytes()[..s.len().min(u16::MAX as usize)];
-    b.extend_from_slice(&(s.len() as u16).to_le_bytes());
-    b.extend_from_slice(s);
+/// What a change does to a key.
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
+enum Op {
+    Set,
+    Remove,
+    /// Every key of the entity.
+    Clear,
 }
 
-fn record(b: &mut Vec<u8>, op: u8, uuid: &str, key: &str, value: &[u8]) {
-    b.push(op);
-    put_str(b, uuid);
-    put_str(b, key);
-    b.extend_from_slice(&(value.len() as u32).to_le_bytes());
-    b.extend_from_slice(value);
-}
-
-struct Record {
-    op: u8,
+/// One change of an entity's values.
+#[derive(Schema, Debug, Clone, PartialEq)]
+struct Change {
+    op: Op,
     uuid: String,
     key: String,
+    #[data(with = "Raw")]
     value: Vec<u8>,
 }
 
-fn records(mut b: &[u8]) -> Vec<Record> {
-    fn take<'a>(b: &mut &'a [u8], n: usize) -> Option<&'a [u8]> {
-        if b.len() < n {
-            return None;
+impl Change {
+    fn new(op: Op, uuid: &str, key: &str, value: &[u8]) -> Change {
+        Change {
+            op,
+            uuid: uuid.to_owned(),
+            key: key.to_owned(),
+            value: value.to_vec(),
         }
-        let (h, t) = b.split_at(n);
-        *b = t;
-        Some(h)
     }
-    fn str(b: &mut &[u8]) -> Option<String> {
-        let n = take(b, 2).map(|s| u16::from_le_bytes([s[0], s[1]]) as usize)?;
-        String::from_utf8(take(b, n)?.to_vec()).ok()
-    }
-    let mut out = Vec::new();
-    while !b.is_empty() {
-        let Some(r) = (|| {
-            let op = take(&mut b, 1)?[0];
-            let uuid = str(&mut b)?;
-            let key = str(&mut b)?;
-            let n =
-                take(&mut b, 4).map(|s| u32::from_le_bytes([s[0], s[1], s[2], s[3]]) as usize)?;
-            let value = take(&mut b, n)?.to_vec();
-            Some(Record {
-                op,
-                uuid,
-                key,
-                value,
-            })
-        })() else {
-            break;
-        };
-        out.push(r);
-    }
-    out
+}
+
+/// Changes as bytes, `None` for none.
+fn encode(changes: &[Change]) -> Option<Vec<u8>> {
+    (!changes.is_empty()).then(|| yog_data::to_bytes(&changes.to_vec()))
+}
+
+/// Changes read back; what doesn't read is none.
+fn decode(bytes: &[u8]) -> Vec<Change> {
+    yog_data::read_bytes::<Vec<Change>>(bytes).unwrap_or_default()
 }
 
 // ── Server ───────────────────────────────────────────────────────────────────
@@ -160,14 +141,16 @@ pub(crate) fn set(uuid: &str, key: &str, value: Option<&[u8]>, persist: bool) {
 pub(crate) fn flush() {
     let pending = std::mem::take(&mut *PENDING.lock());
     for (uuid, keys) in pending {
-        let mut b = Vec::new();
-        for (key, value) in keys {
-            match value {
-                Some(v) => record(&mut b, SET, &uuid, &key, &v),
-                None => record(&mut b, REMOVE, &uuid, &key, &[]),
-            }
+        let changes: Vec<Change> = keys
+            .into_iter()
+            .map(|(key, value)| match value {
+                Some(v) => Change::new(Op::Set, &uuid, &key, &v),
+                None => Change::new(Op::Remove, &uuid, &key, &[]),
+            })
+            .collect();
+        if let Some(bytes) = encode(&changes) {
+            send_to_watchers(&uuid, &bytes);
         }
-        send_to_watchers(&uuid, &b);
     }
 }
 
@@ -217,16 +200,18 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataFor<'l>(
     uuid: JString<'l>,
 ) -> jbyteArray {
     let uuid = jstr!(env, uuid, std::ptr::null_mut());
-    let mut b = Vec::new();
+    let mut changes = Vec::new();
     if let Some(values) = SERVER.lock().get(&uuid) {
-        record(&mut b, CLEAR, &uuid, "", &[]);
-        for (k, v) in values {
-            record(&mut b, SET, &uuid, k, &v.bytes);
-        }
+        changes.push(Change::new(Op::Clear, &uuid, "", &[]));
+        changes.extend(
+            values
+                .iter()
+                .map(|(k, v)| Change::new(Op::Set, &uuid, k, &v.bytes)),
+        );
     }
-    if b.is_empty() {
+    let Some(b) = encode(&changes) else {
         return std::ptr::null_mut();
-    }
+    };
     env.byte_array_from_slice(&b)
         .map(|a| a.into_raw())
         .unwrap_or(std::ptr::null_mut())
@@ -241,15 +226,16 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataSave<'l>(
     uuid: JString<'l>,
 ) -> jbyteArray {
     let uuid = jstr!(env, uuid, std::ptr::null_mut());
-    let mut b = Vec::new();
-    if let Some(values) = SERVER.lock().get(&uuid) {
-        for (k, v) in values.iter().filter(|(_, v)| v.persist) {
-            record(&mut b, SET, "", k, &v.bytes);
-        }
-    }
-    if b.is_empty() {
+    let changes: Vec<Change> = SERVER
+        .lock()
+        .get(&uuid)
+        .into_iter()
+        .flat_map(|values| values.iter().filter(|(_, v)| v.persist))
+        .map(|(k, v)| Change::new(Op::Set, "", k, &v.bytes))
+        .collect();
+    let Some(b) = encode(&changes) else {
         return std::ptr::null_mut();
-    }
+    };
     env.byte_array_from_slice(&b)
         .map(|a| a.into_raw())
         .unwrap_or(std::ptr::null_mut())
@@ -270,8 +256,8 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataLoad<'l>(
     };
     let mut store = SERVER.lock();
     let values = store.entry(uuid).or_default();
-    for r in records(&saved) {
-        if r.op == SET {
+    for r in decode(&saved) {
+        if r.op == Op::Set {
             values.insert(
                 r.key,
                 Value {
@@ -331,15 +317,15 @@ pub(crate) fn receive(payload: &[u8]) {
     let mut dims: Vec<(String, Option<[f32; 3]>)> = Vec::new();
     {
         let mut store = CLIENT.lock();
-        for r in records(payload) {
+        for r in decode(payload) {
             match r.op {
-                SET => {
+                Op::Set => {
                     if r.key == DIMENSIONS {
                         dims.push((r.uuid.clone(), decode_dims(&r.value)));
                     }
                     store.entry(r.uuid).or_default().insert(r.key, r.value);
                 }
-                REMOVE => {
+                Op::Remove => {
                     if r.key == DIMENSIONS {
                         dims.push((r.uuid.clone(), None));
                     }
@@ -347,13 +333,12 @@ pub(crate) fn receive(payload: &[u8]) {
                         v.remove(&r.key);
                     }
                 }
-                CLEAR => {
+                Op::Clear => {
                     let removed = store.remove(&r.uuid);
                     if removed.is_some_and(|v| v.contains_key(DIMENSIONS)) {
                         dims.push((r.uuid.clone(), None));
                     }
                 }
-                _ => {}
             }
         }
     }
@@ -369,16 +354,13 @@ pub(crate) fn receive(payload: &[u8]) {
     }
 }
 
+/// An entity's size as it keeps it (`yog:dimensions`): width, height, eye height.
 pub(crate) fn encode_dims(w: f32, h: f32, eye: f32) -> Vec<u8> {
-    [w, h, eye].iter().flat_map(|f| f.to_le_bytes()).collect()
+    yog_data::to_bytes(&[w, h, eye])
 }
 
 fn decode_dims(b: &[u8]) -> Option<[f32; 3]> {
-    let f = |i: usize| {
-        b.get(i * 4..i * 4 + 4)
-            .map(|s| f32::from_le_bytes([s[0], s[1], s[2], s[3]]))
-    };
-    Some([f(0)?, f(1)?, f(2)?])
+    yog_data::read_bytes(b).ok()
 }
 
 /// What this client knows of `uuid` (for body frames).
@@ -417,17 +399,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn records_read_back() {
-        let mut b = Vec::new();
-        record(&mut b, SET, "u", "k", &[1, 2, 3]);
-        record(&mut b, CLEAR, "u", "", &[]);
-        let r = records(&b);
-        assert_eq!(r.len(), 2);
+    fn changes_read_back() {
+        let changes = vec![
+            Change::new(Op::Set, "u", "k", &[1, 2, 3]),
+            Change::new(Op::Clear, "u", "", &[]),
+        ];
+        assert_eq!(decode(&encode(&changes).unwrap()), changes);
         assert_eq!(
-            (r[0].op, r[0].key.as_str(), r[0].value.as_slice()),
-            (SET, "k", &[1u8, 2, 3][..])
+            decode_dims(&encode_dims(0.6, 1.8, 1.62)),
+            Some([0.6, 1.8, 1.62])
         );
-        assert_eq!(r[1].op, CLEAR);
     }
 
     #[test]

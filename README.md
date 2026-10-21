@@ -82,7 +82,7 @@ the Java and Rust worlds.
   regions, item cooldowns, riders, thunder
 - ✅ **Dimensions**: custom dimension types with chunk generators in Rust,
   plus biomes, structures, features and mob spawning per dimension
-- ✅ **Networking**: raw-byte channels and typed `packet!` structs
+- ✅ **Networking**: channels of bytes, and typed packets — any Yog Data (`Schema`) type
 - ✅ **Persistence**: scoped key/value `Storage` (global, per player, world,
   chunk, entity) and `Config` files
 - ✅ **Scheduler**: one-shot and repeating tasks in ticks

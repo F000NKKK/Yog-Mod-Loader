@@ -4,13 +4,7 @@ version = "0.1.1"
 edition = { workspace = true }
 rust-version = { workspace = true }
 license = "MIT OR Apache-2.0"
-description = "Yog networking — raw-byte packets over channels (no NBT on the wire)."
+description = "Yog networking — mods' packets over named channels, as Yog Data (no NBT on the wire)."
 
 [dependencies]
-
-[dev-dependencies]
-criterion = { workspace = true, features = ["cargo_bench_support"] }
-
-[[bench]]
-name = "codec"
-harness = false
+yog-data = { workspace = true }
