@@ -152,16 +152,8 @@ impl Known {
         let mut k = Known { ns: ns.to_string(), datapack, ..Default::default() };
         for e in externals {
             k.external_ns.insert(e.namespace.clone());
-            for (key, paths) in &e.ids {
-                let kind = match key.as_str() {
-                    "items" => RefKind::Item,
-                    "blocks" => RefKind::Block,
-                    "entities" => RefKind::Entity,
-                    "recipes" => RefKind::Recipe,
-                    "loot_tables" => RefKind::LootTable,
-                    _ => continue,
-                };
-                let set = k.external.entry(kind).or_default();
+            for (kind, paths) in &e.ids {
+                let set = k.external.entry(*kind).or_default();
                 for p in paths {
                     set.insert(if p.contains(':') { p.clone() } else { format!("{}:{p}", e.namespace) });
                 }
@@ -288,7 +280,7 @@ mod tests {
 
     #[test]
     fn references_are_checked_against_every_source() {
-        let ext = External { namespace: "farmersdelight".into(), ids: vec![("items".into(), vec!["cutting_board".into()])] };
+        let ext = External { namespace: "farmersdelight".into(), ids: vec![(RefKind::Item, vec!["cutting_board".into()])] };
         let mut k = Known::new("mymod", std::slice::from_ref(&ext), None);
         k.add(RefKind::Item, "mymod:ruby");
         assert!(k.check(RefKind::Item, "mymod:ruby").is_ok());

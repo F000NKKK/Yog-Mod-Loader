@@ -34,14 +34,6 @@ const BODY_FORMATS: [Format; 2] = [Format::Model, Format::Anim];
 /// their path there without the extension (`block/glass`).
 const RESOURCE_KINDS: [(&str, Format); 2] = [(yog_ids::kind::TEXTURE, Format::Texture), (yog_ids::kind::MATERIAL, Format::Material)];
 
-/// What `[external.<namespace>]` lists each kind under.
-const EXTERNAL_KEYS: [(&str, &str); 4] = [
-    (yog_ids::kind::ITEM, yog_ids::external::ITEMS),
-    (yog_ids::kind::BLOCK, yog_ids::external::BLOCKS),
-    (yog_ids::kind::ENTITY, yog_ids::external::ENTITIES),
-    (yog_ids::kind::RECIPE, yog_ids::external::RECIPES),
-];
-
 /// Where the game's ids of a kind are in its client jar: translation keys
 /// of its lang (`entity.minecraft.pig` → `pig`; `dotted`: the rest may hold
 /// dots, `generic.max_health`), files of its data folders (by kind), or the
@@ -198,11 +190,11 @@ pub fn own_defs(file: &Path, kind: &str) -> Vec<OwnDef> {
 }
 
 fn external(root: &Path, kind: &str) -> Vec<String> {
-    let Some(key) = EXTERNAL_KEYS.iter().find(|(k, _)| *k == kind).map(|(_, k)| *k) else { return Vec::new() };
+    let Some(kind) = crate::content::refs::RefKind::from_word(kind) else { return Vec::new() };
     let Ok(manifest) = crate::manifest::YogToml::read(&project::path(root)) else { return Vec::new() };
     let mut out = Vec::new();
     for external in &manifest.externals {
-        for (_, ids) in external.ids.iter().filter(|(k, _)| k == key) {
+        for (_, ids) in external.ids.iter().filter(|(k, _)| *k == kind) {
             out.extend(ids.iter().map(|id| yog_ids::qualify_in(&external.namespace, id)));
         }
     }

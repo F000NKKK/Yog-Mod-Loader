@@ -917,12 +917,13 @@ public final class YogNames {
         public static final String DATA = "data";
         public static final String ASSETS = "assets";
         public static final String TAGS = "tags";
+        public static final String WORLDGEN = "worldgen";
         public static final String OVERLAYS = "when";
         public static final String ANY_LOADER = "any";
         public static final String ANY_VERSION = "any";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DATA, ASSETS, TAGS, OVERLAYS, ANY_LOADER, ANY_VERSION);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DATA, ASSETS, TAGS, WORLDGEN, OVERLAYS, ANY_LOADER, ANY_VERSION);
     }
 
     public static final class Project {
@@ -945,16 +946,6 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(MODS);
-    }
-
-    public static final class UserCache {
-        private UserCache() {}
-
-        public static final String CACHE = "yog";
-        public static final String SHADERS = "shaders";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(CACHE, SHADERS);
     }
 
     public static final class Program {
@@ -986,7 +977,10 @@ public final class YogNames {
         private RustCrate() {}
 
         public static final String PREFIX = "yog-";
+        public static final String API_WORD = "api";
         public static final String API = "yog-api";
+        public static final String API_RUST_NAME = "yog_api";
+        public static final String API_VERSION_KEY = "yog_api_version";
         public static final String ABI = "yog-abi";
         public static final String UI = "yog-ui";
         public static final String KIT = "yog-kit";
@@ -994,7 +988,7 @@ public final class YogNames {
         public static final String REGISTRY = "yog-registry";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, API, ABI, UI, KIT, GFX, REGISTRY);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, API_WORD, API, API_RUST_NAME, API_VERSION_KEY, ABI, UI, KIT, GFX, REGISTRY);
     }
 
     public static final class Res {
@@ -1085,18 +1079,6 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DEFAULT_FONT, VANILLA_THEME, OVERWORLD, PLAINS, THE_NETHER, THE_END, MINEABLE, MISSING_TEXTURE, WRITTEN_BOOK, BOOK, OLD_ATTRIBUTE_PREFIX, LOCALE);
     }
 
-    public static final class External {
-        private External() {}
-
-        public static final String ITEMS = "items";
-        public static final String BLOCKS = "blocks";
-        public static final String ENTITIES = "entities";
-        public static final String RECIPES = "recipes";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEMS, BLOCKS, ENTITIES, RECIPES);
-    }
-
     public static final class ShapeKind {
         private ShapeKind() {}
 
@@ -1171,32 +1153,6 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(SCREEN, COMPONENT, PROPERTY, EVENT, STYLE, CANVAS, COLUMN, ROW, GRID, ROW_DEFINITION, COLUMN_DEFINITION, ROW_DEFINITIONS, COLUMN_DEFINITIONS, SCROLL_VIEW, LABEL, BUTTON, TOGGLE_BUTTON, TEXT_BOX, IMAGE, SURFACE, SPACER, STAT_BAR, LIST_VIEW, ITEMS_CONTROL, CONTENT_PRESENTER, ITEM_SLOT, INV_SLOT, SLOT, PLAYER_INVENTORY, MACHINE, RECIPE_AREA, RECIPE_SLOT, RECIPE_RESULT, RECIPE_COUNT, BLOCK_SLOT, BOOK_HEADER, BOOK_TEXT, BOOK_ITEM, DRAWN);
-    }
-
-    public static final class ItemDef {
-        private ItemDef() {}
-
-        public static final String MODEL = "model";
-        public static final String TYPE = "type";
-        public static final String TINTS = "tints";
-        public static final String VALUE = "value";
-        public static final String PLAIN = "minecraft:model";
-        public static final String CONSTANT = "minecraft:constant";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MODEL, TYPE, TINTS, VALUE, PLAIN, CONSTANT);
-    }
-
-    public static final class Equipment {
-        private Equipment() {}
-
-        public static final String LAYERS = "layers";
-        public static final String TEXTURE = "texture";
-        public static final String HUMANOID = "humanoid";
-        public static final String HUMANOID_LEGGINGS = "humanoid_leggings";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(LAYERS, TEXTURE, HUMANOID, HUMANOID_LEGGINGS);
     }
 
     public static final class ServeParam {
@@ -1386,16 +1342,6 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(BIND_OPEN, BIND_CLOSE, BIND, BINDING, DESIGN, RESOURCES);
-    }
-
-    public static final class Mcmeta {
-        private Mcmeta() {}
-
-        public static final String ANIMATION = "animation";
-        public static final String TEXTURE = "texture";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ANIMATION, TEXTURE);
     }
 
     public static final class ToolKind {
@@ -1715,51 +1661,6 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIMENSION_TYPE, DIMENSION, FIXED_BIOMES, NOISE, OVERWORLD_NOISE, INFINIBURN, EFFECTS_OVERWORLD, EFFECTS_END, EFFECTS_NETHER, BED_RULE, ANCHORS_WORK);
     }
 
-    public static final class Worldgen {
-        private Worldgen() {}
-
-        public static final String DIR = "worldgen";
-        public static final String CONFIGURED_FEATURE = "configured_feature";
-        public static final String PLACED_FEATURE = "placed_feature";
-        public static final String TREE = "minecraft:tree";
-        public static final String ORE = "minecraft:ore";
-        public static final String SIMPLE_STATE_PROVIDER = "minecraft:simple_state_provider";
-        public static final String WEIGHTED_STATE_PROVIDER = "minecraft:weighted_state_provider";
-        public static final String RULE_BASED_STATE_PROVIDER = "minecraft:rule_based_state_provider";
-        public static final String NOT = "minecraft:not";
-        public static final String MATCHING_BLOCK_TAG = "minecraft:matching_block_tag";
-        public static final String CANNOT_REPLACE_BELOW_TREE_TRUNK = "minecraft:cannot_replace_below_tree_trunk";
-        public static final String TWO_LAYERS_FEATURE_SIZE = "minecraft:two_layers_feature_size";
-        public static final String DIRT = "minecraft:dirt";
-        public static final String TRUNK = "trunk";
-        public static final String FOLIAGE = "foliage";
-        public static final String PLACER = "placer";
-        public static final String TAG_MATCH = "minecraft:tag_match";
-        public static final String BLOCK_MATCH = "minecraft:block_match";
-        public static final String UNIFORM = "minecraft:uniform";
-        public static final String TRAPEZOID = "minecraft:trapezoid";
-        public static final String COUNT = "minecraft:count";
-        public static final String IN_SQUARE = "minecraft:in_square";
-        public static final String HEIGHT_RANGE = "minecraft:height_range";
-        public static final String BIOME = "minecraft:biome";
-        public static final String IS_OVERWORLD = "minecraft:is_overworld";
-        public static final String UNDERGROUND_ORES = "underground_ores";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIR, CONFIGURED_FEATURE, PLACED_FEATURE, TREE, ORE, SIMPLE_STATE_PROVIDER, WEIGHTED_STATE_PROVIDER, RULE_BASED_STATE_PROVIDER, NOT, MATCHING_BLOCK_TAG, CANNOT_REPLACE_BELOW_TREE_TRUNK, TWO_LAYERS_FEATURE_SIZE, DIRT, TRUNK, FOLIAGE, PLACER, TAG_MATCH, BLOCK_MATCH, UNIFORM, TRAPEZOID, COUNT, IN_SQUARE, HEIGHT_RANGE, BIOME, IS_OVERWORLD, UNDERGROUND_ORES);
-    }
-
-    public static final class BiomeModifier {
-        private BiomeModifier() {}
-
-        public static final String DIR = "biome_modifier";
-        public static final String FORGE_ADD_FEATURES = "forge:add_features";
-        public static final String NEOFORGE_ADD_FEATURES = "neoforge:add_features";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIR, FORGE_ADD_FEATURES, NEOFORGE_ADD_FEATURES);
-    }
-
     public static final class TagTable {
         private TagTable() {}
 
@@ -1812,10 +1713,9 @@ public final class YogNames {
         public static final String DEFAULT = "default";
         public static final String OPTIONS = "options";
         public static final String DOC = "doc";
-        public static final String DESIGN_PREFIX = "d:";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAME, DISPLAY_NAME, DESCRIPTION, ICON, CATEGORY, DESIGN_W, DESIGN_H, TOOLBOX, TYPE, DEFAULT, OPTIONS, DOC, DESIGN_PREFIX);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAME, DISPLAY_NAME, DESCRIPTION, ICON, CATEGORY, DESIGN_W, DESIGN_H, TOOLBOX, TYPE, DEFAULT, OPTIONS, DOC);
     }
 
     public static final class ScreenAnchor {
@@ -1858,20 +1758,6 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(SCREEN_RESOURCES, DATA_TEMPLATE, ITEM_TEMPLATE, CONTENT_TEMPLATE, EMPTY, COMMAND, ITEMS, CONTENT, KEY, HORIZONTAL, MODE, BIND_BACK, FALLBACK, ONE_WAY, ONE_TIME, TWO_WAY);
-    }
-
-    public static final class WidgetState {
-        private WidgetState() {}
-
-        public static final String HOVER = "hover";
-        public static final String PRESSED = "pressed";
-        public static final String FOCUSED = "focused";
-        public static final String SELECTED = "selected";
-        public static final String CHECKED = "checked";
-        public static final String DISABLED = "disabled";
-
-        /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(HOVER, PRESSED, FOCUSED, SELECTED, CHECKED, DISABLED);
     }
 
     public static final class PropKind {

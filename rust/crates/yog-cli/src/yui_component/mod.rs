@@ -321,7 +321,7 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
     for (key, value) in el
         .attrs
         .iter()
-        .filter(|(k, _)| !k.starts_with(ca::DESIGN_PREFIX))
+        .filter(|(k, _)| !k.starts_with(yog_ids::yui_markup::DESIGN))
     {
         let Some(rust) = crate::yui_vm::compile_bind(value) else {
             out.attrs.push((key.clone(), value.clone()));
@@ -408,11 +408,9 @@ const RES_MARK: char = '@';
 
 impl<'a> Meta<'a> {
     fn read(root: &'a Element) -> Result<Meta<'a>, String> {
-        if let Some((key, _)) = root
-            .attrs
-            .iter()
-            .find(|(k, _)| !ROOT_ATTRS.contains(&k.as_str()) && !k.starts_with(ca::DESIGN_PREFIX))
-        {
+        if let Some((key, _)) = root.attrs.iter().find(|(k, _)| {
+            !ROOT_ATTRS.contains(&k.as_str()) && !k.starts_with(yog_ids::yui_markup::DESIGN)
+        }) {
             return err(
                 root,
                 format_args!("has no attribute `{key}` ({})", ROOT_ATTRS.join(", ")),

@@ -221,9 +221,9 @@ fn item_form(cx: &mut Ctx, loc: Loc, parts: &Parts, parent: Option<String>, emit
         Some(im) => emit.item_model(cx, &im),
         None => {
             // The definition still names the item's model.
-            let def = json!({ yog_ids::item_def::MODEL: {
-                yog_ids::item_def::TYPE: yog_ids::item_def::PLAIN,
-                yog_ids::item_def::MODEL: yog_ids::join(&emit.ns, &format!("{}{}", yog_ids::res::ITEM_DIR, emit.p)),
+            let def = json!({ crate::consts::item_def::MODEL: {
+                crate::consts::item_def::TYPE: crate::consts::item_def::PLAIN,
+                crate::consts::item_def::MODEL: yog_ids::join(&emit.ns, &format!("{}{}", yog_ids::res::ITEM_DIR, emit.p)),
             } });
             emit.asset(cx, yog_ids::item_definition_file(&emit.p), &def);
         }

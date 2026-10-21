@@ -82,8 +82,8 @@ pub struct YogToml {
 #[derive(Debug, Default, Clone)]
 pub struct External {
     pub namespace: String,
-    /// `kind` (`items`, `blocks`, `entities`, `recipes`) → paths.
-    pub ids: Vec<(String, Vec<String>)>,
+    /// The ids of each kind it lists.
+    pub ids: Vec<(RefKind, Vec<String>)>,
 }
 
 impl YogToml {
@@ -128,8 +128,7 @@ use yog_data::{Text, Value};
 use yog_formats::manifest::ManifestFile;
 use yog_ids::rust_crate;
 
-/// The manifest's old key for the API's version, beside its crate names.
-const API_VERSION_KEY: &str = "yog_api_version";
+use crate::content::refs::RefKind;
 
 /// `v` as TOML's inline syntax — how a dependency is written into Cargo.toml.
 fn toml_inline(v: &Value) -> String {
@@ -181,7 +180,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     for (name, spec) in f.dependencies.0 {
         match (name.as_str(), &spec) {
             ("exports", Value::Map(exports)) => mod_dependencies.extend(exports.iter().map(|(k, v)| (k.to_string(), toml_inline(v)))),
-            (n, _) if n == rust_crate::API || n == yog_ids::rust_name(rust_crate::API) || n == API_VERSION_KEY => yog_api_version = Some(spec.as_str().map(str::to_string).unwrap_or_else(|| toml_inline(&spec))),
+            (n, _) if n == rust_crate::API || n == rust_crate::API_RUST_NAME || n == rust_crate::API_VERSION_KEY => yog_api_version = Some(spec.as_str().map(str::to_string).unwrap_or_else(|| toml_inline(&spec))),
             _ => dependencies.push((name, toml_inline(&spec))),
         }
     }
@@ -191,10 +190,9 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
         .into_iter()
         .map(|(namespace, e)| External {
             namespace,
-            ids: [("items", e.items), ("blocks", e.blocks), ("entities", e.entities), ("recipes", e.recipes)]
+            ids: [(RefKind::Item, e.items), (RefKind::Block, e.blocks), (RefKind::Entity, e.entities), (RefKind::Recipe, e.recipes)]
                 .into_iter()
                 .filter(|(_, v)| !v.is_empty())
-                .map(|(k, v)| (k.to_string(), v))
                 .collect(),
         })
         .collect();
@@ -319,7 +317,7 @@ blocks = ["stove"]
         assert_eq!(t.mod_dependencies, [("yog-pipes".to_string(), "\"0.5\"".to_string())]);
         let ext = &t.externals[0];
         assert_eq!(ext.namespace, "farmersdelight");
-        assert_eq!(ext.ids[0], ("items".to_string(), vec!["cutting_board".to_string(), "tomato".to_string()]));
+        assert_eq!(ext.ids[0], (RefKind::Item, vec!["cutting_board".to_string(), "tomato".to_string()]));
     }
 
     #[test]

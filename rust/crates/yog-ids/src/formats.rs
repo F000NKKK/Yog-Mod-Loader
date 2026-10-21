@@ -106,7 +106,7 @@ pub fn blockstate_file(path: &str) -> String {
 
 /// The registries of entities and biomes, which aren't named as their kind.
 const ENTITY_REGISTRY: &str = crate::renamed_tag_dir::ENTITY_TYPE;
-const BIOME_REGISTRY: &str = crate::concatcp!(crate::worldgen::DIR, sep::PATH, kind::BIOME);
+const BIOME_REGISTRY: &str = crate::concatcp!(crate::pack::WORLDGEN, sep::PATH, kind::BIOME);
 
 /// Asset `rel` of namespace `ns`'s, as the pack holds it: `assets/<ns>/<rel>`.
 #[must_use]

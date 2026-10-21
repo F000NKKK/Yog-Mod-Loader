@@ -2,10 +2,12 @@
 //! bindings, commands), its interactive parts and actions, its bindings'
 //! update code, its children.
 
+mod consts;
+use consts as st;
+
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
-use yog_ids::widget_state as st;
 use yog_ids::yui as y;
 use yog_ids::yui_attr as at;
 use yog_ids::yui_vm as v;
@@ -136,7 +138,7 @@ impl VmGen<'_> {
         };
         for (k, val) in &el.attrs {
             let k = k.as_str();
-            if k.starts_with(yog_ids::yui_component::DESIGN_PREFIX) || SCREEN_ATTRS.contains(&k) {
+            if k.starts_with(yog_ids::yui_markup::DESIGN) || SCREEN_ATTRS.contains(&k) {
                 continue;
             }
             if matches!(k, at::ON_CLICK | at::ON_CHANGE | at::ON_SUBMIT) {

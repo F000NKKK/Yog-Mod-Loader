@@ -7,6 +7,9 @@
 //! elsewhere as `@texture:<mod id>:block/ruby`. Yog Data text, like every
 //! source format; the build compiles it.
 
+mod consts;
+use consts as mcmeta;
+
 use yog_data::{Res, Schema};
 
 /// A `.ytexture`.
@@ -72,7 +75,6 @@ pub fn id_of(mod_id: &str, rel: &str) -> Option<String> {
 }
 
 use serde_json::{Value, json};
-use yog_ids::mcmeta;
 
 impl TextureFile {
     /// The game's `.mcmeta` of the texture, when it animates or filters.
@@ -120,7 +122,7 @@ impl Animation {
     /// The animation a game `.mcmeta` (its JSON) describes.
     #[must_use]
     pub fn from_mcmeta(mcmeta: &Value) -> Option<Animation> {
-        let a = mcmeta.get(yog_ids::mcmeta::ANIMATION)?;
+        let a = mcmeta.get(mcmeta::ANIMATION)?;
         let u32_of = |v: &Value, k: &str| {
             v.get(k)
                 .and_then(Value::as_u64)

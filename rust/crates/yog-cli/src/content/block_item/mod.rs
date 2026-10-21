@@ -117,7 +117,7 @@ impl Emit<'_> {
         let path = format!("{}{}", yog_ids::res::ITEM_DIR, self.p);
         self.asset(cx, yog_ids::model_file(&path), model);
         let id = yog_ids::join(&self.ns, &path);
-        let def = serde_json::json!({ yog_ids::item_def::MODEL: { yog_ids::item_def::TYPE: yog_ids::item_def::PLAIN, yog_ids::item_def::MODEL: id } });
+        let def = serde_json::json!({ crate::consts::item_def::MODEL: { crate::consts::item_def::TYPE: crate::consts::item_def::PLAIN, crate::consts::item_def::MODEL: id } });
         self.asset(cx, yog_ids::item_definition_file(&self.p), &def);
     }
 }

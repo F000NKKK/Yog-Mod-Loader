@@ -16,8 +16,6 @@ names! {
         DEFAULT = crate::word::DEFAULT,
         OPTIONS = "options",
         DOC = "doc",
-        /// What starts a design-time attribute: the designer's sample values.
-        DESIGN_PREFIX = "d:",
     }
 
     /// Where a `<Screen>` sits in the game's window (`anchor="top_left"`).
@@ -58,15 +56,6 @@ names! {
         TWO_WAY = "TwoWay",
     }
 
-    /// The states an attribute can be prefixed with: `hover:bg="#FF333333"`.
-    widget_state {
-        HOVER = "hover",
-        PRESSED = "pressed",
-        FOCUSED = "focused",
-        SELECTED = crate::yui_attr::SELECTED,
-        CHECKED = crate::yui_attr::CHECKED,
-        DISABLED = "disabled",
-    }
 
     /// The types of a component's properties.
     prop_kind {

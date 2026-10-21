@@ -176,7 +176,7 @@ fn client_jars(extra_roots: &[PathBuf]) -> Vec<(String, PathBuf)> {
     }
     for root in extra_roots {
         // A Yog workspace: the loader's NeoGradle caches beside the mod.
-        for loader in ["neoforge", "fabric", "forge"] {
+        for loader in [yog_ids::loader::NEOFORGE, yog_ids::loader::FABRIC, yog_ids::loader::FORGE] {
             for base in [root.join("Yog-Mod-Loader"), root.join("../Yog-Mod-Loader")] {
                 version_dirs.push((
                     base.join(loader).join(".gradle/caches/minecraft/versions"),

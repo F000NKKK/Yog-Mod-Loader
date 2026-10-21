@@ -1,14 +1,15 @@
 //! `.ydef` trees, ores and dimensions: the game's worldgen data, the
 //! loaders' biome modifiers, the dimensions the runtime reads.
 
+mod consts;
+use consts as wg;
+
 use serde_json::{Value, json};
 use yog_formats::def::{DimensionDef, HeightShape, OreDef, TreeDef, WeightedBlock};
-use yog_ids::biome_modifier as bm;
 use yog_ids::dimension_field;
 use yog_ids::kind::{BLOCK, TAG as TAG_FIELD};
 use yog_ids::loader::{FORGE, NEOFORGE};
 use yog_ids::sep::{NAMESPACE, PATH, TAG, WORD};
-use yog_ids::worldgen as wg;
 
 use crate::content::Output;
 use crate::content::datapack;
@@ -20,7 +21,7 @@ pub(in crate::content) type OreOut = (Vec<Output>, (String, String, String));
 
 /// A configured feature's file and a placed feature's.
 fn feature_file(folder: &str, id: &str) -> String {
-    datapack::data_in(&[wg::DIR, folder].join(PATH), id)
+    datapack::data_in(&[yog_ids::pack::WORLDGEN, folder].join(PATH), id)
 }
 
 /// The block state `{ "Name": block }`.
@@ -190,7 +191,8 @@ pub(super) fn ore(o: OreDef, ns: &str) -> OreOut {
         .as_ref()
         .map_or_else(|| wg::IS_OVERWORLD.to_string(), |b| b.id.clone());
     let modifier = |kind: &str| json!({ "type": kind, "biomes": format!("{TAG}{biomes}"), "features": id, "step": wg::UNDERGROUND_ORES });
-    let modifier_file = |loader: &str| datapack::data_in(&[loader, bm::DIR].join(PATH), &id);
+    let modifier_file =
+        |loader: &str| datapack::data_in(&[loader, wg::BIOME_MODIFIER_DIR].join(PATH), &id);
     let in_overlay = |loader: &str, version: &str| [loader, version].join(PATH);
     let files: Vec<Output> = vec![
         (
@@ -206,21 +208,21 @@ pub(super) fn ore(o: OreDef, ns: &str) -> OreOut {
                 &in_overlay(FORGE, yog_ids::pack::ANY_VERSION),
                 &modifier_file(FORGE),
             ),
-            pretty(&modifier(bm::FORGE_ADD_FEATURES)),
+            pretty(&modifier(wg::BIOME_MODIFIER_FORGE_ADD_FEATURES)),
         ),
         (
             datapack::overlay(
                 &in_overlay(NEOFORGE, yog_ids::versions::NEOFORGE_READS_FORGE),
                 &modifier_file(FORGE),
             ),
-            pretty(&modifier(bm::FORGE_ADD_FEATURES)),
+            pretty(&modifier(wg::BIOME_MODIFIER_FORGE_ADD_FEATURES)),
         ),
         (
             datapack::overlay(
                 &in_overlay(NEOFORGE, yog_ids::versions::NEOFORGE_READS_OWN),
                 &modifier_file(NEOFORGE),
             ),
-            pretty(&modifier(bm::NEOFORGE_ADD_FEATURES)),
+            pretty(&modifier(wg::BIOME_MODIFIER_NEOFORGE_ADD_FEATURES)),
         ),
     ];
     (files, (id, biomes, wg::UNDERGROUND_ORES.into()))

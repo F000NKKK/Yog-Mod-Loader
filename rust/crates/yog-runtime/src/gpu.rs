@@ -1,4 +1,6 @@
 //! The low-level GPU pipeline (ABI 14): buffers, vertex arrays, shaders, textures, draws, render state.
+
+mod consts;
 use crate::gl_context::GL;
 use crate::gl_context::GL_GET_PROGRAM_BINARY;
 use crate::gl_context::GL_GET_PROGRAM_IV;
@@ -207,8 +209,8 @@ pub(super) fn shader_cache_path(vert: &str, frag: &str) -> Option<PathBuf> {
         .map(|home| {
             PathBuf::from(home)
                 .join(USER_CACHE)
-                .join(yog_ids::user_cache::CACHE)
-                .join(yog_ids::user_cache::SHADERS)
+                .join(consts::CACHE)
+                .join(consts::SHADERS)
         })
         .ok()?;
     std::fs::create_dir_all(&dir).ok()?;

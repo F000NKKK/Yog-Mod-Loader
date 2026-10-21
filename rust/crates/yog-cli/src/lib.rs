@@ -10,6 +10,7 @@ pub(crate) mod rust_code;
 pub mod book_page;
 pub mod recipe_area;
 pub mod cargo_toml;
+mod consts;
 pub mod content;
 pub mod design;
 pub mod exports;

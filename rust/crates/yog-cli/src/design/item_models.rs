@@ -97,7 +97,7 @@ pub fn look(res: &Resources, id: &str) -> Option<Look> {
 
 /// The constant tints item `ns:path`'s definition (`items/<path>.json`, 1.21.4+) gives its layers, in order.
 fn definition_tints(res: &Resources, ns: &str, path: &str) -> Vec<Option<u32>> {
-    use yog_ids::item_def;
+    use crate::consts::item_def;
     let file = format!("{}{path}{}", yog_ids::res::ITEM_DEFINITIONS, yog_ids::res::JSON);
     let Some(def) = res.read(ns, &file).and_then(|b| serde_json::from_slice::<Value>(&b).ok()) else {
         return Vec::new();

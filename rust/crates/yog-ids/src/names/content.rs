@@ -45,6 +45,8 @@ names! {
         ASSETS = "assets",
         /// Tags, under a namespace's data: `data/<ns>/tags/<registry>/<path>.json`.
         TAGS = "tags",
+        /// Worldgen, under a namespace's data: `data/<ns>/worldgen/<registry>/<path>.json`.
+        WORLDGEN = "worldgen",
         /// Overlays for one loader and version: `when/<loader>/<version>/<file>`.
         OVERLAYS = crate::word::WHEN,
         /// An overlay's loader when it's for every loader.
@@ -73,12 +75,6 @@ names! {
         MODS = crate::concatcp!(crate::ns::YOG, crate::sep::HYPHEN, "mods"),
     }
 
-    /// Yog's folders in a user's cache (`~/.cache/<CACHE>/…`).
-    user_cache {
-        CACHE = crate::ns::YOG,
-        /// Compiled shaders, by their sources' hash.
-        SHADERS = "shaders",
-    }
 
     /// Yog's programs.
     program {
@@ -106,7 +102,12 @@ names! {
     rust_crate {
         /// What every one of Yog's crates is named with.
         PREFIX = crate::concatcp!(crate::ns::YOG, crate::sep::HYPHEN),
-        API = crate::concatcp!(PREFIX, "api"),
+        /// The API crate: its word, its name, its name in Rust code, and the
+        /// `[dependencies]` key that pins its version alone.
+        API_WORD = "api",
+        API = crate::concatcp!(PREFIX, API_WORD),
+        API_RUST_NAME = crate::concatcp!(crate::ns::YOG, crate::sep::WORD, API_WORD),
+        API_VERSION_KEY = crate::concatcp!(API_RUST_NAME, crate::sep::WORD, "version"),
         ABI = crate::concatcp!(PREFIX, "abi"),
         UI = crate::concatcp!(PREFIX, "ui"),
         KIT = crate::concatcp!(PREFIX, "kit"),
@@ -232,13 +233,6 @@ names! {
         LOCALE = "en_us",
     }
 
-    /// What `[external.<namespace>]` in `yog.toml` lists another mod's content under.
-    external {
-        ITEMS = crate::word::ITEMS,
-        BLOCKS = crate::word::BLOCKS,
-        ENTITIES = crate::word::ENTITIES,
-        RECIPES = crate::word::RECIPES,
-    }
 
     /// The kinds of shape a schema describes itself with
     /// (`yog_data::Shape::describe`, read by the IDE's property grids).
@@ -320,27 +314,7 @@ names! {
         DRAWN = "Drawn",
     }
 
-    /// The fields and types of the game's item definitions (`items/<path>.json`, 1.21.4+).
-    item_def {
-        MODEL = crate::word::MODEL,
-        TYPE = crate::word::TYPE,
-        TINTS = "tints",
-        VALUE = crate::word::VALUE,
-        /// A plain model.
-        PLAIN = crate::id!(crate::ns::MINECRAFT, crate::word::MODEL),
-        /// A tint of one colour.
-        CONSTANT = crate::id!(crate::ns::MINECRAFT, "constant"),
-    }
 
-    /// The fields and layers of the game's equipment assets (`equipment/<path>.json`, 1.21.4+).
-    equipment {
-        LAYERS = "layers",
-        TEXTURE = crate::kind::TEXTURE,
-        /// Worn on the body: helmet, chestplate, boots.
-        HUMANOID = "humanoid",
-        /// Worn on the legs: leggings.
-        HUMANOID_LEGGINGS = crate::concatcp!(HUMANOID, crate::sep::WORD, "leggings"),
-    }
 
     /// The parameters of the CLI's service methods (`yog serve`, what the IDE calls).
     serve_param {
@@ -519,11 +493,6 @@ names! {
         RESOURCES = crate::concatcp!(crate::sep::MEMBER, "Resources"),
     }
 
-    /// The sections of the game's `.mcmeta` beside a texture.
-    mcmeta {
-        ANIMATION = crate::word::ANIMATION,
-        TEXTURE = crate::kind::TEXTURE,
-    }
 
     /// The game's kinds of tool (`item.tool.kind`); a mod's kind is the
     /// block tag of what it mines.

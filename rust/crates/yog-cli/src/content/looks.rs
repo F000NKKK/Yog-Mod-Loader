@@ -3,9 +3,14 @@
 //! the game's bottle tinted with its effects') and an armor material's
 //! worn look as the game's equipment asset (1.21.4+).
 
+mod consts;
+use consts as equipment;
+
 use serde_json::json;
 use std::path::Path;
-use yog_ids::{equipment, item_def, res};
+use yog_ids::res;
+
+use crate::consts::item_def;
 use crate::content::{Compiled, pretty};
 
 /// An opaque colour from `0xRRGGBB`, as the game's item tints take it (ARGB, signed).
