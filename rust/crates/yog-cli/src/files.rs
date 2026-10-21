@@ -53,3 +53,17 @@ pub(crate) fn fingerprint(files: &[PathBuf]) -> u64 {
     }
     h.finish()
 }
+
+/// A source file of a Yog format, as text: kept binary on disk (what the
+/// editor saves), read as the text the editor shows (`yog_data::source`).
+pub fn read_source(path: impl AsRef<Path>) -> std::io::Result<String> {
+    let bytes = std::fs::read(path)?;
+    yog_data::source::text(&bytes)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+}
+
+/// Writes `text` as the source file at `path`: binary, its comments kept as notes.
+pub fn write_source(path: &Path, text: &str) -> Result<(), String> {
+    let bytes = yog_data::source::binary(text).map_err(|e| format!("{}: {e}", path.display()))?;
+    std::fs::write(path, bytes).map_err(|e| format!("{}: {e}", path.display()))
+}

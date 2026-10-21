@@ -37,6 +37,7 @@ pub use stream::{Stream, StreamWriter};
 pub use text::{Doc, LineCol, Span, Spans, SyntaxError};
 pub use value::{Map, Path, Ref, Res, Seg, Value};
 pub mod schema;
+pub mod source;
 
 pub use schema::{
     AnyRefOrTag, BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds,

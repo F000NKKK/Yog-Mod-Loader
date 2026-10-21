@@ -19,6 +19,8 @@ Commands:
   run <loader> <mc>   Build, put into that loader's dev game, and launch it (`run fabric 26.2`)
   run <target> --debug  Same, built with debug info kept (see `build debug`)
   run --list          The run targets: the loader SDK's, and ~/.yog/local.toml's
+  data text <file>    A Yog format's file (binary on disk) as text, on stdout
+  data bin <file>...  Write text files of Yog formats binary, comments kept as notes
   control hot-reload <mod.yog>...  Swap mods into the running game (YOG_CONTROL_SOCKET/TOKEN)
   control reload-resources         The running game rereads its resources and data
   publish exports     Publish this mod's exported API to crates.io

@@ -174,11 +174,6 @@ fn designer_method(method: &str, c: &Call) -> Option<Reply> {
         M::ADVANCEMENT_RENDER => {
             param(c.params, P::ARGS).and_then(|a| ok(advancements::render(&a)))
         }
-        M::YDATA_TEXT => c.file(|p| {
-            let bytes = std::fs::read(p).map_err(|e| Value::from(e.to_string()))?;
-            let value = yog_data::binary::decode(&bytes).map_err(|e| Value::from(e.to_string()))?;
-            ok(yog_data::text::to_string_pretty(&value))
-        }),
 
         _ => return None,
     })

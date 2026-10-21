@@ -158,7 +158,7 @@ fn files(root: &Path, format: Format) -> Vec<PathBuf> {
 
 /// A content file that's one object.
 fn read(file: &Path) -> Option<Value> {
-    yog_data::text::parse_value(&std::fs::read_to_string(file).ok()?)
+    yog_data::text::parse_value(&crate::files::read_source(file).ok()?)
         .ok()
         .filter(|v| matches!(v, Value::Map(_)))
 }

@@ -132,3 +132,34 @@ fn a_request_is_named_as_the_tools_write_it() {
         [R::METHOD, R::PARAMS]
     );
 }
+
+#[test]
+fn a_source_is_saved_binary_and_read_as_text() {
+    let dir = std::env::temp_dir().join(format!("yog-serve-source-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("ruby.yblock");
+    let path = Value::from(file.to_string_lossy().as_ref());
+    let save = |text: &str| {
+        answer(&Request {
+            method: "source.write".into(),
+            params: Value::Map(
+                [("path", path.clone()), ("text", Value::from(text))]
+                    .into_iter()
+                    .collect(),
+            ),
+        })
+    };
+    save("{\n  // Hard.\n  hardness: 3\n}").unwrap();
+    assert!(yog_data::source::is_binary(&std::fs::read(&file).unwrap()));
+    let read = answer(&Request {
+        method: "source.read".into(),
+        params: Value::Map([("path", path.clone())].into_iter().collect()),
+    })
+    .unwrap();
+    let text = read.as_str().unwrap();
+    let back = yog_data::text::parse_value(text).unwrap();
+    assert_eq!(back.get("$hardness").and_then(Value::as_str), Some("Hard."));
+    assert_eq!(back.get("hardness"), Some(&Value::Int(3)));
+    assert_eq!(at(&save("{ a: }").unwrap_err(), &["line"]), &Value::Int(1));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

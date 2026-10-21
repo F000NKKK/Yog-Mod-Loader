@@ -73,7 +73,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
 /// The `.ytexture` at `file` (texture `id`): packed into its atlas's
 /// picture, or a picture of its own (animated, filtered, or in no atlas).
 fn texture(b: &mut Building, file: &Path, id: &str, refs: &Refs) -> Result<(), String> {
-    let text = std::fs::read_to_string(file).map_err(|e| e.to_string())?;
+    let text = crate::files::read_source(file).map_err(|e| e.to_string())?;
     let texture = yog_data::from_text::<TextureFile>(&text)
         .map_err(|e| e.to_string())?
         .value;

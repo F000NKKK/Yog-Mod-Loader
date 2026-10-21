@@ -63,7 +63,7 @@ fn read_file(root: &Path, path: PathBuf, errors: &mut Vec<String>) -> Option<Rea
         errors.push(format!("{shown}: {e}"));
         return None;
     }
-    let entries = match std::fs::read_to_string(&path)
+    let entries = match crate::files::read_source(&path)
         .map_err(|e| e.to_string())
         .and_then(|t| parse(&t))
     {

@@ -85,7 +85,7 @@ pub fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u
         return None;
     };
     for file in crate::files::of(&root.join("content/items"), Format::Item) {
-        let Ok(text) = std::fs::read_to_string(&file) else {
+        let Ok(text) = crate::files::read_source(&file) else {
             continue;
         };
         let Some(doc) = crate::design::data::read_object(&text) else {
@@ -145,7 +145,7 @@ fn potion_effect_color(root: &Path, item: &Value) -> Option<u32> {
 /// The color of the potion effect(s) defined by this `.yitem`.
 pub fn item_potion_color(file: &Path) -> Option<u32> {
     let root = mod_root(file)?;
-    let text = std::fs::read_to_string(file).ok()?;
+    let text = crate::files::read_source(file).ok()?;
     let item = Value::Object(crate::design::data::read_object(&text)?);
     potion_effect_color(&root, &item)
 }
@@ -158,7 +158,7 @@ fn content_effect_color(root: &Path, reference: &str) -> Option<u32> {
         return None;
     }
     for file in crate::files::of(&root.join("content/effects"), Format::Def) {
-        let Ok(text) = std::fs::read_to_string(&file) else {
+        let Ok(text) = crate::files::read_source(&file) else {
             continue;
         };
         let Some(doc) = crate::design::data::read_object(&text) else {
@@ -195,7 +195,7 @@ pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
     ]
     .concat();
     for file in files {
-        let Ok(text) = std::fs::read_to_string(&file) else {
+        let Ok(text) = crate::files::read_source(&file) else {
             continue;
         };
         let Some(doc) = crate::design::data::read_object(&text).map(Value::Object) else {

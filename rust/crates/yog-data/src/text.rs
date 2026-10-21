@@ -12,6 +12,10 @@ const HEX_RADIX: u32 = 16;
 
 use crate::value::{Map, Path, Seg, Value};
 
+mod comments;
+
+pub use comments::with_comments;
+
 /// Deeper than this is an error, not a stack overflow.
 pub const MAX_DEPTH: usize = 256;
 

@@ -44,9 +44,15 @@ pub(super) enum Step {
     Field(&'static str),
 }
 
+/// A note for whoever edits the file — every object may have one.
+pub const COMMENT_KEY: &str = "comment";
+/// What a source-only key starts with: `$…` (a note on an entry: `$<key>`), `_…`.
+pub const META_PREFIX: char = '$';
+pub const PRIVATE_PREFIX: char = '_';
+
 /// Source-only keys every object may have: `$…`, `_…`, `comment`.
 pub fn is_metadata_key(key: &str) -> bool {
-    key.starts_with('$') || key.starts_with('_') || key == "comment"
+    key.starts_with(META_PREFIX) || key.starts_with(PRIVATE_PREFIX) || key == COMMENT_KEY
 }
 
 /// What a tool makes of the references and texts it reads: `yog build`

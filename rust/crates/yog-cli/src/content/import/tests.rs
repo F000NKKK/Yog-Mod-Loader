@@ -77,7 +77,7 @@ fn imports_a_pack_block_and_compiles_it() {
         "{:?}",
         t.warnings
     );
-    let text = std::fs::read_to_string(root.join("content/blocks/lamp.yblock")).unwrap();
+    let text = crate::files::read_source(root.join("content/blocks/lamp.yblock")).unwrap();
     assert!(text.contains("\"name\": \"Lamp\""), "{text}");
     assert!(text.contains("\"render_layer\": \"cutout\""), "{text}");
     assert!(
@@ -87,7 +87,7 @@ fn imports_a_pack_block_and_compiles_it() {
     assert!(root.join("resources/block/lamp.ytexture").is_file());
     assert!(!text.contains("item_model"), "{text}");
     let images = crate::yres::parse(
-        &std::fs::read_to_string(root.join("resources/BlockImages.yres")).unwrap(),
+        &crate::files::read_source(root.join("resources/BlockImages.yres")).unwrap(),
     )
     .unwrap();
     assert!(
@@ -122,11 +122,11 @@ fn imports_a_bbmodel() {
     .unwrap();
     let mut t = target(&root);
     import_bbmodel(&mut t, &bb, None, false).unwrap();
-    let text = std::fs::read_to_string(root.join("content/blocks/thing.yblock")).unwrap();
+    let text = crate::files::read_source(root.join("content/blocks/thing.yblock")).unwrap();
     assert!(text.contains("\"uv\": [0, 0, 16, 8]"), "{text}");
     assert!(!text.contains("\"up\""), "{text}");
     let images = crate::yres::parse(
-        &std::fs::read_to_string(root.join("resources/BlockImages.yres")).unwrap(),
+        &crate::files::read_source(root.join("resources/BlockImages.yres")).unwrap(),
     )
     .unwrap();
     assert!(images.iter().any(|e| e.name == "block.thing"));

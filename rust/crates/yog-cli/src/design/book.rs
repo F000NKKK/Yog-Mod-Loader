@@ -144,7 +144,7 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
     // Neutral first, the locale's over it.
     files.sort_by_key(|(_, loc, _)| loc.is_some());
     for (set, _, p) in files {
-        let Some(Value::Object(map)) = std::fs::read_to_string(&p)
+        let Some(Value::Object(map)) = crate::files::read_source(&p)
             .ok()
             .and_then(|t| serde_json::from_str(&t).ok())
         else {
@@ -222,7 +222,7 @@ fn recipes(mod_root: &Path) -> Vec<(String, yog_data::Value)> {
             if !Format::Recipe.is(&p) {
                 continue;
             }
-            let Some(mut v) = std::fs::read_to_string(&p)
+            let Some(mut v) = crate::files::read_source(&p)
                 .ok()
                 .and_then(|t| crate::design::data::read_object(&t))
                 .map(Value::Object)

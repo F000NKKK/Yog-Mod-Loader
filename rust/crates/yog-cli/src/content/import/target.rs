@@ -32,6 +32,16 @@ impl Target {
 
     pub(super) fn write_file(&mut self, rel: &str, bytes: &[u8]) -> Result<(), String> {
         let path = self.root.join(rel);
+        // A Yog format's file is kept binary.
+        let binary;
+        let bytes = match yog_ids::Format::of_path(&path).filter(|f| f.is_data()) {
+            Some(_) => {
+                let text = std::str::from_utf8(bytes).map_err(|e| format!("{rel}: {e}"))?;
+                binary = yog_data::source::binary(text).map_err(|e| format!("{rel}: {e}"))?;
+                binary.as_slice()
+            }
+            None => bytes,
+        };
         if path.exists() && !self.force {
             if std::fs::read(&path).ok().as_deref() == Some(bytes) {
                 return Ok(());
@@ -61,7 +71,7 @@ impl Target {
         let set = yog_formats::texture::picture_set(path);
         let set_rel = format!("{RESOURCES_DIR}/{}", Format::Res.file(&set));
         let set_file = self.root.join(&set_rel);
-        let mut entries = match std::fs::read_to_string(&set_file) {
+        let mut entries = match crate::files::read_source(&set_file) {
             Ok(text) => crate::yres::parse(&text).map_err(|e| format!("{set_rel}: {e}"))?,
             Err(_) => Vec::new(),
         };
@@ -78,7 +88,7 @@ impl Target {
         if let Some(dir) = set_file.parent() {
             std::fs::create_dir_all(dir).map_err(|e| format!("{set_rel}: {e}"))?;
         }
-        std::fs::write(&set_file, crate::yres::write(&entries))
+        crate::files::write_source(&set_file, &crate::yres::write(&entries))
             .map_err(|e| format!("{set_rel}: {e}"))?;
         if !self.written.contains(&set_rel) {
             self.written.push(set_rel);

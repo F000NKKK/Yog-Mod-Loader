@@ -41,7 +41,7 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         // The service's version: a tool restarts it when the binary changes.
         M::VERSION => Ok(env!("CARGO_PKG_VERSION").into()),
         // Yog Data text → its value (maps in file order).
-        M::DATA_PARSE => text(params).and_then(|t| {
+        M::DATA_PARSE => text(params, P::TEXT).and_then(|t| {
             yog_data::text::parse_value(t).map_err(|e| {
                 ParseError {
                     message: e.to_string(),
@@ -52,9 +52,8 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
             })
         }),
         // `text` changed to hold `next`, comments and layout of the rest kept.
-        M::DATA_PATCH => {
-            text(params).and_then(|t| Ok(yog_data::patch::patch(t, param(params, P::NEXT)?).into()))
-        }
+        M::DATA_PATCH => text(params, P::TEXT)
+            .and_then(|t| Ok(yog_data::patch::patch(t, param(params, P::NEXT)?).into())),
         // A value as Yog's editors write it, at indent `level`.
         M::DATA_FORMAT => {
             let level = params.get(P::LEVEL).and_then(Value::as_i64).unwrap_or(0);
@@ -66,6 +65,25 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         M::TYPED_CLASSIFY => param(params, P::VALUES).and_then(|values| {
             let values = values.as_list().ok_or("`values` is a list")?;
             Ok(Value::List(values.iter().map(classified).collect()))
+        }),
+        // A Yog format's file as text (binary on disk: written out as the editor shows it).
+        M::SOURCE_READ => text(params, P::PATH).and_then(|p| {
+            crate::files::read_source(p)
+                .map(Value::from)
+                .map_err(|e| format!("{p}: {e}").into())
+        }),
+        // Text saved as a Yog format's file: binary, its comments kept as notes.
+        M::SOURCE_WRITE => text(params, P::PATH).and_then(|p| {
+            let bytes = yog_data::source::binary(text(params, P::TEXT)?).map_err(|e| {
+                ParseError {
+                    message: e.message.clone(),
+                    line: e.at.line,
+                    col: e.at.col,
+                }
+                .write()
+            })?;
+            std::fs::write(p, bytes).map_err(|e| Value::from(format!("{p}: {e}")))?;
+            Ok(Value::Null)
         }),
         // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
         M::FORMAT_SHAPE => param(params, P::FORMAT).and_then(|name| {
@@ -85,11 +103,11 @@ fn param<'a>(params: &'a Value, name: &str) -> Result<&'a Value, Value> {
         .ok_or_else(|| format!("missing `{name}`").into())
 }
 
-/// The `text` parameter.
-fn text(params: &Value) -> Result<&str, Value> {
-    param(params, P::TEXT)?
+/// The text parameter `name`.
+fn text<'a>(params: &'a Value, name: &str) -> Result<&'a str, Value> {
+    param(params, name)?
         .as_str()
-        .ok_or_else(|| format!("`{}` is text", P::TEXT).into())
+        .ok_or_else(|| format!("`{name}` is text").into())
 }
 
 /// A string as a typed value, the way a tool takes it.

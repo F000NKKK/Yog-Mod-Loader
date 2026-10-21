@@ -31,7 +31,7 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
     };
     for format in [Format::Block, Format::Item, Format::Def] {
         for file in crate::files::of(&root.join(yog_ids::project::CONTENT), format) {
-            let Ok(text) = std::fs::read_to_string(&file) else {
+            let Ok(text) = crate::files::read_source(&file) else {
                 continue;
             };
             let Some(doc) = crate::design::data::read_object(&text) else {

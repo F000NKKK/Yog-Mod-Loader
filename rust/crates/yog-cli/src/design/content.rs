@@ -116,7 +116,7 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
     }
     for format in formats {
         for file in crate::files::of(&root.join(yog_ids::project::CONTENT), *format) {
-            let Some(doc) = std::fs::read_to_string(&file)
+            let Some(doc) = crate::files::read_source(&file)
                 .ok()
                 .and_then(|t| crate::design::data::read_object(&t))
                 .map(Value::Object)

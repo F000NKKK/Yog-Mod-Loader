@@ -159,7 +159,7 @@ pub fn kinds(root: &Path) -> Vec<Kind> {
     let mut out: Vec<Kind> = files
         .iter()
         .filter_map(|file| {
-            let text = std::fs::read_to_string(file).ok()?;
+            let text = crate::files::read_source(file).ok()?;
             let Def::RecipeKind(k) = yog_data::from_text::<Def>(&text).ok()?.value else {
                 return None;
             };
@@ -315,7 +315,11 @@ pub fn create(file: &Path, name: &str) -> Result<PathBuf, String> {
         if let Some(dir) = f.parent() {
             std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
         }
-        std::fs::write(f, text).map_err(|e| e.to_string())?;
+        if yog_ids::Format::of_path(f).is_some_and(|f| f.is_data()) {
+            crate::files::write_source(f, &text)?;
+        } else {
+            std::fs::write(f, text).map_err(|e| e.to_string())?;
+        }
     }
     Ok(layout)
 }

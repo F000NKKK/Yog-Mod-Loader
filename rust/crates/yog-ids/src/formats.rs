@@ -73,6 +73,13 @@ impl Format {
         Format::of_path(path) == Some(self)
     }
 
+    /// Whether its files are Yog Data — kept binary on disk, shown as text
+    /// (every format but `.yui` markup and built `.yog` mods).
+    #[must_use]
+    pub const fn is_data(self) -> bool {
+        !matches!(self, Format::Ui | Format::Mod)
+    }
+
     /// `name` with this format's extension: `stone` → `stone.yblock`.
     #[must_use]
     pub fn file(self, name: &str) -> String {

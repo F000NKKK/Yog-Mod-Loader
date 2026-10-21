@@ -42,7 +42,7 @@ pub(super) fn changed(res: &Resources, id: &str) -> Option<SystemTime> {
 
 /// The mod's font `id`, if it has one.
 pub(super) fn load(res: &Resources, id: &str) -> Option<Arc<YogProvider>> {
-    let text = std::fs::read_to_string(file(res, id)?).ok()?;
+    let text = crate::files::read_source(file(res, id)?).ok()?;
     let font = yog_data::from_text::<yog_font::Font>(&text).ok()?.value;
     let chars = font
         .chars

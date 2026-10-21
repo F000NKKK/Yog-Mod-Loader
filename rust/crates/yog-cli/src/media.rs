@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use yog_sync::{Arc, Mutex, OnceLock};
 
-use yog_data::{Res, Schema};
+use yog_data::Res;
 use yog_formats::texture::{Animation, TextureFile};
 use yog_formats::yres::{Entry, Kind, Value, split_file_name};
 use yog_ids::Format;
@@ -69,7 +69,7 @@ fn pictures_of(file: &Path, set: &str) -> Arc<Vec<Picture>> {
     {
         return pictures;
     }
-    let entries = std::fs::read_to_string(file)
+    let entries = crate::files::read_source(file)
         .ok()
         .and_then(|t| yog_formats::yres::parse(&t).ok())
         .unwrap_or_default();
@@ -126,7 +126,7 @@ pub fn save_picture(root: &Path, set: &str, name: &str, bytes: Vec<u8>) -> Resul
     let file = root
         .join(yog_ids::project::RESOURCES)
         .join(Format::Res.file(set));
-    let mut entries = match std::fs::read_to_string(&file) {
+    let mut entries = match crate::files::read_source(&file) {
         Ok(text) => {
             yog_formats::yres::parse(&text).map_err(|e| format!("{}: {e}", file.display()))?
         }
@@ -139,8 +139,7 @@ pub fn save_picture(root: &Path, set: &str, name: &str, bytes: Vec<u8>) -> Resul
     if let Some(dir) = file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
-    std::fs::write(&file, yog_formats::yres::write(&entries))
-        .map_err(|e| format!("{}: {e}", file.display()))?;
+    crate::files::write_source(&file, &yog_formats::yres::write(&entries))?;
     Ok(file)
 }
 
@@ -156,7 +155,7 @@ fn texture_file(root: &Path, id: &str) -> Option<PathBuf> {
 /// Texture `id` of the mod at `root`, when it has a `.ytexture`.
 pub fn texture(root: &Path, id: &str) -> Option<Texture> {
     let file = texture_file(root, id)?;
-    let texture = yog_data::from_text::<TextureFile>(&std::fs::read_to_string(&file).ok()?)
+    let texture = yog_data::from_text::<TextureFile>(&crate::files::read_source(&file).ok()?)
         .ok()?
         .value;
     Some(Texture {
@@ -232,7 +231,7 @@ fn write_texture(file: &Path, texture: &TextureFile) -> Result<(), String> {
     if let Some(dir) = file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
-    std::fs::write(file, yog_data::text::to_string_pretty(&texture.write()))
+    std::fs::write(file, yog_data::to_bytes(texture))
         .map_err(|e| format!("{}: {e}", file.display()))
 }
 

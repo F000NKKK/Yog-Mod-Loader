@@ -140,7 +140,7 @@ impl<'a> Build<'a> {
         let Some(kind) = content_format(path) else {
             return;
         };
-        let text = match std::fs::read_to_string(path) {
+        let text = match crate::files::read_source(path) {
             Ok(t) => t,
             Err(e) => return self.sink.errors.push(format!("{shown}: {e}")),
         };

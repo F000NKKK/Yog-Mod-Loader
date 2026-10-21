@@ -19,7 +19,7 @@ pub(crate) fn load(root: &Path, ns: &str, id: &str) -> Result<MaterialFile, Stri
         ));
     }
     let file = root.join(RESOURCES_DIR).join(Format::Material.file(path));
-    let text = std::fs::read_to_string(&file).map_err(|_| {
+    let text = crate::files::read_source(&file).map_err(|_| {
         format!(
             "material `{id}`: no {RESOURCES_DIR}/{}",
             Format::Material.file(path)

@@ -30,7 +30,7 @@ pub fn strings(file: &Path) -> Vec<String> {
         if set.contains('.') {
             continue; // a culture variant
         }
-        let Ok(text) = std::fs::read_to_string(&p) else {
+        let Ok(text) = crate::files::read_source(&p) else {
             continue;
         };
         let Some(doc) = crate::design::data::read_object(&text) else {
@@ -71,7 +71,7 @@ fn definitions(
     let ns = crate::design::project::mod_id(&root).unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
     let mut own = Vec::new();
     for p in crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Def) {
-        let Some(doc) = std::fs::read_to_string(&p)
+        let Some(doc) = crate::files::read_source(&p)
             .ok()
             .and_then(|t| crate::design::data::read_object(&t))
         else {
