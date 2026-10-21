@@ -391,7 +391,7 @@ mod tests {
             &[],
             vec![
                 node(
-                    "Screen.Resources",
+                    yog_ids::yui_vm::SCREEN_RESOURCES,
                     &[],
                     vec![
                         node("Color", &[("x:Key", "Accent"), ("value", "#FF112233")], vec![]),

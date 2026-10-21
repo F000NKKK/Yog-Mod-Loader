@@ -62,7 +62,7 @@ const BUILT_IN: &[&str] = &[
     yog_ids::yui::LIST_VIEW,
     yog_ids::yui::ITEMS_CONTROL,
     yog_ids::yui::CONTENT_PRESENTER,
-    "DataTemplate",
+    yog_ids::yui_vm::DATA_TEMPLATE,
     "Dialog",
 ];
 

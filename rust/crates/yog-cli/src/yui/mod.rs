@@ -39,7 +39,7 @@ pub use yog_formats::yui::{Element, parse as parse_xml};
 pub(crate) use anchor::Anchor;
 pub(crate) use elements::{is_builtin, is_common_attr, is_custom_component};
 pub(crate) use files::find_files;
-pub(crate) use screen::{Frame, screen_frame, screen_theme};
+pub(crate) use screen::{screen_frame, screen_theme};
 pub(crate) use values::{
     Names, boolean, color_attr, image_source, is_image_value, number, snake, str_consts, text_attr,
 };

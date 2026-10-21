@@ -1384,6 +1384,38 @@ public final class YogNames {
         public static final String FILL = "fill";
     }
 
+    public static final class YuiVm {
+        private YuiVm() {}
+
+        public static final String SCREEN_RESOURCES = "Screen.Resources";
+        public static final String DATA_TEMPLATE = "DataTemplate";
+        public static final String ITEM_TEMPLATE = "ItemTemplate";
+        public static final String CONTENT_TEMPLATE = "ContentTemplate";
+        public static final String EMPTY = "Empty";
+        public static final String COMMAND = "command";
+        public static final String ITEMS = "items";
+        public static final String CONTENT = "content";
+        public static final String KEY = "key";
+        public static final String HORIZONTAL = "horizontal";
+        public static final String MODE = "Mode";
+        public static final String BIND_BACK = "BindBack";
+        public static final String FALLBACK = "Fallback";
+        public static final String ONE_WAY = "OneWay";
+        public static final String ONE_TIME = "OneTime";
+        public static final String TWO_WAY = "TwoWay";
+    }
+
+    public static final class WidgetState {
+        private WidgetState() {}
+
+        public static final String HOVER = "hover";
+        public static final String PRESSED = "pressed";
+        public static final String FOCUSED = "focused";
+        public static final String SELECTED = "selected";
+        public static final String CHECKED = "checked";
+        public static final String DISABLED = "disabled";
+    }
+
     public static final class PropKind {
         private PropKind() {}
 
