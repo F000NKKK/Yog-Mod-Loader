@@ -150,7 +150,7 @@ pub(super) fn filter_benign_warnings(stderr: &str) -> String {
 /// every installed target. A dev loop only needs the host platform; release
 /// builds should leave it unset so the `.yog` stays multi-platform.
 pub(super) fn selected_targets() -> Option<Vec<String>> {
-    let raw = std::env::var("YOG_TARGETS").ok()?;
+    let raw = std::env::var(yog_ids::env::TARGETS).ok()?;
     let list: Vec<String> = raw
         .split(',')
         .map(str::trim)

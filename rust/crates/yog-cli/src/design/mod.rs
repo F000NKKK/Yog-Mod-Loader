@@ -605,7 +605,7 @@ mod visual {
     #[test]
     #[ignore]
     fn sample_png() {
-        let Ok(out) = std::env::var("YOG_DESIGNER_PNG") else {
+        let Ok(out) = std::env::var(yog_ids::env::DESIGNER_PNG) else {
             return;
         };
         let n = |uid: &str, kind: &str, attrs: &[(&str, &str)]| YuiNode {

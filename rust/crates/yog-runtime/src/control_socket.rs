@@ -12,22 +12,22 @@
 //! `127.0.0.1:<port>`) and `YOG_CONTROL_TOKEN` are set. TCP on loopback works
 //! on every platform; the token keeps other local processes out: a client's
 //! first line is `{"cmd":"hello","token":…,"pid":<its pid>}`, anything else
-//! closes the connection. The JSON-lines protocol follows: the runtime
-//! answers `hello` with `ready` (its pid, its mods), then commands
-//! (`hot_reload_check`, `hot_reload`, `reload_resources`, `list_mods`) with
-//! their events.
+//! closes the connection. The protocol (`yog_hot_reload::control`) follows:
+//! the runtime answers `hello` with `ready` (its pid, its mods), then each
+//! command with its event.
 
 use std::io::{BufRead, BufReader, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::path::Path;
+
+use yog_hot_reload::control::{self, Command, Event, ModInfo};
 
 /// Reads `YOG_CONTROL_SOCKET` and `YOG_CONTROL_TOKEN`; with both, listens on
 /// the address (loopback only) on a background thread. Call once, after
 /// `load_mods` (so `ready`'s mod list is complete) — see `nativeInit`.
 pub fn start_if_requested() {
     let (Ok(addr), Ok(token)) = (
-        std::env::var("YOG_CONTROL_SOCKET"),
-        std::env::var("YOG_CONTROL_TOKEN"),
+        std::env::var(yog_ids::env::CONTROL_SOCKET),
+        std::env::var(yog_ids::env::CONTROL_TOKEN),
     ) else {
         return;
     };
@@ -68,8 +68,8 @@ pub fn start_if_requested() {
 /// `ptracer`, so the client can tell an outdated runtime (no field) from a
 /// policy that really refuses it.
 #[cfg(target_os = "linux")]
-fn allow_to_trace(pid: i64) -> bool {
-    if pid <= 0 {
+fn allow_to_trace(pid: u32) -> bool {
+    if pid == 0 {
         return false;
     }
     // SAFETY: plain `prctl` call with integer arguments.
@@ -85,22 +85,20 @@ fn allow_to_trace(pid: i64) -> bool {
     false
 }
 
-fn write_line(stream: &mut TcpStream, json: &serde_json::Value) {
-    let mut line = json.to_string();
-    line.push('\n');
-    let _ = stream.write_all(line.as_bytes());
+fn write_line(stream: &mut TcpStream, event: &Event) {
+    let _ = stream.write_all(control::line(event).as_bytes());
 }
 
-fn mod_list_json() -> Vec<serde_json::Value> {
+fn mod_list() -> Vec<ModInfo> {
     crate::globals::MOD_INFOS
         .lock()
         .iter()
-        .map(|m| serde_json::json!({ "id": m[0], "name": m[1], "version": m[2] }))
+        .map(|m| ModInfo {
+            id: m[0].clone(),
+            name: m[1].clone(),
+            version: m[2].clone(),
+        })
         .collect()
-}
-
-fn str_of<'a>(cmd: &'a serde_json::Value, key: &str) -> &'a str {
-    cmd.get(key).and_then(|v| v.as_str()).unwrap_or_default()
 }
 
 fn handle_client(mut stream: TcpStream, token: &str) {
@@ -112,8 +110,8 @@ fn handle_client(mut stream: TcpStream, token: &str) {
         return;
     }
     for line in lines {
-        if let Ok(cmd) = serde_json::from_str::<serde_json::Value>(&line) {
-            answer(&mut stream, &cmd);
+        if let Some(cmd) = control::parse(&line) {
+            answer(&mut stream, cmd);
         }
     }
 }
@@ -121,62 +119,58 @@ fn handle_client(mut stream: TcpStream, token: &str) {
 /// The client proves it's the launcher first (`hello` with the token); it's
 /// answered `ready`: this process, its mods, whether it may trace it.
 fn greet(stream: &mut TcpStream, first: Option<String>, token: &str) -> bool {
-    let Some(hello) = first.and_then(|l| serde_json::from_str::<serde_json::Value>(&l).ok()) else {
+    let Some(Command::Hello { token: theirs, pid }) = first.and_then(|l| control::parse(&l)) else {
+        yog_logging::warn!("control socket: a client that didn't say hello — closed");
         return false;
     };
-    if str_of(&hello, "cmd") != "hello" || str_of(&hello, "token") != token {
+    if theirs != token {
         yog_logging::warn!("control socket: a client without the token — closed");
         return false;
     }
     #[cfg(target_os = "linux")]
-    let ptracer = allow_to_trace(hello.get("pid").and_then(|v| v.as_i64()).unwrap_or(0));
+    let ptracer = allow_to_trace(pid);
     #[cfg(not(target_os = "linux"))]
-    let ptracer = false;
+    let ptracer = {
+        let _ = pid;
+        false
+    };
     write_line(
         stream,
-        &serde_json::json!({
-            "event": "ready",
-            "pid": std::process::id(),
-            "mods": mod_list_json(),
-            "ptracer": ptracer,
-        }),
+        &Event::Ready {
+            pid: std::process::id(),
+            mods: mod_list(),
+            ptracer: Some(ptracer),
+        },
     );
     true
 }
 
 /// One command, answered by its event.
-fn answer(stream: &mut TcpStream, cmd: &serde_json::Value) {
-    let mod_id = str_of(cmd, "mod_id");
-    let yog_path = Path::new(str_of(cmd, "yog_path"));
-    let reply = match str_of(cmd, "cmd") {
-        "hot_reload" => {
-            let ok = crate::hot_reload::trigger_hot_reload(mod_id, yog_path);
-            // `"resources": true`: the game rereads its data and resources too.
-            if ok
-                && cmd
-                    .get("resources")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false)
-            {
+fn answer(stream: &mut TcpStream, cmd: Command) {
+    let reply = match cmd {
+        Command::HotReload {
+            mod_id,
+            yog_path,
+            resources,
+        } => {
+            let ok = crate::hot_reload::trigger_hot_reload(&mod_id, &yog_path);
+            if ok && resources {
                 crate::registrations::reload_game_resources();
             }
-            serde_json::json!({ "event": "hot-reload-done", "mod_id": mod_id, "ok": ok })
+            Event::HotReloadDone { mod_id, ok }
         }
         // What a new `.yog` registers differently from the game as it
         // started — changes only a restart applies.
-        "hot_reload_check" => {
-            let (added, removed, changed) = crate::registrations::changes(mod_id, yog_path);
-            serde_json::json!({
-                "event": "hot-reload-check", "mod_id": mod_id,
-                "added": added, "removed": removed, "changed": changed,
-            })
+        Command::HotReloadCheck { mod_id, yog_path } => {
+            let changes = crate::registrations::changes(&mod_id, &yog_path);
+            Event::HotReloadCheck { mod_id, changes }
         }
-        "reload_resources" => {
+        Command::ReloadResources => {
             crate::registrations::reload_game_resources();
-            serde_json::json!({ "event": "resources-reloaded" })
+            Event::ResourcesReloaded
         }
-        "list_mods" => serde_json::json!({ "event": "mods", "mods": mod_list_json() }),
-        _ => return,
+        Command::ListMods => Event::Mods { mods: mod_list() },
+        Command::Hello { .. } => return,
     };
     write_line(stream, &reply);
 }

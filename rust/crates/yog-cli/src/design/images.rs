@@ -525,7 +525,7 @@ mod tests {
     #[ignore]
     fn sample_png() {
         use base64::Engine as _;
-        let Ok(out) = std::env::var("YOG_IMAGES_PNG") else {
+        let Ok(out) = std::env::var(yog_ids::env::IMAGES_PNG) else {
             return;
         };
         let n = |uid: &str, attrs: &[(&str, &str)]| YuiNode {

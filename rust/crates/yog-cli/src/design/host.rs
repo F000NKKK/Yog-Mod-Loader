@@ -346,12 +346,12 @@ mod tests {
     #[ignore]
     fn renders_a_built_mod() {
         let (Ok(lib), Ok(name)) = (
-            std::env::var("YOG_DESIGNER_LIB"),
-            std::env::var("YOG_DESIGNER_COMPONENT"),
+            std::env::var(yog_ids::env::DESIGNER_LIB),
+            std::env::var(yog_ids::env::DESIGNER_COMPONENT),
         ) else {
             return;
         };
-        let props = std::env::var("YOG_DESIGNER_PROPS").unwrap_or_default();
+        let props = std::env::var(yog_ids::env::DESIGNER_PROPS).unwrap_or_default();
         let props = props
             .split(';')
             .filter_map(|kv| kv.split_once('='))
@@ -376,7 +376,7 @@ mod tests {
             .unwrap();
         eprintln!("{w}x{h}: {ops:?}");
         assert!(w > 0.0 && h > 0.0 && !ops.is_empty());
-        if let Ok(out) = std::env::var("YOG_DESIGNER_PNG") {
+        if let Ok(out) = std::env::var(yog_ids::env::DESIGNER_PNG) {
             let res = super::super::assets::Resources::for_mod(None);
             let canvas = raster::rasterize(&ops, w.ceil() as u32, h.ceil() as u32, 6, &res);
             std::fs::write(&out, canvas.png().unwrap()).unwrap();

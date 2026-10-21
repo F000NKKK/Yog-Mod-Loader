@@ -1,6 +1,6 @@
 //! The generated `.yog-build/Cargo.toml`.
 
-use crate::manifest::{API_PATH_ENV, DEFAULT_EDITION, DEPS_SECTION, YogToml, to_snake_name};
+use crate::manifest::{DEFAULT_EDITION, DEPS_SECTION, YogToml, to_snake_name};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
@@ -68,7 +68,7 @@ fn authors_line(meta: &YogToml) -> String {
 /// them that aren't on crates.io yet; so do the mod's own yog-*
 /// dependencies (yog-kit, ...), and yog-api for them.
 fn local_patch(meta: &YogToml) -> String {
-    let env_path = std::env::var(API_PATH_ENV).ok();
+    let env_path = std::env::var(yog_ids::env::API_PATH).ok();
     let Some(api_path) = meta.yog_api_path.as_deref().or(env_path.as_deref()) else {
         return String::new();
     };

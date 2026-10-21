@@ -19,8 +19,6 @@ pub mod version;
 
 use std::path::{Path, PathBuf};
 
-/// The variable that moves Yog's home elsewhere.
-pub const HOME_ENV: &str = "YOG_HOME";
 /// Yog's home under the user's home folder.
 const HOME_DIR: &str = ".yog";
 /// The local patch, under the home.
@@ -48,12 +46,12 @@ pub struct Home {
 impl Home {
     /// `$YOG_HOME`, else `~/.yog`.
     pub fn locate() -> Result<Self, String> {
-        if let Some(dir) = std::env::var_os(HOME_ENV).filter(|d| !d.is_empty()) {
+        if let Some(dir) = std::env::var_os(yog_ids::env::HOME).filter(|d| !d.is_empty()) {
             return Ok(Self::at(PathBuf::from(dir)));
         }
         dirs::home_dir()
             .map(|h| Self::at(h.join(HOME_DIR)))
-            .ok_or_else(|| format!("no home folder to keep Yog's in — set {HOME_ENV}"))
+            .ok_or_else(|| format!("no home folder to keep Yog's in — set {}", yog_ids::env::HOME))
     }
 
     pub fn at(root: PathBuf) -> Self {

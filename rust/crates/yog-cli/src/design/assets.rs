@@ -153,7 +153,7 @@ fn version_key(v: &str) -> Vec<u32> {
 /// Every client jar on this machine, as `(version, path)`.
 fn client_jars(extra_roots: &[PathBuf]) -> Vec<(String, PathBuf)> {
     let mut out = Vec::new();
-    if let Ok(p) = std::env::var("YOG_MC_CLIENT_JAR") {
+    if let Ok(p) = std::env::var(yog_ids::env::MC_CLIENT_JAR) {
         let p = PathBuf::from(p);
         if p.is_file() {
             out.push(("999".to_string(), p));

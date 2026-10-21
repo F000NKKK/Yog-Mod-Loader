@@ -2049,6 +2049,8 @@ name = "yog-hot-reload"
 version = "0.2.3"
 dependencies = [
  "libloading",
+ "serde",
+ "serde_json",
  "yog-sync",
 ]
 
@@ -2179,7 +2181,7 @@ dependencies = [
 
 [[package]]
 name = "yog-sync"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "yog-ui"

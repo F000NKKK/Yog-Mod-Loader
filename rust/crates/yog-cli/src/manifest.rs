@@ -3,9 +3,6 @@
 
 use std::path::{Path, PathBuf};
 
-/// What points a mod's build at a local yog-api checkout.
-pub const API_PATH_ENV: &str = "YOG_API_PATH";
-
 /// A mod's version when its `yog.toml` gives none.
 const DEFAULT_VERSION: &str = "0.1.0";
 
@@ -103,7 +100,7 @@ impl YogToml {
     ///   4. YOG_API_VERSION env var
     ///   5. latest from crates.io
     pub fn api_dep(&self) -> String {
-        if let Ok(p) = std::env::var(API_PATH_ENV) {
+        if let Ok(p) = std::env::var(yog_ids::env::API_PATH) {
             // Resolve to absolute so it works from any subdirectory
             let abs = PathBuf::from(&p)
                 .canonicalize()
@@ -114,7 +111,7 @@ impl YogToml {
             return format!("yog-api = {{ path = {p:?} }}");
         }
         let version = {
-            let env_version = std::env::var("YOG_API_VERSION").ok();
+            let env_version = std::env::var(yog_ids::env::API_VERSION).ok();
             self.yog_api_version
                 .as_deref()
                 .or(env_version.as_deref())

@@ -22,6 +22,10 @@
 //! 4. Right before the actual `dlclose`, [`ModuleRegistry::purge`] runs as a
 //!    final safety net, dropping anything still tagged with the retired
 //!    generation even though `retarget` should already have moved it all.
+//!
+//! [`control`] is how a launcher asks a running game for a reload.
+
+pub mod control;
 
 use std::collections::HashMap;
 use std::path::Path;

@@ -34,11 +34,6 @@ mod sdk {
     pub const MC: &str = "--mc";
     /// The runtime is the SDK's to build (`dev.sh`); a launch doesn't rebuild it.
     pub const NO_BUILD: &str = "--no-build";
-
-    /// The variable `build.sh` (`find_java`) takes Java `major`'s JDK from.
-    pub fn java_env(major: u32) -> String {
-        format!("YOG_JAVA{major}_HOME")
-    }
 }
 
 /// How a target's game starts.
@@ -153,7 +148,7 @@ impl Resolver {
             How::Loader { sdk, loader, mc, java } => {
                 let mut env = Vec::new();
                 if let Some(jdk) = java.and_then(|j| self.jdk(j).map(|p| (j, p))) {
-                    env.push((sdk::java_env(jdk.0), jdk.1.display().to_string()));
+                    env.push((yog_ids::env::java_home(jdk.0), jdk.1.display().to_string()));
                 }
                 Plan {
                     export_dir: Some(sdk.join(loader).join(sdk::RUN_DIR).join(yog_ids::game_dir::MODS)),

@@ -76,8 +76,8 @@ fn custom_elements_become_marked_spacers_with_placeholders() {
 #[ignore]
 fn draws_a_mods_components() {
     let (Ok(root), Ok(out)) = (
-        std::env::var("YOG_DESIGNER_MOD"),
-        std::env::var("YOG_DESIGNER_PNG"),
+        std::env::var(yog_ids::env::DESIGNER_MOD),
+        std::env::var(yog_ids::env::DESIGNER_PNG),
     ) else {
         return;
     };

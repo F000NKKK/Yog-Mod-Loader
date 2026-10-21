@@ -32,14 +32,19 @@ pub(crate) fn record(mod_id: &str, yog: &Path) {
 
 /// What the `.yog` at `new_yog` registers that the game, as started,
 /// doesn't have as it says: added, removed, changed — `<kind> <id>` each.
-pub(crate) fn changes(mod_id: &str, new_yog: &Path) -> (Vec<String>, Vec<String>, Vec<String>) {
+pub(crate) fn changes(mod_id: &str, new_yog: &Path) -> yog_hot_reload::control::Changes {
     let started = STARTUP
         .lock()
         .as_ref()
         .and_then(|m| m.get(mod_id).cloned())
         .unwrap_or_default();
     let new = read_entry(new_yog, REGISTRATIONS_FILE).unwrap_or_default();
-    yog_registry::registration_changes(&started, &new)
+    let (added, removed, changed) = yog_registry::registration_changes(&started, &new);
+    yog_hot_reload::control::Changes {
+        added,
+        removed,
+        changed,
+    }
 }
 
 /// After new code is in: the game reloads its data (`/reload`: recipes,

@@ -37,6 +37,7 @@ mod names {
     pub mod services;
     pub mod ui;
 }
+pub mod env;
 pub mod export;
 mod formats;
 #[cfg(test)]

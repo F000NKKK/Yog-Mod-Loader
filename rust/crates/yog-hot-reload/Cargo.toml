@@ -4,10 +4,12 @@ version = "0.2.3"
 edition = { workspace = true }
 rust-version = { workspace = true }
 license = { workspace = true }
-description = "Safe dlopen/dlclose swap primitives for reloading a mod's native library without dangling references into retired code."
+description = "Safe dlopen/dlclose swap primitives for reloading a mod's native library without dangling references into retired code, and the control socket's protocol that asks for it."
 
 [dependencies]
 libloading = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 yog-sync = { workspace = true }
 
 [features]
