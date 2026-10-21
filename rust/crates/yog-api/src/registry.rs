@@ -423,15 +423,7 @@ impl Registry {
     /// pick a generator type registered with
     /// [`Registry::register_chunk_generator`].
     pub fn register_dimension(&mut self, def: &YogDimensionDef) {
-        let json = match def.to_json() {
-            Ok(json) => json,
-            Err(e) => {
-                yog_logging::error!("dimension {} not registered: {e}", def.id);
-                return;
-            }
-        };
-        let value = Self::json(&json);
-        self.content(yog_ids::kind::DIMENSION, &def.id.clone(), &value);
+        self.register_blob(yog_ids::kind::DIMENSION, &def.id, &yog_data::to_bytes(def));
     }
 
     /// Register a dimension given as Yog Data, binary — what `yog build`

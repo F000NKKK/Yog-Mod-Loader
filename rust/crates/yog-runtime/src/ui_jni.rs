@@ -4,7 +4,6 @@ use crate::handlers::{UiLayer, handlers};
 use jni::{JNIEnv, objects::JClass, objects::JString, sys::*};
 
 use std::cell::Cell;
-use yog_abi::YogStr;
 
 /// Sends `ev` to screen `id`'s input handlers; `true` when one used it (cancelled it).
 fn dispatch(id: &str, ev: &str) -> bool {
@@ -260,35 +259,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
 ) {
     let id = jstr!(env, ui_id);
 
-    // Build a fresh snapshot of the currently-open inventory screen's slots
-    // and push it into every loaded mod (see `yog_inventory::current_slot`)
-    // — a plain Rust `static` in `yog-inventory` can't cross the cdylib
-    // boundary between this runtime and a mod's own dynamic library, so each
-    // mod gets the data via its own exported `yog_inventory_set_snapshot`
-    // symbol instead, resolved the same way `yog_mod_register` is.
-    // `slot_item_ids` and `snapshot` must outlive the `render_cbs` loop below
-    // (not just this `if`) — mods read through the pointer we hand them via
-    // `push_inventory_snapshot` for the rest of this function's duration.
-    let slots = crate::bus::call(&yog_event::client::ScreenSlots {}).unwrap_or_default();
-    let n = slots.len().min(yog_inventory::MAX_SNAPSHOT_SLOTS);
-    // Atoms' names live as long as the process: the pointers stay good.
-    let slot_item_ids: Vec<&'static str> = slots
-        .iter()
-        .take(n)
-        .map(|s| s.stack.as_ref().map_or("", |st| st.item.as_str()))
-        .collect();
-    let mut snapshot = yog_inventory::YogInvSnapshotRaw::EMPTY;
-    if n > 0 {
-        snapshot.slot_count = n as u32;
-        for ((raw, slot), id) in snapshot.slots.iter_mut().zip(&slots).zip(&slot_item_ids) {
-            raw.count = slot.stack.as_ref().map_or(0, |st| st.count);
-            raw.x = slot.x;
-            raw.y = slot.y;
-            raw.item_id = YogStr::from_str(id);
-        }
-        push_inventory_snapshot(&snapshot);
-    }
-
     let h = crate::handlers::handlers();
     let mut gfx = crate::gfx_table::GFX_FN_TABLE;
     gfx.screen_w = screen_w;
@@ -325,27 +295,6 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
     crate::gfx_frame::drawing(&gfx, || {
         crate::bus::emitted(&yog_event::client::render::Ui { ui_id: id.clone() })
     });
-}
-
-/// Hand `snapshot` to every loaded mod's own copy of `yog-inventory`'s
-/// module-level static, via each mod's exported `yog_inventory_set_snapshot`
-/// symbol (present only in mods that depend on `yog-inventory`; missing on
-/// others, which is fine — just skip them).
-fn push_inventory_snapshot(snapshot: &yog_inventory::YogInvSnapshotRaw) {
-    type SetSnapshotFn = unsafe extern "C" fn(*const yog_inventory::YogInvSnapshotRaw);
-    for (_id, module) in crate::handlers::hot_reloader().all_active() {
-        if module.is_retiring() {
-            continue;
-        }
-        let Some(_call) = module.enter() else {
-            continue;
-        };
-        module.with_library(|lib| unsafe {
-            if let Ok(f) = lib.get::<SetSnapshotFn>(b"yog_inventory_set_snapshot") {
-                f(snapshot as *const _);
-            }
-        });
-    }
 }
 
 // ── Pictures in item tooltips ─────────────────────────────────────

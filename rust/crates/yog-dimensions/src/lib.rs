@@ -32,18 +32,15 @@
 
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use yog_data::Schema;
 
 // ── Dimension type ───────────────────────────────────────────────────────────
 
 /// Properties of a dimension type — mirrors Java's `YogDimensionType`.
 ///
 /// All fields default to vanilla-overworld-like values so mods only need to
-/// override what actually differs. `#[serde(default)]` on every field keeps
-/// this forward-compatible: older mod JSON still deserializes on a runtime
-/// that's added new fields.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
+/// override what actually differs.
+#[derive(Schema, Debug, Clone, PartialEq)]
 pub struct YogDimensionTypeDef {
     pub min_y: i32,
     pub height: i32,
@@ -200,15 +197,14 @@ impl YogDimensionTypeDef {
 // ── Dimension definition ─────────────────────────────────────────────────────
 
 /// A dimension definition — what a mod registers to create a custom
-/// dimension, or to patch an existing (including vanilla) one. Serialized
-/// to JSON and sent across the ABI via `Registry::register_dimension` (in
-/// `yog-api`), which the Java host parses to register (or patch) a
-/// `LevelStem`/`DimensionType` entry at mod-init time.
+/// dimension, or to patch an existing (including vanilla) one. Sent as Yog
+/// Data via `Registry::register_dimension` (in `yog-api`); the host
+/// registers (or patches) a `LevelStem`/`DimensionType` entry from it at
+/// mod-init time.
 ///
 /// The actual `ServerLevel` (world data) is created lazily at runtime — see
 /// the crate-level docs and `Registry::register_chunk_generator`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
+#[derive(Schema, Debug, Clone, PartialEq)]
 pub struct YogDimensionDef {
     /// Registry id. A new id (e.g. `"mymod:my_dim"`) creates a custom
     /// dimension; a vanilla id (`"minecraft:overworld"`, etc.) patches that
@@ -233,6 +229,7 @@ pub struct YogDimensionDef {
     pub mob_spawning: bool,
     /// Extra platform/metadata mods want the host to know about (arbitrary
     /// JSON-string values), for anything not modeled by `dimension_type`.
+    #[data(default)]
     pub extra: HashMap<String, String>,
 }
 
@@ -301,11 +298,6 @@ impl YogDimensionDef {
     pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.extra.insert(key.into(), value.into());
         self
-    }
-
-    /// Serialize to the JSON wire format sent to the Java host.
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string(self)
     }
 }
 
@@ -456,7 +448,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn dimension_def_to_json_roundtrips_through_serde() {
+    fn dimension_def_roundtrips_through_yog_data() {
         let def = YogDimensionDef::new("mymod:my_dim")
             .dimension_type(
                 YogDimensionTypeDef::default()
@@ -466,8 +458,9 @@ mod tests {
             .generator_type("mymod:custom_terrain")
             .with_extra("note", "test");
 
-        let json = def.to_json().expect("a def serializes");
-        let back: YogDimensionDef = serde_json::from_str(&json).expect("valid json");
+        let back: YogDimensionDef =
+            yog_data::read_bytes(&yog_data::to_bytes(&def)).expect("a def reads back");
+        assert_eq!(back, def);
         assert_eq!(back.id, "mymod:my_dim");
         assert!(back.dimension_type.ultrawarm);
         assert_eq!(back.dimension_type.effects, "nether");

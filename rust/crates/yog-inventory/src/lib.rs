@@ -9,22 +9,19 @@
 //! See `DESIGN.md` for the full architecture and phased plan. This crate
 //! currently covers the data model (phase 2); the Java-side `BlockEntity`/
 //! `Menu`/`Screen` plumbing lands in later phases.
-
-use yog_sync::atomic::{AtomicPtr, Ordering};
-
-use serde::Deserialize;
-use yog_abi::YogStr;
+//!
+//! What the open screen's slots hold right now is the bus's
+//! `client::ScreenSlots` service (`yog_api::service::call`).
 
 /// Pixel position of a single slot in vanilla GUI coordinate space (the same
 /// space vanilla screens use: origin at the panel's top-left corner, one
 /// vanilla slot = 18×18px).
-#[derive(Debug, Clone, PartialEq, Deserialize, yog_data::Schema)]
+#[derive(Debug, Clone, PartialEq, yog_data::Schema)]
 pub struct SlotLayout {
     pub x: f32,
     pub y: f32,
     /// What the slot takes: item ids (`minecraft:redstone`) and item tags
     /// (`#c:dusts`). Empty = anything.
-    #[serde(default)]
     #[data(default)]
     pub accepts: Vec<String>,
 }
@@ -87,7 +84,7 @@ pub struct InventoryDef {
 /// A machine in an inventory: it makes recipes of `kind` from what's in
 /// its `places` — each a slot of the inventory holding one ingredient of
 /// one of the kind's slots — into its `result` slot.
-#[derive(Debug, Clone, PartialEq, Deserialize, yog_data::Schema)]
+#[derive(Debug, Clone, PartialEq, yog_data::Schema)]
 pub struct Machine {
     pub kind: String,
     pub places: Vec<MachinePlace>,
@@ -96,7 +93,7 @@ pub struct Machine {
 
 /// One ingredient's place: the `index`-th of the kind's slot `slot`, in the
 /// inventory's slot `inv`.
-#[derive(Debug, Clone, PartialEq, Deserialize, yog_data::Schema)]
+#[derive(Debug, Clone, PartialEq, yog_data::Schema)]
 pub struct MachinePlace {
     pub slot: String,
     pub index: usize,
@@ -130,13 +127,14 @@ impl InventoryDef {
         self
     }
 
-    /// Remap the slot grid from a JSON array of `{"x":.., "y":..}` objects —
-    /// one entry per slot, in slot-index order. Lets users/mod-packs override
-    /// the layout without recompiling. Invalid or short JSON is ignored
-    /// (falls back to whatever layout was set before, or the default grid).
-    pub fn layout_from_json(mut self, json: &str) -> Self {
-        if let Ok(parsed) = serde_json::from_str::<Vec<SlotLayout>>(json) {
-            self.layout = parsed;
+    /// Remap the slot grid from Yog Data text (JSON too): a list of
+    /// `{x, y}` — one entry per slot, in slot-index order. Lets users/mod-packs
+    /// override the layout without recompiling. Text that doesn't read is
+    /// ignored (falls back to whatever layout was set before, or the default grid).
+    pub fn layout_from_text(mut self, text: &str) -> Self {
+        let parsed = yog_data::text::parse_value(text).ok();
+        if let Some(layout) = parsed.and_then(|v| yog_data::read_value(&v).ok()) {
+            self.layout = layout;
         }
         self
     }
@@ -197,163 +195,6 @@ impl InventoryDef {
     }
 }
 
-/// Encode an [`InventoryDef`]'s slot layout as `"x:y,x:y:a|b,..."` — the
-/// wire format used when handing the layout to the Java host (mirrors how
-/// `BlockDef::connect_groups` is comma-joined for its ABI struct); a slot
-/// that takes only some items adds them after a third `:`, `|`-joined.
-pub fn encode_layout(layout: &[SlotLayout]) -> String {
-    layout
-        .iter()
-        .map(|s| match s.accepts.is_empty() {
-            true => format!("{}:{}", s.x, s.y),
-            false => format!("{}:{}:{}", s.x, s.y, s.accepts.join("|")),
-        })
-        .collect::<Vec<_>>()
-        .join(",")
-}
-
-/// Inverse of [`encode_layout`]. Malformed entries are skipped.
-pub fn decode_layout(s: &str) -> Vec<SlotLayout> {
-    if s.is_empty() {
-        return Vec::new();
-    }
-    s.split(',')
-        .filter_map(|entry| {
-            let mut parts = entry.splitn(3, ':');
-            let (x, y) = (parts.next()?, parts.next()?);
-            let accepts = parts
-                .next()
-                .map(|a| {
-                    a.split('|')
-                        .filter(|s| !s.is_empty())
-                        .map(str::to_owned)
-                        .collect()
-                })
-                .unwrap_or_default();
-            Some(SlotLayout {
-                x: x.parse().ok()?,
-                y: y.parse().ok()?,
-                accepts,
-            })
-        })
-        .collect()
-}
-
-// ── Client-side "currently open menu" snapshot ───────────────────────────────
-//
-// A mod that wants to decorate its own `yog-ui` widget tree with real slot
-// contents (see `yog-ui`'s `inv_slot` widget — purely data-driven, it has no
-// idea what "the currently open menu" even is) needs to read, on the client
-// render thread, what's actually in that menu's slots right now. A plain
-// Rust `static` cannot carry that across the mod/runtime boundary: the
-// runtime and each mod's own dynamic library each get their own separate
-// copy of any crate-level static, so writes on one side are invisible on
-// the other (this is what broke the original design).
-//
-// Instead, the runtime resolves and calls `yog_inventory_set_snapshot` — an
-// exported symbol every mod that depends on this crate carries automatically
-// — once per frame, right before invoking `on_ui_render` handlers, handing
-// over a fresh pointer to THIS mod's own copy of the `SNAPSHOT` static below.
-// Resolved the same way the runtime already resolves `yog_mod_register` /
-// `__yog_resolve_imports_final` on each loaded mod's library.
-
-/// Capacity of [`YogInvSnapshotRaw::slots`] — covers the largest realistic
-/// inventory screen (a mod's own slots + player main inventory + hotbar).
-pub const MAX_SNAPSHOT_SLOTS: usize = 64;
-
-/// One inventory slot's raw wire data for [`YogInvSnapshotRaw`].
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct YogInvSlotRaw {
-    /// Empty (`len == 0`) if the slot itself is empty.
-    pub item_id: YogStr,
-    pub count: u32,
-    /// Screen-space pixel position.
-    pub x: i32,
-    pub y: i32,
-}
-
-impl YogInvSlotRaw {
-    pub const EMPTY: Self = Self {
-        item_id: YogStr::EMPTY,
-        count: 0,
-        x: 0,
-        y: 0,
-    };
-}
-
-/// Raw per-frame snapshot of the currently-open inventory screen, built and
-/// owned by the runtime, valid only for the duration of the render call that
-/// hands it over.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct YogInvSnapshotRaw {
-    pub slot_count: u32,
-    pub slots: [YogInvSlotRaw; MAX_SNAPSHOT_SLOTS],
-}
-
-impl YogInvSnapshotRaw {
-    pub const EMPTY: Self = Self {
-        slot_count: 0,
-        slots: [YogInvSlotRaw::EMPTY; MAX_SNAPSHOT_SLOTS],
-    };
-}
-
-static SNAPSHOT: AtomicPtr<YogInvSnapshotRaw> = AtomicPtr::new(std::ptr::null_mut());
-
-/// Called by the runtime once per frame, before running `on_ui_render`
-/// handlers, to refresh this mod's view of the currently-open inventory
-/// screen. Not meant to be called by mod code directly.
-#[doc(hidden)]
-#[unsafe(no_mangle)]
-pub extern "C" fn yog_inventory_set_snapshot(snapshot: *const YogInvSnapshotRaw) {
-    SNAPSHOT.store(snapshot as *mut _, Ordering::Release);
-}
-
-/// One inventory slot's content, as of the last snapshot.
-#[derive(Debug, Clone, Default)]
-pub struct SlotView {
-    /// `"namespace:item_id"` — empty if the slot is empty.
-    pub item_id: String,
-    pub count: u32,
-    /// Screen-space pixel position.
-    pub x: i32,
-    pub y: i32,
-}
-
-/// The filled slots of the snapshot the runtime handed over this frame
-/// (empty when no inventory screen is open).
-fn snapshot_slots() -> &'static [YogInvSlotRaw] {
-    let ptr = SNAPSHOT.load(Ordering::Acquire);
-    // SAFETY: the runtime keeps the snapshot alive for the render call that
-    // reads it, and only stores null or a valid pointer.
-    match unsafe { ptr.as_ref() } {
-        Some(snap) => &snap.slots[..(snap.slot_count as usize).min(MAX_SNAPSHOT_SLOTS)],
-        None => &[],
-    }
-}
-
-/// Number of slots in the currently-open inventory screen (0 if none is open).
-pub fn current_slot_count() -> usize {
-    snapshot_slots().len()
-}
-
-/// Slot `index`'s content right now, or `None` if out of range.
-pub fn current_slot(index: usize) -> Option<SlotView> {
-    let raw = snapshot_slots().get(index)?;
-    let item_id = if raw.item_id.is_empty() {
-        String::new()
-    } else {
-        unsafe { raw.item_id.as_str() }.to_owned()
-    };
-    Some(SlotView {
-        item_id,
-        count: raw.count,
-        x: raw.x,
-        y: raw.y,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -366,23 +207,12 @@ mod tests {
     }
 
     #[test]
-    fn layout_round_trips() {
-        let l = vec![
-            SlotLayout::at(1.5, 2.0),
-            SlotLayout {
-                accepts: vec!["minecraft:redstone".into(), "#c:dusts".into()],
-                ..SlotLayout::at(30.0, 4.0)
-            },
-        ];
-        assert_eq!(encode_layout(&l), "1.5:2,30:4:minecraft:redstone|#c:dusts");
-        assert_eq!(decode_layout(&encode_layout(&l)), l);
-        assert!(decode_layout("").is_empty());
-        assert_eq!(decode_layout("1:2,bad,3"), vec![SlotLayout::at(1.0, 2.0)]);
-    }
-
-    #[test]
-    fn no_snapshot_means_no_slots() {
-        assert_eq!(current_slot_count(), 0);
-        assert!(current_slot(0).is_none());
+    fn layout_reads_from_text() {
+        let def = InventoryDef::new("t", 2)
+            .layout_from_text(r##"[{"x": 1.5, "y": 2}, {x: 30, y: 4, accepts: ["#c:dusts"]}]"##);
+        assert_eq!(def.layout[0], SlotLayout::at(1.5, 2.0));
+        assert_eq!(def.layout[1].accepts, ["#c:dusts"]);
+        let kept = def.clone().layout_from_text("not a layout");
+        assert_eq!(kept.layout, def.layout);
     }
 }

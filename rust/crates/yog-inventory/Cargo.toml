@@ -8,9 +8,5 @@ license = "MIT OR Apache-2.0"
 description = "Yog inventory framework — real Container/Menu screens (vanilla-style or fully custom) for Yog mods"
 
 [dependencies]
-yog-abi = { workspace = true }
 # Definitions cross the ABI as Yog Data (`register_content`).
 yog-data = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-yog-sync = { workspace = true }

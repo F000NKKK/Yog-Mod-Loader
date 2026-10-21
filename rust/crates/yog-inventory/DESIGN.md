@@ -61,7 +61,7 @@ pub struct InventoryDef {
 }
 impl InventoryDef {
     pub fn new(id, slot_count) -> Self { .. }
-    pub fn layout_from_json(mut self, path: &str) -> Self { .. } // remap сетки
+    pub fn layout_from_text(mut self, text: &str) -> Self { .. } // remap сетки (Yog Data)
     pub fn background_texture(mut self, path: &str) -> Self { .. }
     pub fn include_player_inventory(mut self, v: bool) -> Self { .. }
 }

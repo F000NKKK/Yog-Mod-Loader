@@ -10,5 +10,3 @@ description = "Yog custom dimensions — dimension-type definitions and runtime 
 [dependencies]
 yog-ids = { workspace = true }
 yog-data = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
