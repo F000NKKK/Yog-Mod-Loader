@@ -370,9 +370,7 @@ fn prepare() -> Result<Prepared, String> {
     write_file(&build_dir.join("Cargo.toml"), cargo_toml.as_bytes())?;
 
     let yui::Generated { screens, warnings } = yui::generate_all(&root)?;
-    for w in warnings {
-        eprintln!("    warning: {w}");
-    }
+    warn_all(&warnings);
     if screens > 0 {
         eprintln!(
             "    generated code for {screens} .yui screen(s) into {}/",
@@ -716,8 +714,9 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
         let root = project_root()?;
         load_resource_refs(&root);
         for file in yui::find_yui_files(&root.join("src")) {
-            let out = yui::generate_file(&root, &file)?;
+            let (out, warnings) = yui::generate_file(&root, &file)?;
             eprintln!("==> {} -> {}", file.display(), out.display());
+            warn_all(&warnings);
         }
         warn_index(&root)?;
         return Ok(());
@@ -730,11 +729,19 @@ fn ui_gen(files: &[String]) -> Result<(), String> {
             )
         })?;
         load_resource_refs(&root);
-        let out = yui::generate_file(&root, &file)?;
+        let (out, warnings) = yui::generate_file(&root, &file)?;
         eprintln!("==> {} -> {}", file.display(), out.display());
+        warn_all(&warnings);
         warn_index(&root)?;
     }
     Ok(())
+}
+
+/// Says each of `warnings`.
+fn warn_all(warnings: &[String]) {
+    for w in warnings {
+        eprintln!("    warning: {w}");
+    }
 }
 
 /// Writes the components' index, saying what's wrong with it.

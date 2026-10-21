@@ -882,7 +882,7 @@ impl VmGen<'_> {
 
         for (k, v) in &el.attrs {
             let k = k.as_str();
-            if k.starts_with("d:") || matches!(k, "x:ViewModel" | "x:Create" | "x:DataType") {
+            if k.starts_with("d:") || matches!(k, yog_ids::yui_attr::X_VIEW_MODEL | yog_ids::yui_attr::X_CREATE | yog_ids::yui_attr::X_DATA_TYPE) {
                 continue;
             }
             if matches!(k, "on_click" | "on_change" | "on_submit") {
@@ -1499,7 +1499,7 @@ pub fn generate(
         })?
         .to_string();
     let vm = root
-        .attr("x:ViewModel")
+        .attr(yog_ids::yui_attr::X_VIEW_MODEL)
         .unwrap_or_default()
         .trim()
         .to_string();
@@ -1507,26 +1507,11 @@ pub fn generate(
         return err(root, "x:ViewModel names the view-model type");
     }
     let create = root
-        .attr("x:Create")
+        .attr(yog_ids::yui_attr::X_CREATE)
         .map(str::to_string)
         .unwrap_or_else(|| format!("<{vm} as ::std::default::Default>::default()"));
-    let (width, height, anchor) = yui::screen_frame(root)?;
+    let yui::Frame { width, height, anchor, modal, pause, live } = yui::screen_frame(root)?;
     let anchor = yui::pascal(anchor);
-    let modal = root
-        .attr(yog_ids::yui_attr::MODAL)
-        .map(|v| yui::boolean(root, "modal", v))
-        .transpose()?
-        .unwrap_or(true);
-    let pause = root
-        .attr(yog_ids::yui_attr::PAUSE)
-        .map(|v| yui::boolean(root, "pause", v))
-        .transpose()?
-        .unwrap_or(false);
-    let live = root
-        .attr(yog_ids::yui_attr::LIVE)
-        .map(|v| yui::boolean(root, "live", v))
-        .transpose()?
-        .unwrap_or(false);
 
     let mut g = VmGen {
         file: format!("{name}.yui"),

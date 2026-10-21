@@ -20,6 +20,21 @@ names! {
         DESIGN_PREFIX = "d:",
     }
 
+    /// Where a `<Screen>` sits in the game's window (`anchor="top_left"`).
+    screen_anchor {
+        CENTER = crate::word::CENTER,
+        TOP_LEFT = crate::concatcp!(crate::word::TOP, crate::sep::WORD, crate::word::LEFT),
+        TOP = crate::word::TOP,
+        TOP_RIGHT = crate::concatcp!(crate::word::TOP, crate::sep::WORD, crate::word::RIGHT),
+        LEFT = crate::word::LEFT,
+        RIGHT = crate::word::RIGHT,
+        BOTTOM_LEFT = crate::concatcp!(crate::word::BOTTOM, crate::sep::WORD, crate::word::LEFT),
+        BOTTOM = crate::word::BOTTOM,
+        BOTTOM_RIGHT = crate::concatcp!(crate::word::BOTTOM, crate::sep::WORD, crate::word::RIGHT),
+        /// The whole window.
+        FILL = crate::word::FILL,
+    }
+
     /// The types of a component's properties.
     prop_kind {
         TEXT = crate::word::TEXT,

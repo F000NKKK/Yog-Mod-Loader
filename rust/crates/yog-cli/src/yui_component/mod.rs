@@ -565,43 +565,11 @@ fn component_code(name: &str, ty: &str, meta: &Meta, props: &[Prop], tree: &str)
         ("TOOLBOX", meta.toolbox.to_string()),
         ("DECLS", decls),
     ];
-    fill(TEMPLATE, &values)
+    crate::rust_code::fill(TEMPLATE, &values)
 }
 
 /// The generated code of a component, its `$NAME$`s to fill.
 const TEMPLATE: &str = include_str!("component.g.rs.in");
-/// What marks a name to fill in [`TEMPLATE`].
-const FILL_MARK: char = '$';
-
-/// `template` with each `$NAME$` replaced by its value — in one pass, so
-/// a value is never filled itself.
-fn fill(template: &str, values: &[(&str, String)]) -> String {
-    let mut out = String::with_capacity(template.len());
-    let mut rest = template;
-    while let Some(start) = rest.find(FILL_MARK) {
-        out.push_str(&rest[..start]);
-        let after = &rest[start + 1..];
-        let value = after.find(FILL_MARK).and_then(|end| {
-            values
-                .iter()
-                .find(|(k, _)| *k == &after[..end])
-                .map(|(_, v)| (end, v))
-        });
-        match value {
-            Some((end, v)) => {
-                out.push_str(v);
-                rest = &after[end + 1..];
-            }
-            None => {
-                out.push(FILL_MARK);
-                rest = after;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 /// Whether `src` is a component `.yui` (its root is `<Component>`).
 fn is_component_file(path: &Path) -> bool {
     std::fs::read_to_string(path)

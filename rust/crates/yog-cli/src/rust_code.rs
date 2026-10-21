@@ -21,3 +21,40 @@ pub(crate) fn is_ident(s: &str) -> bool {
     matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_')
         && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
+
+/// `v` as an `f32` literal: `1.0`, `0.5`.
+pub(crate) fn f32_lit(v: f32) -> String {
+    format!("{v:?}")
+}
+
+/// What marks a name to fill in a template of generated code: `$NAME$`.
+const FILL_MARK: char = '$';
+
+/// `template` with each `$NAME$` replaced by its value — in one pass, so
+/// a value is never filled itself.
+pub(crate) fn fill(template: &str, values: &[(&str, String)]) -> String {
+    let mut out = String::with_capacity(template.len());
+    let mut rest = template;
+    while let Some(start) = rest.find(FILL_MARK) {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 1..];
+        let value = after.find(FILL_MARK).and_then(|end| {
+            values
+                .iter()
+                .find(|(k, _)| *k == &after[..end])
+                .map(|(_, v)| (end, v))
+        });
+        match value {
+            Some((end, v)) => {
+                out.push_str(v);
+                rest = &after[end + 1..];
+            }
+            None => {
+                out.push(FILL_MARK);
+                rest = after;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}

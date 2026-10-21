@@ -9,7 +9,10 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 use yog_ui::widget::{self, Widget};
+use yog_ui::layout::Align;
 use yog_ui::{FlexDir, Track, Units};
+
+use crate::yui::Anchor;
 
 /// One element of the designer's document (`YuiNode` in `yui.ts`).
 #[derive(Debug, Clone, Deserialize)]
@@ -352,27 +355,15 @@ pub fn screen(
     let width = num(root.attr(yog_ids::yui_attr::WIDTH)).unwrap_or(widget::SCREEN_W);
     let height = num(root.attr(yog_ids::yui_attr::HEIGHT)).unwrap_or(widget::SCREEN_H);
     let content = widget(root, false, scroll);
-    let cx = ((screen_w - width) / 2.0).floor();
-    let cy = ((screen_h - height) / 2.0).floor();
-    let anchor = root.attr(yog_ids::yui_attr::ANCHOR).unwrap_or("center").trim();
-    let content = if anchor == "fill" {
-        content
-            .w(Units::Percent(WHOLE))
-            .h(Units::Percent(WHOLE))
-            .at(0.0, 0.0)
-    } else {
-        let (ax, ay) = match anchor {
-            "top_left" => (0.0, 0.0),
-            "top" => (cx, 0.0),
-            "top_right" => (screen_w - width, 0.0),
-            "left" => (0.0, cy),
-            "right" => (screen_w - width, cy),
-            "bottom_left" => (0.0, screen_h - height),
-            "bottom" => (cx, screen_h - height),
-            "bottom_right" => (screen_w - width, screen_h - height),
-            _ => (cx, cy),
-        };
-        content.at(ax.max(0.0), ay.max(0.0))
+    let at = |align: Align, screen: f32, size: f32| match align {
+        Align::Start => 0.0,
+        Align::Center => ((screen - size) / 2.0).floor(),
+        Align::End => screen - size,
+    };
+    let content = match Anchor::of(root.attr(yog_ids::yui_attr::ANCHOR)) {
+        Some(Anchor::Fill) => content.w(Units::Percent(WHOLE)).h(Units::Percent(WHOLE)).at(0.0, 0.0),
+        Some(Anchor::At(h, v)) => content.at(at(h, screen_w, width).max(0.0), at(v, screen_h, height).max(0.0)),
+        None => content.at(at(Align::Center, screen_w, width).max(0.0), at(Align::Center, screen_h, height).max(0.0)),
     };
     widget::panel(FlexDir::Column)
         .w(Units::Px(screen_w))

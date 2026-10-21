@@ -1283,6 +1283,9 @@ public final class YogNames {
         public static final String VISIBLE = "visible";
         public static final String X_KEY = "x:Key";
         public static final String X_NAME = "x:Name";
+        public static final String X_VIEW_MODEL = "x:ViewModel";
+        public static final String X_CREATE = "x:Create";
+        public static final String X_DATA_TYPE = "x:DataType";
         public static final String TARGET = "target";
         public static final String GRID_ROW = "Grid.Row";
         public static final String GRID_COLUMN = "Grid.Column";
@@ -1364,6 +1367,21 @@ public final class YogNames {
         public static final String OPTIONS = "options";
         public static final String DOC = "doc";
         public static final String DESIGN_PREFIX = "d:";
+    }
+
+    public static final class ScreenAnchor {
+        private ScreenAnchor() {}
+
+        public static final String CENTER = "center";
+        public static final String TOP_LEFT = "top_left";
+        public static final String TOP = "top";
+        public static final String TOP_RIGHT = "top_right";
+        public static final String LEFT = "left";
+        public static final String RIGHT = "right";
+        public static final String BOTTOM_LEFT = "bottom_left";
+        public static final String BOTTOM = "bottom";
+        public static final String BOTTOM_RIGHT = "bottom_right";
+        public static final String FILL = "fill";
     }
 
     public static final class PropKind {

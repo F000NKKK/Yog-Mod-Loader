@@ -3,9 +3,7 @@
 use yog_ui::attr::Attr;
 use yog_ui::widget::Units;
 
-fn f(v: f32) -> String {
-    format!("{v:?}")
-}
+use crate::rust_code::f32_lit as f;
 
 /// `Units::Px(10.0)`, `Units::Percent(50.0)`; none for auto.
 fn units(u: Units) -> Option<String> {

@@ -680,6 +680,10 @@ names! {
         /// A resource's or style's key, an element's name (its id), what a style is for.
         X_KEY = "x:Key",
         X_NAME = "x:Name",
+        /// A view-model screen's type, how it's made, a template's item type.
+        X_VIEW_MODEL = "x:ViewModel",
+        X_CREATE = "x:Create",
+        X_DATA_TYPE = "x:DataType",
         TARGET = "target",
         GRID_ROW = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "Row"),
         GRID_COLUMN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "Column"),
