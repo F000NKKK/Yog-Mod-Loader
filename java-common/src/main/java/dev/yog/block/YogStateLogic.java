@@ -23,8 +23,8 @@ public final class YogStateLogic {
             case YogNames.Direction.WEST -> 270;
             default -> 0;
         };
-        if ("wall".equals(face)) return new int[] {90, yaw};
-        if ("ceiling".equals(face)) return new int[] {180, (yaw + 180) % 360};
+        if (YogNames.BlockState.WALL.equals(face)) return new int[] {90, yaw};
+        if (YogNames.BlockState.CEILING.equals(face)) return new int[] {180, (yaw + 180) % 360};
         if (YogNames.Direction.UP.equals(facing)) return new int[] {270, 0};
         if (YogNames.Direction.DOWN.equals(facing)) return new int[] {90, 0};
         return new int[] {0, facing == null ? 0 : yaw};

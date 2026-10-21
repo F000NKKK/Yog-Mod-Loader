@@ -103,7 +103,7 @@ fn a_facing_block_turns_to_its_placer() {
     let bs = output(&c, "assets/mymod/blockstates/screen.json");
     assert_eq!(bs["variants"]["facing=north"], json!({ "model": "mymod:block/screen" }));
     assert_eq!(bs["variants"]["facing=west"]["y"], json!(270));
-    assert!(c.source.unwrap().all().contains(".facing(\"horizontal\", \"toward\")"));
+    assert!(c.source.unwrap().all().contains(".facing(::yog_api::Facing::Horizontal, ::yog_api::Placement::Toward)"));
     let _ = std::fs::remove_dir_all(root);
 }
 

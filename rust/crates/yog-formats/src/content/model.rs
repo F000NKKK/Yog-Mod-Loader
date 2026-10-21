@@ -284,20 +284,4 @@ impl Schema for ModelNames {
     }
 }
 
-/// Which ways a block can turn.
-#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Facing {
-    /// North, east, south or west.
-    Horizontal,
-    /// Any of the six.
-    All,
-}
-
-/// Which way a block turns when placed.
-#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Placement {
-    /// Its front toward the player.
-    Toward,
-    /// Its front the way the player looks.
-    Away,
-}
+pub use yog_registry::{Facing, Placement};

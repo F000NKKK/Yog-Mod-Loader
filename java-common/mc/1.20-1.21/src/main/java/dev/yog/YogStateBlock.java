@@ -67,9 +67,9 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
             if (def.attach()) {
                 facing = BlockStateProperties.HORIZONTAL_FACING;
                 face = BlockStateProperties.ATTACH_FACE;
-            } else if (def.facing().equals("all")) {
+            } else if (YogTypes.Facing.ALL.equals(def.facing())) {
                 facing = BlockStateProperties.FACING;
-            } else if (def.facing().equals("horizontal")) {
+            } else if (YogTypes.Facing.HORIZONTAL.equals(def.facing())) {
                 facing = BlockStateProperties.HORIZONTAL_FACING;
             }
             if (def.waterlogged()) waterlogged = BlockStateProperties.WATERLOGGED;
@@ -118,7 +118,7 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext ctx) {
         BlockState state = defaultBlockState();
-        boolean toward = !spec.def.placement().equals("away");
+        boolean toward = !YogTypes.Placement.AWAY.equals(spec.def.placement());
         if (spec.face != null) {
             Direction look = ctx.getNearestLookingDirections()[0];
             if (look.getAxis() == Direction.Axis.Y) {

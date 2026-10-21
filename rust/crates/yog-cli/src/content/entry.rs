@@ -20,10 +20,8 @@ pub(in crate::content) struct BlockProps {
     pub(in crate::content) shape: Option<[f64; 6]>,
     pub(in crate::content) connect_groups: Vec<String>,
     pub(in crate::content) connects: bool,
-    /// `""`, `"horizontal"` or `"all"`.
-    pub(in crate::content) facing: String,
-    /// `"toward"` or `"away"`.
-    pub(in crate::content) placement: String,
+    pub(in crate::content) facing: Option<yog_registry::Facing>,
+    pub(in crate::content) placement: yog_registry::Placement,
     pub(in crate::content) attach: bool,
     pub(in crate::content) waterlogged: bool,
     /// Its own properties: name, values.

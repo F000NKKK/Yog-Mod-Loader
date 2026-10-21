@@ -10,7 +10,7 @@ use yog_data::Value;
 use yog_data::with::Raw;
 use yog_registry::{
     ArmorMaterial, ArmorSlot, AttributeDef, BiomeFeature, BlockProperty, EffectDef, EntityDef,
-    FoodDef, GameTool, PotionDef, SoundGroup, ToolMaterial,
+    Facing, FoodDef, GameTool, Placement, PotionDef, SoundGroup, ToolMaterial,
 };
 
 /// Everything the hosts register.
@@ -104,10 +104,9 @@ pub struct Block {
     pub inventory: Option<String>,
     /// It's a redstone source.
     pub redstone: bool,
-    /// Empty, `horizontal` or `all`.
-    pub facing: String,
-    /// `toward` (its front to the placer) or `away`.
-    pub placement: String,
+    /// Which ways it turns; `None`: it doesn't.
+    pub facing: Option<Facing>,
+    pub placement: Placement,
     pub attach: bool,
     pub waterlogged: bool,
     /// Its own properties: their values, the first the default.

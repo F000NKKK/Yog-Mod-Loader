@@ -70,9 +70,9 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
             if (def.attach()) {
                 facing = BlockStateProperties.HORIZONTAL_FACING;
                 face = FaceAttachedHorizontalDirectionalBlock.FACE;
-            } else if (def.facing().equals("all")) {
+            } else if (YogTypes.Facing.ALL.equals(def.facing())) {
                 facing = BlockStateProperties.FACING;
-            } else if (def.facing().equals("horizontal")) {
+            } else if (YogTypes.Facing.HORIZONTAL.equals(def.facing())) {
                 facing = BlockStateProperties.HORIZONTAL_FACING;
             }
             if (def.waterlogged()) waterlogged = BlockStateProperties.WATERLOGGED;
@@ -102,7 +102,7 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
         // The first value of each property, as the .yblock lists them.
         BlockState state = getStateDefinition().any();
         if (spec.facing != null) state = state.setValue(spec.facing, Direction.NORTH);
-        if (spec.face != null) state = withFirst(state, spec.face, "floor");
+        if (spec.face != null) state = withFirst(state, spec.face, YogNames.BlockState.FLOOR);
         if (spec.waterlogged != null) state = state.setValue(spec.waterlogged, false);
         for (YogTypes.BlockProperty p : spec.def.properties()) state = withFirst(state, spec.own.get(p.name()), p.values().get(0));
         registerDefaultState(state);
@@ -121,15 +121,15 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext ctx) {
         BlockState state = defaultBlockState();
-        boolean toward = !spec.def.placement().equals("away");
+        boolean toward = !YogTypes.Placement.AWAY.equals(spec.def.placement());
         if (spec.face != null) {
             Direction look = ctx.getNearestLookingDirections()[0];
             if (look.getAxis() == Direction.Axis.Y) {
                 Direction horizontal = ctx.getHorizontalDirection();
-                state = withFirst(state, spec.face, look == Direction.UP ? "ceiling" : "floor")
+                state = withFirst(state, spec.face, look == Direction.UP ? YogNames.BlockState.CEILING : YogNames.BlockState.FLOOR)
                         .setValue(spec.facing, toward ? horizontal.getOpposite() : horizontal);
             } else {
-                state = withFirst(state, spec.face, "wall").setValue(spec.facing, look.getOpposite());
+                state = withFirst(state, spec.face, YogNames.BlockState.WALL).setValue(spec.facing, look.getOpposite());
             }
         } else if (spec.facing == BlockStateProperties.FACING) {
             Direction look = ctx.getNearestLookingDirection();

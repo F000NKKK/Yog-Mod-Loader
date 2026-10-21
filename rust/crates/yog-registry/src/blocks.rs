@@ -3,6 +3,35 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+/// Which ways a block can turn.
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(rename_all = "snake_case")
+)]
+#[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Facing {
+    /// North, east, south or west.
+    Horizontal,
+    /// Any of the six.
+    All,
+}
+
+/// Which way a block turns when placed.
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(rename_all = "snake_case")
+)]
+#[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Placement {
+    /// Its front toward the player.
+    #[default]
+    Toward,
+    /// Its front the way the player looks.
+    Away,
+}
+
 /// A custom block to register; it also gets a matching block-item.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone)]
@@ -44,11 +73,10 @@ pub struct BlockDef {
     /// Gives off redstone power — how much, per position, the mod sets with
     /// `block::set_redstone_output`.
     pub redstone_source: bool,
-    /// How it turns when placed (a `facing` property): `""` (it doesn't),
-    /// `"horizontal"` or `"all"`.
-    pub facing: String,
-    /// `"toward"`: its front toward the placer; `"away"`: the way they look.
-    pub placement: String,
+    /// How it turns when placed (a `facing` property); `None`: it doesn't.
+    pub facing: Option<Facing>,
+    /// Which way it turns when placed.
+    pub placement: Placement,
     /// It hangs on a floor, wall or ceiling, as a button (a `face`
     /// property and a horizontal `facing`).
     pub attach: bool,
@@ -121,8 +149,8 @@ impl BlockDef {
             connect_groups: Vec::new(),
             inventory_id: None,
             redstone_source: false,
-            facing: String::new(),
-            placement: String::new(),
+            facing: None,
+            placement: Placement::Toward,
             attach: false,
             waterlogged: false,
             properties: Vec::new(),
@@ -224,9 +252,9 @@ impl BlockDef {
 
     /// Turns when placed: `"horizontal"` or `"all"` ways, its front (the
     /// model's north side) `"toward"` the placer or `"away"` (the way they look).
-    pub fn facing(mut self, ways: &str, placement: &str) -> Self {
-        self.facing = ways.to_string();
-        self.placement = placement.to_string();
+    pub fn facing(mut self, ways: Facing, placement: Placement) -> Self {
+        self.facing = Some(ways);
+        self.placement = placement;
         self
     }
 

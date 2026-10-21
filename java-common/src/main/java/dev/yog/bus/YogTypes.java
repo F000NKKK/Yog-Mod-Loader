@@ -3966,7 +3966,7 @@ public final class YogTypes {
             m.put("connect_groups", connectGroups);
             if (inventory != null) m.put("inventory", inventory);
             m.put("redstone", redstone);
-            m.put("facing", facing);
+            if (facing != null) m.put("facing", facing);
             m.put("placement", placement);
             m.put("attach", attach);
             m.put("waterlogged", waterlogged);
@@ -3985,7 +3985,7 @@ public final class YogTypes {
 
         public static Block fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Block(YogData.str(m.get("id"), ""), (float) YogData.number(m.get("hardness"), 0), (float) YogData.number(m.get("resistance"), 0), YogData.str(m.get("name"), ""), (m.get("shape") == null ? null : YogData.floats(m.get("shape"))), (int) YogData.integer(m.get("light"), 0), (m.get("sound") == null ? null : YogTypes.SoundGroup.fromData(m.get("sound"))), YogData.bool(m.get("requires_tool"), false), YogData.bool(m.get("no_collision"), false), (float) YogData.number(m.get("slipperiness"), 0), YogData.bool(m.get("connects"), false), YogData.list(m.get("connect_groups")).stream().map(e0 -> YogData.str(e0, "")).toList(), (m.get("inventory") == null ? null : YogData.str(m.get("inventory"), "")), YogData.bool(m.get("redstone"), false), YogData.str(m.get("facing"), ""), YogData.str(m.get("placement"), ""), YogData.bool(m.get("attach"), false), YogData.bool(m.get("waterlogged"), false), YogData.list(m.get("properties")).stream().map(e0 -> YogTypes.BlockProperty.fromData(e0)).toList(), (m.get("powered") == null ? null : YogData.str(m.get("powered"), "")), (m.get("comparator") == null ? null : YogData.str(m.get("comparator"), "")), YogData.bool(m.get("accepts_items"), false), YogData.bool(m.get("no_occlusion"), false), YogData.str(m.get("kind"), ""), (m.get("base") == null ? null : YogData.str(m.get("base"), "")), (m.get("set") == null ? null : YogData.str(m.get("set"), "")), (int) YogData.integer(m.get("press_ticks"), 0), YogData.bool(m.get("mobs_only"), false));
+            return new Block(YogData.str(m.get("id"), ""), (float) YogData.number(m.get("hardness"), 0), (float) YogData.number(m.get("resistance"), 0), YogData.str(m.get("name"), ""), (m.get("shape") == null ? null : YogData.floats(m.get("shape"))), (int) YogData.integer(m.get("light"), 0), (m.get("sound") == null ? null : YogTypes.SoundGroup.fromData(m.get("sound"))), YogData.bool(m.get("requires_tool"), false), YogData.bool(m.get("no_collision"), false), (float) YogData.number(m.get("slipperiness"), 0), YogData.bool(m.get("connects"), false), YogData.list(m.get("connect_groups")).stream().map(e0 -> YogData.str(e0, "")).toList(), (m.get("inventory") == null ? null : YogData.str(m.get("inventory"), "")), YogData.bool(m.get("redstone"), false), (m.get("facing") == null ? null : YogData.str(m.get("facing"), "")), YogData.str(m.get("placement"), ""), YogData.bool(m.get("attach"), false), YogData.bool(m.get("waterlogged"), false), YogData.list(m.get("properties")).stream().map(e0 -> YogTypes.BlockProperty.fromData(e0)).toList(), (m.get("powered") == null ? null : YogData.str(m.get("powered"), "")), (m.get("comparator") == null ? null : YogData.str(m.get("comparator"), "")), YogData.bool(m.get("accepts_items"), false), YogData.bool(m.get("no_occlusion"), false), YogData.str(m.get("kind"), ""), (m.get("base") == null ? null : YogData.str(m.get("base"), "")), (m.get("set") == null ? null : YogData.str(m.get("set"), "")), (int) YogData.integer(m.get("press_ticks"), 0), YogData.bool(m.get("mobs_only"), false));
         }
 
         public static Block fromBytes(byte[] bytes) {
@@ -4008,8 +4008,8 @@ public final class YogTypes {
             { int l0 = p.beginList(this.connectGroups.size()); for (var e0 : this.connectGroups) { p.putStr(e0); } p.end(l0); }
             p.putBool(this.inventory != null); if (this.inventory != null) { p.putStr(this.inventory); }
             p.putBool(this.redstone);
-            p.putStr(this.facing);
-            p.putStr(this.placement);
+            p.putBool(this.facing != null); if (this.facing != null) { p.putU(switch (this.facing) { case "horizontal" -> 0; case "all" -> 1; default -> 0; }); }
+            p.putU(switch (this.placement) { case "toward" -> 0; case "away" -> 1; default -> 0; });
             p.putBool(this.attach);
             p.putBool(this.waterlogged);
             { int l0 = p.beginList(this.properties.size()); for (var e0 : this.properties) { e0.pack(p); } p.end(l0); }
@@ -4041,8 +4041,8 @@ public final class YogTypes {
             java.util.List<String> f_connectGroups = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
             String f_inventory = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
             boolean f_redstone = u.more(end) ? u.getBool() : false;
-            String f_facing = u.more(end) ? u.getStr() : "";
-            String f_placement = u.more(end) ? u.getStr() : "";
+            String f_facing = u.more(end) ? (u.getBool() ? switch ((int) u.getU()) { case 0 -> "horizontal"; case 1 -> "all"; default -> ""; } : null) : null;
+            String f_placement = u.more(end) ? switch ((int) u.getU()) { case 0 -> "toward"; case 1 -> "away"; default -> ""; } : "toward";
             boolean f_attach = u.more(end) ? u.getBool() : false;
             boolean f_waterlogged = u.more(end) ? u.getBool() : false;
             java.util.List<YogTypes.BlockProperty> f_properties = u.more(end) ? YogFrame.list(u, () -> YogTypes.BlockProperty.unpack(u)) : java.util.List.of();
@@ -4137,7 +4137,7 @@ public final class YogTypes {
                 if (u.more(end)) { o11 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o11 = -1; }
                 if (u.more(end)) { o12 = u.position(); if (u.getBool()) { u.getU(); } } else { o12 = -1; }
                 if (u.more(end)) { o13 = u.position(); u.skip(1); } else { o13 = -1; }
-                if (u.more(end)) { o14 = u.position(); u.getU(); } else { o14 = -1; }
+                if (u.more(end)) { o14 = u.position(); if (u.getBool()) { u.getU(); } } else { o14 = -1; }
                 if (u.more(end)) { o15 = u.position(); u.getU(); } else { o15 = -1; }
                 if (u.more(end)) { o16 = u.position(); u.skip(1); } else { o16 = -1; }
                 if (u.more(end)) { o17 = u.position(); u.skip(1); } else { o17 = -1; }
@@ -4239,15 +4239,15 @@ public final class YogTypes {
             }
 
             public String facing() {
-                if (o14 < 0) return "";
+                if (o14 < 0) return null;
                 u.seek(o14);
-                return u.getStr();
+                return (u.getBool() ? switch ((int) u.getU()) { case 0 -> "horizontal"; case 1 -> "all"; default -> ""; } : null);
             }
 
             public String placement() {
-                if (o15 < 0) return "";
+                if (o15 < 0) return "toward";
                 u.seek(o15);
-                return u.getStr();
+                return switch ((int) u.getU()) { case 0 -> "toward"; case 1 -> "away"; default -> ""; };
             }
 
             public boolean attach() {
@@ -7345,6 +7345,20 @@ public final class YogTypes {
         public static final String CHEST = "chest";
         public static final String LEGS = "legs";
         public static final String FEET = "feet";
+    }
+
+    /** Which ways a block can turn. */
+    public static final class Facing {
+        private Facing() {}
+        public static final String HORIZONTAL = "horizontal";
+        public static final String ALL = "all";
+    }
+
+    /** Which way a block turns when placed. */
+    public static final class Placement {
+        private Placement() {}
+        public static final String TOWARD = "toward";
+        public static final String AWAY = "away";
     }
 
     /** What kind of entity a type is. */

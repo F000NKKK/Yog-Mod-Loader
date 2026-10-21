@@ -115,7 +115,7 @@ public final class YogContent {
 
     /** Whether block {@code b} is a {@code YogStateBlock}: states of its own, or it takes items. */
     public static boolean stateful(YogTypes.Block b) {
-        return !b.facing().isEmpty() || b.attach() || b.waterlogged() || !b.properties().isEmpty() || b.acceptsItems();
+        return b.facing() != null || b.attach() || b.waterlogged() || !b.properties().isEmpty() || b.acceptsItems();
     }
 
     /** The values of a yes/no property. */

@@ -98,8 +98,12 @@ pub(super) fn block_props(p: &BlockProps) -> String {
     }
     quoted(&mut b, &p.inventory, "inventory");
     flag(&mut b, p.redstone, "redstone_source");
-    if !p.facing.is_empty() {
-        let _ = write!(b, "{CALL}facing({:?}, {:?})", p.facing, p.placement);
+    if let Some(facing) = p.facing {
+        let _ = write!(
+            b,
+            "{CALL}facing(::yog_api::Facing::{facing:?}, ::yog_api::Placement::{:?})",
+            p.placement
+        );
     }
     flag(&mut b, p.attach, "attach");
     flag(&mut b, p.waterlogged, "waterlogged");

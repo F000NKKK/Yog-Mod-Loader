@@ -9,7 +9,7 @@ use yog_data::Path as At;
 use yog_data::field;
 use yog_formats::content::BlockProps as Props;
 use yog_formats::content::{
-    BlockFile, BlockShape, Connect, Facing, Model, Placement, Rotation, States, word,
+    BlockFile, BlockShape, Connect, Facing, Model, Rotation, States,
 };
 use yog_ids::block_state::{CEILING, FACE, FACING, FALSE, FLOOR, TRUE, WALL, WATERLOGGED};
 use yog_ids::direction::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
@@ -220,12 +220,12 @@ fn facing_and_properties(cx: &mut Ctx, loc: Loc, s: &States, b: &mut BlockProps)
             );
         }
         b.attach = true;
-        b.facing = word(&Facing::Horizontal);
-    } else if let Some(f) = s.facing {
-        b.facing = word(&f);
+        b.facing = Some(Facing::Horizontal);
+    } else {
+        b.facing = s.facing;
     }
-    if !b.facing.is_empty() {
-        b.placement = word(&s.placement.unwrap_or(Placement::Toward));
+    if b.facing.is_some() {
+        b.placement = s.placement.unwrap_or_default();
     } else if s.placement.is_some() {
         cx.err_at(
             loc,
@@ -280,10 +280,10 @@ fn own_property(cx: &mut Ctx, loc: Loc, name: &str, values: &[String]) {
 fn all_properties(b: &BlockProps) -> Vec<(String, Vec<String>)> {
     let words = |ws: &[&str]| ws.iter().map(|w| w.to_string()).collect::<Vec<_>>();
     let mut all = Vec::new();
-    if b.facing == word(&Facing::All) {
-        all.push((FACING.to_string(), words(&ALL_SIX)));
-    } else if b.facing == word(&Facing::Horizontal) {
-        all.push((FACING.to_string(), words(&HORIZONTAL)));
+    match b.facing {
+        Some(Facing::All) => all.push((FACING.to_string(), words(&ALL_SIX))),
+        Some(Facing::Horizontal) => all.push((FACING.to_string(), words(&HORIZONTAL))),
+        None => {}
     }
     if b.attach {
         all.push((FACE.to_string(), words(&FACES)));

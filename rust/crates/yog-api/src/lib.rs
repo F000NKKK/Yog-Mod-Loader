@@ -246,7 +246,7 @@ pub use yog_network::{Packet, PacketField};
 /// A packet the server or the client received (`on_packet` / `on_client_packet`).
 pub use yog_event::{client::net::Packet as ClientPacketEvent, server::net::Packet as PacketEvent};
 pub use yog_registry::{
-    BlockDef, BlockProperty, Cooking, EntityDef, EntityKind, FoodDef, ItemDef, Recipe,
+    BlockDef, BlockProperty, Facing, Placement, Cooking, EntityDef, EntityKind, FoodDef, ItemDef, Recipe,
     ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, RecipeKind, SoundGroup, StartupGrant, ToolItem, ToolMaterial,
 };
 pub use yog_storage::{Storage, StorageScope, Value};
