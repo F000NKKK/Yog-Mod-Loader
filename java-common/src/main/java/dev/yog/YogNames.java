@@ -20,6 +20,7 @@ public final class YogNames {
         public static final String WORD = "_";
         public static final String EXT = ".";
         public static final String HYPHEN = "-";
+        public static final String MEMBER = ".";
         public static final String TYPED = "@";
         public static final String TAG_SHOWN = "#";
         public static final String ALTERNATIVES = "|";
@@ -878,6 +879,8 @@ public final class YogNames {
         public static final String COLUMN = "Column";
         public static final String ROW = "Row";
         public static final String GRID = "Grid";
+        public static final String ROW_DEFINITIONS = "Grid.RowDefinitions";
+        public static final String COLUMN_DEFINITIONS = "Grid.ColumnDefinitions";
         public static final String SCROLL_VIEW = "ScrollView";
         public static final String LABEL = "Label";
         public static final String BUTTON = "Button";

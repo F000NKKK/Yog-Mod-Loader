@@ -22,6 +22,8 @@ names! {
         EXT = ".",
         /// The words of a folder's name: `yog-mods`.
         HYPHEN = "-",
+        /// A `.yui` element's member: `Grid.Row`, `Screen.Resources`.
+        MEMBER = crate::sep::EXT,
         /// What starts a typed value: `@item:minecraft:stick`.
         TYPED = "@",
         /// What marks a tag where an ingredient is shown: `#c:dusts`.

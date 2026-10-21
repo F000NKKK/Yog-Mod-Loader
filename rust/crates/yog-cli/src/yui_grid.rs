@@ -25,9 +25,10 @@
 //! checks all of this and turns it into builder calls (raw-call attributes),
 //! so the screen, view-model and component generators need no Grid logic.
 
+use yog_ids::{yui, yui_attr as at};
 use crate::yui::{Element, RAW_CALL, err};
 
-const ATTACHED: &[&str] = &["Grid.Row", "Grid.Column", "Grid.RowSpan", "Grid.ColumnSpan"];
+const ATTACHED: &[&str] = &[at::GRID_ROW, at::GRID_COLUMN, at::GRID_ROWSPAN, at::GRID_COLUMNSPAN];
 
 fn num(v: &str) -> Option<f32> {
     v.trim()
@@ -165,166 +166,146 @@ fn plural(n: usize, what: &str) -> String {
     }
 }
 
+/// A grid's rows and columns as builder arguments, when it says them.
+#[derive(Default)]
+struct Tracks {
+    rows: Option<Vec<String>>,
+    cols: Option<Vec<String>>,
+}
+
+impl Tracks {
+    fn slot(&mut self, row: bool) -> &mut Option<Vec<String>> {
+        if row { &mut self.rows } else { &mut self.cols }
+    }
+}
+
+/// What a bound value starts with: `{x:Bind …}`.
+const BINDING_START: char = '{';
+/// What a grid's member properties start with: `Grid.`.
+const GRID_MEMBER: &str = yog_ids::concatcp!(yui::GRID, yog_ids::sep::MEMBER);
+
 /// Checks and lowers every `<Grid>` and `Grid.*` attached property under
 /// `el` (see the module docs).
 pub fn normalize(el: &mut Element) -> Result<(), String> {
-    let is_grid = el.name == yog_ids::yui::GRID;
-    let (mut rows, mut cols): (Option<Vec<String>>, Option<Vec<String>>) = (None, None);
-    let mut kept = Vec::with_capacity(el.children.len());
-    for child in std::mem::take(&mut el.children) {
-        let which = match child.name.as_str() {
-            "Grid.RowDefinitions" => Some(true),
-            "Grid.ColumnDefinitions" => Some(false),
-            n if n.starts_with("Grid.") => {
-                return err(
-                    &child,
-                    "isn't a Grid property (expected <Grid.RowDefinitions> or <Grid.ColumnDefinitions>)",
-                );
-            }
-            _ => None,
-        };
-        let Some(row) = which else {
-            kept.push(child);
-            continue;
-        };
-        if !is_grid {
-            return err(
-                &child,
-                format_args!("only goes directly inside a <Grid>, not <{}>", el.name),
-            );
-        }
-        let slot = if row { &mut rows } else { &mut cols };
-        if slot.is_some() {
-            return err(&child, "is given twice");
-        }
-        *slot = Some(elements(&child, row)?);
-    }
-    el.children = kept;
-
-    let mut calls = Vec::new();
+    let is_grid = el.name == yui::GRID;
+    let mut tracks = definitions(el, is_grid)?;
     if is_grid {
-        let mut attrs = Vec::new();
-        for (k, v) in std::mem::take(&mut el.attrs) {
-            match k.as_str() {
-                "rows" | "columns" => {
-                    let row = k == "rows";
-                    let slot = if row { &mut rows } else { &mut cols };
-                    if slot.is_some() {
-                        let prop = if row {
-                            "Grid.RowDefinitions"
-                        } else {
-                            "Grid.ColumnDefinitions"
-                        };
-                        return err(
-                            el,
-                            format_args!("{k}=\"...\" and <{prop}> both define the {k} — keep one"),
-                        );
-                    }
-                    *slot = Some(compact(el, &k, &v, if row { "row" } else { "column" })?);
-                }
-                "row_spacing" | "column_spacing" => {
-                    let n = num(&v).ok_or_else(|| {
-                        format!(
-                            "line {}: <Grid> {k}=\"{v}\": expected a number of pixels",
-                            el.line
-                        )
-                    })?;
-                    let m = if k == "row_spacing" {
-                        "row_spacing"
-                    } else {
-                        "col_spacing"
-                    };
-                    calls.push(format!("{m}({n:?})"));
-                }
-                _ => attrs.push((k, v)),
-            }
-        }
-        el.attrs = attrs;
-        if let Some(r) = &rows {
-            calls.push(format!("rows([{}])", r.join(", ")));
-        }
-        if let Some(c) = &cols {
-            calls.push(format!("cols([{}])", c.join(", ")));
-        }
+        let calls = grid_calls(el, &mut tracks)?;
+        push_calls(el, calls, "g");
     }
-    push_calls(el, calls, "g");
-
-    let (n_rows, n_cols) = (
-        rows.as_ref().map_or(1, Vec::len),
-        cols.as_ref().map_or(1, Vec::len),
-    );
+    let size = (tracks.rows.as_ref().map_or(1, Vec::len), tracks.cols.as_ref().map_or(1, Vec::len));
+    let name = el.name.clone();
     for child in &mut el.children {
-        let mut cell = [0u16, 0, 1, 1];
-        let mut any = false;
-        let mut attrs = Vec::new();
-        for (k, v) in std::mem::take(&mut child.attrs) {
-            let Some(i) = ATTACHED.iter().position(|a| *a == k) else {
-                if k.starts_with("Grid.") {
-                    return err(
-                        child,
-                        format_args!("has no attribute `{k}` (attached: {})", ATTACHED.join(", ")),
-                    );
-                }
-                attrs.push((k, v));
-                continue;
-            };
-            if !is_grid {
-                return err(
-                    child,
-                    format_args!(
-                        "{k}: only children of a <Grid> have grid cells (this is in a <{}>)",
-                        el.name
-                    ),
-                );
-            }
-            if v.trim_start().starts_with('{') {
-                return err(
-                    child,
-                    format_args!("{k}=\"{v}\": grid cells can't be bound"),
-                );
-            }
-            cell[i] = index(child, &k, &v, if i < 2 { 0 } else { 1 })?;
-            any = true;
-        }
-        child.attrs = attrs;
-        if !is_grid {
-            continue;
-        }
-        let [r, c, rs, cs] = cell;
-        for (start, span, n, what, key) in [
-            (r, rs, n_rows, "row", "Grid.Row"),
-            (c, cs, n_cols, "column", "Grid.Column"),
-        ] {
-            let (start, span) = (start as usize, span as usize);
-            if start >= n {
-                return err(
-                    child,
-                    format_args!(
-                        "{key}=\"{start}\" is past the grid's last {what} (it has {}, numbered from 0)",
-                        plural(n, what)
-                    ),
-                );
-            }
-            if start + span > n {
-                return err(
-                    child,
-                    format_args!(
-                        "{key}Span=\"{span}\" from {what} {start} runs past the grid's last {what} (it has {})",
-                        plural(n, what)
-                    ),
-                );
-            }
-        }
-        if any {
-            let mut calls = vec![format!("cell({r}, {c})")];
-            if (rs, cs) != (1, 1) {
-                calls.push(format!("span({rs}, {cs})"));
-            }
-            push_calls(child, calls, "c");
-        }
+        cell(child, is_grid.then_some(size), &name)?;
     }
     for child in &mut el.children {
         normalize(child)?;
+    }
+    Ok(())
+}
+
+/// `<Grid.RowDefinitions>` / `<Grid.ColumnDefinitions>` taken out of
+/// `el`'s children (only a grid has them, once each).
+fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, String> {
+    let mut tracks = Tracks::default();
+    let mut kept = Vec::with_capacity(el.children.len());
+    for child in std::mem::take(&mut el.children) {
+        let row = match child.name.as_str() {
+            yui::ROW_DEFINITIONS => true,
+            yui::COLUMN_DEFINITIONS => false,
+            n if n.starts_with(GRID_MEMBER) => {
+                return err(&child, "isn't a Grid property (expected <Grid.RowDefinitions> or <Grid.ColumnDefinitions>)");
+            }
+            _ => {
+                kept.push(child);
+                continue;
+            }
+        };
+        if !is_grid {
+            return err(&child, format_args!("only goes directly inside a <Grid>, not <{}>", el.name));
+        }
+        if tracks.slot(row).is_some() {
+            return err(&child, "is given twice");
+        }
+        *tracks.slot(row) = Some(elements(&child, row)?);
+    }
+    el.children = kept;
+    Ok(tracks)
+}
+
+/// A grid's own attributes (`rows`, `columns`, spacings) as builder calls.
+fn grid_calls(el: &mut Element, tracks: &mut Tracks) -> Result<Vec<String>, String> {
+    let mut calls = Vec::new();
+    let mut attrs = Vec::new();
+    for (k, v) in std::mem::take(&mut el.attrs) {
+        match k.as_str() {
+            at::ROWS | at::COLUMNS => {
+                let row = k == at::ROWS;
+                if tracks.slot(row).is_some() {
+                    let prop = if row { yui::ROW_DEFINITIONS } else { yui::COLUMN_DEFINITIONS };
+                    return err(el, format_args!("{k}=\"...\" and <{prop}> both define the {k} — keep one"));
+                }
+                *tracks.slot(row) = Some(compact(el, &k, &v, if row { "row" } else { "column" })?);
+            }
+            at::ROW_SPACING | at::COLUMN_SPACING => {
+                let n = num(&v).ok_or_else(|| format!("line {}: <Grid> {k}=\"{v}\": expected a number of pixels", el.line))?;
+                let m = if k == at::ROW_SPACING { "row_spacing" } else { "col_spacing" };
+                calls.push(format!("{m}({n:?})"));
+            }
+            _ => attrs.push((k, v)),
+        }
+    }
+    el.attrs = attrs;
+    if let Some(r) = &tracks.rows {
+        calls.push(format!("rows([{}])", r.join(", ")));
+    }
+    if let Some(c) = &tracks.cols {
+        calls.push(format!("cols([{}])", c.join(", ")));
+    }
+    Ok(calls)
+}
+
+/// A child's attached `Grid.*` properties: its cell (`grid`: the grid's
+/// rows and columns; none: its parent isn't one, and the child can't say them).
+fn cell(child: &mut Element, grid: Option<(usize, usize)>, parent: &str) -> Result<(), String> {
+    let mut cell = [0u16, 0, 1, 1];
+    let mut any = false;
+    let mut attrs = Vec::new();
+    for (k, v) in std::mem::take(&mut child.attrs) {
+        let Some(i) = ATTACHED.iter().position(|a| *a == k) else {
+            if k.starts_with(GRID_MEMBER) {
+                return err(child, format_args!("has no attribute `{k}` (attached: {})", ATTACHED.join(", ")));
+            }
+            attrs.push((k, v));
+            continue;
+        };
+        if grid.is_none() {
+            return err(child, format_args!("{k}: only children of a <Grid> have grid cells (this is in a <{parent}>)"));
+        }
+        if v.trim_start().starts_with(BINDING_START) {
+            return err(child, format_args!("{k}=\"{v}\": grid cells can't be bound"));
+        }
+        cell[i] = index(child, &k, &v, if i < 2 { 0 } else { 1 })?;
+        any = true;
+    }
+    child.attrs = attrs;
+    let Some((n_rows, n_cols)) = grid else { return Ok(()) };
+    let [r, c, rs, cs] = cell;
+    for (start, span, n, what, key) in [(r, rs, n_rows, "row", at::GRID_ROW), (c, cs, n_cols, "column", at::GRID_COLUMN)] {
+        let (start, span) = (start as usize, span as usize);
+        if start >= n {
+            return err(child, format_args!("{key}=\"{start}\" is past the grid's last {what} (it has {}, numbered from 0)", plural(n, what)));
+        }
+        if start + span > n {
+            return err(child, format_args!("{key}Span=\"{span}\" from {what} {start} runs past the grid's last {what} (it has {})", plural(n, what)));
+        }
+    }
+    if any {
+        let mut calls = vec![format!("cell({r}, {c})")];
+        if (rs, cs) != (1, 1) {
+            calls.push(format!("span({rs}, {cs})"));
+        }
+        push_calls(child, calls, "c");
     }
     Ok(())
 }

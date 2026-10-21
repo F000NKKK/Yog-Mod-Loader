@@ -240,6 +240,9 @@ names! {
         COLUMN = "Column",
         ROW = "Row",
         GRID = "Grid",
+        /// A `<Grid>`'s rows and columns, as WPF writes them.
+        ROW_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, "RowDefinitions"),
+        COLUMN_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, "ColumnDefinitions"),
         SCROLL_VIEW = "ScrollView",
         LABEL = "Label",
         BUTTON = "Button",
@@ -478,7 +481,7 @@ names! {
         /// A design-time attribute: `d:text="Sample"` shows in the designer only.
         DESIGN = "d:",
         /// What a screen's resources element ends with: `<Screen.Resources>`.
-        RESOURCES = ".Resources",
+        RESOURCES = crate::concatcp!(crate::sep::MEMBER, "Resources"),
     }
 
     /// The sections of the game's `.mcmeta` beside a texture.
@@ -647,9 +650,9 @@ names! {
         X_KEY = "x:Key",
         X_NAME = "x:Name",
         TARGET = "target",
-        GRID_ROW = "Grid.Row",
-        GRID_COLUMN = "Grid.Column",
-        GRID_ROWSPAN = "Grid.RowSpan",
-        GRID_COLUMNSPAN = "Grid.ColumnSpan",
+        GRID_ROW = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "Row"),
+        GRID_COLUMN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "Column"),
+        GRID_ROWSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "RowSpan"),
+        GRID_COLUMNSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "ColumnSpan"),
     }
 }
