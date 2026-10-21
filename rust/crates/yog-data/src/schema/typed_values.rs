@@ -131,13 +131,16 @@ pub fn read_ref(v: &ValueRef, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
                 return None;
             }
             Err(e) => {
-                cx.problem(e);
+                cx.problem_of(yog_ids::problem_code::BAD_TYPED, e);
                 return None;
             }
         },
         ValueRef::Str(s) => {
             let kind = kinds.first().copied().unwrap_or(yog_ids::kind::ITEM);
-            cx.problem(format!("`{s}`: name it by a reference — `@{kind}:{s}`"));
+            cx.problem_of(
+                yog_ids::problem_code::NOT_A_REFERENCE,
+                format!("`{s}`: name it by a reference — `@{kind}:{s}`"),
+            );
             return None;
         }
         other => {
@@ -146,13 +149,16 @@ pub fn read_ref(v: &ValueRef, cx: &mut Reader, kinds: &[&str]) -> Option<Ref> {
         }
     };
     if !kinds.is_empty() && !kinds.contains(&r.kind.as_str()) {
-        cx.problem(format!(
-            "`@{}:{}` is a reference to {} — this takes {}",
-            r.kind,
-            r.id,
-            r.kind,
-            wanted()
-        ));
+        cx.problem_of(
+            yog_ids::problem_code::WRONG_KIND,
+            format!(
+                "`@{}:{}` is a reference to {} — this takes {}",
+                r.kind,
+                r.id,
+                r.kind,
+                wanted()
+            ),
+        );
         return None;
     }
     cx.note_ref(r.clone());
@@ -169,7 +175,7 @@ fn read_tag(v: &ValueRef, cx: &mut Reader, kind: &str) -> Option<Ref> {
                 return None;
             }
             Err(e) => {
-                cx.problem(e);
+                cx.problem_of(yog_ids::problem_code::BAD_TYPED, e);
                 return None;
             }
         },
@@ -265,7 +271,7 @@ impl Schema for AnyRefOrTag {
                         return None;
                     }
                     Err(e) => {
-                        cx.problem(e);
+                        cx.problem_of(yog_ids::problem_code::BAD_TYPED, e);
                         return None;
                     }
                 },
@@ -390,7 +396,7 @@ impl Schema for Res {
                     return None;
                 }
                 Err(e) => {
-                    cx.problem(e);
+                    cx.problem_of(yog_ids::problem_code::BAD_TYPED, e);
                     return None;
                 }
             },
@@ -497,7 +503,7 @@ impl Schema for Image {
                     None
                 }
                 Err(e) => {
-                    cx.problem(e);
+                    cx.problem_of(yog_ids::problem_code::BAD_TYPED, e);
                     None
                 }
             },

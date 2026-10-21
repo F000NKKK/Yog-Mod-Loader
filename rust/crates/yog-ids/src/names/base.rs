@@ -181,6 +181,32 @@ names! {
         TAG = crate::concatcp!(crate::sep::TYPED, crate::kind::TAG, crate::sep::NAMESPACE),
     }
 
+    /// What a problem is, as the Error List and the docs name it: `YD…` a
+    /// problem with Yog Data, `YC…` with a request to the CLI.
+    problem_code {
+        /// Any other problem with a value.
+        INVALID = "YD0000",
+        /// Text that doesn't parse.
+        SYNTAX = "YD0001",
+        /// A value of another type than its field's.
+        EXPECTED = "YD0002",
+        /// A bare id where a reference goes (`@item:…`).
+        NOT_A_REFERENCE = "YD0003",
+        /// A reference to another kind of content than its field takes.
+        WRONG_KIND = "YD0004",
+        UNKNOWN_FIELD = "YD0005",
+        MISSING_FIELD = "YD0006",
+        OUT_OF_RANGE = "YD0007",
+        /// A string written as a typed value that isn't one (`@Item:x`).
+        BAD_TYPED = "YD0008",
+        /// Binary Yog Data that won't decode.
+        BAD_BINARY = "YD0009",
+        /// A request that failed otherwise.
+        FAILED = "YC0000",
+        /// What a request names isn't there.
+        NOT_FOUND = "YC0001",
+    }
+
     /// Typed values that aren't references to content.
     typed {
         TAG = crate::kind::TAG,

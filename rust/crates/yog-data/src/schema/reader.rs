@@ -7,6 +7,8 @@ use super::{LineCol, MapRef, Path, Ref, Res, Schema, Seg, Text, ValueRef, fmt};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Problem {
     pub path: Path,
+    /// What it is (`yog_ids::problem_code`).
+    pub code: &'static str,
     pub message: String,
     /// About the key at `path` rather than its value (an unknown field).
     pub at_key: bool,
@@ -163,8 +165,14 @@ impl<'r> Reader<'r> {
 
     /// Reports a problem with the value being read.
     pub fn problem(&mut self, message: impl Into<String>) {
+        self.problem_of(yog_ids::problem_code::INVALID, message);
+    }
+
+    /// Reports a problem of kind `code` (`yog_ids::problem_code`) with the value being read.
+    pub fn problem_of(&mut self, code: &'static str, message: impl Into<String>) {
         self.problems.push(Problem {
             path: self.path(),
+            code,
             message: message.into(),
             at_key: false,
         });
@@ -172,7 +180,10 @@ impl<'r> Reader<'r> {
 
     /// "expected X, found Y".
     pub fn expected(&mut self, what: &str, found: &ValueRef) {
-        self.problem(format!("expected {what}, found {}", found_text(found)));
+        self.problem_of(
+            yog_ids::problem_code::EXPECTED,
+            format!("expected {what}, found {}", found_text(found)),
+        );
     }
 
     /// Runs `f` one step deeper.
@@ -250,6 +261,7 @@ impl<'r> Reader<'r> {
                 });
             self.problems.push(Problem {
                 path: self.path().key(key),
+                code: yog_ids::problem_code::UNKNOWN_FIELD,
                 message: format!("unknown field `{key}`{hint}"),
                 at_key: true,
             });
@@ -277,7 +289,10 @@ impl<'r> Reader<'r> {
         match map.get(key) {
             Some(v) => self.at(Seg::Key(key.to_string()), |cx| T::read(v, cx)),
             None => T::absent().or_else(|| {
-                self.problem(format!("missing `{key}`"));
+                self.problem_of(
+                    yog_ids::problem_code::MISSING_FIELD,
+                    format!("missing `{key}`"),
+                );
                 None
             }),
         }
@@ -305,7 +320,10 @@ impl<'r> Reader<'r> {
         match map.get(key) {
             Some(v) => self.in_field(key, |cx| W::read(v, cx)),
             None => W::absent().or_else(|| {
-                self.problem(format!("missing `{key}`"));
+                self.problem_of(
+                    yog_ids::problem_code::MISSING_FIELD,
+                    format!("missing `{key}`"),
+                );
                 None
             }),
         }
@@ -499,11 +517,10 @@ impl Reader<'_> {
                 };
                 let bad = show(n);
                 self.at(Seg::Key(key.to_string()), |cx| {
-                    cx.problem(format!(
-                        "{bad} is out of range ({}..={})",
-                        show(lo),
-                        show(hi)
-                    ))
+                    cx.problem_of(
+                        yog_ids::problem_code::OUT_OF_RANGE,
+                        format!("{bad} is out of range ({}..={})", show(lo), show(hi)),
+                    )
                 });
                 None
             }

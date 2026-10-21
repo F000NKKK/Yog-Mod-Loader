@@ -38,8 +38,8 @@ fn ok<T: Schema>(v: T) -> Reply {
     Ok(v.write())
 }
 
-fn done<T: Schema>(r: Result<T, String>) -> Reply {
-    r.map_err(ServiceError::from).and_then(ok)
+fn done<T: Schema, E: Into<ServiceError>>(r: Result<T, E>) -> Reply {
+    r.map_err(Into::into).and_then(ok)
 }
 
 /// A picture's `width` and `height` parameters.

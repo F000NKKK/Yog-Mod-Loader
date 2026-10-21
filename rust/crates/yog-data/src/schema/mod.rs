@@ -187,6 +187,7 @@ pub fn read_bytes<T: Schema>(bytes: &[u8]) -> Result<T, Vec<Problem>> {
     let v = crate::binary::decode_ref(bytes, &arena).map_err(|e| {
         vec![Problem {
             path: Path::root(),
+            code: yog_ids::problem_code::BAD_BINARY,
             message: e.to_string(),
             at_key: false,
         }]

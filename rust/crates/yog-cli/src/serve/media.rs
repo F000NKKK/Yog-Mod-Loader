@@ -144,7 +144,7 @@ fn parse(text: &str, set_and_mod: Option<(&str, &str)>) -> Reply {
             .next()
             .and_then(|l| l.trim().parse::<u64>().ok());
         match line {
-            Some(line) => ServiceError::at(e, line as u32, None),
+            Some(line) => ServiceError::at(yog_ids::problem_code::SYNTAX, e, line as u32, None),
             None => ServiceError::from(e),
         }
     })?;

@@ -52,7 +52,22 @@ pub fn answer(request: &Request) -> Reply {
         // The designers: drawing, pickers' choices, edits of a mod's files.
         .or_else(|| crate::design::service::dispatch(method, params))
         .unwrap_or_else(|| Err(format!("no method `{method}`").into()));
-    reply.map(|v| yog_data::typed::flatten(&v))
+    reply
+        .map(|v| yog_data::typed::flatten(&v))
+        .map_err(|mut e| {
+            e.file = e.file.take().or_else(|| file_of(params));
+            e
+        })
+}
+
+/// The file a request is about: its `path`, or its arguments'.
+fn file_of(params: &yog_data::Value) -> Option<String> {
+    let path = |v: &yog_data::Value| {
+        v.get(yog_ids::serve_param::PATH)
+            .and_then(yog_data::Value::as_str)
+            .map(str::to_string)
+    };
+    path(params).or_else(|| params.get(yog_ids::serve_param::ARGS).and_then(path))
 }
 
 #[cfg(test)]

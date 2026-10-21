@@ -189,6 +189,26 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, CATEGORY, TEXTURE, TAG);
     }
 
+    public static final class ProblemCode {
+        private ProblemCode() {}
+
+        public static final String INVALID = "YD0000";
+        public static final String SYNTAX = "YD0001";
+        public static final String EXPECTED = "YD0002";
+        public static final String NOT_A_REFERENCE = "YD0003";
+        public static final String WRONG_KIND = "YD0004";
+        public static final String UNKNOWN_FIELD = "YD0005";
+        public static final String MISSING_FIELD = "YD0006";
+        public static final String OUT_OF_RANGE = "YD0007";
+        public static final String BAD_TYPED = "YD0008";
+        public static final String BAD_BINARY = "YD0009";
+        public static final String FAILED = "YC0000";
+        public static final String NOT_FOUND = "YC0001";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INVALID, SYNTAX, EXPECTED, NOT_A_REFERENCE, WRONG_KIND, UNKNOWN_FIELD, MISSING_FIELD, OUT_OF_RANGE, BAD_TYPED, BAD_BINARY, FAILED, NOT_FOUND);
+    }
+
     public static final class Typed {
         private Typed() {}
 

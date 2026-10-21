@@ -5,6 +5,7 @@
 
 use crate::design::assets::Resources;
 use crate::design::project::mod_root;
+use crate::serve::ServiceError;
 use std::path::{Path, PathBuf};
 use yog_data::{Map, Value};
 use yog_ids::Format;
@@ -46,7 +47,7 @@ fn texture_id(texture: &str) -> String {
 
 /// The png bytes of a texture as a content file names it: `@Set.name`,
 /// `path.png` (in `resources/`), or a texture id (`ns:block/x`).
-fn texture_bytes(file: &Path, texture: &str) -> Result<Vec<u8>, String> {
+fn texture_bytes(file: &Path, texture: &str) -> Result<Vec<u8>, ServiceError> {
     match texture_file(file, texture, "png") {
         Ok(bytes) => Ok(bytes),
         Err(original) => {
@@ -62,8 +63,12 @@ fn texture_bytes(file: &Path, texture: &str) -> Result<Vec<u8>, String> {
             };
             let sheet = texture_file(file, &yog_gfx::image::short_source(&legacy.texture), "png")?;
             let r = legacy.region;
-            crop_png(&sheet, r.x as u32, r.y as u32, r.w as u32, r.h as u32)
-                .map_err(|e| format!("{original}; the older versions' sprite sheet: {e}"))
+            crop_png(&sheet, r.x as u32, r.y as u32, r.w as u32, r.h as u32).map_err(|e| {
+                ServiceError::not_found(format!(
+                    "{}; the older versions' sprite sheet: {e}",
+                    original.message
+                ))
+            })
         }
     }
 }
@@ -93,16 +98,16 @@ fn crop_png(bytes: &[u8], x: u32, y: u32, width: u32, height: u32) -> Result<Vec
 
 /// A file of texture `texture` — its `png`, or its `png.mcmeta` — as the
 /// build makes it (the mod's own, through the CLI service) or the game has it.
-fn texture_file(file: &Path, texture: &str, ext: &str) -> Result<Vec<u8>, String> {
+fn texture_file(file: &Path, texture: &str, ext: &str) -> Result<Vec<u8>, ServiceError> {
     let id = texture_id(texture);
     let (ns, path) = yog_ids::split(&id);
     Resources::for_mod(mod_root(file).as_deref())
         .read(ns, &format!("{}{path}.{ext}", yog_ids::res::TEXTURES))
         .ok_or_else(|| {
-            format!(
+            ServiceError::not_found(format!(
                 "texture {id} not found (the mod's .{}, or the Minecraft client jar)",
                 yog_ids::Format::Texture.ext()
-            )
+            ))
         })
 }
 

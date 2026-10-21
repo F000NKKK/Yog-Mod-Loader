@@ -207,10 +207,14 @@ fn textures_and_advancements_take_references_as_written() {
     };
     assert!(texture("@texture:mymod:block/ruby").is_ok());
     // A bare id isn't a reference: said, at the parameter.
+    let bare = texture("mymod:block/ruby").unwrap_err();
+    assert_eq!(bare.problems[0].path, "texture");
     assert_eq!(
-        texture("mymod:block/ruby").unwrap_err().problems[0].path,
-        "texture"
+        bare.problems[0].code,
+        yog_ids::problem_code::NOT_A_REFERENCE
     );
+    let missing = texture("@texture:mymod:block/none").unwrap_err();
+    assert_eq!(missing.problems[0].code, yog_ids::problem_code::NOT_FOUND);
     let args = format!(
         r#"{{ args: {{ path: "{p}", title: "@lang:gui.done", nodes: [
             {{ id: "mymod:root", parent: null, icon: "@item:minecraft:stick", frame: "task", title: "Root", description: "@lang:gui.done" }},

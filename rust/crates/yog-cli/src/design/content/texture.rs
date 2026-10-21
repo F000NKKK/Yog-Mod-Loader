@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use super::{texture_bytes, texture_file, texture_id};
 use crate::design::project::mod_root;
+use crate::serve::ServiceError;
 
 #[derive(yog_data::Schema)]
 pub struct Texture {
@@ -113,7 +114,7 @@ pub fn write_animation(
     let id = texture_id(texture);
     let animation = match animation {
         Some(a) => {
-            let png = texture_bytes(file, texture)?;
+            let png = texture_bytes(file, texture).map_err(|e| e.message)?;
             let size = image_size(&png).ok_or_else(|| format!("{id} isn't a picture"))?;
             Some(a.to_format(size))
         }
@@ -123,11 +124,11 @@ pub fn write_animation(
 }
 
 /// A body model's texture (`.ymodel`): `@texture:<ns>:<path>`, as a content file's.
-pub fn body_texture(file: &Path, texture: &str) -> Result<Texture, String> {
+pub fn body_texture(file: &Path, texture: &str) -> Result<Texture, ServiceError> {
     self::texture(file, texture)
 }
 
-pub fn texture(file: &Path, texture: &str) -> Result<Texture, String> {
+pub fn texture(file: &Path, texture: &str) -> Result<Texture, ServiceError> {
     let bytes = texture_bytes(file, texture)?;
     let animation = image_size(&bytes).and_then(|size| {
         let meta = texture_file(file, texture, "png.mcmeta").ok()?;
