@@ -7,7 +7,6 @@
 pub mod advancements;
 pub mod content;
 pub mod data;
-pub mod files;
 pub mod mod_ui;
 pub mod project;
 pub mod recipe_kinds;

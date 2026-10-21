@@ -23,7 +23,7 @@ fn project(files: &[(&str, &str)]) -> PathBuf {
 fn pictures(root: &Path, names: &[&str]) -> yres::Refs {
     let png = yog_media::image::encode_png(&yog_media::image::Image { width: 1, height: 1, rgba: vec![255, 0, 0, 255] }).unwrap();
     let entries: Vec<yres::Entry> = names.iter().map(|n| yres::Entry::picture(n, png.clone())).collect();
-    std::fs::create_dir_all(root.join("resources")).unwrap();
+    std::fs::create_dir_all(root.join(yog_ids::project::RESOURCES)).unwrap();
     std::fs::write(root.join("resources/Images.yres"), yres::write(&entries)).unwrap();
     yres::compile(root, "mymod").unwrap().refs
 }

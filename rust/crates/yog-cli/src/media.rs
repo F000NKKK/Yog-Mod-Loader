@@ -83,7 +83,7 @@ fn pictures_of(file: &Path, set: &str) -> Arc<Vec<Picture>> {
 /// Every picture of the mod at `root`.
 pub fn pictures(root: &Path) -> Vec<Picture> {
     let mut out = Vec::new();
-    for file in crate::yui::find_files(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
+    for file in crate::files::with_ext(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
         // A culture variant (`Images.ru_ru.yres`) has no pictures of its own.
         let Some((set, None)) = file.file_name().and_then(|n| n.to_str()).and_then(split_file_name) else { continue };
         out.extend(pictures_of(&file, set).iter().cloned());
@@ -133,7 +133,7 @@ pub fn texture(root: &Path, id: &str) -> Option<Texture> {
 pub fn textures(root: &Path) -> Vec<Texture> {
     let Some(ns) = mod_id(root) else { return Vec::new() };
     let resources = root.join(yog_ids::project::RESOURCES);
-    crate::yui::find_files(&resources, Format::Texture.ext())
+    crate::files::with_ext(&resources, Format::Texture.ext())
         .into_iter()
         .filter_map(|f| {
             let rel = f.strip_prefix(&resources).ok()?.to_string_lossy().replace('\\', yog_ids::sep::PATH);

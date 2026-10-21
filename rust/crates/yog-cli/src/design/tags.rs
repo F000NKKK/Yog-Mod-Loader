@@ -25,7 +25,7 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
     let mut tags = crate::content::read_tags(root).remove(REGISTRY).unwrap_or_default();
     let Some(ns) = crate::design::project::mod_id(root) else { return tags };
     for format in [Format::Block, Format::Item, Format::Def] {
-        for file in crate::design::files::of(&root.join(yog_ids::project::CONTENT), format) {
+        for file in crate::files::of(&root.join(yog_ids::project::CONTENT), format) {
             let Ok(text) = std::fs::read_to_string(&file) else { continue };
             let Some(doc) = crate::design::data::read_object(&text) else { continue };
             let value = Value::Object(doc);

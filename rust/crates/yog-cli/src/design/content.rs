@@ -88,7 +88,7 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
         return None;
     }
     for format in formats {
-        for file in crate::design::files::of(&root.join("content"), *format) {
+        for file in crate::files::of(&root.join(yog_ids::project::CONTENT), *format) {
             let Some(doc) = std::fs::read_to_string(&file).ok().and_then(|t| crate::design::data::read_object(&t)).map(Value::Object) else {
                 continue;
             };
@@ -184,7 +184,7 @@ pub fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u
     } else {
         return None;
     };
-    for file in crate::design::files::of(&root.join("content/items"), Format::Item) {
+    for file in crate::files::of(&root.join("content/items"), Format::Item) {
         let Ok(text) = std::fs::read_to_string(&file) else {
             continue;
         };
@@ -246,7 +246,7 @@ fn content_effect_color(root: &Path, reference: &str) -> Option<u32> {
     if ns != mod_ns {
         return None;
     }
-    for file in crate::design::files::of(&root.join("content/effects"), Format::Def) {
+    for file in crate::files::of(&root.join("content/effects"), Format::Def) {
         let Ok(text) = std::fs::read_to_string(&file) else {
             continue;
         };
@@ -278,7 +278,7 @@ pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
     if want_ns != ns {
         return None;
     }
-    let files = [crate::design::files::of(&root.join("content"), Format::Item), crate::design::files::of(&root.join("content"), Format::Block)].concat();
+    let files = [crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Item), crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Block)].concat();
     for file in files {
         let Ok(text) = std::fs::read_to_string(&file) else { continue };
         let Some(doc) = crate::design::data::read_object(&text).map(Value::Object) else { continue };
@@ -455,7 +455,7 @@ pub fn strings(file: &Path) -> Vec<String> {
     let Some(root) = mod_root(file) else {
         return out;
     };
-    for p in crate::design::files::of(&root.join("resources"), Format::Res) {
+    for p in crate::files::of(&root.join(yog_ids::project::RESOURCES), Format::Res) {
         let Some(set) = p.file_stem().and_then(|s| s.to_str()) else {
             continue;
         };
@@ -488,7 +488,7 @@ fn definitions(file: &Path, kind: &str, built_ins: impl IntoIterator<Item = Stri
     };
     let ns = crate::design::project::mod_id(&root).unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
     let mut own = Vec::new();
-    for p in crate::design::files::of(&root.join(yog_ids::project::CONTENT), Format::Def) {
+    for p in crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Def) {
         let Some(doc) = std::fs::read_to_string(&p).ok().and_then(|t| crate::design::data::read_object(&t)) else {
             continue;
         };

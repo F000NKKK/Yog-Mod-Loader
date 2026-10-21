@@ -73,7 +73,7 @@ impl Pack {
     /// Every file's path in the pack, `/`-separated.
     fn paths(&self) -> Vec<String> {
         match self {
-            Pack::Dir(d) => crate::files_under(&d.join(ASSETS), &|_| true)
+            Pack::Dir(d) => crate::files::under(&d.join(ASSETS), &|_| true)
                 .iter()
                 .filter_map(|p| p.strip_prefix(d).ok().map(crate::slash_path))
                 .collect(),

@@ -140,7 +140,7 @@ pub fn game_kinds(root: &Path) -> Vec<Kind> {
 /// The kinds the mod at `root` declares, by id.
 pub fn kinds(root: &Path) -> Vec<Kind> {
     let ns = crate::design::project::mod_id(root).unwrap_or_default();
-    let files = crate::design::files::of(&root.join("content"), Format::Def);
+    let files = crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Def);
     let layouts = crate::design::mod_ui::recipe_layouts(root);
     let mut out: Vec<Kind> = files
         .iter()

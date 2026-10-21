@@ -16,14 +16,12 @@
 //! could not load"), never an IDE crash.
 
 use std::collections::HashMap;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Stdio};
 use yog_sync::mpsc::{self, Receiver, RecvTimeoutError};
 use yog_sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -377,21 +375,6 @@ fn sources(root: &Path) -> Vec<PathBuf> {
     out
 }
 
-fn fingerprint(files: &[PathBuf]) -> u64 {
-    let mut h = DefaultHasher::new();
-    for f in files {
-        f.hash(&mut h);
-        if let Ok(m) = std::fs::metadata(f) {
-            m.len().hash(&mut h);
-            m.modified()
-                .ok()
-                .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
-                .hash(&mut h);
-        }
-    }
-    h.finish()
-}
-
 fn mod_name(root: &Path) -> String {
     let manifest = crate::manifest::YogToml::read(&project::path(root)).ok();
     // `@Strings.x` names a resource text — the id reads better than the reference.
@@ -414,7 +397,7 @@ pub fn status(root: &Path) -> Snapshot {
     let defs = components::scan_with_revision(root);
     let shared = state(root);
     let files = sources(root);
-    let fp = fingerprint(&files);
+    let fp = crate::files::fingerprint(&files);
     let mut s = shared.lock();
     if s.mod_name.is_empty() {
         s.mod_name = mod_name(root);

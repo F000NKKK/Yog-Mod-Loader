@@ -138,7 +138,7 @@ pub fn valid_id(s: &str) -> bool {
 
 /// Every content file (`CONTENT`) under `content/` of the mod at `root`, sorted.
 pub fn find(root: &Path) -> Vec<PathBuf> {
-    crate::files_under(&root.join(CONTENT_DIR), &|p| content_format(p).is_some())
+    crate::files::under(&root.join(CONTENT_DIR), &|p| content_format(p).is_some())
 }
 
 fn pretty(v: &Value) -> Vec<u8> {

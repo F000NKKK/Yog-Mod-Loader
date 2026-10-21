@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use syn::visit::Visit;
 
+use crate::yui::const_name;
+
 /// Where the editor should go.
 #[derive(Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -21,32 +23,6 @@ pub struct HandlerLocation {
     pub column: usize,
     /// The file was written (created or a handler added).
     pub changed: bool,
-}
-
-/// The `events::` constant for an event name (yog-cli's `const_name`).
-pub fn const_name(value: &str) -> String {
-    let mut out = String::new();
-    let mut prev_lower = false;
-    for c in value.chars() {
-        if c.is_ascii_alphanumeric() {
-            if c.is_ascii_uppercase() && prev_lower {
-                out.push('_');
-            }
-            prev_lower = c.is_ascii_lowercase() || c.is_ascii_digit();
-            out.push(c.to_ascii_uppercase());
-        } else {
-            if !out.ends_with('_') {
-                out.push('_');
-            }
-            prev_lower = false;
-        }
-    }
-    let out = out.trim_matches('_').to_string();
-    if out.is_empty() || out.starts_with(|c: char| c.is_ascii_digit()) {
-        format!("_{out}")
-    } else {
-        out
-    }
 }
 
 /// A Rust fn name for an event: `play`, `mymod:btn-play` → `mymod_btn_play`.

@@ -183,7 +183,7 @@ fn translate(key: &str) -> Option<String> {
 fn recipes(mod_root: &Path) -> Vec<(String, yog_data::Value)> {
     let mod_id = crate::design::project::mod_id(mod_root).unwrap_or_default();
     let mut out = Vec::new();
-    let mut stack = vec![mod_root.join("content")];
+    let mut stack = vec![mod_root.join(yog_ids::project::CONTENT)];
     while let Some(dir) = stack.pop() {
         for e in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
             let p = e.path();

@@ -14,6 +14,7 @@ mod consts;
 pub mod content;
 pub mod design;
 pub mod exports;
+pub mod files;
 pub mod manifest;
 pub mod media;
 pub mod serve;
@@ -32,24 +33,6 @@ pub fn slash_path(path: &std::path::Path) -> String {
 /// `path` as a project shows it: relative to its `root`, `/`-separated.
 pub(crate) fn shown_path(root: &std::path::Path, path: &std::path::Path) -> String {
     slash_path(path.strip_prefix(root).unwrap_or(path))
-}
-
-/// Every file under `dir` (in its folders too) that is `wanted`, sorted.
-pub(crate) fn files_under(dir: &std::path::Path, wanted: &dyn Fn(&std::path::Path) -> bool) -> Vec<std::path::PathBuf> {
-    fn walk(dir: &std::path::Path, wanted: &dyn Fn(&std::path::Path) -> bool, out: &mut Vec<std::path::PathBuf>) {
-        let Ok(entries) = std::fs::read_dir(dir) else { return };
-        for path in entries.flatten().map(|e| e.path()) {
-            if path.is_dir() {
-                walk(&path, wanted, out);
-            } else if wanted(&path) {
-                out.push(path);
-            }
-        }
-    }
-    let mut out = Vec::new();
-    walk(dir, wanted, &mut out);
-    out.sort();
-    out
 }
 
 /// Writes generated `code` to `path` (creating its directory) unless it's

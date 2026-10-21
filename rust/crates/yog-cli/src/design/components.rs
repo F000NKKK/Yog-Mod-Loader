@@ -11,11 +11,8 @@ use yog_ids::Format;
 use yog_ids::prop_kind;
 use yog_ids::yui_component as ca;
 use std::collections::HashMap;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use yog_sync::{Arc, Mutex, OnceLock};
-use std::time::SystemTime;
 
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::{Reader, XmlVersion};
@@ -336,7 +333,7 @@ pub fn design_root(root: &YuiNode) -> YuiNode {
 // ── The mod's components ─────────────────────────────────────────────────────────
 
 fn yui_files(mod_root: &Path) -> Vec<PathBuf> {
-    let mut out: Vec<PathBuf> = ignore::WalkBuilder::new(mod_root.join("src"))
+    let mut out: Vec<PathBuf> = ignore::WalkBuilder::new(mod_root.join(yog_ids::project::SRC))
         .hidden(false)
         .build()
         .flatten()
@@ -345,21 +342,6 @@ fn yui_files(mod_root: &Path) -> Vec<PathBuf> {
         .collect();
     out.sort();
     out
-}
-
-fn fingerprint(files: &[PathBuf]) -> u64 {
-    let mut h = DefaultHasher::new();
-    for f in files {
-        f.hash(&mut h);
-        if let Ok(m) = std::fs::metadata(f) {
-            m.len().hash(&mut h);
-            m.modified()
-                .ok()
-                .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
-                .hash(&mut h);
-        }
-    }
-    h.finish()
 }
 
 type Scanned = (u64, Arc<Vec<Def>>);
@@ -373,7 +355,7 @@ pub fn scan(mod_root: &Path) -> Arc<Vec<Def>> {
 pub fn scan_with_revision(mod_root: &Path) -> (u64, Arc<Vec<Def>>) {
     static CACHE: OnceLock<Mutex<HashMap<PathBuf, Scanned>>> = OnceLock::new();
     let files = yui_files(mod_root);
-    let fp = fingerprint(&files);
+    let fp = crate::files::fingerprint(&files);
     let cache = CACHE.get_or_init(Default::default);
     if let Some((seen, defs)) = cache
         .lock()

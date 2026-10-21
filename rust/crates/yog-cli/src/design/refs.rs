@@ -102,7 +102,7 @@ pub struct OwnDef {
 }
 
 fn files(root: &Path, format: Format) -> Vec<PathBuf> {
-    crate::design::files::of(&root.join("content"), format)
+    crate::files::of(&root.join(yog_ids::project::CONTENT), format)
 }
 
 fn read(file: &Path) -> Option<serde_json::Map<String, Value>> {
@@ -147,7 +147,7 @@ fn own(root: &Path, kind: &str) -> Vec<OwnRef> {
     });
     if let Some((dir, format)) = by_path {
         let dir = root.join(dir);
-        for f in crate::design::files::of(&dir, format) {
+        for f in crate::files::of(&dir, format) {
             let rel = f.strip_prefix(&dir).unwrap_or(&f).with_extension("");
             out.push(OwnRef { id: yog_ids::join(&ns, &rel.to_string_lossy().replace('\\', yog_ids::sep::PATH)), file: f.to_string_lossy().into_owned() });
         }

@@ -91,11 +91,6 @@ pub fn generate_file(root: &Path, yui: &Path) -> Result<(PathBuf, Vec<String>), 
 /// What opens a `<RecipeArea>`: a screen with one needs the mod's layouts.
 const RECIPE_AREA_TAG: &str = yog_ids::concatcp!("<", yog_ids::yui::RECIPE_AREA);
 
-/// Every `*.<ext>` file under `dir`, recursively, sorted.
-pub(crate) fn find_files(dir: &Path, ext: &str) -> Vec<PathBuf> {
-    crate::files_under(dir, &|p| p.extension().is_some_and(|e| e == ext))
-}
-
 /// Whether `path`'s root is a `<Component book_page="…">`.
 pub fn is_book_page_file(path: &Path) -> bool {
     std::fs::read_to_string(path)
@@ -106,7 +101,7 @@ pub fn is_book_page_file(path: &Path) -> bool {
 
 /// Every `.yui` file under `dir`, recursively.
 pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
-    find_files(dir, yog_ids::Format::Ui.ext())
+    crate::files::with_ext(dir, yog_ids::Format::Ui.ext())
 }
 
 /// What [`generate_all`] did: how many screens it read, what to warn of.
@@ -143,7 +138,7 @@ pub fn generate_all(root: &Path) -> Result<Generated, String> {
         .parent()
         .map(|d| d.join(crate::content::GENERATED_PARTS_DIR))
         .unwrap_or_default();
-    for stale in find_files(&root.join(GENERATED_DIR), RS) {
+    for stale in crate::files::with_ext(&root.join(GENERATED_DIR), RS) {
         if stale.to_string_lossy().ends_with(GENERATED_EXT)
             && !wanted.contains(&stale)
             && stale != res_index

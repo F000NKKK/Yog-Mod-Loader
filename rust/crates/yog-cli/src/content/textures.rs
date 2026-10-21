@@ -42,7 +42,7 @@ struct Building {
 pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>) -> Textures {
     let resources = root.join(RESOURCES_DIR);
     let mut b = Building::default();
-    for file in crate::yui::find_files(&resources, Format::Texture.ext()) {
+    for file in crate::files::with_ext(&resources, Format::Texture.ext()) {
         let shown = crate::shown_path(root, &file);
         let rel = file.strip_prefix(&resources).unwrap_or(&file).to_string_lossy().replace('\\', yog_ids::sep::PATH);
         let Some(id) = yog_formats::texture::id_of(mod_id, &rel) else { continue };
