@@ -37,7 +37,7 @@ fn the_exports_name_every_group() {
         "{ts}"
     );
     assert!(
-        ts.contains("  block: { ext: \"yblock\", noun: \"block\" },"),
+        ts.contains("  block: { ext: \"yblock\", noun: \"block\", isData: true },"),
         "{ts}"
     );
     let java = export::java("dev.yog.generated", "YogNames");
