@@ -414,13 +414,13 @@ public final class YogData {
     // ── Reading values ───────────────────────────────────────────────────
 
     /** {@code v} as a map, or an empty one. */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // a decoded map: its keys are always strings
     public static Map<String, Object> map(Object v) {
         return v instanceof Map<?, ?> m ? (Map<String, Object>) m : Collections.emptyMap();
     }
 
     /** {@code v} as a list, or an empty one. */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // a decoded list: read-only, its items any value
     public static List<Object> list(Object v) {
         return v instanceof List<?> l ? (List<Object>) l : Collections.emptyList();
     }

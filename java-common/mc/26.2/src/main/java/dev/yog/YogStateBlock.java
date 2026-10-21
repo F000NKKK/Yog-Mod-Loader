@@ -174,7 +174,7 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
         return shape(state);
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext ctx) {
         return spec.def.noCollision() ? Shapes.empty() : shape(state);
@@ -182,13 +182,13 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
 
     // ── Water ─────────────────────────────────────────────────────────────────
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public FluidState getFluidState(BlockState state) {
         return spec.waterlogged != null && state.getValue(spec.waterlogged) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     protected BlockState updateShape(BlockState state, LevelReader world, ScheduledTickAccess ticks, BlockPos pos,
                                      Direction direction, BlockPos neighborPos, BlockState neighborState, RandomSource random) {
@@ -200,7 +200,7 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
 
     // ── Redstone ──────────────────────────────────────────────────────────────
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     protected void neighborChanged(BlockState state, Level world, BlockPos pos, Block sourceBlock, Orientation orientation, boolean notify) {
         super.neighborChanged(state, world, pos, sourceBlock, orientation, notify);
@@ -210,13 +210,13 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
         if (state.getValue(powered) != now) world.setBlock(pos, state.setValue(powered, now), Block.UPDATE_ALL);
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public boolean hasAnalogOutputSignal(BlockState state) {
         return spec.def.comparator() != null;
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     protected int getAnalogOutputSignal(BlockState state, Level world, BlockPos pos, Direction direction) {
         return spec.def.comparator() != null && state.getValue(yesNo(spec.def.comparator())) ? 15 : 0;
@@ -224,13 +224,13 @@ public class YogStateBlock extends Block implements SimpleWaterloggedBlock, Worl
 
     // ── Structures turn and mirror it ─────────────────────────────────────────
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public BlockState rotate(BlockState state, Rotation rotation) {
         return spec.facing == null ? state : state.setValue(spec.facing, rotation.rotate(state.getValue(spec.facing)));
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings("deprecation") // overriding is fine; Mojang deprecates these only for callers
     @Override
     public BlockState mirror(BlockState state, Mirror mirror) {
         return spec.facing == null ? state : state.rotate(mirror.getRotation(state.getValue(spec.facing)));

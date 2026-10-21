@@ -73,7 +73,7 @@ public class YogHost implements ModInitializer {
     }
 
     private static <T> void register(ResourceKey<? extends Registry<T>> registry, Identifier id, T value) {
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings("unchecked") // a registry of the key's type: the root registry hands it out untyped
         Registry<T> r = (Registry<T>) BuiltInRegistries.REGISTRY.getValue(registry.identifier());
         Registry.register(r, id, value);
     }

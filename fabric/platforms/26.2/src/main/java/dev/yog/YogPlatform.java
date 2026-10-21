@@ -57,7 +57,7 @@ public final class YogPlatform {
 
     /** A holder of {@code id} in {@code registry}: registered by now (Fabric registers at once). */
     public static <T> net.minecraft.core.Holder<T> holder(net.minecraft.resources.ResourceKey<? extends net.minecraft.core.Registry<T>> registry, net.minecraft.resources.Identifier id) {
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings("unchecked") // a registry of the key's type: the root registry hands it out untyped
         net.minecraft.core.Registry<T> r = (net.minecraft.core.Registry<T>) net.minecraft.core.registries.BuiltInRegistries.REGISTRY.getValue(registry.identifier());
         return r.getOrThrow(net.minecraft.resources.ResourceKey.create(registry, id));
     }

@@ -140,12 +140,12 @@ public final class YogBody {
         setFrame(state, new Frame(ops, disguise, renderer, OverlayTexture.NO_OVERLAY));
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // an entity's renderer and model are of its own type: the game hands them out untyped
     private static EntityRenderer<?, ? super EntityRenderState> rendererOf(Entity e) {
         return (EntityRenderer<?, ? super EntityRenderState>) Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(e);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // an entity's renderer and model are of its own type: the game hands them out untyped
     private static EntityRenderState stateOf(Entity e, float partial) {
         return ((EntityRenderer<Entity, EntityRenderState>) Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(e))
                 .createRenderState(e, partial);
@@ -205,7 +205,7 @@ public final class YogBody {
     }
 
     /** Before the model space is left: the mods' model- and part-space meshes. */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // an entity's renderer and model are of its own type: the game hands them out untyped
     public static void drawn(EntityModel<?> model, LivingEntityRenderState state, PoseStack pose, SubmitNodeCollector out) {
         Frame f = frameOf(state);
         if (f == null || f.ops.meshes.isEmpty()) return;
@@ -361,7 +361,7 @@ public final class YogBody {
                 PoseStack pose = new PoseStack();
                 pose.mulPose(Axis.YP.rotationDegrees(body - HALF_TURN));
                 YogBodyCapture keep = new YogBodyCapture();
-                @SuppressWarnings("unchecked")
+                @SuppressWarnings("unchecked") // an entity's renderer and model are of its own type: the game hands them out untyped
                 EntityRenderer<Entity, EntityRenderState> r = target == e
                         ? (EntityRenderer<Entity, EntityRenderState>) (Object) self
                         : (EntityRenderer<Entity, EntityRenderState>) (Object) rendererOf(target);

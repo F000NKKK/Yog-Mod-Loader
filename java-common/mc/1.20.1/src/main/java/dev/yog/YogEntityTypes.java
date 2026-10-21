@@ -50,7 +50,7 @@ public final class YogEntityTypes {
         YogRegistrar.add(Registries.ENTITY_TYPE, sink -> build(defs, (id, type) -> sink.register(Registries.ENTITY_TYPE, id, type)));
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes"}) // a type built at runtime: its entity class isn't known statically
     private static void build(List<YogContent.Entity> defs, BiConsumer<ResourceLocation, EntityType<?>> register) {
         for (YogContent.Entity def : defs) {
             ResourceLocation id = ResourceLocation.tryParse(def.id());
@@ -77,7 +77,7 @@ public final class YogEntityTypes {
         YogRegistrar.add(Registries.ITEM, sink -> eggs((id, item) -> sink.register(Registries.ITEM, id, item)));
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // the mod's entity types are of the entity classes their defs name
     private static void eggs(BiConsumer<ResourceLocation, Item> register) {
         for (Map.Entry<String, EntityType<?>> t : TYPES.entrySet()) {
             YogContent.Entity def = DEFS.get(t.getValue());
@@ -128,7 +128,7 @@ public final class YogEntityTypes {
     }
 
     /** The living types' attributes, to the loader's hook (the attributes are registered by then). */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // the mod's entity types are of the entity classes their defs name
     public static void attributes(Attributes out) {
         DEFS.forEach((type, def) -> {
             if (def.living()) out.put((EntityType<? extends net.minecraft.world.entity.LivingEntity>) type, attributes(def));

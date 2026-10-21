@@ -94,7 +94,7 @@ public final class YogPlatform {
 
     /** A holder of {@code id} in {@code registry}: Forge's register events put a thing in at once. */
     public static <T> Holder<T> holder(ResourceKey<? extends Registry<T>> registry, Identifier id) {
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings("unchecked") // a registry of the key's type: the root registry hands it out untyped
         Registry<T> r = (Registry<T>) BuiltInRegistries.REGISTRY.getValue(registry.identifier());
         return r.getOrThrow(ResourceKey.create(registry, id));
     }

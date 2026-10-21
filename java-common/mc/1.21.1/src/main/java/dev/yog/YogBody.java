@@ -358,7 +358,7 @@ public final class YogBody {
                 PoseStack pose = new PoseStack();
                 pose.mulPose(Axis.YP.rotationDegrees(body - 180.0F));
                 Buffers buffers = new Buffers();
-                @SuppressWarnings("unchecked")
+                @SuppressWarnings("unchecked") // an entity's renderer and model are of its own type: the game hands them out untyped
                 EntityRenderer<Entity> r = target == e
                         ? (EntityRenderer<Entity>) (Object) self
                         : (EntityRenderer<Entity>) Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(target);

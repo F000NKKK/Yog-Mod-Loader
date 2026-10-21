@@ -1,15 +1,15 @@
 path	findings	status
 Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogClient.java		todo
-Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogHost.java	silenced:1	todo
+Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogHost.java		todo
 Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/YogPlatform.java		todo
 Yog-Mod-Loader/fabric/platforms/1.20.1/src/main/java/dev/yog/mixin/ResourcePackManagerMixin.java		todo
 Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogClient.java		todo
-Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogHost.java	silenced:1	todo
+Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogHost.java		todo
 Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/YogPlatform.java		todo
 Yog-Mod-Loader/fabric/platforms/1.21.1/src/main/java/dev/yog/mixin/ResourcePackManagerMixin.java		todo
 Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/YogClient.java		todo
-Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/YogHost.java	silenced:1	todo
-Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/YogPlatform.java	silenced:1	todo
+Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/YogHost.java		todo
+Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/YogPlatform.java		todo
 Yog-Mod-Loader/fabric/platforms/26.2/src/main/java/dev/yog/mixin/ResourcePackManagerMixin.java		todo
 Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogClient.java		todo
 Yog-Mod-Loader/forge/platforms/1.20.1/src/main/java/dev/yog/YogHost.java		todo
@@ -20,10 +20,10 @@ Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/YogPlatform.java		to
 Yog-Mod-Loader/forge/platforms/1.21.1/src/main/java/dev/yog/mixin/HudRenderMixin.java		todo
 Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/YogClient.java		todo
 Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/YogHost.java		todo
-Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/YogPlatform.java	silenced:1	todo
+Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/YogPlatform.java		todo
 Yog-Mod-Loader/forge/platforms/26.2/src/main/java/dev/yog/mixin/LevelMainPassMixin.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogBookItem.java		todo
-Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientEvents.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientEvents.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientOps.java	params:ordered@105(6),scan@114(7),area@165(6),drive@211(6)	todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogClientTooltip.java		todo
 Yog-Mod-Loader/java-common/mc/1.20-1.21/src/main/java/dev/yog/YogCommands.java		todo
@@ -47,15 +47,15 @@ Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/NativeBridge.java	fil
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/NativeDraw.java	magic_numbers:7	todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogBlockItem.java		todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogBlockKinds.java		todo
-Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogBody.java	params:begin@101(7),draw@194(6),camera@445(6) silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogBody.java	params:begin@101(7),draw@194(6),camera@445(6)	todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@78(7)	todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogClientApi.java		todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7)	todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogContentRegistry.java		todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogEffects.java		todo
-Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:3 literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogEntityTypes.java	literal_facts:2	todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@42(7) literal_facts:2	todo
-Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogHangingItem.java		todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogInventoryBlock.java		todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
 Yog-Mod-Loader/java-common/mc/1.20.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
@@ -85,15 +85,15 @@ Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/NativeBridge.java	fil
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/NativeDraw.java	magic_numbers:7	todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogBlockItem.java		todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogBlockKinds.java		todo
-Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogBody.java	params:begin@100(7),draw@195(6),camera@432(6) silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogBody.java	params:begin@100(7),draw@195(6),camera@432(6)	todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@72(7)	todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogClientApi.java		todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogConnectingBlock.java	params:YogConnectingBlock@34(7)	todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogContentRegistry.java		todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogEffects.java		todo
-Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogEntityTypes.java	silenced:3 literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogEntityTypes.java	literal_facts:2	todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogHanging.java	params:YogHanging@44(7) literal_facts:2 magic_numbers:3	todo
-Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogHangingItem.java		todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogInventoryBlock.java		todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
 Yog-Mod-Loader/java-common/mc/1.21.1/src/main/java/dev/yog/YogInventoryMenu.java		todo
@@ -123,13 +123,13 @@ Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/NativeDraw.java	magic_n
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBlockItem.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBlockKinds.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBlocksPip.java	params:State@38(12)	todo
-Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBody.java	params:draw@220(6),camera@392(6) silenced:4	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBody.java	params:draw@220(6),camera@392(6)	todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBodyCapture.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBodyState.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogBookItem.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogCallbackChunkGenerator.java	params:YogCallbackChunkGenerator@64(7)	todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientApi.java		todo
-Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientEvents.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientEvents.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientOps.java	params:ordered@105(6),scan@114(7),area@165(6),drive@211(6)	todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogClientTooltip.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogCommands.java		todo
@@ -138,11 +138,11 @@ Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogContentRegistry.java
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEffects.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEntityPreview.java	params:draw@21(9)	todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEntityRenderer.java		todo
-Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEntityTypes.java	silenced:2 literal_facts:2	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogEntityTypes.java	literal_facts:2	todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogGl.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogGuiSprites.java	params:draw@23(7)	todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogHanging.java	params:YogHanging@45(7) literal_facts:2 magic_numbers:3	todo
-Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogHangingItem.java	silenced:1	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogHangingItem.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogInventoryBlock.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogInventoryBlockEntity.java	magic_numbers:1	todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogInventoryMenu.java		todo
@@ -159,7 +159,7 @@ Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogRedstoneBlock.java		
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogRegistrar.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogServerEvents.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogShapedBlock.java	params:YogShapedBlock@14(7)	todo
-Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogStateBlock.java	silenced:8	todo
+Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogStateBlock.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogTools.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogTooltipLines.java		todo
 Yog-Mod-Loader/java-common/mc/26.2/src/main/java/dev/yog/YogUIScreen.java		todo
@@ -203,7 +203,7 @@ Yog-Mod-Loader/java-common/src/main/java/dev/yog/bus/YogEvents.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/bus/YogServices.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/bus/YogTypes.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogContent.java	long-fn:read@236(141) params:YogContent@206(7) literal_facts:12 magic_numbers:2	todo
-Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogData.java	silenced:2	todo
+Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogData.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogFrame.java		todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogJava.java	literal_facts:2	todo
 Yog-Mod-Loader/java-common/src/main/java/dev/yog/data/YogTags.java	literal_facts:2	todo

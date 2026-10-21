@@ -51,7 +51,7 @@ public final class YogEntityTypes {
         YogRegistrar.add(Registries.ENTITY_TYPE, sink -> register(defs, sink));
     }
 
-    @SuppressWarnings({"rawtypes"})
+    @SuppressWarnings({"rawtypes"}) // a type built at runtime: its entity class isn't known statically
     private static void register(List<YogContent.Entity> defs, YogRegistrar.Sink sink) {
         for (YogContent.Entity def : defs) {
             Identifier id = Identifier.tryParse(def.id());
@@ -79,7 +79,7 @@ public final class YogEntityTypes {
     }
 
     /** The living types' attributes, to the loader's hook (the attributes are registered by then). */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // the mod's entity types are of the entity classes their defs name
     public static void attributes(Attributes out) {
         for (EntityType<?> type : TYPES.values()) {
             YogContent.Entity def = DEFS.get(type);

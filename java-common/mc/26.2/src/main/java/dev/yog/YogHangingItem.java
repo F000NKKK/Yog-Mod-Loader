@@ -26,7 +26,7 @@ public class YogHangingItem extends YogItem {
         this.hangs = hangs;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // checked to be a hanging entity type before the cast
     private EntityType<? extends YogHanging> type() {
         Identifier id = Identifier.tryParse(hangs.entity());
         EntityType<?> type = id == null ? null : BuiltInRegistries.ENTITY_TYPE.getValue(id);

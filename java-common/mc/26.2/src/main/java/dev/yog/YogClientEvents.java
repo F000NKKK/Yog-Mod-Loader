@@ -131,7 +131,7 @@ public final class YogClientEvents {
     }
 
     /** The mods' entities: drawn by what the mods give (yog-body). */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // an entity's renderer and model are of its own type: the game hands them out untyped
     public static void renderers(Renderers out) {
         for (EntityType<?> type : YogEntityTypes.types()) {
             out.register((EntityType<Entity>) type, ctx -> new YogEntityRenderer(ctx, YogEntityTypes.def(type)));
