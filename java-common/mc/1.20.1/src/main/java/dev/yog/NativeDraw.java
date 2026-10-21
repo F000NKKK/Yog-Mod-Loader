@@ -132,7 +132,7 @@ public final class NativeDraw {
         Item item = BuiltInRegistries.ITEM.get(ident);
         if (item == Items.AIR) return;
         syncGlState();
-        float scale = size / 16.0f;
+        float scale = size / dev.yog.util.YogGameNumbers.ITEM_PIXELS;
         ctx.pose().pushPose();
         ctx.pose().scale(scale, scale, 1.0f);
         ctx.renderItem(new ItemStack(item), (int) (x / scale), (int) (y / scale));
@@ -321,7 +321,7 @@ public final class NativeDraw {
         if (ctx == null) return;
         var e = preview(type);
         if (e == null) return;
-        float size = Math.min(h / Math.max(e.getBbHeight(), 0.1f), w / Math.max(e.getBbWidth() * 1.4f, 0.1f)) * 0.9f;
+        float size = Math.min(h / Math.max(e.getBbHeight(), dev.yog.util.YogGameNumbers.ENTITY_MIN_SIZE), w / Math.max(e.getBbWidth() * dev.yog.util.YogGameNumbers.ENTITY_ARMS, dev.yog.util.YogGameNumbers.ENTITY_MIN_SIZE)) * dev.yog.util.YogGameNumbers.ENTITY_MARGIN;
         e.yBodyRot = 180f + yaw;
         e.setYRot(180f + yaw);
         e.yHeadRot = 180f + yaw;
@@ -329,7 +329,7 @@ public final class NativeDraw {
         e.setXRot(0f);
         syncGlState();
         org.joml.Quaternionf pose = new org.joml.Quaternionf().rotateZ((float) Math.PI);
-        pose.mul(new org.joml.Quaternionf().rotateX(pitch * (float) (Math.PI / 180.0)));
+        pose.mul(new org.joml.Quaternionf().rotateX((float) Math.toRadians(pitch)));
         float cx = x + w / 2f;
         net.minecraft.client.gui.screens.inventory.InventoryScreen.renderEntityInInventory(
                 ctx, (int) cx, (int) (y + h / 2f + e.getBbHeight() * size / 2f), (int) size, pose, null, e);
@@ -375,7 +375,7 @@ public final class NativeDraw {
         }
         if (blocks.isEmpty()) return;
         float size = Math.max(hi[0] - lo[0], Math.max(hi[1] - lo[1], hi[2] - lo[2])) + 1;
-        float s = Math.min(w, h) / (size * 1.7f);
+        float s = Math.min(w, h) / (size * dev.yog.util.YogGameNumbers.BLOCK_CORNERS);
         syncGlState();
         var m = ctx.pose();
         m.pushPose();

@@ -86,11 +86,11 @@ public class YogHanging extends HangingEntity {
     @Override
     protected AABB calculateBoundingBox(BlockPos pos, Direction side) {
         int w = entityData.get(WIDTH), h = entityData.get(HEIGHT);
-        Vec3 c = Vec3.atCenterOf(pos).relative(side, -0.46875)
+        Vec3 c = Vec3.atCenterOf(pos).relative(side, -dev.yog.util.YogGameNumbers.HANGING_DEPTH)
                 .relative(side.getCounterClockWise(), w % 2 == 0 ? 0.5 : 0.0)
                 .relative(Direction.UP, h % 2 == 0 ? 0.5 : 0.0);
         Direction.Axis axis = side.getAxis();
-        return AABB.ofSize(c, axis == Direction.Axis.X ? 0.0625 : w, h, axis == Direction.Axis.Z ? 0.0625 : w);
+        return AABB.ofSize(c, axis == Direction.Axis.X ? dev.yog.util.YogGameNumbers.HANGING_THICKNESS : w, h, axis == Direction.Axis.Z ? dev.yog.util.YogGameNumbers.HANGING_THICKNESS : w);
     }
 
     private void play(String sound) {

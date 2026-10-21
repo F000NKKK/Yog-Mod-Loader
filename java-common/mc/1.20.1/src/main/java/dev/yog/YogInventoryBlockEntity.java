@@ -54,7 +54,7 @@ public class YogInventoryBlockEntity extends BlockEntity implements Container, M
     @Override public void clearContent() { items.clear(); }
     @Override public boolean stillValid(Player player) {
         return level != null && level.getBlockEntity(worldPosition) == this
-                && player.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 64.0;
+                && player.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(worldPosition)) <= dev.yog.util.YogGameNumbers.CONTAINER_REACH_SQR;
     }
 
     @Override

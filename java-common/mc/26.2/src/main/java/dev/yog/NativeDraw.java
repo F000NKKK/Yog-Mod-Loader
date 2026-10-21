@@ -278,7 +278,7 @@ public final class NativeDraw {
         if (ctx == null) return;
         var e = preview(type);
         if (e == null) return;
-        float size = Math.min(h / Math.max(e.getBbHeight(), 0.1f), w / Math.max(e.getBbWidth() * 1.4f, 0.1f)) * 0.9f;
+        float size = Math.min(h / Math.max(e.getBbHeight(), dev.yog.util.YogGameNumbers.ENTITY_MIN_SIZE), w / Math.max(e.getBbWidth() * dev.yog.util.YogGameNumbers.ENTITY_ARMS, dev.yog.util.YogGameNumbers.ENTITY_MIN_SIZE)) * dev.yog.util.YogGameNumbers.ENTITY_MARGIN;
         YogEntityPreview.draw(ctx, e, x, y, w, h, size, yaw, pitch);
     }
 

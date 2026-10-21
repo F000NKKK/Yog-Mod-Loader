@@ -32,9 +32,9 @@ public class YogObject extends Entity {
     @Override
     public void tick() {
         super.tick();
-        if (!isNoGravity()) setDeltaMovement(getDeltaMovement().add(0.0, -0.04, 0.0));
+        if (!isNoGravity()) setDeltaMovement(getDeltaMovement().add(0.0, -dev.yog.util.YogGameNumbers.GRAVITY, 0.0));
         move(MoverType.SELF, getDeltaMovement());
-        setDeltaMovement(getDeltaMovement().scale(onGround() ? 0.5 : 0.98));
+        setDeltaMovement(getDeltaMovement().scale(onGround() ? dev.yog.util.YogGameNumbers.GROUND_DRAG : dev.yog.util.YogGameNumbers.AIR_DRAG));
         YogEntityTypes.tick(this);
     }
 

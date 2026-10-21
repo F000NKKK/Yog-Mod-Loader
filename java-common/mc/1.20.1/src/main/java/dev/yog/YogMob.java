@@ -34,12 +34,12 @@ public class YogMob extends PathfinderMob {
         for (String goal : def.goals()) {
             switch (goal) {
                 case "float" -> goalSelector.addGoal(priority, new FloatGoal(this));
-                case "panic" -> goalSelector.addGoal(priority, new PanicGoal(this, 1.25));
+                case "panic" -> goalSelector.addGoal(priority, new PanicGoal(this, dev.yog.util.YogGameNumbers.PANIC_SPEED));
                 case "melee_attack" -> goalSelector.addGoal(priority, new MeleeAttackGoal(this, 1.0, true));
                 case "wander" -> goalSelector.addGoal(priority, new WaterAvoidingRandomStrollGoal(this, 1.0));
                 case "look_at_player" -> goalSelector.addGoal(priority, new LookAtPlayerGoal(this, Player.class, 8.0F));
                 case "look_around" -> goalSelector.addGoal(priority, new RandomLookAroundGoal(this));
-                case "avoid_player" -> goalSelector.addGoal(priority, new AvoidEntityGoal<>(this, Player.class, 8.0F, 1.0, 1.2));
+                case "avoid_player" -> goalSelector.addGoal(priority, new AvoidEntityGoal<>(this, Player.class, dev.yog.util.YogGameNumbers.AVOID_DISTANCE, dev.yog.util.YogGameNumbers.AVOID_WALK, dev.yog.util.YogGameNumbers.AVOID_RUN));
                 case "target_player" -> targetSelector.addGoal(priority, new NearestAttackableTargetGoal<>(this, Player.class, true));
                 default -> YogLog.warn("" + def.id() + ": no AI goal `" + goal + "`");
             }
