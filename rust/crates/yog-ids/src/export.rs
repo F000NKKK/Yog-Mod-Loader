@@ -30,14 +30,15 @@ pub fn typescript() -> String {
         out.push_str("} as const;\n");
     }
     out.push_str(
-        "\n/** Yog's file formats: extension and noun (`Format`). */\nexport const formats = {\n",
+        "\n/** Yog's file formats: extension, noun, and whether files of it are Yog Data — binary on disk, text in the editor (`Format`). */\nexport const formats = {\n",
     );
     for f in crate::Format::ALL {
         out.push_str(&format!(
-            "  {}: {{ ext: {:?}, noun: {:?} }},\n",
+            "  {}: {{ ext: {:?}, noun: {:?}, isData: {} }},\n",
             camel(&format!("{f:?}").to_lowercase()),
             f.ext(),
-            f.noun()
+            f.noun(),
+            f.is_data()
         ));
     }
     out.push_str("} as const;\n");

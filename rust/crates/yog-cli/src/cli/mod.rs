@@ -75,7 +75,7 @@ pub(crate) fn main(args: &[String]) {
         Some("remove") => deps::remove_dep(dep_name(rest), has(MOD)),
         Some("run") => run_cmd(rest),
         Some("control") => control::control(rest),
-        Some("data") => data::data(rest),
+        Some(data::COMMAND) => data::data(rest),
         Some("publish") => publish_cmd(rest),
         Some("res") => sub(rest, "check", check::res_check, "usage: yog res check"),
         Some("content") => sub(
