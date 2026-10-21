@@ -97,6 +97,7 @@ names! {
         COUNT = "count",
         DATA = "data",
         DEFAULT = "default",
+        DOC = "doc",
         END = "end",
         ENTRIES = "entries",
         FALSE = "false",
@@ -205,6 +206,26 @@ names! {
         FAILED = "YC0000",
         /// What a request names isn't there.
         NOT_FOUND = "YC0001",
+    }
+
+    /// The words of Yog Data's `#[data(...)]` attribute: the attribute
+    /// itself and each option (the derive reads them; `#[yog_export]`
+    /// writes them).
+    data_attr {
+        CRATE = "crate",
+        DATA = crate::word::DATA,
+        DEFAULT = crate::word::DEFAULT,
+        DOC = crate::word::DOC,
+        OTHER = "other",
+        RANGE = "range",
+        RENAME = "rename",
+        RENAME_ALL = "rename_all",
+        /// `rename_all`'s one case: fields (a struct's) or variants (an enum's) in lower camel case.
+        CAMEL_CASE = "camelCase",
+        SKIP = "skip",
+        TAG = crate::word::TAG,
+        VIEW = "view",
+        WITH = "with",
     }
 
     /// Typed values that aren't references to content.

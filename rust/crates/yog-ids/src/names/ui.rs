@@ -15,7 +15,7 @@ names! {
         TYPE = crate::word::TYPE,
         DEFAULT = crate::word::DEFAULT,
         OPTIONS = "options",
-        DOC = "doc",
+        DOC = crate::word::DOC,
     }
 
     /// Where a `<Screen>` sits in the game's window (`anchor="top_left"`).

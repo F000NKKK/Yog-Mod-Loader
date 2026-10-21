@@ -97,6 +97,7 @@ public final class YogNames {
         public static final String COUNT = "count";
         public static final String DATA = "data";
         public static final String DEFAULT = "default";
+        public static final String DOC = "doc";
         public static final String END = "end";
         public static final String ENTRIES = "entries";
         public static final String FALSE = "false";
@@ -132,7 +133,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ARMOR, BASE, BLOCK, CATEGORY, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ARMOR, BASE, BLOCK, CATEGORY, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {
@@ -207,6 +208,27 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(INVALID, SYNTAX, EXPECTED, NOT_A_REFERENCE, WRONG_KIND, UNKNOWN_FIELD, MISSING_FIELD, OUT_OF_RANGE, BAD_TYPED, BAD_BINARY, FAILED, NOT_FOUND);
+    }
+
+    public static final class DataAttr {
+        private DataAttr() {}
+
+        public static final String CRATE = "crate";
+        public static final String DATA = "data";
+        public static final String DEFAULT = "default";
+        public static final String DOC = "doc";
+        public static final String OTHER = "other";
+        public static final String RANGE = "range";
+        public static final String RENAME = "rename";
+        public static final String RENAME_ALL = "rename_all";
+        public static final String CAMEL_CASE = "camelCase";
+        public static final String SKIP = "skip";
+        public static final String TAG = "tag";
+        public static final String VIEW = "view";
+        public static final String WITH = "with";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(CRATE, DATA, DEFAULT, DOC, OTHER, RANGE, RENAME, RENAME_ALL, CAMEL_CASE, SKIP, TAG, VIEW, WITH);
     }
 
     public static final class Typed {

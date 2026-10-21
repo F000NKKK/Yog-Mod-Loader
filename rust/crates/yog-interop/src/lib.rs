@@ -22,31 +22,29 @@ fn schema_derive() -> proc_macro2::TokenStream {
 /// An exported enum with data is tagged (`#[data(tag = "type")]`) unless
 /// it names its own tag: the mod writes the enum, not its format.
 fn enum_tag(e: &syn::ItemEnum) -> proc_macro2::TokenStream {
+    use yog_ids::data_attr::{DATA, TAG};
     let has_data = e
         .variants
         .iter()
         .any(|v| !matches!(v.fields, syn::Fields::Unit));
-    let tagged = e
-        .attrs
-        .iter()
-        .filter(|a| a.path().is_ident("data"))
-        .any(|a| {
-            let mut tag = false;
-            // Every `key = value` read past; `tag` noted.
-            let _ = a.parse_nested_meta(|m| {
-                tag |= m.path.is_ident("tag");
-                if m.input.peek(syn::Token![=]) {
-                    m.value()?.parse::<syn::Expr>()?;
-                }
-                Ok(())
-            });
-            tag
+    let tagged = e.attrs.iter().filter(|a| a.path().is_ident(DATA)).any(|a| {
+        let mut tag = false;
+        // Every `key = value` read past; the tag noted.
+        let _ = a.parse_nested_meta(|m| {
+            tag |= m.path.is_ident(TAG);
+            if m.input.peek(syn::Token![=]) {
+                m.value()?.parse::<syn::Expr>()?;
+            }
+            Ok(())
         });
+        tag
+    });
     if !has_data || tagged {
         return quote! {};
     }
     let tag = yog_ids::word::TYPE;
-    quote! { #[data(tag = #tag)] }
+    let (data, tag_key) = (format_ident!("{DATA}"), format_ident!("{TAG}"));
+    quote! { #[#data(#tag_key = #tag)] }
 }
 
 /// Whether `ty` is a `Registry` (a leading `&mut Registry` is the
