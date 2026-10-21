@@ -5,7 +5,6 @@ mod block;
 mod item;
 mod loot;
 mod screens;
-mod source;
 mod states;
 
 use std::collections::BTreeMap;
@@ -25,7 +24,6 @@ use crate::yres;
 
 pub(super) use loot::{drops_table, kind_drops};
 pub(super) use screens::inventory_screens;
-pub(super) use source::item_props;
 
 /// What a translation key adds for an item's or block's description.
 const DESCRIPTION: &str = ".desc";
