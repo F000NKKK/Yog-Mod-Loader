@@ -16,8 +16,9 @@ target
 # ── Gradle / Fabric / NeoForge / Forge ──
 .gradle/
 build/
-# Compiled class files (Gradle/IDE output)
+# Compiled class files (Gradle/IDE output) — not the crates' own programs
 **/bin/
+!rust/crates/*/src/bin/
 # Dev run dirs (worlds, staged natives, logs, configs)
 **/run/
 **/runs/
