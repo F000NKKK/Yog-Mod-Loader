@@ -10,16 +10,16 @@ names! {
 
     /// `yog:block/…`: blocks.
     service_block {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "block", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::BLOCK, crate::sep::PATH),
         INSERT = crate::concatcp!(DOMAIN, "insert"),
-        NBT = crate::concatcp!(DOMAIN, "nbt"),
-        SET_NBT = crate::concatcp!(DOMAIN, "set_nbt"),
-        STATE = crate::concatcp!(DOMAIN, "state"),
+        NBT = crate::concatcp!(DOMAIN, crate::bus_word::NBT),
+        SET_NBT = crate::concatcp!(DOMAIN, crate::bus_word::SET_NBT),
+        STATE = crate::concatcp!(DOMAIN, crate::word::STATE),
         SET_STATE = crate::concatcp!(DOMAIN, "set_state"),
-        INFO = crate::concatcp!(DOMAIN, "info"),
+        INFO = crate::concatcp!(DOMAIN, crate::bus_word::INFO),
         DESTROY = crate::concatcp!(DOMAIN, "destroy"),
         BONEMEAL = crate::concatcp!(DOMAIN, "bonemeal"),
-        USE_ITEM = crate::concatcp!(DOMAIN, "use_item"),
+        USE_ITEM = crate::concatcp!(DOMAIN, crate::bus_word::USE_ITEM),
         POUR_FLUID = crate::concatcp!(DOMAIN, "pour_fluid"),
         REDSTONE_POWER = crate::concatcp!(DOMAIN, "redstone_power"),
         REDSTONE_SIGNAL = crate::concatcp!(DOMAIN, "redstone_signal"),
@@ -30,18 +30,18 @@ names! {
 
     /// `yog:item/…`: items and item stacks.
     service_item {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "item", crate::sep::PATH),
-        TEXT = crate::concatcp!(DOMAIN, "text"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::ITEM, crate::sep::PATH),
+        TEXT = crate::concatcp!(DOMAIN, crate::word::TEXT),
         PICTURE = crate::concatcp!(DOMAIN, "picture"),
-        SPAWN = crate::concatcp!(DOMAIN, "spawn"),
+        SPAWN = crate::concatcp!(DOMAIN, crate::bus_word::SPAWN),
         ENTITY_STACK = crate::concatcp!(DOMAIN, "entity_stack"),
         SET_ENTITY_STACK = crate::concatcp!(DOMAIN, "set_entity_stack"),
-        BLOCK = crate::concatcp!(DOMAIN, "block"),
+        BLOCK = crate::concatcp!(DOMAIN, crate::word::BLOCK),
     }
 
     /// `yog:world/…`: a world.
     service_world {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "world", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::bus_word::WORLD, crate::sep::PATH),
         GET_BLOCK = crate::concatcp!(DOMAIN, "get_block"),
         SET_BLOCK = crate::concatcp!(DOMAIN, "set_block"),
         TIME = crate::concatcp!(DOMAIN, "time"),
@@ -63,7 +63,7 @@ names! {
 
     /// `yog:chat/…`: messages to players.
     service_chat {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "chat", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::bus_word::CHAT, crate::sep::PATH),
         BROADCAST = crate::concatcp!(DOMAIN, "broadcast"),
         TELLRAW = crate::concatcp!(DOMAIN, "tellraw"),
         TITLE = crate::concatcp!(DOMAIN, "title"),
@@ -73,13 +73,13 @@ names! {
 
     /// `yog:player/…`: players.
     service_player {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "player", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::PLAYER, crate::sep::PATH),
         GIVE_ITEM = crate::concatcp!(DOMAIN, "give_item"),
-        TELEPORT = crate::concatcp!(DOMAIN, "teleport"),
-        TELEPORT_TO_DIM = crate::concatcp!(DOMAIN, "teleport_to_dim"),
+        TELEPORT = crate::concatcp!(DOMAIN, crate::bus_word::TELEPORT),
+        TELEPORT_TO_DIM = crate::concatcp!(DOMAIN, crate::bus_word::TELEPORT_TO_DIM),
         KICK = crate::concatcp!(DOMAIN, "kick"),
         SET_GAMEMODE = crate::concatcp!(DOMAIN, "set_gamemode"),
-        INVENTORY = crate::concatcp!(DOMAIN, "inventory"),
+        INVENTORY = crate::concatcp!(DOMAIN, crate::kind::INVENTORY),
         SET_SLOT = crate::concatcp!(DOMAIN, "set_slot"),
         HELD_ITEM_NBT = crate::concatcp!(DOMAIN, "held_item_nbt"),
         SET_HELD_ITEM_NBT = crate::concatcp!(DOMAIN, "set_held_item_nbt"),
@@ -89,7 +89,7 @@ names! {
         SET_SLOT_ITEM = crate::concatcp!(DOMAIN, "set_slot_item"),
         ADD_XP = crate::concatcp!(DOMAIN, "add_xp"),
         SET_MAY_FLY = crate::concatcp!(DOMAIN, "set_may_fly"),
-        INFO = crate::concatcp!(DOMAIN, "info"),
+        INFO = crate::concatcp!(DOMAIN, crate::bus_word::INFO),
         SET_ITEM_COOLDOWN = crate::concatcp!(DOMAIN, "set_item_cooldown"),
         PLACE_BLOCK_FROM_SLOT = crate::concatcp!(DOMAIN, "place_block_from_slot"),
         ONLINE = crate::concatcp!(DOMAIN, "online"),
@@ -97,62 +97,62 @@ names! {
 
     /// `yog:net/…`: the network.
     service_net {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "net", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::bus_word::NET, crate::sep::PATH),
         SEND_TO_PLAYER = crate::concatcp!(DOMAIN, "send_to_player"),
         SEND_TO_SERVER = crate::concatcp!(DOMAIN, "send_to_server"),
     }
 
     /// `yog:sound/…`: sounds.
     service_sound {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "sound", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::SOUND, crate::sep::PATH),
         PLAY = crate::concatcp!(DOMAIN, "play"),
         PLAY_TO_PLAYER = crate::concatcp!(DOMAIN, "play_to_player"),
     }
 
     /// `yog:particle/…`: particles.
     service_particle {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "particle", crate::sep::PATH),
-        SPAWN = crate::concatcp!(DOMAIN, "spawn"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::model::PARTICLE, crate::sep::PATH),
+        SPAWN = crate::concatcp!(DOMAIN, crate::bus_word::SPAWN),
     }
 
     /// `yog:entity/…`: entities.
     service_entity {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "entity", crate::sep::PATH),
-        TELEPORT = crate::concatcp!(DOMAIN, "teleport"),
-        TELEPORT_TO_DIM = crate::concatcp!(DOMAIN, "teleport_to_dim"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::kind::ENTITY, crate::sep::PATH),
+        TELEPORT = crate::concatcp!(DOMAIN, crate::bus_word::TELEPORT),
+        TELEPORT_TO_DIM = crate::concatcp!(DOMAIN, crate::bus_word::TELEPORT_TO_DIM),
         POSITION = crate::concatcp!(DOMAIN, "position"),
-        ROTATION = crate::concatcp!(DOMAIN, "rotation"),
+        ROTATION = crate::concatcp!(DOMAIN, crate::model::ROTATION),
         VELOCITY = crate::concatcp!(DOMAIN, "velocity"),
         SET_VELOCITY = crate::concatcp!(DOMAIN, "set_velocity"),
         ADD_VELOCITY = crate::concatcp!(DOMAIN, "add_velocity"),
         HEALTH = crate::concatcp!(DOMAIN, "health"),
         SET_HEALTH = crate::concatcp!(DOMAIN, "set_health"),
         KILL = crate::concatcp!(DOMAIN, "kill"),
-        SPAWN = crate::concatcp!(DOMAIN, "spawn"),
+        SPAWN = crate::concatcp!(DOMAIN, crate::bus_word::SPAWN),
         ADD_EFFECT = crate::concatcp!(DOMAIN, "add_effect"),
         REMOVE_EFFECT = crate::concatcp!(DOMAIN, "remove_effect"),
         CLEAR_EFFECTS = crate::concatcp!(DOMAIN, "clear_effects"),
-        NBT = crate::concatcp!(DOMAIN, "nbt"),
-        SET_NBT = crate::concatcp!(DOMAIN, "set_nbt"),
+        NBT = crate::concatcp!(DOMAIN, crate::bus_word::NBT),
+        SET_NBT = crate::concatcp!(DOMAIN, crate::bus_word::SET_NBT),
         ATTRIBUTE_BASE = crate::concatcp!(DOMAIN, "attribute_base"),
         SET_ATTRIBUTE_BASE = crate::concatcp!(DOMAIN, "set_attribute_base"),
-        ATTRIBUTE_VALUE = crate::concatcp!(DOMAIN, "attribute_value"),
-        INFO = crate::concatcp!(DOMAIN, "info"),
-        DAMAGE = crate::concatcp!(DOMAIN, "damage"),
+        ATTRIBUTE_VALUE = crate::concatcp!(DOMAIN, crate::bus_word::ATTRIBUTE_VALUE),
+        INFO = crate::concatcp!(DOMAIN, crate::bus_word::INFO),
+        DAMAGE = crate::concatcp!(DOMAIN, crate::word::DAMAGE),
         SET_FIRE_TICKS = crate::concatcp!(DOMAIN, "set_fire_ticks"),
         VEHICLE = crate::concatcp!(DOMAIN, "vehicle"),
         PASSENGERS = crate::concatcp!(DOMAIN, "passengers"),
         MOUNT = crate::concatcp!(DOMAIN, "mount"),
         DISMOUNT = crate::concatcp!(DOMAIN, "dismount"),
         SET_FALL_DISTANCE = crate::concatcp!(DOMAIN, "set_fall_distance"),
-        SET_DIMENSIONS = crate::concatcp!(DOMAIN, "set_dimensions"),
-        DATA = crate::concatcp!(DOMAIN, "data"),
+        SET_DIMENSIONS = crate::concatcp!(DOMAIN, crate::bus_word::SET_DIMENSIONS),
+        DATA = crate::concatcp!(DOMAIN, crate::word::DATA),
         SET_DATA = crate::concatcp!(DOMAIN, "set_data"),
     }
 
     /// `yog:tag/…`: tags.
     service_tag {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "tag", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::TAG, crate::sep::PATH),
         HAS_ITEM = crate::concatcp!(DOMAIN, "has_item"),
         HAS_BLOCK = crate::concatcp!(DOMAIN, "has_block"),
         HAS_ENTITY = crate::concatcp!(DOMAIN, "has_entity"),
@@ -161,7 +161,7 @@ names! {
 
     /// `yog:advancement/…`: advancements.
     service_advancement {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "advancement", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::kind::ADVANCEMENT, crate::sep::PATH),
         GRANT = crate::concatcp!(DOMAIN, "grant"),
         DONE = crate::concatcp!(DOMAIN, "done"),
     }
@@ -170,7 +170,7 @@ names! {
     service_scoreboard {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, "scoreboard", crate::sep::PATH),
         GET = crate::concatcp!(DOMAIN, "get"),
-        SET = crate::concatcp!(DOMAIN, "set"),
+        SET = crate::concatcp!(DOMAIN, crate::serve_param::SET),
         ADD = crate::concatcp!(DOMAIN, "add"),
     }
 
@@ -189,11 +189,11 @@ names! {
 
     /// `yog:game/…`: the game.
     service_game {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "game", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::bus_word::GAME, crate::sep::PATH),
         DIR = crate::concatcp!(DOMAIN, "dir"),
         WORLD_DIR = crate::concatcp!(DOMAIN, "world_dir"),
         TRANSLATE = crate::concatcp!(DOMAIN, "translate"),
-        MODS = crate::concatcp!(DOMAIN, "mods"),
+        MODS = crate::concatcp!(DOMAIN, crate::word::MODS),
         MOD_LOADED = crate::concatcp!(DOMAIN, "mod_loaded"),
         PLATFORM_MODS = crate::concatcp!(DOMAIN, "platform_mods"),
     }
@@ -208,17 +208,17 @@ names! {
 
     /// `yog:client/…`: this client's own actions (nothing on a server).
     service_client {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "client", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::bus_word::CLIENT, crate::sep::PATH),
         PLAY_SOUND = crate::concatcp!(DOMAIN, "play_sound"),
         STOP_SOUND = crate::concatcp!(DOMAIN, "stop_sound"),
         HELD_ITEM = crate::concatcp!(DOMAIN, "held_item"),
         SET_BLOCK_TINT = crate::concatcp!(DOMAIN, "set_block_tint"),
         KEY_DOWN = crate::concatcp!(DOMAIN, "key_down"),
-        ATTRIBUTE_VALUE = crate::concatcp!(DOMAIN, "attribute_value"),
+        ATTRIBUTE_VALUE = crate::concatcp!(DOMAIN, crate::bus_word::ATTRIBUTE_VALUE),
         ADVANCEMENT_DONE = crate::concatcp!(DOMAIN, "advancement_done"),
         BODY_TRACK = crate::concatcp!(DOMAIN, "body_track"),
         BODY_TRACK_TYPE = crate::concatcp!(DOMAIN, "body_track_type"),
-        SET_DIMENSIONS = crate::concatcp!(DOMAIN, "set_dimensions"),
+        SET_DIMENSIONS = crate::concatcp!(DOMAIN, crate::bus_word::SET_DIMENSIONS),
         ENTITY_DATA = crate::concatcp!(DOMAIN, "entity_data"),
         SCREEN_SLOTS = crate::concatcp!(DOMAIN, "screen_slots"),
     }
@@ -226,11 +226,11 @@ names! {
     /// `yog:client/local/…`: what this client's player is and sees.
     service_client_local {
         DOMAIN = crate::concatcp!(crate::service_client::DOMAIN, "local", crate::sep::PATH),
-        STATE = crate::concatcp!(DOMAIN, "state"),
-        INVENTORY = crate::concatcp!(DOMAIN, "inventory"),
+        STATE = crate::concatcp!(DOMAIN, crate::word::STATE),
+        INVENTORY = crate::concatcp!(DOMAIN, crate::kind::INVENTORY),
         SCAN = crate::concatcp!(DOMAIN, "scan"),
         AREA = crate::concatcp!(DOMAIN, "area"),
-        ENTITIES = crate::concatcp!(DOMAIN, "entities"),
+        ENTITIES = crate::concatcp!(DOMAIN, crate::word::ENTITIES),
     }
 
     /// `yog:client/control/…`: this client's player doing what a player
@@ -240,36 +240,36 @@ names! {
         DRIVE = crate::concatcp!(DOMAIN, "drive"),
         RELEASE = crate::concatcp!(DOMAIN, "release"),
         LOOK = crate::concatcp!(DOMAIN, "look"),
-        ATTACK = crate::concatcp!(DOMAIN, "attack"),
-        USE_ITEM = crate::concatcp!(DOMAIN, "use_item"),
+        ATTACK = crate::concatcp!(DOMAIN, crate::bus_word::ATTACK),
+        USE_ITEM = crate::concatcp!(DOMAIN, crate::bus_word::USE_ITEM),
         MINE = crate::concatcp!(DOMAIN, "mine"),
         STOP_MINING = crate::concatcp!(DOMAIN, "stop_mining"),
-        PLACE = crate::concatcp!(DOMAIN, "place"),
+        PLACE = crate::concatcp!(DOMAIN, crate::bus_word::PLACE),
         SELECT_SLOT = crate::concatcp!(DOMAIN, "select_slot"),
         CLICK = crate::concatcp!(DOMAIN, "click"),
-        CHAT = crate::concatcp!(DOMAIN, "chat"),
+        CHAT = crate::concatcp!(DOMAIN, crate::bus_word::CHAT),
     }
 
     /// `yog:ui/…`: mods' screens.
     service_ui {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "ui", crate::sep::PATH),
-        OPEN = crate::concatcp!(DOMAIN, "open"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::UI, crate::sep::PATH),
+        OPEN = crate::concatcp!(DOMAIN, crate::bus_word::OPEN),
         OPEN_WITH_FLAGS = crate::concatcp!(DOMAIN, "open_with_flags"),
-        CLOSE = crate::concatcp!(DOMAIN, "close"),
+        CLOSE = crate::concatcp!(DOMAIN, crate::bus_word::CLOSE),
     }
 
     /// `yog:bus/…`: what the bus carries, described (provided by the runtime).
     service_bus {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, "bus", crate::sep::PATH),
-        DECLARE = crate::concatcp!(DOMAIN, "declare"),
+        DECLARE = crate::concatcp!(DOMAIN, crate::bus_word::DECLARE),
         DESCRIBE = crate::concatcp!(DOMAIN, "describe"),
-        LIST = crate::concatcp!(DOMAIN, "list"),
+        LIST = crate::concatcp!(DOMAIN, crate::shape_kind::LIST),
         FIND = crate::concatcp!(DOMAIN, "find"),
     }
 
     /// `yog:content/…`: what mods register (provided by the runtime).
     service_content {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "content", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::CONTENT, crate::sep::PATH),
         REGISTER = crate::concatcp!(DOMAIN, "register"),
     }
 
@@ -282,21 +282,21 @@ names! {
     /// `yog:menu/…`: the menu entries mods declare (provided by the runtime).
     service_menu {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, "menu", crate::sep::PATH),
-        DECLARE = crate::concatcp!(DOMAIN, "declare"),
-        DECLARED = crate::concatcp!(DOMAIN, "declared"),
+        DECLARE = crate::concatcp!(DOMAIN, crate::bus_word::DECLARE),
+        DECLARED = crate::concatcp!(DOMAIN, crate::bus_word::DECLARED),
     }
 
     /// `yog:key_binding/…`: the key bindings mods declare (provided by the runtime).
     service_key_binding {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, "key_binding", crate::sep::PATH),
-        DECLARE = crate::concatcp!(DOMAIN, "declare"),
-        DECLARED = crate::concatcp!(DOMAIN, "declared"),
+        DECLARE = crate::concatcp!(DOMAIN, crate::bus_word::DECLARE),
+        DECLARED = crate::concatcp!(DOMAIN, crate::bus_word::DECLARED),
     }
 
     /// `yog:command/…`: the commands mods declare (provided by the runtime).
     service_command {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "command", crate::sep::PATH),
-        DECLARE = crate::concatcp!(DOMAIN, "declare"),
-        DECLARED = crate::concatcp!(DOMAIN, "declared"),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::yui_vm::COMMAND, crate::sep::PATH),
+        DECLARE = crate::concatcp!(DOMAIN, crate::bus_word::DECLARE),
+        DECLARED = crate::concatcp!(DOMAIN, crate::bus_word::DECLARED),
     }
 }

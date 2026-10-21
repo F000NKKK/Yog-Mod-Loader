@@ -72,7 +72,7 @@ names! {
     /// A game's folders Yog uses.
     game_dir {
         /// The `.yog` mods the game loads: `<game>/yog-mods`.
-        MODS = crate::concatcp!(crate::ns::YOG, crate::sep::HYPHEN, "mods"),
+        MODS = crate::concatcp!(crate::ns::YOG, crate::sep::HYPHEN, crate::word::MODS),
     }
 
 
@@ -107,20 +107,20 @@ names! {
         API_WORD = "api",
         API = crate::concatcp!(PREFIX, API_WORD),
         API_RUST_NAME = crate::concatcp!(crate::ns::YOG, crate::sep::WORD, API_WORD),
-        API_VERSION_KEY = crate::concatcp!(API_RUST_NAME, crate::sep::WORD, "version"),
+        API_VERSION_KEY = crate::concatcp!(API_RUST_NAME, crate::sep::WORD, crate::serve_method::VERSION),
         ABI = crate::concatcp!(PREFIX, "abi"),
-        UI = crate::concatcp!(PREFIX, "ui"),
+        UI = crate::concatcp!(PREFIX, crate::word::UI),
         KIT = crate::concatcp!(PREFIX, "kit"),
         GFX = crate::concatcp!(PREFIX, "gfx"),
-        REGISTRY = crate::concatcp!(PREFIX, "registry"),
+        REGISTRY = crate::concatcp!(PREFIX, crate::serve_param::REGISTRY),
     }
 
     /// Where the game keeps resources, and what their files end with.
     res {
         /// The textures' folder: `<ns>:textures/<path>.png`.
-        TEXTURES = crate::concatcp!("textures", crate::sep::PATH),
+        TEXTURES = crate::concatcp!(crate::model::TEXTURES, crate::sep::PATH),
         /// The models' folder: `<ns>:models/<path>.json`.
-        MODELS = crate::concatcp!("models", crate::sep::PATH),
+        MODELS = crate::concatcp!(crate::word::MODELS, crate::sep::PATH),
         /// The block states' folder: `<ns>:blockstates/<path>.json`.
         BLOCKSTATES = crate::concatcp!("blockstates", crate::sep::PATH),
         /// Items' textures and models: `item/apple`.
@@ -128,11 +128,11 @@ names! {
         /// Item definitions (1.21.4+): `<ns>:items/<path>.json`.
         ITEM_DEFINITIONS = crate::concatcp!(crate::word::ITEMS, crate::sep::PATH),
         /// Equipment's worn looks (1.21.4+): `<ns>:equipment/<path>.json`.
-        EQUIPMENT = crate::concatcp!("equipment", crate::sep::PATH),
+        EQUIPMENT = crate::concatcp!(crate::word::EQUIPMENT, crate::sep::PATH),
         /// Worn equipment's textures (1.21.4+): `entity/equipment/<layer>/<path>`.
-        EQUIPMENT_TEXTURES = crate::concatcp!("entity", crate::sep::PATH, "equipment", crate::sep::PATH),
+        EQUIPMENT_TEXTURES = crate::concatcp!(crate::kind::ENTITY, crate::sep::PATH, crate::word::EQUIPMENT, crate::sep::PATH),
         /// Armor's worn textures before 1.21.4: `models/armor/<path>_layer_<n>`.
-        ARMOR_TEXTURES = crate::concatcp!("models", crate::sep::PATH, "armor", crate::sep::PATH),
+        ARMOR_TEXTURES = crate::concatcp!(crate::word::MODELS, crate::sep::PATH, crate::word::ARMOR, crate::sep::PATH),
         /// Between an armor texture's name and its layer's number.
         ARMOR_LAYER = "_layer_",
         /// What a spawn egg's item path ends with: `<mob>_spawn_egg`.
@@ -144,7 +144,7 @@ names! {
         /// The atlases' definitions: `<ns>:atlases/<atlas>.json` (every pack's sources combine).
         ATLASES = crate::concatcp!("atlases", crate::sep::PATH),
         /// The language files' folder: `<ns>:lang/<locale>.json`.
-        LANG = crate::concatcp!("lang", crate::sep::PATH),
+        LANG = crate::concatcp!(crate::typed::LANG, crate::sep::PATH),
         /// Models the game draws in code (`builtin/entity`), not from elements.
         BUILTIN = crate::concatcp!("builtin", crate::sep::PATH),
         /// Sounds: `<ns>:sounds/<path>.ogg`, their events in `<ns>:sounds.json`.
@@ -161,7 +161,7 @@ names! {
     /// Yog's own ids.
     yog {
         /// An entity's data the hosts keep for the mods.
-        STATE = crate::id!(crate::ns::YOG, "state"),
+        STATE = crate::id!(crate::ns::YOG, crate::word::STATE),
         /// A hanging entity's attachment (its face, size, item).
         HANGING = crate::id!(crate::ns::YOG, "hanging"),
         /// The channel entity data is synced on.
@@ -172,7 +172,7 @@ names! {
         /// An inventory slot widget's id: `yog:slot:<index>`.
         SLOT_PREFIX = crate::id!(crate::ns::YOG, "slot:"),
         /// The player's inventory widget.
-        PLAYER_INVENTORY = crate::id!(crate::ns::YOG, crate::concatcp!("player", crate::sep::WORD, crate::kind::INVENTORY)),
+        PLAYER_INVENTORY = crate::id!(crate::ns::YOG, crate::concatcp!(crate::word::PLAYER, crate::sep::WORD, crate::kind::INVENTORY)),
         /// A machine screen's id: `yog:machine:<id>`.
         MACHINE_PREFIX = crate::id!(crate::ns::YOG, "machine:"),
         /// Yog's alias of a game potion: `yog:potion/<name>`.
@@ -226,9 +226,9 @@ names! {
         MISSING_TEXTURE = crate::id!(crate::ns::MINECRAFT, "missingno"),
         /// What a book is given to players as.
         WRITTEN_BOOK = crate::id!(crate::ns::MINECRAFT, "written_book"),
-        BOOK = crate::id!(crate::ns::MINECRAFT, "book"),
+        BOOK = crate::id!(crate::ns::MINECRAFT, crate::kind::BOOK),
         /// What the game's attributes were named under before 1.21.2: `generic.max_health`.
-        OLD_ATTRIBUTE_PREFIX = crate::concatcp!("generic", crate::sep::EXT),
+        OLD_ATTRIBUTE_PREFIX = crate::concatcp!(crate::word::GENERIC, crate::sep::EXT),
         /// The language every lang file falls back to, and a mod's texts are written in.
         LOCALE = "en_us",
     }
@@ -277,8 +277,8 @@ names! {
         /// that hold them, as WPF writes them.
         ROW_DEFINITION = "RowDefinition",
         COLUMN_DEFINITION = "ColumnDefinition",
-        ROW_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, ROW_DEFINITION, "s"),
-        COLUMN_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, COLUMN_DEFINITION, "s"),
+        ROW_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, ROW_DEFINITION, crate::data_layout::PLURAL),
+        COLUMN_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, COLUMN_DEFINITION, crate::data_layout::PLURAL),
         SCROLL_VIEW = "ScrollView",
         LABEL = "Label",
         BUTTON = "Button",
@@ -481,12 +481,12 @@ names! {
         BLOCK = crate::word::BLOCK,
         PROPERTIES = "properties",
         /// A block's table, and one nothing uses the way of.
-        BLOCK_TABLE = crate::id!(crate::ns::MINECRAFT, "block"),
-        GENERIC_TABLE = crate::id!(crate::ns::MINECRAFT, "generic"),
+        BLOCK_TABLE = crate::id!(crate::ns::MINECRAFT, crate::word::BLOCK),
+        GENERIC_TABLE = crate::id!(crate::ns::MINECRAFT, crate::word::GENERIC),
         /// An entry of an item.
-        ITEM_ENTRY = crate::id!(crate::ns::MINECRAFT, "item"),
+        ITEM_ENTRY = crate::id!(crate::ns::MINECRAFT, crate::word::ITEM),
         /// A number between `min` and `max`.
-        UNIFORM = crate::id!(crate::ns::MINECRAFT, "uniform"),
+        UNIFORM = crate::id!(crate::ns::MINECRAFT, crate::game_font::UNIFORM),
         SET_COUNT = crate::id!(crate::ns::MINECRAFT, "set_count"),
         EXPLOSION_DECAY = crate::id!(crate::ns::MINECRAFT, "explosion_decay"),
         SURVIVES_EXPLOSION = crate::id!(crate::ns::MINECRAFT, "survives_explosion"),
@@ -715,8 +715,8 @@ names! {
         X_CREATE = "x:Create",
         X_DATA_TYPE = "x:DataType",
         TARGET = "target",
-        GRID_ROW = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "Row"),
-        GRID_COLUMN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "Column"),
+        GRID_ROW = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, crate::yui::ROW),
+        GRID_COLUMN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, crate::yui::COLUMN),
         GRID_ROWSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "RowSpan"),
         GRID_COLUMNSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "ColumnSpan"),
     }

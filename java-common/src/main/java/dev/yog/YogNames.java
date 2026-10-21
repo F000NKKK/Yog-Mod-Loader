@@ -53,22 +53,31 @@ public final class YogNames {
     public static final class Word {
         private Word() {}
 
+        public static final String ARMOR = "armor";
         public static final String BASE = "base";
         public static final String BLOCK = "block";
         public static final String CATEGORY = "category";
         public static final String CONTENT = "content";
+        public static final String DAMAGE = "damage";
         public static final String DIMENSION = "dimension";
+        public static final String EQUIPMENT = "equipment";
         public static final String EVENT = "event";
         public static final String FUNCTION = "function";
+        public static final String GENERIC = "generic";
         public static final String GUI = "gui";
         public static final String INT = "int";
         public static final String ITEM = "item";
         public static final String KEY = "key";
+        public static final String MODELS = "models";
+        public static final String MODS = "mods";
         public static final String OPTIONAL = "optional";
+        public static final String PLAYER = "player";
         public static final String RESULT = "result";
         public static final String SPRITE = "sprite";
+        public static final String STATE = "state";
         public static final String TAG = "tag";
         public static final String TEXTURE = "texture";
+        public static final String UI = "ui";
         public static final String VALUES = "values";
         public static final String ITEMS = "items";
         public static final String BLOCKS = "blocks";
@@ -123,7 +132,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(BASE, BLOCK, CATEGORY, CONTENT, DIMENSION, EVENT, FUNCTION, GUI, INT, ITEM, KEY, OPTIONAL, RESULT, SPRITE, TAG, TEXTURE, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ARMOR, BASE, BLOCK, CATEGORY, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {
@@ -190,6 +199,42 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(TAG, LANG, IMAGE, BYTES);
+    }
+
+    public static final class BusWord {
+        private BusWord() {}
+
+        public static final String ATTACK = "attack";
+        public static final String ATTRIBUTE_VALUE = "attribute_value";
+        public static final String CHAT = "chat";
+        public static final String CLIENT = "client";
+        public static final String CLOSE = "close";
+        public static final String CONTAINER = "container";
+        public static final String CRAFT = "craft";
+        public static final String DEATH = "death";
+        public static final String DECLARE = "declare";
+        public static final String DECLARED = "declared";
+        public static final String GAME = "game";
+        public static final String INFO = "info";
+        public static final String INPUT = "input";
+        public static final String LIFE = "life";
+        public static final String NBT = "nbt";
+        public static final String NET = "net";
+        public static final String OPEN = "open";
+        public static final String PACKET = "packet";
+        public static final String PLACE = "place";
+        public static final String SERVER = "server";
+        public static final String SET_DIMENSIONS = "set_dimensions";
+        public static final String SET_NBT = "set_nbt";
+        public static final String SPAWN = "spawn";
+        public static final String TELEPORT = "teleport";
+        public static final String TELEPORT_TO_DIM = "teleport_to_dim";
+        public static final String TICK = "tick";
+        public static final String USE_ITEM = "use_item";
+        public static final String WORLD = "world";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ATTACK, ATTRIBUTE_VALUE, CHAT, CLIENT, CLOSE, CONTAINER, CRAFT, DEATH, DECLARE, DECLARED, GAME, INFO, INPUT, LIFE, NBT, NET, OPEN, PACKET, PLACE, SERVER, SET_DIMENSIONS, SET_NBT, SPAWN, TELEPORT, TELEPORT_TO_DIM, TICK, USE_ITEM, WORLD);
     }
 
     public static final class Event {

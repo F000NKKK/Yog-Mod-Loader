@@ -55,20 +55,25 @@ TODO = re.compile(r"\b(TODO|FIXME|XXX|HACK)\b")
 # A glob import (CODE_STANDARDS: none outside preludes and tests): Rust `use a::*;`, Java
 # `import a.*;`. A `pub use a::*` re-export (a facade's surface, like a prelude) isn't one.
 GLOB_IMPORT = re.compile(r"^\s*use\s+(?![\w:]*\bprelude::\*)[\w:{}, ]*::\*\s*;|^\s*import\s+(static\s+)?[\w.]+\.\*\s*;")
-# A yog-ids name and its value: a literal is written once in the whole crate
-# (CODE_STANDARDS §0); a repeat says the word belongs in `word`.
+# A string literal in yog-ids' names — a whole value or a piece of a composed
+# one: each is written once in the whole crate (CODE_STANDARDS §0); a repeat
+# says the word belongs in `word` (or the group the others compose from).
 IDS_NAMES = re.compile(r"(^|/)rust/crates/yog-ids/src/names/")
-IDS_LITERAL = re.compile(r'^\s{8}[A-Z][A-Z0-9_]* = ("(?:\\.|[^"\\])*"),\s*$')
+IDS_LITERAL = re.compile(r'"(?:\\.|[^"\\])+"')
+
+
+def ids_code(line):
+    """The part of a yog-ids names line that isn't a comment."""
+    return "" if line.lstrip().startswith("//") else line.split("//")[0]
 
 
 def ids_literals():
-    """Every literal value of yog-ids' names, with how often it's written."""
+    """Every string literal of yog-ids' names, with how often it's written."""
     counts = {}
     for p in (LOADER / "rust/crates/yog-ids/src/names").glob("*.rs"):
         for line in p.read_text().split("\n"):
-            m = IDS_LITERAL.match(line)
-            if m:
-                counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+            for lit in IDS_LITERAL.findall(ids_code(line)):
+                counts[lit] = counts.get(lit, 0) + 1
     return counts
 
 
@@ -286,7 +291,7 @@ def check(path, text):
     in_const_fn = const_fn_lines(lines) if lang == "rs" else set()
     if IDS_NAMES.search(path):
         repeated = ids_literals()
-        f.ids_repeats = sum(1 for l in lines if (m := IDS_LITERAL.match(l)) and repeated[m.group(1)] > 1)
+        f.ids_repeats = sum(1 for l in lines for lit in IDS_LITERAL.findall(ids_code(l)) if repeated[lit] > 1)
     for i, l in enumerate(lines[:tests]):
         code = l.split("//")[0] if lang != "java" or "//" in l else l
         if SILENCE.search(l) and "//" not in l and (i == 0 or "//" not in lines[i - 1]):
