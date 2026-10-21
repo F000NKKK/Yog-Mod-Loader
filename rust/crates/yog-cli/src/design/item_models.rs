@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use yog_sync::Arc;
 
-use serde_json::Value;
+use yog_data::Value;
 
 use super::assets::{Image, Resources, decode_png};
 use super::blocks3d::Faces;
@@ -140,19 +140,19 @@ fn definition_tints(res: &Resources, ns: &str, path: &str) -> Vec<Option<u32>> {
     );
     let Some(def) = res
         .read(ns, &file)
-        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+        .and_then(|b| crate::design::data::read_bytes(&b))
     else {
         return Vec::new();
     };
-    let tints = def[item_def::MODEL][item_def::TINTS]
-        .as_array()
-        .cloned()
+    let tints = crate::design::data::at(&def, &[item_def::MODEL, item_def::TINTS])
+        .and_then(Value::as_list)
+        .map(<[Value]>::to_vec)
         .unwrap_or_default();
     tints
         .iter()
         .map(|t| {
-            (t[item_def::TYPE] == item_def::CONSTANT)
-                .then(|| t[item_def::VALUE].as_i64())
+            (t.get(item_def::TYPE).and_then(Value::as_str) == Some(item_def::CONSTANT))
+                .then(|| t.get(item_def::VALUE).and_then(Value::as_i64))
                 .flatten()
                 .map(|v| v as u32)
         })
@@ -183,18 +183,17 @@ fn model_chain(
         let (ns, path) = yog_ids::split(&at);
         let json = pending.take().or_else(|| {
             res.read(ns, &yog_ids::model_file(path))
-                .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+                .and_then(|b| crate::design::data::read_bytes(&b))
         });
         let Some(json) = json else {
             break;
         };
-        if let Some(t) = json
-            .get(yog_ids::model::TEXTURES)
-            .and_then(Value::as_object)
-        {
+        if let Some(t) = json.get(yog_ids::model::TEXTURES).and_then(Value::as_map) {
             for (k, v) in t {
                 if let Some(v) = v.as_str() {
-                    textures.entry(k.clone()).or_insert_with(|| v.to_string());
+                    textures
+                        .entry(k.to_string())
+                        .or_insert_with(|| v.to_string());
                 }
             }
         }

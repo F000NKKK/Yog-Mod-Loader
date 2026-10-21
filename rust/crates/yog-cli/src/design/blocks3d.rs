@@ -12,7 +12,7 @@ use yog_ids::direction::{DOWN, EAST, NORTH, SOUTH, UP, WEST};
 use yog_ids::texture_slot::{ALL, BOTTOM, END, FRONT, SIDE, TEXTURE, TOP};
 use yog_sync::Arc;
 
-use serde_json::Value;
+use yog_data::Value;
 
 use super::assets::{Image, Resources, decode_png, missing_image};
 use super::raster::Canvas;
@@ -171,7 +171,7 @@ fn cut(img: &Image, [u0, v0, u1, v1]: [f32; 4]) -> Image {
 /// A model's `elements` as boxes; `texture("#var" or "var")` gives a face's texture.
 pub fn shape_of(elements: &[Value], texture: &mut dyn FnMut(&str) -> Option<Arc<Image>>) -> Shape {
     let triple = |v: Option<&Value>| -> Option<[f32; 3]> {
-        let a = v?.as_array()?;
+        let a = v?.as_list()?;
         Some([
             a.first()?.as_f64()? as f32,
             a.get(1)?.as_f64()? as f32,
@@ -199,7 +199,7 @@ pub fn shape_of(elements: &[Value], texture: &mut dyn FnMut(&str) -> Option<Arc<
                     .unwrap_or_else(|| Arc::new(missing_image()));
                 let uv = face
                     .get(yog_ids::model::UV)
-                    .and_then(Value::as_array)
+                    .and_then(Value::as_list)
                     .and_then(|a| {
                         Some([
                             a.first()?.as_f64()? as f32,
@@ -224,7 +224,7 @@ pub fn shape_of(elements: &[Value], texture: &mut dyn FnMut(&str) -> Option<Arc<
 /// An element's `rotation`: `{ origin, axis: "x"|"y"|"z", angle, rescale }`.
 fn element_turn(e: &Value) -> Option<Turn> {
     let r = e.get(yog_ids::model::ROTATION)?;
-    let o = r.get(yog_ids::model::ORIGIN)?.as_array()?;
+    let o = r.get(yog_ids::model::ORIGIN)?.as_list()?;
     let origin = [
         o.first()?.as_f64()? as f32,
         o.get(1)?.as_f64()? as f32,
@@ -254,9 +254,9 @@ fn model_elements(res: &Resources, model: &str, depth: usize) -> Option<Vec<Valu
     let path = path
         .strip_prefix("block/")
         .map_or(format!("block/{path}"), |p| format!("block/{p}"));
-    let json: Value = serde_json::from_slice(&res.read(ns, &yog_ids::model_file(&path))?).ok()?;
-    if let Some(e) = json.get(yog_ids::model::ELEMENTS).and_then(Value::as_array) {
-        return Some(e.clone());
+    let json = crate::design::data::read_bytes(&res.read(ns, &yog_ids::model_file(&path))?)?;
+    if let Some(e) = json.get(yog_ids::model::ELEMENTS).and_then(Value::as_list) {
+        return Some(e.to_vec());
     }
     model_elements(res, json.get(yog_ids::model::PARENT)?.as_str()?, depth + 1)
 }
@@ -273,20 +273,17 @@ fn model_textures(res: &Resources, model: &str, depth: usize) -> HashMap<String,
         .map_or(format!("block/{path}"), |p| format!("block/{p}"));
     let Some(json) = res
         .read(ns, &yog_ids::model_file(&path))
-        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+        .and_then(|b| crate::design::data::read_bytes(&b))
     else {
         return out;
     };
     if let Some(parent) = json.get(yog_ids::model::PARENT).and_then(Value::as_str) {
         out = model_textures(res, parent, depth + 1);
     }
-    if let Some(t) = json
-        .get(yog_ids::model::TEXTURES)
-        .and_then(Value::as_object)
-    {
+    if let Some(t) = json.get(yog_ids::model::TEXTURES).and_then(Value::as_map) {
         for (k, v) in t {
             if let Some(v) = v.as_str() {
-                out.insert(k.clone(), v.to_string());
+                out.insert(k.to_string(), v.to_string());
             }
         }
     }
@@ -309,22 +306,22 @@ fn split_state(state: &str) -> (&str, HashMap<&str, &str>) {
 /// `a|b` values; `OR`/`AND`: any/all of a list). A property the state
 /// doesn't name meets nothing.
 fn meets(when: &Value, props: &HashMap<&str, &str>) -> bool {
-    let Some(map) = when.as_object() else {
+    let Some(map) = when.as_map() else {
         return true;
     };
-    if let Some(any) = map.get(yog_ids::model::OR).and_then(Value::as_array) {
+    if let Some(any) = map.get(yog_ids::model::OR).and_then(Value::as_list) {
         return any.iter().any(|w| meets(w, props));
     }
-    if let Some(all) = map.get(yog_ids::model::AND).and_then(Value::as_array) {
+    if let Some(all) = map.get(yog_ids::model::AND).and_then(Value::as_list) {
         return all.iter().all(|w| meets(w, props));
     }
     map.iter().all(|(k, v)| {
         let want = v
             .as_str()
             .map(str::to_string)
-            .unwrap_or_else(|| v.to_string());
+            .unwrap_or_else(|| yog_data::text::to_string(v));
         props
-            .get(k.as_str())
+            .get(k)
             .is_some_and(|have| want.split('|').any(|w| w == *have))
     })
 }
@@ -333,7 +330,10 @@ fn meets(when: &Value, props: &HashMap<&str, &str>) -> bool {
 /// about the block's centre; the game turns models clockwise looking down
 /// an axis).
 fn applied(v: &Value) -> Option<(String, Vec<Turn>)> {
-    let v = if v.is_array() { v.get(0)? } else { v };
+    let v = match v.as_list() {
+        Some(variants) => variants.first()?,
+        None => v,
+    };
     let model = v.get(yog_ids::model::MODEL)?.as_str()?.to_string();
     let mut turns = Vec::new();
     for (axis, key) in [(0, "x"), (1, "y")] {
@@ -357,14 +357,11 @@ fn block_models(res: &Resources, state: &str) -> Vec<(String, Vec<Turn>)> {
     let (ns, path) = yog_ids::split(id);
     let Some(json) = res
         .read(ns, &yog_ids::blockstate_file(path))
-        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+        .and_then(|b| crate::design::data::read_bytes(&b))
     else {
         return Vec::new();
     };
-    if let Some(variants) = json
-        .get(yog_ids::model::VARIANTS)
-        .and_then(Value::as_object)
-    {
+    if let Some(variants) = json.get(yog_ids::model::VARIANTS).and_then(Value::as_map) {
         let fits = |key: &str| {
             key.split(',').filter(|kv| !kv.is_empty()).all(|kv| {
                 kv.split_once('=')
@@ -378,7 +375,7 @@ fn block_models(res: &Resources, state: &str) -> Vec<(String, Vec<Turn>)> {
         return chosen.and_then(|(_, v)| applied(v)).into_iter().collect();
     }
     json.get(yog_ids::model::MULTIPART)
-        .and_then(Value::as_array)
+        .and_then(Value::as_list)
         .into_iter()
         .flatten()
         .filter(|part| {

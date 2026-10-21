@@ -1,6 +1,6 @@
 //! One checked `.yrecipe`, and the code that registers it.
 
-use serde_json::{Map, Value, json};
+use yog_data::{Map, Value};
 
 use crate::content::defs::data::definition_path;
 use crate::content::source::{float, included};
@@ -34,7 +34,7 @@ pub(in crate::content) enum RecipeKind {
     Custom {
         kind: String,
         slots: Vec<(String, Vec<Vec<String>>)>,
-        values: serde_json::Map<String, Value>,
+        values: Vec<(String, Value)>,
     },
 }
 
@@ -66,7 +66,7 @@ impl Recipe {
         else {
             return None;
         };
-        let recipe = yog_data::json::from_json(&self.custom_json(kind, slots, values));
+        let recipe = self.custom_data(kind, slots, values);
         Some((self.data_path(), yog_data::binary::encode(&recipe)))
     }
 
@@ -75,32 +75,34 @@ impl Recipe {
         definition_path(yog_ids::kind::RECIPE, &self.id)
     }
 
-    /// A recipe of the mod's own kind: Yog's recipe JSON.
-    fn custom_json(
+    /// A recipe of the mod's own kind: Yog's recipe.
+    fn custom_data(
         &self,
         kind: &str,
         slots: &[(String, Vec<Vec<String>>)],
-        values: &Map<String, Value>,
+        values: &[(String, Value)],
     ) -> Value {
-        use yog_data::field;
+        use yog_data::{Schema, field};
         use yog_formats::recipe::{Common, Custom, TYPE_FIELD};
         let mut o = Map::new();
-        o.insert(TYPE_FIELD.into(), kind.into());
-        o.insert(
-            field!(Custom, slots).into(),
-            Value::Object(slots.iter().map(|(k, v)| (k.clone(), json!(v))).collect()),
-        );
+        o.insert(TYPE_FIELD, kind.into());
+        let slots: Map = slots.iter().map(|(k, v)| (k.as_str(), v.write())).collect();
+        o.insert(field!(Custom, slots), slots.into());
         if !values.is_empty() {
-            o.insert(field!(Custom, values).into(), Value::Object(values.clone()));
+            let values: Map = values
+                .iter()
+                .map(|(k, v)| (k.as_str(), v.clone()))
+                .collect();
+            o.insert(field!(Custom, values), values.into());
         }
-        o.insert(field!(Common, result).into(), self.result.clone().into());
+        o.insert(field!(Common, result), self.result.as_str().into());
         if self.count != 1 {
-            o.insert(field!(Common, count).into(), self.count.into());
+            o.insert(field!(Common, count), i64::from(self.count).into());
         }
         if let Some(g) = &self.group {
-            o.insert(field!(Common, group).into(), g.clone().into());
+            o.insert(field!(Common, group), g.as_str().into());
         }
-        Value::Object(o)
+        o.into()
     }
 
     /// The `registry.add_recipe(...)` call registering it.

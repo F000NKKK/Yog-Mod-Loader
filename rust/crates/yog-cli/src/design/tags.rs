@@ -11,7 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use yog_ids::Format;
 
-use serde_json::Value;
+use yog_data::Value;
 
 use super::assets::vanilla_versions;
 
@@ -37,7 +37,7 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
             let Some(doc) = crate::design::data::read_object(&text) else {
                 continue;
             };
-            let value = Value::Object(doc);
+            let value = doc;
             if format == Format::Def {
                 if value
                     .get(yog_ids::content_field::KIND)
@@ -57,7 +57,7 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
                 let entries = tags.entry(tag).or_default();
                 for values in [yog_ids::tag_file::VALUES, yog_ids::tag_file::OPTIONAL]
                     .into_iter()
-                    .filter_map(|k| value.get(k).and_then(Value::as_array))
+                    .filter_map(|k| value.get(k).and_then(Value::as_list))
                 {
                     for entry in values
                         .iter()
@@ -80,7 +80,7 @@ fn mod_tags(root: Option<&Path>) -> BTreeMap<String, Vec<String>> {
                 let item_id = yog_ids::qualify_in(&ns, raw_id);
                 for raw_tag in value
                     .get("tags")
-                    .and_then(Value::as_array)
+                    .and_then(Value::as_list)
                     .into_iter()
                     .flatten()
                     .filter_map(Value::as_str)
@@ -140,13 +140,13 @@ fn entries(roots: &[PathBuf], own: &BTreeMap<String, Vec<String>>, tag: &str) ->
             );
             let Some(file) = v
                 .read_data(&rel)
-                .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+                .and_then(|b| crate::design::data::read_bytes(&b))
             else {
                 continue;
             };
             for e in file
                 .get(yog_ids::tag_file::VALUES)
-                .and_then(Value::as_array)
+                .and_then(Value::as_list)
                 .into_iter()
                 .flatten()
             {

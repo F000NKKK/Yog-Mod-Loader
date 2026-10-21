@@ -73,7 +73,7 @@ fn __yog_content_auto_register() {
 
 # generated/recipe/gm__infuse.ydata
 {
-  "result": "gm:ruby",
+  "type": "gm:infusion",
   "slots": {
     "core": [
       [
@@ -90,11 +90,11 @@ fn __yog_content_auto_register() {
       ]
     ]
   },
-  "type": "gm:infusion",
   "values": {
-    "energy": 1.5,
-    "time": 200
-  }
+    "time": 200,
+    "energy": 1.5
+  },
+  "result": "gm:ruby"
 }
 
 # assets/gm/items/ruby.json

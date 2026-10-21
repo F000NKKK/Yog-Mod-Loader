@@ -5,8 +5,8 @@
 
 use crate::design::assets::Resources;
 use crate::design::project::mod_root;
-use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
+use yog_data::{Map, Value};
 use yog_ids::Format;
 
 /// The slots of a block model whose texture stands for it as an icon, best first.
@@ -119,7 +119,6 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
             let Some(doc) = crate::files::read_source(&file)
                 .ok()
                 .and_then(|t| crate::design::data::read_object(&t))
-                .map(Value::Object)
             else {
                 continue;
             };
@@ -138,17 +137,16 @@ fn content_file(root: &Path, id: &str, formats: &[Format]) -> Option<(PathBuf, V
 
 /// The textures of a content file's model (`field`) as the build takes them:
 /// its material's (`.ymaterial`) under its own, as `@texture:` text.
-fn model_textures(root: &Path, doc: &Value, field: &str) -> serde_json::Map<String, Value> {
+fn model_textures(root: &Path, doc: &Value, field: &str) -> Map {
     let Some(model) = doc.get(field) else {
-        return serde_json::Map::new();
+        return Map::new();
     };
-    let read =
-        yog_data::read_value::<yog_formats::content::Model>(&yog_data::json::from_json(model));
+    let read = yog_data::read_value::<yog_formats::content::Model>(model);
     let (Ok(mut model), Some(ns)) = (read, crate::design::project::mod_id(root)) else {
         // Not a model the build would take: its textures as written.
         return model
             .get(yog_ids::model::TEXTURES)
-            .and_then(Value::as_object)
+            .and_then(Value::as_map)
             .cloned()
             .unwrap_or_default();
     };
@@ -161,12 +159,7 @@ fn model_textures(root: &Path, doc: &Value, field: &str) -> serde_json::Map<Stri
         .textures
         .0
         .iter()
-        .map(|(slot, t)| {
-            (
-                slot.clone(),
-                yog_data::json::to_json(&yog_data::Schema::write(t)),
-            )
-        })
+        .map(|(slot, t)| (slot.as_str(), yog_data::Schema::write(t)))
         .collect()
 }
 
@@ -184,18 +177,19 @@ pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
         let bytes = resources
             .read(ns, &yog_ids::model_file(path))
             .ok_or_else(|| format!("model {ns}:{path} not found"))?;
-        let m: Map<String, Value> =
-            serde_json::from_slice(&bytes).map_err(|e| format!("{ns}:{path}: {e}"))?;
-        if let Some(Value::Object(t)) = m.get(yog_ids::model::TEXTURES) {
-            for (k, v) in t {
-                textures.entry(k.clone()).or_insert_with(|| v.clone());
+        let m = crate::design::data::read_bytes(&bytes)
+            .filter(|m| m.as_map().is_some())
+            .ok_or_else(|| format!("{ns}:{path}: not a model"))?;
+        // A child's own over its parents'.
+        let inherit = |into: &mut Map, from: Option<&Value>| {
+            for (k, v) in from.and_then(Value::as_map).into_iter().flatten() {
+                if into.get(k).is_none() {
+                    into.insert(k, v.clone());
+                }
             }
-        }
-        if let Some(Value::Object(d)) = m.get(yog_ids::model::DISPLAY) {
-            for (k, v) in d {
-                display.entry(k.clone()).or_insert_with(|| v.clone());
-            }
-        }
+        };
+        inherit(&mut textures, m.get(yog_ids::model::TEXTURES));
+        inherit(&mut display, m.get(yog_ids::model::DISPLAY));
         if elements.is_none() {
             elements = m.get(yog_ids::model::ELEMENTS).cloned();
         }
@@ -219,15 +213,15 @@ pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
         }
     }
     let mut out = Map::new();
-    out.insert(yog_ids::model::TEXTURES.into(), Value::Object(textures));
-    out.insert(yog_ids::model::DISPLAY.into(), Value::Object(display));
+    out.insert(yog_ids::model::TEXTURES, Value::Map(textures));
+    out.insert(yog_ids::model::DISPLAY, Value::Map(display));
     if let Some(e) = elements {
-        out.insert(yog_ids::model::ELEMENTS.into(), e);
+        out.insert(yog_ids::model::ELEMENTS, e);
     }
     if let Some(p) = root_parent {
-        out.insert(yog_ids::model::PARENT.into(), Value::String(p));
+        out.insert(yog_ids::model::PARENT, Value::Str(p));
     }
-    Ok(Value::Object(out))
+    Ok(Value::Map(out))
 }
 
 /// `yog import <kind> <source> [--model <id>] [--force]` (`kind`: `resourcepack`,
@@ -403,7 +397,7 @@ mod tests {
 
         let (definition, color) = content_item_appearance(&dir, "mymod:potion").unwrap();
         assert_eq!(
-            definition.pointer("/model/parent").and_then(Value::as_str),
+            crate::design::data::at(&definition, &["model", "parent"]).and_then(Value::as_str),
             Some("minecraft:item/potion")
         );
         assert_eq!(color, Some(0x123456));
@@ -428,10 +422,12 @@ mod tests {
 
         let (elements, _) = content_block_model(&dir, "mymod:stairs").unwrap();
         assert_eq!(elements.len(), 2);
-        assert_eq!(elements[0]["from"], serde_json::json!([0, 0, 0]));
-        assert_eq!(elements[0]["to"], serde_json::json!([16, 8, 16]));
-        assert_eq!(elements[1]["from"], serde_json::json!([0, 8, 8]));
-        assert_eq!(elements[1]["to"], serde_json::json!([16, 16, 16]));
+        let corner =
+            |e: &Value, k: &str| yog_data::read_value::<[u8; 3]>(e.get(k).unwrap()).unwrap();
+        assert_eq!(corner(&elements[0], "from"), [0, 0, 0]);
+        assert_eq!(corner(&elements[0], "to"), [16, 8, 16]);
+        assert_eq!(corner(&elements[1], "from"), [0, 8, 8]);
+        assert_eq!(corner(&elements[1], "to"), [16, 16, 16]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

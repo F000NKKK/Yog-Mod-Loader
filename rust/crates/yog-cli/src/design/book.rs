@@ -144,24 +144,32 @@ fn texts(mod_root: Option<&Path>, res: &Resources, locale: Option<&str>) -> Text
     // Neutral first, the locale's over it.
     files.sort_by_key(|(_, loc, _)| loc.is_some());
     for (set, _, p) in files {
-        let Some(Value::Object(map)) = crate::files::read_source(&p)
+        let Some(doc) = crate::files::read_source(&p)
             .ok()
-            .and_then(|t| serde_json::from_str(&t).ok())
+            .and_then(|t| crate::design::data::read_object(&t))
         else {
             continue;
         };
-        for (k, v) in map {
-            let (text, key) = match &v {
-                Value::String(s) => (Some(s.clone()), None),
-                Value::Object(o) if o.get("type").is_none_or(|t| t == "text") => (
-                    o.get("value").and_then(Value::as_str).map(str::to_string),
-                    o.get("key").and_then(Value::as_str).map(str::to_string),
-                ),
+        for (k, v) in doc.as_map().into_iter().flatten() {
+            let text_of = |o: &yog_data::Value, f: &str| {
+                o.get(f)
+                    .and_then(yog_data::Value::as_str)
+                    .map(str::to_string)
+            };
+            let (text, key) = match v {
+                yog_data::Value::Str(s) => (Some(s.clone()), None),
+                yog_data::Value::Map(o)
+                    if o.get("type")
+                        .and_then(yog_data::Value::as_str)
+                        .is_none_or(|t| t == "text") =>
+                {
+                    (text_of(v, "value"), text_of(v, "key"))
+                }
                 _ => (None, None),
             };
             let Some(text) = text else { continue };
             // As `yog build` names its translation key.
-            let key = key.unwrap_or_else(|| crate::yres::default_key(&set, &mod_id, &k));
+            let key = key.unwrap_or_else(|| crate::yres::default_key(&set, &mod_id, k));
             t.lang.insert(key, text.clone());
             t.refs.insert(format!("{set}.{k}"), text);
         }
@@ -225,7 +233,6 @@ fn recipes(mod_root: &Path) -> Vec<(String, yog_data::Value)> {
             let Some(mut v) = crate::files::read_source(&p)
                 .ok()
                 .and_then(|t| crate::design::data::read_object(&t))
-                .map(Value::Object)
             else {
                 continue;
             };
@@ -234,12 +241,15 @@ fn recipes(mod_root: &Path) -> Vec<(String, yog_data::Value)> {
                 .file_stem()
                 .map(|s| s.to_string_lossy().into_owned())
                 .unwrap_or_default();
-            let id = match v.get("id").and_then(Value::as_str) {
+            let id = match v
+                .get(yog_ids::content_field::ID)
+                .and_then(yog_data::Value::as_str)
+            {
                 Some(id) if id.contains(':') => id.to_string(),
                 Some(id) => format!("{mod_id}:{id}"),
                 None => format!("{mod_id}:{stem}"),
             };
-            out.push((id, crate::design::data::from_json(&v)));
+            out.push((id, v));
         }
     }
     out
@@ -528,25 +538,23 @@ fn render_book(
 
 /// What a page of a mod's kind shows when the designer has no page to read:
 /// a property's default, else a sample of its kind.
-fn sample(p: &yog_formats::book::page_type::PageProperty) -> serde_json::Value {
+fn sample(p: &yog_formats::book::page_type::PageProperty) -> yog_data::Value {
+    use yog_data::Value;
     use yog_formats::book::page_type::PropKind;
     if let Some(d) = &p.default {
-        return yog_data::json::to_json(d);
+        return d.clone();
     }
     match p.kind {
-        PropKind::Text => serde_json::Value::String(format!("‹{}›", p.name)),
-        PropKind::BookText => serde_json::Value::String(format!(
+        PropKind::Text => Value::Str(format!("‹{}›", p.name)),
+        PropKind::BookText => Value::Str(format!(
             "‹{}› — the page's text, as a book wraps it.",
             p.name
         )),
-        PropKind::Number => serde_json::json!(1),
-        PropKind::Bool => serde_json::json!(true),
-        PropKind::Item => serde_json::json!(yog_ids::game::BOOK),
-        PropKind::Image => serde_json::json!(yog_ids::join(
-            yog_ids::image_scheme::ITEM,
-            yog_ids::game::BOOK
-        )),
-        PropKind::Data => serde_json::Value::Null,
+        PropKind::Number => Value::Int(1),
+        PropKind::Bool => Value::Bool(true),
+        PropKind::Item => yog_ids::game::BOOK.into(),
+        PropKind::Image => yog_ids::join(yog_ids::image_scheme::ITEM, yog_ids::game::BOOK).into(),
+        PropKind::Data => Value::Null,
     }
 }
 
@@ -575,22 +583,42 @@ pub fn page_preview(args: &BookArgs) -> BookRendered {
         Ok(k) => k,
         Err(e) => return fail(e),
     };
-    let mut page = serde_json::Map::new();
-    page.insert("type".into(), serde_json::Value::String(kind.id.clone()));
+    use yog_data::{Map, Value};
+    let mut page = Map::from_iter([("type", Value::from(kind.id.as_str()))]);
     for p in &kind.properties {
         let v = sample(p);
         if !v.is_null() {
-            page.insert(p.name.clone(), v);
+            page.insert(p.name.as_str(), v);
         }
     }
     let entry = format!("{ns}:page_preview");
-    let text = serde_json::json!({
-        "id": format!("{ns}:page_preview"),
-        "name": kind.id,
-        "categories": [{ "id": entry, "name": kind.id }],
-        "entries": [{ "id": entry, "name": kind.id, "category": format!("@category:{entry}"), "pages": [page] }],
-    })
-    .to_string();
+    let named = |extra: Vec<(&str, Value)>| -> Value {
+        let mut m = Map::from_iter([
+            ("id", Value::from(entry.as_str())),
+            ("name", kind.id.as_str().into()),
+        ]);
+        for (k, v) in extra {
+            m.insert(k, v);
+        }
+        m.into()
+    };
+    let book = named(vec![
+        ("categories", Value::List(vec![named(vec![])])),
+        (
+            "entries",
+            Value::List(vec![named(vec![
+                (
+                    "category",
+                    Value::Ref(yog_data::Ref {
+                        kind: yog_ids::kind::CATEGORY.into(),
+                        id: entry.clone(),
+                    }),
+                ),
+                ("pages", Value::List(vec![page.into()])),
+            ])]),
+        ),
+    ]);
+    let text = yog_data::text::to_string(&book);
     let locale = args.locale.as_deref().filter(|l| !l.is_empty());
     let (mut book, problem) = match parse(&text, root.as_deref(), locale) {
         Ok(b) => b,

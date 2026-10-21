@@ -1,7 +1,6 @@
 //! The mod's own kind of recipe (`mymod:infusion`, a `.ydef` recipe_kind):
 //! its slots and values as its kind declares them.
 
-use serde_json::Value;
 use yog_data::Path as At;
 use yog_data::field;
 use yog_formats::def::{RecipeKindDef, ValueType};
@@ -57,12 +56,7 @@ pub(super) fn custom(
         .values
         .0
         .iter()
-        .map(|(name, v)| {
-            (
-                name.clone(),
-                serde_json::from_str(&yog_data::text::to_string(v)).unwrap_or(Value::Null),
-            )
-        })
+        .map(|(name, v)| (name.clone(), v.clone()))
         .collect();
     Some(RecipeKind::Custom {
         kind,

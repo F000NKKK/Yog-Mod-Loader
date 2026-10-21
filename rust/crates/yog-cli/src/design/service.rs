@@ -104,10 +104,7 @@ fn content_method(method: &str, c: &Call) -> Option<Reply> {
         M::CONTENT_DEFS => c.with(P::KIND, &|p, k| ok(refs::own_defs(p, k))),
         M::CONTENT_BLOCK_KINDS => Ok(refs::block_kinds()),
         M::CONTENT_TAGS => c.with(P::REGISTRY, &|p, r| ok(content::tags(p, r))),
-        // The game's model (its JSON) as Yog Data.
-        M::CONTENT_PARENT_MODEL => c.with(P::ID, &|p, id| {
-            done(content::parent_model(p, id).map(|m| yog_data::json::from_json(&m)))
-        }),
+        M::CONTENT_PARENT_MODEL => c.with(P::ID, &|p, id| done(content::parent_model(p, id))),
         M::CONTENT_ITEM_POTION_COLOR => c.file(|p| ok(content::item_potion_color(p))),
         // The mod's copy of a game font (by Yog's alias), made if it has none: `{ id, file }`.
         M::FONT_COPY => c.with(P::ALIAS, &|p, alias| done(font_copy::copy(p, alias))),

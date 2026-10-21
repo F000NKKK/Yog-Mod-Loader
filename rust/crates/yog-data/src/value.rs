@@ -151,6 +151,10 @@ impl Map {
         self.0.iter().map(|(k, _)| &**k)
     }
 
+    pub fn values(&self) -> impl ExactSizeIterator<Item = &Value> {
+        self.0.iter().map(|(_, v)| v)
+    }
+
     pub fn retain(&mut self, mut keep: impl FnMut(&str, &Value) -> bool) {
         self.0.retain(|(k, v)| keep(k, v));
     }
@@ -164,6 +168,17 @@ impl IntoIterator for Map {
     >;
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter().map(|(k, v)| (k.to_string(), v))
+    }
+}
+
+impl<'a> IntoIterator for &'a Map {
+    type Item = (&'a str, &'a Value);
+    type IntoIter = std::iter::Map<
+        std::slice::Iter<'a, (yog_sync::Arc<str>, Value)>,
+        fn(&'a (yog_sync::Arc<str>, Value)) -> (&'a str, &'a Value),
+    >;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter().map(|(k, v)| (&**k, v))
     }
 }
 

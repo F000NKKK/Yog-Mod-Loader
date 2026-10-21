@@ -34,10 +34,10 @@ fn opaque(shape: Shape) -> usize {
 #[test]
 fn a_models_boxes_are_drawn_their_size_with_their_uv() {
     let img = Arc::new(solid(16, 16));
-    let elements: Vec<Value> = serde_json::from_str(
+    let elements: Vec<Value> = yog_data::read_value(&yog_data::text::parse_value(
         r##"[{ "from": [5, 5, 5], "to": [11, 11, 11], "faces": {
             "up": { "uv": [5, 5, 11, 11], "texture": "#all" }, "north": { "texture": "#all" } } }]"##,
-    )
+    ).unwrap())
     .unwrap();
     let shape = shape_of(&elements, &mut |v: &str| (v == "#all").then(|| img.clone()));
     assert_eq!(shape.len(), 1);
@@ -79,7 +79,7 @@ fn parses_block_lines() {
 fn a_state_meets_multipart_conditions() {
     let (id, props) = split_state("minecraft:brewing_stand[has_bottle_0=true,has_bottle_1=false]");
     assert_eq!(id, "minecraft:brewing_stand");
-    let when = |j: &str| serde_json::from_str::<Value>(j).unwrap();
+    let when = |j: &str| yog_data::text::parse_value(j).unwrap();
     assert!(meets(&when(r#"{ "has_bottle_0": "true" }"#), &props));
     assert!(!meets(&when(r#"{ "has_bottle_1": "true" }"#), &props));
     assert!(meets(&when(r#"{ "has_bottle_1": "true|false" }"#), &props));

@@ -1,8 +1,8 @@
 //! How the mod's blocks and items look in the editors: a block's faces
 //! and model, an item's appearance and icon, a potion's colour.
 
-use serde_json::Value;
 use std::path::Path;
+use yog_data::{Map, Value};
 use yog_ids::Format;
 
 use super::{ICON_SLOTS, content_file, model_textures, texture_bytes};
@@ -16,7 +16,7 @@ pub fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]
     let textures = model_textures(root, &doc, yog_ids::content_field::MODEL);
     let pick = |keys: &[&str]| {
         keys.iter()
-            .find_map(|k| textures.get(*k).and_then(Value::as_str))
+            .find_map(|k| textures.get(k).and_then(Value::as_str))
             .or_else(|| textures.values().find_map(Value::as_str))
             .and_then(|t| texture_bytes(&file, t).ok())
     };
@@ -35,9 +35,9 @@ pub fn content_block_model(root: &Path, id: &str) -> Option<BlockModel> {
         &doc,
         &[yog_ids::content_field::MODEL, yog_ids::model::ELEMENTS],
     )
-    .and_then(Value::as_array)
+    .and_then(Value::as_list)
     {
-        Some(elements) => elements.clone(),
+        Some(elements) => elements.to_vec(),
         None if doc
             .get(yog_ids::content_field::KIND)
             .and_then(Value::as_str)
@@ -52,25 +52,32 @@ pub fn content_block_model(root: &Path, id: &str) -> Option<BlockModel> {
     };
     let textures = model_textures(root, &doc, yog_ids::content_field::MODEL)
         .iter()
-        .filter_map(|(k, v)| Some((k.clone(), texture_bytes(&file, v.as_str()?).ok()?)))
+        .filter_map(|(k, v)| Some((k.to_string(), texture_bytes(&file, v.as_str()?).ok()?)))
         .collect();
     Some((elements, textures))
 }
 
 fn stair_element(from: [u8; 3], to: [u8; 3]) -> Value {
-    let face = |texture: &str| serde_json::json!({ yog_ids::model::TEXTURE: format!("{}{texture}", yog_formats::content::SLOT_MARK) });
-    serde_json::json!({
-        "from": from,
-        "to": to,
-        "faces": {
-            "up": face("top"),
-            "down": face("bottom"),
-            "north": face("side"),
-            "south": face("side"),
-            "west": face("side"),
-            "east": face("side")
-        }
-    })
+    use yog_ids::direction as d;
+    let face = |texture: &str| -> Value {
+        let slot = format!("{}{texture}", yog_formats::content::SLOT_MARK);
+        Map::from_iter([(yog_ids::model::TEXTURE, Value::from(slot))]).into()
+    };
+    let corner = |c: [u8; 3]| Value::List(c.iter().map(|&n| Value::Int(n.into())).collect());
+    let faces = Map::from_iter([
+        (d::UP, face("top")),
+        (d::DOWN, face("bottom")),
+        (d::NORTH, face("side")),
+        (d::SOUTH, face("side")),
+        (d::WEST, face("side")),
+        (d::EAST, face("side")),
+    ]);
+    Map::from_iter([
+        (yog_ids::model::FROM, corner(from)),
+        (yog_ids::model::TO, corner(to)),
+        (yog_ids::model::FACES, faces.into()),
+    ])
+    .into()
 }
 
 /// A mod item's definition and, for potions, its effect-derived color.
@@ -101,7 +108,7 @@ pub fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u
         if fid.split_once(':').map_or(fid, |(_, p)| p) != want {
             continue;
         }
-        let definition = Value::Object(doc);
+        let definition = doc;
         let color = potion_effect_color(root, &definition);
         return Some((definition, color));
     }
@@ -117,7 +124,7 @@ fn potion_effect_color(root: &Path, item: &Value) -> Option<u32> {
             yog_ids::content_field::EFFECTS,
         ],
     )?
-    .as_array()?;
+    .as_list()?;
     let mut channels = [0u64; 3];
     let mut count = 0u64;
     for effect in effects {
@@ -146,7 +153,7 @@ fn potion_effect_color(root: &Path, item: &Value) -> Option<u32> {
 pub fn item_potion_color(file: &Path) -> Option<u32> {
     let root = mod_root(file)?;
     let text = crate::files::read_source(file).ok()?;
-    let item = Value::Object(crate::design::data::read_object(&text)?);
+    let item = crate::design::data::read_object(&text)?;
     potion_effect_color(&root, &item)
 }
 
@@ -174,7 +181,7 @@ fn content_effect_color(root: &Path, reference: &str) -> Option<u32> {
         if id.split_once(':').map_or(id, |(_, p)| p) == want {
             return doc
                 .get(yog_ids::content_field::COLOR)
-                .and_then(Value::as_u64)
+                .and_then(Value::as_i64)
                 .and_then(|v| u32::try_from(v).ok());
         }
     }
@@ -198,7 +205,7 @@ pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
         let Ok(text) = crate::files::read_source(&file) else {
             continue;
         };
-        let Some(doc) = crate::design::data::read_object(&text).map(Value::Object) else {
+        let Some(doc) = crate::design::data::read_object(&text) else {
             continue;
         };
         let fid = doc
@@ -216,7 +223,7 @@ pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
         let textures = model_textures(root, &doc, yog_ids::content_field::MODEL);
         let tex = textures
             .get(yog_ids::model::LAYER0)
-            .or_else(|| ICON_SLOTS.iter().find_map(|k| textures.get(*k)))
+            .or_else(|| ICON_SLOTS.iter().find_map(|k| textures.get(k)))
             .or_else(|| textures.values().next())?
             .as_str()?;
         return texture_bytes(&file, tex).ok();

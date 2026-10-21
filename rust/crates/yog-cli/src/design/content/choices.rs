@@ -1,9 +1,9 @@
 //! What the editors' pickers offer: the mod's texts, sound groups,
 //! materials, tags and textures.
 
-use serde_json::Value;
 use std::borrow::Cow;
 use std::path::Path;
+use yog_data::Value;
 use yog_ids::Format;
 
 use crate::design::assets::Resources;
@@ -36,9 +36,9 @@ pub fn strings(file: &Path) -> Vec<String> {
         let Some(doc) = crate::design::data::read_object(&text) else {
             continue;
         };
-        for (name, e) in &doc {
+        for (name, e) in doc.as_map().into_iter().flatten() {
             let ty = e.get("type").and_then(Value::as_str);
-            if e.is_string() || ty.is_none_or(|t| t == "string") {
+            if e.as_str().is_some() || ty.is_none_or(|t| t == "string") {
                 out.push(format!("@{set}.{name}"));
             }
         }
