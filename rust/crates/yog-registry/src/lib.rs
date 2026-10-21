@@ -79,7 +79,7 @@ mod worldgen;
 pub use blocks::{BlockDef, BlockProperty};
 pub use entities::{EntityDef, EntityKind};
 pub use equipment::{
-    ArmorDefense, ArmorMaterial, ArmorPiece, DIGGERS, GameTool, REFERENCE_KIND, REFERENCE_MATERIAL, TOOL_KINDS, ToolItem,
+    ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, DIGGERS, GameTool, REFERENCE_KIND, REFERENCE_MATERIAL, TOOL_KINDS, ToolItem,
     ToolMaterial,
 };
 pub use items::{FoodDef, Hangs, ItemDef};

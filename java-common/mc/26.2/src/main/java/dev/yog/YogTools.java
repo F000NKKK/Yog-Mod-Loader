@@ -92,9 +92,9 @@ public final class YogTools {
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's armor type. */
     static ArmorType armorType(String slot) {
         return switch (slot) {
-            case YogNames.ArmorSlot.CHEST -> ArmorType.CHESTPLATE;
-            case YogNames.ArmorSlot.LEGS -> ArmorType.LEGGINGS;
-            case YogNames.ArmorSlot.FEET -> ArmorType.BOOTS;
+            case YogTypes.ArmorSlot.CHEST -> ArmorType.CHESTPLATE;
+            case YogTypes.ArmorSlot.LEGS -> ArmorType.LEGGINGS;
+            case YogTypes.ArmorSlot.FEET -> ArmorType.BOOTS;
             default -> ArmorType.HELMET;
         };
     }

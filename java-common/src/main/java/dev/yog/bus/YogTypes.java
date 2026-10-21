@@ -3780,7 +3780,7 @@ public final class YogTypes {
             p.putBool(this.book);
             p.putBool(this.tool != null); if (this.tool != null) { this.tool.pack(p); }
             p.putBool(this.armor != null); if (this.armor != null) { this.armor.pack(p); }
-            p.putBool(this.wearable != null); if (this.wearable != null) { p.putStr(this.wearable); }
+            p.putBool(this.wearable != null); if (this.wearable != null) { p.putU(switch (this.wearable) { case "head" -> 0; case "chest" -> 1; case "legs" -> 2; case "feet" -> 3; default -> 0; }); }
             p.putBool(this.hangs != null); if (this.hangs != null) { this.hangs.pack(p); }
             p.end(at);
         }
@@ -3798,7 +3798,7 @@ public final class YogTypes {
             boolean f_book = u.more(end) ? u.getBool() : false;
             YogTypes.Tool f_tool = u.more(end) ? (u.getBool() ? YogTypes.Tool.unpack(u) : null) : null;
             YogTypes.Armor f_armor = u.more(end) ? (u.getBool() ? YogTypes.Armor.unpack(u) : null) : null;
-            String f_wearable = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+            String f_wearable = u.more(end) ? (u.getBool() ? switch ((int) u.getU()) { case 0 -> "head"; case 1 -> "chest"; case 2 -> "legs"; case 3 -> "feet"; default -> ""; } : null) : null;
             YogTypes.Hangs f_hangs = u.more(end) ? (u.getBool() ? YogTypes.Hangs.unpack(u) : null) : null;
             u.leave(end);
             return new Item(f_id, f_maxStack, f_name, f_tooltip, f_maxDamage, f_fireResistant, f_fuelTicks, f_food, f_book, f_tool, f_armor, f_wearable, f_hangs);
@@ -3937,7 +3937,7 @@ public final class YogTypes {
             public String wearable() {
                 if (o11 < 0) return null;
                 u.seek(o11);
-                return (u.getBool() ? u.getStr() : null);
+                return (u.getBool() ? switch ((int) u.getU()) { case 0 -> "head"; case 1 -> "chest"; case 2 -> "legs"; case 3 -> "feet"; default -> ""; } : null);
             }
 
             public YogTypes.Hangs hangs() {
@@ -5855,7 +5855,7 @@ public final class YogTypes {
         }
     }
 
-    /** A piece of armor: its slot (`head`, `chest`, `legs`, `feet`) and material, whole. */
+    /** A piece of armor: its slot and material, whole. */
     public record Armor(String slot, YogTypes.ArmorMaterial material) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
@@ -5875,14 +5875,14 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
-            p.putStr(this.slot);
+            p.putU(switch (this.slot) { case "head" -> 0; case "chest" -> 1; case "legs" -> 2; case "feet" -> 3; default -> 0; });
             this.material.pack(p);
             p.end(at);
         }
 
         public static Armor unpack(YogFrame.Unpacker u) {
             int end = u.begin();
-            String f_slot = u.more(end) ? u.getStr() : "";
+            String f_slot = u.more(end) ? switch ((int) u.getU()) { case 0 -> "head"; case 1 -> "chest"; case 2 -> "legs"; case 3 -> "feet"; default -> ""; } : "head";
             YogTypes.ArmorMaterial f_material = u.more(end) ? YogTypes.ArmorMaterial.unpack(u) : null;
             u.leave(end);
             return new Armor(f_slot, f_material);
@@ -5931,9 +5931,9 @@ public final class YogTypes {
             }
 
             public String slot() {
-                if (o0 < 0) return "";
+                if (o0 < 0) return "head";
                 u.seek(o0);
-                return u.getStr();
+                return switch ((int) u.getU()) { case 0 -> "head"; case 1 -> "chest"; case 2 -> "legs"; case 3 -> "feet"; default -> ""; };
             }
 
             public YogTypes.ArmorMaterial.View material() {
@@ -7336,6 +7336,15 @@ public final class YogTypes {
         public static final String SOUTH = "south";
         public static final String WEST = "west";
         public static final String EAST = "east";
+    }
+
+    /** Where a piece of armor, or something else worn, is worn. */
+    public static final class ArmorSlot {
+        private ArmorSlot() {}
+        public static final String HEAD = "head";
+        public static final String CHEST = "chest";
+        public static final String LEGS = "legs";
+        public static final String FEET = "feet";
     }
 
     /** What kind of entity a type is. */

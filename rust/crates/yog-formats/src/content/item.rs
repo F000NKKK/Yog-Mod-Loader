@@ -3,6 +3,8 @@
 use yog_data::Schema;
 use yog_data::with::RefTo;
 
+use yog_registry::ArmorSlot;
+
 use super::refs::{MaterialRef, ToolKindRef};
 use crate::def::{ArmorMaterialKind, ToolMaterialKind};
 
@@ -97,15 +99,6 @@ pub struct ToolProps {
     pub attack_damage: Option<f32>,
     /// Attack speed change; by default the game's tool's.
     pub attack_speed: Option<f32>,
-}
-
-/// Where a piece of armor is worn.
-#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ArmorSlot {
-    Head,
-    Chest,
-    Legs,
-    Feet,
 }
 
 /// An item as a piece of armor.

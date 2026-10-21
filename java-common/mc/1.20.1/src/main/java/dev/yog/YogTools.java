@@ -81,9 +81,9 @@ public final class YogTools {
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's armor type. */
     static ArmorItem.Type armorType(String slot) {
         return switch (slot) {
-            case YogNames.ArmorSlot.CHEST -> ArmorItem.Type.CHESTPLATE;
-            case YogNames.ArmorSlot.LEGS -> ArmorItem.Type.LEGGINGS;
-            case YogNames.ArmorSlot.FEET -> ArmorItem.Type.BOOTS;
+            case YogTypes.ArmorSlot.CHEST -> ArmorItem.Type.CHESTPLATE;
+            case YogTypes.ArmorSlot.LEGS -> ArmorItem.Type.LEGGINGS;
+            case YogTypes.ArmorSlot.FEET -> ArmorItem.Type.BOOTS;
             default -> ArmorItem.Type.HELMET;
         };
     }
@@ -150,10 +150,10 @@ public final class YogTools {
 
     private static String slotOf(ArmorItem.Type type) {
         return switch (type) {
-            case CHESTPLATE -> YogNames.ArmorSlot.CHEST;
-            case LEGGINGS -> YogNames.ArmorSlot.LEGS;
-            case BOOTS -> YogNames.ArmorSlot.FEET;
-            default -> YogNames.ArmorSlot.HEAD;
+            case CHESTPLATE -> YogTypes.ArmorSlot.CHEST;
+            case LEGGINGS -> YogTypes.ArmorSlot.LEGS;
+            case BOOTS -> YogTypes.ArmorSlot.FEET;
+            default -> YogTypes.ArmorSlot.HEAD;
         };
     }
 

@@ -39,12 +39,21 @@ pub struct GameTool {
     pub material_damage: f32,
 }
 
+/// Where a piece of armor, or something else worn, is worn.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize), serde(rename_all = "snake_case"))]
+#[derive(yog_data::Schema, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArmorSlot {
+    Head,
+    Chest,
+    Legs,
+    Feet,
+}
+
 /// An item as a piece of armor.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct ArmorPiece {
-    /// `head`, `chest`, `legs` or `feet`.
-    pub slot: String,
+    pub slot: ArmorSlot,
     /// Its [`ArmorMaterial`]'s id.
     pub material: String,
 }

@@ -1,9 +1,9 @@
 //! A `.yblock`'s properties: shape, drops, sounds, tools, redstone.
 
 use yog_data::kinds::Item;
-use yog_ids::units::{BLOCK_PIXELS, MAX_STACK};
 use yog_data::with::{Opt, RefTo};
 use yog_data::{Reader, Schema, Shape, Value, ValueRef};
+use yog_ids::units::{BLOCK_PIXELS, MAX_STACK};
 
 use super::refs::{BlockTag, LevelRef, OneOrMany, SoundRef, ToolTag};
 
@@ -34,7 +34,9 @@ impl Schema for BlockShape {
             ValueRef::Str(s) if *s == "full" => Some(BlockShape::Full),
             ValueRef::List(_) => {
                 let b = <[f64; 6]>::read(v, cx)?;
-                if b.iter().any(|n| !(0.0..=f64::from(BLOCK_PIXELS)).contains(n)) {
+                if b.iter()
+                    .any(|n| !(0.0..=f64::from(BLOCK_PIXELS)).contains(n))
+                {
                     cx.problem("a box is [x1, y1, z1, x2, y2, z2] in pixels, 0–16");
                     return None;
                 }

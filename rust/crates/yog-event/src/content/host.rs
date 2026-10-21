@@ -9,8 +9,8 @@ use yog_data::Schema;
 use yog_data::Value;
 use yog_data::with::Raw;
 use yog_registry::{
-    ArmorMaterial, AttributeDef, BiomeFeature, BlockProperty, EffectDef, EntityDef, FoodDef,
-    GameTool, PotionDef, SoundGroup, ToolMaterial,
+    ArmorMaterial, ArmorSlot, AttributeDef, BiomeFeature, BlockProperty, EffectDef, EntityDef,
+    FoodDef, GameTool, PotionDef, SoundGroup, ToolMaterial,
 };
 
 /// Everything the hosts register.
@@ -49,8 +49,8 @@ pub struct Item {
     pub book: bool,
     pub tool: Option<Tool>,
     pub armor: Option<Armor>,
-    /// The slot it's worn in without being armor (`head`, …).
-    pub wearable: Option<String>,
+    /// The slot it's worn in without being armor.
+    pub wearable: Option<ArmorSlot>,
     pub hangs: Option<Hangs>,
 }
 
@@ -67,10 +67,10 @@ pub struct Tool {
     pub game_tool: Option<GameTool>,
 }
 
-/// A piece of armor: its slot (`head`, `chest`, `legs`, `feet`) and material, whole.
+/// A piece of armor: its slot and material, whole.
 #[derive(Debug, Clone, Schema)]
 pub struct Armor {
-    pub slot: String,
+    pub slot: ArmorSlot,
     pub material: ArmorMaterial,
 }
 

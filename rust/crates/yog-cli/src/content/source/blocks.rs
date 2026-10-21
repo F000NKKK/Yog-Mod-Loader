@@ -142,12 +142,17 @@ pub(super) fn item_props(p: &ItemProps) -> String {
             let _ = write!(b, "{CALL}tool_attack({d:?}, {s:?})");
         }
     }
-    quoted(&mut b, &p.wearable, "wearable");
+    if let Some(slot) = p.wearable {
+        let _ = write!(b, "{CALL}wearable(::yog_api::ArmorSlot::{slot:?})");
+    }
     if let Some((entity, size)) = &p.hangs {
         let _ = write!(b, "{CALL}hangs({entity:?}, {size:?})");
     }
     if let Some((slot, material)) = &p.armor {
-        let _ = write!(b, "{CALL}armor({slot:?}, {material:?})");
+        let _ = write!(
+            b,
+            "{CALL}armor(::yog_api::ArmorSlot::{slot:?}, {material:?})"
+        );
     }
     if let Some((n, s, always)) = p.food {
         let always = if always { ".can_always_eat()" } else { "" };

@@ -68,8 +68,8 @@ fn props(cx: &mut Ctx, loc: Loc, it: &Props, entry: &mut Entry) {
     p.armor = it
         .armor
         .as_ref()
-        .map(|a| (yog_formats::content::word(&a.slot), a.material.clone()));
-    p.wearable = it.wearable.as_ref().map(yog_formats::content::word);
+        .map(|a| (a.slot, a.material.clone()));
+    p.wearable = it.wearable;
     p.hangs = it.hangs.as_ref().map(|h| (h.entity.clone(), h.size));
     if it
         .hangs

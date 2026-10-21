@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 
 /**
@@ -14,9 +15,9 @@ public class YogWearableItem extends YogItem {
     /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's slot. */
     static EquipmentSlot slotOf(String slot) {
         return switch (slot) {
-            case YogNames.ArmorSlot.CHEST -> EquipmentSlot.CHEST;
-            case YogNames.ArmorSlot.LEGS -> EquipmentSlot.LEGS;
-            case YogNames.ArmorSlot.FEET -> EquipmentSlot.FEET;
+            case YogTypes.ArmorSlot.CHEST -> EquipmentSlot.CHEST;
+            case YogTypes.ArmorSlot.LEGS -> EquipmentSlot.LEGS;
+            case YogTypes.ArmorSlot.FEET -> EquipmentSlot.FEET;
             default -> EquipmentSlot.HEAD;
         };
     }

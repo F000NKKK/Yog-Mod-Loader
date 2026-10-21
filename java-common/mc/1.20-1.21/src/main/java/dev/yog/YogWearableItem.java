@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.bus.YogTypes;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -17,9 +18,9 @@ public class YogWearableItem extends YogItem implements Equipable {
     public YogWearableItem(Properties properties, String displayName, String tooltip, String slot) {
         super(properties, displayName, tooltip);
         this.slot = switch (slot) {
-            case YogNames.ArmorSlot.CHEST -> EquipmentSlot.CHEST;
-            case YogNames.ArmorSlot.LEGS -> EquipmentSlot.LEGS;
-            case YogNames.ArmorSlot.FEET -> EquipmentSlot.FEET;
+            case YogTypes.ArmorSlot.CHEST -> EquipmentSlot.CHEST;
+            case YogTypes.ArmorSlot.LEGS -> EquipmentSlot.LEGS;
+            case YogTypes.ArmorSlot.FEET -> EquipmentSlot.FEET;
             default -> EquipmentSlot.HEAD;
         };
         DispenserBlock.registerBehavior(this, ArmorItem.DISPENSE_ITEM_BEHAVIOR);

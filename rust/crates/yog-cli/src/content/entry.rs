@@ -59,9 +59,9 @@ pub(in crate::content) struct ItemProps {
     /// (kind, material, attack damage, attack speed)
     pub(in crate::content) tool: Option<(String, String, Option<f32>, Option<f32>)>,
     /// (slot, material)
-    pub(in crate::content) armor: Option<(String, String)>,
+    pub(in crate::content) armor: Option<(yog_registry::ArmorSlot, String)>,
     /// Worn in this slot without being armor.
-    pub(in crate::content) wearable: Option<String>,
+    pub(in crate::content) wearable: Option<yog_registry::ArmorSlot>,
     /// The hanging entity it places, and its size in blocks.
     pub(in crate::content) hangs: Option<(String, Option<[u32; 2]>)>,
 }

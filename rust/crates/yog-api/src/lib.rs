@@ -247,7 +247,7 @@ pub use yog_network::{Packet, PacketField};
 pub use yog_event::{client::net::Packet as ClientPacketEvent, server::net::Packet as PacketEvent};
 pub use yog_registry::{
     BlockDef, BlockProperty, Cooking, EntityDef, EntityKind, FoodDef, ItemDef, Recipe,
-    ArmorDefense, ArmorMaterial, ArmorPiece, RecipeKind, SoundGroup, StartupGrant, ToolItem, ToolMaterial,
+    ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, RecipeKind, SoundGroup, StartupGrant, ToolItem, ToolMaterial,
 };
 pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_ui::{

@@ -3,7 +3,7 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::{ArmorPiece, ToolItem};
+use crate::{ArmorPiece, ArmorSlot, ToolItem};
 
 /// Nutritional properties for a food item.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -52,8 +52,8 @@ pub struct ItemDef {
     pub tool: Option<ToolItem>,
     /// A piece of armor of a material.
     pub armor: Option<ArmorPiece>,
-    /// Worn in this slot without being armor: `head`, `chest`, `legs`, `feet`.
-    pub wearable: Option<String>,
+    /// Worn in this slot without being armor.
+    pub wearable: Option<ArmorSlot>,
     /// Used on a block's side, it hangs there as an entity of a hanging type.
     pub hangs: Option<Hangs>,
 }
@@ -112,17 +112,17 @@ impl ItemDef {
 
     /// A piece of armor for `slot` (`head`, `chest`, `legs`, `feet`) of
     /// `material` (an [`ArmorMaterial`]: the game's `diamond`… or a mod's).
-    pub fn armor(mut self, slot: impl Into<String>, material: impl Into<String>) -> Self {
+    pub fn armor(mut self, slot: ArmorSlot, material: impl Into<String>) -> Self {
         self.armor = Some(ArmorPiece {
-            slot: slot.into(),
+            slot,
             material: material.into(),
         });
         self
     }
 
-    /// Worn in `slot` (`head`, `chest`, `legs`, `feet`) without being armor.
-    pub fn wearable(mut self, slot: impl Into<String>) -> Self {
-        self.wearable = Some(slot.into());
+    /// Worn in `slot` without being armor.
+    pub fn wearable(mut self, slot: ArmorSlot) -> Self {
+        self.wearable = Some(slot);
         self
     }
 

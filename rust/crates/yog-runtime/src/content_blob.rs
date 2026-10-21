@@ -93,7 +93,7 @@ fn item(h: &RuntimeHandlers, d: &yog_registry::ItemDef) -> Item {
             yog_registry::ArmorMaterial::built_in,
         )?;
         Some(Armor {
-            slot: a.slot.clone(),
+            slot: a.slot,
             material: m.clone(),
         })
     });
@@ -109,7 +109,7 @@ fn item(h: &RuntimeHandlers, d: &yog_registry::ItemDef) -> Item {
         book: h.books.contains(&d.id),
         tool,
         armor,
-        wearable: d.wearable.clone(),
+        wearable: d.wearable,
         hangs: d.hangs.as_ref().map(|hangs| hanging(h, hangs)),
     }
 }

@@ -1,7 +1,6 @@
 package dev.yog.data;
 
 import dev.yog.YogLog;
-import dev.yog.YogNames;
 import dev.yog.bus.YogTypes;
 import dev.yog.util.YogInventoryDef;
 import java.util.HashMap;
@@ -95,9 +94,9 @@ public final class YogContent {
     /** An armor piece's durability: its slot's base times the material's. */
     public static int armorDurability(YogTypes.Armor a) {
         int base = switch (a.slot()) {
-            case YogNames.ArmorSlot.CHEST -> CHEST_DURABILITY;
-            case YogNames.ArmorSlot.LEGS -> LEGS_DURABILITY;
-            case YogNames.ArmorSlot.FEET -> FEET_DURABILITY;
+            case YogTypes.ArmorSlot.CHEST -> CHEST_DURABILITY;
+            case YogTypes.ArmorSlot.LEGS -> LEGS_DURABILITY;
+            case YogTypes.ArmorSlot.FEET -> FEET_DURABILITY;
             default -> HEAD_DURABILITY;
         };
         return base * (int) a.material().durability();
@@ -107,9 +106,9 @@ public final class YogContent {
     public static int armorDefense(YogTypes.Armor a) {
         YogTypes.ArmorDefense d = a.material().defense();
         return (int) switch (a.slot()) {
-            case YogNames.ArmorSlot.CHEST -> d.chest();
-            case YogNames.ArmorSlot.LEGS -> d.legs();
-            case YogNames.ArmorSlot.FEET -> d.feet();
+            case YogTypes.ArmorSlot.CHEST -> d.chest();
+            case YogTypes.ArmorSlot.LEGS -> d.legs();
+            case YogTypes.ArmorSlot.FEET -> d.feet();
             default -> d.head();
         };
     }

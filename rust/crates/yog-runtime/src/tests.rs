@@ -196,7 +196,7 @@ fn tools_and_armor_arrive_with_their_materials_whole() {
             ctx,
             "item",
             "mymod:helm",
-            &ItemDef::new("mymod:helm").armor("head", "diamond").write(),
+            &ItemDef::new("mymod:helm").armor(yog_registry::ArmorSlot::Head, "diamond").write(),
         );
         content(
             ctx,
@@ -360,7 +360,7 @@ fn write_a_content_blob() {
     h.items
         .push(yog_registry::ItemDef::new("m:pick").tool("pickaxe", "minecraft:iron"));
     h.items
-        .push(yog_registry::ItemDef::new("m:helm").armor("head", "diamond"));
+        .push(yog_registry::ItemDef::new("m:helm").armor(yog_registry::ArmorSlot::Head, "diamond"));
     h.books.insert("m:guide".into());
     let mut b = yog_registry::BlockDef::new("m:pipe");
     b.shape = Some([6.0, 6.0, 6.0, 10.0, 10.0, 10.0]);
