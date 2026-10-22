@@ -90,7 +90,7 @@ yog-core = { version = "0.8.2", path = "crates/yog-core" }
 yog-data = { version = "0.8.3", path = "crates/yog-data" }
 yog-data-derive = { version = "0.6.1", path = "crates/yog-data-derive" }
 yog-dimensions = { version = "0.15.0", path = "crates/yog-dimensions" }
-yog-event = { version = "0.9.2", path = "crates/yog-event" }
+yog-event = { version = "0.9.3", path = "crates/yog-event" }
 yog-font = { version = "0.5.0", path = "crates/yog-font" }
 yog-formats = { version = "0.13.2", path = "crates/yog-formats" }
 yog-gfx = { version = "0.32.0", path = "crates/yog-gfx" }
