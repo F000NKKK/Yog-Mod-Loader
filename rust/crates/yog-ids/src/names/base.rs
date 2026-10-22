@@ -74,6 +74,7 @@ names! {
         MODS = "mods",
         OPTIONAL = "optional",
         PLAYER = "player",
+        PNG = "png",
         RESULT = "result",
         SPRITE = "sprite",
         STATE = "state",

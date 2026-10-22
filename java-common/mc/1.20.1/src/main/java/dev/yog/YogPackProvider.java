@@ -1,11 +1,13 @@
 package dev.yog;
 
+import dev.yog.util.YogImagePack;
 import dev.yog.util.YogPackStager;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PathPackResources;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
@@ -45,7 +47,7 @@ public class YogPackProvider implements RepositorySource {
                 YogPackStager.PACK_ID,
                 Component.literal(YogPackStager.PACK_TITLE),
                 true,
-                name -> new PathPackResources(name, dir, true),
+                name -> YogImagePack.wrap(new PathPackResources(name, dir, true), PackResources.class),
                 type,
                 Pack.Position.TOP,
                 PackSource.DEFAULT);

@@ -35,6 +35,7 @@ pub mod item;
 pub mod jvm;
 pub mod key_binding;
 pub mod log;
+pub mod media;
 pub mod menu;
 pub mod mirror;
 pub mod nanite;

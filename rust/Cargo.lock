@@ -2348,6 +2348,7 @@ dependencies = [
  "image",
  "png",
  "resvg",
+ "yog-data",
  "yog-graphics",
  "yog-ids",
 ]

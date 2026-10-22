@@ -10,6 +10,8 @@ description = "Yog's media as the game takes it: pictures in any format decoded 
 [dependencies]
 yog-ids = { workspace = true }
 yog-graphics = { workspace = true }
+# A yimage is Yog Data.
+yog-data = { workspace = true }
 image = { workspace = true }
 png = { workspace = true }
 resvg = { workspace = true }

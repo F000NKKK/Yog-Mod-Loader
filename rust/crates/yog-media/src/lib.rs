@@ -5,3 +5,4 @@
 
 pub mod image;
 pub mod svg;
+pub mod yimage;

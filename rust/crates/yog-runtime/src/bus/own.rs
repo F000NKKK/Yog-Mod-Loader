@@ -1,7 +1,7 @@
 //! The runtime's own services: what only it knows — the content mods
 //! register, the mods it loaded, what this client was told about entities.
 
-use yog_event::{client, content, entity, game};
+use yog_event::{client, content, entity, game, media};
 
 use super::duties::provide;
 
@@ -42,7 +42,19 @@ pub(crate) fn register() {
     });
     provide::<game::Mods>(|_| mods());
     provide::<game::ModLoaded>(|m| crate::machine_api::mod_loaded(&m.id));
+    provide::<media::Png>(png);
     provide::<client::EntityData>(|d| {
         crate::entity_data::client_get(&d.uuid, &d.key).map(|bytes| entity::DataValue { bytes })
     });
+}
+
+/// A `.yog`'s yimage as the PNG the game reads (none when it isn't one).
+fn png(p: &media::Png) -> media::PngBytes {
+    match yog_media::yimage::to_png(&p.yimage) {
+        Ok(png) => media::PngBytes { png },
+        Err(e) => {
+            yog_logging::warn!("a texture the game asked for: {e}");
+            media::PngBytes::default()
+        }
+    }
 }

@@ -15802,6 +15802,129 @@ public final class YogServices {
         }
     }
 
+    /** `media`. */
+    public static final class Media {
+        private Media() {}
+
+        /** The PNG of a yimage. */
+        public record Png(byte[] yimage) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("yimage", yimage);
+                return m;
+            }
+
+            public static Png fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Png((m.get("yimage") instanceof byte[] e0 ? e0 : new byte[0]));
+            }
+
+            public static Png fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putBytes(this.yimage);
+                p.end(at);
+            }
+
+            public static Png unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                byte[] f_yimage = u.more(end) ? u.getBytes() : new byte[0];
+                u.leave(end);
+                return new Png(f_yimage);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Png fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Png fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Png readFrame(YogFrame.Unpacker u) {
+                Png v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Png} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public byte[] yimage() {
+                    if (o0 < 0) return new byte[0];
+                    u.seek(o0);
+                    return u.getBytes();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceMedia.PNG);
+            }
+
+            public YogTypes.PngBytes call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        YogTypes.PngBytes v = YogTypes.PngBytes.unpack(u);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+
+            /** {@link #call}'s reply read where it is (valid until this thread's next bus call); null when no one answered. */
+            public YogTypes.PngBytes.View callView() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (!r.ok() || r.isEmpty()) return null;
+                try {
+                    return new YogTypes.PngBytes.View(r.frame());
+                } catch (YogData.DecodeException e) {
+                    return null;
+                }
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Png, YogTypes.PngBytes> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.PngBytes v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    v.pack(p);
+                    return YogBus.OK;
+                });
+            }
+        }
+    }
+
     /** `menu`. */
     public static final class Menu {
         private Menu() {}

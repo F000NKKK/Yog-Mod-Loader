@@ -1,5 +1,6 @@
 package dev.yog;
 
+import dev.yog.util.YogImagePack;
 import dev.yog.util.YogPackStager;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -58,8 +59,8 @@ public class YogPackProvider implements RepositorySource {
         Pack pack = Pack.readMetaAndCreate(
                 loc,
                 new Pack.ResourcesSupplier() {
-            @Override public PackResources openPrimary(PackLocationInfo loc) { return new PathPackResources(loc, dir); }
-            @Override public PackResources openFull(PackLocationInfo loc, Pack.Metadata meta) { return new PathPackResources(loc, dir); }
+            @Override public PackResources openPrimary(PackLocationInfo loc) { return YogImagePack.wrap(new PathPackResources(loc, dir), PackResources.class); }
+            @Override public PackResources openFull(PackLocationInfo loc, Pack.Metadata meta) { return openPrimary(loc); }
         },
                 type,
                 new PackSelectionConfig(true, Pack.Position.TOP, false));

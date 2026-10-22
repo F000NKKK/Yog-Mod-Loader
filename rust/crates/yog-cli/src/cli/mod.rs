@@ -9,6 +9,7 @@ mod data;
 mod deps;
 mod mappings;
 mod new;
+mod pictures;
 mod prepare;
 mod publish;
 mod run;

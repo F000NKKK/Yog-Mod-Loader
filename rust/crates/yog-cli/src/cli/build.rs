@@ -280,7 +280,8 @@ fn assets(
             registrations.into_bytes(),
         ));
     }
-    let assets = gather_assets(root, compiled);
+    let mut assets = gather_assets(root, compiled);
+    super::pictures::pack(&mut assets);
     if !assets.is_empty() {
         eprintln!("    bundled {} asset file(s)", assets.len());
     }

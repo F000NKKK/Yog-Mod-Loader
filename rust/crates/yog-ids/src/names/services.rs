@@ -96,6 +96,13 @@ names! {
     }
 
     /// `yog:net/…`: the network.
+    /// `yog:media/…`: pictures and sounds as the game takes them.
+    service_media {
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, "media", crate::sep::PATH),
+        /// A `.yog`'s yimage as the PNG the game reads (the runtime answers).
+        PNG = crate::concatcp!(DOMAIN, crate::word::PNG),
+    }
+
     service_net {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::bus_word::NET, crate::sep::PATH),
         SEND_TO_PLAYER = crate::concatcp!(DOMAIN, "send_to_player"),

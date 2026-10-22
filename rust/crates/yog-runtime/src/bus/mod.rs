@@ -10,7 +10,7 @@ mod duties;
 mod java;
 #[cfg(any(test, feature = "bench"))]
 pub(crate) mod jvm_support;
-mod own;
+pub(crate) mod own;
 mod router;
 mod running;
 #[cfg(test)]

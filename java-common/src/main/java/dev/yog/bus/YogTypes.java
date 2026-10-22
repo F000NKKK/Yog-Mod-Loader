@@ -3237,6 +3237,84 @@ public final class YogTypes {
         }
     }
 
+    /** A PNG's bytes (none: not a yimage). */
+    public record PngBytes(byte[] png) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("png", png);
+            return m;
+        }
+
+        public static PngBytes fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new PngBytes((m.get("png") instanceof byte[] e0 ? e0 : new byte[0]));
+        }
+
+        public static PngBytes fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putBytes(this.png);
+            p.end(at);
+        }
+
+        public static PngBytes unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            byte[] f_png = u.more(end) ? u.getBytes() : new byte[0];
+            u.leave(end);
+            return new PngBytes(f_png);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static PngBytes fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static PngBytes fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static PngBytes readFrame(YogFrame.Unpacker u) {
+            PngBytes v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code PngBytes} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                u.leave(end);
+            }
+
+            public byte[] png() {
+                if (o0 < 0) return new byte[0];
+                u.seek(o0);
+                return u.getBytes();
+            }
+        }
+    }
+
     /** A button (the `menu/declare` service) the host shows on the title screen (the mod list on Forge and NeoForge), opening a mod's screen. */
     public record MenuEntry(String label, String uiId) {
         public java.util.Map<String, Object> toData() {

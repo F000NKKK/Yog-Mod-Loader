@@ -37,6 +37,13 @@ names! {
         NATIVES = "natives",
     }
 
+    /// A picture of few colors as a `.yog` keeps it (`yog_media::yimage`):
+    /// under its `.png` name, told apart by these first bytes; the host
+    /// hands the game its PNG, made in memory.
+    yimage {
+        MAGIC = "YIMG",
+    }
+
     /// A release's debug info, split from its natives: one folder per
     /// platform (`symbols/linux-x86_64/libmymod.so.debug`), read beside the
     /// stripped native or from Yog Installer's symbols component.
@@ -164,7 +171,7 @@ names! {
         SOUNDS_JSON = crate::concatcp!(SOUNDS_WORD, JSON),
         SOUNDS_WORD = "sounds",
         OGG = ".ogg",
-        PNG = ".png",
+        PNG = crate::concatcp!(crate::sep::EXT, crate::word::PNG),
         SVG = ".svg",
         JSON = ".json",
         MCMETA = ".mcmeta",
@@ -339,7 +346,7 @@ names! {
         TEXT = crate::word::TEXT,
         SIZE = crate::word::SIZE,
         TEXTURE = crate::kind::TEXTURE,
-        PNG = "png",
+        PNG = crate::word::PNG,
         ANIMATION = crate::word::ANIMATION,
         KIND = crate::word::KIND,
         REGISTRY = "registry",

@@ -74,6 +74,7 @@ public final class YogNames {
         public static final String MODS = "mods";
         public static final String OPTIONAL = "optional";
         public static final String PLAYER = "player";
+        public static final String PNG = "png";
         public static final String RESULT = "result";
         public static final String SPRITE = "sprite";
         public static final String STATE = "state";
@@ -135,7 +136,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ARMOR, BASE, BLOCK, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ARMOR, BASE, BLOCK, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {
@@ -747,6 +748,16 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, GIVE_ITEM, TELEPORT, TELEPORT_TO_DIM, KICK, SET_GAMEMODE, INVENTORY, SET_SLOT, HELD_ITEM_NBT, SET_HELD_ITEM_NBT, OFFHAND_ITEM_NBT, SET_OFFHAND_ITEM_NBT, SLOT_ITEM, SET_SLOT_ITEM, ADD_XP, SET_MAY_FLY, INFO, SET_ITEM_COOLDOWN, PLACE_BLOCK_FROM_SLOT, ONLINE);
     }
 
+    public static final class ServiceMedia {
+        private ServiceMedia() {}
+
+        public static final String DOMAIN = "yog:media/";
+        public static final String PNG = "yog:media/png";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, PNG);
+    }
+
     public static final class ServiceNet {
         private ServiceNet() {}
 
@@ -1319,6 +1330,15 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(MANIFEST, NATIVES);
+    }
+
+    public static final class Yimage {
+        private Yimage() {}
+
+        public static final String MAGIC = "YIMG";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MAGIC);
     }
 
     public static final class Symbols {

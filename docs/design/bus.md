@@ -322,6 +322,13 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
   player getting only their platform's native, a release's debug symbols
   as an installer component. (A release `.yog` is 0.4–2.4 MB a platform
   today; assets are over half of the biggest.)
+  (Done: `yimage` — a picture of up to 256 colors as a palette and packed
+  indices, kept under its `.png` name; the host's pack hands the game its
+  PNG made in memory (`YogImagePack`, `yog:media/png`): Hexcasting's 365
+  pictures 312 → 178 KB zipped. One `.yog` a platform beside the whole
+  one (natives are 1.4 of its 2.9 MB). `yog build release` / `build.sh
+  publish` split the debug info out (`artifacts/symbols/`, the runtime's
+  as Yog Installer's `yog.symbols.runtime`). Editors' files stay out.)
 
 ## Migration (one major release, staged on master)
 
