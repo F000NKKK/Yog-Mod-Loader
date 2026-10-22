@@ -129,13 +129,8 @@ impl Declared {
     #[inline]
     pub fn get<T: Cell>(&self, field: usize, row: u32) -> Option<T> {
         let f = (*self.fields.get(field)?)?;
-        let (mut space, mut row) = (self.space, row);
         // A parent space's fact: the row's key there, its row there.
-        for _ in 0..f.depth {
-            let key = space.parent_key(row)?;
-            space = space.parent()?;
-            row = space.row_of(key)?;
-        }
+        let (_, row) = self.space.up(row, f.depth)?;
         f.column.get(row)
     }
 }

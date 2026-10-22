@@ -139,5 +139,28 @@ fn store(c: &mut Criterion) {
     g.finish();
 }
 
-criterion_group!(benches, reads, writes, store);
+/// A player's position read through its entity (key-space inheritance).
+fn inherited(c: &mut Criterion) {
+    let mut s = Store::default();
+    let entities = s.space(key_space::ENTITY, None).unwrap();
+    let players = s.space(key_space::PLAYER, Some(key_space::ENTITY)).unwrap();
+    let mut mine = spec("bench:mirror/me");
+    mine.space = key_space::PLAYER.into();
+    let d = s.declare(&mine, 0b01, Rate::Every(1), None).unwrap();
+    let entity_row = s.insert(entities, 500, None);
+    let row = s.insert(players, 1, Some(500));
+    let pos = unsafe { ColumnRef::new(d.fields[0].unwrap().column) }.unwrap();
+    pos.write().set(entity_row, [1.0f64, 64.0, 2.0]);
+    let space = unsafe { KeySpaceRef::new(d.space) }.unwrap();
+    let depth = d.fields[0].unwrap().depth;
+    c.bench_function("read/player pos through its entity", |b| {
+        b.iter(|| {
+            space
+                .up(black_box(row), depth)
+                .and_then(|(_, r)| pos.get::<[f64; 3]>(r))
+        })
+    });
+}
+
+criterion_group!(benches, reads, writes, store, inherited);
 criterion_main!(benches);

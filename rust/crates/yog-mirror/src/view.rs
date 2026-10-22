@@ -228,6 +228,19 @@ impl KeySpaceRef {
         unsafe { KeySpaceRef::new(self.raw().parent) }
     }
 
+    /// Row `row`'s place `depth` parents up (a player's row → its
+    /// entity's): the space there and the row in it.
+    #[inline]
+    pub fn up(&self, row: u32, depth: u8) -> Option<(KeySpaceRef, u32)> {
+        let (mut space, mut row) = (*self, row);
+        for _ in 0..depth {
+            let key = space.parent_key(row)?;
+            space = space.parent()?;
+            row = space.row_of(key)?;
+        }
+        Some((space, row))
+    }
+
     /// `key`'s row, if it has one.
     #[inline]
     pub fn row_of(&self, key: u64) -> Option<u32> {
