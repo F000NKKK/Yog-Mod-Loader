@@ -25,7 +25,8 @@ use crate::content::recipe::registration::Recipe;
 use crate::content::recipe::{Against, compile_recipe};
 use crate::content::source::{Content, mentions_content_macro, registrations, rust_source};
 use crate::content::{
-    CONTENT_DIR, Compiled, content_format, datapack, find, looks, refs, sounds, textures, valid_namespace,
+    CONTENT_DIR, Compiled, content_format, datapack, find, looks, refs, sounds, textures,
+    valid_namespace,
 };
 use crate::diagnostics::Diagnostic;
 use crate::yres;
@@ -113,7 +114,11 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
 }
 
 /// A mod with no content files: its textures and sounds alone.
-fn media_only(own: textures::Textures, sounds: sounds::Sounds, sink: Sink) -> Result<Compiled, String> {
+fn media_only(
+    own: textures::Textures,
+    sounds: sounds::Sounds,
+    sink: Sink,
+) -> Result<Compiled, String> {
     if !sink.errors.is_empty() {
         crate::diagnostics::report_all(&sink.errors);
         return Err(format!(

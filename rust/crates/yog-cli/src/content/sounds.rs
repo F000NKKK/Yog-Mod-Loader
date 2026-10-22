@@ -34,7 +34,12 @@ pub(crate) struct Sounds {
 }
 
 /// Every `.ysound` under `resources/sound/` of the mod at `root`; problems go to `errors`.
-pub(crate) fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<Diagnostic>) -> Sounds {
+pub(crate) fn compile(
+    root: &Path,
+    mod_id: &str,
+    refs: &Refs,
+    errors: &mut Vec<Diagnostic>,
+) -> Sounds {
     let resources = root.join(RESOURCES_DIR);
     let mut events = Map::new();
     for file in crate::files::with_ext(&resources, Format::Sound.ext()) {
@@ -46,7 +51,10 @@ pub(crate) fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<D
             .replace('\\', yog_ids::sep::PATH);
         let Some(id) = yog_formats::sound::id_of(mod_id, &rel) else {
             let dir = yog_formats::sound::DIR;
-            errors.push(problem(format!("a sound event lives under {RESOURCES_DIR}/{dir}/")).in_file(&shown));
+            errors.push(
+                problem(format!("a sound event lives under {RESOURCES_DIR}/{dir}/"))
+                    .in_file(&shown),
+            );
             continue;
         };
         match event(&file, refs) {
@@ -70,7 +78,9 @@ pub(crate) fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<D
 /// The `.ysound` at `file` as its `sounds.json` entry.
 fn event(file: &Path, refs: &Refs) -> Result<Value, String> {
     let text = crate::files::read_source(file).map_err(|e| e.to_string())?;
-    let sound = yog_data::from_text::<SoundFile>(&text).map_err(|e| e.to_string())?.value;
+    let sound = yog_data::from_text::<SoundFile>(&text)
+        .map_err(|e| e.to_string())?
+        .value;
     if sound.sounds.is_empty() {
         return Err("a sound event plays at least one sound".into());
     }
@@ -82,7 +92,10 @@ fn event(file: &Path, refs: &Refs) -> Result<Value, String> {
     let mut def = Map::new();
     def.insert(yog_ids::res::SOUNDS_WORD.into(), Value::Array(sounds));
     if let Some(sub) = &sound.subtitle {
-        def.insert(field::SUBTITLE.into(), Value::String(refs.text(sub)?.0.clone()));
+        def.insert(
+            field::SUBTITLE.into(),
+            Value::String(refs.text(sub)?.0.clone()),
+        );
     }
     if sound.replace {
         def.insert(field::REPLACE.into(), Value::Bool(true));
@@ -104,6 +117,9 @@ fn variant(v: &Variant, refs: &Refs) -> Result<Value, String> {
     put(field::WEIGHT, v.weight.map(|x| json!(x)));
     put(field::STREAM, v.stream.then_some(Value::Bool(true)));
     put(field::PRELOAD, v.preload.then_some(Value::Bool(true)));
-    put(field::ATTENUATION_DISTANCE, v.attenuation_distance.map(|x| json!(x)));
+    put(
+        field::ATTENUATION_DISTANCE,
+        v.attenuation_distance.map(|x| json!(x)),
+    );
     Ok(Value::Object(out))
 }

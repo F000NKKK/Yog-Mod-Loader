@@ -112,7 +112,11 @@ pub(super) enum Platforms {
     Host,
 }
 
-pub(super) fn build(symbols: Symbols, dev: bool, platforms: Platforms) -> Result<(YogToml, PathBuf), String> {
+pub(super) fn build(
+    symbols: Symbols,
+    dev: bool,
+    platforms: Platforms,
+) -> Result<(YogToml, PathBuf), String> {
     let Prepared {
         root,
         meta,

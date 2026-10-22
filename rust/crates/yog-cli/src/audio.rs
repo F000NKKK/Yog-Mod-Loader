@@ -35,7 +35,9 @@ pub(crate) fn to_ogg(bytes: &[u8]) -> Result<Vec<u8>, String> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("not Ogg Vorbis, and {FFMPEG} (which converts it) can't be run: {e}"))?;
+        .map_err(|e| {
+            format!("not Ogg Vorbis, and {FFMPEG} (which converts it) can't be run: {e}")
+        })?;
     let mut stdin = child.stdin.take().ok_or("ffmpeg's input")?;
     let input = bytes.to_vec();
     // Written from another thread: ffmpeg's output would fill its pipe meanwhile.

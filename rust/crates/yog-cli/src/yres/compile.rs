@@ -258,9 +258,16 @@ impl Build<'_> {
 
     /// A sound: an Ogg Vorbis file (converted when it isn't one), named
     /// by `.ysound` events (`refs.sounds`).
-    fn sound(&mut self, e: &Entry, a: &Accessor, bytes: &[u8], path: &str) -> (String, String, Vec<u8>) {
+    fn sound(
+        &mut self,
+        e: &Entry,
+        a: &Accessor,
+        bytes: &[u8],
+        path: &str,
+    ) -> (String, String, Vec<u8>) {
         let ogg = crate::audio::to_ogg(bytes).unwrap_or_else(|err| {
-            self.errors.push(a.at.problem(format!("{:?}: {err}", e.name)));
+            self.errors
+                .push(a.at.problem(format!("{:?}: {err}", e.name)));
             Vec::new()
         });
         let id = yog_ids::join(self.mod_id, path);

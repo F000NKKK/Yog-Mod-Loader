@@ -17,6 +17,9 @@ pub struct Atlas {
     /// Its sprites are named without their folder: `mob_effect/speed` is sprite `speed`.
     #[data(default)]
     pub bare: bool,
+    /// Newer versions dropped it: its sprites are in this atlas, named
+    /// with their folder (`mob_effect/speed`).
+    pub moved_to: Option<String>,
 }
 
 static ATLASES: LazyLock<Vec<Atlas>> = LazyLock::new(|| {

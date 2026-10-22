@@ -178,7 +178,10 @@ fn compiles_a_mod() {
             || out.contains_key("assets/m/textures/images/logo.png")
     );
     assert_eq!(out["assets/m/sounds/sounds/click.ogg"], "OggS");
-    assert!(!out.contains_key("assets/m/sounds.json"), ".ysound files make sounds.json");
+    assert!(
+        !out.contains_key("assets/m/sounds.json"),
+        ".ysound files make sounds.json"
+    );
     assert_eq!(c.refs.sounds["Icons.sounds.click"], "m:sounds/click");
     assert_eq!(c.refs.images["Icons.images.logo"], "m:images/logo");
     assert!(c.refs.pictures.contains_key("Icons.images.logo"));

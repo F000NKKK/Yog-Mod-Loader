@@ -95,45 +95,52 @@ fn texture(b: &mut Building, file: &Path, id: &str, refs: &Refs) -> Result<(), S
             .collect();
         return Err(format!("atlas `{atlas}`: one of {}", known.join(", ")));
     }
-    let atlas = texture.atlas.as_deref().map(yog_ids::qualify);
-    // Its sprite's name in the atlas: a bare atlas's without the folder (`mymod:clarity`).
     let (ns, path) = yog_ids::split(id);
-    let sprite = yog_ids::join(
-        ns,
-        atlas
-            .as_deref()
-            .and_then(yog_registry::Atlas::find)
-            .map_or(path, |a| a.sprite(path)),
-    );
-    match (&atlas, &texture.animation) {
-        (Some(atlas), None) if !texture.blur && !texture.clamp => {
-            let img = yog_media::image::decode(&picture.png)?;
+    let places = placements(texture.atlas.as_deref(), id);
+    if !places.is_empty() && texture.animation.is_none() && !texture.blur && !texture.clamp {
+        let img = yog_media::image::decode(&picture.png)?;
+        for (atlas, sprite) in places {
             b.packed
-                .entry(atlas.clone())
+                .entry(atlas)
                 .or_default()
-                .push((sprite, img));
-            b.out.packed.insert(picture.output.clone());
+                .push((sprite, img.clone()));
         }
-        _ => {
-            let target = yog_ids::asset_file(ns, &yog_ids::texture_file(path));
-            if let Some(meta) = texture.game_mcmeta() {
-                b.out.outputs.push((
-                    format!("{target}{}", yog_ids::res::MCMETA),
-                    super::pretty(&meta),
-                ));
+        b.out.packed.insert(picture.output.clone());
+    } else {
+        let target = yog_ids::asset_file(ns, &yog_ids::texture_file(path));
+        if let Some(meta) = texture.game_mcmeta() {
+            b.out.outputs.push((
+                format!("{target}{}", yog_ids::res::MCMETA),
+                super::pretty(&meta),
+            ));
+        }
+        b.out.outputs.push((target, picture.png.clone()));
+        for (atlas, sprite) in places {
+            let mut single = json!({ src::TYPE: src::SINGLE, src::RESOURCE: id });
+            if sprite != id {
+                single[src::SPRITE] = json!(sprite);
             }
-            b.out.outputs.push((target, picture.png.clone()));
-            if let Some(atlas) = atlas {
-                let mut single = json!({ src::TYPE: src::SINGLE, src::RESOURCE: id });
-                if sprite != id {
-                    single[src::SPRITE] = json!(sprite);
-                }
-                b.singles.entry(atlas).or_default().push(single);
-            }
+            b.singles.entry(atlas).or_default().push(single);
         }
     }
     b.out.ids.insert(id.to_string());
     Ok(())
+}
+
+/// The atlases texture `id` goes in, and its sprite's name in each: the
+/// one it names (a bare atlas's sprite without the folder, `mymod:clarity`),
+/// and the one newer versions moved that atlas's sprites into, if any
+/// (named with the folder, `mymod:mob_effect/clarity`).
+fn placements(atlas: Option<&str>, id: &str) -> Vec<(String, String)> {
+    let Some(atlas) = atlas.and_then(yog_registry::Atlas::find) else {
+        return Vec::new();
+    };
+    let (ns, path) = yog_ids::split(id);
+    let mut out = vec![(atlas.id.clone(), yog_ids::join(ns, atlas.sprite(path)))];
+    if let Some(later) = &atlas.moved_to {
+        out.push((later.clone(), id.to_owned()));
+    }
+    out
 }
 
 /// Atlas `atlas`'s definition: its textures' packed picture, cut up again
@@ -302,6 +309,19 @@ mod tests {
         assert_eq!(
             effects["sources"][0]["regions"][0]["sprite"],
             "mymod:clarity"
+        );
+        // Newer versions take effect icons from the GUI atlas, by their folder.
+        let gui: Value = serde_json::from_slice(
+            &t.outputs
+                .iter()
+                .find(|(p, _)| p == "assets/minecraft/atlases/gui.json")
+                .unwrap()
+                .1,
+        )
+        .unwrap();
+        assert_eq!(
+            gui["sources"][0]["regions"][0]["sprite"],
+            "mymod:mob_effect/clarity"
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
