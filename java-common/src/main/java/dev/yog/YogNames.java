@@ -57,6 +57,7 @@ public final class YogNames {
         public static final String BASE = "base";
         public static final String BLOCK = "block";
         public static final String CATEGORY = "category";
+        public static final String CHUNK = "chunk";
         public static final String CONTENT = "content";
         public static final String DAMAGE = "damage";
         public static final String DIMENSION = "dimension";
@@ -133,7 +134,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ARMOR, BASE, BLOCK, CATEGORY, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ARMOR, BASE, BLOCK, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {
@@ -234,6 +235,22 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(FAILED, MANIFEST, CONTENT, RESOURCES, SCREEN, CARGO, COMPILER, NO_PLATFORM, PACKAGE, BENCH);
+    }
+
+    public static final class Storage {
+        private Storage() {}
+
+        public static final String DIR = "yog-data";
+        public static final String GAME = "game";
+        public static final String WORLD = "world";
+        public static final String DIMENSION = "dimension";
+        public static final String PLAYER = "player";
+        public static final String ENTITY = "entity";
+        public static final String CHUNK = "chunk";
+        public static final String SEP = "_";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIR, GAME, WORLD, DIMENSION, PLAYER, ENTITY, CHUNK, SEP);
     }
 
     public static final class DataAttr {

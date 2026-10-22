@@ -124,6 +124,9 @@ macro_rules! export_mod {
                 for entry in $crate::__yog_export_registry().lock().iter() {
                     registry.provide_export(mod_id, entry);
                 }
+
+                // What it keeps, saved with the world (after the mod's own handlers).
+                $crate::storage::__install(&mut registry);
             }));
             if outcome.is_err() {
                 $crate::error!(
@@ -199,7 +202,16 @@ macro_rules! ui_components {
 #[doc(hidden)]
 pub fn __set_current_mod_id(id: &str) {
     CURRENT_MOD_ID.with(|cell| cell.replace(Some(id.to_string())));
+    let _ = MOD_ID.set(id.to_owned());
 }
+
+/// This mod's id (its manifest's), once the runtime has loaded it.
+pub fn mod_id() -> &'static str {
+    MOD_ID.get().map_or("", String::as_str)
+}
+
+/// This mod's id: each mod's library has its own copy of this crate.
+static MOD_ID: yog_sync::OnceLock<String> = yog_sync::OnceLock::new();
 
 /// Internal: the current mod's id, set during `yog_mod_register`.
 #[doc(hidden)]
@@ -256,7 +268,6 @@ pub use yog_registry::{
     EntityDef, EntityKind, Facing, FoodDef, ItemDef, Placement, Recipe, RecipeKind, SoundGroup,
     StartupGrant, ToolItem, ToolMaterial,
 };
-pub use yog_storage::{Storage, StorageScope, Value};
 pub use yog_ui::{
     Align, Dock, FlexDir, FocusStyle, LayoutNode, Rect, Stretch, UiRoot, Units, widget,
 };
@@ -302,10 +313,8 @@ pub mod dimension {
     pub use yog_dimensions::*;
 }
 
-/// Persistent key-value storage for mod data.
-pub mod storage {
-    pub use yog_storage::*;
-}
+/// Where the mod keeps its data (typed stores by scope, values kept with the world).
+pub mod storage;
 
 /// Mod configuration (typed key/value files).
 pub mod config {

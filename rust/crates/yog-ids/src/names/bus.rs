@@ -134,7 +134,7 @@ names! {
     /// `yog:event/world/generation/…`; keyed by the generator type.
     event_world_generation {
         PLANE = crate::concatcp!(crate::event::PREFIX, crate::bus_word::WORLD, crate::sep::PATH, "generation", crate::sep::PATH),
-        CHUNK = crate::concatcp!(PLANE, "chunk"),
+        CHUNK = crate::concatcp!(PLANE, crate::word::CHUNK),
     }
 
     /// `yog:event/world/loot/…`.

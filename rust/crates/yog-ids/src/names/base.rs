@@ -56,6 +56,7 @@ names! {
         BASE = "base",
         BLOCK = "block",
         CATEGORY = "category",
+        CHUNK = "chunk",
         CONTENT = "content",
         DAMAGE = "damage",
         DIMENSION = "dimension",
@@ -233,6 +234,21 @@ names! {
         PACKAGE = "YB0008",
         /// A benchmark file (`benches/*.rs`) that isn't right.
         BENCH = "YB0009",
+    }
+
+    /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the
+    /// whole-game and whole-world stores by name, the rest in folders.
+    storage {
+        DIR = "yog-data",
+        GAME = crate::bus_word::GAME,
+        WORLD = crate::bus_word::WORLD,
+        DIMENSION = crate::word::DIMENSION,
+        PLAYER = crate::word::PLAYER,
+        ENTITY = crate::kind::ENTITY,
+        CHUNK = crate::word::CHUNK,
+        /// What a name's separators become in a store's file name, and
+        /// what parts a chunk store's name (`<dim>_<cx>_<cz>`).
+        SEP = crate::sep::WORD,
     }
 
     /// The words of Yog Data's `#[data(...)]` attribute: the attribute
