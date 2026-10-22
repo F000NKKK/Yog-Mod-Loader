@@ -9,12 +9,17 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOADER="${1:?loader}"; MC="${2:?minecraft version}"
 WAIT="${YOG_SMOKE_WAIT:-300}"
+# Seconds it keeps running once done (its first ticks at least: a crash in
+# them fails the run), then stopped.
+HOLD="${YOG_SMOKE_HOLD:-5}"
 source <(sed -n '/^find_java()/,/^}/p;/^java_for()/,/^}/p;/^gradle_dir()/,/^}/p;/^gradle_in()/,/^}/p;/^die()/,/^}/p' "$ROOT/build.sh")
 DEV=1; MC_VERSION="$MC"
 # Every loader runs its game in <loader>/run (fabric/modern too: runDir "../run").
 RUN="$ROOT/$LOADER/run"
 mkdir -p "$RUN"
 before="$(ls -A "$RUN" | LC_ALL=C sort)"
+CRASHES="$RUN/crash-reports"
+crashes_before="$(ls -A "$CRASHES" 2>/dev/null | LC_ALL=C sort)"
 echo "eula=true" > "$RUN/eula.txt"
 # A port of its own: no clash with a game you run, and the server found by it.
 PORT=""
@@ -45,6 +50,12 @@ for _ in $(seq "$WAIT"); do
     kill -0 "$pid" 2>/dev/null || break
     sleep 1
 done
+[ "$ok" = 0 ] && sleep "$HOLD"
+# A crash report written on the way (after "Done" too) fails it.
+crash="$(comm -13 <(echo "$crashes_before") <(ls -A "$CRASHES" 2>/dev/null | LC_ALL=C sort) | head -1)"
+if [ -n "$crash" ]; then
+    cp "$CRASHES/$crash" "$work/"; crash="$work/$crash"; ok=1
+fi
 echo stop >&3
 # The game itself (not every loader's Gradle hands it the console): the
 # process on its port, stopped as a shutdown stops it, waited for.
@@ -66,5 +77,7 @@ wait "$pid" 2>/dev/null
 exec 3>&-
 for f in $(comm -13 <(echo "$before") <(ls -A "$RUN" | LC_ALL=C sort)); do rm -rf "${RUN:?}/$f"; done
 grep -E 'Done \(|ERROR|Cannot load class|Exception' "$log" | grep -v '^\s*at ' | head -20
+echo "log: $log"
+[ -n "$crash" ] && echo "crash report: $crash"
 if [ "$ok" = 0 ]; then echo "==> $LOADER $MC: dedicated server OK"; else echo "==> $LOADER $MC: dedicated server FAILED (log: $log)"; fi
 exit "$ok"

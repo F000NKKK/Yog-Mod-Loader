@@ -77,6 +77,36 @@ runs {
     }
 }
 
+// NeoForge 47.1's dedicated server announces itself on the LAN with a client
+// class, which a dev run refuses (a crash on the first tick): the dev runs'
+// default server config turns it off (versions/<mc>.properties `dev_lan_announce_off`).
+if (project.hasProperty('dev_lan_announce_off')) {
+    def serverConfig = tasks.register('yogDevServerConfig') {
+        def out = file('run/defaultconfigs/forge-server.toml')
+        outputs.file out
+        doLast {
+            out.parentFile.mkdirs()
+            if (!out.exists()) out.text = "[server]\n\tadvertiseDedicatedServerToLan = false\n"
+        }
+    }
+    tasks.matching { it.name == 'runServer' }.configureEach { dependsOn serverConfig }
+}
+
+// MixinExtras (nanites' @Local, LocalRef) where the loader doesn't ship it
+// (versions/<mc>.properties `mixinextras_version`): jar-in-jar, the jar with
+// it the one built (the plain one `-slim`, which ../build.sh leaves).
+if (project.hasProperty('mixinextras_version')) {
+    jarJar.enable()
+    dependencies {
+        implementation(jarJar("io.github.llamalad7:mixinextras-forge:${project.mixinextras_version}")) {
+            version { strictly "[${project.mixinextras_version},)"; prefer project.mixinextras_version }
+        }
+    }
+    tasks.named('jarJar') { archiveClassifier = '' }
+    jar { archiveClassifier = 'slim' }
+    tasks.named('assemble') { dependsOn 'jarJar' }
+}
+
 dependencies {
     // The artifact id is version-dependent: the 1.20.1 line ships as
     // net.neoforged:forge, MC 1.20.2+ as net.neoforged:neoforge
