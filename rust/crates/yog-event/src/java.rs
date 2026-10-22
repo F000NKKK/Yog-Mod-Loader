@@ -207,6 +207,20 @@ fn target(address: &str, key: Option<&str>, constant: &str) -> String {
     }
 }
 
+/// Where a listener or provider of a message at `address` is: a keyed
+/// one's branch for the `key` parameter it's given.
+fn listen_target(address: &str, key: Option<&str>, constant: &str) -> String {
+    match key {
+        Some(_) => format!("YogBus.keyed({}, key)", name(address)),
+        None => format!("Address.{constant}"),
+    }
+}
+
+/// The `key` parameter a keyed message's listener or provider takes first.
+fn key_param(key: Option<&str>) -> &'static str {
+    if key.is_some() { "String key, " } else { "" }
+}
+
 /// A message to write: its place in the tree, its name, payload and methods.
 struct Entry {
     path: &'static str,

@@ -34,6 +34,8 @@ mod bus;
 mod client_api;
 mod content_blob;
 // Hot reload: dev builds only (release ones are optimised past it).
+#[cfg(test)]
+mod api_jvm;
 #[cfg(feature = "dev")]
 mod control_socket;
 mod entity_data;

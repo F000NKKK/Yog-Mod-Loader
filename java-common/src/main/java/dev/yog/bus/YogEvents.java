@@ -128,6 +128,15 @@ public final class YogEvents {
                     return this;
                 }
             }
+
+            /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+            public static void on(int priority, dev.yog.api.YogBus.Listener<Record> l) {
+                YogBus.on(Address.POST, priority, (in, out) -> {
+                    Record changed = l.on(fromFrame(in));
+                    if (changed != null) changed.pack(out.frame());
+                    return YogBus.OK;
+                });
+            }
         }
     }
 
@@ -263,6 +272,15 @@ public final class YogEvents {
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Join> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Join changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** Fired when a player leaves the server. */
@@ -388,6 +406,15 @@ public final class YogEvents {
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Leave> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Leave changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -538,6 +565,20 @@ public final class YogEvents {
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Death> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Death changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Death> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
 
             /** Fired when a player respawns after death (Post only). */
@@ -675,6 +716,15 @@ public final class YogEvents {
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Respawn> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Respawn changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
         }
 
@@ -810,6 +860,20 @@ public final class YogEvents {
 
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Message> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Message changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Message> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
                 }
             }
         }
@@ -999,6 +1063,15 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Move> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Move changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** Fired when a player right-clicks with an item (server side). */
@@ -1141,6 +1214,20 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<UseItem> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        UseItem changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<UseItem> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
 
             /** Fired when a player attacks (left-clicks) an entity (server side). */
@@ -1277,6 +1364,15 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Attack> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Attack changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
 
@@ -1444,6 +1540,20 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Interact> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Interact changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Interact> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
 
             /** Fired when a player takes a crafted item from a crafting output slot (Post only). */
@@ -1591,6 +1701,15 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Craft> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Craft changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
 
@@ -1758,6 +1877,20 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Pickup> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Pickup changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Pickup> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
         }
 
@@ -1899,6 +2032,15 @@ Post-phase only. The fields reflect the *new* position the client claims. */
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Advancement> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Advancement changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -2047,6 +2189,20 @@ Post-phase only. The fields reflect the *new* position the client claims. */
 
             public boolean emitPre() {
                 return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
+            }
+
+            /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+            public static void on(int priority, dev.yog.api.YogBus.Listener<Break> l) {
+                YogBus.on(Address.POST, priority, (in, out) -> {
+                    Break changed = l.on(fromFrame(in));
+                    if (changed != null) changed.pack(out.frame());
+                    return YogBus.OK;
+                });
+            }
+
+            /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+            public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Break> l) {
+                YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
             }
         }
 
@@ -2203,6 +2359,20 @@ Subscribed with `Registry::on` / `before` / `after`: - before — fires before p
             public boolean emitPre() {
                 return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
+
+            /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+            public static void on(int priority, dev.yog.api.YogBus.Listener<Place> l) {
+                YogBus.on(Address.POST, priority, (in, out) -> {
+                    Place changed = l.on(fromFrame(in));
+                    if (changed != null) changed.pack(out.frame());
+                    return YogBus.OK;
+                });
+            }
+
+            /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+            public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Place> l) {
+                YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+            }
         }
 
         /** Fired when a player right-clicks a block (server side). */
@@ -2356,6 +2526,20 @@ Subscribed with `Registry::on` / `before` / `after`: - before — fires before p
             public boolean emitPre() {
                 return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
+
+            /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+            public static void on(int priority, dev.yog.api.YogBus.Listener<Use> l) {
+                YogBus.on(Address.POST, priority, (in, out) -> {
+                    Use changed = l.on(fromFrame(in));
+                    if (changed != null) changed.pack(out.frame());
+                    return YogBus.OK;
+                });
+            }
+
+            /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+            public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Use> l) {
+                YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+            }
         }
     }
 
@@ -2498,6 +2682,20 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Spawn> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Spawn changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Spawn> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
 
             /** Fired after a living entity dies (server side). */
@@ -2634,6 +2832,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Death> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Death changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -2792,6 +2999,20 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
 
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Damage> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Damage changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Damage> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
                 }
             }
 
@@ -2992,6 +3213,20 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<ProjectileHit> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        ProjectileHit changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<ProjectileHit> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
         }
 
@@ -3102,6 +3337,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Tick> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventEntityGame.TICK, key), priority, (in, out) -> {
+                        Tick changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -3275,6 +3519,20 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             public boolean emitPre() {
                 return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
+
+            /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+            public static void on(int priority, dev.yog.api.YogBus.Listener<Explosion> l) {
+                YogBus.on(Address.POST, priority, (in, out) -> {
+                    Explosion changed = l.on(fromFrame(in));
+                    if (changed != null) changed.pack(out.frame());
+                    return YogBus.OK;
+                });
+            }
+
+            /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+            public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Explosion> l) {
+                YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+            }
         }
 
         /** `generation`. */
@@ -3439,6 +3697,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Chunk> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventWorldGeneration.CHUNK, key), priority, (in, out) -> {
+                        Chunk changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -3642,6 +3909,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Roll> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Roll changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
         }
     }
@@ -3792,6 +4068,20 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
             public boolean emitPre() {
                 return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
             }
+
+            /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+            public static void on(int priority, dev.yog.api.YogBus.Listener<Open> l) {
+                YogBus.on(Address.POST, priority, (in, out) -> {
+                    Open changed = l.on(fromFrame(in));
+                    if (changed != null) changed.pack(out.frame());
+                    return YogBus.OK;
+                });
+            }
+
+            /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+            public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Open> l) {
+                YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+            }
         }
 
         /** Fired when a player closes a container screen (Post only). */
@@ -3917,6 +4207,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 } catch (RuntimeException e) {
                     return this;
                 }
+            }
+
+            /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+            public static void on(int priority, dev.yog.api.YogBus.Listener<Close> l) {
+                YogBus.on(Address.POST, priority, (in, out) -> {
+                    Close changed = l.on(fromFrame(in));
+                    if (changed != null) changed.pack(out.frame());
+                    return YogBus.OK;
+                });
             }
         }
 
@@ -4119,6 +4418,20 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Craft> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Craft changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Craft> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
         }
     }
@@ -4221,6 +4534,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Tick> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Tick changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -4331,6 +4653,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Started> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Started changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** Fired as the server stops. */
@@ -4424,6 +4755,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Stopping> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Stopping changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** Fired as the world is saved — an autosave, `/save-all`, the server stopping — before its chunks are written: what's kept with the world is written now, so it's saved with the world it belongs to. */
@@ -4516,6 +4856,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Saving> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Saving changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -4672,6 +5021,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Run> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventServerCommand.RUN, key), priority, (in, out) -> {
+                        Run changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
         }
 
@@ -4793,6 +5151,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Packet> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventServerNet.PACKET, key), priority, (in, out) -> {
+                        Packet changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -4972,6 +5339,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     return this;
                 }
             }
+
+            /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+            public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Injected> l) {
+                YogBus.on(YogBus.keyed(YogNames.EventNanite.INJECT, key), priority, (in, out) -> {
+                    Injected changed = l.on(fromFrame(in));
+                    if (changed != null) changed.pack(out.frame());
+                    return YogBus.OK;
+                });
+            }
         }
     }
 
@@ -5073,6 +5449,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Tick> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Tick changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
 
@@ -5188,6 +5573,15 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Travel> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Travel changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -5338,6 +5732,20 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 public boolean emitPre() {
                     return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Key> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Key changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Key> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
 
             /** A mod's key binding pressed; keyed by its id (`mymod:xray`). */
@@ -5432,6 +5840,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Binding> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventClientInput.BINDING, key), priority, (in, out) -> {
+                        Binding changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }
@@ -5542,6 +5959,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Open> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Open changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** Fired when a GUI screen closes. */
@@ -5645,6 +6071,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Close> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Close changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
 
@@ -5756,6 +6191,20 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                 public boolean emitPre() {
                     return YogBus.emit(YogBus.keyed(YogNames.EventClientUi.INPUT_PRE, uiId), packedFrame()).status() != YogBus.CANCELLED;
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Input> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventClientUi.INPUT, key), priority, (in, out) -> {
+                        Input changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(String key, int priority, dev.yog.api.YogBus.PreListener<Input> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventClientUi.INPUT_PRE, key), priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
             }
         }
 
@@ -5865,6 +6314,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Hud> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Hud changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** Fired every frame at the end of world rendering (the frame's graphics carry the camera: `view_proj`, `camera_pos`). */
@@ -5969,6 +6427,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<World> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        World changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** A mod's screen drawn this frame (after its background); keyed by the screen's id. */
@@ -6063,6 +6530,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Ui> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventClientRender.UI, key), priority, (in, out) -> {
+                        Ui changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
 
@@ -6192,6 +6668,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Tooltip> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventClientRender.TOOLTIP, key), priority, (in, out) -> {
+                        Tooltip changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** The picture of a book page of type `drawn` drawn in `rect` (`[x, y, w, h]`, screen pixels), every frame the page is open; keyed by its `drawer`. */
@@ -6320,6 +6805,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Page> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventClientRender.PAGE, key), priority, (in, out) -> {
+                        Page changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
 
             /** The camera this frame, as vanilla placed it, and what the mods make of it: each handler adds to `out`, seeing the one before's. */
@@ -6434,6 +6928,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Camera> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Camera changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
 
@@ -6550,6 +7053,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                         return this;
                     }
                 }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Body> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Body changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
             }
         }
 
@@ -6660,6 +7172,15 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     } catch (RuntimeException e) {
                         return this;
                     }
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(String key, int priority, dev.yog.api.YogBus.Listener<Packet> l) {
+                    YogBus.on(YogBus.keyed(YogNames.EventClientNet.PACKET, key), priority, (in, out) -> {
+                        Packet changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
                 }
             }
         }

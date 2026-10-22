@@ -66,7 +66,7 @@ pub(super) fn same(a: &StructShape, b: &StructShape) -> bool {
 }
 
 /// The object type standing for a primitive (in a list, or nullable).
-fn boxed(java: &str) -> String {
+pub(super) fn boxed(java: &str) -> String {
     match java {
         "boolean" => "Boolean",
         "int" => "Integer",

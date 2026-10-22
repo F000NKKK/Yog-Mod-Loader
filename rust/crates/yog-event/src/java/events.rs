@@ -6,7 +6,7 @@ use yog_data::schema::StructShape;
 
 use crate::EventInfo;
 
-use super::{Entry, Out, file, name, target};
+use super::{Entry, Out, file, key_param, listen_target, name, target};
 
 /// The class it writes.
 pub(super) const CLASS: &str = "YogEvents";
@@ -43,6 +43,25 @@ fn event_body(e: &EventInfo) -> String {
             body,
             "\n\n    public boolean emitPre() {{\n        return YogBus.emit({}, packedFrame()).status() != YogBus.CANCELLED;\n    }}",
             target(p, e.key, "PRE")
+        );
+    }
+    body.push_str(&listeners(e));
+    body
+}
+
+/// `on` (after the game did it: the listener may change it) and `onPre`
+/// (before: the listener may cancel it), typed.
+fn listeners(e: &EventInfo) -> String {
+    let (n, key) = (e.name, key_param(e.key));
+    let mut body = format!(
+        "\n\n    /** Listens to it (higher {{@code priority}} first); what {{@code l}} returns, when not null, is what it becomes. */\n    public static void on({key}int priority, dev.yog.api.YogBus.Listener<{n}> l) {{\n        YogBus.on({}, priority, (in, out) -> {{\n            {n} changed = l.on(fromFrame(in));\n            if (changed != null) changed.pack(out.frame());\n            return YogBus.OK;\n        }});\n    }}",
+        listen_target(e.address, e.key, "POST")
+    );
+    if let Some(p) = e.pre {
+        let _ = write!(
+            body,
+            "\n\n    /** Listens before the game does it (higher {{@code priority}} first); {{@code l}} answering false cancels it. */\n    public static void onPre({key}int priority, dev.yog.api.YogBus.PreListener<{n}> l) {{\n        YogBus.on({}, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);\n    }}",
+            listen_target(p, e.key, "PRE")
         );
     }
     body

@@ -129,6 +129,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Grant, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -264,6 +274,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Done, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -454,6 +474,16 @@ public final class YogServices {
                 }
                 return false;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(String key, dev.yog.api.YogBus.Provider<Insert, Boolean> provider) {
+                return YogBus.provide(YogBus.keyed(YogNames.ServiceBlock.INSERT, key), (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** A block entity's data as SNBT. */
@@ -565,6 +595,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Nbt, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -715,6 +755,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetNbt, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
             }
@@ -850,6 +900,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<State, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -1000,6 +1060,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetState, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
             }
@@ -1135,6 +1205,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Info, YogTypes.BlockInfo> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.BlockInfo v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -1296,6 +1376,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Destroy, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, boolean.class, String.class));
             }
@@ -1431,6 +1521,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Bonemeal, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -1603,6 +1703,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<UseItem, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, String.class, String.class));
             }
@@ -1751,6 +1861,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<PourFluid, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
             }
@@ -1888,6 +2008,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<RedstonePower, Integer> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Integer v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
             }
@@ -2023,6 +2153,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<RedstoneSignal, Integer> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Integer v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -2173,6 +2313,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetRedstoneOutput, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class));
             }
@@ -2319,6 +2469,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<InventorySlot, YogTypes.Stack> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Stack v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -2502,6 +2662,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetInventorySlot, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, long.class, String.class, long.class, String.class));
             }
@@ -2666,6 +2836,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Create, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, String.class, String.class));
             }
@@ -2790,6 +2970,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Remove, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -2929,6 +3119,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetTitle, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -3064,6 +3264,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetProgress, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -3203,6 +3413,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetColor, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -3338,6 +3558,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<AddPlayer, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -3477,6 +3707,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<RemovePlayer, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -3612,6 +3852,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetVisible, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -3795,6 +4045,16 @@ public final class YogServices {
                 }
                 return false;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Descriptor, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** An address's descriptor. */
@@ -3891,6 +4151,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Describe, YogTypes.Descriptor> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Descriptor v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
         }
 
@@ -3989,6 +4259,16 @@ public final class YogServices {
                 }
                 return java.util.List.of();
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<List, java.util.List<String>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<String> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** The addresses implementing `interface`. */
@@ -4085,6 +4365,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Find, java.util.List<String>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<String> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
         }
     }
@@ -4191,6 +4481,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Broadcast, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -4328,6 +4628,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Tellraw, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -4511,6 +4821,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Title, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, String.class, int.class, int.class, int.class));
             }
@@ -4646,6 +4966,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Actionbar, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -4785,6 +5115,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<ActionbarJson, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -4922,6 +5262,16 @@ public final class YogServices {
                 }
                 return null;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<EntityData, YogTypes.DataValue> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.DataValue v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** Plays `sound` to this client's player; its handle (to stop it). */
@@ -5057,6 +5407,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<PlaySound, Integer> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Integer v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, float.class, boolean.class));
             }
@@ -5183,6 +5543,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<StopSound, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class));
             }
@@ -5307,6 +5677,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<HeldItem, YogTypes.Stack> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Stack v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -5457,6 +5837,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetBlockTint, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class));
             }
@@ -5570,6 +5960,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<ScreenSlots, java.util.List<YogTypes.ScreenSlot>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<YogTypes.ScreenSlot> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -5698,6 +6098,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<KeyDown, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class));
             }
@@ -5824,6 +6234,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<AttributeValue, Double> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Double v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putF64(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
             }
@@ -5948,6 +6368,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<AdvancementDone, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -6087,6 +6517,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<BodyTrack, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
             }
@@ -6222,6 +6662,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<BodyTrackType, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -6381,6 +6831,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetDimensions, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -6568,6 +7028,16 @@ public final class YogServices {
                     return false;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Drive, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, float.class, float.class, boolean.class, boolean.class, boolean.class, boolean.class));
                 }
@@ -6681,6 +7151,16 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Release, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
                 }
 
                 private static final class HostMethod {
@@ -6820,6 +7300,16 @@ public final class YogServices {
                     return false;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Look, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, float.class, float.class));
                 }
@@ -6946,6 +7436,16 @@ public final class YogServices {
                     return false;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Attack, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
                 }
@@ -7070,6 +7570,16 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<UseItem, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
                 }
 
                 private static final class HostMethod {
@@ -7209,6 +7719,16 @@ public final class YogServices {
                     return false;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Mine, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, String.class));
                 }
@@ -7322,6 +7842,16 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<StopMining, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
                 }
 
                 private static final class HostMethod {
@@ -7461,6 +7991,16 @@ public final class YogServices {
                     return false;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Place, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, String.class));
                 }
@@ -7585,6 +8125,16 @@ public final class YogServices {
                         }
                     }
                     return false;
+                }
+
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<SelectSlot, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
                 }
 
                 private static final class HostMethod {
@@ -7735,6 +8285,16 @@ public final class YogServices {
                     return false;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Click, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, String.class));
                 }
@@ -7861,6 +8421,16 @@ public final class YogServices {
                     return false;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Chat, Boolean> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        boolean v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v);
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
                 }
@@ -7981,6 +8551,16 @@ public final class YogServices {
                     return null;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<State, YogTypes.LocalState> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        YogTypes.LocalState v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v != null); if (v != null) { v.pack(p); }
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
                 }
@@ -8094,6 +8674,16 @@ public final class YogServices {
                         }
                     }
                     return java.util.List.of();
+                }
+
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Inventory, java.util.List<YogTypes.SlotStack>> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        java.util.List<YogTypes.SlotStack> v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                        return YogBus.OK;
+                    });
                 }
 
                 private static final class HostMethod {
@@ -8244,6 +8834,16 @@ public final class YogServices {
                     return java.util.List.of();
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Scan, java.util.List<YogTypes.PlacedBlock>> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        java.util.List<YogTypes.PlacedBlock> v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, int.class, int.class, int.class, java.util.List.class));
                 }
@@ -8381,6 +8981,16 @@ public final class YogServices {
                     return null;
                 }
 
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Area, YogTypes.BlockArea> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        YogTypes.BlockArea v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        p.putBool(v != null); if (v != null) { v.pack(p); }
+                        return YogBus.OK;
+                    });
+                }
+
                 private static final class HostMethod {
                     static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, int.class, int.class, int.class));
                 }
@@ -8505,6 +9115,16 @@ public final class YogServices {
                         }
                     }
                     return java.util.List.of();
+                }
+
+                /** Answers it: the request in, the reply out; false if someone answers it already. */
+                public static boolean provide(dev.yog.api.YogBus.Provider<Entities, java.util.List<YogTypes.NearbyEntity>> provider) {
+                    return YogBus.provide(Address.AT, (in, out) -> {
+                        java.util.List<YogTypes.NearbyEntity> v = provider.answer(fromFrame(in));
+                        YogFrame.Packer p = out.frame();
+                        { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                        return YogBus.OK;
+                    });
                 }
 
                 private static final class HostMethod {
@@ -8645,6 +9265,16 @@ public final class YogServices {
                 }
                 return false;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<CommandSpec, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** Every declared command, for the host to register. */
@@ -8730,6 +9360,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Declared, java.util.List<YogTypes.CommandSpec>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<YogTypes.CommandSpec> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
         }
     }
@@ -8855,6 +9495,16 @@ public final class YogServices {
                 }
                 return false;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Register, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
         }
     }
 
@@ -8967,6 +9617,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Data, YogTypes.DataValue> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.DataValue v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
         }
 
@@ -9098,6 +9758,16 @@ public final class YogServices {
                 }
                 return false;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetData, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** The entity's size, `[width, height, eye height]` — `None`: vanilla's — on the server and on every client that sees it. */
@@ -9205,6 +9875,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetDimensions, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
         }
 
@@ -9317,6 +9997,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Teleport, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -9467,6 +10157,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<TeleportToDim, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
             }
@@ -9591,6 +10291,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Position, YogTypes.Point> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Point v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -9719,6 +10429,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Rotation, YogTypes.Rotation> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Rotation v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
             }
@@ -9843,6 +10563,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Velocity, YogTypes.Point> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Point v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -9982,6 +10712,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetVelocity, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
             }
@@ -10119,6 +10859,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<AddVelocity, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
             }
@@ -10243,6 +10993,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Health, Double> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Double v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putF64(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -10382,6 +11142,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetHealth, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class));
             }
@@ -10506,6 +11276,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Kill, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -10654,6 +11434,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Spawn, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -10826,6 +11616,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<AddEffect, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class, int.class, boolean.class));
             }
@@ -10963,6 +11763,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<RemoveEffect, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -11089,6 +11899,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<ClearEffects, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
             }
@@ -11213,6 +12033,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Nbt, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -11352,6 +12182,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetNbt, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -11487,6 +12327,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<AttributeBase, Double> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Double v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putF64(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -11637,6 +12487,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetAttributeBase, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class));
             }
@@ -11774,6 +12634,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<AttributeValue, Double> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Double v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putF64(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -11898,6 +12768,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Info, YogTypes.EntityInfo> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.EntityInfo v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -12059,6 +12939,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Damage, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, String.class, String.class));
             }
@@ -12196,6 +13086,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetFireTicks, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class));
             }
@@ -12322,6 +13222,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Vehicle, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
             }
@@ -12446,6 +13356,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Passengers, java.util.List<String>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<String> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -12596,6 +13516,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Mount, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, boolean.class));
             }
@@ -12720,6 +13650,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Dismount, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -12859,6 +13799,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetFallDistance, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class));
             }
@@ -12974,6 +13924,16 @@ public final class YogServices {
                 }
                 return java.util.List.of();
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Mods, java.util.List<YogTypes.ModInfo>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<YogTypes.ModInfo> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** Whether mod `id` is loaded — a Yog mod or a Java one (the runtime answers). */
@@ -13071,6 +14031,16 @@ public final class YogServices {
                 }
                 return false;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<ModLoaded, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** The game's directory. */
@@ -13160,6 +14130,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Dir, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -13275,6 +14255,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<WorldDir, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -13403,6 +14393,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Translate, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
             }
@@ -13516,6 +14516,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<PlatformMods, java.util.List<YogTypes.ModInfo>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<YogTypes.ModInfo> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -13651,6 +14661,16 @@ public final class YogServices {
                 }
                 return null;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(String key, dev.yog.api.YogBus.Provider<Text, YogTypes.Shown> provider) {
+                return YogBus.provide(YogBus.keyed(YogNames.ServiceItem.TEXT, key), (in, out) -> {
+                    YogTypes.Shown v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** Whether a stack gets a picture under its tooltip (Hex Casting's scrolls show their pattern), and its size in GUI pixels — keyed by the item, answered by its mod; drawn on `client::render::Tooltip`. */
@@ -13754,6 +14774,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(String key, dev.yog.api.YogBus.Provider<Picture, float[]> provider) {
+                return YogBus.provide(YogBus.keyed(YogNames.ServiceItem.PICTURE, key), (in, out) -> {
+                    float[] v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putF32s(v); }
+                    return YogBus.OK;
+                });
             }
         }
 
@@ -13912,6 +14942,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SpawnItem, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class, String.class, long.class, String.class));
             }
@@ -14036,6 +15076,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<EntityStack, YogTypes.Stack> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Stack v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -14197,6 +15247,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetEntityStack, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, long.class, String.class));
             }
@@ -14321,6 +15381,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Block, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -14463,6 +15533,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Call, Object> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Object v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putTagged(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -14613,6 +15693,16 @@ public final class YogServices {
                 }
                 return false;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<KeyBindingSpec, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** Every declared key binding, for the host. */
@@ -14698,6 +15788,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Declared, java.util.List<YogTypes.CategorizedBinding>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<YogTypes.CategorizedBinding> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
         }
     }
@@ -14812,6 +15912,16 @@ public final class YogServices {
                 }
                 return false;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<MenuEntry, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** Every declared menu entry, for the host. */
@@ -14897,6 +16007,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Declared, java.util.List<YogTypes.MenuEntry>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<YogTypes.MenuEntry> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
         }
     }
@@ -15044,6 +16164,16 @@ public final class YogServices {
                     return null;
                 }
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Declare, YogTypes.Declared> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Declared v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    v.pack(p);
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** Lets declaration `id` go. */
@@ -15140,6 +16270,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Release, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
         }
 
@@ -15260,6 +16400,16 @@ public final class YogServices {
                 }
                 return null;
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Provide, YogTypes.Diagnostic> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Diagnostic v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
+            }
         }
 
         /** Mirror `name`'s provider saying it changed (its on-change fields are due). */
@@ -15356,6 +16506,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Touch, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
         }
 
@@ -15503,6 +16663,16 @@ public final class YogServices {
                 }
                 return new long[0];
             }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Keys, long[]> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    long[] v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putLongs(v, false);
+                    return YogBus.OK;
+                });
+            }
         }
     }
 
@@ -15630,6 +16800,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Resolve, Long> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Long v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -15780,6 +16960,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Call, Object> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Object v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putTagged(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class, Object.class, java.util.List.class));
             }
@@ -15915,6 +17105,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Get, Object> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Object v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putTagged(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -16065,6 +17265,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Set, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class, Object.class, Object.class));
             }
@@ -16200,6 +17410,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Release, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -16355,6 +17575,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SendToPlayer, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, byte[].class));
             }
@@ -16490,6 +17720,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SendToServer, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -16678,6 +17918,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SpawnParticles, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, String.class, int.class, double.class, double.class, double.class, double.class));
             }
@@ -16831,6 +18081,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<GiveItem, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, long.class));
             }
@@ -16966,6 +18226,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Teleport, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -17116,6 +18386,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<TeleportToDim, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
             }
@@ -17251,6 +18531,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Kick, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -17390,6 +18680,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetGamemode, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -17514,6 +18814,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Inventory, java.util.List<YogTypes.SlotStack>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<YogTypes.SlotStack> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -17675,6 +18985,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetSlot, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, long.class));
             }
@@ -17799,6 +19119,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<HeldItemNbt, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -17938,6 +19268,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetHeldItemNbt, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -18062,6 +19402,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<OffhandItemNbt, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -18201,6 +19551,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetOffhandItemNbt, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -18336,6 +19696,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SlotItem, YogTypes.Stack> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Stack v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -18508,6 +19878,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetSlotItem, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, long.class, String.class));
             }
@@ -18643,6 +20023,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<AddXp, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -18782,6 +20172,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetMayFly, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
             }
@@ -18906,6 +20306,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Info, YogTypes.PlayerInfo> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.PlayerInfo v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -19054,6 +20464,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetItemCooldown, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -19215,6 +20635,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<PlaceBlockFromSlot, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, int.class, int.class, int.class));
             }
@@ -19328,6 +20758,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Online, java.util.List<String>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<String> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -19470,6 +20910,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Get, Integer> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Integer v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -19620,6 +21070,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Set, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class));
             }
@@ -19766,6 +21226,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Add, Integer> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Integer v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -19943,6 +21413,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Play, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, String.class, float.class, float.class));
             }
@@ -20102,6 +21582,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<PlayToPlayer, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, float.class, float.class));
             }
@@ -20244,6 +21734,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<HasItem, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -20379,6 +21879,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<HasBlock, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -20518,6 +22028,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<HasEntity, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
             }
@@ -20642,6 +22162,16 @@ public final class YogServices {
                     }
                 }
                 return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Items, java.util.List<String>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<String> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -20797,6 +22327,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Open, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class, boolean.class));
             }
@@ -20934,6 +22474,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<OpenWithFlags, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class));
             }
@@ -21058,6 +22608,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Close, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -21200,6 +22760,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<GetBlock, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -21350,6 +22920,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetBlock, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
             }
@@ -21474,6 +23054,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Time, Long> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Long v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -21613,6 +23203,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetTime, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class));
             }
@@ -21737,6 +23337,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<IsRaining, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -21887,6 +23497,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetWeather, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class, int.class));
             }
@@ -22011,6 +23631,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<IsThundering, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -22159,6 +23789,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<SetThunder, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -22320,6 +23960,16 @@ public final class YogServices {
                 return null;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<FillRegion, Long> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Long v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, int.class, int.class, String.class));
             }
@@ -22468,6 +24118,16 @@ public final class YogServices {
                 return java.util.List.of();
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<ScanRegion, java.util.List<YogTypes.PlacedBlock>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<YogTypes.PlacedBlock> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, int.class, int.class));
             }
@@ -22614,6 +24274,16 @@ public final class YogServices {
                     }
                 }
                 return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<PlaceFeature, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -22786,6 +24456,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Explode, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, float.class, boolean.class, String.class));
             }
@@ -22934,6 +24614,16 @@ public final class YogServices {
                 return false;
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<DropLoot, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
             }
@@ -23069,6 +24759,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<EntityCount, Long> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    Long v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putI(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -23219,6 +24919,16 @@ public final class YogServices {
                 return java.util.List.of();
             }
 
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<EntitiesInBox, java.util.List<String>> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    java.util.List<String> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
+                    return YogBus.OK;
+                });
+            }
+
             private static final class HostMethod {
                 static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class));
             }
@@ -23365,6 +25075,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<RaycastBlock, YogTypes.BlockHit> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.BlockHit v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {
@@ -23524,6 +25244,16 @@ public final class YogServices {
                     }
                 }
                 return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<RaycastEntity, String> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    String v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { p.putStr(v); }
+                    return YogBus.OK;
+                });
             }
 
             private static final class HostMethod {

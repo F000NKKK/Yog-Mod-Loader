@@ -8,8 +8,8 @@ use yog_data::schema::StructShape;
 use crate::ServiceInfo;
 
 use super::frames;
-use super::types::{TYPES, java_type};
-use super::{Entry, Out, class_name, field, file, name, target};
+use super::types::{TYPES, boxed, java_type};
+use super::{Entry, Out, class_name, field, file, key_param, listen_target, name, target};
 
 /// The class it writes.
 pub(super) const CLASS: &str = "YogServices";
@@ -48,6 +48,15 @@ fn service_body(s: &ServiceInfo, o: &mut Out) -> String {
             n = r.name
         );
     }
+    let _ = write!(
+        body,
+        "\n\n    /** Answers it: the request in, the reply out; false if someone answers it already. */\n    public static boolean provide({}dev.yog.api.YogBus.Provider<{n}, {}> provider) {{\n        return YogBus.provide({}, (in, out) -> {{\n            {reply} v = provider.answer(fromFrame(in));\n            YogFrame.Packer p = out.frame();\n            {}\n            return YogBus.OK;\n        }});\n    }}",
+        key_param(s.key),
+        boxed(&reply),
+        listen_target(s.address, s.key, "AT"),
+        frames::pack(&s.reply, "v", 0),
+        n = s.name
+    );
     if s.host.is_some() {
         body.push_str(&serve(s, &mut o.records));
         let _ = write!(

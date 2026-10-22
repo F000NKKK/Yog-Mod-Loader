@@ -338,6 +338,11 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
 5. **Nanites.** Mapping-driven generation, reflection (`call`/`get`/`set`),
    then injections (manifest → generated Mixin config → bus events).
 6. **Java mods.** A public `dev.yog.api.YogBus` with typed messages.
+   (Done: every generated event has typed `on` / `onPre`, every service
+   `provide`; `dev.yog.api.YogBus` takes a Java mod's own records — packed
+   to the frame a Rust struct with the same fields in the same order packs
+   to, so Java and Yog mods share messages by declaring them alike;
+   tested on a real JVM, `api_jvm`.)
    Alongside it, fonts brought to full quality:
    - the designers shape whole runs with `yog_font` (ligatures, kerning,
      contextual forms) instead of drawing a `.yfont` char by char;
