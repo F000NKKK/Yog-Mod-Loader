@@ -66,16 +66,32 @@ pub struct BlockArea {
 impl BlockArea {
     /// The kind of block at `pos`, if it's inside.
     pub fn at(&self, pos: impl Into<BlockPos>) -> Option<&BlockKind> {
-        let pos = pos.into();
+        let index = self.blocks.get(self.index(pos.into())?)?;
+        self.palette.get(usize::from(*index))
+    }
+
+    /// The block at `pos` made the palette's `kind` (a block dug or put,
+    /// known without looking again); whether it's inside.
+    pub fn set(&mut self, pos: impl Into<BlockPos>, kind: u16) -> bool {
+        match self.index(pos.into()).and_then(|i| self.blocks.get_mut(i)) {
+            Some(block) if usize::from(kind) < self.palette.len() => {
+                *block = kind;
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// Where `pos`'s block is in [`BlockArea::blocks`], if it's inside.
+    fn index(&self, pos: BlockPos) -> Option<usize> {
         let (w, d) = (self.max.x - self.min.x + 1, self.max.z - self.min.z + 1);
         let (x, y, z) = (pos.x - self.min.x, pos.y - self.min.y, pos.z - self.min.z);
         let inside = (0..w).contains(&x)
             && (0..d).contains(&z)
             && (0..=self.max.y - self.min.y).contains(&y);
-        let index = inside
-            .then(|| self.blocks.get(((y * d + z) * w + x) as usize))
-            .flatten()?;
-        self.palette.get(usize::from(*index))
+        inside
+            .then(|| usize::try_from((y * d + z) * w + x).ok())
+            .flatten()
     }
 }
 
@@ -121,7 +137,7 @@ mod tests {
             climbable: false,
             harmful: false,
         };
-        let area = BlockArea {
+        let mut area = BlockArea {
             min: BlockPos::new(0, 0, 0),
             max: BlockPos::new(1, 1, 0),
             palette: vec![kind("a"), kind("b")],
@@ -136,5 +152,12 @@ mod tests {
             Some("b")
         );
         assert_eq!(area.at(BlockPos::new(2, 0, 0)), None);
+        assert!(area.set(BlockPos::new(1, 0, 0), 0));
+        assert_eq!(
+            area.at(BlockPos::new(1, 0, 0)).map(|k| k.id.as_str()),
+            Some("a")
+        );
+        assert!(!area.set(BlockPos::new(2, 0, 0), 0));
+        assert!(!area.set(BlockPos::new(0, 0, 0), 2));
     }
 }
