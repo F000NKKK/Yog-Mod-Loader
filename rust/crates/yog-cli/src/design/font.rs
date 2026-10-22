@@ -607,17 +607,26 @@ impl Font {
 
     /// Width in GUI pixels, as the game's `Font.width` measures it (`§` codes skipped, bold +offset).
     pub fn width(&self, text: &str) -> f32 {
-        styled(text, yog_gfx::Color::WHITE.0)
+        self.layout(&styled(text, yog_gfx::Color::WHITE.0))
             .iter()
-            .map(|s| {
-                self.glyph(s.ch).advance
-                    + if s.bold {
-                        self.glyph(s.ch).bold_offset
-                    } else {
-                        0.0
-                    }
-            })
+            .map(|(g, s)| g.advance + if s.bold { g.bold_offset } else { 0.0 })
             .sum()
+    }
+
+    /// What draws `chars`, in order: a glyph a character — or, in a mod's
+    /// own font, each run of one style shaped and drawn whole (ligatures,
+    /// kerning and joined glyphs are the run's, not a character's).
+    pub fn layout(&self, chars: &[Styled]) -> Vec<(Arc<Glyph>, Styled)> {
+        let [Provider::Yog(own)] = self.providers.as_slice() else {
+            return chars.iter().map(|s| (self.glyph(s.ch), *s)).collect();
+        };
+        chars
+            .chunk_by(|a, b| a.same_style(b))
+            .map(|run| {
+                let text: String = run.iter().map(|s| s.ch).collect();
+                (own.run(&text, BASELINE), run[0])
+            })
+            .collect()
     }
 }
 
@@ -629,6 +638,14 @@ pub struct Styled {
     pub bold: bool,
     pub underline: bool,
     pub strike: bool,
+}
+
+impl Styled {
+    /// Whether `other` is drawn in the same style (a run goes on).
+    fn same_style(&self, other: &Styled) -> bool {
+        (self.color, self.bold, self.underline, self.strike)
+            == (other.color, other.bold, other.underline, other.strike)
+    }
 }
 
 /// A legacy chat color's code: `5` dark purple, `a` green.

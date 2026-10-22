@@ -141,7 +141,9 @@ fn blit(
 }
 
 /// Keeps font `id` (a `.yfont`).
-pub(crate) fn register(id: String, font: Font) {
+pub(crate) fn register(id: String, mut font: Font) {
+    // Lookups search its tables sorted, whoever made it.
+    font.normalize();
     FONTS
         .write()
         .get_or_insert_with(HashMap::new)

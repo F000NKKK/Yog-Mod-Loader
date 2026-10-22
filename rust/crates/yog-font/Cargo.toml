@@ -10,3 +10,10 @@ description = "Yog fonts — one format for every font of the system: glyphs as 
 [dependencies]
 yog-data = { workspace = true }
 yog-graphics = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "font"
+harness = false

@@ -91,7 +91,7 @@ pub(super) fn compile_font(
     path: &Path,
     errors: &mut Vec<Diagnostic>,
 ) -> Option<FontFile> {
-    let font = match yog_data::from_text::<yog_font::Font>(text) {
+    let mut font = match yog_data::from_text::<yog_font::Font>(text) {
         Ok(read) => read.value,
         Err(problems) => {
             for found in &problems.0 {
@@ -100,6 +100,7 @@ pub(super) fn compile_font(
             return None;
         }
     };
+    font.normalize();
     if let Err(problems) = font.validate() {
         errors.extend(
             problems

@@ -361,7 +361,7 @@ impl<'r> Canvas<'r> {
             at
         };
         let font = self.font(style.font);
-        let chars = styled(text, text_color(style.color.0));
+        let laid = font.layout(&styled(text, text_color(style.color.0)));
         let passes: &[bool] = if style.shadow {
             &[true, false]
         } else {
@@ -369,18 +369,17 @@ impl<'r> Canvas<'r> {
         };
         for &is_shadow in passes {
             let mut pen = x;
-            for s in &chars {
-                let g = font.glyph(s.ch);
+            for (g, s) in &laid {
                 let c = if is_shadow {
                     shadow_color(s.color)
                 } else {
                     s.color
                 };
                 let off = if is_shadow { g.shadow_offset * k } else { 0.0 };
-                self.glyph(&g, pen + off, y + off, k, c);
+                self.glyph(g, pen + off, y + off, k, c);
                 let mut adv = g.advance * k;
                 if s.bold {
-                    self.glyph(&g, pen + off + g.bold_offset * k, y + off, k, c);
+                    self.glyph(g, pen + off + g.bold_offset * k, y + off, k, c);
                     adv += g.bold_offset * k;
                 }
                 for (on, (top, bottom)) in [(s.underline, UNDERLINE), (s.strike, STRIKE)] {

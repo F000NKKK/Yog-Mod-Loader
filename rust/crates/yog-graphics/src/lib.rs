@@ -7,14 +7,16 @@
 pub mod color;
 pub mod draw;
 pub mod image;
+pub mod mask;
 pub mod math;
 pub mod path;
 pub mod raster;
 pub mod rect;
 
 pub use color::Color;
-pub use draw::{Fill, ImageOp, Op, Stroke};
+pub use draw::{Fill, ImageOp, MaskOp, Op, Stroke};
 pub use image::{BYTES_PER_PIXEL, Image, PlacedImage, Rgba8};
+pub use mask::Mask;
 pub use math::{Mat4, Vec2, Vec3, rad};
 pub use path::Seg;
 pub use raster::Canvas;

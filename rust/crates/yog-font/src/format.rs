@@ -136,6 +136,11 @@ impl Font {
             self.validate_machine(i, machine, &mut errors);
         }
         self.validate_kerning(&mut errors);
+        if !self.chars.is_sorted_by_key(|c| c.char)
+            || !self.kerning.is_sorted_by_key(|k| (k.left, k.right))
+        {
+            errors.push("chars and kerning must be sorted (Font::normalize)".to_string());
+        }
         if let Some(fit) = self.fit
             && (!fit.height.is_finite() || fit.height <= 0.0 || !fit.center.is_finite())
         {
@@ -251,9 +256,27 @@ impl Font {
 
     /// A built font from its file's bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<Font, String> {
-        let font = yog_data::read_bytes::<Font>(bytes).map_err(|e| format!("{e:?}"))?;
+        let mut font = yog_data::read_bytes::<Font>(bytes).map_err(|e| format!("{e:?}"))?;
+        font.normalize();
         font.validate().map_err(|errors| errors.join("; "))?;
         Ok(font)
+    }
+
+    /// Its tables in the order lookups search them: characters and
+    /// kerning pairs sorted, ligatures by their first glyph (the longest
+    /// first), each machine's classes' glyphs sorted. Whoever makes a font
+    /// (a loader, an importer, an editor) calls it once.
+    pub fn normalize(&mut self) {
+        self.chars.sort_unstable_by_key(|c| c.char);
+        self.kerning.sort_unstable_by_key(|k| (k.left, k.right));
+        self.ligatures
+            .sort_by_key(|l| (l.glyphs.first().copied(), std::cmp::Reverse(l.glyphs.len())));
+        for m in &mut self.machines {
+            for class in &mut m.classes {
+                class.glyphs.sort_unstable();
+            }
+            m.transitions.sort_unstable_by_key(|t| (t.state, t.class));
+        }
     }
 
     /// The font's file.
@@ -261,9 +284,28 @@ impl Font {
         yog_data::binary::encode(&self.write())
     }
 
-    /// The glyph that draws `c`.
+    /// The glyph that draws `c` (the font [`normalize`](Font::normalize)d).
     pub fn glyph_of(&self, c: char) -> Option<u32> {
         let c = c as u32;
-        self.chars.iter().find(|m| m.char == c).map(|m| m.glyph)
+        let at = self.chars.binary_search_by_key(&c, |m| m.char).ok()?;
+        Some(self.chars[at].glyph)
+    }
+
+    /// The space kerning puts between `left` and `right`.
+    pub fn kern(&self, left: u32, right: u32) -> i32 {
+        self.kerning
+            .binary_search_by_key(&(left, right), |k| (k.left, k.right))
+            .map_or(0, |at| self.kerning[at].x)
+    }
+
+    /// The ligatures starting with glyph `first`, the longest first.
+    pub fn ligatures_from(&self, first: u32) -> &[Ligature] {
+        let from = self
+            .ligatures
+            .partition_point(|l| l.glyphs.first().is_some_and(|&g| g < first));
+        let to = self
+            .ligatures
+            .partition_point(|l| l.glyphs.first().is_some_and(|&g| g <= first));
+        &self.ligatures[from..to]
     }
 }

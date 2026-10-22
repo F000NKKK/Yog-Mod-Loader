@@ -350,6 +350,13 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
      so copies of `yog:font/default` stay small and the whole of Unifont
      (`yog:font/uniform`) can be copied without `--chars`;
    - import, load and shaping profiled and benchmarked.
+   (Done: the designers draw a Yog font's style runs shaped whole, as the
+   runtime does; one-color glyphs are `Op::Mask` — 114 B a 16 × 16 glyph
+   against 1109 as RGBA, so `yog import font yog:font/uniform` copies
+   Unifont whole; a font's tables sorted and searched by halves — 200
+   glyphs found in 4.1 µs against 1.40 ms scanning, a 57k-glyph font
+   loaded in 27.7 ms, a 200-character line shaped in 5.2 µs, drawn in
+   1.12 ms; `cargo bench -p yog-font`.)
 7. **Mods.** VLSI, Pipes, Modlist, Hex move to the new `yog-api`; release.
 
 Each stage builds and passes its tests; the release is cut after 7.

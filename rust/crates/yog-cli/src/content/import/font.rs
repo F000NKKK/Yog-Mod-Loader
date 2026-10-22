@@ -3,10 +3,11 @@
 //! (`content/font/<name>.yfont`): what editing a game font starts from.
 //! Each glyph is the game's picture of it, tinted by the text's color, at
 //! the game's metrics. `--chars 0400-04FF,2665` picks the characters
-//! (hex code points); without it Unifont's tens of thousands stay out.
+//! (hex code points); without it a font's own come, and Unifont
+//! (`yog:font/uniform`) whole.
 
 use yog_font::{CharGlyph, Font, Glyph};
-use yog_graphics::{Image, ImageOp, Op, Rect};
+use yog_graphics::{Color, Image, ImageOp, Mask, MaskOp, Op, Rect};
 use yog_ids::Format;
 
 use super::Target;
@@ -54,13 +55,21 @@ pub(super) fn import_font(
                 .collect()
         }
         None => {
+            // A font that is Unifont (`yog:font/uniform`) comes whole — a bit
+            // a pixel, tens of thousands of glyphs are a few megabytes; one
+            // that only falls back to it keeps its own.
             let own = source.chars(false);
-            if source.chars(true).len() > own.len() {
-                target.warnings.push(format!(
-                    "{game}: Unifont's glyphs left out (--chars picks some)"
-                ));
+            let all = source.chars(true);
+            if own.is_empty() {
+                all
+            } else {
+                if all.len() > own.len() {
+                    target.warnings.push(format!(
+                        "{game}: Unifont's glyphs left out (--chars picks some)"
+                    ));
+                }
+                own
             }
-            own
         }
     };
     if !chars.iter().any(|&c| source.glyph(c).bitmap.is_some()) {
@@ -68,7 +77,8 @@ pub(super) fn import_font(
             "{game}: no glyphs to import — pick its characters with --chars <from>-<to>,… (hex)"
         ));
     }
-    let font = convert(&source, &chars);
+    let mut font = convert(&source, &chars);
+    font.normalize();
     font.validate().map_err(|e| e.join("; "))?;
     let path = id.map_or_else(|| copy_path(yog_ids::split(&game).1), str::to_owned);
     let rel = format!("{}/{}", yog_ids::project::CONTENT, Format::Font.file(&path));
@@ -161,6 +171,15 @@ fn picture(b: &GlyphBitmap) -> Option<Op> {
         px(w) * UNITS_PER_PX,
         px(h) * UNITS_PER_PX,
     );
+    // A one-color picture in white (as the game's are) takes the text's
+    // color whole: a mask, a bit a pixel.
+    if let Some((mask, Color::WHITE)) = Mask::of(&cut) {
+        return Some(Op::Mask(MaskOp {
+            rect,
+            mask,
+            color: None,
+        }));
+    }
     Some(Op::Image(ImageOp {
         rect,
         image: cut,
@@ -190,13 +209,15 @@ mod tests {
         };
         let out = glyph('A', &g);
         assert_eq!(out.advance, 48);
-        let [Op::Image(image)] = out.ops.as_slice() else {
+        let [Op::Mask(mask)] = out.ops.as_slice() else {
             panic!("{:?}", out.ops)
         };
-        // Cut to its 5 visible columns; its top at the line's top (7 px above the baseline), 8 px tall.
-        assert_eq!(image.rect, Rect::new(0.0, -8.0, 40.0, 64.0));
-        assert_eq!((image.image.width, image.image.height), (5, 8));
-        assert!(image.tinted);
+        // Cut to its 5 visible columns; its top at the line's top (7 px above the baseline), 8 px tall;
+        // one color, white: a mask in the text's color.
+        assert_eq!(mask.rect, Rect::new(0.0, -8.0, 40.0, 64.0));
+        assert_eq!((mask.mask.width, mask.mask.height), (5, 8));
+        assert_eq!(mask.color, None);
+        assert!(mask.mask.get(4, 7) && mask.mask.bits.len() == 8);
         let blank = GameGlyph {
             bitmap: Some(GlyphBitmap {
                 w: 2,

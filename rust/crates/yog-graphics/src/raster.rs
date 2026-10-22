@@ -4,6 +4,7 @@
 
 use crate::color::Color;
 use crate::image::Image;
+use crate::mask::Mask;
 use crate::math::Vec2;
 use crate::rect::Rect;
 
@@ -76,26 +77,54 @@ impl Canvas {
     /// `image` sampled (nearest) into `dst`, its colors multiplied by
     /// `tint` if given.
     pub fn image(&mut self, image: &Image, dst: Rect, tint: Option<Color>) {
-        if image.is_empty() || dst.w <= 0.0 || dst.h <= 0.0 {
+        if image.is_empty() {
             return;
         }
         let tint = tint.map(Color::to_f32);
+        self.sampled(image.width, image.height, dst, |u, v| {
+            let c = image.pixel(u, v).to_f32();
+            Some(match tint {
+                Some(t) => [c[0] * t[0], c[1] * t[1], c[2] * t[2], c[3] * t[3]],
+                None => c,
+            })
+        });
+    }
+
+    /// `mask` in box `dst` (pixels), its set pixels `color`.
+    pub fn mask(&mut self, mask: &Mask, dst: Rect, color: Color) {
+        let c = color.to_f32();
+        self.sampled(mask.width, mask.height, dst, |u, v| {
+            mask.get(u, v).then_some(c)
+        });
+    }
+
+    /// A `width × height` picture in box `dst`: each canvas pixel in it
+    /// takes the picture's pixel under its centre, `sample` giving its color
+    /// (none: nothing there).
+    fn sampled(
+        &mut self,
+        width: u32,
+        height: u32,
+        dst: Rect,
+        sample: impl Fn(u32, u32) -> Option<[f32; 4]>,
+    ) {
+        if width == 0 || height == 0 || dst.w <= 0.0 || dst.h <= 0.0 {
+            return;
+        }
         for py in
             (dst.y.floor().max(0.0) as usize)..(dst.bottom().ceil().min(self.h as f32) as usize)
         {
             for px in
                 (dst.x.floor().max(0.0) as usize)..(dst.right().ceil().min(self.w as f32) as usize)
             {
-                let u = ((px as f32 + 0.5 - dst.x) / dst.w * image.width as f32).floor();
-                let v = ((py as f32 + 0.5 - dst.y) / dst.h * image.height as f32).floor();
-                if u < 0.0 || v < 0.0 || u >= image.width as f32 || v >= image.height as f32 {
+                let u = ((px as f32 + 0.5 - dst.x) / dst.w * width as f32).floor();
+                let v = ((py as f32 + 0.5 - dst.y) / dst.h * height as f32).floor();
+                if u < 0.0 || v < 0.0 || u >= width as f32 || v >= height as f32 {
                     continue;
                 }
-                let mut c = image.pixel(u as u32, v as u32).to_f32();
-                if let Some(t) = tint {
-                    c = [c[0] * t[0], c[1] * t[1], c[2] * t[2], c[3] * t[3]];
+                if let Some(c) = sample(u as u32, v as u32) {
+                    over(&mut self.px[py * self.w + px], c);
                 }
-                over(&mut self.px[py * self.w + px], c);
             }
         }
     }

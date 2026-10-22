@@ -6,6 +6,7 @@ use yog_data::Schema;
 
 use crate::color::Color;
 use crate::image::Image;
+use crate::mask::Mask;
 use crate::math::Vec2;
 use crate::path::{self, Seg};
 use crate::raster::Canvas;
@@ -21,6 +22,8 @@ pub enum Op {
     Stroke(Stroke),
     /// An image in a box.
     Image(ImageOp),
+    /// A one-color picture, a bit a pixel, in a box (a pixel font's glyph).
+    Mask(MaskOp),
 }
 
 #[derive(Schema, Debug, Clone, PartialEq)]
@@ -50,6 +53,15 @@ pub struct ImageOp {
     pub tinted: bool,
 }
 
+/// `mask` in box `rect` (`rect.x, rect.y` its bottom-left corner), its set
+/// pixels `color` (none: the current color — a text's).
+#[derive(Schema, Debug, Clone, PartialEq)]
+pub struct MaskOp {
+    pub rect: Rect,
+    pub mask: Mask,
+    pub color: Option<Color>,
+}
+
 /// What `ops` cover (control points included); `None` when they draw
 /// nothing.
 pub fn bounds(ops: &[Op]) -> Option<Rect> {
@@ -58,6 +70,7 @@ pub fn bounds(ops: &[Op]) -> Option<Rect> {
             Op::Fill(f) => path::bounds(&f.path, 0.0),
             Op::Stroke(s) => path::bounds(&s.path, s.width / 2.0),
             Op::Image(i) => Some(i.rect),
+            Op::Mask(m) => Some(m.rect),
         })
         .reduce(|a, b| a.union(&b))
 }
@@ -78,14 +91,24 @@ impl Canvas {
                     s.color.unwrap_or(current),
                 ),
                 Op::Image(i) => {
-                    let r = i.rect;
-                    let dst = Rect::from_corners(
-                        to_px(Vec2::new(r.x, r.y)),
-                        to_px(Vec2::new(r.right(), r.bottom())),
+                    self.image(
+                        &i.image,
+                        px_box(i.rect, &to_px),
+                        i.tinted.then_some(current),
                     );
-                    self.image(&i.image, dst, i.tinted.then_some(current));
+                }
+                Op::Mask(m) => {
+                    self.mask(&m.mask, px_box(m.rect, &to_px), m.color.unwrap_or(current))
                 }
             }
         }
     }
+}
+
+/// Box `r` of a drawing in the canvas's pixels.
+fn px_box(r: Rect, to_px: &impl Fn(Vec2) -> Vec2) -> Rect {
+    Rect::from_corners(
+        to_px(Vec2::new(r.x, r.y)),
+        to_px(Vec2::new(r.right(), r.bottom())),
+    )
 }

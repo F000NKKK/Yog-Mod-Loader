@@ -2243,6 +2243,7 @@ dependencies = [
 name = "yog-font"
 version = "0.5.0"
 dependencies = [
+ "criterion",
  "yog-data",
  "yog-graphics",
 ]

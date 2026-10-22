@@ -57,12 +57,10 @@ fn ligatures(font: &Font, run: Vec<(u32, usize)>) -> Vec<(u32, usize)> {
     let mut out = Vec::with_capacity(run.len());
     let mut i = 0;
     while i < run.len() {
-        let best = font
-            .ligatures
-            .iter()
-            .filter(|l| !l.glyphs.is_empty() && run.len() - i >= l.glyphs.len())
-            .filter(|l| l.glyphs.iter().zip(&run[i..]).all(|(a, (b, _))| a == b))
-            .max_by_key(|l| l.glyphs.len());
+        let best = font.ligatures_from(run[i].0).iter().find(|l| {
+            run.len() - i >= l.glyphs.len()
+                && l.glyphs.iter().zip(&run[i..]).all(|(a, (b, _))| a == b)
+        });
         match best {
             Some(l) => {
                 out.push((l.glyph, run[i].1));
@@ -81,15 +79,16 @@ fn machine(m: &crate::format::Machine, mut run: Vec<(u32, usize)>) -> Vec<(u32, 
     let class_of = |g: u32| {
         m.classes
             .iter()
-            .find(|c| c.glyphs.contains(&g))
+            .find(|c| c.glyphs.binary_search(&g).is_ok())
             .map(|c| c.class)
     };
     let mut state = 0;
     for (g, _) in run.iter_mut() {
         let t = class_of(*g).and_then(|class| {
-            m.transitions
-                .iter()
-                .find(|t| t.state == state && t.class == class)
+            let at = m
+                .transitions
+                .binary_search_by_key(&(state, class), |t| (t.state, t.class));
+            at.ok().map(|at| &m.transitions[at])
         });
         match t {
             Some(t) => {
@@ -150,7 +149,7 @@ fn place(font: &Font, run: &[(u32, usize)]) -> (Vec<Placed>, f32) {
             // A glyph on its own: at the pen, kerned against the one before.
             if let Some(p) = joined.first_mut() {
                 if let Some(before) = i.checked_sub(1).map(|k| run[k].0) {
-                    pen += kern(font, before, p.glyph);
+                    pen += font.kern(before, p.glyph) as f32;
                 }
                 p.x = pen;
                 pen += glyph(p.glyph).map_or(0, |g| g.advance) as f32;
@@ -200,13 +199,6 @@ fn fit_joined(font: &Font, joined: &mut [Placed], pen: f32) -> f32 {
         .and_then(|p| font.glyphs.get(p.glyph as usize))
         .map_or(0, |g| g.advance);
     b.w * scale + tail as f32
-}
-
-fn kern(font: &Font, left: u32, right: u32) -> f32 {
-    font.kerning
-        .iter()
-        .find(|k| k.left == left && k.right == right)
-        .map_or(0.0, |k| k.x as f32)
 }
 
 /// What a glyph's drawing covers, in font units (`y` up); `None` for a

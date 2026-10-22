@@ -25,6 +25,12 @@ fn glyph(name: &str, advance: i32, ops: Vec<Op>) -> Glyph {
 
 /// `A` a filled box, `B` nothing, `A` `B` one wide glyph.
 fn latin() -> Font {
+    let mut f = latin_unsorted();
+    f.normalize();
+    f
+}
+
+fn latin_unsorted() -> Font {
     Font {
         units_per_em: 100,
         ascent: 80,
@@ -87,6 +93,12 @@ fn characters_become_glyphs_ligatures_and_kerning() {
 /// (`>`, heading east), then each character turns the line (`w` straight,
 /// `q` left) and draws the next stroke, joined end to end.
 fn runes() -> Font {
+    let mut f = runes_unsorted();
+    f.normalize();
+    f
+}
+
+fn runes_unsorted() -> Font {
     let stroke = |name: &str, dx: i32, dy: i32| Glyph {
         name: name.into(),
         advance: 10,
@@ -281,4 +293,60 @@ fn invalid_font_references_are_reported() {
     assert!(problems.iter().any(|p| p.contains("chars[0].glyph 99")));
     assert!(problems.iter().any(|p| p.contains("at least two glyphs")));
     assert!(Font::from_bytes(&f.to_bytes()).is_err());
+}
+
+/// A pixel font's glyphs as masks: a file many times smaller than the same
+/// glyphs as RGBA pictures (Unifont whole is a few megabytes).
+#[test]
+fn mask_glyphs_make_a_small_file() {
+    use yog_graphics::{BYTES_PER_PIXEL, Image, ImageOp, Mask, MaskOp, Op, Rect};
+    const CELL: u32 = 16;
+    const GLYPHS: u32 = 1000;
+    let font_of = |op: &dyn Fn(u32) -> Op| {
+        let mut f = Font {
+            units_per_em: CELL,
+            ascent: 14,
+            descent: -2,
+            ..Font::default()
+        };
+        for i in 0..GLYPHS {
+            f.chars.push(crate::CharGlyph {
+                char: 0x4E00 + i,
+                glyph: i,
+            });
+            f.glyphs.push(Glyph {
+                advance: CELL as i32,
+                ops: vec![op(i)],
+                ..Glyph::default()
+            });
+        }
+        f.normalize();
+        f.to_bytes().len()
+    };
+    let rect = Rect::new(0.0, 0.0, CELL as f32, CELL as f32);
+    let picture = |i: u32| {
+        let mut image = Image::new(CELL, CELL);
+        for (k, p) in image.rgba.as_chunks_mut::<BYTES_PER_PIXEL>().0.iter_mut().enumerate() {
+            if (k as u32 + i).is_multiple_of(3) {
+                p.copy_from_slice(&[0xFF; BYTES_PER_PIXEL]);
+            }
+        }
+        image
+    };
+    let images = font_of(&|i| {
+        Op::Image(ImageOp {
+            rect,
+            image: picture(i),
+            tinted: true,
+        })
+    });
+    let masks = font_of(&|i| {
+        let (mask, _) = Mask::of(&picture(i)).unwrap();
+        Op::Mask(MaskOp {
+            rect,
+            mask,
+            color: None,
+        })
+    });
+    assert!(masks * 8 < images, "masks {masks} B, images {images} B");
 }
