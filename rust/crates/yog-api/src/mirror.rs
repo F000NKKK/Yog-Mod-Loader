@@ -151,6 +151,8 @@ pub struct Writer {
     space_name: String,
     /// What its declarations asked it to cover (its scope type's frames).
     scopes: Vec<Vec<u8>>,
+    /// Which scopes are due (bit `i`: `scopes[i]`).
+    writing: u64,
     fields: u64,
     space: Option<KeySpaceRef>,
     rows: Option<ColumnWriter>,
@@ -172,6 +174,7 @@ impl Writer {
             mirror: w.mirror,
             space_name: w.space_name,
             scopes: w.scopes.into_iter().map(|s| s.bytes).collect(),
+            writing: w.writing,
             fields: w.fields,
             // SAFETY: as above.
             space: unsafe { KeySpaceRef::new(w.space as *const _) },
@@ -188,6 +191,11 @@ impl Writer {
     /// What the declarations asked it to cover, each its scope type's frame.
     pub fn scopes(&self) -> &[Vec<u8>] {
         &self.scopes
+    }
+
+    /// Whether scope `i` is due this turn (the others are only kept as keys).
+    pub fn writing(&self, i: usize) -> bool {
+        i >= yog_mirror::SCOPE_PACES || self.writing >> i & 1 == 1
     }
 
     /// Makes its key space's keys `live` (each with its parent key): the

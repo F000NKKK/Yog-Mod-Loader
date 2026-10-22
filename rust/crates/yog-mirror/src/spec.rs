@@ -100,7 +100,14 @@ pub struct Due {
     pub columns: std::ops::Range<usize>,
     /// What its declarations asked it to cover, in [`DueList::scopes`].
     pub scopes: std::ops::Range<usize>,
+    /// Which of those are due (bit `i`: scope `i`, at its declaration's
+    /// rate); the rest are only kept as keys. Past [`SCOPE_PACES`], every
+    /// scope is due every turn.
+    pub writing: u64,
 }
+
+/// Scopes that keep their own pace (a bit each in [`Due::writing`]).
+pub const SCOPE_PACES: usize = u64::BITS as usize;
 
 /// What's due a tick: every provider's turn, their columns in one list —
 /// kept from tick to tick, so nothing is allocated once it's grown.

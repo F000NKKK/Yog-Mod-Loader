@@ -15,7 +15,7 @@ use yog_sync::Arc;
 
 use crate::buffer::Buffer;
 use crate::keys::{KeySpace, bit_words, set_bit};
-use crate::spec::{Clock, Declared, Due, DueList, Linked, MirrorSpec, Rate};
+use crate::spec::{Clock, Declared, Due, DueList, Linked, MirrorSpec, Rate, SCOPE_PACES};
 
 mod families;
 mod links;
@@ -96,7 +96,42 @@ struct Mirror {
     declarations: u32,
     touched: bool,
     /// What each declaration with a scope asked its provider to cover.
-    scopes: Vec<(u32, Arc<[u8]>)>,
+    scopes: Vec<ScopeDemand>,
+}
+
+/// A declaration's scope, written at the declaration's own rate.
+struct ScopeDemand {
+    by: u32,
+    scope: Arc<[u8]>,
+    /// Ticks between writes (0: on change only).
+    period: u32,
+    next: u64,
+    on_change: bool,
+}
+
+impl ScopeDemand {
+    fn new(by: u32, scope: Arc<[u8]>, rate: Rate) -> ScopeDemand {
+        let (period, on_change) = match rate {
+            Rate::Every(n) => (n.max(1), false),
+            Rate::Changes => (0, true),
+        };
+        ScopeDemand {
+            by,
+            scope,
+            period,
+            next: 0,
+            on_change,
+        }
+    }
+
+    /// Whether it's due at `tick` (its next one set if so).
+    fn due(&mut self, tick: u64, touched: bool) -> bool {
+        let every = self.period != 0 && tick >= self.next;
+        if every {
+            self.next = tick + u64::from(self.period);
+        }
+        every || (self.on_change && touched)
+    }
 }
 
 struct Declaration {
@@ -247,7 +282,7 @@ impl Store {
             .ok_or_else(|| unknown_mirror(&spec.name))?;
         mirror.declarations += 1;
         if let Some(scope) = scope {
-            mirror.scopes.push((id, scope.into()));
+            mirror.scopes.push(ScopeDemand::new(id, scope.into(), rate));
         }
         let (space, rows) = (mirror.space, std::ptr::from_ref(mirror.rows.raw()));
         self.declarations.insert(
@@ -283,7 +318,7 @@ impl Store {
         }
         if let Some(m) = self.mirrors.get_mut(&d.mirror) {
             m.declarations -= 1;
-            m.scopes.retain(|(by, _)| *by != id);
+            m.scopes.retain(|s| s.by != id);
         }
         self.forget_unused(&d.mirror);
         self.relink();
@@ -371,8 +406,12 @@ impl Store {
             let keeps_keys = p.host && self.in_use.get(m.space.0 as usize) == Some(&true);
             if fields != 0 || keeps_keys {
                 let scopes = out.next_scope();
-                for (_, scope) in &m.scopes {
-                    out.push_scope(scope.clone());
+                let mut writing = 0;
+                for (i, s) in m.scopes.iter_mut().enumerate() {
+                    if s.due(tick, touched) && i < SCOPE_PACES {
+                        writing |= 1 << i;
+                    }
+                    out.push_scope(s.scope.clone());
                 }
                 out.turns.push(Due {
                     writer: p.writer,
@@ -383,6 +422,7 @@ impl Store {
                     rows: std::ptr::from_ref(m.rows.raw()) as u64,
                     columns: first..out.next_column(),
                     scopes: scopes..out.next_scope(),
+                    writing,
                 });
             }
         }

@@ -4817,7 +4817,7 @@ public final class YogTypes {
     }
 
     /** A provider's turn (sent to its mirror's address): the fields due, a bit each in its field order, and where they go. */
-    public record Write(String mirror, long fields, long space, String spaceName, long rows, long[] columns, java.util.List<YogTypes.Scope> scopes) {
+    public record Write(String mirror, long fields, long space, String spaceName, long rows, long[] columns, java.util.List<YogTypes.Scope> scopes, long writing) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("mirror", mirror);
@@ -4827,12 +4827,13 @@ public final class YogTypes {
             m.put("rows", rows);
             m.put("columns", YogData.listOf(columns));
             m.put("scopes", scopes.stream().map(e0 -> e0.toData()).toList());
+            m.put("writing", writing);
             return m;
         }
 
         public static Write fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Write(YogData.str(m.get("mirror"), ""), YogData.integer(m.get("fields"), 0), YogData.integer(m.get("space"), 0), YogData.str(m.get("space_name"), ""), YogData.integer(m.get("rows"), 0), YogData.longs(m.get("columns")), YogData.list(m.get("scopes")).stream().map(e0 -> YogTypes.Scope.fromData(e0)).toList());
+            return new Write(YogData.str(m.get("mirror"), ""), YogData.integer(m.get("fields"), 0), YogData.integer(m.get("space"), 0), YogData.str(m.get("space_name"), ""), YogData.integer(m.get("rows"), 0), YogData.longs(m.get("columns")), YogData.list(m.get("scopes")).stream().map(e0 -> YogTypes.Scope.fromData(e0)).toList(), YogData.integer(m.get("writing"), 0));
         }
 
         public static Write fromBytes(byte[] bytes) {
@@ -4848,6 +4849,7 @@ public final class YogTypes {
             p.putI(this.rows);
             p.putLongs(this.columns, false);
             { int l0 = p.beginList(this.scopes.size()); for (var e0 : this.scopes) { e0.pack(p); } p.end(l0); }
+            p.putI(this.writing);
             p.end(at);
         }
 
@@ -4860,8 +4862,9 @@ public final class YogTypes {
             long f_rows = u.more(end) ? u.getI() : 0L;
             long[] f_columns = u.more(end) ? u.getLongs(false) : new long[0];
             java.util.List<YogTypes.Scope> f_scopes = u.more(end) ? YogFrame.list(u, () -> YogTypes.Scope.unpack(u)) : java.util.List.of();
+            long f_writing = u.more(end) ? u.getI() : 0L;
             u.leave(end);
-            return new Write(f_mirror, f_fields, f_space, f_spaceName, f_rows, f_columns, f_scopes);
+            return new Write(f_mirror, f_fields, f_space, f_spaceName, f_rows, f_columns, f_scopes, f_writing);
         }
 
         public byte[] toFrame() {
@@ -4904,6 +4907,7 @@ public final class YogTypes {
             private final int h5, n5, b5;
             private final int o6;
             private final int h6, n6, b6;
+            private final int o7;
 
             public View(YogFrame.Unpacker u) {
                 this.u = u;
@@ -4915,6 +4919,7 @@ public final class YogTypes {
                 if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
                 if (u.more(end)) { h5 = u.position(); n5 = (int) u.getU(); b5 = u.getByte(); o5 = u.position(); u.skip(YogFrame.packedBytes(n5, b5)); } else { h5 = n5 = b5 = 0; o5 = -1; }
                 if (u.more(end)) { h6 = u.position(); n6 = u.count(); int e6 = u.listEnd(); b6 = 0; o6 = u.position(); u.skipTo(e6); } else { h6 = n6 = b6 = 0; o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
                 u.leave(end);
             }
 
@@ -4983,6 +4988,12 @@ public final class YogTypes {
                     at = u.position();
                     each.accept(v);
                 }
+            }
+
+            public long writing() {
+                if (o7 < 0) return 0L;
+                u.seek(o7);
+                return u.getI();
             }
         }
     }

@@ -18,7 +18,7 @@ pub mod view;
 
 pub use cell::{Cell, Kind, NO_ATOM};
 pub use keys::KeySpace;
-pub use spec::{Clock, Declared, Due, DueList, FieldSpec, Linked, MirrorSpec, Rate};
+pub use spec::{Clock, Declared, Due, DueList, FieldSpec, Linked, MirrorSpec, Rate, SCOPE_PACES};
 pub use store::{MAX_FIELDS, SpaceId, Store};
 pub use view::{Bits, ColumnRef, ColumnWriter, KeySpaceRef};
 

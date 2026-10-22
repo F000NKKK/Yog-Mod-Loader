@@ -121,4 +121,8 @@ pub struct Write {
     pub columns: Vec<u64>,
     /// What the declarations asked it to cover.
     pub scopes: Vec<Scope>,
+    /// Which of them are due now (bit `i`: `scopes[i]`, at its
+    /// declaration's rate; past 64, every one): the rest are only kept as
+    /// keys, not written.
+    pub writing: u64,
 }

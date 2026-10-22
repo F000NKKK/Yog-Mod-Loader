@@ -92,14 +92,13 @@ final class YogClientMirrors {
         long[] at = BOXES.positions();
         int[] rows = BOXES.rows();
         BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos();
-        for (int i = 0; i < at.length; i++) {
-            if (rows[i] == YogBlockBoxes.NO_ROW) continue;
+        BOXES.forEachDue(w, i -> {
             p.set(at[i]);
             // Not loaded yet: no state, nothing known.
             Flags f = level.hasChunk(SectionPos.blockToSectionCoord(p.getX()), SectionPos.blockToSectionCoord(p.getZ()))
                     ? flags(level, p, level.getBlockState(p)) : null;
             c.write(rows[i], f);
-        }
+        });
         due.end();
         return YogBus.OK;
     }

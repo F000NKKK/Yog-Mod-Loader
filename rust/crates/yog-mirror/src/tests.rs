@@ -367,3 +367,23 @@ fn a_family_member_is_made_when_named_with_its_templates() {
     s.due(Clock::Server, 1, &mut out);
     assert_eq!(out.turns.len(), 2, "the new member got its host mirror too");
 }
+
+#[test]
+fn each_scope_is_written_at_its_own_rate() {
+    let mut s = store();
+    s.space(key_space::CLIENT_BLOCK, None).unwrap();
+    s.provide(&host::CLIENT_BLOCK.spec(), 5, true).unwrap();
+    let spec = host::CLIENT_BLOCK.spec();
+    let (near, far) = (vec![1u8], vec![2u8]);
+    s.declare(&spec, 1, Rate::Every(1), Some(near)).unwrap();
+    s.declare(&spec, 1, Rate::Every(4), Some(far)).unwrap();
+    let mut out = DueList::default();
+    let writing = |s: &mut Store, out: &mut DueList, tick| {
+        s.due(Clock::Client, tick, out);
+        out.turns[0].writing
+    };
+    assert_eq!(writing(&mut s, &mut out, 0), 0b11, "both at first");
+    assert_eq!(writing(&mut s, &mut out, 1), 0b01, "the near box every tick");
+    assert_eq!(out.scopes(&out.turns[0]).len(), 2, "the far one's still its keys");
+    assert_eq!(writing(&mut s, &mut out, 4), 0b11, "the far one every fourth");
+}

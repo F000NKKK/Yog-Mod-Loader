@@ -39,9 +39,7 @@ final class YogHostBlocks {
             long[] at = boxes.positions();
             int[] rows = boxes.rows();
             BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos();
-            for (int i = 0; i < at.length; i++) {
-                if (rows[i] != YogBlockBoxes.NO_ROW) state.putInt(rows[i], atom(level.getBlockState(p.set(at[i]))));
-            }
+            boxes.forEachDue(w, i -> state.putInt(rows[i], atom(level.getBlockState(p.set(at[i])))));
         }
         due.end();
         return YogBus.OK;

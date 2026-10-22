@@ -216,6 +216,16 @@ impl<M: Mirror> MirrorWriter<'_, M> {
             .filter_map(|b| yog_data::frame::read_frame(b))
     }
 
+    /// The scopes due this turn (the others only kept as keys).
+    pub fn due_scopes<S: Schema>(&self) -> impl Iterator<Item = S> + '_ {
+        self.writer
+            .scopes()
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| self.writer.writing(*i))
+            .filter_map(|(_, b)| yog_data::frame::read_frame(b))
+    }
+
     /// Makes the key space's keys `live` (a mod's own key space).
     pub fn keep_keys(&mut self, live: &[(u64, Option<u64>)]) {
         self.writer.keep_keys(live);

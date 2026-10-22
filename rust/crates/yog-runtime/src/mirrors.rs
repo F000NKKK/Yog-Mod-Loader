@@ -185,6 +185,7 @@ pub(crate) fn after_tick(clock: Clock) {
         write
             .scopes
             .extend(due.scopes(d).iter().map(|s| Scope { bytes: s.to_vec() }));
+        write.writing = d.writing;
         write.with_bytes(|payload| crate::bus::tell(d.writer, payload));
     }
     MIRRORS.lock().due = due;
