@@ -5851,6 +5851,129 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
                     });
                 }
             }
+
+            /** The mouse wheel turned in the world (no screen open). Before: a handler that cancels it keeps the game from changing the hotbar slot — a held item that's scrolled itself. */
+            public record Scroll(double delta) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("delta", delta);
+                    return m;
+                }
+
+                public static Scroll fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Scroll(YogData.number(m.get("delta"), 0));
+                }
+
+                public static Scroll fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putF64(this.delta);
+                    p.end(at);
+                }
+
+                public static Scroll unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    double f_delta = u.more(end) ? u.getF64() : 0.0;
+                    u.leave(end);
+                    return new Scroll(f_delta);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
+                public static Scroll fromFrame(byte[] bytes) {
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Scroll fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Scroll readFrame(YogFrame.Unpacker u) {
+                    Scroll v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
+                /** {@code Scroll} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.skip(8); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public double delta() {
+                        if (o0 < 0) return 0.0;
+                        u.seek(o0);
+                        return u.getF64();
+                    }
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventClientInput.SCROLL);
+                    static final int PRE = YogBus.resolve(YogNames.EventClientInput.SCROLL_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Scroll emitChanged() {
+                    YogMessage r = emit();
+                    // Nothing back: no handler changed it.
+                    if (!r.ok() || r.isEmpty()) return this;
+                    try {
+                        return fromFrame(r);
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Scroll> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Scroll changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Scroll> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
+            }
         }
 
         /** `chat`. */

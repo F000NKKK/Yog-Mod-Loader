@@ -135,6 +135,8 @@ fn advancements_are_definitions_for_every_version() {
     };
     let new = get("data/mymod/advancement/root.json");
     assert_eq!(new["display"]["icon"]["id"], "minecraft:amethyst_shard");
+    // The background as a texture id (hosts before 1.21.5 make it a file).
+    assert_eq!(new["display"]["background"], "minecraft:block/calcite");
     assert_eq!(
         new["criteria"]["c0"]["conditions"]["items"][0]["items"],
         "#yog:gems/amethyst"

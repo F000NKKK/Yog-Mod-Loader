@@ -69,6 +69,7 @@ public final class YogPackStager {
         clear(out);
         dev.yog.data.YogTags.setHost(loader, mcVersion);
         YogDataLayout.setVersion(mcVersion);
+        YogAdvancementLayout.setVersion(mcVersion);
         for (String layer : layers(loader, mcVersion)) {
             try (var listing = Files.newDirectoryStream(mods, MOD_FILES)) {
                 for (Path yog : listing) stageLayer(yog, layer, out, mc121);
@@ -150,11 +151,14 @@ public final class YogPackStager {
         }
     }
 
-    /** One file at {@code target}: a recipe upgraded, a tag or atlas merged with what's there, else copied. */
+    /** One file at {@code target}: a recipe upgraded, an advancement's background made a file, a tag or atlas merged with what's there, else copied. */
     private static void stageFile(InputStream in, String n, Path target, boolean mc121) throws IOException {
         if (mc121 && YogDataLayout.isRecipePath(n)) {
             // 1.20-format recipe results don't parse on 1.21.
             Files.writeString(target, YogDataLayout.upgradeRecipeJson(new String(in.readAllBytes(), StandardCharsets.UTF_8)));
+        } else if (YogAdvancementLayout.rewrites(n)) {
+            // Tab backgrounds as files, before 1.21.5.
+            Files.writeString(target, YogAdvancementLayout.withFileBackground(new String(in.readAllBytes(), StandardCharsets.UTF_8)));
         } else if (isTagPath(n) && Files.exists(target)) {
             // Several mods (or overlays) adding to one tag: all of them.
             Files.writeString(target, mergeTags(Files.readString(target), new String(in.readAllBytes(), StandardCharsets.UTF_8)));

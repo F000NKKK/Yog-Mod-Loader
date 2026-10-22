@@ -201,6 +201,8 @@ names! {
         KEY = crate::concatcp!(PLANE, crate::word::KEY),
         KEY_PRE = crate::concatcp!(KEY, crate::event::PRE),
         BINDING = crate::concatcp!(PLANE, "binding"),
+        SCROLL = crate::concatcp!(PLANE, "scroll"),
+        SCROLL_PRE = crate::concatcp!(SCROLL, crate::event::PRE),
     }
 
     /// `yog:event/client/chat/…`: what the player sends to the chat.

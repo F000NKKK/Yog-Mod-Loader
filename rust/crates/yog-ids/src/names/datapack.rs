@@ -148,6 +148,12 @@ names! {
         CONSUME_ITEM = crate::id!(crate::ns::MINECRAFT, "consume_item"),
     }
 
+    /// An advancement's fields: how it's shown, and in it its tab's background.
+    advancement_field {
+        DISPLAY = "display",
+        BACKGROUND = "background",
+    }
+
     /// The game's tool tiers' tags of what they can't mine; the weakest's.
     tool_tier {
         INCORRECT_FOR_WOODEN_TOOL = crate::id!(crate::ns::MINECRAFT, "incorrect_for_wooden_tool"),

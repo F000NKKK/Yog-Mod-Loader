@@ -25,6 +25,7 @@
     "BodyRenderMixin",
     "CameraMixin",
     "ChatSendMixin",
+    "ScrollMixin",
     "KeyboardMixin",
     "LimbAnimatorAccess",
     "ModelPartAccess",

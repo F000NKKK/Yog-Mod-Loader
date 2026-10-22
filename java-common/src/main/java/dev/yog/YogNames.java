@@ -588,9 +588,11 @@ public final class YogNames {
         public static final String KEY = "yog:event/client/input/key";
         public static final String KEY_PRE = "yog:event/client/input/key/pre";
         public static final String BINDING = "yog:event/client/input/binding";
+        public static final String SCROLL = "yog:event/client/input/scroll";
+        public static final String SCROLL_PRE = "yog:event/client/input/scroll/pre";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PLANE, KEY, KEY_PRE, BINDING);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PLANE, KEY, KEY_PRE, BINDING, SCROLL, SCROLL_PRE);
     }
 
     public static final class EventClientChat {
@@ -2282,6 +2284,16 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(TASK, GOAL, CHALLENGE, IMPOSSIBLE, INVENTORY_CHANGED, CONSUME_ITEM);
+    }
+
+    public static final class AdvancementField {
+        private AdvancementField() {}
+
+        public static final String DISPLAY = "display";
+        public static final String BACKGROUND = "background";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DISPLAY, BACKGROUND);
     }
 
     public static final class ToolTier {

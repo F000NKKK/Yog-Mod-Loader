@@ -21,3 +21,12 @@ pub struct Key {
 pub struct Binding {
     pub id: String,
 }
+
+/// The mouse wheel turned in the world (no screen open). Before: a handler
+/// that cancels it keeps the game from changing the hotbar slot — a held
+/// item that's scrolled itself.
+#[derive(Debug, Clone, Schema)]
+pub struct Scroll {
+    /// Notches turned: up positive.
+    pub delta: f64,
+}

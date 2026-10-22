@@ -102,6 +102,13 @@ pub fn texture_file(path: &str) -> String {
     format!("{}{path}{}", res::TEXTURES, res::PNG)
 }
 
+/// The texture a file under its namespace is: `textures/block/stone.png` →
+/// `block/stone`; none for another file.
+#[must_use]
+pub fn texture_of_file(file: &str) -> Option<&str> {
+    file.strip_prefix(res::TEXTURES)?.strip_suffix(res::PNG)
+}
+
 /// Model `path`'s file: `item/apple` → `models/item/apple.json`.
 #[must_use]
 pub fn model_file(path: &str) -> String {
