@@ -1971,7 +1971,7 @@ dependencies = [
 
 [[package]]
 name = "yog-data-derive"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
