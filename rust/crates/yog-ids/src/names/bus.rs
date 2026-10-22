@@ -203,6 +203,13 @@ names! {
         BINDING = crate::concatcp!(PLANE, "binding"),
     }
 
+    /// `yog:event/client/chat/…`: what the player sends to the chat.
+    event_client_chat {
+        PLANE = crate::concatcp!(crate::event::PREFIX, crate::bus_word::CLIENT, crate::sep::PATH, "chat", crate::sep::PATH),
+        SEND = crate::concatcp!(PLANE, "send"),
+        SEND_PRE = crate::concatcp!(SEND, crate::event::PRE),
+    }
+
     /// `yog:event/client/ui/…`.
     event_client_ui {
         PLANE = crate::concatcp!(crate::event::PREFIX, crate::bus_word::CLIENT, crate::sep::PATH, crate::word::UI, crate::sep::PATH),

@@ -26,6 +26,7 @@
         "BodyRenderMixin",
         "CameraMixin",
         "ViewMixin",
+        "ChatSendMixin",
         "KeyboardMixin",
         "ModelPartAccess",
         "TravelMixin",

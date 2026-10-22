@@ -123,6 +123,7 @@ events! {
     client::game::Travel => ids::event_client_game::TRAVEL, None;
     client::input::Key => ids::event_client_input::KEY, Some(ids::event_client_input::KEY_PRE);
     client::input::Binding => ids::event_client_input::BINDING, None, key = id;
+    client::chat::Send => ids::event_client_chat::SEND, Some(ids::event_client_chat::SEND_PRE);
     client::ui::Open => ids::event_client_ui::OPEN, None;
     client::ui::Close => ids::event_client_ui::CLOSE, None;
     client::ui::Input => ids::event_client_ui::INPUT, Some(ids::event_client_ui::INPUT_PRE), key = ui_id;

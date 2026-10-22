@@ -241,6 +241,7 @@ names! {
         DIG_SPEEDS = crate::concatcp!(DOMAIN, "dig_speeds"),
         RAYCAST = crate::concatcp!(DOMAIN, "raycast"),
         TARGET = crate::concatcp!(DOMAIN, "target"),
+        MESSAGE = crate::concatcp!(DOMAIN, "message"),
     }
 
     /// `yog:client/control/…`: this client's player doing what a player

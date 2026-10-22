@@ -593,6 +593,17 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(PLANE, KEY, KEY_PRE, BINDING);
     }
 
+    public static final class EventClientChat {
+        private EventClientChat() {}
+
+        public static final String PLANE = "yog:event/client/chat/";
+        public static final String SEND = "yog:event/client/chat/send";
+        public static final String SEND_PRE = "yog:event/client/chat/send/pre";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PLANE, SEND, SEND_PRE);
+    }
+
     public static final class EventClientUi {
         private EventClientUi() {}
 
@@ -940,9 +951,10 @@ public final class YogNames {
         public static final String DIG_SPEEDS = "yog:client/local/dig_speeds";
         public static final String RAYCAST = "yog:client/local/raycast";
         public static final String TARGET = "yog:client/local/target";
+        public static final String MESSAGE = "yog:client/local/message";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, STATE, INVENTORY, SCAN, AREA, ENTITIES, DIG_SPEEDS, RAYCAST, TARGET);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, STATE, INVENTORY, SCAN, AREA, ENTITIES, DIG_SPEEDS, RAYCAST, TARGET, MESSAGE);
     }
 
     public static final class ServiceClientControl {

@@ -1,5 +1,6 @@
 //! The client.
 
+pub mod chat;
 pub mod control;
 pub mod game;
 pub mod input;

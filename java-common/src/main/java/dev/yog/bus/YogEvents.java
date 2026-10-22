@@ -5853,6 +5853,134 @@ Return `false` in the handler to prevent Minecraft from processing the key. */
             }
         }
 
+        /** `chat`. */
+        public static final class Chat {
+            private Chat() {}
+
+            /** A chat line or command the player sends (`/` and all). Before: a handler that cancels it keeps it from the server — a bot's own commands typed into the chat. */
+            public record Send(String text) {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("text", text);
+                    return m;
+                }
+
+                public static Send fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Send(YogData.str(m.get("text"), ""));
+                }
+
+                public static Send fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.putStr(this.text);
+                    p.end(at);
+                }
+
+                public static Send unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    String f_text = u.more(end) ? u.getStr() : "";
+                    u.leave(end);
+                    return new Send(f_text);
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
+                public static Send fromFrame(byte[] bytes) {
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Send fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Send readFrame(YogFrame.Unpacker u) {
+                    Send v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
+                /** {@code Send} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+                    private final int o0;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                        u.leave(end);
+                    }
+
+                    public String text() {
+                        if (o0 < 0) return "";
+                        u.seek(o0);
+                        return u.getStr();
+                    }
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventClientChat.SEND);
+                    static final int PRE = YogBus.resolve(YogNames.EventClientChat.SEND_PRE);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Send emitChanged() {
+                    YogMessage r = emit();
+                    // Nothing back: no handler changed it.
+                    if (!r.ok() || r.isEmpty()) return this;
+                    try {
+                        return fromFrame(r);
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+
+                public boolean emitPre() {
+                    return YogBus.emit(Address.PRE, packedFrame()).status() != YogBus.CANCELLED;
+                }
+
+                /** Listens to it (higher {@code priority} first); what {@code l} returns, when not null, is what it becomes. */
+                public static void on(int priority, dev.yog.api.YogBus.Listener<Send> l) {
+                    YogBus.on(Address.POST, priority, (in, out) -> {
+                        Send changed = l.on(fromFrame(in));
+                        if (changed != null) changed.pack(out.frame());
+                        return YogBus.OK;
+                    });
+                }
+
+                /** Listens before the game does it (higher {@code priority} first); {@code l} answering false cancels it. */
+                public static void onPre(int priority, dev.yog.api.YogBus.PreListener<Send> l) {
+                    YogBus.on(Address.PRE, priority, (in, out) -> l.allow(fromFrame(in)) ? YogBus.OK : YogBus.CANCELLED);
+                }
+            }
+        }
+
         /** `ui`. */
         public static final class Ui {
             private Ui() {}

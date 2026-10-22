@@ -21,4 +21,6 @@ actions! {
     Raycast { from: Point, to: Point } -> Option<BlockHit> = ids::service_client_local::RAYCAST, "YogClientOps.raycast";
     /// The block the crosshair is on, if it's on one.
     Target {  } -> Option<BlockHit> = ids::service_client_local::TARGET, "YogClientOps.target";
+    /// Shows `text` in this player's own chat (no one else sees it).
+    Message { text: String } -> bool = ids::service_client_local::MESSAGE, "YogClientChat.message";
 }

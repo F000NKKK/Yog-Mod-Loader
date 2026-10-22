@@ -23,6 +23,7 @@
     "ClientAdvancementsAccess",
     "BodyRenderMixin",
     "CameraMixin",
+    "ChatSendMixin",
     "KeyboardMixin",
     "LimbAnimatorAccess",
     "ModelPartAccess",
