@@ -91,7 +91,7 @@ yog-data-derive = { version = "0.6.1", path = "crates/yog-data-derive" }
 yog-dimensions = { version = "0.15.0", path = "crates/yog-dimensions" }
 yog-event = { version = "0.9.2", path = "crates/yog-event" }
 yog-font = { version = "0.5.0", path = "crates/yog-font" }
-yog-formats = { version = "0.13.1", path = "crates/yog-formats" }
+yog-formats = { version = "0.13.2", path = "crates/yog-formats" }
 yog-gfx = { version = "0.32.0", path = "crates/yog-gfx" }
 yog-graphics = { version = "0.5.0", path = "crates/yog-graphics" }
 yog-home = { version = "0.4.0", path = "crates/yog-home" }
