@@ -16,6 +16,7 @@ use yog_data::Value;
 
 use super::assets::{Image, Resources, decode_png, missing_image};
 use super::raster::Canvas;
+use yog_gfx::Rect;
 
 /// A cube's textures per face: up, down, north, south, west, east.
 pub type Faces = [Option<Arc<Image>>; 6];
@@ -490,7 +491,7 @@ fn parse(list: &str) -> Vec<([i32; 3], String)> {
         .collect()
 }
 
-pub fn draw(c: &mut Canvas, list: &str, rect: [f32; 4], yaw: f32, pitch: f32) {
+pub fn draw(c: &mut Canvas, list: &str, rect: Rect, yaw: f32, pitch: f32) {
     let mut cache = HashMap::new();
     draw_with(c, &parse(list), rect, (yaw, pitch), |res, id| {
         shape(res, id, &mut cache)
@@ -498,7 +499,7 @@ pub fn draw(c: &mut Canvas, list: &str, rect: [f32; 4], yaw: f32, pitch: f32) {
 }
 
 /// One cube with its own `faces` (a mob's head, say), as [`draw`] draws a block.
-pub fn draw_cube(c: &mut Canvas, faces: Faces, rect: [f32; 4], yaw: f32, pitch: f32) {
+pub fn draw_cube(c: &mut Canvas, faces: Faces, rect: Rect, yaw: f32, pitch: f32) {
     draw_with(
         c,
         &[([0, 0, 0], String::new())],
@@ -575,13 +576,13 @@ struct Camera {
     centre: [f32; 3],
     yaw: (f32, f32),
     pitch: (f32, f32),
-    rect: [f32; 4],
+    rect: Rect,
     scale: f32,
 }
 
 impl Camera {
     /// The blocks' bounds fitted into `rect`, turned by `yaw` and `pitch` (degrees).
-    fn fit(blocks: &[([i32; 3], String)], rect: [f32; 4], yaw: f32, pitch: f32) -> Camera {
+    fn fit(blocks: &[([i32; 3], String)], rect: Rect, yaw: f32, pitch: f32) -> Camera {
         let mut lo = [i32::MAX; 3];
         let mut hi = [i32::MIN; 3];
         for (p, _) in blocks {
@@ -596,7 +597,7 @@ impl Camera {
             yaw: yaw.to_radians().sin_cos(),
             pitch: pitch.to_radians().sin_cos(),
             rect,
-            scale: rect[2].min(rect[3]) / (size * FIT),
+            scale: rect.w.min(rect.h) / (size * FIT),
         }
     }
 
@@ -611,7 +612,7 @@ impl Camera {
 
     /// A view point on the canvas.
     fn screen(&self, v: [f32; 3]) -> [f32; 2] {
-        let [x, y, w, h] = self.rect;
+        let Rect { x, y, w, h } = self.rect;
         [
             x + w / 2.0 + v[0] * self.scale,
             y + h / 2.0 - v[1] * self.scale,
@@ -625,11 +626,11 @@ type Quad = (f32, Option<Arc<Image>>, [f32; 2], [f32; 2], [f32; 2], f32);
 fn draw_with(
     c: &mut Canvas,
     blocks: &[([i32; 3], String)],
-    rect: [f32; 4],
+    rect: Rect,
     (yaw, pitch): (f32, f32),
     mut shape_of: impl FnMut(&Resources, &str) -> Shape,
 ) {
-    if blocks.is_empty() || rect[2] <= 0.0 || rect[3] <= 0.0 {
+    if blocks.is_empty() || rect.w <= 0.0 || rect.h <= 0.0 {
         return;
     }
     let cam = Camera::fit(blocks, rect, yaw, pitch);

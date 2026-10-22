@@ -14,8 +14,8 @@ use yog_sync::Mutex;
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
-use yog_gfx::Color;
 use yog_gfx::image::{self, ImageSource, LegacyRegion, Sprite, SpriteSource};
+use yog_gfx::{Color, Rect, Vec2};
 use yog_ui::ICON_SIZE;
 
 use crate::jcall::jcall;
@@ -23,7 +23,7 @@ use crate::jcall::jcall;
 /// Sprite name → the index of the source the host has (`Sprite::sources`), asked once per sprite.
 static RESOLVED: Mutex<Option<HashMap<String, Option<usize>>>> = Mutex::new(None);
 /// Texture id → pixel size (`None` = missing), asked once per id.
-type SizeCache = HashMap<String, Option<(f32, f32)>>;
+type SizeCache = HashMap<String, Option<Vec2>>;
 static TEXTURE_SIZES: Mutex<Option<SizeCache>> = Mutex::new(None);
 /// Sources already reported as unresolvable (logged once each).
 static WARNED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
@@ -75,14 +75,14 @@ fn resolve<'s>(env: &mut JNIEnv, sp: &'s Sprite) -> Option<SpriteSource<'s>> {
 }
 
 /// A sprite's natural size from `source`: an atlas sprite's is the table's, a region's its own.
-fn natural_size(sp: &Sprite, source: Option<&SpriteSource<'_>>) -> (f32, f32) {
+fn natural_size(sp: &Sprite, source: Option<&SpriteSource<'_>>) -> Vec2 {
     match source {
-        Some(SpriteSource::Region(r)) => (r.region.w, r.region.h),
-        _ => (sp.size.x, sp.size.y),
+        Some(SpriteSource::Region(r)) => Vec2::new(r.region.w, r.region.h),
+        _ => sp.size,
     }
 }
 
-fn texture_size(env: &mut JNIEnv, id: &str) -> Option<(f32, f32)> {
+fn texture_size(env: &mut JNIEnv, id: &str) -> Option<Vec2> {
     let mut cache = TEXTURE_SIZES.lock();
     let cache = cache.get_or_insert_with(HashMap::new);
     if let Some(hit) = cache.get(id) {
@@ -98,21 +98,29 @@ fn texture_size(env: &mut JNIEnv, id: &str) -> Option<(f32, f32)> {
             )
         }?;
         let (w, h) = ((packed >> 16) & 0xFFFF, packed & 0xFFFF);
-        (w > 0 && h > 0).then_some((w as f32, h as f32))
+        (w > 0 && h > 0).then_some(Vec2::new(w as f32, h as f32))
     })();
     cache.insert(id.to_string(), size);
     size
 }
 
-/// A region of a texture: `[u, v, width, height]` of the texture's
-/// `(width, height)` pixels.
+/// A region of a texture, in the texture's `texture` pixels.
 struct Region {
-    uv: [f32; 4],
-    texture: (f32, f32),
+    uv: Rect,
+    texture: Vec2,
 }
 
-fn draw_texture(env: &mut JNIEnv, id: &str, [x, y, w, h]: [f32; 4], region: Region, tint: u32) {
-    let ([u, v, uw, vh], (tw, th)) = (region.uv, region.texture);
+fn draw_texture(env: &mut JNIEnv, id: &str, dest: Rect, region: Region, tint: Color) {
+    let Rect { x, y, w, h } = dest;
+    let (
+        Rect {
+            x: u,
+            y: v,
+            w: uw,
+            h: vh,
+        },
+        Vec2 { x: tw, y: th },
+    ) = (region.uv, region.texture);
     if w <= 0.0 || h <= 0.0 || uw <= 0.0 || vh <= 0.0 {
         return;
     }
@@ -133,13 +141,14 @@ fn draw_texture(env: &mut JNIEnv, id: &str, [x, y, w, h]: [f32; 4], region: Regi
                 F(vh),
                 F(tw),
                 F(th),
-                I(tint as i32)
+                I(tint.0 as i32)
             ]
         )
     };
 }
 
-fn draw_item(env: &mut JNIEnv, id: &str, block: bool, [x, y, w, h]: [f32; 4]) {
+fn draw_item(env: &mut JNIEnv, id: &str, block: bool, dest: Rect) {
+    let Rect { x, y, w, h } = dest;
     let _: Option<()> = unsafe {
         jcall!(
             env,
@@ -150,7 +159,8 @@ fn draw_item(env: &mut JNIEnv, id: &str, block: bool, [x, y, w, h]: [f32; 4]) {
     };
 }
 
-fn draw_atlas_sprite(env: &mut JNIEnv, id: &str, [x, y, w, h]: [f32; 4], tint: u32) {
+fn draw_atlas_sprite(env: &mut JNIEnv, id: &str, dest: Rect, tint: Color) {
+    let Rect { x, y, w, h } = dest;
     let _: Option<()> = unsafe {
         jcall!(
             env,
@@ -162,14 +172,15 @@ fn draw_atlas_sprite(env: &mut JNIEnv, id: &str, [x, y, w, h]: [f32; 4], tint: u
                 F(y),
                 F(w),
                 F(h),
-                I(tint as i32)
+                I(tint.0 as i32)
             ]
         )
     };
 }
 
-/// Fills `[x1, y1, x2, y2]` with `color`.
-fn rect(env: &mut JNIEnv, [x1, y1, x2, y2]: [f32; 4], color: Color) {
+/// Fills `area` with `color`.
+fn rect(env: &mut JNIEnv, area: Rect, color: Color) {
+    let (x1, y1, x2, y2) = (area.x, area.y, area.right(), area.bottom());
     let _: Option<()> = unsafe {
         jcall!(
             env,
@@ -182,22 +193,21 @@ fn rect(env: &mut JNIEnv, [x1, y1, x2, y2]: [f32; 4], color: Color) {
 
 /// The inventory slot: grey with a dark top-left and a light bottom-right
 /// edge, like vanilla's container backgrounds (yog-ui's colours).
-fn draw_slot(env: &mut JNIEnv, [x, y, w, h]: [f32; 4]) {
-    for (r, color) in yog_ui::inv_slot_bevel(yog_gfx::Rect::new(x, y, w, h)) {
-        rect(env, [r.x, r.y, r.x + r.w, r.y + r.h], color);
+fn draw_slot(env: &mut JNIEnv, dest: Rect) {
+    for (r, color) in yog_ui::inv_slot_bevel(dest) {
+        rect(env, r, color);
     }
 }
 
 /// A 1.20.1 texture region, nine-sliced by `border` when stretched.
-fn draw_legacy(env: &mut JNIEnv, l: &LegacyRegion, border: f32, dest: [f32; 4], tint: u32) {
-    let texture = (l.texture_size.x, l.texture_size.y);
-    let region = [l.region.x, l.region.y, l.region.w, l.region.h];
-    for (to, uv) in image::nine_slice(dest, region, border) {
+fn draw_legacy(env: &mut JNIEnv, l: &LegacyRegion, border: f32, dest: Rect, tint: Color) {
+    let texture = l.texture_size;
+    for (to, uv) in image::nine_slice(dest, l.region, border) {
         draw_texture(env, &l.texture, to, Region { uv, texture }, tint);
     }
 }
 
-fn draw_sprite(env: &mut JNIEnv, source: &str, sp: &Sprite, dest: [f32; 4], tint: u32) {
+fn draw_sprite(env: &mut JNIEnv, source: &str, sp: &Sprite, dest: Rect, tint: Color) {
     if sp.is_procedural() {
         draw_slot(env, dest);
         return;
@@ -235,7 +245,7 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
             let Some(mut env) = crate::jni_util::attached_env() else {
                 return;
             };
-            let dest = [x, y, w, h];
+            let (dest, tint) = (Rect::new(x, y, w, h), Color(tint));
             match ImageSource::parse(source) {
                 Some(ImageSource::Item(id)) => draw_item(&mut env, &id, false, dest),
                 Some(ImageSource::Block(id)) => draw_item(&mut env, &id, true, dest),
@@ -256,9 +266,9 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
                 Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
                     Some(size) => {
                         let uv = if uw > 0.0 && vh > 0.0 {
-                            [u, v, uw, vh]
+                            Rect::new(u, v, uw, vh)
                         } else {
-                            [0.0, 0.0, size.0, size.1]
+                            Rect::new(0.0, 0.0, size.x, size.y)
                         };
                         draw_texture(&mut env, &id, dest, Region { uv, texture: size }, tint);
                     }
@@ -282,7 +292,9 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
     crate::jni_util::guarded("gfx_image_size", false, || unsafe {
         let source = source.as_str();
         let size = match ImageSource::parse(source) {
-            Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((ICON_SIZE, ICON_SIZE)),
+            Some(ImageSource::Item(_) | ImageSource::Block(_)) => {
+                Some(Vec2::new(ICON_SIZE, ICON_SIZE))
+            }
             Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
                 Some(sp) => crate::jni_util::attached_env()
                     .map(|mut env| natural_size(sp, resolve(&mut env, sp).as_ref())),
@@ -299,9 +311,9 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
             Some(ImageSource::ModPath(_)) | None => None,
         };
         match size {
-            Some((sw, sh)) if !w.is_null() && !h.is_null() => {
-                *w = sw;
-                *h = sh;
+            Some(size) if !w.is_null() && !h.is_null() => {
+                *w = size.x;
+                *h = size.y;
                 true
             }
             _ => false,

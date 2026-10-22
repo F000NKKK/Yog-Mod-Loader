@@ -13,14 +13,14 @@ use yog_sync::{Arc, Mutex, RwLock};
 use jni::JNIEnv;
 use yog_event::content::Font as Atlas;
 use yog_font::Font;
-use yog_graphics::Color;
+use yog_graphics::{Color, Rect};
 
 /// GUI pixels an em is: the game's line height.
 const EM: f32 = 9.0;
 /// Where a text's shadow goes, in GUI pixels (times its scale), as the game draws it.
 const SHADOW_OFFSET: f32 = 1.0;
 /// A shadow's color is the text's, each channel divided by this (the game's).
-const SHADOW_DIM: u32 = 4;
+const SHADOW_DIM: u8 = 4;
 /// Rasterized runs kept before they're all let go.
 const MAX_RUNS: usize = 512;
 
@@ -233,27 +233,23 @@ fn run(env: &mut JNIEnv, id: &str, font: &Font, text: &str, px_per_em: u32) -> O
     Some(r)
 }
 
-/// A colour's (`0xAARRGGBB`) alpha, a channel's bits, and where red, green
-/// and blue sit.
-const ALPHA: u32 = 0xFF00_0000;
-const CHANNEL: u32 = 0xFF;
-const RED: u32 = 16;
-const GREEN: u32 = 8;
-const BLUE: u32 = 0;
-
-/// `color` (`0xAARRGGBB`, alpha 0 meaning opaque as the game reads it) as a draw's tint.
-fn tint(color: u32) -> u32 {
-    if color & ALPHA == 0 {
-        color | ALPHA
+/// `color` (alpha 0 meaning opaque, as the game reads it) as a draw's tint.
+fn tint(color: Color) -> Color {
+    if color.a() == 0 {
+        color.with_alpha(u8::MAX)
     } else {
         color
     }
 }
 
 /// The shadow's tint for `tint`: each color channel dimmed, alpha kept.
-fn shadow(tint: u32) -> u32 {
-    let dim = |shift: u32| ((tint >> shift & CHANNEL) / SHADOW_DIM) << shift;
-    (tint & ALPHA) | dim(RED) | dim(GREEN) | dim(BLUE)
+fn shadow(tint: Color) -> Color {
+    Color::argb(
+        tint.a(),
+        tint.r() / SHADOW_DIM,
+        tint.g() / SHADOW_DIM,
+        tint.b() / SHADOW_DIM,
+    )
 }
 
 /// Draws `text` in font `id` with its line's top-left at `x, y` GUI pixels.
@@ -276,14 +272,14 @@ pub(crate) fn draw(
     let baseline = y + font.ascent as f32 * unit(font, scale);
     let rect = |dx: f32| {
         let (w, h) = (r.size.0 as f32 / sf, r.size.1 as f32 / sf);
-        [
+        Rect::new(
             x + dx + r.offset.0 as f32 / sf,
             baseline + dx + r.offset.1 as f32 / sf,
             w,
             h,
-        ]
+        )
     };
-    let tint = tint(color);
+    let tint = tint(Color(color));
     if with_shadow {
         crate::textures::draw(
             &mut env,
@@ -352,10 +348,10 @@ mod tests {
 
     #[test]
     fn a_shadow_is_the_color_dimmed_its_alpha_kept() {
-        assert_eq!(shadow(0xFF_FF_80_40), 0xFF_3F_20_10);
+        assert_eq!(shadow(Color(0xFF_FF_80_40)), Color(0xFF_3F_20_10));
         assert_eq!(
-            tint(0x00_12_34_56),
-            0xFF_12_34_56,
+            tint(Color(0x00_12_34_56)),
+            Color(0xFF_12_34_56),
             "alpha 0 is opaque, as the game reads it"
         );
     }

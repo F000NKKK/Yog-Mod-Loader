@@ -79,16 +79,7 @@ unsafe extern "C" fn run_change<E: Event>(
 
 /// `f` changes every `E`, at `priority`.
 fn change<E: Event>(priority: i32, f: fn(&mut E)) {
-    let at = ROUTER.resolve(E::ADDRESS);
-    ROUTER.on(
-        at,
-        priority,
-        Handler::Native {
-            owner: None,
-            ud: f as usize,
-            f: run_change::<E>,
-        },
-    );
+    subscribe(E::ADDRESS, priority, f as usize, run_change::<E>);
 }
 
 /// `f` on every `E` after the game did it, at `priority`.
@@ -98,14 +89,20 @@ fn after<E: Event>(priority: i32, f: fn(&E)) {
 
 /// `f` on every `E` at `address`, at `priority`.
 fn listen<E: Event>(address: &str, priority: i32, f: fn(&E)) {
+    subscribe(address, priority, f as usize, run::<E>);
+}
+
+/// The runtime's own handler `run` (with `ud`, the function it calls) on
+/// `address`, at `priority`.
+fn subscribe(address: &str, priority: i32, ud: usize, run: yog_abi::YogHandlerFn) {
     let at = ROUTER.resolve(address);
     ROUTER.on(
         at,
         priority,
         Handler::Native {
             owner: None,
-            ud: f as usize,
-            f: run::<E>,
+            ud,
+            f: run,
         },
     );
 }

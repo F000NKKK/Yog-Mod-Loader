@@ -19,7 +19,7 @@ fn opaque(shape: Shape) -> usize {
     draw_with(
         &mut c,
         &[([0, 0, 0], "x".into())],
-        [0.0, 0.0, 32.0, 32.0],
+        yog_gfx::Rect::new(0.0, 0.0, 32.0, 32.0),
         (225.0, 30.0),
         |_, _| shape.clone(),
     );

@@ -358,9 +358,14 @@ impl Stretch {
 /// `dest` (`[x, y, w, h]`) with its `border` kept as it is: the pieces to
 /// draw, each (destination, region) — nine, or the whole when it isn't
 /// stretched or has no border.
-pub fn nine_slice(dest: [f32; 4], region: [f32; 4], border: f32) -> Vec<([f32; 4], [f32; 4])> {
-    let [x, y, w, h] = dest;
-    let [u, v, rw, rh] = region;
+pub fn nine_slice(dest: Rect, region: Rect, border: f32) -> Vec<(Rect, Rect)> {
+    let Rect { x, y, w, h } = dest;
+    let Rect {
+        x: u,
+        y: v,
+        w: rw,
+        h: rh,
+    } = region;
     let b = border.min(rw / 2.0).min(rh / 2.0).min(w / 2.0).min(h / 2.0);
     if b <= 0.0 || (w == rw && h == rh) {
         return vec![(dest, region)];
@@ -379,7 +384,7 @@ pub fn nine_slice(dest: [f32; 4], region: [f32; 4], border: f32) -> Vec<([f32; 4
     let mut out = Vec::with_capacity(cols.len() * rows.len());
     for (dy, dh, sv, sh) in rows {
         for (dx, dw, su, sw) in cols {
-            out.push(([dx, dy, dw, dh], [su, sv, sw, sh]));
+            out.push((Rect::new(dx, dy, dw, dh), Rect::new(su, sv, sw, sh)));
         }
     }
     out

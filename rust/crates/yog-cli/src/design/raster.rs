@@ -9,8 +9,8 @@
 use std::collections::HashMap;
 use yog_sync::Arc;
 
-use yog_gfx::Color;
 use yog_gfx::draw2d::TextStyle;
+use yog_gfx::{Color, Rect, Vec2};
 use yog_ui::text::LINE_H;
 
 use super::assets::{Image, Resources};
@@ -146,6 +146,14 @@ pub struct Canvas<'r> {
     fonts: HashMap<String, Arc<Font>>,
 }
 
+/// All of a picture, in fractions of its size.
+const WHOLE: Rect = Rect::new(0.0, 0.0, 1.0, 1.0);
+
+/// The box a draw op gives by two corners, in either order.
+fn corners(x1: f32, y1: f32, x2: f32, y2: f32) -> Rect {
+    Rect::from_corners(Vec2::new(x1, y1), Vec2::new(x2, y2))
+}
+
 /// Straight-alpha "over".
 fn blend(dst: &mut [u8], src: [f32; 4]) {
     let sa = src[3];
@@ -159,10 +167,6 @@ fn blend(dst: &mut [u8], src: [f32; 4]) {
         o[i] = (src[i] * sa + d[i] * d[3] * (1.0 - sa)) / oa;
     }
     dst[..4].copy_from_slice(&Color::from_f32(o).to_rgba8());
-}
-
-fn argb(c: u32) -> [f32; 4] {
-    Color(c).to_f32()
 }
 
 /// Text whose alpha is below this the game draws fully opaque (`Font.adjustColor`: `(c & 0xFC000000) == 0`).
@@ -279,19 +283,15 @@ impl<'r> Canvas<'r> {
         self.res
     }
 
-    /// Fills `[x1, y1, x2, y2]` (GUI pixels), `top`'s colour fading to `bottom`'s.
-    pub fn fill(&mut self, [x1, y1, x2, y2]: [f32; 4], top: u32, bottom: u32) {
-        let (x1, x2) = (
-            (x1 as i32).min(x2 as i32) as f32,
-            (x1 as i32).max(x2 as i32) as f32,
-        );
-        let (y1, y2) = (
-            (y1 as i32).min(y2 as i32) as f32,
-            (y1 as i32).max(y2 as i32) as f32,
-        );
+    /// Fills `area` (GUI pixels, its edges at whole pixels as the game
+    /// takes them), `top`'s colour fading to `bottom`'s.
+    pub fn fill(&mut self, area: Rect, top: Color, bottom: Color) {
+        let whole = |v: f32| (v as i32) as f32;
+        let (x1, x2) = (whole(area.x), whole(area.right()));
+        let (y1, y2) = (whole(area.y), whole(area.bottom()));
         let (xa, xb) = self.span(x1, x2, false);
         let (ya, yb) = self.span(y1, y2, true);
-        let (t, b) = (argb(top), argb(bottom));
+        let (t, b) = (top.to_f32(), bottom.to_f32());
         let height = ((y2 - y1) * self.scale).max(1.0);
         for py in ya..yb {
             let f = ((py as f32 + 0.5 - y1 * self.scale) / height).clamp(0.0, 1.0);
@@ -302,18 +302,14 @@ impl<'r> Canvas<'r> {
         }
     }
 
-    /// Draws `img` texels `(u, v)`–`(u + w·tw/…)` into GUI box `x, y, w, h`
-    /// — UVs normalized against the declared texture size `tw × th`.
-    pub(super) fn blit(
-        &mut self,
-        img: &Image,
-        [x, y, w, h]: [f32; 4],
-        uv: [f32; 4],
-        tint: [f32; 4],
-    ) {
+    /// Draws the part `uv` of `img` (fractions of its size) into GUI box
+    /// `dest`, its colors times `tint`.
+    pub(super) fn blit(&mut self, img: &Image, dest: Rect, uv: Rect, tint: Color) {
+        let Rect { x, y, w, h } = dest;
+        let tint = tint.to_f32();
         let (xa, xb) = self.span(x, x + w, false);
         let (ya, yb) = self.span(y, y + h, true);
-        let [u0, v0, u1, v1] = uv;
+        let (u0, v0, u1, v1) = (uv.x, uv.y, uv.right(), uv.bottom());
         for py in ya..yb {
             let fy = ((py as f32 + 0.5) / self.scale - y) / h;
             let ty = ((v0 + (v1 - v0) * fy) * img.height as f32).floor() as i64;
@@ -341,13 +337,13 @@ impl<'r> Canvas<'r> {
             height: b.h,
             rgba: b.rgba.clone(),
         };
-        let at = [
+        let at = Rect::new(
             x,
             y + b.top * k,
             b.w as f32 / b.oversample * k,
             b.h as f32 / b.oversample * k,
-        ];
-        self.blit(&img, at, [0.0, 0.0, 1.0, 1.0], argb(color));
+        );
+        self.blit(&img, at, WHOLE, Color(color));
     }
 
     /// `Font.drawInBatch`: the shadow pass (offset, color / 4), then the
@@ -384,16 +380,13 @@ impl<'r> Canvas<'r> {
                 }
                 for (on, (top, bottom)) in [(s.underline, UNDERLINE), (s.strike, STRIKE)] {
                     if on {
-                        self.fill(
-                            [
-                                pen + off - 1.0,
-                                y + off + top,
-                                pen + off + adv,
-                                y + off + bottom,
-                            ],
-                            c,
-                            c,
+                        let line = Rect::from_edges(
+                            pen + off - 1.0,
+                            y + off + top,
+                            pen + off + adv,
+                            y + off + bottom,
                         );
+                        self.fill(line, Color(c), Color(c));
                     }
                 }
                 pen += adv;
@@ -409,7 +402,7 @@ impl<'r> Canvas<'r> {
                 x2,
                 y2,
                 color,
-            } => self.fill([*x1, *y1, *x2, *y2], *color, *color),
+            } => self.fill(corners(*x1, *y1, *x2, *y2), Color(*color), Color(*color)),
             DrawOp::Gradient {
                 x1,
                 y1,
@@ -417,7 +410,7 @@ impl<'r> Canvas<'r> {
                 y2,
                 top,
                 bottom,
-            } => self.fill([*x1, *y1, *x2, *y2], *top, *bottom),
+            } => self.fill(corners(*x1, *y1, *x2, *y2), Color(*top), Color(*bottom)),
             DrawOp::Text {
                 text,
                 font,
@@ -470,7 +463,7 @@ impl<'r> Canvas<'r> {
                 h,
                 yaw,
                 pitch,
-            } => super::blocks3d::draw(self, list, [*x, *y, *w, *h], *yaw, *pitch),
+            } => super::blocks3d::draw(self, list, Rect::new(*x, *y, *w, *h), *yaw, *pitch),
             DrawOp::Item { id, x, y, size } => {
                 // As the game shows it in a slot (blocks and heads in 3D;
                 // mod items: from their `content/` file).
@@ -479,13 +472,8 @@ impl<'r> Canvas<'r> {
                     yog_ids::image_scheme::ITEM,
                     yog_ids::sep::NAMESPACE
                 );
-                super::images::draw(
-                    self,
-                    &source,
-                    [*x, *y, *size, *size],
-                    [0.0; 4],
-                    Color::WHITE.0,
-                );
+                let at = Rect::new(*x, *y, *size, *size);
+                super::images::draw(self, &source, at, Rect::default(), Color::WHITE);
             }
             DrawOp::Image {
                 source,
@@ -495,12 +483,16 @@ impl<'r> Canvas<'r> {
                 h,
                 region,
                 tint,
-            } => super::images::draw(self, source, [*x, *y, *w, *h], *region, *tint),
+            } => {
+                let [u, v, uw, vh] = *region;
+                let (at, part) = (Rect::new(*x, *y, *w, *h), Rect::new(u, v, uw, vh));
+                super::images::draw(self, source, at, part, Color(*tint))
+            }
             DrawOp::Svg { data, x, y, w, h } => {
-                super::images::draw_svg(self, data, [*x, *y, *w, *h], Color::WHITE.0)
+                super::images::draw_svg(self, data, Rect::new(*x, *y, *w, *h), Color::WHITE)
             }
             DrawOp::Entity { entity, x, y, w, h } => {
-                super::images::draw_entity(self, entity, [*x, *y, *w, *h])
+                super::images::draw_entity(self, entity, Rect::new(*x, *y, *w, *h))
             }
             _ => {}
         }

@@ -26,28 +26,7 @@ pub fn is_book_ui(root: &Element) -> bool {
 
 /// The mod's page types: every `book_page` component under `src/`.
 pub fn find(root: &Path, ns: &str, errors: &mut Vec<Diagnostic>) -> Vec<PageType> {
-    let mut out = Vec::new();
-    for file in yui::find_yui_files(&root.join("src")) {
-        let Ok(text) = std::fs::read_to_string(&file) else {
-            continue;
-        };
-        let Ok(el) = yui::parse_xml(&text) else {
-            continue;
-        };
-        if !is_book_page(&el) {
-            continue;
-        }
-        let shown = file
-            .strip_prefix(root)
-            .unwrap_or(&file)
-            .display()
-            .to_string();
-        match compile(&el, ns) {
-            Ok(t) => out.push(t),
-            Err(e) => errors.push(screen_problem(e).in_file(&shown)),
-        }
-    }
-    out
+    components(root, errors, is_book_page, |el, _| compile(el, ns))
 }
 
 /// The mod's recipe layouts: every `recipe_layout` component under `src/`.
@@ -56,15 +35,32 @@ pub fn find_layouts(
     ns: &str,
     errors: &mut Vec<Diagnostic>,
 ) -> Vec<(String, yog_formats::book::layout::RecipeLayout)> {
+    components(
+        root,
+        errors,
+        yog_formats::book::layout::is_recipe_layout,
+        |el, shown| yog_formats::book::layout::compile(el, ns).map(|l| (shown.to_owned(), l)),
+    )
+}
+
+/// The `.yui` components under the mod's `src/` that `is` one of a kind,
+/// each `compile`d (given its file as shown); what doesn't compile goes to
+/// `errors`. A file that doesn't read or parse is the screens' build's to say.
+fn components<T>(
+    root: &Path,
+    errors: &mut Vec<Diagnostic>,
+    is: impl Fn(&yui::Element) -> bool,
+    compile: impl Fn(&yui::Element, &str) -> Result<T, Diagnostic>,
+) -> Vec<T> {
     let mut out = Vec::new();
-    for file in yui::find_yui_files(&root.join("src")) {
+    for file in yui::find_yui_files(&root.join(yog_ids::project::SRC)) {
         let Ok(text) = std::fs::read_to_string(&file) else {
             continue;
         };
         let Ok(el) = yui::parse_xml(&text) else {
             continue;
         };
-        if !yog_formats::book::layout::is_recipe_layout(&el) {
+        if !is(&el) {
             continue;
         }
         let shown = file
@@ -72,8 +68,8 @@ pub fn find_layouts(
             .unwrap_or(&file)
             .display()
             .to_string();
-        match yog_formats::book::layout::compile(&el, ns) {
-            Ok(l) => out.push((shown, l)),
+        match compile(&el, &shown) {
+            Ok(t) => out.push(t),
             Err(e) => errors.push(screen_problem(e).in_file(&shown)),
         }
     }

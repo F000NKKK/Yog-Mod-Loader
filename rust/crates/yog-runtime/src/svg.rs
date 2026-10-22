@@ -10,6 +10,7 @@ use yog_sync::Mutex;
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
+use yog_gfx::{Color, Rect};
 
 use crate::jcall::jcall;
 
@@ -61,8 +62,9 @@ pub fn file(env: &mut JNIEnv, id: &str) -> Option<String> {
     text
 }
 
-/// Draws `data` into `[x, y, w, h]` GUI pixels.
-pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
+/// Draws `data` into `dest` GUI pixels.
+pub fn draw(env: &mut JNIEnv, data: &str, dest: Rect, tint: Color) {
+    let Rect { w, h, .. } = dest;
     if w <= 0.0 || h <= 0.0 {
         return;
     }
@@ -89,7 +91,7 @@ pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
             id
         }
     };
-    crate::textures::draw(env, &id, (pw, ph), [x, y, w, h], tint);
+    crate::textures::draw(env, &id, (pw, ph), dest, tint);
 }
 
 /// `draw2d_svg` — see `YogGfxApi::draw2d_svg`.
@@ -99,8 +101,8 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_svg(data: YogStr, x: f32, y: f32, w: 
             draw(
                 &mut env,
                 unsafe { data.as_str() },
-                [x, y, w, h],
-                yog_gfx::Color::WHITE.0,
+                Rect::new(x, y, w, h),
+                Color::WHITE,
             );
         }
     });

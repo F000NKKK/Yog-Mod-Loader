@@ -3,6 +3,7 @@
 
 use jni::JNIEnv;
 use yog_abi::YogStr;
+use yog_gfx::{Color, Rect};
 
 use crate::jcall::jcall;
 
@@ -36,15 +37,10 @@ pub(crate) fn release(env: &mut JNIEnv, id: &str) {
     };
 }
 
-/// Draws the whole of texture `id` (`size` its pixels) into `[x, y, w, h]` GUI pixels, colors times `tint`.
-pub(crate) fn draw(
-    env: &mut JNIEnv,
-    id: &str,
-    size: (u32, u32),
-    [x, y, w, h]: [f32; 4],
-    tint: u32,
-) {
+/// Draws the whole of texture `id` (`size` its pixels) into `dest` GUI pixels, colors times `tint`.
+pub(crate) fn draw(env: &mut JNIEnv, id: &str, size: (u32, u32), dest: Rect, tint: Color) {
     let (fw, fh) = (size.0 as f32, size.1 as f32);
+    let Rect { x, y, w, h } = dest;
     let _: Option<()> = unsafe {
         jcall!(
             env,
@@ -62,7 +58,7 @@ pub(crate) fn draw(
                 F(fh),
                 F(fw),
                 F(fh),
-                I(tint as i32)
+                I(tint.0 as i32)
             ]
         )
     };

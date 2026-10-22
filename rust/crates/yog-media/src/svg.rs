@@ -32,8 +32,8 @@ pub fn rasterize(data: &str, w: u32, h: u32) -> Option<Vec<u8>> {
 }
 
 /// The document's own size in pixels.
-pub fn size(data: &str) -> Option<(f32, f32)> {
-    tree(data).map(|t| (t.size().width(), t.size().height()))
+pub fn size(data: &str) -> Option<yog_graphics::Vec2> {
+    tree(data).map(|t| yog_graphics::Vec2::new(t.size().width(), t.size().height()))
 }
 
 #[cfg(test)]

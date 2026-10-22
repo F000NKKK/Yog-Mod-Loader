@@ -72,19 +72,14 @@ pub fn stretch(v: &str) -> Stretch {
 }
 
 /// `uv="u v w h"`.
-fn uv(v: &str) -> Option<[f32; 4]> {
+fn uv(v: &str) -> Option<Rect> {
     let p: Vec<f32> = v
         .split([' ', ','])
         .filter(|s| !s.is_empty())
         .map(|s| s.parse().ok())
         .collect::<Option<_>>()?;
-    <[f32; 4]>::try_from(p)
-        .ok()
-        .filter(|r| r[2] > 0.0 && r[3] > 0.0)
-}
-
-fn rect([x, y, w, h]: [f32; 4]) -> Rect {
-    Rect::new(x, y, w, h)
+    let [x, y, w, h] = <[f32; 4]>::try_from(p).ok()?;
+    (w > 0.0 && h > 0.0).then(|| Rect::new(x, y, w, h))
 }
 
 /// The widget for an `<Image>` — what the generated code builds: `source`,
@@ -97,7 +92,7 @@ pub fn widget(node: &YuiNode) -> Widget {
         w = w.stretch(stretch(s));
     }
     if let Some(r) = a(yog_ids::yui_attr::UV).and_then(uv) {
-        w = w.region(rect(r));
+        w = w.region(r);
     }
     if let Some(t) = a(yog_ids::yui_attr::TINT).and_then(color) {
         w = w.tint(Color(t));
@@ -204,28 +199,16 @@ fn content_icon(id: &str) -> Option<Arc<Image>> {
 /// a flat item. As in the game, the item's model decides: one drawn from
 /// texture layers is flat even when there's a block of the same id (a
 /// brewing stand, a door, a cauldron).
-fn item_3d(c: &mut Canvas, id: &str, [x, y, w, h]: [f32; 4]) -> bool {
+fn item_3d(c: &mut Canvas, id: &str, dest: Rect) -> bool {
     match super::item_models::look(c.resources(), id) {
         Some(super::item_models::Look::Flat(_)) => false,
         Some(super::item_models::Look::Head(faces)) => {
-            let m = w.min(h) * HEAD_MARGIN;
-            super::blocks3d::draw_cube(
-                c,
-                faces,
-                [x + m, y + m, w - 2.0 * m, h - 2.0 * m],
-                SLOT_YAW,
-                SLOT_PITCH,
-            );
+            let m = dest.w.min(dest.h) * HEAD_MARGIN;
+            super::blocks3d::draw_cube(c, faces, dest.inset([m; 4]), SLOT_YAW, SLOT_PITCH);
             true
         }
         None if super::blocks3d::is_block(c.resources(), id) => {
-            super::blocks3d::draw(
-                c,
-                &format!("0 0 0 {id}"),
-                [x, y, w, h],
-                SLOT_YAW,
-                SLOT_PITCH,
-            );
+            super::blocks3d::draw(c, &format!("0 0 0 {id}"), dest, SLOT_YAW, SLOT_PITCH);
             true
         }
         None => false,
@@ -239,75 +222,70 @@ const HEAD_MARGIN: f32 = 0.1;
 
 /// Natural size of `source` in GUI pixels (`image_size`); `None` when it
 /// can't be resolved.
-pub fn source_size(source: &str) -> Option<(f32, f32)> {
+pub fn source_size(source: &str) -> Option<Vec2> {
     match ImageSource::parse(source)? {
         ImageSource::Item(_) | ImageSource::Block(_) => {
-            Some((yog_ui::ICON_SIZE, yog_ui::ICON_SIZE))
+            Some(Vec2::new(yog_ui::ICON_SIZE, yog_ui::ICON_SIZE))
         }
         ImageSource::Sprite(name) => find_sprite(&name).map(|s| match resolve(s) {
-            Some(SpriteSource::Region(r)) => (r.region.w, r.region.h),
-            _ => (s.size.x, s.size.y),
+            Some(SpriteSource::Region(r)) => Vec2::new(r.region.w, r.region.h),
+            _ => s.size,
         }),
         ImageSource::Texture(id) if id.ends_with(".svg") => {
             svg_document(&id).and_then(|d| yog_media::svg::size(&d))
         }
-        ImageSource::Texture(id) => texture(&id).map(|i| (i.width as f32, i.height as f32)),
+        ImageSource::Texture(id) => {
+            texture(&id).map(|i| Vec2::new(i.width as f32, i.height as f32))
+        }
         ImageSource::ModPath(_) => None,
     }
 }
 
-/// `0xAARRGGBB` → RGBA multipliers.
-fn tint(c: u32) -> [f32; 4] {
-    Color(c).to_f32()
-}
-
-/// `img` pixels `src` (`u v w h`) into GUI `dest` (`x y w h`).
-fn blit_px(c: &mut Canvas, img: &Image, dest: [f32; 4], src: [f32; 4], t: u32) {
-    let [x, y, w, h] = dest;
-    let [u, v, uw, vh] = src;
-    if w <= 0.0 || h <= 0.0 || uw <= 0.0 || vh <= 0.0 {
+/// `img`'s pixels `src` into GUI `dest`, colors times `t`.
+fn blit_px(c: &mut Canvas, img: &Image, dest: Rect, src: Rect, t: Color) {
+    if dest.w <= 0.0 || dest.h <= 0.0 || src.w <= 0.0 || src.h <= 0.0 {
         return;
     }
     let (iw, ih) = (img.width as f32, img.height as f32);
     c.blit(
         img,
-        [x, y, w, h],
-        [u / iw, v / ih, (u + uw) / iw, (v + vh) / ih],
-        tint(t),
+        dest,
+        Rect::new(src.x / iw, src.y / ih, src.w / iw, src.h / ih),
+        t,
     );
 }
 
+/// All of `img`, in its pixels.
+fn whole(img: &Image) -> Rect {
+    Rect::new(0.0, 0.0, img.width as f32, img.height as f32)
+}
+
 /// The inventory slot (drawn by Yog on every version).
-fn slot(c: &mut Canvas, [x, y, w, h]: [f32; 4]) {
-    for (r, color) in yog_ui::inv_slot_bevel(yog_gfx::Rect::new(x, y, w, h)) {
-        c.fill([r.x, r.y, r.x + r.w, r.y + r.h], color.0, color.0);
+fn slot(c: &mut Canvas, dest: Rect) {
+    for (r, color) in yog_ui::inv_slot_bevel(dest) {
+        c.fill(r, color, color);
     }
 }
 
 /// Sprite `sp` into `dest`: nine-sliced by its border, or — `part` a region
 /// of it in its own pixels (`w`, `h` > 0) — that part, scaled.
-fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
-    let whole = part[2] <= 0.0 || part[3] <= 0.0;
+fn sprite(c: &mut Canvas, sp: &Sprite, dest: Rect, part: Rect, t: Color) {
+    let all = part.w <= 0.0 || part.h <= 0.0;
     // `src` (a region of the image whose sprite is `natural` pixels wide) drawn whole or in part.
-    let mut put = |img: &Image, src: [f32; 4], natural: f32, border: f32| {
-        if whole {
+    let mut put = |img: &Image, src: Rect, natural: f32, border: f32| {
+        if all {
             for (to, from) in yog_gfx::image::nine_slice(dest, src, border) {
                 blit_px(c, img, to, from, t);
             }
         } else {
-            let k = src[2] / natural;
-            blit_px(
-                c,
-                img,
-                dest,
-                [
-                    src[0] + part[0] * k,
-                    src[1] + part[1] * k,
-                    part[2] * k,
-                    part[3] * k,
-                ],
-                t,
+            let k = src.w / natural;
+            let from = Rect::new(
+                src.x + part.x * k,
+                src.y + part.y * k,
+                part.w * k,
+                part.h * k,
             );
+            blit_px(c, img, dest, from, t);
         }
     };
     if sp.is_procedural() {
@@ -327,7 +305,7 @@ fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
         };
         put(
             &img,
-            [0.0, 0.0, img.width as f32, frame_h],
+            Rect::new(0.0, 0.0, img.width as f32, frame_h),
             size.x,
             sp.border,
         );
@@ -342,25 +320,15 @@ fn sprite(c: &mut Canvas, sp: &Sprite, dest: [f32; 4], part: [f32; 4], t: u32) {
     {
         // Resource packs may ship the sheet at a higher resolution.
         let k = img.width as f32 / texture_size.x;
-        put(
-            &img,
-            [region.x * k, region.y * k, region.w * k, region.h * k],
-            region.w,
-            sp.border * k,
-        );
+        put(&img, region.scale(k), region.w, sp.border * k);
         return;
     }
     missing(c, dest);
 }
 
-fn missing(c: &mut Canvas, dest: [f32; 4]) {
-    blit_px(
-        c,
-        &super::assets::missing_image(),
-        dest,
-        [0.0, 0.0, yog_ui::ICON_SIZE, yog_ui::ICON_SIZE],
-        Color::WHITE.0,
-    );
+fn missing(c: &mut Canvas, dest: Rect) {
+    let icon = Rect::new(0.0, 0.0, yog_ui::ICON_SIZE, yog_ui::ICON_SIZE);
+    blit_px(c, &super::assets::missing_image(), dest, icon, Color::WHITE);
 }
 
 /// Physical pixels an SVG is rasterized at per GUI pixel.
@@ -383,19 +351,13 @@ fn svg_document(id: &str) -> Option<String> {
 }
 
 /// `draw2d_svg`: `data` into `dest`.
-pub fn draw_svg(c: &mut Canvas, data: &str, dest: [f32; 4], t: u32) {
-    if dest[2] <= 0.0 || dest[3] <= 0.0 {
+pub fn draw_svg(c: &mut Canvas, data: &str, dest: Rect, t: Color) {
+    if dest.w <= 0.0 || dest.h <= 0.0 {
         return;
     }
     let side = |v: f32| ((v * SVG_OVERSAMPLE).ceil() as u32).clamp(1, 2048);
-    match svg_image(data, side(dest[2]), side(dest[3])) {
-        Some(img) => blit_px(
-            c,
-            &img,
-            dest,
-            [0.0, 0.0, img.width as f32, img.height as f32],
-            t,
-        ),
+    match svg_image(data, side(dest.w), side(dest.h)) {
+        Some(img) => blit_px(c, &img, dest, whole(&img), t),
         None => missing(c, dest),
     }
 }
@@ -405,24 +367,29 @@ const ENTITY_EGG_MAX: f32 = 2.0 * yog_ui::ICON_SIZE;
 
 /// `draw2d_entity`: the designer has no entity models — the entity's spawn
 /// egg, in the middle of its box.
-pub fn draw_entity(c: &mut Canvas, entity: &str, [x, y, w, h]: [f32; 4]) {
+pub fn draw_entity(c: &mut Canvas, entity: &str, area: Rect) {
     let (ns, path) = yog_ids::split(entity);
-    let side = w.min(h).min(ENTITY_EGG_MAX);
-    let dest = [x + (w - side) / 2.0, y + (h - side) / 2.0, side, side];
+    let side = area.w.min(area.h).min(ENTITY_EGG_MAX);
+    let dest = Rect::new(
+        area.x + (area.w - side) / 2.0,
+        area.y + (area.h - side) / 2.0,
+        side,
+        side,
+    );
     let egg = yog_ids::join(ns, &format!("{path}{}", yog_ids::res::SPAWN_EGG_SUFFIX));
     draw(
         c,
         &yog_ids::join(yog_ids::image_scheme::ITEM, &egg),
         dest,
-        [0.0; 4],
-        Color::WHITE.0,
+        Rect::default(),
+        Color::WHITE,
     );
 }
 
 /// `draw2d_image`: `source` into `dest` (`x y w h`, already fitted by
 /// yog-ui); `region` `u v w h` in image pixels (`w <= 0`: whole image).
-pub fn draw(c: &mut Canvas, source: &str, dest: [f32; 4], region: [f32; 4], t: u32) {
-    if dest[2] <= 0.0 || dest[3] <= 0.0 {
+pub fn draw(c: &mut Canvas, source: &str, dest: Rect, region: Rect, t: Color) {
+    if dest.w <= 0.0 || dest.h <= 0.0 {
         return;
     }
     if let Some(ImageSource::Texture(id)) = ImageSource::parse(source)
@@ -434,7 +401,8 @@ pub fn draw(c: &mut Canvas, source: &str, dest: [f32; 4], region: [f32; 4], t: u
         }
         return;
     }
-    let first_frame = |img: &Image| [0.0, 0.0, img.width as f32, img.width.min(img.height) as f32];
+    let first_frame =
+        |img: &Image| Rect::new(0.0, 0.0, img.width as f32, img.width.min(img.height) as f32);
     // Content the game renamed is shown by its name in the game files at hand.
     let source = match ImageSource::parse(source) {
         Some(ImageSource::Item(id)) => Some(ImageSource::Item(in_game_files(RefKind::Item, id))),
@@ -444,11 +412,11 @@ pub fn draw(c: &mut Canvas, source: &str, dest: [f32; 4], region: [f32; 4], t: u
     match source {
         Some(ImageSource::Item(id)) if item_3d(c, &id, dest) => {}
         Some(ImageSource::Item(id)) => match item_texture(&id, false) {
-            Some(img) => blit_px(c, &img, dest, first_frame(&img), Color::WHITE.0),
+            Some(img) => blit_px(c, &img, dest, first_frame(&img), Color::WHITE),
             None => missing(c, dest),
         },
         Some(ImageSource::Block(id)) => match item_texture(&id, true) {
-            Some(img) => blit_px(c, &img, dest, first_frame(&img), Color::WHITE.0),
+            Some(img) => blit_px(c, &img, dest, first_frame(&img), Color::WHITE),
             None => missing(c, dest),
         },
         Some(ImageSource::Sprite(name)) => match find_sprite(&name) {
@@ -457,22 +425,16 @@ pub fn draw(c: &mut Canvas, source: &str, dest: [f32; 4], region: [f32; 4], t: u
                 .split_once(':')
                 .and_then(|(ns, p)| texture(&atlas_texture(ns, p)))
             {
-                Some(img) => blit_px(
-                    c,
-                    &img,
-                    dest,
-                    [0.0, 0.0, img.width as f32, img.height as f32],
-                    t,
-                ),
+                Some(img) => blit_px(c, &img, dest, whole(&img), t),
                 None => missing(c, dest),
             },
         },
         Some(ImageSource::Texture(id)) => match texture(&id) {
             Some(img) => {
-                let src = if region[2] > 0.0 && region[3] > 0.0 {
+                let src = if region.w > 0.0 && region.h > 0.0 {
                     region
                 } else {
-                    [0.0, 0.0, img.width as f32, img.height as f32]
+                    whole(&img)
                 };
                 blit_px(c, &img, dest, src, t);
             }
@@ -553,16 +515,15 @@ fn draw_preview(path: &Path, source: &str, size: u32) -> Option<String> {
     set_document(root.as_deref());
     let res = Resources::for_mod(root.as_deref());
     let source = resolve_mod(source);
-    let (nw, nh) = source_size(&source).unwrap_or((ICON_SIDE, ICON_SIDE));
+    let natural = source_size(&source).unwrap_or(Vec2::new(ICON_SIDE, ICON_SIDE));
     let size = size.clamp(MIN_PREVIEW, MAX_PREVIEW);
     let (dest, _) = fit(
         Stretch::Uniform,
-        Vec2::new(nw, nh),
+        natural,
         Rect::new(0.0, 0.0, size as f32, size as f32),
     );
     let mut c = Canvas::new(size, size, 1, &res);
-    let [x, y, w, h] = [dest.x, dest.y, dest.w, dest.h];
-    draw(&mut c, &source, [x, y, w, h], [0.0; 4], Color::WHITE.0);
+    draw(&mut c, &source, dest, Rect::default(), Color::WHITE);
     c.png_url()
 }
 

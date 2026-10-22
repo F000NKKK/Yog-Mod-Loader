@@ -71,11 +71,7 @@ unsafe extern "C" fn text_font(
     shadow: bool,
 ) {
     let (text, font) = unsafe { (string(text), string(font)) };
-    let font = if font.trim().is_empty() {
-        yog_ids::yog::DEFAULT_FONT.to_string()
-    } else {
-        font
-    };
+    let font = font_or_default(font);
     push(DrawOp::Text {
         text,
         font,
@@ -127,11 +123,7 @@ unsafe extern "C" fn text_scaled(
     shadow: bool,
 ) {
     let (text, font) = unsafe { (string(text), string(font)) };
-    let font = if font.is_empty() {
-        yog_ids::yog::DEFAULT_FONT.to_string()
-    } else {
-        font
-    };
+    let font = font_or_default(font);
     push(DrawOp::TextScaled {
         text,
         font,
@@ -173,11 +165,11 @@ unsafe extern "C" fn entity(
 unsafe extern "C" fn image_size(source: YogStr, w: *mut f32, h: *mut f32) -> bool {
     let source = unsafe { string(source) };
     match super::images::source_size(&source) {
-        Some((sw, sh)) if !w.is_null() && !h.is_null() => {
+        Some(size) if !w.is_null() && !h.is_null() => {
             // SAFETY: non-null out-pointers from the caller (`Draw2D::image_size`).
             unsafe {
-                *w = sw;
-                *h = sh;
+                *w = size.x;
+                *h = size.y;
             }
             true
         }
@@ -288,4 +280,13 @@ pub fn record(screen_w: i32, screen_h: i32, draw: impl FnOnce(&GfxContext)) -> V
     OPS.with(|o| *o.borrow_mut() = Some(Vec::new()));
     draw(&ctx);
     OPS.with(|o| o.borrow_mut().take().unwrap_or_default())
+}
+
+/// The font a mod named, or — none named — the default one.
+fn font_or_default(font: String) -> String {
+    if font.trim().is_empty() {
+        yog_ids::yog::DEFAULT_FONT.to_string()
+    } else {
+        font
+    }
 }
