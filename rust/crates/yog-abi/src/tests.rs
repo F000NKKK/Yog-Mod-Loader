@@ -8,7 +8,17 @@ fn layout_fingerprint() -> u64 {
     macro_rules! layouts {
         ($($t:ty),* $(,)?) => { [$((stringify!($t), size_of::<$t>(), align_of::<$t>())),*] };
     }
-    let all = layouts!(YogStr, YogGfxApi, YogApi, YogBytes, YogReply, YogBus,);
+    let all = layouts!(
+        YogStr,
+        YogGfxApi,
+        YogApi,
+        YogBytes,
+        YogReply,
+        YogBus,
+        YogColumn,
+        YogKeySlot,
+        YogKeySpace,
+    );
     // FNV-1a over (name, size, align).
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for (name, size, align) in all {
@@ -31,7 +41,7 @@ fn layout_fingerprint() -> u64 {
 fn the_layout_matches_its_version() {
     assert_eq!(
         (ABI_VERSION, layout_fingerprint()),
-        (50000, 0x363d_3a40_d0b0_f211),
+        (50001, 0x4936_1429_1f05_c09e),
         "layout fingerprint: {:#x}",
         layout_fingerprint()
     );

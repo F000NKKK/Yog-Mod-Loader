@@ -1845,6 +1845,9 @@ dependencies = [
 [[package]]
 name = "yog-abi"
 version = "0.32.0"
+dependencies = [
+ "yog-sync",
+]
 
 [[package]]
 name = "yog-api"
@@ -2124,6 +2127,17 @@ dependencies = [
  "resvg",
  "yog-graphics",
  "yog-ids",
+]
+
+[[package]]
+name = "yog-mirror"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "yog-abi",
+ "yog-data",
+ "yog-ids",
+ "yog-sync",
 ]
 
 [[package]]

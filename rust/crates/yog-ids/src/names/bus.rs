@@ -22,6 +22,7 @@ names! {
         OPEN = "open",
         PACKET = "packet",
         PLACE = "place",
+        RELEASE = "release",
         SERVER = "server",
         SET_DIMENSIONS = "set_dimensions",
         SET_NBT = "set_nbt",

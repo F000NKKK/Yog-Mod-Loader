@@ -308,6 +308,7 @@ public final class YogNames {
         public static final String OPEN = "open";
         public static final String PACKET = "packet";
         public static final String PLACE = "place";
+        public static final String RELEASE = "release";
         public static final String SERVER = "server";
         public static final String SET_DIMENSIONS = "set_dimensions";
         public static final String SET_NBT = "set_nbt";
@@ -319,7 +320,7 @@ public final class YogNames {
         public static final String WORLD = "world";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ATTACK, ATTRIBUTE_VALUE, CHAT, CLIENT, CLOSE, CONTAINER, CRAFT, DEATH, DECLARE, DECLARED, GAME, INFO, INPUT, LIFE, NBT, NET, OPEN, PACKET, PLACE, SERVER, SET_DIMENSIONS, SET_NBT, SPAWN, TELEPORT, TELEPORT_TO_DIM, TICK, USE_ITEM, WORLD);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ATTACK, ATTRIBUTE_VALUE, CHAT, CLIENT, CLOSE, CONTAINER, CRAFT, DEATH, DECLARE, DECLARED, GAME, INFO, INPUT, LIFE, NBT, NET, OPEN, PACKET, PLACE, RELEASE, SERVER, SET_DIMENSIONS, SET_NBT, SPAWN, TELEPORT, TELEPORT_TO_DIM, TICK, USE_ITEM, WORLD);
     }
 
     public static final class Event {
@@ -1008,6 +1009,65 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, DECLARE, DECLARED);
+    }
+
+    public static final class MirrorWord {
+        private MirrorWord() {}
+
+        public static final String MIRROR = "mirror";
+        public static final String FACT = "fact";
+        public static final String KEYS = "keys";
+        public static final String POS = "pos";
+        public static final String VELOCITY = "velocity";
+        public static final String HEALTH = "health";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MIRROR, FACT, KEYS, POS, VELOCITY, HEALTH);
+    }
+
+    public static final class ServiceMirror {
+        private ServiceMirror() {}
+
+        public static final String DOMAIN = "yog:mirror/";
+        public static final String DECLARE = "yog:mirror/declare";
+        public static final String RELEASE = "yog:mirror/release";
+        public static final String PROVIDE = "yog:mirror/provide";
+        public static final String TOUCH = "yog:mirror/touch";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, DECLARE, RELEASE, PROVIDE, TOUCH);
+    }
+
+    public static final class KeySpace {
+        private KeySpace() {}
+
+        public static final String PREFIX = "yog:keys/";
+        public static final String ENTITY = "yog:keys/entity";
+        public static final String PLAYER = "yog:keys/player";
+        public static final String BLOCK = "yog:keys/block";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, PLAYER, BLOCK);
+    }
+
+    public static final class Fact {
+        private Fact() {}
+
+        public static final String PREFIX = "yog:fact/";
+        public static final String ENTITY = "yog:fact/entity/";
+        public static final String ENTITY_POS = "yog:fact/entity/pos";
+        public static final String ENTITY_VELOCITY = "yog:fact/entity/velocity";
+        public static final String ENTITY_ROTATION = "yog:fact/entity/rotation";
+        public static final String ENTITY_KIND = "yog:fact/entity/kind";
+        public static final String ENTITY_DIMENSION = "yog:fact/entity/dimension";
+        public static final String ENTITY_HEALTH = "yog:fact/entity/health";
+        public static final String PLAYER = "yog:fact/player/";
+        public static final String PLAYER_NAME = "yog:fact/player/name";
+        public static final String BLOCK = "yog:fact/block/";
+        public static final String BLOCK_STATE = "yog:fact/block/state";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, ENTITY_POS, ENTITY_VELOCITY, ENTITY_ROTATION, ENTITY_KIND, ENTITY_DIMENSION, ENTITY_HEALTH, PLAYER, PLAYER_NAME, BLOCK, BLOCK_STATE);
     }
 
     public static final class ResKind {

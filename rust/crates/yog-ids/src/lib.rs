@@ -34,6 +34,7 @@ mod names {
     pub mod bus;
     pub mod content;
     pub mod datapack;
+    pub mod mirror;
     pub mod services;
     pub mod ui;
 }
@@ -52,6 +53,7 @@ pub use names::base::*;
 pub use names::bus::*;
 pub use names::content::*;
 pub use names::datapack::*;
+pub use names::mirror::*;
 pub use names::services::*;
 pub use names::ui::*;
 
@@ -63,6 +65,7 @@ pub const ALL: &[&[Group]] = &[
     names::base::ALL,
     names::bus::ALL,
     names::services::ALL,
+    names::mirror::ALL,
     names::content::ALL,
     names::datapack::ALL,
     names::ui::ALL,

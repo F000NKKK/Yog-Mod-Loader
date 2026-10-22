@@ -1,0 +1,80 @@
+//! What a mirror is, as `#[yog_mirror]` describes it and the bus carries it:
+//! its fields, the facts they are, how often they're wanted.
+
+use yog_data::Schema;
+
+use crate::cell::Kind;
+
+/// A mirror field.
+#[derive(Schema, Clone, Debug, PartialEq, Eq)]
+pub struct FieldSpec {
+    pub name: String,
+    /// The fact it is (`yog_ids::fact::*`, or a mod's own): fields naming
+    /// the same fact share its column. `None`: the mirror's own value.
+    pub fact: Option<String>,
+    /// [`Kind::code`] of its numbers.
+    pub kind: u8,
+    /// Numbers a row.
+    pub count: u32,
+}
+
+impl FieldSpec {
+    pub fn kind(&self) -> Option<Kind> {
+        Kind::from_code(self.kind)
+    }
+
+    /// Bytes a row.
+    pub fn width(&self) -> Option<u32> {
+        Some(self.kind()?.size() as u32 * self.count)
+    }
+}
+
+/// A mirror: `yog:mirror/<mod>/<name>`, rows of one key space.
+#[derive(Schema, Clone, Debug, PartialEq, Eq)]
+pub struct MirrorSpec {
+    /// Its address.
+    pub name: String,
+    /// Its key space (`yog_ids::key_space::*`).
+    pub space: String,
+    pub fields: Vec<FieldSpec>,
+}
+
+/// How often a declaration wants its fields written.
+#[derive(Schema, Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Rate {
+    /// Every `n` ticks (1: every tick).
+    Every(u32),
+    /// When its provider says the mirror changed.
+    Changes,
+}
+
+/// A field's place for its readers.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct Linked {
+    /// Its column.
+    pub column: *const yog_abi::YogColumn,
+    /// How many parents up its column's space is (0: the mirror's own): a
+    /// row's key is looked up there through the parent keys.
+    pub depth: u8,
+}
+
+/// What a declaration gets.
+#[derive(Clone, Debug)]
+pub struct Declared {
+    pub id: u32,
+    /// The mirror's key space.
+    pub space: *const yog_abi::YogKeySpace,
+    /// The mirror's rows: a bit a space row its provider fills.
+    pub rows: *const yog_abi::YogColumn,
+    /// Each field's place, `None` when it wasn't asked for.
+    pub fields: Vec<Option<Linked>>,
+}
+
+/// A provider's turn to write: its mirror and the fields due (a bit each,
+/// in the mirror's field order).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Due {
+    pub writer: u32,
+    pub mirror: yog_sync::Arc<str>,
+    pub fields: u64,
+}

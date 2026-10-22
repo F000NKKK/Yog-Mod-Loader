@@ -1,0 +1,24 @@
+[package]
+name = "yog-mirror"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = "MIT OR Apache-2.0"
+description = "Yog mirrors: hot game data in shared memory, declared, read in place by mods and the host."
+
+[dependencies]
+# The shared memory's layout.
+yog-abi = { workspace = true }
+# Facts, key spaces, problem codes.
+yog-ids = { workspace = true }
+# Specs on the bus; problems as Diagnostics.
+yog-data = { workspace = true }
+yog-sync = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "mirror"
+harness = false

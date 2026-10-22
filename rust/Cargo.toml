@@ -29,6 +29,7 @@ members = [
     # Yog's home on a machine: installed components, the local patch, run targets
     "crates/yog-home",
     "crates/yog-logging",
+    "crates/yog-mirror",
     # locks that outlive a panic
     "crates/yog-sync",
     "crates/yog-storage",
@@ -97,6 +98,7 @@ yog-graphics = { version = "0.5.0", path = "crates/yog-graphics" }
 yog-home = { version = "0.4.0", path = "crates/yog-home" }
 yog-hot-reload = { version = "0.4.0", path = "crates/yog-hot-reload" }
 yog-ids = { version = "0.4.2", path = "crates/yog-ids" }
+yog-mirror = { version = "0.1.0", path = "crates/yog-mirror" }
 yog-sync = { version = "0.4.0", path = "crates/yog-sync" }
 yog-media = { version = "0.5.0", path = "crates/yog-media" }
 yog-interop = { version = "0.23.0", path = "crates/yog-interop" }

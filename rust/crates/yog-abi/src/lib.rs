@@ -25,13 +25,15 @@ mod api;
 pub use api::*;
 mod bus;
 pub use bus::*;
+mod mirror;
+pub use mirror::*;
 #[cfg(test)]
 mod tests;
 
 // ── Version ──────────────────────────────────────────────────────────────────
 
 pub const ABI_MAJOR: u32 = 5;
-pub const ABI_MINOR: u32 = 0;
+pub const ABI_MINOR: u32 = 1;
 /// `ABI_MAJOR * 10_000 + ABI_MINOR`.  Checked at mod load time.
 pub const ABI_VERSION: u32 = ABI_MAJOR * 10_000 + ABI_MINOR;
 
