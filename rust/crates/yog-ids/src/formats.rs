@@ -51,6 +51,10 @@ formats! {
     Data = "ydata", "compiled data";
     /// A built mod.
     Mod = "yog", "mod";
+    /// Yog Script: a mod's code.
+    Script = "ys", "script";
+    /// Yog Nanite Script: Yog Script that patches others' classes.
+    Nanites = "yns", "nanite script";
 }
 
 impl Format {
@@ -77,7 +81,7 @@ impl Format {
     /// (every format but `.yui` markup and built `.yog` mods).
     #[must_use]
     pub const fn is_data(self) -> bool {
-        !matches!(self, Format::Ui | Format::Mod)
+        !matches!(self, Format::Ui | Format::Mod | Format::Script | Format::Nanites)
     }
 
     /// `name` with this format's extension: `stone` → `stone.yblock`.

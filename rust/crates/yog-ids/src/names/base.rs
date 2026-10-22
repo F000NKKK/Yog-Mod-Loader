@@ -238,6 +238,22 @@ names! {
         BENCH = "YB0009",
     }
 
+    /// What's wrong with Yog Script (`.ys`, `.yns`: `YS…`).
+    script_problem {
+        /// A character no token starts with.
+        UNEXPECTED_CHAR = "YS0001",
+        /// A string or comment that never ends.
+        UNTERMINATED = "YS0002",
+        /// A number that doesn't read (`0x`, `1e`).
+        BAD_NUMBER = "YS0003",
+        /// Something else than the grammar allows there.
+        EXPECTED = "YS0004",
+        /// A patch outside a `.yns` file.
+        PATCH_OUTSIDE_NANITES = "YS0005",
+        /// A content reference that isn't one (`@item`, `@:x`).
+        BAD_REFERENCE = "YS0006",
+    }
+
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the
     /// whole-game and whole-world stores by name, the rest in folders.
     storage {

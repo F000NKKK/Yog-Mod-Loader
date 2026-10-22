@@ -238,6 +238,20 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(FAILED, MANIFEST, CONTENT, RESOURCES, SCREEN, CARGO, COMPILER, NO_PLATFORM, PACKAGE, BENCH);
     }
 
+    public static final class ScriptProblem {
+        private ScriptProblem() {}
+
+        public static final String UNEXPECTED_CHAR = "YS0001";
+        public static final String UNTERMINATED = "YS0002";
+        public static final String BAD_NUMBER = "YS0003";
+        public static final String EXPECTED = "YS0004";
+        public static final String PATCH_OUTSIDE_NANITES = "YS0005";
+        public static final String BAD_REFERENCE = "YS0006";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE);
+    }
+
     public static final class Storage {
         private Storage() {}
 
@@ -2259,5 +2273,7 @@ public final class YogNames {
         public static final String MATERIAL = "ymaterial";
         public static final String DATA = "ydata";
         public static final String MOD = "yog";
+        public static final String SCRIPT = "ys";
+        public static final String NANITES = "yns";
     }
 }

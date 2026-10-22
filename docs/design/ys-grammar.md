@@ -450,7 +450,7 @@ server on server.started {
 screen ChargerScreen(block: Charger) ui "charger.yui" {
     val energy => block.energy
     val fill => energy / energy.max
-    action dump() = block.energy = 0
+    action dump() { block.energy = 0 }
 }
 
 command "charge" {

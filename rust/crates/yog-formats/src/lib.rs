@@ -73,13 +73,13 @@ macro_rules! with_type {
                 type $t = material::MaterialFile;
                 $body
             }
-            Format::Ui | Format::Data | Format::Mod => $none,
+            Format::Ui | Format::Data | Format::Mod | Format::Script | Format::Nanites => $none,
         }
     };
 }
 
 /// What files of `format` look like; `None` for one that isn't Yog Data
-/// written by hand (screens, compiled data, built mods).
+/// written by hand (screens, scripts, compiled data, built mods).
 #[must_use]
 pub fn shape(format: Format) -> Option<Shape> {
     with_type!(format, T => Some(T::shape()), else None)

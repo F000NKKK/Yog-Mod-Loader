@@ -1,0 +1,12 @@
+mod glassy {
+    version = "1.0.0"
+    targets = mc 1.20.1..26.2
+}
+
+const PREFIX = "g"
+
+server on block.broken(e) {
+    if e.player?.name.startsWith(PREFIX, ignoreCase = true) {
+        e.level.place(@block:minecraft:glass, at = e.pos)
+    }
+}

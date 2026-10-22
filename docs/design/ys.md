@@ -313,7 +313,7 @@ are live; actions are `server fn`s (messages, 4.1):
 screen ChargerScreen(block: Charger) ui "charger.yui" {
     val energy => block.energy
     val fill => energy / energy.max
-    action dump() => block.server.energy = 0
+    action dump() { block.energy = 0 }
 }
 ```
 

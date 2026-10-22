@@ -2415,6 +2415,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-script"
+version = "0.1.0"
+dependencies = [
+ "yog-data",
+ "yog-ids",
+]
+
+[[package]]
 name = "yog-storage"
 version = "0.3.1"
 dependencies = [
