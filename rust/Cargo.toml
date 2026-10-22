@@ -83,27 +83,27 @@ resvg = { version = "0.48", default-features = false }
 serde_spanned = "1"
 toml = { version = "1", default-features = false }
 yog-abi = { version = "0.32.1", path = "crates/yog-abi" }
-yog-api = { version = "0.102.3", path = "crates/yog-api" }
+yog-api = { version = "0.102.4", path = "crates/yog-api" }
 yog-body = { version = "0.6.1", path = "crates/yog-body" }
 yog-book = { version = "0.71.0", path = "crates/yog-book" }
 yog-command = { version = "0.4.0", path = "crates/yog-command" }
 yog-config = { version = "0.3.0", path = "crates/yog-config" }
-yog-core = { version = "0.8.2", path = "crates/yog-core" }
+yog-core = { version = "0.8.3", path = "crates/yog-core" }
 yog-data = { version = "0.8.3", path = "crates/yog-data" }
 yog-data-derive = { version = "0.6.1", path = "crates/yog-data-derive" }
 yog-dimensions = { version = "0.15.0", path = "crates/yog-dimensions" }
-yog-event = { version = "0.9.4", path = "crates/yog-event" }
-yog-font = { version = "0.5.0", path = "crates/yog-font" }
-yog-formats = { version = "0.13.2", path = "crates/yog-formats" }
-yog-gfx = { version = "0.32.0", path = "crates/yog-gfx" }
-yog-graphics = { version = "0.5.0", path = "crates/yog-graphics" }
-yog-home = { version = "0.4.0", path = "crates/yog-home" }
+yog-event = { version = "0.9.5", path = "crates/yog-event" }
+yog-font = { version = "0.5.1", path = "crates/yog-font" }
+yog-formats = { version = "0.13.3", path = "crates/yog-formats" }
+yog-gfx = { version = "0.32.1", path = "crates/yog-gfx" }
+yog-graphics = { version = "0.5.1", path = "crates/yog-graphics" }
+yog-home = { version = "0.4.1", path = "crates/yog-home" }
 yog-hot-reload = { version = "0.4.0", path = "crates/yog-hot-reload" }
-yog-ids = { version = "0.4.4", path = "crates/yog-ids" }
-yog-mirror = { version = "0.1.0", path = "crates/yog-mirror" }
+yog-ids = { version = "0.4.5", path = "crates/yog-ids" }
+yog-mirror = { version = "0.1.1", path = "crates/yog-mirror" }
 yog-sync = { version = "0.4.0", path = "crates/yog-sync" }
-yog-media = { version = "0.5.0", path = "crates/yog-media" }
-yog-interop = { version = "0.23.2", path = "crates/yog-interop" }
+yog-media = { version = "0.5.1", path = "crates/yog-media" }
+yog-interop = { version = "0.23.3", path = "crates/yog-interop" }
 yog-kit = { version = "0.13.0", path = "crates/yog-kit" }
 yog-inventory = { version = "0.22.0", path = "crates/yog-inventory" }
 yog-logging = { version = "0.3.0", path = "crates/yog-logging" }
@@ -111,8 +111,8 @@ yog-network = { version = "0.3.0", path = "crates/yog-network" }
 yog-registry = { version = "0.39.0", path = "crates/yog-registry" }
 yog-script = { version = "0.1.0", path = "crates/yog-script" }
 yog-storage = { version = "0.3.1", path = "crates/yog-storage" }
-yog-symbols = { version = "0.6.0", path = "crates/yog-symbols" }
-yog-ui = { version = "0.47.0", path = "crates/yog-ui" }
+yog-symbols = { version = "0.6.1", path = "crates/yog-symbols" }
+yog-ui = { version = "0.47.1", path = "crates/yog-ui" }
 yog-worldgen = { version = "0.5.0", path = "crates/yog-worldgen" }
 syn = { version = "3", features = ["full", "extra-traits"] }
 quote = "1"
@@ -136,7 +136,7 @@ fontdue = "0.9"
 dirs = "7"
 ignore = "0.4.33"
 quick-xml = "0.42"
-glow = "0.17"
+glow = "0.18"
 ctor = "1"
 object = "0.40"
 gimli = "0.34"
