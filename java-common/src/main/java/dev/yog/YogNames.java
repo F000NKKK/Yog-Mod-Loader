@@ -1202,9 +1202,10 @@ public final class YogNames {
         public static final String MEMBER = "#";
         public static final String AT = "@";
         public static final String TARGET = ":";
+        public static final String WRITE = "write";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MEMBER, AT, TARGET);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MEMBER, AT, TARGET, WRITE);
     }
 
     public static final class NaniteKind {

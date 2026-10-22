@@ -79,9 +79,8 @@ final class YogNaniteBodies {
      * arguments in; what a handler answered out, else the call made as it was.
      */
     static void redirect(ClassWriter cw, int n, YogNaniteGen.Target target, YogNaniteGen.Call call, Consumer<MethodVisitor> annotate) {
-        Type[] args = Type.getArgumentTypes(call.desc());
-        Type[] params = call.isStatic() ? args : prepend(Type.getObjectType(call.owner()), args);
-        Type ret = Type.getReturnType(call.desc());
+        Type[] params = redirectParams(call);
+        Type ret = redirectReturn(call);
         MethodVisitor mv = method(cw, n, target, Type.getMethodDescriptor(ret, params), annotate);
         int first = target.isStatic() ? 0 : 1;
         start(mv, n, target);
@@ -93,8 +92,7 @@ final class YogNaniteBodies {
         mv.visitJumpInsn(Opcodes.IF_ACMPNE, answered);
         mv.visitInsn(Opcodes.POP);
         load(mv, params, first);
-        int op = call.isStatic() ? Opcodes.INVOKESTATIC : call.isInterface() ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL;
-        mv.visitMethodInsn(op, call.owner(), call.name(), call.desc(), call.isInterface());
+        original(mv, call);
         mv.visitInsn(ret.getOpcode(Opcodes.IRETURN));
         mv.visitLabel(answered);
         if (ret.getSort() == Type.VOID) {
@@ -105,6 +103,30 @@ final class YogNaniteBodies {
             mv.visitInsn(ret.getOpcode(Opcodes.IRETURN));
         }
         end(mv);
+    }
+
+    /** What a redirect's handler takes: the receiver (unless static), then the call's arguments or the value written. */
+    private static Type[] redirectParams(YogNaniteGen.Call call) {
+        Type[] args;
+        if (call.isField()) args = call.write() ? new Type[] {Type.getType(call.desc())} : new Type[0];
+        else args = Type.getArgumentTypes(call.desc());
+        return call.isStatic() ? args : prepend(Type.getObjectType(call.owner()), args);
+    }
+
+    /** What a redirect's handler gives: the call's result, the field's value read, nothing for a write. */
+    private static Type redirectReturn(YogNaniteGen.Call call) {
+        if (!call.isField()) return Type.getReturnType(call.desc());
+        return call.write() ? Type.VOID_TYPE : Type.getType(call.desc());
+    }
+
+    /** The access the redirect stands in for, made as it was (its operands on the stack). */
+    private static void original(MethodVisitor mv, YogNaniteGen.Call call) {
+        if (call.isField()) {
+            mv.visitFieldInsn(call.fieldOpcode(), call.owner(), call.name(), call.desc());
+            return;
+        }
+        int op = call.isStatic() ? Opcodes.INVOKESTATIC : call.isInterface() ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL;
+        mv.visitMethodInsn(op, call.owner(), call.name(), call.desc(), call.isInterface());
     }
 
     private static MethodVisitor method(ClassWriter cw, int n, YogNaniteGen.Target target, String desc, Consumer<MethodVisitor> annotate) {

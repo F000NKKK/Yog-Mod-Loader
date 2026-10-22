@@ -30,6 +30,8 @@ pub struct InjectEntry {
     pub constant: &'static str,
     /// A `modify_variable`'s local's type (a descriptor, Mojang's).
     pub value_desc: &'static str,
+    /// A `FIELD` redirect's write, else its read.
+    pub write: bool,
     /// None for what has no code of the mod's (an added field, an interface).
     pub handler: Option<fn(&mut Hook)>,
 }
@@ -53,6 +55,7 @@ impl InjectEntry {
             index: self.index,
             constant: self.constant.to_owned(),
             value_desc: self.value_desc.to_owned(),
+            write: self.write,
         };
         spec.point = point(&spec);
         spec
@@ -91,6 +94,7 @@ pub fn __declare(kind: &'static str, member: &'static Member, target: &'static s
         index: -1,
         constant: "",
         value_desc: "",
+        write: false,
         handler: None,
     });
 }

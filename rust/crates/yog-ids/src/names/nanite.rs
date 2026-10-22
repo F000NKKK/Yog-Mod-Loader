@@ -78,6 +78,8 @@ names! {
         MEMBER = crate::sep::TAG,
         AT = crate::sep::TYPED,
         TARGET = crate::sep::NAMESPACE,
+        /// A field redirect's write.
+        WRITE = "write",
     }
 
     /// What a nanite does at its point: Mixin's injectors.

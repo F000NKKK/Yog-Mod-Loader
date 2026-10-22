@@ -40,8 +40,17 @@ final class YogNaniteGen {
     /** The method a nanite goes into: its selector ({@code name desc}), type, whether it's static. */
     record Target(String selector, Type method, boolean isStatic) {}
 
-    /** A call a redirect stands in for (run-time names). */
-    record Call(String owner, String name, String desc, boolean isStatic, boolean isInterface) {}
+    /**
+     * What a redirect stands in for (run-time names): a call, or a field's
+     * read or write ({@code isField}, {@code desc} its type).
+     */
+    record Call(String owner, String name, String desc, boolean isStatic, boolean isInterface, boolean isField, boolean write) {
+        /** The field access's opcode. */
+        int fieldOpcode() {
+            if (write) return isStatic ? Opcodes.PUTSTATIC : Opcodes.PUTFIELD;
+            return isStatic ? Opcodes.GETSTATIC : Opcodes.GETFIELD;
+        }
+    }
 
     /** A made mixin: its bytes, the type of the value at stake, the call a redirect stands in for. */
     record Made(byte[] bytes, Type value, Call call) {}
@@ -93,9 +102,10 @@ final class YogNaniteGen {
                 yield new Made(null, Type.getReturnType(desc), null);
             }
             case YogNames.NaniteKind.REDIRECT -> {
-                Call call = call(inject.target());
-                YogNaniteBodies.redirect(cw, n, target, call, mv -> YogNaniteAnnotations.redirect(mv, inject, target));
-                yield new Made(null, Type.getReturnType(call.desc()), call);
+                Call call = isField(inject.target()) ? field(inject.target(), inject.write()) : call(inject.target());
+                YogNaniteBodies.redirect(cw, n, target, call, mv -> YogNaniteAnnotations.redirect(mv, inject, target, call));
+                Type value = call.isField() ? Type.getType(call.desc()) : Type.getReturnType(call.desc());
+                yield new Made(null, value, call);
             }
             case YogNames.NaniteKind.MODIFY_ARG -> {
                 Type value = Type.getArgumentTypes(call(inject.target()).desc())[inject.index()];
@@ -134,6 +144,26 @@ final class YogNaniteGen {
         };
     }
 
+    /** Whether member reference {@code named} is a field's ({@code Lowner;name:type}). */
+    static boolean isField(String named) {
+        int end = named.indexOf(CLASS_END);
+        return end >= 0 && named.indexOf(DESC_START, end) < 0;
+    }
+
+    /** The field {@code named} ({@code Lowner;name:type}, Mojang's) names, read or written. */
+    static Call field(String named, boolean write) {
+        int end = named.indexOf(CLASS_END);
+        String owner = named.substring(1, end);
+        String member = named.substring(end + 1);
+        int colon = member.indexOf(FIELD_TYPE);
+        String name = colon < 0 ? member : member.substring(0, colon);
+        String desc = colon < 0 ? "" : YogMappings.desc(member.substring(colon + 1));
+        String runtimeOwner = YogMappings.className(owner);
+        String runtimeName = YogMappings.declaredField(owner, name);
+        boolean[] f = flags(runtimeOwner, runtimeName, null);
+        return new Call(runtimeOwner, runtimeName, desc, f[2], false, true, write);
+    }
+
     /** The call {@code named} ({@code Lowner;name(desc)}, Mojang's) names. */
     static Call call(String named) {
         int end = named.indexOf(CLASS_END);
@@ -145,7 +175,7 @@ final class YogNaniteGen {
         String runtimeName = YogMappings.declaredMethod(owner, name, desc);
         String runtimeDesc = YogMappings.desc(desc);
         boolean[] f = flags(runtimeOwner, runtimeName, runtimeDesc);
-        return new Call(runtimeOwner, runtimeName, runtimeDesc, f[0], f[1]);
+        return new Call(runtimeOwner, runtimeName, runtimeDesc, f[0], f[1], false, false);
     }
 
     /**
@@ -171,11 +201,12 @@ final class YogNaniteGen {
     }
 
     /**
-     * Whether method {@code name desc} of {@code owner} is static, and whether
-     * {@code owner} is an interface — from its bytes, not loading it.
+     * Whether method {@code name desc} of {@code owner} is static, whether
+     * {@code owner} is an interface, whether its field {@code name} is static
+     * — from its bytes, not loading it.
      */
     private static boolean[] flags(String owner, String name, String desc) {
-        boolean[] found = {false, false};
+        boolean[] found = {false, false, false};
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         if (loader == null) loader = YogNaniteGen.class.getClassLoader();
         try (InputStream in = loader.getResourceAsStream(owner + ".class")) {
@@ -189,6 +220,12 @@ final class YogNaniteGen {
                 @Override
                 public MethodVisitor visitMethod(int access, String n, String d, String sig, String[] ex) {
                     if (n.equals(name) && d.equals(desc)) found[0] = (access & Opcodes.ACC_STATIC) != 0;
+                    return null;
+                }
+
+                @Override
+                public org.objectweb.asm.FieldVisitor visitField(int access, String n, String d, String sig, Object v) {
+                    if (n.equals(name)) found[2] = (access & Opcodes.ACC_STATIC) != 0;
                     return null;
                 }
             }, ClassReader.SKIP_CODE);

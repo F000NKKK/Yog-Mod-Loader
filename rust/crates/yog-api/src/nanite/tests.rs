@@ -187,3 +187,21 @@ fn added_members_are_declared() {
     );
     assert_eq!(method.class, LivingEntity::CLASS);
 }
+
+/// Every write of the health field, kept.
+#[crate::redirect(LivingEntity::HURT, at = FIELD, target = "Lnet/minecraft/world/entity/LivingEntity;lastHurt:F", write)]
+fn last_hurt(hook: &mut yog_nanite::Hook) {
+    hook.set_value(0.0f32);
+}
+
+#[test]
+fn a_field_redirect_tells_its_write() {
+    let declared: yog_event::nanite::Nanites =
+        yog_data::read_bytes(&yog_nanite::__yog_nanites()).unwrap();
+    let write = declared.injects.iter().find(|i| i.write).unwrap();
+    assert_eq!(
+        (write.at.as_str(), write.kind.as_str()),
+        (yog_ids::mixin_at::FIELD, yog_ids::nanite_kind::REDIRECT)
+    );
+    assert!(write.point.ends_with(":write"), "{}", write.point);
+}

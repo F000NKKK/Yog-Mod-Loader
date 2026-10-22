@@ -7885,7 +7885,7 @@ public final class YogTypes {
     }
 
     /** A nanite a mod declares (`#[inject]`, `#[redirect]`, `#[modify_arg]`…): where, by Mojang's names, and what it does there — what the host turns into the Mixin injector of its `kind` before the class loads. Mods at one point share it: its [`Inject::point`] is the event's key, their handlers ordered by the bus's priorities. */
-    public record Inject(String point, String kind, String class_, String method, String desc, String at, String target, int ordinal, String shift, boolean cancellable, int index, String constant, String valueDesc) {
+    public record Inject(String point, String kind, String class_, String method, String desc, String at, String target, int ordinal, String shift, boolean cancellable, int index, String constant, String valueDesc, boolean write) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("point", point);
@@ -7901,12 +7901,13 @@ public final class YogTypes {
             m.put("index", index);
             m.put("constant", constant);
             m.put("value_desc", valueDesc);
+            m.put("write", write);
             return m;
         }
 
         public static Inject fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Inject(YogData.str(m.get("point"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("class"), ""), YogData.str(m.get("method"), ""), YogData.str(m.get("desc"), ""), YogData.str(m.get("at"), ""), YogData.str(m.get("target"), ""), (int) YogData.integer(m.get("ordinal"), 0), YogData.str(m.get("shift"), ""), YogData.bool(m.get("cancellable"), false), (int) YogData.integer(m.get("index"), 0), YogData.str(m.get("constant"), ""), YogData.str(m.get("value_desc"), ""));
+            return new Inject(YogData.str(m.get("point"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("class"), ""), YogData.str(m.get("method"), ""), YogData.str(m.get("desc"), ""), YogData.str(m.get("at"), ""), YogData.str(m.get("target"), ""), (int) YogData.integer(m.get("ordinal"), 0), YogData.str(m.get("shift"), ""), YogData.bool(m.get("cancellable"), false), (int) YogData.integer(m.get("index"), 0), YogData.str(m.get("constant"), ""), YogData.str(m.get("value_desc"), ""), YogData.bool(m.get("write"), false));
         }
 
         public static Inject fromBytes(byte[] bytes) {
@@ -7928,6 +7929,7 @@ public final class YogTypes {
             p.putI(this.index);
             p.putStr(this.constant);
             p.putStr(this.valueDesc);
+            p.putBool(this.write);
             p.end(at);
         }
 
@@ -7946,8 +7948,9 @@ public final class YogTypes {
             int f_index = u.more(end) ? (int) u.getI() : 0;
             String f_constant = u.more(end) ? u.getStr() : "";
             String f_valueDesc = u.more(end) ? u.getStr() : "";
+            boolean f_write = u.more(end) ? u.getBool() : false;
             u.leave(end);
-            return new Inject(f_point, f_kind, f_class_, f_method, f_desc, f_at, f_target, f_ordinal, f_shift, f_cancellable, f_index, f_constant, f_valueDesc);
+            return new Inject(f_point, f_kind, f_class_, f_method, f_desc, f_at, f_target, f_ordinal, f_shift, f_cancellable, f_index, f_constant, f_valueDesc, f_write);
         }
 
         public byte[] toFrame() {
@@ -7994,6 +7997,7 @@ public final class YogTypes {
             private final int o10;
             private final int o11;
             private final int o12;
+            private final int o13;
 
             public View(YogFrame.Unpacker u) {
                 this.u = u;
@@ -8011,6 +8015,7 @@ public final class YogTypes {
                 if (u.more(end)) { o10 = u.position(); u.getU(); } else { o10 = -1; }
                 if (u.more(end)) { o11 = u.position(); u.getU(); } else { o11 = -1; }
                 if (u.more(end)) { o12 = u.position(); u.getU(); } else { o12 = -1; }
+                if (u.more(end)) { o13 = u.position(); u.skip(1); } else { o13 = -1; }
                 u.leave(end);
             }
 
@@ -8090,6 +8095,12 @@ public final class YogTypes {
                 if (o12 < 0) return "";
                 u.seek(o12);
                 return u.getStr();
+            }
+
+            public boolean write() {
+                if (o13 < 0) return false;
+                u.seek(o13);
+                return u.getBool();
             }
         }
     }

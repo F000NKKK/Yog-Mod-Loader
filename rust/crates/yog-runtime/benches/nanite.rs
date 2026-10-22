@@ -43,10 +43,18 @@ fn main() {
     let vm = test_jvm::start(&jdk, &out);
     let mut env = vm.attach_current_thread().expect("a thread on the JVM");
     let result = env
-        .call_static_method("dev/yog/nanite/NaniteBench", "run", "()Ljava/lang/String;", &[])
+        .call_static_method(
+            "dev/yog/nanite/NaniteBench",
+            "run",
+            "()Ljava/lang/String;",
+            &[],
+        )
         .and_then(|v| v.l())
         .expect("the bench runs");
-    let result: String = env.get_string(&JString::from(result)).expect("its result").into();
+    let result: String = env
+        .get_string(&JString::from(result))
+        .expect("its result")
+        .into();
     let [plain, nanite, chain] = result.split(',').collect::<Vec<_>>()[..] else {
         panic!("unexpected result {result}");
     };

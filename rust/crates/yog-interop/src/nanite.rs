@@ -94,7 +94,11 @@ fn sig_of(f: &syn::ForeignItemFn) -> syn::Result<Sig> {
 
 /// The `#[name("…")]` a member gives, if any.
 fn java_name(f: &syn::ForeignItemFn) -> Option<syn::LitStr> {
-    f.attrs.iter().find(|a| a.path().is_ident(NAME))?.parse_args().ok()
+    f.attrs
+        .iter()
+        .find(|a| a.path().is_ident(NAME))?
+        .parse_args()
+        .ok()
 }
 
 fn has(f: &syn::ForeignItemFn, attr: &str) -> bool {
@@ -166,7 +170,8 @@ fn java_name_and_desc(f: &syn::ForeignItemFn, sig: &Sig) -> (TokenStream, TokenS
     let n = api();
     let tys: Vec<&syn::Type> = sig.params.iter().map(|(t, _)| t).collect();
     let ret = &sig.ret;
-    let java_name = java_name(f).unwrap_or_else(|| syn::LitStr::new(&f.sig.ident.to_string(), Span::call_site()));
+    let java_name = java_name(f)
+        .unwrap_or_else(|| syn::LitStr::new(&f.sig.ident.to_string(), Span::call_site()));
     if has(f, FIELD) {
         (quote! { #java_name }, quote! { <#ret as #n::Java>::desc() })
     } else if has(f, NEW) {

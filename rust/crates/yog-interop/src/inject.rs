@@ -23,6 +23,8 @@ const CONSTANT: &str = "constant";
 const TY: &str = "ty";
 const NAME: &str = "name";
 const DESC: &str = "desc";
+/// A FIELD redirect's write (bare flag), else its read.
+const WRITE: &str = "write";
 /// The kind whose first argument is a class, not a member.
 const ADD_METHOD: &str = "ADD_METHOD";
 /// Mixin's defaults: every occurrence, no shift; no index (by type).
@@ -43,6 +45,7 @@ struct Args {
     /// An added method's name and descriptor (its class is `member`).
     name: String,
     desc: String,
+    write: bool,
     index: i32,
     constant: String,
     ty: String,
@@ -69,6 +72,7 @@ fn args_of(attr: TokenStream, kind: &Kind) -> syn::Result<Args> {
         member,
         name: String::new(),
         desc: String::new(),
+        write: false,
         index: NO_INDEX,
         constant: String::new(),
         ty: String::new(),
@@ -103,9 +107,11 @@ fn args_of(attr: TokenStream, kind: &Kind) -> syn::Result<Args> {
             args.name = m.value()?.parse::<syn::LitStr>()?.value();
         } else if m.path.is_ident(DESC) {
             args.desc = m.value()?.parse::<syn::LitStr>()?.value();
+        } else if m.path.is_ident(WRITE) {
+            args.write = true;
         } else {
             return Err(m.error(
-                "expected at, target, ordinal, shift, cancellable, priority, index, constant, ty, name or desc",
+                "expected at, target, ordinal, shift, cancellable, priority, index, constant, ty, name, desc or write",
             ));
         }
         Ok(())
@@ -131,6 +137,7 @@ pub(crate) fn expand(
         member,
         name: method_name,
         desc: method_desc,
+        write,
         index,
         constant,
         ty,
@@ -169,6 +176,7 @@ pub(crate) fn expand(
                 index: #index,
                 constant: #constant,
                 value_desc: #ty,
+                write: #write,
                 at: #ids::mixin_at::#at,
                 target: #target,
                 ordinal: #ordinal,

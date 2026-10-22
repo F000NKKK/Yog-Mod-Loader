@@ -99,6 +99,8 @@ pub struct Inject {
     pub constant: String,
     /// A `modify_variable`'s local's type (a descriptor, Mojang's).
     pub value_desc: String,
+    /// A `FIELD` at's write (`PUTFIELD` / `PUTSTATIC`), else its read.
+    pub write: bool,
 }
 
 /// An injection point's key:
@@ -126,6 +128,7 @@ fn qualifier(i: &Inject) -> String {
         ids::nanite_kind::MODIFY_ARG => i.index.to_string(),
         ids::nanite_kind::MODIFY_VARIABLE => format!("{}{}", i.index, i.value_desc),
         ids::nanite_kind::MODIFY_CONSTANT => i.constant.clone(),
+        ids::nanite_kind::REDIRECT if i.write => ids::nanite_point::WRITE.to_owned(),
         _ => String::new(),
     }
 }

@@ -35,9 +35,12 @@ final class YogNaniteAnnotations {
         a.visitEnd();
     }
 
-    static void redirect(MethodVisitor mv, YogTypes.Inject inject, YogNaniteGen.Target target) {
+    static void redirect(MethodVisitor mv, YogTypes.Inject inject, YogNaniteGen.Target target, YogNaniteGen.Call call) {
         AnnotationVisitor a = start(mv, REDIRECT, target);
-        atOne(a, inject);
+        AnnotationVisitor at = a.visitAnnotation("at", AT);
+        // A field's read or write: Mixin tells them apart by the opcode.
+        if (call.isField()) at.visit("opcode", call.fieldOpcode());
+        point(at, inject);
         a.visitEnd();
     }
 

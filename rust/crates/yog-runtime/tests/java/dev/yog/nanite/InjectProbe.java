@@ -21,7 +21,7 @@ public final class InjectProbe {
 
     static YogTypes.Inject inject() {
         return new YogTypes.Inject(POINT, "inject", InjectProbe.class.getName(), "counted", "(Ljava/lang/String;I)I",
-                "HEAD", "", -1, "NONE", true, -1, "", "");
+                "HEAD", "", -1, "NONE", true, -1, "", "", false);
     }
 
     /** The mixin made of {@link #inject}: its parts, joined. */
@@ -57,7 +57,7 @@ public final class InjectProbe {
 
     private static YogTypes.Inject at(String point, String kind, int index) {
         return new YogTypes.Inject(point, kind, InjectProbe.class.getName(), "base", "(I)I",
-                "INVOKE", CALLEE, -1, "NONE", false, index, "", "");
+                "INVOKE", CALLEE, -1, "NONE", false, index, "", "", false);
     }
 
     /** A made mixin's handler {@code n} run on {@code x} (the class defined as a plain one). */
@@ -92,7 +92,7 @@ public final class InjectProbe {
     static final String ADDED = "test:added";
 
     private static YogTypes.Inject adding(String point, String kind, String name, String desc, String target) {
-        return new YogTypes.Inject(point, kind, InjectProbe.class.getName(), name, desc, "", target, -1, "", false, -1, "", "");
+        return new YogTypes.Inject(point, kind, InjectProbe.class.getName(), name, desc, "", target, -1, "", false, -1, "", "", false);
     }
 
     /** An added method called, an added field and an interface seen: joined. */
@@ -117,5 +117,53 @@ public final class InjectProbe {
         ClassNode i = new ClassNode();
         new ClassReader(iface.bytes()).accept(i, 0);
         return charge + "," + f.fields.get(0).name + f.fields.get(0).desc + "," + i.interfaces;
+    }
+
+    public static int stock = 5;
+
+    static int readStock() {
+        return stock;
+    }
+
+    static void store(int x) {
+        stock = x;
+    }
+
+    private static final String STOCK = "Ldev/yog/nanite/InjectProbe;stock:I";
+
+    private static YogTypes.Inject field(String point, String method, String desc, boolean write) {
+        return new YogTypes.Inject(point, "redirect", InjectProbe.class.getName(), method, desc,
+                "FIELD", STOCK, -1, "NONE", false, -1, "", "", write);
+    }
+
+    /** A field's read redirected (answered, then not) and its write (answered: not stored; then not: stored). */
+    public static String fields() throws Exception {
+        YogNaniteGen.Made read = YogNaniteGen.mixin(6, field("test:read", "readStock", "()I", false));
+        YogNaniteGen.Made write = YogNaniteGen.mixin(7, field("test:write", "store", "(I)V", true));
+        YogNaniteGen.Made unread = YogNaniteGen.mixin(8, field("test:nobody2", "readStock", "()I", false));
+        YogNaniteGen.Made unwrite = YogNaniteGen.mixin(9, field("test:nobody3", "store", "(I)V", true));
+        List<YogNaniteGen.Made> made = List.of(read, read, read, read, read, read, read, write, unread, unwrite);
+        YogInjections.points(List.of(POINT, MODIFY, REDIRECT, ADDED, "f", "i", "test:read", "test:write", "test:nobody2", "test:nobody3"), made);
+        Object answered = handler(read, 6).invoke(null);
+        Object plain = handler(unread, 8).invoke(null);
+        handler(write, 7).invoke(null, 99);
+        int afterAnswered = stock;
+        handler(unwrite, 9).invoke(null, 11);
+        return answered + "," + plain + "," + afterAnswered + "," + stock;
+    }
+
+    private static java.lang.reflect.Method handler(YogNaniteGen.Made made, int n) throws Exception {
+        Class<?> c = new ClassLoader(InjectProbe.class.getClassLoader()) {
+            Class<?> define(byte[] b) {
+                return defineClass(null, b, 0, b.length);
+            }
+        }.define(made.bytes());
+        for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+            if (m.getName().equals("yog$nanite$" + n)) {
+                m.setAccessible(true);
+                return m;
+            }
+        }
+        throw new NoSuchMethodException("yog$nanite$" + n);
     }
 }

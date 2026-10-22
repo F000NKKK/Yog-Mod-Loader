@@ -108,6 +108,7 @@ public final class YogInjections {
     /** Redirect {@code n}'s call as a function of its arguments (the receiver first), for handlers to make. */
     private static Function<List<Object>, Object> original(int n) {
         YogNaniteGen.Call call = calls[n];
+        if (call.isField()) return field(call);
         return args -> {
             try {
                 Class<?> owner = Class.forName(call.owner().replace('/', '.'), false, YogInjections.class.getClassLoader());
@@ -124,6 +125,36 @@ public final class YogInjections {
                 return null;
             }
         };
+    }
+
+    /** A redirected field's read or write as a function of its operands (the receiver first, unless static). */
+    private static Function<List<Object>, Object> field(YogNaniteGen.Call call) {
+        return args -> {
+            try {
+                Class<?> owner = Class.forName(call.owner().replace('/', '.'), false, YogInjections.class.getClassLoader());
+                java.lang.reflect.Field f = fieldOf(owner, call.name());
+                f.setAccessible(true);
+                int first = call.isStatic() ? 0 : 1;
+                Object receiver = call.isStatic() ? null : YogReflect.toJava(args.get(0), owner);
+                if (!call.write()) return YogReflect.toData(f.get(receiver));
+                f.set(receiver, YogReflect.toJava(args.get(first), f.getType()));
+                return null;
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                dev.yog.YogLog.warn("nanite: the original field access failed (" + e + ")");
+                return null;
+            }
+        };
+    }
+
+    private static java.lang.reflect.Field fieldOf(Class<?> owner, String name) throws NoSuchFieldException {
+        for (Class<?> at = owner; at != null; at = at.getSuperclass()) {
+            try {
+                return at.getDeclaredField(name);
+            } catch (NoSuchFieldException e) {
+                // Declared further up.
+            }
+        }
+        throw new NoSuchFieldException(owner.getName() + "." + name);
     }
 
     private static Method method(Class<?> owner, String name, Class<?>[] params) throws NoSuchMethodException {
