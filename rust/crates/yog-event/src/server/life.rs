@@ -12,3 +12,9 @@ pub struct Started {
 /// Fired as the server stops.
 #[derive(Debug, Clone, Schema)]
 pub struct Stopping {}
+
+/// Fired as the world is saved — an autosave, `/save-all`, the server
+/// stopping — before its chunks are written: what's kept with the world is
+/// written now, so it's saved with the world it belongs to.
+#[derive(Debug, Clone, Schema)]
+pub struct Saving {}

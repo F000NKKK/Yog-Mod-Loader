@@ -4425,6 +4425,99 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     }
                 }
             }
+
+            /** Fired as the world is saved — an autosave, `/save-all`, the server stopping — before its chunks are written: what's kept with the world is written now, so it's saved with the world it belongs to. */
+            public record Saving() {
+                public java.util.Map<String, Object> toData() {
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    return m;
+                }
+
+                public static Saving fromData(Object data) {
+                    java.util.Map<String, Object> m = YogData.map(data);
+                    return new Saving();
+                }
+
+                public static Saving fromBytes(byte[] bytes) {
+                    return fromData(YogData.decode(bytes));
+                }
+
+                public void pack(YogFrame.Packer p) {
+                    int at = p.begin();
+                    p.end(at);
+                }
+
+                public static Saving unpack(YogFrame.Unpacker u) {
+                    int end = u.begin();
+                    u.leave(end);
+                    return new Saving();
+                }
+
+                public byte[] toFrame() {
+                    YogFrame.Packer p = new YogFrame.Packer();
+                    pack(p);
+                    return p.finish();
+                }
+
+                /** Packed by one of this thread's packers: what the bus sends in place. */
+                public YogFrame.Packer packedFrame() {
+                    YogFrame.Packer p = YogFrame.Packer.take();
+                    pack(p);
+                    return p;
+                }
+
+                public static Saving fromFrame(byte[] bytes) {
+                    return readFrame(new YogFrame.Unpacker(bytes));
+                }
+
+                /** Read where the message is (the arena, in place). */
+                public static Saving fromFrame(YogMessage m) {
+                    return readFrame(m.frame());
+                }
+
+                private static Saving readFrame(YogFrame.Unpacker u) {
+                    Saving v = unpack(u);
+                    u.finish();
+                    return v;
+                }
+
+                /** {@code Saving} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+                public static final class View {
+                    private final YogFrame.Unpacker u;
+
+                    public View(YogFrame.Unpacker u) {
+                        this.u = u;
+                        int end = u.begin();
+                        u.leave(end);
+                    }
+                }
+
+                private static final class Address {
+                    static final int POST = YogBus.resolve(YogNames.EventServerLife.SAVING);
+                }
+
+                /** Whether anyone listens — skip building an event no one hears. */
+                public static boolean heard() {
+                    return YogBus.heard(Address.POST);
+                }
+
+                /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+                public YogMessage emit() {
+                    return YogBus.emit(Address.POST, packedFrame());
+                }
+
+                /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+                public Saving emitChanged() {
+                    YogMessage r = emit();
+                    // Nothing back: no handler changed it.
+                    if (!r.ok() || r.isEmpty()) return this;
+                    try {
+                        return fromFrame(r);
+                    } catch (RuntimeException e) {
+                        return this;
+                    }
+                }
+            }
         }
 
         /** `command`. */

@@ -169,6 +169,7 @@ names! {
         PLANE = crate::concatcp!(crate::event::PREFIX, crate::bus_word::SERVER, crate::sep::PATH, crate::bus_word::LIFE, crate::sep::PATH),
         STARTED = crate::concatcp!(PLANE, "started"),
         STOPPING = crate::concatcp!(PLANE, "stopping"),
+        SAVING = crate::concatcp!(PLANE, "saving"),
     }
 
     /// `yog:event/server/command/…`; keyed by the command's name.

@@ -507,9 +507,10 @@ public final class YogNames {
         public static final String PLANE = "yog:event/server/life/";
         public static final String STARTED = "yog:event/server/life/started";
         public static final String STOPPING = "yog:event/server/life/stopping";
+        public static final String SAVING = "yog:event/server/life/saving";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PLANE, STARTED, STOPPING);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PLANE, STARTED, STOPPING, SAVING);
     }
 
     public static final class EventServerCommand {

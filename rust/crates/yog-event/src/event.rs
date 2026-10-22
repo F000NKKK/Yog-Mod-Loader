@@ -115,6 +115,7 @@ events! {
     server::game::Tick => ids::event_server_game::TICK, None;
     server::life::Started => ids::event_server_life::STARTED, None;
     server::life::Stopping => ids::event_server_life::STOPPING, None;
+    server::life::Saving => ids::event_server_life::SAVING, None;
     server::command::Run => ids::event_server_command::RUN, None, key = name;
     server::net::Packet => ids::event_server_net::PACKET, None, key = channel;
     client::game::Tick => ids::event_client_game::TICK, None;

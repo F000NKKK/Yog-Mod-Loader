@@ -18,7 +18,8 @@
         "ItemPickupMixin",
         "PlayerMoveMixin",
         "ProjectileHitMixin",
-        "PotionBrewingAccess"
+        "PotionBrewingAccess",
+    "ServerSaveMixin"
     ],
     "client": [
     "ClientAdvancementsAccess",

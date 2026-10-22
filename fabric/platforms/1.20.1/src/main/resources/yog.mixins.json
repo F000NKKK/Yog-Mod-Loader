@@ -18,7 +18,8 @@
     "PlayerMoveMixin",
     "ProjectileHitMixin",
     "PotionBrewingAccess",
-    "ResourcePackManagerMixin"
+    "ResourcePackManagerMixin",
+    "ServerSaveMixin"
   ],
   "client": [
     "ClientAdvancementsAccess",

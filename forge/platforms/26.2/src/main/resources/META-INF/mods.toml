@@ -12,7 +12,6 @@ description = '''
 Yog Mod Loader — run Rust mods inside Minecraft via Forge.
 The Gate and the Key between Java and Rust worlds.
 '''
-logoFile = ""
 
 [[dependencies.yog]]
     modId = "forge"

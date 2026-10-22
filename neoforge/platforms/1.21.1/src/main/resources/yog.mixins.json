@@ -17,7 +17,8 @@
         "ExplosionMixin",
         "ItemPickupMixin",
         "PlayerMoveMixin",
-        "ProjectileHitMixin"
+        "ProjectileHitMixin",
+    "ServerSaveMixin"
     ],
     "client": [
     "ClientAdvancementsAccess",

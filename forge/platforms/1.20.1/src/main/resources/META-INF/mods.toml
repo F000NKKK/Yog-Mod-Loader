@@ -12,7 +12,6 @@ description = '''
 Yog Mod Loader — run Rust mods inside Minecraft via NeoForge.
 The Gate and the Key between Java and Rust worlds.
 '''
-logoFile = ""
 
 # The 1.20.1-line NeoForge keeps the legacy "forge" mod container id, and
 # its FML uses the legacy `mandatory` dependency field (the `type` field is

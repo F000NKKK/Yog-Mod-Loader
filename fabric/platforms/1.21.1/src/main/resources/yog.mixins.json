@@ -17,7 +17,8 @@
     "ItemPickupMixin",
     "PlayerMoveMixin",
     "ProjectileHitMixin",
-    "ResourcePackManagerMixin"
+    "ResourcePackManagerMixin",
+    "ServerSaveMixin"
   ],
   "client": [
     "ClientAdvancementsAccess",
