@@ -13,6 +13,8 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
@@ -73,6 +75,11 @@ final class YogClientMirrors {
         if ((c = due.column(YogMirrors.ClientEntity.HEALTH)) != null) c.putFloat(row, e instanceof LivingEntity l ? l.getHealth() : 0f);
         if ((c = due.column(YogMirrors.ClientEntity.UUID)) != null) {
             c.putLongs(row, e.getUUID().getMostSignificantBits(), e.getUUID().getLeastSignificantBits());
+        }
+        if ((c = due.column(YogMirrors.ClientEntity.EYE_HEIGHT)) != null) c.putFloat(row, e.getEyeHeight());
+        if ((c = due.column(YogMirrors.ClientEntity.HOSTILE)) != null) c.putByte(row, e instanceof Enemy);
+        if ((c = due.column(YogMirrors.ClientEntity.NAME)) != null) {
+            c.putInt(row, e instanceof Player p ? YogAtoms.number(p.getName().getString()) : 0);
         }
     }
 

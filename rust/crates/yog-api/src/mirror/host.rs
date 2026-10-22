@@ -57,6 +57,12 @@ pub struct ClientEntities {
     pub health: f32,
     /// `[high, low]`.
     pub uuid: [u64; 2],
+    /// Its eyes' height over its feet.
+    pub eye_height: f32,
+    /// A monster (1) or not (0).
+    pub hostile: u8,
+    /// A player's name; others none.
+    pub name: Option<Atom>,
 }
 
 /// The blocks of the area asked for in this client's world, by packed

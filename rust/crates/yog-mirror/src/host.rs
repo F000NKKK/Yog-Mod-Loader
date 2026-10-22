@@ -92,6 +92,9 @@ pub const CLIENT_ENTITY: HostMirror = HostMirror {
         field(word::KIND, fact::CLIENT_ENTITY_KIND, Kind::U32, 1),
         field(mirror_word::HEALTH, fact::CLIENT_ENTITY_HEALTH, Kind::F32, 1),
         field(mirror_word::UUID, fact::CLIENT_ENTITY_UUID, Kind::U64, UUID_HALVES),
+        field(mirror_word::EYE_HEIGHT, fact::CLIENT_ENTITY_EYE_HEIGHT, Kind::F32, 1),
+        field(mirror_word::HOSTILE, fact::CLIENT_ENTITY_HOSTILE, Kind::U8, 1),
+        field(word::NAME, fact::CLIENT_ENTITY_NAME, Kind::U32, 1),
     ],
     clock: Clock::Client,
 };

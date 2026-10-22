@@ -19,6 +19,10 @@ names! {
         CLIMBABLE = "climbable",
         /// A block's: hurts to touch (fire, lava, cactus…).
         HARMFUL = "harmful",
+        /// An entity's: its eyes' height over its feet.
+        EYE_HEIGHT = "eye_height",
+        /// An entity's: a monster (the game's `Enemy`).
+        HOSTILE = "hostile",
         /// A block's: its collision is the whole cube.
         FULL = "full",
         /// A block's: falls when nothing holds it (sand, gravel…).
@@ -115,6 +119,9 @@ names! {
         CLIENT_ENTITY_KIND = crate::concatcp!(CLIENT_ENTITY, crate::word::KIND),
         CLIENT_ENTITY_HEALTH = crate::concatcp!(CLIENT_ENTITY, crate::mirror_word::HEALTH),
         CLIENT_ENTITY_UUID = crate::concatcp!(CLIENT_ENTITY, crate::mirror_word::UUID),
+        CLIENT_ENTITY_EYE_HEIGHT = crate::concatcp!(CLIENT_ENTITY, crate::mirror_word::EYE_HEIGHT),
+        CLIENT_ENTITY_HOSTILE = crate::concatcp!(CLIENT_ENTITY, crate::mirror_word::HOSTILE),
+        CLIENT_ENTITY_NAME = crate::concatcp!(CLIENT_ENTITY, crate::word::NAME),
         CLIENT_BLOCK = crate::concatcp!(PREFIX, crate::bus_word::CLIENT, crate::sep::PATH, crate::word::BLOCK, crate::sep::PATH),
         CLIENT_BLOCK_STATE = crate::concatcp!(CLIENT_BLOCK, crate::word::STATE),
         CLIENT_BLOCK_SOLID = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::SOLID),

@@ -65,6 +65,12 @@ public final class YogMirrors {
         public static final int HEALTH = 4;
         /** Field `uuid` (U64 × 2): its index, its bit is {@code 1L << index}. */
         public static final int UUID = 5;
+        /** Field `eye_height` (F32 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int EYE_HEIGHT = 6;
+        /** Field `hostile` (U8 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int HOSTILE = 7;
+        /** Field `name` (U32 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int NAME = 8;
     }
 
     /** yog:mirror/yog/client/block (`yog_mirror::host`). */
