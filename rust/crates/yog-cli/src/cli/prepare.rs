@@ -126,7 +126,10 @@ fn settle_lock(root: &Path, build_dir: &Path) -> Result<(), String> {
         .status()
         .is_ok_and(|s| s.success());
     if !locked {
-        eprintln!("warning: `cargo {}` failed — the build will say why", args[0]);
+        eprintln!(
+            "warning: `cargo {}` failed — the build will say why",
+            args[0]
+        );
     }
     one_loader_version(&cargo_lock)
 }

@@ -209,7 +209,11 @@ impl GridLength {
         }
         if let Some(weight) = text.strip_suffix(STAR) {
             let weight = weight.trim();
-            return if weight.is_empty() { Some(GridLength::STAR) } else { weight.parse().ok().map(GridLength::Star) };
+            return if weight.is_empty() {
+                Some(GridLength::STAR)
+            } else {
+                weight.parse().ok().map(GridLength::Star)
+            };
         }
         text.parse().ok().map(GridLength::Px)
     }

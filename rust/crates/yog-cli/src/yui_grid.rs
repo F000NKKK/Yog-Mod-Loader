@@ -27,8 +27,8 @@
 
 use crate::yui::{Element, RAW_CALL, err};
 use yog_data::Diagnostic;
-use yog_ui::GridLength;
 use yog_ids::{yui, yui_attr as at};
+use yog_ui::GridLength;
 
 const ATTACHED: &[&str] = &[
     at::GRID_ROW,
@@ -257,7 +257,9 @@ fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, Diagnostic> {
     let mut tracks = Tracks::default();
     let mut kept = Vec::with_capacity(el.children.len());
     for child in std::mem::take(&mut el.children) {
-        let axis = Axis::BOTH.into_iter().find(|a| a.definitions() == child.name);
+        let axis = Axis::BOTH
+            .into_iter()
+            .find(|a| a.definitions() == child.name);
         let axis = match (axis, child.name.as_str()) {
             (Some(axis), _) => axis,
             (None, n) if n.starts_with(GRID_MEMBER) => {
@@ -293,7 +295,11 @@ fn grid_calls(el: &mut Element, tracks: &mut Tracks) -> Result<Vec<String>, Diag
     for (k, v) in std::mem::take(&mut el.attrs) {
         match k.as_str() {
             at::ROWS | at::COLUMNS => {
-                let axis = if k == at::ROWS { Axis::Row } else { Axis::Column };
+                let axis = if k == at::ROWS {
+                    Axis::Row
+                } else {
+                    Axis::Column
+                };
                 if tracks.slot(axis).is_some() {
                     let prop = axis.definitions();
                     return err(
