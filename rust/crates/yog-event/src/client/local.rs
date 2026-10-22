@@ -1,7 +1,7 @@
 //! What this client's player is and sees: the host's actions (nothing on
 //! a dedicated server, nor without a player).
 
-use yog_core::{BlockArea, BlockPos, LocalState, NearbyEntity, PlacedBlock, SlotStack};
+use yog_core::{BlockArea, DigSpeed, BlockPos, LocalState, NearbyEntity, PlacedBlock, SlotStack};
 use yog_ids as ids;
 
 actions! {
@@ -15,4 +15,6 @@ actions! {
     Area { min: BlockPos, max: BlockPos } -> Option<BlockArea> = ids::service_client_local::AREA, "YogClientOps.area";
     /// The entities within `radius` blocks of the player (not the player).
     Entities { radius: f64 } -> Vec<NearbyEntity> = ids::service_client_local::ENTITIES, "YogClientOps.entities";
+    /// How fast each of `blocks` (ids) is dug with the best tool in the hotbar, in order.
+    DigSpeeds { blocks: Vec<String> } -> Vec<DigSpeed> = ids::service_client_local::DIG_SPEEDS, "YogDigSpeeds.of";
 }

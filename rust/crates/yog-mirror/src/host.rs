@@ -100,18 +100,14 @@ pub const CLIENT_ENTITY: HostMirror = HostMirror {
 };
 
 /// The blocks of the areas asked for in the client's world, by packed
-/// position: their state and what a body meets there (`0`/`1` each).
+/// position: their state, their traits (`yog_ids::block_trait`, a bit
+/// each) and how hard they are to break.
 pub const CLIENT_BLOCK: HostMirror = HostMirror {
     address: host_mirror::CLIENT_BLOCK,
     space: key_space::CLIENT_BLOCK,
     fields: &[
         field(word::STATE, fact::CLIENT_BLOCK_STATE, Kind::U32, 1),
-        field(mirror_word::SOLID, fact::CLIENT_BLOCK_SOLID, Kind::U8, 1),
-        field(mirror_word::LIQUID, fact::CLIENT_BLOCK_LIQUID, Kind::U8, 1),
-        field(mirror_word::CLIMBABLE, fact::CLIENT_BLOCK_CLIMBABLE, Kind::U8, 1),
-        field(mirror_word::HARMFUL, fact::CLIENT_BLOCK_HARMFUL, Kind::U8, 1),
-        field(mirror_word::FULL, fact::CLIENT_BLOCK_FULL, Kind::U8, 1),
-        field(mirror_word::FALLS, fact::CLIENT_BLOCK_FALLS, Kind::U8, 1),
+        field(mirror_word::TRAITS, fact::CLIENT_BLOCK_TRAITS, Kind::U64, 1),
         field(mirror_word::HARDNESS, fact::CLIENT_BLOCK_HARDNESS, Kind::F32, 1),
     ],
     clock: Clock::Client,

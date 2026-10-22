@@ -18,8 +18,10 @@ pub use yog_mirror::{Cell, Clock, FieldSpec, Kind, MirrorSpec, Rate};
 use crate::registry::{Registry, guard};
 
 mod host;
+mod traits;
 mod typed;
 pub use host::{Blocks, ClientBlocks, ClientEntities, Entities, Players};
+pub use traits::BlockTraits;
 pub use typed::{Mirror, MirrorWriter, Mirrored, Row, RowWriter};
 pub use yog_event::mirror::BlockScope;
 pub use yog_mirror::host as host_tables;

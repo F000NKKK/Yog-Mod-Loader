@@ -71,18 +71,8 @@ pub struct ClientEntities {
 #[yog_mirror(host = yog_mirror::host::CLIENT_BLOCK)]
 pub struct ClientBlocks {
     pub state: Option<Atom>,
-    /// Can be stood on and can't be walked through.
-    pub solid: u8,
-    /// Water, lava…
-    pub liquid: u8,
-    /// Ladders, vines.
-    pub climbable: u8,
-    /// Hurts to touch (fire, lava, cactus…).
-    pub harmful: u8,
-    /// Its collision is the whole cube.
-    pub full: u8,
-    /// Falls when nothing holds it (sand, gravel…).
-    pub falls: u8,
+    /// Its traits ([`crate::mirror::BlockTraits`]).
+    pub traits: u64,
     /// How hard it is to break (negative: it can't be).
     pub hardness: f32,
 }

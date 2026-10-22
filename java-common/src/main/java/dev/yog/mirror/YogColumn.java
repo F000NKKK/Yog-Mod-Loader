@@ -97,6 +97,10 @@ public final class YogColumn {
         if (has(row)) data.putInt(row * width, v);
     }
 
+    public void putLong(int row, long v) {
+        if (has(row)) data.putLong(row * width, v);
+    }
+
     public void putLongs(int row, long a, long b) {
         if (!has(row)) return;
         int at = row * width;

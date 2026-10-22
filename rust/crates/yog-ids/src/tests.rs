@@ -61,3 +61,8 @@ fn a_font_alias_stands_for_the_games_font() {
     assert_eq!(game_font_of("minecraft:uniform"), None);
     assert_eq!(game_font_of(yog::FONT_ALIAS), None);
 }
+
+#[test]
+fn block_traits_fit_a_word() {
+    assert!(block_trait::ALL_VALUES.len() <= u64::BITS as usize);
+}

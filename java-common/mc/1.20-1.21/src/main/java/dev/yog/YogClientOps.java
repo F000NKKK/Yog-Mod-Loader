@@ -188,8 +188,8 @@ public final class YogClientOps {
     }
 
     private static YogTypes.BlockKind kind(ClientLevel w, BlockPos at, BlockState st) {
-        return new YogTypes.BlockKind(BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString(), YogBlockFlags.solid(w, at, st),
-                YogBlockFlags.liquid(st), YogBlockFlags.climbable(st), YogBlockFlags.harmful(st));
+        return new YogTypes.BlockKind(BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString(), YogBlockTraits.solid(w, at, st),
+                YogBlockTraits.liquid(st), YogBlockTraits.climbable(st), YogBlockTraits.harmful(st));
     }
 
     @YogServiceHost

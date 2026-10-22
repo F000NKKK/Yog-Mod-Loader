@@ -81,19 +81,53 @@ public final class YogMirrors {
         public static final String SPACE = "yog:keys/client/block";
         /** Field `state` (U32 × 1): its index, its bit is {@code 1L << index}. */
         public static final int STATE = 0;
-        /** Field `solid` (U8 × 1): its index, its bit is {@code 1L << index}. */
-        public static final int SOLID = 1;
-        /** Field `liquid` (U8 × 1): its index, its bit is {@code 1L << index}. */
-        public static final int LIQUID = 2;
-        /** Field `climbable` (U8 × 1): its index, its bit is {@code 1L << index}. */
-        public static final int CLIMBABLE = 3;
-        /** Field `harmful` (U8 × 1): its index, its bit is {@code 1L << index}. */
-        public static final int HARMFUL = 4;
-        /** Field `full` (U8 × 1): its index, its bit is {@code 1L << index}. */
-        public static final int FULL = 5;
-        /** Field `falls` (U8 × 1): its index, its bit is {@code 1L << index}. */
-        public static final int FALLS = 6;
+        /** Field `traits` (U64 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int TRAITS = 1;
         /** Field `hardness` (F32 × 1): its index, its bit is {@code 1L << index}. */
-        public static final int HARDNESS = 7;
+        public static final int HARDNESS = 2;
+    }
+
+    /** A block's traits (`yog_ids::block_trait`): each one's bit index. */
+    public static final class BlockTrait {
+        private BlockTrait() {}
+
+        public static final int AIR = 0;
+        public static final int SOLID = 1;
+        public static final int FULL = 2;
+        public static final int LIQUID = 3;
+        public static final int WATER = 4;
+        public static final int LAVA = 5;
+        public static final int SOURCE = 6;
+        public static final int FLUID_BLOCK = 7;
+        public static final int CLIMBABLE = 8;
+        public static final int HARMFUL = 9;
+        public static final int FALLS = 10;
+        public static final int PATHFINDABLE = 11;
+        public static final int REPLACEABLE = 12;
+        public static final int STURDY_TOP = 13;
+        public static final int FIRE = 14;
+        public static final int SLAB = 15;
+        public static final int STAIRS = 16;
+        public static final int DOOR = 17;
+        public static final int WOODEN_DOOR = 18;
+        public static final int FENCE_GATE = 19;
+        public static final int TRAPDOOR = 20;
+        public static final int FENCE = 21;
+        public static final int WALL = 22;
+        public static final int CARPET = 23;
+        public static final int SNOW_LAYER = 24;
+        public static final int SKULL = 25;
+        public static final int SHULKER_BOX = 26;
+        public static final int LEAVES = 27;
+        public static final int INFESTED = 28;
+        public static final int CAULDRON = 29;
+        public static final int AZALEA = 30;
+        public static final int AMETHYST_CLUSTER = 31;
+        public static final int POINTED_DRIPSTONE = 32;
+        public static final int BAMBOO = 33;
+        public static final int MOVING_PISTON = 34;
+        public static final int SCAFFOLDING = 35;
+        public static final int CHEST = 36;
+        public static final int GLASS = 37;
     }
 }

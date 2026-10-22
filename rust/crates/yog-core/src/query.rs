@@ -192,6 +192,16 @@ pub struct Stack {
     pub snbt: String,
 }
 
+/// How fast a block is dug with the best tool in the hotbar (Baritone's
+/// `ToolSet`): the slot, and the share of the block broken a tick (0: it
+/// can't be).
+#[derive(Debug, Clone, Copy, PartialEq, Schema)]
+#[data(view)]
+pub struct DigSpeed {
+    pub slot: u32,
+    pub per_tick: f32,
+}
+
 /// A stack in an inventory slot.
 #[derive(Debug, Clone, PartialEq, Schema)]
 #[data(view)]

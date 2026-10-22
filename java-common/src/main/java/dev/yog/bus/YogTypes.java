@@ -2471,6 +2471,95 @@ public final class YogTypes {
         }
     }
 
+    /** How fast a block is dug with the best tool in the hotbar (Baritone's `ToolSet`): the slot, and the share of the block broken a tick (0: it can't be). */
+    public record DigSpeed(long slot, float perTick) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("slot", slot);
+            m.put("per_tick", perTick);
+            return m;
+        }
+
+        public static DigSpeed fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new DigSpeed(YogData.integer(m.get("slot"), 0), (float) YogData.number(m.get("per_tick"), 0));
+        }
+
+        public static DigSpeed fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putI(this.slot);
+            p.putF32(this.perTick);
+            p.end(at);
+        }
+
+        public static DigSpeed unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            long f_slot = u.more(end) ? u.getI() : 0L;
+            float f_perTick = u.more(end) ? u.getF32() : 0.0f;
+            u.leave(end);
+            return new DigSpeed(f_slot, f_perTick);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static DigSpeed fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static DigSpeed fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static DigSpeed readFrame(YogFrame.Unpacker u) {
+            DigSpeed v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code DigSpeed} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public long slot() {
+                if (o0 < 0) return 0L;
+                u.seek(o0);
+                return u.getI();
+            }
+
+            public float perTick() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+        }
+    }
+
     /** A command a mod handles (the `command/declare` service): its name, and its arguments' types (`int player`, see `yog_command::Fit`) — `None`: plain, whatever is typed. A name may be declared with several schemas. */
     public record CommandSpec(String name, String schema) {
         public java.util.Map<String, Object> toData() {

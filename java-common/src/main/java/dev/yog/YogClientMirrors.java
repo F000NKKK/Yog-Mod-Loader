@@ -36,8 +36,7 @@ final class YogClientMirrors {
     /** The level the keys are of: another one starts them over. */
     private static ClientLevel keyed;
 
-    private record Flags(int atom, boolean solid, boolean liquid, boolean climbable, boolean harmful,
-                         boolean full, boolean falls, float hardness) {}
+    private record Flags(int atom, long traits, float hardness) {}
 
     /** Answers the client mirrors' addresses (a client only). */
     static void provide() {
@@ -108,37 +107,25 @@ final class YogClientMirrors {
     private static Flags flags(ClientLevel level, BlockPos at, BlockState st) {
         Flags known = FLAGS.get(st);
         if (known != null) return known;
-        Flags f = new Flags(YogHostBlocks.atom(st), YogBlockFlags.solid(level, at, st), YogBlockFlags.liquid(st),
-                YogBlockFlags.climbable(st), YogBlockFlags.harmful(st), YogBlockFlags.full(level, at, st),
-                YogBlockFlags.falls(st), YogBlockFlags.hardness(level, at, st));
+        Flags f = new Flags(YogHostBlocks.atom(st), YogBlockTraits.of(level, at, st), YogBlockTraits.hardness(level, at, st));
         FLAGS.put(st, f);
         return f;
     }
 
     /** A turn's block columns (those due). */
     private static final class Columns {
-        private final YogColumn state, solid, liquid, climbable, harmful, full, falls, hardness;
+        private final YogColumn state, traits, hardness;
 
         Columns(YogHostMirrors.Due due) {
             state = due.column(YogMirrors.ClientBlock.STATE);
-            solid = due.column(YogMirrors.ClientBlock.SOLID);
-            liquid = due.column(YogMirrors.ClientBlock.LIQUID);
-            climbable = due.column(YogMirrors.ClientBlock.CLIMBABLE);
-            harmful = due.column(YogMirrors.ClientBlock.HARMFUL);
-            full = due.column(YogMirrors.ClientBlock.FULL);
-            falls = due.column(YogMirrors.ClientBlock.FALLS);
+            traits = due.column(YogMirrors.ClientBlock.TRAITS);
             hardness = due.column(YogMirrors.ClientBlock.HARDNESS);
         }
 
         /** {@code f} at {@code row}; none, when null. */
         void write(int row, Flags f) {
             if (state != null) state.putInt(row, f == null ? 0 : f.atom());
-            if (solid != null) solid.putByte(row, f != null && f.solid());
-            if (liquid != null) liquid.putByte(row, f != null && f.liquid());
-            if (climbable != null) climbable.putByte(row, f != null && f.climbable());
-            if (harmful != null) harmful.putByte(row, f != null && f.harmful());
-            if (full != null) full.putByte(row, f != null && f.full());
-            if (falls != null) falls.putByte(row, f != null && f.falls());
+            if (traits != null) traits.putLong(row, f == null ? 0L : f.traits());
             if (hardness != null) hardness.putFloat(row, f == null ? -1f : f.hardness());
         }
     }

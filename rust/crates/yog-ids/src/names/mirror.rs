@@ -2,6 +2,66 @@
 //! kept by, and the services that declare and provide them.
 
 names! {
+    /// What a block is to a body there and to whoever breaks or builds by
+    /// it: a block mirror's `traits`, the bit of each its place here (so
+    /// new ones go last). The game's own block families and fluids; a
+    /// block's state properties are in its state atom.
+    block_trait {
+        /// Nothing there (air).
+        AIR = "air",
+        /// Its collision isn't empty: it can be stood on, not walked through.
+        SOLID = "solid",
+        /// Its collision is the whole cube.
+        FULL = "full",
+        /// Any fluid in it (a waterlogged block too).
+        LIQUID = "liquid",
+        WATER = "water",
+        LAVA = "lava",
+        /// Its fluid is a source (a full one).
+        SOURCE = "source",
+        /// A pure fluid block (not a waterlogged one).
+        FLUID_BLOCK = "fluid_block",
+        /// Ladders, vines: climbed by jumping in it.
+        CLIMBABLE = "climbable",
+        /// Hurts to touch: fire, lava, cactus, magma…
+        HARMFUL = "harmful",
+        /// Falls when nothing holds it (sand, gravel…).
+        FALLS = "falls",
+        /// Mobs may walk through it (the game's pathfinding on land).
+        PATHFINDABLE = "pathfindable",
+        /// Placing a block there replaces it (grass, snow's top layer…).
+        REPLACEABLE = "replaceable",
+        /// Its top face is sturdy: a block may stand on it.
+        STURDY_TOP = "sturdy_top",
+        FIRE = "fire",
+        SLAB = "slab",
+        STAIRS = "stairs",
+        DOOR = "door",
+        /// A door opened by hand.
+        WOODEN_DOOR = "wooden_door",
+        FENCE_GATE = "fence_gate",
+        TRAPDOOR = "trapdoor",
+        FENCE = "fence",
+        WALL = "wall",
+        CARPET = "carpet",
+        SNOW_LAYER = "snow_layer",
+        SKULL = "skull",
+        SHULKER_BOX = "shulker_box",
+        LEAVES = "leaves",
+        /// Hides a silverfish.
+        INFESTED = "infested",
+        CAULDRON = "cauldron",
+        AZALEA = "azalea",
+        AMETHYST_CLUSTER = "amethyst_cluster",
+        POINTED_DRIPSTONE = "pointed_dripstone",
+        BAMBOO = "bamboo",
+        MOVING_PISTON = "moving_piston",
+        SCAFFOLDING = "scaffolding",
+        /// A chest of any kind (it can be stood on).
+        CHEST = "chest",
+        GLASS = "glass",
+    }
+
     /// The words mirrors' names are made of.
     mirror_word {
         MIRROR = "mirror",
@@ -11,24 +71,14 @@ names! {
         VELOCITY = "velocity",
         HEALTH = "health",
         UUID = "uuid",
-        /// A block's: can be stood on and can't be walked through.
-        SOLID = "solid",
-        /// A block's: water, lava…
-        LIQUID = "liquid",
-        /// A block's: ladders, vines.
-        CLIMBABLE = "climbable",
-        /// A block's: hurts to touch (fire, lava, cactus…).
-        HARMFUL = "harmful",
         /// An entity's: its eyes' height over its feet.
         EYE_HEIGHT = "eye_height",
         /// An entity's: a monster (the game's `Enemy`).
         HOSTILE = "hostile",
-        /// A block's: its collision is the whole cube.
-        FULL = "full",
-        /// A block's: falls when nothing holds it (sand, gravel…).
-        FALLS = "falls",
         /// A block's: how hard it is to break (negative: it can't be).
         HARDNESS = "hardness",
+        /// A block's: its [`block_trait`]s, a bit each (the bit its place in the list).
+        TRAITS = "traits",
     }
 
     /// `yog:mirror/…`: declaring a mirror, providing one, and the mirrors
@@ -124,13 +174,8 @@ names! {
         CLIENT_ENTITY_NAME = crate::concatcp!(CLIENT_ENTITY, crate::word::NAME),
         CLIENT_BLOCK = crate::concatcp!(PREFIX, crate::bus_word::CLIENT, crate::sep::PATH, crate::word::BLOCK, crate::sep::PATH),
         CLIENT_BLOCK_STATE = crate::concatcp!(CLIENT_BLOCK, crate::word::STATE),
-        CLIENT_BLOCK_SOLID = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::SOLID),
-        CLIENT_BLOCK_LIQUID = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::LIQUID),
-        CLIENT_BLOCK_CLIMBABLE = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::CLIMBABLE),
-        CLIENT_BLOCK_HARMFUL = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::HARMFUL),
-        CLIENT_BLOCK_FULL = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::FULL),
-        CLIENT_BLOCK_FALLS = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::FALLS),
         CLIENT_BLOCK_HARDNESS = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::HARDNESS),
+        CLIENT_BLOCK_TRAITS = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::TRAITS),
     }
 
     /// What's wrong with a mirror's declaration or provider (`YM…`).

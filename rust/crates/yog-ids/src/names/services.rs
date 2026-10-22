@@ -238,6 +238,7 @@ names! {
         SCAN = crate::concatcp!(DOMAIN, "scan"),
         AREA = crate::concatcp!(DOMAIN, "area"),
         ENTITIES = crate::concatcp!(DOMAIN, crate::word::ENTITIES),
+        DIG_SPEEDS = crate::concatcp!(DOMAIN, "dig_speeds"),
     }
 
     /// `yog:client/control/…`: this client's player doing what a player
