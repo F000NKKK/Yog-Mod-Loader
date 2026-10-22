@@ -37,7 +37,7 @@ public final class YogClient {
         });
         RegisterPictureInPictureRendererEvent.BUS.addListener(e -> {
             e.register(new YogBlocksPip());
-            for (YogGlPip<?> gl : YogGlPip.all()) e.register(gl);
+            for (var layer : YogGlPip.LAYERS) e.register(YogGlPip.of(layer));
         });
         RegisterClientTooltipComponentFactoriesEvent.BUS.addListener(e -> e.register(YogTooltipData.class, YogClientTooltip::new));
         RegisterKeyMappingsEvent.BUS.addListener(e -> {

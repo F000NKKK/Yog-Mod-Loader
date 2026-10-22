@@ -34,7 +34,7 @@ public class YogClient implements ClientModInitializer {
         }
         // Blocks in 3D in a GUI box (NativeDraw.drawBlocks), drawn into a texture of their own.
         PictureInPictureRendererRegistry.register(context -> new YogBlocksPip());
-        for (YogGlPip<?> gl : YogGlPip.all()) PictureInPictureRendererRegistry.register(context -> gl);
+        for (var layer : YogGlPip.LAYERS) PictureInPictureRendererRegistry.register(context -> YogGlPip.of(layer));
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> YogClientEvents.tooltip(stack, lines::add));
         // Pictures in item tooltips (ABI 2.2).
         ClientTooltipComponentCallback.EVENT.register(data -> data instanceof YogTooltipData d ? new YogClientTooltip(d) : null);

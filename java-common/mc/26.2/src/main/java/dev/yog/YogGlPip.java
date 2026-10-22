@@ -37,10 +37,12 @@ final class YogGlPip<T extends YogGlPip.Drawn> extends PictureInPictureRenderer<
     record Layer3(long recording, int x0, int y0, int x1, int y1, float scale,
                   @Nullable ScreenRectangle scissorArea, @Nullable ScreenRectangle bounds) implements Drawn {}
 
-    /** Every layer's renderer, to register with the game. */
-    static List<YogGlPip<?>> all() {
-        return List.of(new YogGlPip<>(Layer0.class), new YogGlPip<>(Layer1.class),
-                new YogGlPip<>(Layer2.class), new YogGlPip<>(Layer3.class));
+    /**
+     * A layer's renderer. Made only once the game has its device (a
+     * renderer allocates on it): registered as a factory, not made up front.
+     */
+    static YogGlPip<?> of(Class<? extends Drawn> layer) {
+        return new YogGlPip<>(layer);
     }
 
     /** The layers' state classes, in order. */
