@@ -86,7 +86,7 @@ yog-book = { version = "0.71.0", path = "crates/yog-book" }
 yog-command = { version = "0.4.0", path = "crates/yog-command" }
 yog-config = { version = "0.3.0", path = "crates/yog-config" }
 yog-core = { version = "0.8.1", path = "crates/yog-core" }
-yog-data = { version = "0.8.2", path = "crates/yog-data" }
+yog-data = { version = "0.8.3", path = "crates/yog-data" }
 yog-data-derive = { version = "0.6.1", path = "crates/yog-data-derive" }
 yog-dimensions = { version = "0.15.0", path = "crates/yog-dimensions" }
 yog-event = { version = "0.9.1", path = "crates/yog-event" }
