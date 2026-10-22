@@ -41,10 +41,6 @@ pub struct EntryObject {
     pub comment: Option<String>,
     /// Texts: the translation key instead of the default one.
     pub key: Option<String>,
-    /// Sounds: the sound event name.
-    pub event: Option<String>,
-    /// Sounds: the subtitle's translation key.
-    pub subtitle: Option<String>,
 }
 
 /// `resources/.../Strings.ru_ru.yres` → `("Strings", Some("ru_ru"))`.
@@ -108,8 +104,6 @@ pub struct Entry {
     pub value: Value,
     pub comment: Option<String>,
     pub key: Option<String>,
-    pub event: Option<String>,
-    pub subtitle: Option<String>,
     /// 1-based line of the name.
     pub line: usize,
 }
@@ -131,8 +125,6 @@ impl Entry {
             value: Value::Bytes(bytes),
             comment: None,
             key: None,
-            event: None,
-            subtitle: None,
             line: 0,
         }
     }
@@ -181,8 +173,6 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
         value: Value::Str(String::new()),
         comment: None,
         key: None,
-        event: None,
-        subtitle: None,
         line: 0,
     };
     if !matches!(v, ValueRef::Map(_)) {
@@ -216,11 +206,7 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
         });
         return None;
     }
-    let misplaced = [
-        ("key", o.key.is_some(), Kind::String),
-        ("event", o.event.is_some(), Kind::Sound),
-        ("subtitle", o.subtitle.is_some(), Kind::Sound),
-    ];
+    let misplaced = [("key", o.key.is_some(), Kind::String)];
     for (field, present, only) in misplaced {
         if present && kind != only {
             cx.at(Seg::Key(field.into()), |cx| {
@@ -231,8 +217,7 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
     }
     entry.kind = kind;
     entry.value = value;
-    (entry.comment, entry.key, entry.event, entry.subtitle) =
-        (o.comment, o.key, o.event, o.subtitle);
+    (entry.comment, entry.key) = (o.comment, o.key);
     Some(entry)
 }
 
@@ -272,9 +257,7 @@ impl Schema for YresFile {
             };
             let plain = e.kind == kind_of(&e.value)
                 && e.comment.is_none()
-                && e.key.is_none()
-                && e.event.is_none()
-                && e.subtitle.is_none();
+                && e.key.is_none();
             if plain {
                 map.insert(e.name.clone(), value);
                 continue;
@@ -284,8 +267,6 @@ impl Schema for YresFile {
                 value,
                 comment: e.comment.clone(),
                 key: e.key.clone(),
-                event: e.event.clone(),
-                subtitle: e.subtitle.clone(),
             };
             map.insert(e.name.clone(), o.write());
         }

@@ -91,7 +91,7 @@ public final class YogPackStager {
     }
 
     /** The mods' files, and the pack's description. */
-    private static final String MOD_FILES = "*" + YogNames.Sep.EXT + YogNames.Ext.MOD, PACK_MCMETA = "pack" + YogNames.Res.MCMETA;
+    private static final String MOD_FILES = "*" + YogNames.Sep.DOT + YogNames.Ext.MOD, PACK_MCMETA = "pack" + YogNames.Res.MCMETA;
     /** Where a pack's assets and data start. */
     private static final String ASSETS_DIR = YogNames.Pack.ASSETS + YogNames.Sep.PATH, DATA_DIR = YogNames.Pack.DATA + YogNames.Sep.PATH;
 
@@ -119,7 +119,7 @@ public final class YogPackStager {
     private static java.util.List<String> layers(String loader, String mcVersion) {
         java.util.List<String> versions = new java.util.ArrayList<>(java.util.List.of(YogNames.Pack.ANY_VERSION));
         String[] parts = mcVersion.split("\\.");
-        for (int i = 2; i <= parts.length; i++) versions.add(String.join(YogNames.Sep.EXT, java.util.Arrays.copyOf(parts, i)));
+        for (int i = 2; i <= parts.length; i++) versions.add(String.join(YogNames.Sep.DOT, java.util.Arrays.copyOf(parts, i)));
         java.util.List<String> layers = new java.util.ArrayList<>(java.util.List.of(""));
         for (String v : versions) {
             layers.add(overlay(YogNames.Pack.ANY_LOADER, v));
@@ -178,7 +178,7 @@ public final class YogPackStager {
     /** The registry whose tags recipe viewers name, and the game's folder of them per layout. */
     private static final String ITEM_TAGS = YogNames.RenamedTagDir.ITEM, ITEM_TAGS_1_20 = ITEM_TAGS + YogNames.DataLayout.PLURAL;
     /** A tag's translation key: {@code tag.item.<ns>.<path with dots>}. */
-    private static final String TAG_KEY = YogNames.Kind.TAG + YogNames.Sep.EXT + ITEM_TAGS + YogNames.Sep.EXT;
+    private static final String TAG_KEY = YogNames.Kind.TAG + YogNames.Sep.DOT + ITEM_TAGS + YogNames.Sep.DOT;
     /** The lang file of Yog's common tags' names (the jar's, not the pack's). */
     private static final String COMMON_TAG_NAMES = "/assets/yog_tags/lang/" + dev.yog.YogNames.Game.LOCALE + dev.yog.YogNames.Res.JSON;
 

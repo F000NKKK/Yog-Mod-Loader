@@ -226,7 +226,7 @@ impl Tracks {
 /// What a bound value starts with: `{x:Bind …}`.
 const BINDING_START: char = '{';
 /// What a grid's member properties start with: `Grid.`.
-const GRID_MEMBER: &str = yog_ids::concatcp!(yui::GRID, yog_ids::sep::MEMBER);
+const GRID_MEMBER: &str = yog_ids::concatcp!(yui::GRID, yog_ids::sep::DOT);
 
 /// Checks and lowers every `<Grid>` and `Grid.*` attached property under
 /// `el` (see the module docs).

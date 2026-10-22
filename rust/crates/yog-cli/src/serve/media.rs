@@ -50,8 +50,6 @@ struct EntryInfo {
     translation_key: Option<String>,
     comment: Option<String>,
     key: Option<String>,
-    event: Option<String>,
-    subtitle: Option<String>,
 }
 
 /// Every kind of `.yres` entry.
@@ -171,8 +169,6 @@ fn info(e: &Entry, set_and_mod: Option<(&str, &str)>) -> EntryInfo {
         translation_key,
         comment: e.comment.clone(),
         key: e.key.clone(),
-        event: e.event.clone(),
-        subtitle: e.subtitle.clone(),
     }
 }
 
@@ -217,8 +213,6 @@ fn entry(e: &Value) -> Result<Entry, ServiceError> {
         value,
         comment: field("comment"),
         key: field("key"),
-        event: field("event"),
-        subtitle: field("subtitle"),
         line: 0,
     })
 }

@@ -25,7 +25,7 @@ use crate::content::recipe::registration::Recipe;
 use crate::content::recipe::{Against, compile_recipe};
 use crate::content::source::{Content, mentions_content_macro, registrations, rust_source};
 use crate::content::{
-    CONTENT_DIR, Compiled, content_format, datapack, find, looks, refs, textures, valid_namespace,
+    CONTENT_DIR, Compiled, content_format, datapack, find, looks, refs, sounds, textures, valid_namespace,
 };
 use crate::diagnostics::Diagnostic;
 use crate::yres;
@@ -81,12 +81,13 @@ struct Build<'a> {
 /// the whole thing, listing every problem.
 pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled, String> {
     let files = find(root);
-    if files.is_empty() {
-        return Ok(Compiled::default());
-    }
-    let mod_ns = valid_namespace(mod_id).then_some(mod_id);
     let mut sink = Sink::default();
     let own = textures::compile(root, mod_id, refs, &mut sink.errors);
+    let sounds = sounds::compile(root, mod_id, refs, &mut sink.errors);
+    if files.is_empty() {
+        return media_only(own, sounds, sink);
+    }
+    let mod_ns = valid_namespace(mod_id).then_some(mod_id);
     let shared = Shared {
         root,
         refs,
@@ -106,8 +107,27 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     b.books(&known, &layouts);
     b.inventories();
     b.out.outputs.extend(own.outputs);
+    b.out.outputs.extend(sounds.output);
     b.out.packed = own.packed;
     b.finish(&mut defs, made, &known)
+}
+
+/// A mod with no content files: its textures and sounds alone.
+fn media_only(own: textures::Textures, sounds: sounds::Sounds, sink: Sink) -> Result<Compiled, String> {
+    if !sink.errors.is_empty() {
+        crate::diagnostics::report_all(&sink.errors);
+        return Err(format!(
+            "invalid textures/sounds in {}/:{}{}",
+            crate::yres::RESOURCES_DIR,
+            crate::diagnostics::LIST_SEP,
+            crate::diagnostics::listed(&sink.errors)
+        ));
+    }
+    let mut out = Compiled::default();
+    out.outputs.extend(own.outputs);
+    out.outputs.extend(sounds.output);
+    out.packed = own.packed;
+    Ok(out)
 }
 
 impl<'a> Build<'a> {

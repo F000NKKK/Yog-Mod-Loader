@@ -25,7 +25,7 @@ const HOME_DIR: &str = ".yog";
 const LOCAL_FILE: &str = "local.toml";
 /// What Yog Installer installed, under the home.
 const COMPONENTS_FILE: &str =
-    yog_ids::concatcp!("components", yog_ids::sep::EXT, yog_ids::Format::Data.ext());
+    yog_ids::concatcp!("components", yog_ids::sep::DOT, yog_ids::Format::Data.ext());
 /// Where Yog Installer installs, under the home: products (Yog IDLE), loader
 /// SDKs, JDKs, game instances, tools (zig), and its downloads while it does.
 const PRODUCTS_DIR: &str = "products";

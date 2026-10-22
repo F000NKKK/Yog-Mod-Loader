@@ -8,7 +8,7 @@ use yog_formats::def::{AdvancementDef, CriterionDef};
 use yog_ids::advancement as adv;
 use yog_ids::kind::{ITEM, TAG as TAG_FIELD};
 use yog_ids::ns::MINECRAFT;
-use yog_ids::sep::{EXT, TAG};
+use yog_ids::sep::{DOT, TAG};
 
 use crate::content::Lang;
 use crate::content::Output;
@@ -25,7 +25,7 @@ const NEW_FORMAT: (u32, u32, u32) = (1, 20, 5);
 /// Minecraft versions before [`NEW_FORMAT`] write advancements the old way:
 /// an icon's `item`, item predicates' `items` lists and `tag`s.
 fn old_advancement_format(version: &str) -> bool {
-    let mut p = version.split(EXT).map(|n| n.parse::<u32>().unwrap_or(0));
+    let mut p = version.split(DOT).map(|n| n.parse::<u32>().unwrap_or(0));
     (
         p.next().unwrap_or(0),
         p.next().unwrap_or(0),
@@ -94,9 +94,9 @@ fn shown(cx: &mut Ctx, lang: &mut Lang, a: &AdvancementDef, id: &str) -> Result<
     let base_key = [
         yog_ids::kind::ADVANCEMENT,
         ns,
-        &path.replace(yog_ids::sep::PATH, EXT),
+        &path.replace(yog_ids::sep::PATH, DOT),
     ]
-    .join(EXT);
+    .join(DOT);
     let title =
         text_key(cx, lang, &a.title, ns, base_key.clone()).map_err(|e| problem(TITLE, None, e))?;
     let description = match &a.description {

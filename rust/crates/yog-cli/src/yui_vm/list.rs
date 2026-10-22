@@ -62,7 +62,7 @@ fn templates(el: &Element) -> Result<Templates<'_>, Diagnostic> {
         match c
             .name
             .strip_prefix(name)
-            .and_then(|n| n.strip_prefix(yog_ids::sep::MEMBER))
+            .and_then(|n| n.strip_prefix(yog_ids::sep::DOT))
         {
             Some(v::ITEM_TEMPLATE | v::CONTENT_TEMPLATE) => item = Some(only_child(c)?),
             Some(v::EMPTY) => empty = Some(only_child(c)?),

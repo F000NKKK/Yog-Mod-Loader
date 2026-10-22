@@ -18,14 +18,12 @@ names! {
         PATH = "/",
         /// A name's words: `sound_group`.
         WORD = "_",
-        /// A file's name from its extension: `yog.toml`.
-        EXT = ".",
+        /// A dot: a file's name from its extension (`yog.toml`), a `.yui`
+        /// element's member (`Grid.Row`), a key's or a sound event's parts
+        /// (`casting.cast`).
+        DOT = ".",
         /// The words of a folder's name: `yog-mods`.
         HYPHEN = "-",
-        /// A `.yui` element's member: `Grid.Row`, `Screen.Resources`.
-        MEMBER = crate::sep::EXT,
-        /// A sound event's parts, a translation key's: `casting.cast`.
-        KEY = crate::sep::EXT,
         /// What starts a typed value: `@item:minecraft:stick`.
         TYPED = "@",
         /// What marks a tag among ids: `#minecraft:logs`.

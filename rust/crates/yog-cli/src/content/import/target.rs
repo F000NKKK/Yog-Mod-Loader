@@ -67,7 +67,7 @@ impl Target {
         png: &[u8],
         mcmeta: Option<&[u8]>,
     ) -> Result<String, String> {
-        let name = path.replace(yog_ids::sep::PATH, yog_ids::sep::EXT);
+        let name = path.replace(yog_ids::sep::PATH, yog_ids::sep::DOT);
         let set = yog_formats::texture::picture_set(path);
         let set_rel = format!("{RESOURCES_DIR}/{}", Format::Res.file(&set));
         let set_file = self.root.join(&set_rel);

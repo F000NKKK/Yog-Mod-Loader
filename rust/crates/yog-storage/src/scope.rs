@@ -37,7 +37,7 @@ impl Scope<'_> {
             Scope::Entity(uuid) => (Some(ENTITY), file_safe(uuid)),
             Scope::Chunk(dim, x, z) => (Some(CHUNK), format!("{}{SEP}{x}{SEP}{z}", file_safe(dim))),
         };
-        let file = format!("{name}{}{STORE_EXT}", yog_ids::sep::EXT);
+        let file = format!("{name}{}{STORE_EXT}", yog_ids::sep::DOT);
         match dir {
             Some(dir) => base.join(dir).join(file),
             None => base.join(file),

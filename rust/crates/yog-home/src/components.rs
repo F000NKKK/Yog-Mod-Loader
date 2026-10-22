@@ -74,7 +74,7 @@ impl Components {
         let base = &self.newest(id::RUNTIME_SYMBOLS)?.path;
         let file = base.join(tag).join(format!(
             "{lib}{}{}",
-            yog_ids::sep::EXT,
+            yog_ids::sep::DOT,
             yog_ids::symbols::EXT
         ));
         file.is_file().then_some(file)

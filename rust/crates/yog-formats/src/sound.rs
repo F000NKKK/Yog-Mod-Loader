@@ -50,10 +50,10 @@ pub struct Variant {
 pub fn id_of(mod_id: &str, rel: &str) -> Option<String> {
     let path = rel
         .strip_suffix(yog_ids::Format::Sound.ext())?
-        .strip_suffix(yog_ids::sep::EXT)?
+        .strip_suffix(yog_ids::sep::DOT)?
         .strip_prefix(DIR)?
         .strip_prefix(yog_ids::sep::PATH)?;
-    Some(yog_ids::join(mod_id, &path.replace(yog_ids::sep::PATH, yog_ids::sep::KEY)))
+    Some(yog_ids::join(mod_id, &path.replace(yog_ids::sep::PATH, yog_ids::sep::DOT)))
 }
 
 #[cfg(test)]

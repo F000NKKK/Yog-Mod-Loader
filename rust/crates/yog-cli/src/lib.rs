@@ -8,6 +8,7 @@
 // What the binary, tests and benches reach is documented (the rest is `pub(crate)`).
 #![warn(missing_docs)]
 
+pub(crate) mod audio;
 pub mod bench;
 pub(crate) mod book_page;
 pub mod cargo_toml;

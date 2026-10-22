@@ -18,7 +18,7 @@ names! {
 
     /// The host's mapping table, in its jar.
     mapping_file {
-        NAME = crate::concatcp!("yog-mappings", crate::sep::EXT, crate::Format::Data.ext()),
+        NAME = crate::concatcp!("yog-mappings", crate::sep::DOT, crate::Format::Data.ext()),
     }
 
     /// `yog:nanite/…`: reflection — a member resolved once, then called,

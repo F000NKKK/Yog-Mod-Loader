@@ -148,7 +148,7 @@ fn compiles_a_mod() {
     .unwrap();
     std::fs::write(
         res.join("Icons.yres"),
-        r##"{"images.logo": "@bytes:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==", "accent": {"type": "color", "value": "#FF8800"}, "sounds.click": {"value": "@bytes:T2dnUw==", "event": "click"}, "max": 3, "on": true}"##,
+        r##"{"images.logo": "@bytes:iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==", "accent": {"type": "color", "value": "#FF8800"}, "sounds.click": {"type": "sound", "value": "@bytes:T2dnUw=="}, "max": 3, "on": true}"##,
     )
     .unwrap();
     std::fs::write(res.join("Items.yres"), r#"{"ruby": "Ruby"}"#).unwrap();
@@ -178,7 +178,8 @@ fn compiles_a_mod() {
             || out.contains_key("assets/m/textures/images/logo.png")
     );
     assert_eq!(out["assets/m/sounds/sounds/click.ogg"], "OggS");
-    assert!(out["assets/m/sounds.json"].contains("\"m:sounds/click\""));
+    assert!(!out.contains_key("assets/m/sounds.json"), ".ysound files make sounds.json");
+    assert_eq!(c.refs.sounds["Icons.sounds.click"], "m:sounds/click");
     assert_eq!(c.refs.images["Icons.images.logo"], "m:images/logo");
     assert!(c.refs.pictures.contains_key("Icons.images.logo"));
     assert_eq!(
@@ -209,7 +210,7 @@ fn compiles_a_mod() {
     );
     assert!(icons.contains("pub const MAX: i64 = 3;"), "{icons}");
     assert!(icons.contains("pub const ON: bool = true;"), "{icons}");
-    assert!(icons.contains("\"m:click\""), "{icons}");
+    assert!(icons.contains("\"m:sounds/click\""), "{icons}");
     assert_eq!(c.warnings.len(), 2, "{:?}", c.warnings);
     assert!(
         c.warnings[0].message.contains("1 text(s) not translated")

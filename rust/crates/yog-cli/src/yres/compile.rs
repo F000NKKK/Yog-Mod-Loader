@@ -63,8 +63,6 @@ struct Build<'a> {
     key_origin: HashMap<String, String>,
     /// Bundled path → the entry it comes from, and its bytes.
     bundled: BTreeMap<String, (String, Vec<u8>)>,
-    /// Sound event → its `sounds.json` definition.
-    sounds: BTreeMap<String, serde_json::Value>,
 }
 
 /// Compiles the mod's resources (see the module docs). Any error fails the
@@ -84,7 +82,6 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
         lang: BTreeMap::new(),
         key_origin: HashMap::new(),
         bundled: BTreeMap::new(),
-        sounds: BTreeMap::new(),
     };
     for set in sets.values() {
         let texts = b.set(set);
@@ -208,7 +205,7 @@ impl Build<'_> {
         let Value::Bytes(bytes) = &e.value else {
             return None;
         };
-        let path = e.name.replace(yog_ids::sep::EXT, yog_ids::sep::PATH);
+        let path = e.name.replace(yog_ids::sep::DOT, yog_ids::sep::PATH);
         let (target, id, data) = match e.kind {
             Kind::Image => self.image(e, a, bytes, &path)?,
             Kind::Sound => self.sound(e, a, bytes, &path),
@@ -259,33 +256,17 @@ impl Build<'_> {
         Some((target, source, png))
     }
 
-    /// A sound: an Ogg file, and its event (its own, or its name) in `sounds.json`.
-    fn sound(
-        &mut self,
-        e: &Entry,
-        a: &Accessor,
-        bytes: &[u8],
-        path: &str,
-    ) -> (String, String, Vec<u8>) {
-        let event = e
-            .event
-            .clone()
-            .unwrap_or_else(|| e.name.to_ascii_lowercase());
-        let mut def =
-            serde_json::json!({ yog_ids::res::SOUNDS_WORD: [yog_ids::join(self.mod_id, path)] });
-        if let Some(sub) = &e.subtitle {
-            def["subtitle"] = serde_json::Value::String(sub.clone());
-        }
-        if self.sounds.insert(event.clone(), def).is_some() {
-            self.errors
-                .push(a.at.problem(format!("sound event {event:?} is defined twice")));
-        }
+    /// A sound: an Ogg Vorbis file (converted when it isn't one), named
+    /// by `.ysound` events (`refs.sounds`).
+    fn sound(&mut self, e: &Entry, a: &Accessor, bytes: &[u8], path: &str) -> (String, String, Vec<u8>) {
+        let ogg = crate::audio::to_ogg(bytes).unwrap_or_else(|err| {
+            self.errors.push(a.at.problem(format!("{:?}: {err}", e.name)));
+            Vec::new()
+        });
+        let id = yog_ids::join(self.mod_id, path);
+        self.c.refs.sounds.insert(a.reference.clone(), id.clone());
         let file = format!("{}{path}{}", yog_ids::res::SOUNDS, yog_ids::res::OGG);
-        (
-            yog_ids::asset_file(self.mod_id, &file),
-            yog_ids::join(self.mod_id, &event),
-            bytes.to_vec(),
-        )
+        (yog_ids::asset_file(self.mod_id, &file), id, ogg)
     }
 
     /// A color, number or flag: a const.
@@ -363,7 +344,7 @@ impl Build<'_> {
         }
     }
 
-    /// The lang files, the media, `sounds.json` — unless something was
+    /// The lang files and the media — unless something was
     /// wrong: then every problem.
     fn finish(mut self) -> Result<Compiled, String> {
         for (locale, entries) in std::mem::take(&mut self.lang) {
@@ -374,12 +355,6 @@ impl Build<'_> {
         }
         for (target, (_, bytes)) in std::mem::take(&mut self.bundled) {
             self.c.outputs.push((target, bytes));
-        }
-        if !self.sounds.is_empty() {
-            match outputs::sounds_json(self.root, self.mod_id, std::mem::take(&mut self.sounds)) {
-                Ok(out) => self.c.outputs.push(out),
-                Err(e) => self.errors.extend(e),
-            }
         }
         if !self.errors.is_empty() {
             crate::diagnostics::report_all(&self.errors);

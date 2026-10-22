@@ -7,7 +7,7 @@ use yog_data::AnyRefOrTag;
 use yog_formats::def::{DamageTypeDef, TagDef};
 use yog_ids::Format;
 use yog_ids::ns::MINECRAFT;
-use yog_ids::sep::{EXT, TAG};
+use yog_ids::sep::{DOT, TAG};
 
 use crate::content::Output;
 use crate::content::datapack;
@@ -57,7 +57,7 @@ pub(super) fn tag_entries(t: &TagDef, ns: &str) -> Result<(String, TagEntries), 
 pub(super) fn damage_type(d: &DamageTypeDef, id: &str) -> (Output, Vec<(String, String)>) {
     let (ns, path) = yog_ids::split(id);
     let mut v = serde_json::json!({
-        "message_id": d.message_id.clone().unwrap_or_else(|| [ns, path].join(EXT)),
+        "message_id": d.message_id.clone().unwrap_or_else(|| [ns, path].join(DOT)),
         "scaling": d.scaling,
         "exhaustion": d.exhaustion,
     });

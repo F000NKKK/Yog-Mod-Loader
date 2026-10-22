@@ -8,8 +8,8 @@
 //!
 //! - writes the texts into `assets/<mod id>/lang/<locale>.json` (merged with
 //!   a hand-written one), `{name}`/`{0}` placeholders turned into `%1$s`;
-//! - bundles image/file/sound entries' files under `assets/<mod id>/...`,
-//!   plus a `sounds.json` for the sounds;
+//! - bundles image/file/sound entries' files under `assets/<mod id>/...`
+//!   (sounds as Ogg Vorbis: `.ysound` events name them);
 //! - generates `.yog-build/generated/resources/<Set>.g.rs` — a type per
 //!   set with a typed accessor per entry — and `resources.g.rs` including
 //!   them, pulled in as `crate::res` by `yog_api::resources!();`;
@@ -57,6 +57,8 @@ pub struct Refs {
     pub(crate) colors: HashMap<String, u32>,
     /// `Set.name` → an image's picture, as the build writes it.
     pub(crate) pictures: HashMap<String, Picture>,
+    /// `Set.name` → a sound's file as `sounds.json` names it (`<mod id>:<path>`).
+    pub(crate) sounds: HashMap<String, String>,
 }
 
 impl Refs {
@@ -65,6 +67,14 @@ impl Refs {
         self.texts
             .get(&r.name())
             .ok_or_else(|| format!("`{r}`: no text `{}` in resources/*.yres", r.name()))
+    }
+
+    /// Sound `r`: its file as `sounds.json` names it.
+    pub(crate) fn sound(&self, r: &yog_data::Res) -> Result<&str, String> {
+        self.sounds
+            .get(&r.name())
+            .map(String::as_str)
+            .ok_or_else(|| format!("`{r}`: no sound `{}` in resources/*.yres", r.name()))
     }
 
     /// Color `r` (`0xAARRGGBB`).
@@ -133,9 +143,6 @@ pub(crate) fn value_problem(e: &Entry) -> Option<String> {
                 "{:?}: Minecraft resource paths are lower case — only a-z, 0-9, `_`, `-`, `.`",
                 e.name
             ))
-        }
-        (Kind::Sound, Value::Bytes(b)) if !b.starts_with(yog_formats::yres::OGG_MAGIC) => {
-            Some(format!("{:?}: sounds are Ogg Vorbis", e.name))
         }
         (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_)) => None,
         (Kind::Image, _) => Some(media("images")),

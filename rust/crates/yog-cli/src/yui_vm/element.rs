@@ -388,7 +388,7 @@ impl VmGen<'_> {
     ) -> Result<(), Diagnostic> {
         let mut i = 0u16;
         for child in &el.children {
-            if child.name.contains(yog_ids::sep::MEMBER) {
+            if child.name.contains(yog_ids::sep::DOT) {
                 if child.name == v::SCREEN_RESOURCES && path.is_empty() {
                     continue;
                 }

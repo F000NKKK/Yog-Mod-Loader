@@ -7,7 +7,7 @@ use yog_data::Path as At;
 use crate::content::ctx::{Ctx, Loc};
 use crate::content::{valid_namespace, valid_path};
 use yog_ids::Format;
-use yog_ids::sep::{EXT, NAMESPACE, PATH};
+use yog_ids::sep::{DOT, NAMESPACE, PATH};
 
 /// What joins an id's parts in a generated file's name: `ns__path__more`.
 const NAME_JOIN: &str = "__";
@@ -16,7 +16,7 @@ const NAME_JOIN: &str = "__";
 /// `dir`: `<dir>/<ns>__<path>.<ext>`.
 pub(super) fn generated(dir: &str, id: &str, format: Format) -> String {
     let name = id.replace(NAMESPACE, NAME_JOIN).replace(PATH, NAME_JOIN);
-    format!("{dir}{PATH}{name}{EXT}{}", format.ext())
+    format!("{dir}{PATH}{name}{DOT}{}", format.ext())
 }
 
 /// The one format version of the content files.

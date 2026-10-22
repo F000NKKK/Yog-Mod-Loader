@@ -111,7 +111,7 @@ impl Shelf {
 }
 
 /// What a store's written to before it's renamed over the old one.
-const TMP_EXT: &str = yog_ids::concatcp!(yog_ids::Format::Data.ext(), yog_ids::sep::EXT, "tmp");
+const TMP_EXT: &str = yog_ids::concatcp!(yog_ids::Format::Data.ext(), yog_ids::sep::DOT, "tmp");
 
 fn write(path: &Path, values: &yog_data::Map) -> io::Result<()> {
     if let Some(parent) = path.parent() {

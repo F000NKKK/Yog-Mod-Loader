@@ -24,15 +24,15 @@ names! {
     /// Yog's files with a fixed name.
     file {
         /// A mod's manifest.
-        MANIFEST = crate::concatcp!(crate::ns::YOG, crate::sep::EXT, "toml"),
+        MANIFEST = crate::concatcp!(crate::ns::YOG, crate::sep::DOT, "toml"),
         /// The versions a mod's build resolved.
-        LOCK = crate::concatcp!(crate::ns::YOG, crate::sep::EXT, "lock"),
+        LOCK = crate::concatcp!(crate::ns::YOG, crate::sep::DOT, "lock"),
     }
 
     /// What a built `.yog` holds besides the mod's files.
     archive {
         /// What it says about its mod (`yog_formats::manifest::Built`, Yog Data).
-        MANIFEST = crate::concatcp!(crate::word::MOD, crate::sep::EXT, crate::Format::Data.ext()),
+        MANIFEST = crate::concatcp!(crate::word::MOD, crate::sep::DOT, crate::Format::Data.ext()),
         /// Its native libraries, one folder per platform: `natives/linux-x86_64/libmymod.so`.
         NATIVES = "natives",
     }
@@ -82,7 +82,7 @@ names! {
         /// Its code and screens.
         SRC = crate::word::SRC,
         /// Where `yog build` writes: the generated crate, generated code, listings.
-        BUILD = crate::concatcp!(crate::sep::EXT, crate::ns::YOG, crate::sep::HYPHEN, "build"),
+        BUILD = crate::concatcp!(crate::sep::DOT, crate::ns::YOG, crate::sep::HYPHEN, "build"),
     }
 
     /// A game's folders Yog uses.
@@ -171,7 +171,7 @@ names! {
         SOUNDS_JSON = crate::concatcp!(SOUNDS_WORD, JSON),
         SOUNDS_WORD = "sounds",
         OGG = ".ogg",
-        PNG = crate::concatcp!(crate::sep::EXT, crate::word::PNG),
+        PNG = crate::concatcp!(crate::sep::DOT, crate::word::PNG),
         SVG = ".svg",
         JSON = ".json",
         MCMETA = ".mcmeta",
@@ -251,7 +251,7 @@ names! {
         WRITTEN_BOOK = crate::id!(crate::ns::MINECRAFT, "written_book"),
         BOOK = crate::id!(crate::ns::MINECRAFT, crate::kind::BOOK),
         /// What the game's attributes were named under before 1.21.2: `generic.max_health`.
-        OLD_ATTRIBUTE_PREFIX = crate::concatcp!(crate::word::GENERIC, crate::sep::EXT),
+        OLD_ATTRIBUTE_PREFIX = crate::concatcp!(crate::word::GENERIC, crate::sep::DOT),
         /// The language every lang file falls back to, and a mod's texts are written in.
         LOCALE = "en_us",
     }
@@ -300,8 +300,8 @@ names! {
         /// that hold them, as WPF writes them.
         ROW_DEFINITION = "RowDefinition",
         COLUMN_DEFINITION = "ColumnDefinition",
-        ROW_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, ROW_DEFINITION, crate::data_layout::PLURAL),
-        COLUMN_DEFINITIONS = crate::concatcp!(GRID, crate::sep::MEMBER, COLUMN_DEFINITION, crate::data_layout::PLURAL),
+        ROW_DEFINITIONS = crate::concatcp!(GRID, crate::sep::DOT, ROW_DEFINITION, crate::data_layout::PLURAL),
+        COLUMN_DEFINITIONS = crate::concatcp!(GRID, crate::sep::DOT, COLUMN_DEFINITION, crate::data_layout::PLURAL),
         SCROLL_VIEW = "ScrollView",
         LABEL = "Label",
         BUTTON = "Button",
@@ -570,7 +570,7 @@ names! {
         /// A design-time attribute: `d:text="Sample"` shows in the designer only.
         DESIGN = "d:",
         /// What a screen's resources element ends with: `<Screen.Resources>`.
-        RESOURCES = crate::concatcp!(crate::sep::MEMBER, "Resources"),
+        RESOURCES = crate::concatcp!(crate::sep::DOT, "Resources"),
     }
 
 
@@ -744,9 +744,9 @@ names! {
         X_CREATE = "x:Create",
         X_DATA_TYPE = "x:DataType",
         TARGET = "target",
-        GRID_ROW = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, crate::yui::ROW),
-        GRID_COLUMN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, crate::yui::COLUMN),
-        GRID_ROWSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "RowSpan"),
-        GRID_COLUMNSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::MEMBER, "ColumnSpan"),
+        GRID_ROW = crate::concatcp!(crate::yui::GRID, crate::sep::DOT, crate::yui::ROW),
+        GRID_COLUMN = crate::concatcp!(crate::yui::GRID, crate::sep::DOT, crate::yui::COLUMN),
+        GRID_ROWSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::DOT, "RowSpan"),
+        GRID_COLUMNSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::DOT, "ColumnSpan"),
     }
 }

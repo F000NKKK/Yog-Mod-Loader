@@ -37,6 +37,7 @@ mod model;
 mod outputs;
 mod recipe;
 pub(crate) mod refs;
+mod sounds;
 mod source;
 mod table;
 mod textures;

@@ -46,7 +46,7 @@ pub(crate) fn valid_locale(locale: &str) -> bool {
 /// `ModName` → `mod_name`.
 pub(crate) fn accessor_name(name: &str) -> String {
     let mut out = String::new();
-    for (n, part) in name.split(yog_ids::sep::EXT).enumerate() {
+    for (n, part) in name.split(yog_ids::sep::DOT).enumerate() {
         if n > 0 {
             out.push_str(yog_ids::sep::WORD);
         }
@@ -74,6 +74,6 @@ const NAME_SETS: [(&str, &str); 3] = [
 pub(crate) fn default_key(set: &str, mod_id: &str, name: &str) -> String {
     match NAME_SETS.iter().find(|(s, _)| *s == set) {
         Some((_, kind)) => yog_ids::lang_key(kind, &yog_ids::join(mod_id, name)),
-        None => [mod_id, name].join(yog_ids::sep::EXT),
+        None => [mod_id, name].join(yog_ids::sep::DOT),
     }
 }

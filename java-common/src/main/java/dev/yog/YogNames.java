@@ -21,9 +21,8 @@ public final class YogNames {
         public static final String NAMESPACE = ":";
         public static final String PATH = "/";
         public static final String WORD = "_";
-        public static final String EXT = ".";
+        public static final String DOT = ".";
         public static final String HYPHEN = "-";
-        public static final String MEMBER = ".";
         public static final String TYPED = "@";
         public static final String TAG = "#";
         public static final String TAG_SHOWN = "#";
@@ -34,7 +33,7 @@ public final class YogNames {
         public static final String PROPERTY_IS = "=";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAMESPACE, PATH, WORD, EXT, HYPHEN, MEMBER, TYPED, TAG, TAG_SHOWN, LIST, STATE_OPEN, STATE_CLOSE, PROPERTY_SEP, PROPERTY_IS);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAMESPACE, PATH, WORD, DOT, HYPHEN, TYPED, TAG, TAG_SHOWN, LIST, STATE_OPEN, STATE_CLOSE, PROPERTY_SEP, PROPERTY_IS);
     }
 
     public static final class Direction {
@@ -175,9 +174,10 @@ public final class YogNames {
         public static final String LOOT_TABLE = "loot_table";
         public static final String TEXTURE = "texture";
         public static final String MATERIAL = "material";
+        public static final String SOUND = "sound";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, ENTITY, RECIPE, ENTRY, CATEGORY, BOOK, FLUID, BIOME, BIOME_FEATURE, DIMENSION, FONT, ATTRIBUTE, EFFECT, POTION, INVENTORY, STARTUP_GRANT, ADVANCEMENT, LADDER, LEVEL, SOUND_GROUP, RECIPE_KIND, TOOL_MATERIAL, ARMOR_MATERIAL, ORE, TABLE, TAG, DAMAGE_TYPE, TREE, LOOT_MODIFIER, LOOT_TABLE, TEXTURE, MATERIAL);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, ENTITY, RECIPE, ENTRY, CATEGORY, BOOK, FLUID, BIOME, BIOME_FEATURE, DIMENSION, FONT, ATTRIBUTE, EFFECT, POTION, INVENTORY, STARTUP_GRANT, ADVANCEMENT, LADDER, LEVEL, SOUND_GROUP, RECIPE_KIND, TOOL_MATERIAL, ARMOR_MATERIAL, ORE, TABLE, TAG, DAMAGE_TYPE, TREE, LOOT_MODIFIER, LOOT_TABLE, TEXTURE, MATERIAL, SOUND);
     }
 
     public static final class Reference {
@@ -2387,6 +2387,7 @@ public final class YogNames {
         public static final String ANIM = "yanim";
         public static final String FONT = "yfont";
         public static final String TEXTURE = "ytexture";
+        public static final String SOUND = "ysound";
         public static final String MATERIAL = "ymaterial";
         public static final String DATA = "ydata";
         public static final String MOD = "yog";
