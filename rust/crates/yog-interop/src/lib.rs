@@ -9,6 +9,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 
 mod mirror;
+mod nanite;
 
 // ── #[yog_export] ─────────────────────────────────────────────────────────
 
@@ -259,6 +260,22 @@ pub fn yog_mirror(attr: TokenStream, item: TokenStream) -> TokenStream {
     mirror::expand(attr.into(), item.into())
         .unwrap_or_else(syn::Error::into_compile_error)
         .into()
+}
+
+// ── #[nanite] ─────────────────────────────────────────────────────────────
+
+/// A Java class reached by a mod (see `nanite.rs`): on a unit struct
+/// `#[nanite("net.minecraft…")]`, on its `impl` `#[nanite]` (body-less
+/// `fn`s become calls; `#[field]`, `#[new]`).
+#[proc_macro_attribute]
+pub fn nanite(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let item = proc_macro2::TokenStream::from(item);
+    let out = if attr.is_empty() {
+        nanite::members(item)
+    } else {
+        nanite::class(attr.into(), item)
+    };
+    out.unwrap_or_else(syn::Error::into_compile_error).into()
 }
 
 // ── #[bench] ─────────────────────────────────────────────────────────────
