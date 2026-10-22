@@ -4,10 +4,15 @@ use yog_formats::book::Book;
 
 pub mod action;
 
-/// Max entries shown on the first list spread (right page only).
+/// Rows of entries on the first list spread (right page only).
 pub const ENTRIES_FIRST: usize = 10;
-/// Max entries shown on each subsequent list spread (right page only).
+/// Rows of entries on each subsequent list spread (right page only).
 pub const ENTRIES_PER: usize = 12;
+
+/// The rows an entry's name takes in the list: its lines, wrapped to the row.
+pub fn list_rows(name: &str) -> usize {
+    yog_ui::text::line_count(name, crate::renderer::geometry::LIST_NAME_W, 1.0).max(1)
+}
 
 #[derive(Debug, Clone)]
 pub struct BookViewState {
@@ -97,34 +102,40 @@ impl BookViewState {
             .collect()
     }
 
+    /// The entries each list spread of the current category shows (their
+    /// indices), filled row by row: a long name wraps onto more rows.
+    fn list_spreads(&self, book: &Book) -> Vec<std::ops::Range<usize>> {
+        let all = self.entries_in_cat(book);
+        let mut spreads = Vec::new();
+        let (mut start, mut used) = (0, 0);
+        for (i, e) in all.iter().enumerate() {
+            let rows = list_rows(&e.name);
+            let room = if spreads.is_empty() { ENTRIES_FIRST } else { ENTRIES_PER };
+            if used + rows > room && i > start {
+                spreads.push(start..i);
+                (start, used) = (i, 0);
+            }
+            used += rows;
+        }
+        spreads.push(start..all.len());
+        spreads
+    }
+
     /// How many list spreads the current category needs.
     pub fn list_spread_count(&self, book: &Book) -> usize {
-        let total = self.entries_in_cat(book).len();
-        if total <= ENTRIES_FIRST {
-            return 1;
-        }
-        1 + (total - ENTRIES_FIRST).div_ceil(ENTRIES_PER)
+        self.list_spreads(book).len()
     }
 
     /// Absolute index of the first entry on the current list spread.
-    pub fn list_spread_start(&self) -> usize {
-        if self.list_spread == 0 {
-            0
-        } else {
-            ENTRIES_FIRST + (self.list_spread - 1) * ENTRIES_PER
-        }
+    pub fn list_spread_start(&self, book: &Book) -> usize {
+        self.list_spreads(book).get(self.list_spread).map_or(0, |r| r.start)
     }
 
     /// The slice of entries visible on the current list spread.
     pub fn entries_visible<'b>(&self, book: &'b Book) -> Vec<&'b yog_formats::book::BookEntry> {
+        let range = self.list_spreads(book).get(self.list_spread).cloned().unwrap_or_default();
         let all = self.entries_in_cat(book);
-        let start = self.list_spread_start();
-        let count = if self.list_spread == 0 {
-            ENTRIES_FIRST
-        } else {
-            ENTRIES_PER
-        };
-        all.into_iter().skip(start).take(count).collect()
+        all.into_iter().skip(range.start).take(range.len()).collect()
     }
 
     pub fn current_entry<'b>(&self, book: &'b Book) -> Option<&'b yog_formats::book::BookEntry> {
@@ -135,5 +146,14 @@ impl BookViewState {
         self.current_entry(book)
             .map(|e| e.pages.len().max(1))
             .unwrap_or(1)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_long_entry_name_takes_more_rows() {
+        assert_eq!(super::list_rows("Типы"), 1);
+        assert!(super::list_rows(&"Продвинутое Экранирование ".repeat(3)) > 1);
     }
 }

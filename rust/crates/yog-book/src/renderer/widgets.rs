@@ -8,7 +8,7 @@ use yog_gfx::{Rect, Vec2};
 use yog_ui::{Align, FlexDir, widget};
 
 use super::geometry::{
-    ARROW_BACK_V, ARROW_H, ARROW_NEXT_V, ARROW_U, ARROW_W, HOME_H, HOME_U, HOME_V, MIN_TITLE_FIT,
+    ARROW_BACK_V, ARROW_H, ARROW_NEXT_V, ARROW_U, ARROW_W, HOME_H, HOME_U, HOME_V,
     NAV_H, PAGE_W, SEP_H, SEP_U, SEP_V, SEP_W, TITLE_INSET,
 };
 use super::overlay::{BgSprite, OverlayCmd, SpriteSheet};
@@ -33,23 +33,13 @@ pub(crate) fn lbl(text: impl Into<String>) -> widget::Widget {
     widget::label(text).shadow(false).font_scale(text_scale())
 }
 
-/// How much (down to half) `text` shrinks to fit `width` book pixels.
-pub(crate) fn fit(text: &str, width: f32) -> f32 {
-    (width / yog_ui::text::str_width(text, 1.0)).clamp(MIN_TITLE_FIT, 1.0)
-}
-
-/// A title: one line, shrunk (then cut short) to the page's inside, so
-/// `align` can centre it.
+/// A title: the page's inside wide, so `align` can centre it; at the
+/// text's size, a long one wrapping onto more lines.
 pub(crate) fn title_lbl(text: impl Into<String>) -> widget::Widget {
-    let text = text.into();
-    let w = PAGE_W - TITLE_INSET;
-    let fit = fit(&text, w);
     widget::label(text)
         .shadow(false)
-        .font_scale(text_scale() * fit)
-        .no_wrap()
-        .ellipsis()
-        .w(w * text_scale())
+        .font_scale(text_scale())
+        .w((PAGE_W - TITLE_INSET) * text_scale())
 }
 
 /// A row of pages' navigation: back and next (their actions), `label`

@@ -19,7 +19,7 @@ use super::geometry::{
 use super::names::{ordinal, word};
 use super::overlay::{BgSprite, OverlayCmd, SpriteSheet};
 use super::recipe::RecipeVis;
-use super::widgets::{Canvas, Nav, fit, lbl, set_text_scale, text_scale, title_lbl};
+use super::widgets::{Canvas, Nav, lbl, set_text_scale, text_scale, title_lbl};
 use crate::state::{BookViewState, action};
 use crate::theme::BookTheme;
 
@@ -245,8 +245,11 @@ impl Spread<'_> {
         col = col.child(widget::spacer().h((SEP_Y - TITLE_H) * c.sy));
         col = col.child(widget::spacer().h(c.sep_h()));
         col = col.child(widget::spacer().h((LIST_Y - SEP_Y - SEP_H) * c.sy));
-        let start = self.state.list_spread_start();
+        let start = self.state.list_spread_start(book);
+        // Rows above this entry's: a long name takes more than one.
+        let mut row_at = 0;
         for (i, entry) in self.state.entries_visible(book).iter().enumerate() {
+            let rows = crate::state::list_rows(&entry.name);
             let abs_i = start + i;
             let selected = abs_i == self.state.entry;
             if let Some(icon_id) = &entry.icon {
@@ -254,7 +257,7 @@ impl Spread<'_> {
                     page,
                     Rect::new(
                         LIST_ICON_INSET,
-                        LIST_Y + i as f32 * LIST_ROW_H + LIST_ICON_INSET,
+                        LIST_Y + row_at as f32 * LIST_ROW_H + LIST_ICON_INSET,
                         0.0,
                         0.0,
                     ),
@@ -267,14 +270,11 @@ impl Spread<'_> {
             } else {
                 (Color::TRANSPARENT, c.theme.nav)
             };
-            // Long names shrink to the row (as titles do).
-            let name = lbl(&entry.name)
-                .color(color)
-                .font_scale(text_scale() * fit(&entry.name, LIST_NAME_W))
-                .flex(1.0)
-                .no_wrap();
+            // Every name at the text's size: a long one wraps onto more rows.
+            let name = lbl(&entry.name).color(color).w(LIST_NAME_W * text_scale());
+            row_at += rows;
             let row = widget::panel(FlexDir::Row)
-                .h(LIST_ROW_H * c.sy)
+                .h(rows as f32 * LIST_ROW_H * c.sy)
                 .gap(LIST_GAP)
                 .bg(bg)
                 .on_click(action::entry(abs_i))

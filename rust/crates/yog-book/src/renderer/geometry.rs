@@ -32,9 +32,9 @@ pub const PICTURE_TITLE_H: f32 = 10.0;
 pub const PICTURE_TITLE_ROOM: f32 = 14.0;
 /// The gap under a picture, a text, a spacer.
 pub const GAP: f32 = 4.0;
-/// A title's inset from the page's sides, and how small it shrinks.
+/// A title's inset from the page's sides.
 pub const TITLE_INSET: f32 = 10.0;
-pub const MIN_TITLE_FIT: f32 = 0.5;
+
 /// The text's inset from the page's sides.
 pub const TEXT_INSET: f32 = 8.0;
 /// The page navigation's row (back, n/m, home, next).

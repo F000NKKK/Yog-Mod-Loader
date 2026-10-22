@@ -4,7 +4,7 @@
 //! book designer run the same code.
 
 mod flow;
-mod geometry;
+pub(crate) mod geometry;
 mod names;
 mod overlay;
 mod page;
