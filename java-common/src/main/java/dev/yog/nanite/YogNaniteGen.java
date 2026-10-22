@@ -4,6 +4,7 @@ import dev.yog.YogNames;
 import dev.yog.bus.YogTypes;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -53,7 +54,11 @@ final class YogNaniteGen {
     }
 
     /** A made mixin: its bytes, the type of the value at stake, the call a redirect stands in for. */
-    record Made(byte[] bytes, Type value, Call call) {}
+    record Made(byte[] bytes, Type value, Call call, List<YogNaniteLocals.Local> locals) {
+        Made(byte[] bytes, Type value, Call call) {
+            this(bytes, value, call, List.of());
+        }
+    }
 
     /** Nanite {@code inject} (its number {@code n}) as a mixin class. */
     static Made mixin(int n, YogTypes.Inject inject) {
@@ -77,7 +82,7 @@ final class YogNaniteGen {
         mixin.visitEnd();
         Made made = handler(cw, n, inject, target);
         cw.visitEnd();
-        return new Made(cw.toByteArray(), made.value(), made.call());
+        return new Made(cw.toByteArray(), made.value(), made.call(), made.locals());
     }
 
     /** Whether a nanite of {@code kind} adds to the class rather than going into a method. */
@@ -123,8 +128,9 @@ final class YogNaniteGen {
                 yield new Made(null, value, null);
             }
             default -> {
-                YogNaniteBodies.inject(cw, n, target, mv -> YogNaniteAnnotations.inject(mv, inject, target));
-                yield new Made(null, target.method().getReturnType(), null);
+                List<YogNaniteLocals.Local> locals = YogNaniteLocals.of(inject.locals());
+                YogNaniteBodies.inject(cw, n, target, locals, mv -> YogNaniteAnnotations.inject(mv, inject, target));
+                yield new Made(null, target.method().getReturnType(), null, locals);
             }
         };
     }

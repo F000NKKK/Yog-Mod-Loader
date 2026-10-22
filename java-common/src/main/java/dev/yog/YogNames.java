@@ -27,13 +27,14 @@ public final class YogNames {
         public static final String TYPED = "@";
         public static final String TAG = "#";
         public static final String TAG_SHOWN = "#";
+        public static final String LIST = ",";
         public static final String STATE_OPEN = "[";
         public static final String STATE_CLOSE = "]";
         public static final String PROPERTY_SEP = ",";
         public static final String PROPERTY_IS = "=";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAMESPACE, PATH, WORD, EXT, HYPHEN, MEMBER, TYPED, TAG, TAG_SHOWN, STATE_OPEN, STATE_CLOSE, PROPERTY_SEP, PROPERTY_IS);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAMESPACE, PATH, WORD, EXT, HYPHEN, MEMBER, TYPED, TAG, TAG_SHOWN, LIST, STATE_OPEN, STATE_CLOSE, PROPERTY_SEP, PROPERTY_IS);
     }
 
     public static final class Direction {
@@ -1246,6 +1247,17 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(INT, FLOAT, LONG, DOUBLE, STRING, NULL);
+    }
+
+    public static final class NaniteLocal {
+        private NaniteLocal() {}
+
+        public static final String REF = "&";
+        public static final String ORDINAL = "@";
+        public static final String LIST = ",";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(REF, ORDINAL, LIST);
     }
 
     public static final class ResKind {

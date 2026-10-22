@@ -118,4 +118,14 @@ names! {
         STRING = crate::word::STRING,
         NULL = "null",
     }
+
+    /// A local an inject asks for: `[&]<descriptor>[@<ordinal>]` — `&` to
+    /// write it too (MixinExtras' `LocalRef`), the ordinal among locals of
+    /// its type.
+    nanite_local {
+        REF = "&",
+        ORDINAL = crate::sep::TYPED,
+        /// What separates the locals in a declaration (`locals = "F, &I@1"`).
+        LIST = crate::sep::LIST,
+    }
 }

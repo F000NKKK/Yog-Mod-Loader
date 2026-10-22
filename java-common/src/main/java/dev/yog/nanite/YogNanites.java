@@ -36,28 +36,36 @@ public final class YogNanites {
         return mixins;
     }
 
+    /** This game's nanites: their points and what each was made into. */
+    record Made(List<YogTypes.Inject> points, List<YogNaniteGen.Made> made) {}
+
+    /**
+     * Every mod's nanites made (one a point) — the same each time a process
+     * asks: the plugin to write the mixins, {@link YogInjections} (perhaps
+     * another class loader's copy of it) to know what they are.
+     */
+    static Made made() {
+        Path game = YogEarly.gameDir();
+        YogNativeRuntime.loadEmbedded();
+        byte[] bytes = nativeDeclarations(YogNativeRuntime.modsDir(game));
+        List<YogTypes.Inject> points = points(YogTypes.Nanites.fromBytes(bytes).injects());
+        List<YogNaniteGen.Made> made = new ArrayList<>();
+        for (int i = 0; i < points.size(); i++) made.add(YogNaniteGen.mixin(i, points.get(i)));
+        return new Made(points, made);
+    }
+
     private static List<String> make() {
         try {
-            Path game = YogEarly.gameDir();
-            YogNativeRuntime.loadEmbedded();
-            byte[] bytes = nativeDeclarations(YogNativeRuntime.modsDir(game));
-            List<YogTypes.Inject> points = points(YogTypes.Nanites.fromBytes(bytes).injects());
-            if (points.isEmpty()) return List.of();
-            Path dir = clean(game.resolve(DIR));
+            Made all = made();
+            if (all.points().isEmpty()) return List.of();
+            Path dir = clean(YogEarly.gameDir().resolve(DIR));
             List<String> names = new ArrayList<>();
-            List<String> keys = new ArrayList<>();
-            List<YogNaniteGen.Made> made = new ArrayList<>();
-            for (int i = 0; i < points.size(); i++) {
-                YogTypes.Inject inject = points.get(i);
-                YogNaniteGen.Made m = YogNaniteGen.mixin(i, inject);
+            for (int i = 0; i < all.points().size(); i++) {
                 Path file = dir.resolve(YogNaniteGen.className(i) + CLASS_EXT);
                 Files.createDirectories(file.getParent());
-                Files.write(file, m.bytes());
+                Files.write(file, all.made().get(i).bytes());
                 names.add(YogNaniteGen.CLASS_PREFIX + i);
-                keys.add(inject.point());
-                made.add(m);
             }
-            YogInjections.points(keys, made);
             YogEarly.addClasses(dir);
             YogLog.info("nanites: " + names.size() + " injection point(s) made");
             return names;

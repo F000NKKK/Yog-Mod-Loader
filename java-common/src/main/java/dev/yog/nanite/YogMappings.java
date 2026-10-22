@@ -65,12 +65,33 @@ public final class YogMappings {
      * table renames is there by its Mojang name.
      */
     private static boolean mojangAlready(YogTypes.Mappings table) {
+        ClassLoader loader = YogMappings.class.getClassLoader();
+        if (loader == null) return false;
         for (YogTypes.ClassMap c : table.classes()) {
-            if (c.named().equals(c.runtime())) continue;
-            ClassLoader loader = YogMappings.class.getClassLoader();
-            return loader != null && loader.getResource(c.named() + ".class") != null;
+            if (!c.named().equals(c.runtime())) return loader.getResource(c.named() + ".class") != null;
+            // Forge's names keep the classes', renaming members only: a renamed
+            // method is there by its Mojang name, or not.
+            if (!c.methods().isEmpty()) return declares(loader, c.named(), c.methods().get(0).named());
         }
         return false;
+    }
+
+    /** Whether class {@code owner}'s bytes declare a method named {@code name} (not loading it). */
+    private static boolean declares(ClassLoader loader, String owner, String name) {
+        try (InputStream in = loader.getResourceAsStream(owner + ".class")) {
+            if (in == null) return false;
+            boolean[] found = {false};
+            new org.objectweb.asm.ClassReader(in).accept(new org.objectweb.asm.ClassVisitor(org.objectweb.asm.Opcodes.ASM9) {
+                @Override
+                public org.objectweb.asm.MethodVisitor visitMethod(int access, String n, String d, String sig, String[] ex) {
+                    if (n.equals(name)) found[0] = true;
+                    return null;
+                }
+            }, org.objectweb.asm.ClassReader.SKIP_CODE);
+            return found[0];
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     private static void ensure() {

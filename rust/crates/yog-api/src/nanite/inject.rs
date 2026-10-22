@@ -32,6 +32,8 @@ pub struct InjectEntry {
     pub value_desc: &'static str,
     /// A `FIELD` redirect's write, else its read.
     pub write: bool,
+    /// The locals an inject asks for (`"F, &I@1"`, `yog_ids::nanite_local`).
+    pub locals: &'static str,
     /// None for what has no code of the mod's (an added field, an interface).
     pub handler: Option<fn(&mut Hook)>,
 }
@@ -56,6 +58,13 @@ impl InjectEntry {
             constant: self.constant.to_owned(),
             value_desc: self.value_desc.to_owned(),
             write: self.write,
+            locals: self
+                .locals
+                .split(yog_ids::nanite_local::LIST)
+                .map(str::trim)
+                .filter(|l| !l.is_empty())
+                .map(str::to_owned)
+                .collect(),
         };
         spec.point = point(&spec);
         spec
@@ -95,6 +104,7 @@ pub fn __declare(kind: &'static str, member: &'static Member, target: &'static s
         constant: "",
         value_desc: "",
         write: false,
+        locals: "",
         handler: None,
     });
 }
@@ -176,6 +186,18 @@ impl<'a> Hook<'a> {
     pub fn call_original(&self, args: Vec<yog_data::Value>) -> Option<yog_data::Value> {
         static APPLY: Member = Member::new(ORIGINAL_CLASS, ORIGINAL_METHOD, original_desc);
         APPLY.call(self.0.original.clone(), vec![yog_data::Value::List(args)])
+    }
+
+    /// Local `i` of those the inject asked for.
+    pub fn local<T: Java>(&self, i: usize) -> Option<T> {
+        T::from_value(self.0.locals.get(i)?.clone())
+    }
+
+    /// Sets local `i` (one the inject asked to write: `&` in `locals`).
+    pub fn set_local<T: Java>(&mut self, i: usize, value: T) {
+        if let Some(slot) = self.0.locals.get_mut(i) {
+            *slot = value.to_value();
+        }
     }
 
     /// Whether a handler before this one stopped it.

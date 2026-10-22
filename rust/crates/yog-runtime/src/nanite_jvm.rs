@@ -68,13 +68,24 @@ unsafe extern "C" fn answer_seven(
     let Some(mut e) = Injected::from_bytes(unsafe { payload.as_slice() }) else {
         return status::BAD_PAYLOAD;
     };
-    assert_eq!(
-        e.args,
-        vec![Value::Int(5)],
-        "the redirected call's argument"
-    );
     e.value = Value::Int(7);
     e.returned = true;
+    unsafe { YogReply::send(reply, &e.to_bytes()) };
+    status::OK
+}
+
+/// An inject's handler: its first local doubled.
+unsafe extern "C" fn double_local(
+    _: *mut c_void,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus {
+    let Some(mut e) = Injected::from_bytes(unsafe { payload.as_slice() }) else {
+        return status::BAD_PAYLOAD;
+    };
+    if let Some(Value::Int(v)) = e.locals.first().cloned() {
+        e.locals[0] = Value::Int(v * 2);
+    }
     unsafe { YogReply::send(reply, &e.to_bytes()) };
     status::OK
 }
@@ -113,12 +124,17 @@ fn nanites_reflect_and_inject() {
         "nanite/YogNaniteGen.java",
         "nanite/YogNaniteBodies.java",
         "nanite/YogNaniteAnnotations.java",
+        "nanite/YogNaniteLocals.java",
+        "nanite/YogNanites.java",
+        "nanite/YogEarly.java",
+        "util/YogNativeRuntime.java",
         "nanite/YogInjections.java",
     ]
     .map(|f| common.join(f))
     .into_iter()
     .chain([
         root.join("tests/java/dev/yog/YogLog.java"),
+        root.join("tests/java/dev/yog/YogPlatform.java"),
         root.join("tests/java/dev/yog/nanite/ReflectProbe.java"),
         root.join("tests/java/dev/yog/nanite/InjectProbe.java"),
     ])
@@ -201,6 +217,23 @@ fn nanites_reflect_and_inject() {
         "50",
         "unanswered: the call as it was"
     );
+
+    // An added method answered by a handler; an added field; an interface.
+    on("test:added", answer_seven);
+    assert_eq!(
+        string(&mut env, "added"),
+        "7,yog$probe$chargeI,[java/lang/Runnable]"
+    );
+
+    // A field's read answered 7 (then read as it is: 5); its write answered
+    // (not stored: still 5), then not (stored: 11).
+    on("test:read", answer_seven);
+    on("test:write", answer_seven);
+    assert_eq!(string(&mut env, "fields"), "7,5,5,11");
+
+    // A local asked for and written: 21 doubled by a handler here.
+    on("test:locals", double_local);
+    assert_eq!(string(&mut env, "locals"), "42");
 }
 
 /// A table renaming the probe: `NamedProbe` is `ReflectProbe` at run time,

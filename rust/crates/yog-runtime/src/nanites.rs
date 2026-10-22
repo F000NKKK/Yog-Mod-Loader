@@ -60,6 +60,11 @@ pub(crate) fn declared(dir: &Path) -> Nanites {
     all
 }
 
+/// The answer for a mods directory, kept: the host asks again from another
+/// class loader's copy of its classes, and the mods' libraries aren't
+/// opened twice.
+static ASKED: yog_sync::Mutex<Option<(String, Vec<u8>)>> = yog_sync::Mutex::new(None);
+
 /// `YogNanites.nativeDeclarations(modsDir)`: every mod's injections, Yog
 /// Data (`yog_event::nanite::Nanites`).
 #[unsafe(no_mangle)]
@@ -72,7 +77,15 @@ pub extern "system" fn Java_dev_yog_nanite_YogNanites_nativeDeclarations<'l>(
         .get_string(&mods_dir)
         .map(Into::into)
         .unwrap_or_default();
-    let bytes = yog_data::to_bytes(&declared(Path::new(&dir)));
+    let mut asked = ASKED.lock();
+    let bytes = match asked.as_ref() {
+        Some((d, bytes)) if *d == dir => bytes.clone(),
+        _ => {
+            let bytes = yog_data::to_bytes(&declared(Path::new(&dir)));
+            *asked = Some((dir, bytes.clone()));
+            bytes
+        }
+    };
     env.byte_array_from_slice(&bytes)
         .map_or(std::ptr::null_mut(), |a| a.into_raw())
 }

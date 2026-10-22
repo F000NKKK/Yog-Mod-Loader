@@ -25,6 +25,8 @@ const NAME: &str = "name";
 const DESC: &str = "desc";
 /// A FIELD redirect's write (bare flag), else its read.
 const WRITE: &str = "write";
+/// The locals an inject asks for: `locals = "F, &I@1"`.
+const LOCALS: &str = "locals";
 /// The kind whose first argument is a class, not a member.
 const ADD_METHOD: &str = "ADD_METHOD";
 /// Mixin's defaults: every occurrence, no shift; no index (by type).
@@ -46,6 +48,7 @@ struct Args {
     name: String,
     desc: String,
     write: bool,
+    locals: String,
     index: i32,
     constant: String,
     ty: String,
@@ -73,6 +76,7 @@ fn args_of(attr: TokenStream, kind: &Kind) -> syn::Result<Args> {
         name: String::new(),
         desc: String::new(),
         write: false,
+        locals: String::new(),
         index: NO_INDEX,
         constant: String::new(),
         ty: String::new(),
@@ -109,9 +113,11 @@ fn args_of(attr: TokenStream, kind: &Kind) -> syn::Result<Args> {
             args.desc = m.value()?.parse::<syn::LitStr>()?.value();
         } else if m.path.is_ident(WRITE) {
             args.write = true;
+        } else if m.path.is_ident(LOCALS) {
+            args.locals = m.value()?.parse::<syn::LitStr>()?.value();
         } else {
             return Err(m.error(
-                "expected at, target, ordinal, shift, cancellable, priority, index, constant, ty, name, desc or write",
+                "expected at, target, ordinal, shift, cancellable, priority, index, constant, ty, name, desc, write or locals",
             ));
         }
         Ok(())
@@ -138,6 +144,7 @@ pub(crate) fn expand(
         name: method_name,
         desc: method_desc,
         write,
+        locals,
         index,
         constant,
         ty,
@@ -177,6 +184,7 @@ pub(crate) fn expand(
                 constant: #constant,
                 value_desc: #ty,
                 write: #write,
+                locals: #locals,
                 at: #ids::mixin_at::#at,
                 target: #target,
                 ordinal: #ordinal,

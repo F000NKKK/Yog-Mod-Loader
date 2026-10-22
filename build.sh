@@ -332,7 +332,7 @@ publish_loader() {
         rm -rf "$out"; mkdir -p "$out"
         local archive="$(grep '^archives_base_name=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)"
         find "$libs" -maxdepth 1 -name "${archive}*${mc}*.jar" \
-            ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} "$out/" \; 2>/dev/null || true
+            ! -name '*-dev.jar' ! -name '*-sources.jar' ! -name '*-slim.jar' -exec cp {} "$out/" \; 2>/dev/null || true
         echo "    artifacts/$loader/$mc/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
     else
         echo "    WARNING: $loader $mc build failed — skipping (scaffold / unported?)"

@@ -17,6 +17,9 @@ The Gate and the Key between Java and Rust worlds.
 [[mixins]]
 config = "yog.mixins.json"
 
+[[mixins]]
+config = "yog-nanites.mixins.json"
+
 [[accessTransformers]]
 file = "META-INF/accesstransformer.cfg"
 

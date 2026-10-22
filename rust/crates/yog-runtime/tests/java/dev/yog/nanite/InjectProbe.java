@@ -21,7 +21,7 @@ public final class InjectProbe {
 
     static YogTypes.Inject inject() {
         return new YogTypes.Inject(POINT, "inject", InjectProbe.class.getName(), "counted", "(Ljava/lang/String;I)I",
-                "HEAD", "", -1, "NONE", true, -1, "", "", false);
+                "HEAD", "", -1, "NONE", true, -1, "", "", false, List.of());
     }
 
     /** The mixin made of {@link #inject}: its parts, joined. */
@@ -39,7 +39,7 @@ public final class InjectProbe {
     public static String fire() {
         YogInjections.points(List.of(POINT), List.of(new YogNaniteGen.Made(null, Type.INT_TYPE, null)));
         CallbackInfoReturnable<Integer> cir = new CallbackInfoReturnable<>("counted", true);
-        YogInjections.fire(0, null, new Object[] {"x", 3}, cir);
+        YogInjections.fire(0, null, new Object[] {"x", 3}, cir, new Object[0]);
         return cir.isCancelled() + "," + cir.getReturnValue();
     }
 
@@ -57,7 +57,7 @@ public final class InjectProbe {
 
     private static YogTypes.Inject at(String point, String kind, int index) {
         return new YogTypes.Inject(point, kind, InjectProbe.class.getName(), "base", "(I)I",
-                "INVOKE", CALLEE, -1, "NONE", false, index, "", "", false);
+                "INVOKE", CALLEE, -1, "NONE", false, index, "", "", false, List.of());
     }
 
     /** A made mixin's handler {@code n} run on {@code x} (the class defined as a plain one). */
@@ -92,7 +92,7 @@ public final class InjectProbe {
     static final String ADDED = "test:added";
 
     private static YogTypes.Inject adding(String point, String kind, String name, String desc, String target) {
-        return new YogTypes.Inject(point, kind, InjectProbe.class.getName(), name, desc, "", target, -1, "", false, -1, "", "", false);
+        return new YogTypes.Inject(point, kind, InjectProbe.class.getName(), name, desc, "", target, -1, "", false, -1, "", "", false, List.of());
     }
 
     /** An added method called, an added field and an interface seen: joined. */
@@ -133,7 +133,7 @@ public final class InjectProbe {
 
     private static YogTypes.Inject field(String point, String method, String desc, boolean write) {
         return new YogTypes.Inject(point, "redirect", InjectProbe.class.getName(), method, desc,
-                "FIELD", STOCK, -1, "NONE", false, -1, "", "", write);
+                "FIELD", STOCK, -1, "NONE", false, -1, "", "", write, List.of());
     }
 
     /** A field's read redirected (answered, then not) and its write (answered: not stored; then not: stored). */
@@ -165,5 +165,37 @@ public final class InjectProbe {
             }
         }
         throw new NoSuchMethodException("yog$nanite$" + n);
+    }
+
+    /** An inject asking for a local it writes (&I): the local doubled by a Rust handler, through its ref. */
+    public static String locals() throws Exception {
+        YogTypes.Inject asks = new YogTypes.Inject("test:locals", "inject", InjectProbe.class.getName(), "counted",
+                "(Ljava/lang/String;I)I", "HEAD", "", -1, "NONE", true, -1, "", "", false, List.of("&I"));
+        YogNaniteGen.Made made = YogNaniteGen.mixin(10, asks);
+        List<String> keys = new java.util.ArrayList<>(java.util.Collections.nCopies(10, "unused"));
+        keys.add("test:locals");
+        YogInjections.points(keys, java.util.Collections.nCopies(11, made));
+        int[] cell = {21};
+        com.llamalad7.mixinextras.sugar.ref.LocalIntRef ref = new com.llamalad7.mixinextras.sugar.ref.LocalIntRef() {
+            public int get() {
+                return cell[0];
+            }
+
+            public void set(int v) {
+                cell[0] = v;
+            }
+        };
+        CallbackInfoReturnable<Integer> cir = new CallbackInfoReturnable<>("counted", true);
+        java.lang.reflect.Method h = handler(made, 10);
+        h.invoke(alloc(h.getDeclaringClass()), "x", 3, cir, ref);
+        return String.valueOf(cell[0]);
+    }
+
+    /** An instance of {@code c} with no constructor run (a mixin class has none). */
+    private static Object alloc(Class<?> c) throws Exception {
+        java.lang.reflect.Field unsafe = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
+        unsafe.setAccessible(true);
+        Object u = unsafe.get(null);
+        return u.getClass().getMethod("allocateInstance", Class.class).invoke(u, c);
     }
 }

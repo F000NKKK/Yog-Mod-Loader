@@ -68,7 +68,7 @@ impl Shared {
     }
 }
 
-/// Mixin's and ASM's jars: `YOG_MIXIN_CP`, else the newest in Gradle's cache.
+/// Mixin's, ASM's and MixinExtras' jars: `YOG_MIXIN_CP`, else the newest in Gradle's cache.
 fn mixin_classpath() -> Option<String> {
     if let Ok(cp) = std::env::var("YOG_MIXIN_CP") {
         return Some(cp);
@@ -96,6 +96,7 @@ fn mixin_classpath() -> Option<String> {
         newest("org.spongepowered", "mixin")?,
         newest("org.ow2.asm", "asm")?,
         newest("org.ow2.asm", "asm-tree")?,
+        newest("io.github.llamalad7", "mixinextras-common")?,
     ];
     Some(
         jars.iter()

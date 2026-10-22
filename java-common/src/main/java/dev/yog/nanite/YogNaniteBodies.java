@@ -1,5 +1,6 @@
 package dev.yog.nanite;
 
+import java.util.List;
 import java.util.function.Consumer;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
@@ -21,7 +22,7 @@ final class YogNaniteBodies {
     private static final String CALLBACK_RETURNABLE = "org/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable";
     private static final String OBJECT = "java/lang/Object";
     private static final String OWNER = Type.getInternalName(YogInjections.class);
-    private static final String FIRE = "(ILjava/lang/Object;[Ljava/lang/Object;L" + CALLBACK + ";)V";
+    private static final String FIRE = "(ILjava/lang/Object;[Ljava/lang/Object;L" + CALLBACK + ";[Ljava/lang/Object;)[Ljava/lang/Object;";
     private static final String MODIFY = "(ILjava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
     private static final String REDIRECT = "(ILjava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;";
     private static final String NOT_ANSWERED = "NOT_ANSWERED";
@@ -46,18 +47,48 @@ final class YogNaniteBodies {
         end(mv);
     }
 
-    /** An {@code @Inject} handler: the target's arguments and its callback. */
-    static void inject(ClassWriter cw, int n, YogNaniteGen.Target target, Consumer<MethodVisitor> annotate) {
+    /**
+     * An {@code @Inject} handler: the target's arguments, its callback, then
+     * the locals asked for; the locals written back (through their refs) as
+     * the handlers left them.
+     */
+    static void inject(ClassWriter cw, int n, YogNaniteGen.Target target, List<YogNaniteLocals.Local> locals, Consumer<MethodVisitor> annotate) {
         Type[] params = target.method().getArgumentTypes();
         boolean returns = target.method().getReturnType().getSort() != Type.VOID;
         Type callback = Type.getObjectType(returns ? CALLBACK_RETURNABLE : CALLBACK);
         Type[] all = append(params, callback);
+        for (YogNaniteLocals.Local l : locals) all = append(all, l.param());
         MethodVisitor mv = method(cw, n, target, Type.getMethodDescriptor(Type.VOID_TYPE, all), annotate);
+        for (int i = 0; i < locals.size(); i++) YogNaniteLocals.annotate(mv, params.length + 1 + i, locals.get(i));
         int first = target.isStatic() ? 0 : 1;
+        int callbackSlot = first + size(params);
+        int[] localSlots = new int[locals.size()];
+        int slot = callbackSlot + 1;
+        for (int i = 0; i < locals.size(); i++) {
+            localSlots[i] = slot;
+            slot += locals.get(i).param().getSize();
+        }
         start(mv, n, target);
         array(mv, params, first);
-        mv.visitVarInsn(Opcodes.ALOAD, first + size(params));
+        mv.visitVarInsn(Opcodes.ALOAD, callbackSlot);
+        mv.visitLdcInsn(locals.size());
+        mv.visitTypeInsn(Opcodes.ANEWARRAY, OBJECT);
+        for (int i = 0; i < locals.size(); i++) {
+            mv.visitInsn(Opcodes.DUP);
+            mv.visitLdcInsn(i);
+            YogNaniteLocals.push(mv, locals.get(i), localSlots[i]);
+            mv.visitInsn(Opcodes.AASTORE);
+        }
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, OWNER, "fire", FIRE, false);
+        int result = slot;
+        mv.visitVarInsn(Opcodes.ASTORE, result);
+        Label none = new Label();
+        mv.visitVarInsn(Opcodes.ALOAD, result);
+        mv.visitJumpInsn(Opcodes.IFNULL, none);
+        for (int i = 0; i < locals.size(); i++) {
+            if (locals.get(i).ref()) YogNaniteLocals.writeBack(mv, locals.get(i), localSlots[i], result, i);
+        }
+        mv.visitLabel(none);
         mv.visitInsn(Opcodes.RETURN);
         end(mv);
     }
@@ -205,13 +236,13 @@ final class YogNaniteBodies {
         };
     }
 
-    private static void box(MethodVisitor mv, Type t) {
+    static void box(MethodVisitor mv, Type t) {
         String w = wrapper(t);
         if (w != null) mv.visitMethodInsn(Opcodes.INVOKESTATIC, w, "valueOf", "(" + t.getDescriptor() + ")L" + w + ";", false);
     }
 
     /** The {@code Object} on the stack as {@code t}. */
-    private static void unbox(MethodVisitor mv, Type t) {
+    static void unbox(MethodVisitor mv, Type t) {
         String w = wrapper(t);
         if (w == null) {
             mv.visitTypeInsn(Opcodes.CHECKCAST, t.getSort() == Type.ARRAY ? t.getDescriptor() : t.getInternalName());

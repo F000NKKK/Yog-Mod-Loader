@@ -66,10 +66,10 @@ minecraft {
         }
         register('client') {
             // One player across dev launches (per-player data survives a restart).
-            args '--username', 'Dev'
+            args '--mixin.config', 'yog.mixins.json', '--mixin.config', 'yog-nanites.mixins.json', '--username', 'Dev'
         }
         register('server') {
-            args '--nogui'
+            args '--nogui', '--mixin.config', 'yog.mixins.json', '--mixin.config', 'yog-nanites.mixins.json'
         }
     }
 }
@@ -105,7 +105,7 @@ processResources {
 
 jar {
     manifest {
-        attributes 'MixinConfigs': 'yog.mixins.json'
+        attributes 'MixinConfigs': 'yog.mixins.json,yog-nanites.mixins.json'
     }
 }
 

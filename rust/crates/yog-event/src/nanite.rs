@@ -101,6 +101,9 @@ pub struct Inject {
     pub value_desc: String,
     /// A `FIELD` at's write (`PUTFIELD` / `PUTSTATIC`), else its read.
     pub write: bool,
+    /// The locals an inject asks for, in order: `[&]<descriptor>[@<ordinal>]`
+    /// (`yog_ids::nanite_local`; Mojang's names).
+    pub locals: Vec<String>,
 }
 
 /// An injection point's key:
@@ -129,6 +132,8 @@ fn qualifier(i: &Inject) -> String {
         ids::nanite_kind::MODIFY_VARIABLE => format!("{}{}", i.index, i.value_desc),
         ids::nanite_kind::MODIFY_CONSTANT => i.constant.clone(),
         ids::nanite_kind::REDIRECT if i.write => ids::nanite_point::WRITE.to_owned(),
+        // Injects asking for other locals at one place are made apart.
+        ids::nanite_kind::INJECT => i.locals.join(ids::nanite_local::LIST),
         _ => String::new(),
     }
 }
@@ -153,6 +158,8 @@ pub struct Injected {
     pub cancelled: bool,
     /// `value` is the answer (a return value, a call's result, a modified value).
     pub returned: bool,
+    /// The locals the inject asked for; a handler changes those it may write.
+    pub locals: Vec<Value>,
     /// A redirect's original call, an object (`java.util.function.Function`
     /// of its arguments) a handler may call instead of answering.
     pub original: Value,

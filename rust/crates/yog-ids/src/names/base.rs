@@ -32,9 +32,11 @@ names! {
         TAG_SHOWN = crate::sep::TAG,
         /// A block state's properties: `ns:id[k=v,...]` — what opens and
         /// closes them, separates them, and a property's name from its value.
+        /// What separates the items of a list written in one string.
+        LIST = ",",
         STATE_OPEN = "[",
         STATE_CLOSE = "]",
-        PROPERTY_SEP = ",",
+        PROPERTY_SEP = crate::sep::LIST,
         PROPERTY_IS = "=",
     }
 
