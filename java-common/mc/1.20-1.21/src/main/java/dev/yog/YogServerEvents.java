@@ -33,7 +33,6 @@ public final class YogServerEvents {
     private YogServerEvents() {}
 
     /** The channel entity data goes on (yog-runtime's). */
-    private static final String ENTITY_DATA = "yog:entity_data";
     /** Ticks a joining player is waited for in the server's list before giving up. */
     private static final int JOIN_TICKS = 40;
     /** The hands, as the mods name them. */
@@ -217,6 +216,6 @@ public final class YogServerEvents {
     /** Everything entity {@code about} keeps, to {@code to}. */
     private static void sendEntityData(ServerPlayer to, Entity about) {
         byte[] data = NativeBridge.nativeEntityDataFor(about.getStringUUID());
-        if (data != null) YogNetActions.sendToPlayer(name(to), ENTITY_DATA, data);
+        if (data != null) YogNetActions.sendToPlayer(name(to), YogNames.Yog.ENTITY_DATA, data);
     }
 }

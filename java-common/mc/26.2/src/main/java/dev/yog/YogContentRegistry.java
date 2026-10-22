@@ -52,7 +52,6 @@ public final class YogContentRegistry {
     /** A connecting block's core when its {@code .yblock} gives no shape: a post in the middle, pixels. */
     private static final double[] DEFAULT_CORE = {6, 0, 6, 10, 16, 10};
     /** The sound when a mod names none (or one that isn't): silence. */
-    private static final String NO_SOUND = "minecraft:intentionally_empty";
 
     /** The blocks made, by id: their items need them (a later register event, on NeoForge). */
     private static final Map<String, Block> BLOCKS = new LinkedHashMap<>();
@@ -223,7 +222,7 @@ public final class YogContentRegistry {
 
     static SoundEvent soundEvent(String id) {
         Identifier i = Identifier.tryParse(id);
-        if (i == null) i = Identifier.parse(NO_SOUND);
+        if (i == null) i = Identifier.parse(YogNames.Game.NO_SOUND);
         SoundEvent e = BuiltInRegistries.SOUND_EVENT.getValue(i);
         return e != null ? e : SoundEvent.createVariableRangeEvent(i);
     }

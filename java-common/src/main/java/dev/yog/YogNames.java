@@ -1469,6 +1469,7 @@ public final class YogNames {
 
         public static final String STATE = "yog:state";
         public static final String HANGING = "yog:hanging";
+        public static final String ENTITY_NBT = "yog:data";
         public static final String ENTITY_DATA = "yog:entity_data";
         public static final String DIMENSIONS = "yog:dimensions";
         public static final String SLOT_PREFIX = "yog:slot:";
@@ -1486,7 +1487,7 @@ public final class YogNames {
         public static final String DYNAMIC_TEXT_PREFIX = "yog:dynamic/text_";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_TEXT_PREFIX);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_NBT, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_TEXT_PREFIX);
     }
 
     public static final class GameFont {
@@ -1507,6 +1508,7 @@ public final class YogNames {
         public static final String DEFAULT_FONT = "minecraft:default";
         public static final String VANILLA_THEME = "minecraft:vanilla";
         public static final String OVERWORLD = "minecraft:overworld";
+        public static final String NO_SOUND = "minecraft:intentionally_empty";
         public static final String PLAINS = "minecraft:plains";
         public static final String THE_NETHER = "minecraft:the_nether";
         public static final String THE_END = "minecraft:the_end";
@@ -1518,7 +1520,7 @@ public final class YogNames {
         public static final String LOCALE = "en_us";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DEFAULT_FONT, VANILLA_THEME, OVERWORLD, PLAINS, THE_NETHER, THE_END, MINEABLE, MISSING_TEXTURE, WRITTEN_BOOK, BOOK, OLD_ATTRIBUTE_PREFIX, LOCALE);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DEFAULT_FONT, VANILLA_THEME, OVERWORLD, NO_SOUND, PLAINS, THE_NETHER, THE_END, MINEABLE, MISSING_TEXTURE, WRITTEN_BOOK, BOOK, OLD_ATTRIBUTE_PREFIX, LOCALE);
     }
 
     public static final class ShapeKind {

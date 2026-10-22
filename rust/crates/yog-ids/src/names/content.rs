@@ -183,6 +183,8 @@ names! {
         STATE = crate::id!(crate::ns::YOG, crate::word::STATE),
         /// A hanging entity's attachment (its face, size, item).
         HANGING = crate::id!(crate::ns::YOG, "hanging"),
+        /// The key an entity's data is saved under in its NBT.
+        ENTITY_NBT = crate::id!(crate::ns::YOG, crate::word::DATA),
         /// The channel entity data is synced on.
         ENTITY_DATA = crate::id!(crate::ns::YOG, crate::concatcp!(crate::kind::ENTITY, crate::sep::WORD, crate::word::DATA)),
         /// The entity data key an entity's own hitbox travels under: width,
@@ -235,6 +237,8 @@ names! {
         /// The UI theme drawn like the game's own screens.
         VANILLA_THEME = crate::id!(crate::ns::MINECRAFT, "vanilla"),
         OVERWORLD = crate::id!(crate::ns::MINECRAFT, "overworld"),
+        /// The sound event that plays nothing: a block or item without a sound of its own.
+        NO_SOUND = crate::id!(crate::ns::MINECRAFT, "intentionally_empty"),
         /// The biome a dimension is all of when it doesn't say.
         PLAINS = crate::id!(crate::ns::MINECRAFT, "plains"),
         THE_NETHER = crate::id!(crate::ns::MINECRAFT, "the_nether"),

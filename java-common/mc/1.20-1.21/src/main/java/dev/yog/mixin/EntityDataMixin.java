@@ -1,5 +1,7 @@
 package dev.yog.mixin;
 
+import dev.yog.YogNames;
+
 import dev.yog.NativeBridge;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
@@ -12,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Entity data a mod marked {@code persist} is saved and loaded with the entity. */
 @Mixin(Entity.class)
 public abstract class EntityDataMixin {
-    private static final String KEY = "yog:data";
+    private static final String KEY = YogNames.Yog.ENTITY_NBT;
 
     @Inject(method = "saveWithoutId", at = @At("RETURN"))
     private void yog$save(CompoundTag tag, CallbackInfoReturnable<CompoundTag> cir) {
