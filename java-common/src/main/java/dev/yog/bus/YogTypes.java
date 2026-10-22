@@ -7884,11 +7884,12 @@ public final class YogTypes {
         }
     }
 
-    /** An injection a mod declares (`#[inject]`): where, by Mojang's names — what the host turns into a Mixin `@Inject` before the class loads. Mods injecting at one point share it: its [`Inject::point`] is the event's key, their handlers ordered by the bus's priorities. */
-    public record Inject(String point, String class_, String method, String desc, String at, String target, int ordinal, String shift, boolean cancellable) {
+    /** A nanite a mod declares (`#[inject]`, `#[redirect]`, `#[modify_arg]`…): where, by Mojang's names, and what it does there — what the host turns into the Mixin injector of its `kind` before the class loads. Mods at one point share it: its [`Inject::point`] is the event's key, their handlers ordered by the bus's priorities. */
+    public record Inject(String point, String kind, String class_, String method, String desc, String at, String target, int ordinal, String shift, boolean cancellable, int index, String constant, String valueDesc) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("point", point);
+            m.put("kind", kind);
             m.put("class", class_);
             m.put("method", method);
             m.put("desc", desc);
@@ -7897,12 +7898,15 @@ public final class YogTypes {
             m.put("ordinal", ordinal);
             m.put("shift", shift);
             m.put("cancellable", cancellable);
+            m.put("index", index);
+            m.put("constant", constant);
+            m.put("value_desc", valueDesc);
             return m;
         }
 
         public static Inject fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Inject(YogData.str(m.get("point"), ""), YogData.str(m.get("class"), ""), YogData.str(m.get("method"), ""), YogData.str(m.get("desc"), ""), YogData.str(m.get("at"), ""), YogData.str(m.get("target"), ""), (int) YogData.integer(m.get("ordinal"), 0), YogData.str(m.get("shift"), ""), YogData.bool(m.get("cancellable"), false));
+            return new Inject(YogData.str(m.get("point"), ""), YogData.str(m.get("kind"), ""), YogData.str(m.get("class"), ""), YogData.str(m.get("method"), ""), YogData.str(m.get("desc"), ""), YogData.str(m.get("at"), ""), YogData.str(m.get("target"), ""), (int) YogData.integer(m.get("ordinal"), 0), YogData.str(m.get("shift"), ""), YogData.bool(m.get("cancellable"), false), (int) YogData.integer(m.get("index"), 0), YogData.str(m.get("constant"), ""), YogData.str(m.get("value_desc"), ""));
         }
 
         public static Inject fromBytes(byte[] bytes) {
@@ -7912,6 +7916,7 @@ public final class YogTypes {
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
             p.putStr(this.point);
+            p.putStr(this.kind);
             p.putStr(this.class_);
             p.putStr(this.method);
             p.putStr(this.desc);
@@ -7920,12 +7925,16 @@ public final class YogTypes {
             p.putI(this.ordinal);
             p.putStr(this.shift);
             p.putBool(this.cancellable);
+            p.putI(this.index);
+            p.putStr(this.constant);
+            p.putStr(this.valueDesc);
             p.end(at);
         }
 
         public static Inject unpack(YogFrame.Unpacker u) {
             int end = u.begin();
             String f_point = u.more(end) ? u.getStr() : "";
+            String f_kind = u.more(end) ? u.getStr() : "";
             String f_class_ = u.more(end) ? u.getStr() : "";
             String f_method = u.more(end) ? u.getStr() : "";
             String f_desc = u.more(end) ? u.getStr() : "";
@@ -7934,8 +7943,11 @@ public final class YogTypes {
             int f_ordinal = u.more(end) ? (int) u.getI() : 0;
             String f_shift = u.more(end) ? u.getStr() : "";
             boolean f_cancellable = u.more(end) ? u.getBool() : false;
+            int f_index = u.more(end) ? (int) u.getI() : 0;
+            String f_constant = u.more(end) ? u.getStr() : "";
+            String f_valueDesc = u.more(end) ? u.getStr() : "";
             u.leave(end);
-            return new Inject(f_point, f_class_, f_method, f_desc, f_at, f_target, f_ordinal, f_shift, f_cancellable);
+            return new Inject(f_point, f_kind, f_class_, f_method, f_desc, f_at, f_target, f_ordinal, f_shift, f_cancellable, f_index, f_constant, f_valueDesc);
         }
 
         public byte[] toFrame() {
@@ -7978,6 +7990,10 @@ public final class YogTypes {
             private final int o6;
             private final int o7;
             private final int o8;
+            private final int o9;
+            private final int o10;
+            private final int o11;
+            private final int o12;
 
             public View(YogFrame.Unpacker u) {
                 this.u = u;
@@ -7990,7 +8006,11 @@ public final class YogTypes {
                 if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
                 if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
                 if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
-                if (u.more(end)) { o8 = u.position(); u.skip(1); } else { o8 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.getU(); } else { o8 = -1; }
+                if (u.more(end)) { o9 = u.position(); u.skip(1); } else { o9 = -1; }
+                if (u.more(end)) { o10 = u.position(); u.getU(); } else { o10 = -1; }
+                if (u.more(end)) { o11 = u.position(); u.getU(); } else { o11 = -1; }
+                if (u.more(end)) { o12 = u.position(); u.getU(); } else { o12 = -1; }
                 u.leave(end);
             }
 
@@ -8000,52 +8020,76 @@ public final class YogTypes {
                 return u.getStr();
             }
 
-            public String class_() {
+            public String kind() {
                 if (o1 < 0) return "";
                 u.seek(o1);
                 return u.getStr();
             }
 
-            public String method() {
+            public String class_() {
                 if (o2 < 0) return "";
                 u.seek(o2);
                 return u.getStr();
             }
 
-            public String desc() {
+            public String method() {
                 if (o3 < 0) return "";
                 u.seek(o3);
                 return u.getStr();
             }
 
-            public String at() {
+            public String desc() {
                 if (o4 < 0) return "";
                 u.seek(o4);
                 return u.getStr();
             }
 
-            public String target() {
+            public String at() {
                 if (o5 < 0) return "";
                 u.seek(o5);
                 return u.getStr();
             }
 
-            public int ordinal() {
-                if (o6 < 0) return 0;
+            public String target() {
+                if (o6 < 0) return "";
                 u.seek(o6);
+                return u.getStr();
+            }
+
+            public int ordinal() {
+                if (o7 < 0) return 0;
+                u.seek(o7);
                 return (int) u.getI();
             }
 
             public String shift() {
-                if (o7 < 0) return "";
-                u.seek(o7);
+                if (o8 < 0) return "";
+                u.seek(o8);
                 return u.getStr();
             }
 
             public boolean cancellable() {
-                if (o8 < 0) return false;
-                u.seek(o8);
+                if (o9 < 0) return false;
+                u.seek(o9);
                 return u.getBool();
+            }
+
+            public int index() {
+                if (o10 < 0) return 0;
+                u.seek(o10);
+                return (int) u.getI();
+            }
+
+            public String constant() {
+                if (o11 < 0) return "";
+                u.seek(o11);
+                return u.getStr();
+            }
+
+            public String valueDesc() {
+                if (o12 < 0) return "";
+                u.seek(o12);
+                return u.getStr();
             }
         }
     }

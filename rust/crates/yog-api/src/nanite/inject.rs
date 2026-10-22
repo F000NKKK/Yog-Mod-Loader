@@ -9,8 +9,10 @@ use yog_sync::Mutex;
 use super::{Java, Member, Nanite};
 use crate::Registry;
 
-/// A declared injection: its member, where in it, its handler.
+/// A declared nanite: its kind, its member, where in it, its handler.
 pub struct InjectEntry {
+    /// `yog_ids::nanite_kind`.
+    pub kind: &'static str,
     pub member: &'static Member,
     /// `yog_ids::mixin_at`.
     pub at: &'static str,
@@ -22,6 +24,12 @@ pub struct InjectEntry {
     pub cancellable: bool,
     /// Among the point's handlers (higher first).
     pub priority: i32,
+    /// A `modify_arg`'s argument, a `modify_variable`'s local (-1: by type).
+    pub index: i32,
+    /// A `modify_constant`'s constant (`int:5`).
+    pub constant: &'static str,
+    /// A `modify_variable`'s local's type (a descriptor, Mojang's).
+    pub value_desc: &'static str,
     pub handler: fn(&mut Hook),
 }
 
@@ -30,8 +38,9 @@ impl InjectEntry {
     pub fn spec(&self) -> Inject {
         let (method, desc) = self.member.signature();
         let class = self.member.class();
-        Inject {
-            point: point(class, method, &desc, self.at, self.target),
+        let mut spec = Inject {
+            point: String::new(),
+            kind: self.kind.to_owned(),
             class: class.to_owned(),
             method: method.to_owned(),
             desc,
@@ -40,8 +49,22 @@ impl InjectEntry {
             ordinal: self.ordinal,
             shift: self.shift.to_owned(),
             cancellable: self.cancellable,
-        }
+            index: self.index,
+            constant: self.constant.to_owned(),
+            value_desc: self.value_desc.to_owned(),
+        };
+        spec.point = point(&spec);
+        spec
     }
+}
+
+/// What a redirect's original call is: a `Function` of its arguments.
+const ORIGINAL_CLASS: &str = "java.util.function.Function";
+const ORIGINAL_METHOD: &str = "apply";
+
+fn original_desc() -> String {
+    let object = super::java::class_desc("java.lang.Object");
+    super::method_desc(std::slice::from_ref(&object), &object)
 }
 
 /// This mod's injections (each `#[inject]`'s `ctor` adds its own).
@@ -116,6 +139,18 @@ impl<'a> Hook<'a> {
         self.0.value = value.to_value();
         self.0.cancelled = true;
         self.0.returned = true;
+    }
+
+    /// Makes `value` the answer: a modified value, a redirected call's result.
+    pub fn set_value<T: Java>(&mut self, value: T) {
+        self.0.value = value.to_value();
+        self.0.returned = true;
+    }
+
+    /// Runs a redirected call as it was, with `args` (the receiver first): its result.
+    pub fn call_original(&self, args: Vec<yog_data::Value>) -> Option<yog_data::Value> {
+        static APPLY: Member = Member::new(ORIGINAL_CLASS, ORIGINAL_METHOD, original_desc);
+        APPLY.call(self.0.original.clone(), vec![yog_data::Value::List(args)])
     }
 
     /// Whether a handler before this one stopped it.

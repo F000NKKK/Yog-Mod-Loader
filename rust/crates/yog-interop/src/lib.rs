@@ -279,13 +279,41 @@ pub fn nanite(attr: TokenStream, item: TokenStream) -> TokenStream {
     out.unwrap_or_else(syn::Error::into_compile_error).into()
 }
 
-/// An injection (see `inject.rs`): `#[inject(LivingEntity::HURT, at = HEAD,
-/// cancellable)]` on a `fn(&mut yog_api::nanite::Hook)`.
-#[proc_macro_attribute]
-pub fn inject(attr: TokenStream, item: TokenStream) -> TokenStream {
-    inject::expand(attr.into(), item.into())
-        .unwrap_or_else(syn::Error::into_compile_error)
-        .into()
+/// The nanite macros (see `inject.rs`), each a kind with its defaults.
+macro_rules! nanites {
+    ($($(#[$doc:meta])* $name:ident => $kind:ident, $at:ident, $cancellable:literal;)*) => {$(
+        $(#[$doc])*
+        #[proc_macro_attribute]
+        pub fn $name(attr: TokenStream, item: TokenStream) -> TokenStream {
+            let kind = inject::Kind {
+                kind: stringify!($kind),
+                at: stringify!($at),
+                cancellable: $cancellable,
+            };
+            inject::expand(&kind, attr.into(), item.into())
+                .unwrap_or_else(syn::Error::into_compile_error)
+                .into()
+        }
+    )*};
+}
+
+nanites! {
+    /// `@Inject`: `#[inject(LivingEntity::HURT, at = HEAD, cancellable)]`.
+    inject => INJECT, HEAD, false;
+    /// `@ModifyReturnValue`: an inject at RETURN whose handler sets the value.
+    modify_return => INJECT, RETURN, true;
+    /// `@Overwrite`: an inject at HEAD whose handler always answers.
+    overwrite => INJECT, HEAD, true;
+    /// `@Redirect`: `#[redirect(M, target = "Lowner;name(desc)R")]`.
+    redirect => REDIRECT, INVOKE, false;
+    /// `@WrapOperation`: a redirect whose handler calls the original (`Hook::call_original`).
+    wrap => REDIRECT, INVOKE, false;
+    /// `@ModifyArg`: `#[modify_arg(M, target = "…", index = 1)]`.
+    modify_arg => MODIFY_ARG, INVOKE, false;
+    /// `@ModifyVariable`: `#[modify_variable(M, at = STORE, ty = "F", index = 3)]`.
+    modify_variable => MODIFY_VARIABLE, STORE, false;
+    /// `@ModifyConstant`: `#[modify_constant(M, constant = "float:0.5")]`.
+    modify_constant => MODIFY_CONSTANT, HEAD, false;
 }
 
 // ── #[bench] ─────────────────────────────────────────────────────────────

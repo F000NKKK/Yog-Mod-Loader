@@ -68,14 +68,17 @@ impl Mappings {
     }
 }
 
-/// An injection a mod declares (`#[inject]`): where, by Mojang's names —
-/// what the host turns into a Mixin `@Inject` before the class loads. Mods
-/// injecting at one point share it: its [`Inject::point`] is the event's key,
-/// their handlers ordered by the bus's priorities.
+/// A nanite a mod declares (`#[inject]`, `#[redirect]`, `#[modify_arg]`…):
+/// where, by Mojang's names, and what it does there — what the host turns
+/// into the Mixin injector of its `kind` before the class loads. Mods at one
+/// point share it: its [`Inject::point`] is the event's key, their handlers
+/// ordered by the bus's priorities.
 #[derive(Schema, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Inject {
     /// The point's key ([`point`]).
     pub point: String,
+    /// `yog_ids::nanite_kind`.
+    pub kind: String,
     /// `net.minecraft.world.entity.LivingEntity`.
     pub class: String,
     pub method: String,
@@ -90,17 +93,41 @@ pub struct Inject {
     pub shift: String,
     /// Whether handlers may cancel the method (or set its return value).
     pub cancellable: bool,
+    /// A `modify_arg`'s argument, a `modify_variable`'s local (-1: by type).
+    pub index: i32,
+    /// A `modify_constant`'s constant: `<yog_ids::nanite_constant>:<value>`.
+    pub constant: String,
+    /// A `modify_variable`'s local's type (a descriptor, Mojang's).
+    pub value_desc: String,
 }
 
-/// An injection point's key: `<class>#<method><desc>@<at>[:<target>]`.
-pub fn point(class: &str, method: &str, desc: &str, at: &str, target: &str) -> String {
+/// An injection point's key:
+/// `<kind>:<class>#<method><desc>@<at>[:<target>][:<qualifier>]` — the
+/// qualifier a `modify_arg`'s index, a `modify_variable`'s local, a
+/// `modify_constant`'s constant.
+pub fn point(i: &Inject) -> String {
     use ids::nanite_point::{AT, MEMBER, TARGET};
-    let mut key = format!("{class}{MEMBER}{method}{desc}{AT}{at}");
-    if !target.is_empty() {
-        key.push_str(TARGET);
-        key.push_str(target);
+    let mut key = format!(
+        "{}{TARGET}{}{MEMBER}{}{}{AT}{}",
+        i.kind, i.class, i.method, i.desc, i.at
+    );
+    for part in [i.target.clone(), qualifier(i)] {
+        if !part.is_empty() {
+            key.push_str(TARGET);
+            key.push_str(&part);
+        }
     }
     key
+}
+
+/// What tells apart nanites of one kind at one place.
+fn qualifier(i: &Inject) -> String {
+    match i.kind.as_str() {
+        ids::nanite_kind::MODIFY_ARG => i.index.to_string(),
+        ids::nanite_kind::MODIFY_VARIABLE => format!("{}{}", i.index, i.value_desc),
+        ids::nanite_kind::MODIFY_CONSTANT => i.constant.clone(),
+        _ => String::new(),
+    }
 }
 
 /// Every injection a mod declares (`yog_mod_nanites`).
@@ -109,15 +136,21 @@ pub struct Nanites {
     pub injects: Vec<Inject>,
 }
 
-/// An injection point reached (keyed by its point): the object (null in a
-/// static method), the arguments, the return value at a `RETURN`. Handlers
-/// change it: `cancelled` stops the method (`returned`: with `value` its result).
+/// A nanite's point reached (keyed by its point): the object (null in a
+/// static method), the arguments (a redirected call's, the receiver first),
+/// the value at stake. Handlers change it: `cancelled` stops the method,
+/// `returned` makes `value` the answer.
 #[derive(Schema, Debug, Clone, Default, PartialEq)]
 pub struct Injected {
     pub point: String,
     pub this: Value,
     pub args: Vec<Value>,
+    /// The value at stake: the return value, a `modify_*`'s value.
     pub value: Value,
     pub cancelled: bool,
+    /// `value` is the answer (a return value, a call's result, a modified value).
     pub returned: bool,
+    /// A redirect's original call, an object (`java.util.function.Function`
+    /// of its arguments) a handler may call instead of answering.
+    pub original: Value,
 }

@@ -1207,6 +1207,33 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(MEMBER, AT, TARGET);
     }
 
+    public static final class NaniteKind {
+        private NaniteKind() {}
+
+        public static final String INJECT = "inject";
+        public static final String REDIRECT = "redirect";
+        public static final String MODIFY_ARG = "modify_arg";
+        public static final String MODIFY_VARIABLE = "modify_variable";
+        public static final String MODIFY_CONSTANT = "modify_constant";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INJECT, REDIRECT, MODIFY_ARG, MODIFY_VARIABLE, MODIFY_CONSTANT);
+    }
+
+    public static final class NaniteConstant {
+        private NaniteConstant() {}
+
+        public static final String INT = "int";
+        public static final String FLOAT = "float";
+        public static final String LONG = "long";
+        public static final String DOUBLE = "double";
+        public static final String STRING = "string";
+        public static final String NULL = "null";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INT, FLOAT, LONG, DOUBLE, STRING, NULL);
+    }
+
     public static final class ResKind {
         private ResKind() {}
 

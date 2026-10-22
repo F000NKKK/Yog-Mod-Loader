@@ -12,10 +12,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.objectweb.asm.Type;
 
 /**
- * Mods' injections made Mixin classes before the game's classes load
+ * Mods' nanites made Mixin classes before the game's classes load
  * ({@code docs/design/nanites.md}): the runtime asks every mod for its
  * injections (their libraries opened on their own), one mixin is made a
  * point (mods at one point share it), written under the game's
@@ -47,17 +46,18 @@ public final class YogNanites {
             Path dir = clean(game.resolve(DIR));
             List<String> names = new ArrayList<>();
             List<String> keys = new ArrayList<>();
-            List<Type> returns = new ArrayList<>();
+            List<YogNaniteGen.Made> made = new ArrayList<>();
             for (int i = 0; i < points.size(); i++) {
                 YogTypes.Inject inject = points.get(i);
+                YogNaniteGen.Made m = YogNaniteGen.mixin(i, inject);
                 Path file = dir.resolve(YogNaniteGen.className(i) + CLASS_EXT);
                 Files.createDirectories(file.getParent());
-                Files.write(file, YogNaniteGen.mixin(i, inject));
+                Files.write(file, m.bytes());
                 names.add(YogNaniteGen.CLASS_PREFIX + i);
                 keys.add(inject.point());
-                returns.add(Type.getReturnType(YogMappings.desc(inject.desc())));
+                made.add(m);
             }
-            YogInjections.points(keys, returns);
+            YogInjections.points(keys, made);
             YogEarly.addClasses(dir);
             YogLog.info("nanites: " + names.size() + " injection point(s) made");
             return names;

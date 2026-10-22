@@ -47,7 +47,7 @@ names! {
     event_nanite {
         PLANE = crate::concatcp!(crate::event::PREFIX, crate::nanite_word::NANITE, crate::sep::PATH),
         /// An injection point reached; keyed by the point.
-        INJECT = crate::concatcp!(PLANE, "inject"),
+        INJECT = crate::concatcp!(PLANE, crate::nanite_kind::INJECT),
     }
 
     /// Where in a method an injection goes: Mixin's `@At` values.
@@ -78,5 +78,30 @@ names! {
         MEMBER = crate::sep::TAG,
         AT = crate::sep::TYPED,
         TARGET = crate::sep::NAMESPACE,
+    }
+
+    /// What a nanite does at its point: Mixin's injectors.
+    nanite_kind {
+        /// `@Inject`: handlers see the point, may cancel or return.
+        INJECT = "inject",
+        /// `@Redirect` / `@WrapOperation`: handlers answer for a call (or
+        /// let it run, given the original).
+        REDIRECT = "redirect",
+        /// `@ModifyArg`: one argument of a call, changed.
+        MODIFY_ARG = "modify_arg",
+        /// `@ModifyVariable`: a local, changed.
+        MODIFY_VARIABLE = "modify_variable",
+        /// `@ModifyConstant`: a constant, changed.
+        MODIFY_CONSTANT = "modify_constant",
+    }
+
+    /// A `@ModifyConstant`'s constant: `<type>:<value>` (`int:5`, `null`).
+    nanite_constant {
+        INT = crate::word::INT,
+        FLOAT = crate::shape_kind::FLOAT,
+        LONG = "long",
+        DOUBLE = "double",
+        STRING = crate::word::STRING,
+        NULL = "null",
     }
 }

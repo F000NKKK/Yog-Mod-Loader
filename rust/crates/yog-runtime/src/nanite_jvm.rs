@@ -42,6 +42,43 @@ unsafe extern "C" fn answer(
     status::OK
 }
 
+/// A modify handler: the value plus 100.
+unsafe extern "C" fn add_hundred(
+    _: *mut c_void,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus {
+    let Some(mut e) = Injected::from_bytes(unsafe { payload.as_slice() }) else {
+        return status::BAD_PAYLOAD;
+    };
+    if let Value::Int(v) = e.value {
+        e.value = Value::Int(v + 100);
+        e.returned = true;
+    }
+    unsafe { YogReply::send(reply, &e.to_bytes()) };
+    status::OK
+}
+
+/// A redirect handler: the call answered with 7.
+unsafe extern "C" fn answer_seven(
+    _: *mut c_void,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus {
+    let Some(mut e) = Injected::from_bytes(unsafe { payload.as_slice() }) else {
+        return status::BAD_PAYLOAD;
+    };
+    assert_eq!(
+        e.args,
+        vec![Value::Int(5)],
+        "the redirected call's argument"
+    );
+    e.value = Value::Int(7);
+    e.returned = true;
+    unsafe { YogReply::send(reply, &e.to_bytes()) };
+    status::OK
+}
+
 fn string(env: &mut JNIEnv, method: &str) -> String {
     let out = env
         .call_static_method(PROBE, method, "()Ljava/lang/String;", &[])
@@ -74,6 +111,8 @@ fn nanites_reflect_and_inject() {
         "bus/YogTypes.java",
         "bus/YogEvents.java",
         "nanite/YogNaniteGen.java",
+        "nanite/YogNaniteBodies.java",
+        "nanite/YogNaniteAnnotations.java",
         "nanite/YogInjections.java",
     ]
     .map(|f| common.join(f))
@@ -125,7 +164,7 @@ fn nanites_reflect_and_inject() {
     assert_eq!(
         made,
         "dev/yog/nanite/gen/Nanite0|Lorg/spongepowered/asm/mixin/Mixin;|[targets, [dev.yog.nanite.InjectProbe], remap, false]\
-         |yog$inject$0|(Ljava/lang/String;ILorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;)V\
+         |yog$nanite$0|(Ljava/lang/String;ILorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;)V\
          |Lorg/spongepowered/asm/mixin/injection/Inject;|[counted(Ljava/lang/String;I)I]"
     );
 
@@ -140,6 +179,28 @@ fn nanites_reflect_and_inject() {
         },
     );
     assert_eq!(string(&mut env, "fire"), format!("true,{ANSWER}"));
+
+    // A modify_arg adds 100 to the argument; a redirect answers 7.
+    let on = |point: &str, f: yog_abi::YogHandlerFn| {
+        let at = ROUTER.resolve(&yog_event::keyed(yog_ids::event_nanite::INJECT, point));
+        ROUTER.on(
+            at,
+            0,
+            Handler::Native {
+                owner: None,
+                ud: 0,
+                f,
+            },
+        );
+    };
+    on("test:modify", add_hundred);
+    on("test:redirect", answer_seven);
+    assert_eq!(string(&mut env, "modifyAndRedirect"), "105,7");
+    assert_eq!(
+        string(&mut env, "redirectUnanswered"),
+        "50",
+        "unanswered: the call as it was"
+    );
 }
 
 /// A table renaming the probe: `NamedProbe` is `ReflectProbe` at run time,

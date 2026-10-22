@@ -4802,8 +4802,8 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
     public static final class Nanite {
         private Nanite() {}
 
-        /** An injection point reached (keyed by its point): the object (null in a static method), the arguments, the return value at a `RETURN`. Handlers change it: `cancelled` stops the method (`returned`: with `value` its result). */
-        public record Injected(String point, Object this_, java.util.List<Object> args, Object value, boolean cancelled, boolean returned) {
+        /** A nanite's point reached (keyed by its point): the object (null in a static method), the arguments (a redirected call's, the receiver first), the value at stake. Handlers change it: `cancelled` stops the method, `returned` makes `value` the answer. */
+        public record Injected(String point, Object this_, java.util.List<Object> args, Object value, boolean cancelled, boolean returned, Object original) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("point", point);
@@ -4812,12 +4812,13 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 m.put("value", value);
                 m.put("cancelled", cancelled);
                 m.put("returned", returned);
+                m.put("original", original);
                 return m;
             }
 
             public static Injected fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new Injected(YogData.str(m.get("point"), ""), m.get("this"), YogData.list(m.get("args")).stream().map(e0 -> e0).toList(), m.get("value"), YogData.bool(m.get("cancelled"), false), YogData.bool(m.get("returned"), false));
+                return new Injected(YogData.str(m.get("point"), ""), m.get("this"), YogData.list(m.get("args")).stream().map(e0 -> e0).toList(), m.get("value"), YogData.bool(m.get("cancelled"), false), YogData.bool(m.get("returned"), false), m.get("original"));
             }
 
             public static Injected fromBytes(byte[] bytes) {
@@ -4832,6 +4833,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 p.putTagged(this.value);
                 p.putBool(this.cancelled);
                 p.putBool(this.returned);
+                p.putTagged(this.original);
                 p.end(at);
             }
 
@@ -4843,8 +4845,9 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 Object f_value = u.more(end) ? u.getTagged() : null;
                 boolean f_cancelled = u.more(end) ? u.getBool() : false;
                 boolean f_returned = u.more(end) ? u.getBool() : false;
+                Object f_original = u.more(end) ? u.getTagged() : null;
                 u.leave(end);
-                return new Injected(f_point, f_this_, f_args, f_value, f_cancelled, f_returned);
+                return new Injected(f_point, f_this_, f_args, f_value, f_cancelled, f_returned, f_original);
             }
 
             public byte[] toFrame() {
@@ -4884,6 +4887,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                 private final int o3;
                 private final int o4;
                 private final int o5;
+                private final int o6;
 
                 public View(YogFrame.Unpacker u) {
                     this.u = u;
@@ -4894,6 +4898,7 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     if (u.more(end)) { o3 = u.position(); u.skipBytes(); } else { o3 = -1; }
                     if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
                     if (u.more(end)) { o5 = u.position(); u.skip(1); } else { o5 = -1; }
+                    if (u.more(end)) { o6 = u.position(); u.skipBytes(); } else { o6 = -1; }
                     u.leave(end);
                 }
 
@@ -4931,6 +4936,12 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
                     if (o5 < 0) return false;
                     u.seek(o5);
                     return u.getBool();
+                }
+
+                public Object original() {
+                    if (o6 < 0) return null;
+                    u.seek(o6);
+                    return u.getTagged();
                 }
             }
 

@@ -1,9 +1,13 @@
-//! `#[inject(LivingEntity::HURT, at = HEAD, cancellable)]` on a
-//! `fn(&mut Hook)` (`docs/design/nanites.md`): an injection the host makes
-//! before the game's classes load, the function its handler. Its keys: the
-//! member (a `#[nanite]` impl's const), `at` (`yog_ids::mixin_at`), `target`
-//! (what an INVOKE/FIELD/NEW at names), `ordinal`, `shift`
-//! (`yog_ids::mixin_shift`), `cancellable`, `priority`.
+//! The nanites a mod declares on a `fn(&mut Hook)` (`docs/design/nanites.md`),
+//! made by the host before the game's classes load, the function their
+//! handler: `#[inject]`, `#[redirect]` (and `#[wrap]`, the same with the
+//! original to call), `#[modify_arg]`, `#[modify_variable]`,
+//! `#[modify_constant]`, and `#[modify_return]` / `#[overwrite]` (an inject
+//! at RETURN / HEAD that answers). Their keys: the member (a `#[nanite]`
+//! impl's const) first, then `at` (`yog_ids::mixin_at`), `target` (what an
+//! INVOKE/FIELD/NEW at names), `ordinal`, `shift` (`yog_ids::mixin_shift`),
+//! `cancellable`, `priority`, `index` (an argument, a local), `constant`
+//! (`"int:5"`), `ty` (a local's descriptor).
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -14,13 +18,27 @@ const ORDINAL: &str = "ordinal";
 const SHIFT: &str = "shift";
 const CANCELLABLE: &str = "cancellable";
 const PRIORITY: &str = "priority";
-/// Mixin's defaults: every occurrence, no shift, at the method's start.
+const INDEX: &str = "index";
+const CONSTANT: &str = "constant";
+const TY: &str = "ty";
+/// Mixin's defaults: every occurrence, no shift; no index (by type).
 const EVERY: i32 = -1;
 const NO_SHIFT: &str = "NONE";
-const START: &str = "HEAD";
+const NO_INDEX: i32 = -1;
+
+/// A nanite macro: its kind (`yog_ids::nanite_kind`'s const), its `at`
+/// unless one is given, whether it answers (cancellable, unless it says).
+pub(crate) struct Kind {
+    pub kind: &'static str,
+    pub at: &'static str,
+    pub cancellable: bool,
+}
 
 struct Args {
     member: syn::Path,
+    index: i32,
+    constant: String,
+    ty: String,
     at: syn::Ident,
     target: String,
     ordinal: i32,
@@ -29,7 +47,7 @@ struct Args {
     priority: i32,
 }
 
-fn args_of(attr: TokenStream) -> syn::Result<Args> {
+fn args_of(attr: TokenStream, kind: &Kind) -> syn::Result<Args> {
     let mut it = attr.into_iter().peekable();
     let mut path = TokenStream::new();
     while let Some(t) = it.peek() {
@@ -42,11 +60,14 @@ fn args_of(attr: TokenStream) -> syn::Result<Args> {
     let member: syn::Path = syn::parse2(path)?;
     let mut args = Args {
         member,
-        at: format_ident!("{START}"),
+        index: NO_INDEX,
+        constant: String::new(),
+        ty: String::new(),
+        at: format_ident!("{}", kind.at),
         target: String::new(),
         ordinal: EVERY,
         shift: format_ident!("{NO_SHIFT}"),
-        cancellable: false,
+        cancellable: kind.cancellable,
         priority: 0,
     };
     let rest: TokenStream = it.collect();
@@ -63,8 +84,16 @@ fn args_of(attr: TokenStream) -> syn::Result<Args> {
             args.cancellable = true;
         } else if m.path.is_ident(PRIORITY) {
             args.priority = m.value()?.parse::<syn::LitInt>()?.base10_parse()?;
+        } else if m.path.is_ident(INDEX) {
+            args.index = m.value()?.parse::<syn::LitInt>()?.base10_parse()?;
+        } else if m.path.is_ident(CONSTANT) {
+            args.constant = m.value()?.parse::<syn::LitStr>()?.value();
+        } else if m.path.is_ident(TY) {
+            args.ty = m.value()?.parse::<syn::LitStr>()?.value();
         } else {
-            return Err(m.error("expected at, target, ordinal, shift, cancellable or priority"));
+            return Err(m.error(
+                "expected at, target, ordinal, shift, cancellable, priority, index, constant or ty",
+            ));
         }
         Ok(())
     });
@@ -72,15 +101,23 @@ fn args_of(attr: TokenStream) -> syn::Result<Args> {
     Ok(args)
 }
 
-pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream> {
-    let a = args_of(attr)?;
+pub(crate) fn expand(
+    kind: &Kind,
+    attr: TokenStream,
+    item: TokenStream,
+) -> syn::Result<TokenStream> {
+    let a = args_of(attr, kind)?;
     let f: syn::ItemFn = syn::parse2(item)?;
     let name = &f.sig.ident;
     let ctor = format_ident!("__yog_inject_{}", name);
     let n = quote! { ::yog_api::nanite };
     let ids = quote! { ::yog_api::yog_ids };
+    let nanite_kind = format_ident!("{}", kind.kind);
     let Args {
         member,
+        index,
+        constant,
+        ty,
         at,
         target,
         ordinal,
@@ -96,7 +133,11 @@ pub(crate) fn expand(attr: TokenStream, item: TokenStream) -> syn::Result<TokenS
         #[doc(hidden)]
         fn #ctor() {
             #n::__yog_nanite_registry().lock().push(#n::InjectEntry {
+                kind: #ids::nanite_kind::#nanite_kind,
                 member: #member,
+                index: #index,
+                constant: #constant,
+                value_desc: #ty,
                 at: #ids::mixin_at::#at,
                 target: #target,
                 ordinal: #ordinal,

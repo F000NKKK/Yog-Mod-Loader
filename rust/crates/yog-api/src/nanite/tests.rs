@@ -78,7 +78,7 @@ fn an_injection_is_declared_before_the_game_loads() {
     let hurt = declared
         .injects
         .iter()
-        .find(|i| i.method == "hurt")
+        .find(|i| i.method == "hurt" && i.kind == yog_ids::nanite_kind::INJECT)
         .unwrap();
     assert_eq!(hurt.class, LivingEntity::CLASS);
     assert_eq!(
@@ -91,13 +91,61 @@ fn an_injection_is_declared_before_the_game_loads() {
     );
     assert_eq!(
         hurt.point,
-        "net.minecraft.world.entity.LivingEntity#hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z@HEAD"
+        "inject:net.minecraft.world.entity.LivingEntity#hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z@HEAD"
     );
     let entry = yog_nanite::__yog_nanite_registry().lock();
     let mut e = yog_event::nanite::Injected {
         args: vec![yog_data::Value::Null, yog_data::Value::Float(12.0)],
         ..Default::default()
     };
-    (entry[0].handler)(&mut yog_nanite::Hook::new(&mut e));
+    let shield = entry
+        .iter()
+        .find(|e| e.kind == yog_ids::nanite_kind::INJECT)
+        .unwrap();
+    (shield.handler)(&mut yog_nanite::Hook::new(&mut e));
     assert!(e.cancelled && e.returned && e.value == yog_data::Value::Bool(false));
+}
+
+/// Halves the amount a hurt hands on to `actuallyHurt`.
+#[crate::modify_arg(
+    LivingEntity::HURT,
+    target = "Lnet/minecraft/world/entity/LivingEntity;actuallyHurt(Lnet/minecraft/world/damagesource/DamageSource;F)V",
+    index = 1
+)]
+fn halve(hook: &mut yog_nanite::Hook) {
+    let amount = hook.value::<f32>().unwrap_or_default();
+    hook.set_value(amount / 2.0);
+}
+
+/// Answers a redirected call with its original's result.
+#[crate::wrap(
+    LivingEntity::HURT,
+    target = "Lnet/minecraft/world/entity/LivingEntity;isInvulnerableTo(Lnet/minecraft/world/damagesource/DamageSource;)Z"
+)]
+fn as_was(hook: &mut yog_nanite::Hook) {
+    let _ = hook.call_original(Vec::new());
+}
+
+#[test]
+fn every_kind_has_its_point() {
+    let declared: yog_event::nanite::Nanites =
+        yog_data::read_bytes(&yog_nanite::__yog_nanites()).unwrap();
+    let of = |kind: &str| {
+        declared
+            .injects
+            .iter()
+            .find(|i| i.kind == kind)
+            .unwrap()
+            .clone()
+    };
+    let arg = of(yog_ids::nanite_kind::MODIFY_ARG);
+    assert_eq!((arg.at.as_str(), arg.index), (yog_ids::mixin_at::INVOKE, 1));
+    assert!(
+        arg.point.starts_with("modify_arg:") && arg.point.ends_with("V:1"),
+        "{}",
+        arg.point
+    );
+    let wrap = of(yog_ids::nanite_kind::REDIRECT);
+    assert!(wrap.target.contains("isInvulnerableTo"));
+    assert_ne!(arg.point, wrap.point);
 }
