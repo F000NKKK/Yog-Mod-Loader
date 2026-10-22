@@ -21,6 +21,10 @@ const PRIORITY: &str = "priority";
 const INDEX: &str = "index";
 const CONSTANT: &str = "constant";
 const TY: &str = "ty";
+const NAME: &str = "name";
+const DESC: &str = "desc";
+/// The kind whose first argument is a class, not a member.
+const ADD_METHOD: &str = "ADD_METHOD";
 /// Mixin's defaults: every occurrence, no shift; no index (by type).
 const EVERY: i32 = -1;
 const NO_SHIFT: &str = "NONE";
@@ -36,6 +40,9 @@ pub(crate) struct Kind {
 
 struct Args {
     member: syn::Path,
+    /// An added method's name and descriptor (its class is `member`).
+    name: String,
+    desc: String,
     index: i32,
     constant: String,
     ty: String,
@@ -60,6 +67,8 @@ fn args_of(attr: TokenStream, kind: &Kind) -> syn::Result<Args> {
     let member: syn::Path = syn::parse2(path)?;
     let mut args = Args {
         member,
+        name: String::new(),
+        desc: String::new(),
         index: NO_INDEX,
         constant: String::new(),
         ty: String::new(),
@@ -90,9 +99,13 @@ fn args_of(attr: TokenStream, kind: &Kind) -> syn::Result<Args> {
             args.constant = m.value()?.parse::<syn::LitStr>()?.value();
         } else if m.path.is_ident(TY) {
             args.ty = m.value()?.parse::<syn::LitStr>()?.value();
+        } else if m.path.is_ident(NAME) {
+            args.name = m.value()?.parse::<syn::LitStr>()?.value();
+        } else if m.path.is_ident(DESC) {
+            args.desc = m.value()?.parse::<syn::LitStr>()?.value();
         } else {
             return Err(m.error(
-                "expected at, target, ordinal, shift, cancellable, priority, index, constant or ty",
+                "expected at, target, ordinal, shift, cancellable, priority, index, constant, ty, name or desc",
             ));
         }
         Ok(())
@@ -113,8 +126,11 @@ pub(crate) fn expand(
     let n = quote! { ::yog_api::nanite };
     let ids = quote! { ::yog_api::yog_ids };
     let nanite_kind = format_ident!("{}", kind.kind);
+    let added = kind.kind == ADD_METHOD;
     let Args {
         member,
+        name: method_name,
+        desc: method_desc,
         index,
         constant,
         ty,
@@ -125,8 +141,23 @@ pub(crate) fn expand(
         cancellable,
         priority,
     } = a;
+    // An added method's member is its own; an injection's is the method it's in.
+    let (member_def, member) = if added {
+        let stat = format_ident!("__YOG_ADDED_{}", name.to_string().to_uppercase());
+        (
+            quote! {
+                #[doc(hidden)]
+                static #stat: #n::Member = #n::Member::new(
+                    <#member as #n::Nanite>::CLASS, #method_name, || ::std::string::String::from(#method_desc));
+            },
+            quote! { &#stat },
+        )
+    } else {
+        (quote! {}, quote! { #member })
+    };
     Ok(quote! {
         #f
+        #member_def
 
         // Runs when this mod's library loads: what the runtime asks before the game does.
         #[::yog_api::ctor::ctor(unsafe, crate_path = ::yog_api::ctor)]
@@ -144,7 +175,7 @@ pub(crate) fn expand(
                 shift: #ids::mixin_shift::#shift,
                 cancellable: #cancellable,
                 priority: #priority,
-                handler: #name,
+                handler: Some(#name),
             });
         }
     })

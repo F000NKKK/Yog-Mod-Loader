@@ -30,7 +30,8 @@ pub struct InjectEntry {
     pub constant: &'static str,
     /// A `modify_variable`'s local's type (a descriptor, Mojang's).
     pub value_desc: &'static str,
-    pub handler: fn(&mut Hook),
+    /// None for what has no code of the mod's (an added field, an interface).
+    pub handler: Option<fn(&mut Hook)>,
 }
 
 impl InjectEntry {
@@ -74,6 +75,26 @@ pub fn __yog_nanite_registry() -> &'static Mutex<Vec<InjectEntry>> {
     &REG
 }
 
+/// A declaration with no handler (an added field, an interface): its kind,
+/// member, target.
+#[doc(hidden)]
+pub fn __declare(kind: &'static str, member: &'static Member, target: &'static str) {
+    __yog_nanite_registry().lock().push(InjectEntry {
+        kind,
+        member,
+        at: "",
+        target,
+        ordinal: -1,
+        shift: "",
+        cancellable: false,
+        priority: 0,
+        index: -1,
+        constant: "",
+        value_desc: "",
+        handler: None,
+    });
+}
+
 /// Every injection of this mod, as the runtime asks before the game loads.
 #[doc(hidden)]
 pub fn __yog_nanites() -> Vec<u8> {
@@ -93,7 +114,7 @@ pub fn subscribe(registry: &mut Registry) {
     let entries: Vec<Subscription> = __yog_nanite_registry()
         .lock()
         .iter()
-        .map(|e| (e.spec().point, e.priority, e.handler))
+        .filter_map(|e| Some((e.spec().point, e.priority, e.handler?)))
         .collect();
     for (key, priority, handler) in entries {
         registry.change_key_at::<Injected>(&key, priority, move |e, _| handler(&mut Hook(e)));

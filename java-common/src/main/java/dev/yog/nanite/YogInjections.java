@@ -89,6 +89,22 @@ public final class YogInjections {
         return YogReflect.toJava(out.value(), boxed(values[n]));
     }
 
+    /** Added method {@code n} called on {@code self} with {@code args}: a handler's answer, else its type's zero. */
+    public static Object call(int n, Object self, Object[] args) {
+        Class<?> type = boxed(values[n]);
+        YogEvents.Nanite.Injected out = heard(n) ? emit(n, self, args, null, null) : null;
+        if (out != null && out.returned()) return YogReflect.toJava(out.value(), type);
+        return zero(type);
+    }
+
+    /** A type's zero, boxed (null for a reference). */
+    private static Object zero(Class<?> type) {
+        if (type == Boolean.class) return false;
+        if (type == Character.class) return (char) 0;
+        if (type == Object.class) return null;
+        return YogReflect.toJava(0L, type);
+    }
+
     /** Redirect {@code n}'s call as a function of its arguments (the receiver first), for handlers to make. */
     private static Function<List<Object>, Object> original(int n) {
         YogNaniteGen.Call call = calls[n];

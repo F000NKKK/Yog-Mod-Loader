@@ -93,6 +93,18 @@ names! {
         MODIFY_VARIABLE = "modify_variable",
         /// `@ModifyConstant`: a constant, changed.
         MODIFY_CONSTANT = "modify_constant",
+        /// A field added to the class (`@Unique`), the mod's own.
+        ADD_FIELD = "add_field",
+        /// A method added to the class, its body the mod's handler.
+        ADD_METHOD = "add_method",
+        /// An interface the class is made to implement.
+        IMPLEMENT = "implement",
+    }
+
+    /// An added field's name: `yog$<crate>$<name>` (one a mod, no mapping).
+    nanite_added {
+        PREFIX = "yog$",
+        SEP = "$",
     }
 
     /// A `@ModifyConstant`'s constant: `<type>:<value>` (`int:5`, `null`).

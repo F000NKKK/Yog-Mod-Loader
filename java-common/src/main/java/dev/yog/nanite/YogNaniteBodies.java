@@ -25,6 +25,26 @@ final class YogNaniteBodies {
     private static final String MODIFY = "(ILjava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
     private static final String REDIRECT = "(ILjava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;";
     private static final String NOT_ANSWERED = "NOT_ANSWERED";
+    private static final String CALL = "(ILjava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;";
+
+    /** A method added to the class: its arguments to the mod's handler, its answer returned. */
+    static void added(ClassWriter cw, int n, String name, Type method) {
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, name, method.getDescriptor(), null, null);
+        mv.visitCode();
+        mv.visitLdcInsn(n);
+        mv.visitVarInsn(Opcodes.ALOAD, 0);
+        array(mv, method.getArgumentTypes(), 1);
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, OWNER, "call", CALL, false);
+        Type ret = method.getReturnType();
+        if (ret.getSort() == Type.VOID) {
+            mv.visitInsn(Opcodes.POP);
+            mv.visitInsn(Opcodes.RETURN);
+        } else {
+            unbox(mv, ret);
+            mv.visitInsn(ret.getOpcode(Opcodes.IRETURN));
+        }
+        end(mv);
+    }
 
     /** An {@code @Inject} handler: the target's arguments and its callback. */
     static void inject(ClassWriter cw, int n, YogNaniteGen.Target target, Consumer<MethodVisitor> annotate) {

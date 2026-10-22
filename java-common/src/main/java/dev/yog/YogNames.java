@@ -1215,9 +1215,22 @@ public final class YogNames {
         public static final String MODIFY_ARG = "modify_arg";
         public static final String MODIFY_VARIABLE = "modify_variable";
         public static final String MODIFY_CONSTANT = "modify_constant";
+        public static final String ADD_FIELD = "add_field";
+        public static final String ADD_METHOD = "add_method";
+        public static final String IMPLEMENT = "implement";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INJECT, REDIRECT, MODIFY_ARG, MODIFY_VARIABLE, MODIFY_CONSTANT);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INJECT, REDIRECT, MODIFY_ARG, MODIFY_VARIABLE, MODIFY_CONSTANT, ADD_FIELD, ADD_METHOD, IMPLEMENT);
+    }
+
+    public static final class NaniteAdded {
+        private NaniteAdded() {}
+
+        public static final String PREFIX = "yog$";
+        public static final String SEP = "$";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, SEP);
     }
 
     public static final class NaniteConstant {

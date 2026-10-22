@@ -52,9 +52,14 @@ final class YogNaniteGen {
         String runtimeOwner = YogMappings.className(owner);
         String desc = YogMappings.desc(inject.desc());
         String name = YogMappings.declaredMethod(owner, inject.method(), inject.desc());
-        Target target = new Target(name + desc, Type.getMethodType(desc), flags(runtimeOwner, name, desc)[0]);
+        boolean added = added(inject.kind());
+        boolean isStatic = !added && flags(runtimeOwner, name, desc)[0];
+        Target target = new Target(name + desc, added ? null : Type.getMethodType(desc), isStatic);
+        String[] interfaces = inject.kind().equals(YogNames.NaniteKind.IMPLEMENT)
+                ? new String[] {YogMappings.className(inject.target().replace('.', '/'))}
+                : null;
         ClassWriter cw = writer();
-        cw.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className(n), null, OBJECT, null);
+        cw.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className(n), null, OBJECT, interfaces);
         AnnotationVisitor mixin = cw.visitAnnotation(MIXIN, false);
         AnnotationVisitor targets = mixin.visitArray("targets");
         targets.visit(null, runtimeOwner.replace('/', '.'));
@@ -66,9 +71,27 @@ final class YogNaniteGen {
         return new Made(cw.toByteArray(), made.value(), made.call());
     }
 
+    /** Whether a nanite of {@code kind} adds to the class rather than going into a method. */
+    private static boolean added(String kind) {
+        return kind.equals(YogNames.NaniteKind.ADD_FIELD) || kind.equals(YogNames.NaniteKind.ADD_METHOD)
+                || kind.equals(YogNames.NaniteKind.IMPLEMENT);
+    }
+
     /** The handler of the nanite's kind; its value's type and call (bytes left to {@link #mixin}). */
     private static Made handler(ClassWriter cw, int n, YogTypes.Inject inject, Target target) {
         return switch (inject.kind()) {
+            case YogNames.NaniteKind.ADD_FIELD -> {
+                cw.visitField(Opcodes.ACC_PRIVATE, inject.method(), YogMappings.desc(inject.desc()), null, null).visitEnd();
+                yield new Made(null, Type.VOID_TYPE, null);
+            }
+            case YogNames.NaniteKind.IMPLEMENT -> new Made(null, Type.VOID_TYPE, null);
+            case YogNames.NaniteKind.ADD_METHOD -> {
+                String desc = YogMappings.desc(inject.desc());
+                String name = inject.target().isEmpty() ? inject.method()
+                        : YogMappings.declaredMethod(inject.target().replace('.', '/'), inject.method(), inject.desc());
+                YogNaniteBodies.added(cw, n, name, Type.getMethodType(desc));
+                yield new Made(null, Type.getReturnType(desc), null);
+            }
             case YogNames.NaniteKind.REDIRECT -> {
                 Call call = call(inject.target());
                 YogNaniteBodies.redirect(cw, n, target, call, mv -> YogNaniteAnnotations.redirect(mv, inject, target));

@@ -314,6 +314,9 @@ nanites! {
     modify_variable => MODIFY_VARIABLE, STORE, false;
     /// `@ModifyConstant`: `#[modify_constant(M, constant = "float:0.5")]`.
     modify_constant => MODIFY_CONSTANT, HEAD, false;
+    /// A method added to a class: `#[add_method(LivingEntity, name = "yogCharge", desc = "()I")]`
+    /// (`target`: the interface whose method it is, for its run-time name).
+    add_method => ADD_METHOD, HEAD, false;
 }
 
 // ── #[bench] ─────────────────────────────────────────────────────────────

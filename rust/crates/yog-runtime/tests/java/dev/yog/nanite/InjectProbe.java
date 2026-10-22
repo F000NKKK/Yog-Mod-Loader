@@ -88,4 +88,34 @@ public final class InjectProbe {
                 List.of(new YogNaniteGen.Made(null, Type.INT_TYPE, null), redirect, redirect));
         return String.valueOf(run(redirect, 2, 5));
     }
+
+    static final String ADDED = "test:added";
+
+    private static YogTypes.Inject adding(String point, String kind, String name, String desc, String target) {
+        return new YogTypes.Inject(point, kind, InjectProbe.class.getName(), name, desc, "", target, -1, "", false, -1, "", "");
+    }
+
+    /** An added method called, an added field and an interface seen: joined. */
+    public static String added() throws Exception {
+        YogNaniteGen.Made method = YogNaniteGen.mixin(3, adding(ADDED, "add_method", "yogCharge", "()I", ""));
+        YogNaniteGen.Made field = YogNaniteGen.mixin(4, adding("test:field", "add_field", "yog$probe$charge", "I", ""));
+        YogNaniteGen.Made iface = YogNaniteGen.mixin(5, adding("test:iface", "implement", "", "", "java.lang.Runnable"));
+        YogInjections.points(List.of(POINT, MODIFY, REDIRECT, ADDED, "test:field", "test:iface"),
+                List.of(method, method, method, method, field, iface));
+        Class<?> c = new ClassLoader(InjectProbe.class.getClassLoader()) {
+            Class<?> define(byte[] b) {
+                return defineClass(null, b, 0, b.length);
+            }
+        }.define(method.bytes());
+        java.lang.reflect.Field unsafe = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
+        unsafe.setAccessible(true);
+        Object u = unsafe.get(null);
+        Object instance = u.getClass().getMethod("allocateInstance", Class.class).invoke(u, c);
+        Object charge = c.getMethod("yogCharge").invoke(instance);
+        ClassNode f = new ClassNode();
+        new ClassReader(field.bytes()).accept(f, 0);
+        ClassNode i = new ClassNode();
+        new ClassReader(iface.bytes()).accept(i, 0);
+        return charge + "," + f.fields.get(0).name + f.fields.get(0).desc + "," + i.interfaces;
+    }
 }

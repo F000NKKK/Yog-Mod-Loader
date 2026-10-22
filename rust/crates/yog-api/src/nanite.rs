@@ -24,9 +24,11 @@ use yog_event::nanite::{Call, Get, Release, Resolve, Set};
 use yog_ids::{kind, nanite_ref};
 use yog_sync::{Arc, OnceLock};
 
+mod added;
 mod inject;
 mod java;
-pub use inject::{__yog_nanite_registry, __yog_nanites, Hook, InjectEntry};
+pub use added::Added;
+pub use inject::{__declare, __yog_nanite_registry, __yog_nanites, Hook, InjectEntry};
 pub use java::{Java, Reply};
 
 #[doc(hidden)]

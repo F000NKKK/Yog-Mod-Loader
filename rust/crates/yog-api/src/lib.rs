@@ -54,8 +54,8 @@ pub use java::mod_loaded;
 
 /// Inter-mod communication proc-macros.
 pub use yog_interop::{
-    bench, import, inject, modify_arg, modify_constant, modify_return, modify_variable, nanite,
-    overwrite, redirect, wrap, yog_export, yog_mirror,
+    add_method, bench, import, inject, modify_arg, modify_constant, modify_return, modify_variable,
+    nanite, overwrite, redirect, wrap, yog_export, yog_mirror,
 };
 
 /// Re-exported so `#[yog_export]`-generated code can emit `#[::yog_api::ctor::ctor(unsafe)]`

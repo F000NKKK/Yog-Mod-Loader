@@ -102,7 +102,7 @@ fn an_injection_is_declared_before_the_game_loads() {
         .iter()
         .find(|e| e.kind == yog_ids::nanite_kind::INJECT)
         .unwrap();
-    (shield.handler)(&mut yog_nanite::Hook::new(&mut e));
+    (shield.handler.unwrap())(&mut yog_nanite::Hook::new(&mut e));
     assert!(e.cancelled && e.returned && e.value == yog_data::Value::Bool(false));
 }
 
@@ -148,4 +148,40 @@ fn every_kind_has_its_point() {
     let wrap = of(yog_ids::nanite_kind::REDIRECT);
     assert!(wrap.target.contains("isInvulnerableTo"));
     assert_ne!(arg.point, wrap.point);
+}
+
+crate::added_field!(LivingEntity, pub CHARGE: i32);
+crate::implement!(LivingEntity, "net.minecraft.world.entity.OwnableEntity");
+
+/// The charge, as an added method.
+#[crate::add_method(LivingEntity, name = "yogCharge", desc = "()I")]
+fn charge(hook: &mut yog_nanite::Hook) {
+    hook.set_value(3i32);
+}
+
+#[test]
+fn added_members_are_declared() {
+    let declared: yog_event::nanite::Nanites =
+        yog_data::read_bytes(&yog_nanite::__yog_nanites()).unwrap();
+    let of = |kind: &str| {
+        declared
+            .injects
+            .iter()
+            .find(|i| i.kind == kind)
+            .unwrap()
+            .clone()
+    };
+    let field = of(yog_ids::nanite_kind::ADD_FIELD);
+    assert_eq!(
+        (field.method.as_str(), field.desc.as_str()),
+        ("yog$yog-api$CHARGE", "I")
+    );
+    let iface = of(yog_ids::nanite_kind::IMPLEMENT);
+    assert_eq!(iface.target, "net.minecraft.world.entity.OwnableEntity");
+    let method = of(yog_ids::nanite_kind::ADD_METHOD);
+    assert_eq!(
+        (method.method.as_str(), method.desc.as_str()),
+        ("yogCharge", "()I")
+    );
+    assert_eq!(method.class, LivingEntity::CLASS);
 }
