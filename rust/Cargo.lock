@@ -2105,7 +2105,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.72.0"
+version = "0.72.1"
 dependencies = [
  "criterion",
  "serde_json",
@@ -2120,7 +2120,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.51.0"
+version = "0.51.1"
 dependencies = [
  "base64",
  "criterion",
@@ -2226,7 +2226,7 @@ dependencies = [
 
 [[package]]
 name = "yog-event"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "pastey",
  "yog-body",
@@ -2303,7 +2303,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ids"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "const_format",
 ]
@@ -2384,7 +2384,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.110.0"
+version = "0.110.1"
 dependencies = [
  "criterion",
  "glow",
