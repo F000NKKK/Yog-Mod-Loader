@@ -24,6 +24,8 @@ yog-dimensions = { workspace = true }
 yog-logging = { workspace = true }
 yog-interop = { workspace = true }
 yog-storage = { workspace = true }
+# Mirrors: their specs, views and writers.
+yog-mirror = { workspace = true }
 yog-config = { workspace = true }
 yog-gfx = { workspace = true }
 yog-ui = { workspace = true }

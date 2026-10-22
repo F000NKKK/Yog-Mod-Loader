@@ -121,12 +121,16 @@ pub(crate) fn register() {
     after::<player::session::Join>(LAST, |e| {
         crate::ticks::queue_startup_grants(&e.player_name, &e.uuid)
     });
-    after::<server::game::Tick>(LAST, |_| crate::ticks::after_tick());
+    after::<server::game::Tick>(LAST, |_| {
+        crate::ticks::after_tick();
+        crate::mirrors::after_tick();
+    });
     after::<server::life::Stopping>(LAST, |_| crate::entity_data::server_stopped());
     super::declared::register();
     super::describe::register();
     super::own::register();
     crate::entity_data::register();
+    crate::mirrors::register();
     // The camera's changes start from none (the defaults live in yog-body).
     change::<client::render::Camera>(FIRST, |c| c.out = yog_body::CameraOut::default());
     // A body's frame carries what this client was told its entity keeps.

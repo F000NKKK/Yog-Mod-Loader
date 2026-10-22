@@ -206,6 +206,7 @@ fn write_of(i: usize, c: &Column) -> Write {
         .unwrap_or(0);
     Write {
         bit: 1 << i,
+        column: std::ptr::from_ref(c.buf.raw()) as u64,
         period,
         next: 0,
         on_change: c.demand.iter().any(|(_, r)| *r == Rate::Changes),

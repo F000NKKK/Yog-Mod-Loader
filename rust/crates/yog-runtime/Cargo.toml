@@ -12,6 +12,8 @@ description = "Yog runtime — native library bridging the Fabric host to Rust m
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+# The mirrors' column store.
+yog-mirror = { workspace = true }
 yog-event = { workspace = true }
 yog-dimensions = { workspace = true }
 yog-body = { workspace = true }

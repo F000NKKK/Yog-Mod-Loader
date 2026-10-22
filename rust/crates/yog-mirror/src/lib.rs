@@ -17,9 +17,9 @@ pub mod view;
 
 pub use cell::{Cell, Kind};
 pub use keys::KeySpace;
-pub use spec::{Declared, Due, FieldSpec, Linked, MirrorSpec, Rate};
+pub use spec::{Declared, Due, DueList, FieldSpec, Linked, MirrorSpec, Rate};
 pub use store::{MAX_FIELDS, SpaceId, Store};
-pub use view::{ColumnRef, ColumnWriter, KeySpaceRef};
+pub use view::{Bits, ColumnRef, ColumnWriter, KeySpaceRef};
 
 #[cfg(test)]
 mod tests;

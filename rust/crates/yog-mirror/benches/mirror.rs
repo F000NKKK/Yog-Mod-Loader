@@ -118,11 +118,11 @@ fn store(c: &mut Criterion) {
             s.declare(&spec(&name), 0b11, Rate::Every(1)).unwrap();
         }
         g.bench_with_input(BenchmarkId::new("due", mirrors), &mirrors, |b, _| {
-            let (mut tick, mut out) = (0, Vec::new());
+            let (mut tick, mut out) = (0, yog_mirror::DueList::default());
             b.iter(|| {
                 tick += 1;
                 s.due(tick, &mut out);
-                out.len()
+                out.turns.len()
             })
         });
     }

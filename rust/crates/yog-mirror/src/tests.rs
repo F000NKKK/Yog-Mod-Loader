@@ -43,10 +43,14 @@ fn store() -> Store {
     s
 }
 
-fn due(s: &mut Store, tick: u64) -> Vec<Due> {
-    let mut out = Vec::new();
+/// Who's due at `tick`: (writer, mirror, fields).
+fn due(s: &mut Store, tick: u64) -> Vec<(u32, String, u64)> {
+    let mut out = DueList::default();
     s.due(tick, &mut out);
-    out
+    out.turns
+        .iter()
+        .map(|d| (d.writer, d.mirror.to_string(), d.fields))
+        .collect()
 }
 
 fn column(d: &Declared, i: usize) -> ColumnRef {
@@ -121,14 +125,7 @@ fn a_declaration_reads_what_its_provider_writes() {
     assert_eq!(pos.get::<[f64; 3]>(at), Some([1.0, 2.0, 3.0]));
     assert_eq!(level.get::<f32>(at), Some(0.5));
     let due = due(&mut s, 0);
-    assert_eq!(
-        due,
-        vec![Due {
-            writer: 1,
-            mirror: THREAT.into(),
-            fields: 0b11
-        }]
-    );
+    assert_eq!(due, vec![(1, THREAT.to_string(), 0b11)]);
 }
 
 #[test]
@@ -171,36 +168,20 @@ fn the_host_writes_a_fact_before_any_mod() {
     let _d = s
         .declare(&threat(key_space::ENTITY), 0b11, Rate::Every(1))
         .unwrap();
-    assert_eq!(
-        due(&mut s, 0)[0].fields,
-        0b11,
-        "alone, the mod writes pos too"
-    );
+    assert_eq!(due(&mut s, 0)[0].2, 0b11, "alone, the mod writes pos too");
     s.provide(&host_entities(), 99, true).unwrap();
     let mut now = due(&mut s, 1);
-    now.sort_by_key(|d| d.writer);
+    now.sort_by_key(|d| d.0);
     assert_eq!(
         now,
         vec![
-            Due {
-                writer: 1,
-                mirror: THREAT.into(),
-                fields: 0b10
-            },
-            Due {
-                writer: 99,
-                mirror: "yog:mirror/entity".into(),
-                fields: 0b1
-            }
+            (1, THREAT.to_string(), 0b10),
+            (99, "yog:mirror/entity".to_string(), 0b1)
         ],
         "pos is the host's now"
     );
     s.withdraw(99);
-    assert_eq!(
-        due(&mut s, 2)[0].fields,
-        0b11,
-        "the host gone, it's handed back"
-    );
+    assert_eq!(due(&mut s, 2)[0].2, 0b11, "the host gone, it's handed back");
 }
 
 #[test]

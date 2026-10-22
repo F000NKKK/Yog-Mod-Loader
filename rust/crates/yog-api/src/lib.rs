@@ -13,6 +13,10 @@ mod draw;
 pub mod entities;
 pub mod java;
 pub mod loot;
+pub mod mirror;
+// The generated code names `::yog_api`, as in a mod.
+#[cfg(test)]
+extern crate self as yog_api;
 pub mod vanilla;
 pub use bus::{EventCx, Flow, IntoFlow, emit};
 pub use service::call;
@@ -49,7 +53,7 @@ pub use yog_sync as sync;
 pub use java::mod_loaded;
 
 /// Inter-mod communication proc-macros.
-pub use yog_interop::{bench, import, yog_export};
+pub use yog_interop::{bench, import, yog_export, yog_mirror};
 
 /// Re-exported so `#[yog_export]`-generated code can emit `#[::yog_api::ctor::ctor(unsafe)]`
 /// without mods needing a direct `ctor` dependency. Constructors run when the

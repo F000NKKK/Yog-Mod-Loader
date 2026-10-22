@@ -16,3 +16,5 @@ yog-body = { workspace = true }
 yog-dimensions = { workspace = true }
 pastey = { workspace = true }
 yog-sync = { workspace = true }
+# Mirrors' specs on the bus.
+yog-mirror = { workspace = true }

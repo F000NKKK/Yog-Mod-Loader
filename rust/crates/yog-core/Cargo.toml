@@ -11,3 +11,5 @@ description = "Yog core types and handles shared across all API modules."
 [dependencies]
 yog-ids = { workspace = true }
 yog-data = { workspace = true }
+# Positions as mirror cells.
+yog-mirror = { workspace = true }

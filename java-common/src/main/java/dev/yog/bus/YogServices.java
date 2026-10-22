@@ -14901,6 +14901,589 @@ public final class YogServices {
         }
     }
 
+    /** `mirror`. */
+    public static final class Mirror {
+        private Mirror() {}
+
+        /** Asks for `wanted` fields of mirror `spec` (a bit each, in its field order) at `rate`; they're written while the declaration lasts. */
+        public record Declare(YogTypes.MirrorSpec spec, long wanted, String rate) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("spec", spec.toData());
+                m.put("wanted", wanted);
+                m.put("rate", rate);
+                return m;
+            }
+
+            public static Declare fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Declare(YogTypes.MirrorSpec.fromData(m.get("spec")), YogData.integer(m.get("wanted"), 0), YogData.str(m.get("rate"), ""));
+            }
+
+            public static Declare fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                this.spec.pack(p);
+                p.putI(this.wanted);
+                p.putTagged(this.rate);
+                p.end(at);
+            }
+
+            public static Declare unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                YogTypes.MirrorSpec f_spec = u.more(end) ? YogTypes.MirrorSpec.unpack(u) : null;
+                long f_wanted = u.more(end) ? u.getI() : 0L;
+                String f_rate = u.more(end) ? YogData.str(u.getTagged(), "") : null;
+                u.leave(end);
+                return new Declare(f_spec, f_wanted, f_rate);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Declare fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Declare fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Declare readFrame(YogFrame.Unpacker u) {
+                Declare v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Declare} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skipBytes(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public YogTypes.MirrorSpec.View spec() {
+                    if (o0 < 0) return null;
+                    u.seek(o0);
+                    return new YogTypes.MirrorSpec.View(u);
+                }
+
+                public long wanted() {
+                    if (o1 < 0) return 0L;
+                    u.seek(o1);
+                    return u.getI();
+                }
+
+                public String rate() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return YogData.str(u.getTagged(), "");
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceMirror.DECLARE);
+            }
+
+            public YogTypes.Declared call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        YogTypes.Declared v = YogTypes.Declared.unpack(u);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+
+            /** {@link #call}'s reply read where it is (valid until this thread's next bus call); null when no one answered. */
+            public YogTypes.Declared.View callView() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (!r.ok() || r.isEmpty()) return null;
+                try {
+                    return new YogTypes.Declared.View(r.frame());
+                } catch (YogData.DecodeException e) {
+                    return null;
+                }
+            }
+        }
+
+        /** Lets declaration `id` go. */
+        public record Release(long id) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("id", id);
+                return m;
+            }
+
+            public static Release fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Release(YogData.integer(m.get("id"), 0));
+            }
+
+            public static Release fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putI(this.id);
+                p.end(at);
+            }
+
+            public static Release unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                long f_id = u.more(end) ? u.getI() : 0L;
+                u.leave(end);
+                return new Release(f_id);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Release fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Release fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Release readFrame(YogFrame.Unpacker u) {
+                Release v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Release} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public long id() {
+                    if (o0 < 0) return 0L;
+                    u.seek(o0);
+                    return u.getI();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceMirror.RELEASE);
+            }
+
+            public boolean call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+        }
+
+        /** Makes the caller mirror `spec`'s provider. It answers the mirror's own address (`spec.name`) with a [`Write`] whenever fields are due; `host`: the game's own mirrors, first for every fact they write. The answer is what's wrong, if anything. */
+        public record Provide(YogTypes.MirrorSpec spec, boolean host) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("spec", spec.toData());
+                m.put("host", host);
+                return m;
+            }
+
+            public static Provide fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Provide(YogTypes.MirrorSpec.fromData(m.get("spec")), YogData.bool(m.get("host"), false));
+            }
+
+            public static Provide fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                this.spec.pack(p);
+                p.putBool(this.host);
+                p.end(at);
+            }
+
+            public static Provide unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                YogTypes.MirrorSpec f_spec = u.more(end) ? YogTypes.MirrorSpec.unpack(u) : null;
+                boolean f_host = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new Provide(f_spec, f_host);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Provide fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Provide fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Provide readFrame(YogFrame.Unpacker u) {
+                Provide v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Provide} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public YogTypes.MirrorSpec.View spec() {
+                    if (o0 < 0) return null;
+                    u.seek(o0);
+                    return new YogTypes.MirrorSpec.View(u);
+                }
+
+                public boolean host() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceMirror.PROVIDE);
+            }
+
+            public YogTypes.Diagnostic call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        YogTypes.Diagnostic v = (u.getBool() ? YogTypes.Diagnostic.unpack(u) : null);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+        }
+
+        /** Mirror `name`'s provider saying it changed (its on-change fields are due). */
+        public record Touch(String name) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("name", name);
+                return m;
+            }
+
+            public static Touch fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Touch(YogData.str(m.get("name"), ""));
+            }
+
+            public static Touch fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.name);
+                p.end(at);
+            }
+
+            public static Touch unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_name = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Touch(f_name);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Touch fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Touch fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Touch readFrame(YogFrame.Unpacker u) {
+                Touch v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Touch} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String name() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceMirror.TOUCH);
+            }
+
+            public boolean call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+        }
+
+        /** Keys coming into key space `space` and leaving it; the answer is the rows the new ones got. */
+        public record Keys(String space, java.util.List<YogTypes.Key> put, long[] take) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("space", space);
+                m.put("put", put.stream().map(e0 -> e0.toData()).toList());
+                m.put("take", YogData.listOf(take));
+                return m;
+            }
+
+            public static Keys fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Keys(YogData.str(m.get("space"), ""), YogData.list(m.get("put")).stream().map(e0 -> YogTypes.Key.fromData(e0)).toList(), YogData.longs(m.get("take")));
+            }
+
+            public static Keys fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.space);
+                { int l0 = p.beginList(this.put.size()); for (var e0 : this.put) { e0.pack(p); } p.end(l0); }
+                p.putLongs(this.take, false);
+                p.end(at);
+            }
+
+            public static Keys unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_space = u.more(end) ? u.getStr() : "";
+                java.util.List<YogTypes.Key> f_put = u.more(end) ? YogFrame.list(u, () -> YogTypes.Key.unpack(u)) : java.util.List.of();
+                long[] f_take = u.more(end) ? u.getLongs(false) : new long[0];
+                u.leave(end);
+                return new Keys(f_space, f_put, f_take);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Keys fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Keys fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Keys readFrame(YogFrame.Unpacker u) {
+                Keys v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Keys} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int h1, n1, b1;
+                private final int o2;
+                private final int h2, n2, b2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { h1 = u.position(); n1 = u.count(); int e1 = u.listEnd(); b1 = 0; o1 = u.position(); u.skipTo(e1); } else { h1 = n1 = b1 = 0; o1 = -1; }
+                    if (u.more(end)) { h2 = u.position(); n2 = (int) u.getU(); b2 = u.getByte(); o2 = u.position(); u.skip(YogFrame.packedBytes(n2, b2)); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String space() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public java.util.List<YogTypes.Key> put() {
+                    if (o1 < 0) return java.util.List.of();
+                    u.seek(h1);
+                    return YogFrame.list(u, () -> YogTypes.Key.unpack(u));
+                }
+
+                public int putLength() {
+                    return n1;
+                }
+
+                /** Each item, viewed in turn. */
+                public void forEachPut(java.util.function.Consumer<YogTypes.Key.View> each) {
+                    int at = o1;
+                    for (int j = 0; j < n1; j++) {
+                        u.seek(at);
+                        YogTypes.Key.View v = new YogTypes.Key.View(u);
+                        at = u.position();
+                        each.accept(v);
+                    }
+                }
+
+                public long[] take() {
+                    if (o2 < 0) return new long[0];
+                    u.seek(h2);
+                    return u.getLongs(false);
+                }
+
+                public int takeLength() {
+                    return n2;
+                }
+
+                /** Item {@code i}, read in place. */
+                public long take(int i) {
+                    long v = u.packedAt(o2, n2, b2, i);
+                    return (long) v;
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceMirror.KEYS);
+            }
+
+            public long[] call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        long[] v = u.getLongs(false);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return new long[0];
+            }
+        }
+    }
+
     /** `net`. */
     public static final class Net {
         private Net() {}

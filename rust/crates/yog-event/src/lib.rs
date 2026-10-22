@@ -36,6 +36,7 @@ pub mod jvm;
 pub mod key_binding;
 pub mod log;
 pub mod menu;
+pub mod mirror;
 pub mod net;
 pub mod particle;
 pub mod player;

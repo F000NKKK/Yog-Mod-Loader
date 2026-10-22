@@ -70,11 +70,45 @@ pub struct Declared {
     pub fields: Vec<Option<Linked>>,
 }
 
-/// A provider's turn to write: its mirror and the fields due (a bit each,
-/// in the mirror's field order).
+/// A provider's turn to write: its mirror, the fields due (a bit each, in
+/// the mirror's field order) and where they go.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Due {
     pub writer: u32,
     pub mirror: yog_sync::Arc<str>,
     pub fields: u64,
+    /// The mirror's key space (`*const YogKeySpace`).
+    pub space: u64,
+    /// The mirror's rows (`*const YogColumn`).
+    pub rows: u64,
+    /// Its due fields' columns in [`DueList::columns`], in field order.
+    pub columns: std::ops::Range<usize>,
+}
+
+/// What's due a tick: every provider's turn, their columns in one list —
+/// kept from tick to tick, so nothing is allocated once it's grown.
+#[derive(Clone, Debug, Default)]
+pub struct DueList {
+    pub turns: Vec<Due>,
+    columns: Vec<u64>,
+}
+
+impl DueList {
+    /// `due`'s columns (`*const YogColumn` each).
+    pub fn columns(&self, due: &Due) -> &[u64] {
+        &self.columns[due.columns.clone()]
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.turns.clear();
+        self.columns.clear();
+    }
+
+    pub(crate) fn push_column(&mut self, column: u64) {
+        self.columns.push(column);
+    }
+
+    pub(crate) fn next_column(&self) -> usize {
+        self.columns.len()
+    }
 }

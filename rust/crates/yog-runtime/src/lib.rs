@@ -43,6 +43,7 @@ mod hot_reload;
 mod images;
 mod jcall;
 mod machine;
+mod mirrors;
 #[cfg(feature = "dev")]
 mod registrations;
 mod svg;

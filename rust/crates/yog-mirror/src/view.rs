@@ -97,27 +97,41 @@ impl ColumnRef {
     /// Starts writing (its one writer): readers retry until it's dropped.
     /// The store doesn't grow a column while it's written (both happen on
     /// the server thread), so where its rows are is read once.
-    pub fn write(&self) -> ColumnWriter<'_> {
+    pub fn write(&self) -> ColumnWriter {
         let raw = self.raw();
-        let writing = seq::Writing::new(&raw.seq);
         ColumnWriter {
+            began: seq::begin(&raw.seq),
+            col: *self,
             data: raw.data.load(Ordering::Acquire),
             capacity: raw.capacity.load(Ordering::Acquire),
             width: raw.width as usize,
-            _writing: writing,
         }
+    }
+
+    /// Word `word` of a bit column, consistent.
+    #[inline]
+    pub fn word(&self, word: u32) -> u64 {
+        seq::read(&self.raw().seq, || self.peek(word, u64::take)).unwrap_or(0)
     }
 }
 
-/// A column being written.
-pub struct ColumnWriter<'a> {
+/// A column being written; readers retry until it's dropped.
+pub struct ColumnWriter {
+    col: ColumnRef,
+    began: u32,
     data: *mut u8,
     capacity: u32,
     width: usize,
-    _writing: seq::Writing<'a>,
 }
 
-impl ColumnWriter<'_> {
+impl Drop for ColumnWriter {
+    #[inline]
+    fn drop(&mut self) {
+        seq::end(&self.col.raw().seq, self.began);
+    }
+}
+
+impl ColumnWriter {
     /// Row `row`'s bytes, `None` past the end (the store's to make).
     #[inline]
     fn row(&mut self, row: u32) -> Option<&mut [u8]> {
@@ -268,18 +282,21 @@ impl KeySpaceRef {
             .filter_map(|row| Some((row, self.key_of(row)?)))
     }
 
+    /// Word `word` of the live bits (a bit a row).
+    #[inline]
+    pub fn live_word(&self, word: u32) -> u64 {
+        seq::read(&self.raw().seq, || self.live.peek(word, u64::take)).unwrap_or(0)
+    }
+
     /// The live rows: a word of the live bits read at a time.
     pub fn live_rows(&self) -> impl Iterator<Item = u32> + '_ {
         let words = self.rows().div_ceil(WORD_BITS);
-        (0..words).flat_map(move |w| {
-            let bits = seq::read(&self.raw().seq, || self.live.peek(w, u64::take)).unwrap_or(0);
-            Bits(bits).map(move |b| w * WORD_BITS + b)
-        })
+        (0..words).flat_map(move |w| Bits(self.live_word(w)).map(move |b| w * WORD_BITS + b))
     }
 }
 
 /// The set bits of a word, lowest first.
-struct Bits(u64);
+pub struct Bits(pub u64);
 
 impl Iterator for Bits {
     type Item = u32;

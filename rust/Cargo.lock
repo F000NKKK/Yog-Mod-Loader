@@ -1869,6 +1869,7 @@ dependencies = [
  "yog-interop",
  "yog-inventory",
  "yog-logging",
+ "yog-mirror",
  "yog-network",
  "yog-registry",
  "yog-storage",
@@ -1951,6 +1952,7 @@ version = "0.8.1"
 dependencies = [
  "yog-data",
  "yog-ids",
+ "yog-mirror",
 ]
 
 [[package]]
@@ -2013,6 +2015,7 @@ dependencies = [
  "yog-data",
  "yog-dimensions",
  "yog-ids",
+ "yog-mirror",
  "yog-registry",
  "yog-sync",
 ]
@@ -2184,6 +2187,7 @@ dependencies = [
  "yog-inventory",
  "yog-logging",
  "yog-media",
+ "yog-mirror",
  "yog-registry",
  "yog-sync",
  "yog-ui",

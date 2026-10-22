@@ -15,7 +15,7 @@ use yog_sync::Arc;
 
 use crate::buffer::Buffer;
 use crate::keys::{KeySpace, bit_words, set_bit};
-use crate::spec::{Declared, Due, Linked, MirrorSpec, Rate};
+use crate::spec::{Declared, Due, DueList, Linked, MirrorSpec, Rate};
 
 mod links;
 
@@ -68,6 +68,8 @@ struct Place {
 #[derive(Copy, Clone)]
 struct Write {
     bit: u64,
+    /// Its column (`*const YogColumn`).
+    column: u64,
     /// The most frequent period asked (0: none).
     period: u32,
     /// The tick it's due next at.
@@ -330,12 +332,12 @@ impl Store {
 
     /// What's due at `tick` into `out` (emptied first): each provider with
     /// the fields it writes and someone wants now.
-    pub fn due(&mut self, tick: u64, out: &mut Vec<Due>) {
+    pub fn due(&mut self, tick: u64, out: &mut DueList) {
         out.clear();
         for m in self.mirrors.values_mut() {
             let Some(p) = m.provider else { continue };
             let touched = std::mem::take(&mut m.touched);
-            let mut fields = 0;
+            let (first, mut fields) = (out.next_column(), 0);
             for w in &mut m.writes {
                 let every = w.period != 0 && tick >= w.next;
                 if every {
@@ -343,13 +345,17 @@ impl Store {
                 }
                 if every || (w.on_change && touched) {
                     fields |= w.bit;
+                    out.push_column(w.column);
                 }
             }
             if fields != 0 {
-                out.push(Due {
+                out.turns.push(Due {
                     writer: p.writer,
                     mirror: m.name.clone(),
                     fields,
+                    space: std::ptr::from_ref(self.spaces[m.space.0 as usize].keys.raw()) as u64,
+                    rows: std::ptr::from_ref(m.rows.raw()) as u64,
+                    columns: first..out.next_column(),
                 });
             }
         }

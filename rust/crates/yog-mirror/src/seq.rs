@@ -36,26 +36,3 @@ pub fn read<T>(seq: &AtomicU32, mut read: impl FnMut() -> T) -> T {
         std::hint::spin_loop();
     }
 }
-
-/// A write held open until dropped.
-pub struct Writing<'a> {
-    seq: &'a AtomicU32,
-    began: u32,
-}
-
-impl<'a> Writing<'a> {
-    #[inline]
-    pub fn new(seq: &'a AtomicU32) -> Self {
-        Writing {
-            seq,
-            began: begin(seq),
-        }
-    }
-}
-
-impl Drop for Writing<'_> {
-    #[inline]
-    fn drop(&mut self) {
-        end(self.seq, self.began);
-    }
-}

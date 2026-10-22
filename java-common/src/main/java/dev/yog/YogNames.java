@@ -1033,9 +1033,10 @@ public final class YogNames {
         public static final String RELEASE = "yog:mirror/release";
         public static final String PROVIDE = "yog:mirror/provide";
         public static final String TOUCH = "yog:mirror/touch";
+        public static final String KEYS = "yog:mirror/keys";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, DECLARE, RELEASE, PROVIDE, TOUCH);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, DECLARE, RELEASE, PROVIDE, TOUCH, KEYS);
     }
 
     public static final class KeySpace {
@@ -1068,6 +1069,20 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, ENTITY_POS, ENTITY_VELOCITY, ENTITY_ROTATION, ENTITY_KIND, ENTITY_DIMENSION, ENTITY_HEALTH, PLAYER, PLAYER_NAME, BLOCK, BLOCK_STATE);
+    }
+
+    public static final class MirrorProblem {
+        private MirrorProblem() {}
+
+        public static final String FAILED = "YM0000";
+        public static final String UNKNOWN_SPACE = "YM0001";
+        public static final String WRONG_SHAPE = "YM0002";
+        public static final String FOREIGN_FACT = "YM0003";
+        public static final String TOO_MANY_FIELDS = "YM0004";
+        public static final String TAKEN = "YM0005";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(FAILED, UNKNOWN_SPACE, WRONG_SHAPE, FOREIGN_FACT, TOO_MANY_FIELDS, TAKEN);
     }
 
     public static final class ResKind {

@@ -8,6 +8,8 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 
+mod mirror;
+
 // ── #[yog_export] ─────────────────────────────────────────────────────────
 
 /// The derives an exported type carries: its Yog Data schema, through
@@ -246,6 +248,17 @@ pub fn yog_export(attr: TokenStream, item: TokenStream) -> TokenStream {
             );
         }
     })
+}
+
+// ── #[yog_mirror] ─────────────────────────────────────────────────────────
+
+/// Makes a struct a mirror's row (see `mirror.rs`): `#[yog_mirror(space =
+/// …, owner = "mod")]`, a field's fact named by `#[fact(…)]`.
+#[proc_macro_attribute]
+pub fn yog_mirror(attr: TokenStream, item: TokenStream) -> TokenStream {
+    mirror::expand(attr.into(), item.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }
 
 // ── #[bench] ─────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ use yog_data::{Schema, Shape};
 use yog_ids as ids;
 
 use crate::message::{Message, branch, last_segment};
-use crate::{block, bus, client, command, content, entity, game, item, key_binding, menu};
+use crate::{block, bus, client, command, content, entity, game, item, key_binding, menu, mirror};
 
 /// A call the bus carries: its payload is `Self`, its answer a [`Service::Reply`].
 pub trait Service: Message {
@@ -127,4 +127,9 @@ services! {
     client::EntityData => ids::service_client::ENTITY_DATA, Option<entity::DataValue>;
     game::Mods => ids::service_game::MODS, Vec<game::ModInfo>;
     game::ModLoaded => ids::service_game::MOD_LOADED, bool;
+    mirror::Declare => ids::service_mirror::DECLARE, mirror::Declared;
+    mirror::Release => ids::service_mirror::RELEASE, bool;
+    mirror::Provide => ids::service_mirror::PROVIDE, Option<yog_data::Diagnostic>;
+    mirror::Touch => ids::service_mirror::TOUCH, bool;
+    mirror::Keys => ids::service_mirror::KEYS, Vec<u32>;
 }

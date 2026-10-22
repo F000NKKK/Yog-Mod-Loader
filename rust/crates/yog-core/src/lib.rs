@@ -1,9 +1,10 @@
 //! Core Yog types and handles shared across all API modules.
 //!
-//! Kept tiny — its one dependency is Yog Data, so its records travel the
-//! bus: every other `yog-*` crate builds on this, and the facade
+//! Kept tiny — Yog Data, so its records travel the bus, and mirrors'
+//! cells, so its positions are kept in them: every other `yog-*` crate builds on this, and the facade
 //! [`yog-api`] re-exports it.
 
+mod cells;
 mod local;
 mod query;
 mod state;
@@ -16,7 +17,7 @@ pub use query::{
 pub use state::{join_state, split_state};
 
 /// A block position in the world.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, yog_data::Schema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, yog_data::Schema)]
 #[data(view)]
 pub struct BlockPos {
     pub x: i32,

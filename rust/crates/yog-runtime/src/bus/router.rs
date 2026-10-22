@@ -156,6 +156,7 @@ impl Router {
                             None => continue,
                         }
                     }
+                    let _running = super::running::enter(m.generation());
                     unsafe { f(*ud as *mut c_void, YogBytes::new(payload_now), &out) }
                 }
             };
@@ -225,7 +226,7 @@ fn run(handler: &Handler, payload: &[u8], reply: &YogReply, java: JavaRunner) ->
             // A mod's code runs only while its library is loaded.
             let _guard = match owner {
                 Some(m) => match m.enter() {
-                    Some(g) => Some(g),
+                    Some(g) => Some((g, super::running::enter(m.generation()))),
                     None => return status::NO_HANDLER,
                 },
                 None => None,

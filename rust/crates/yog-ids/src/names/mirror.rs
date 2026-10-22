@@ -25,6 +25,8 @@ names! {
         PROVIDE = crate::concatcp!(DOMAIN, "provide"),
         /// A provider saying its on-change mirror changed.
         TOUCH = crate::concatcp!(DOMAIN, "touch"),
+        /// Keys coming into a key space and leaving it.
+        KEYS = crate::concatcp!(DOMAIN, crate::mirror_word::KEYS),
     }
 
     /// The key spaces columns are kept by: `yog:keys/<space>`.

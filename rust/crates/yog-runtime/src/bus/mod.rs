@@ -12,6 +12,7 @@ mod java;
 pub(crate) mod jvm_support;
 mod own;
 mod router;
+mod running;
 #[cfg(test)]
 mod tests;
 
@@ -26,6 +27,7 @@ use yog_event::{Event, Message, Service};
 pub(crate) use describe::purge as purge_descriptors;
 pub(crate) use duties::{provide as serve, register as register_duties};
 pub(crate) use router::{Handler, Router};
+pub(crate) use running::caller;
 
 /// The runtime's one router.
 pub(crate) static ROUTER: LazyLock<Router> = LazyLock::new(Router::default);
@@ -101,6 +103,11 @@ fn call_at(address: yog_event::Address, payload: &[u8]) -> Option<Vec<u8>> {
 /// calls reach its bus; once, at start.
 pub(crate) fn install_caller() {
     yog_event::set_caller(call_at);
+}
+
+/// Calls `to` with `payload`, its reply dropped.
+pub(crate) fn tell(to: YogAddress, payload: &[u8]) -> YogStatus {
+    ROUTER.call(to, payload, &YogReply::discard(), java::run)
 }
 
 /// Calls `request`'s provider: its answer, `None` when no one answers.
