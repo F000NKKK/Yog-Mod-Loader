@@ -1848,7 +1848,7 @@ version = "0.32.0"
 
 [[package]]
 name = "yog-api"
-version = "0.102.0"
+version = "0.102.1"
 dependencies = [
  "ctor",
  "yog-abi",
