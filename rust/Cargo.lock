@@ -1928,7 +1928,7 @@ dependencies = [
 
 [[package]]
 name = "yog-data"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "base64",
  "bumpalo",
