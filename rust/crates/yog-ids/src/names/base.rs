@@ -24,6 +24,8 @@ names! {
         HYPHEN = "-",
         /// A `.yui` element's member: `Grid.Row`, `Screen.Resources`.
         MEMBER = crate::sep::EXT,
+        /// A sound event's parts, a translation key's: `casting.cast`.
+        KEY = crate::sep::EXT,
         /// What starts a typed value: `@item:minecraft:stick`.
         TYPED = "@",
         /// What marks a tag among ids: `#minecraft:logs`.
@@ -174,6 +176,7 @@ names! {
         LOOT_TABLE = crate::concatcp!(crate::word::LOOT, crate::sep::WORD, TABLE),
         TEXTURE = crate::word::TEXTURE,
         MATERIAL = "material",
+        SOUND = crate::word::SOUND,
     }
 
     /// What a reference to content of a kind starts with: `@item:`.

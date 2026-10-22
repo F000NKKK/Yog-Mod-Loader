@@ -9,6 +9,7 @@ pub mod def;
 pub mod manifest;
 pub mod material;
 pub mod recipe;
+pub mod sound;
 pub mod tags;
 pub mod texture;
 pub mod yres;
@@ -39,6 +40,10 @@ macro_rules! with_type {
             }
             Format::Recipe => {
                 type $t = recipe::RecipeFile;
+                $body
+            }
+            Format::Sound => {
+                type $t = sound::SoundFile;
                 $body
             }
             Format::Book => {

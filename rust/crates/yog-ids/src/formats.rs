@@ -45,6 +45,8 @@ formats! {
     Font = "yfont", "font";
     /// A texture: its picture as given and how it animates.
     Texture = "ytexture", kind::TEXTURE;
+    /// A sound event: the sounds it plays, and how.
+    Sound = "ysound", kind::SOUND;
     /// A material: the textures a surface is drawn with, and how.
     Material = "ymaterial", kind::MATERIAL;
     /// Compiled Yog Data.

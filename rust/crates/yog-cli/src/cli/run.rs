@@ -29,7 +29,8 @@ pub(super) fn run_target(id: &str, symbols: Symbols, dev: bool) -> Result<(), St
     let target = resolver.target(id)?;
     let plan = resolver.plan(&target);
 
-    let (meta, artifact) = build(symbols, dev)?;
+    // It's played here: this machine's platform is all it needs.
+    let (meta, artifact) = build(symbols, dev, super::build::Platforms::Host)?;
 
     if let Some(dir) = &plan.export_dir {
         std::fs::create_dir_all(dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
@@ -124,7 +125,9 @@ pub(super) fn refresh_exported(dir: &Path, current: &str, symbols: Symbols) {
         }
         eprintln!("==> refreshing {id} ({})", source.display());
         let mut cmd = Command::new(&exe);
-        cmd.arg("build").current_dir(&source);
+        cmd.arg("build")
+            .current_dir(&source)
+            .env(yog_ids::env::TARGETS, yog_ids::platform::host_tag());
         if let Some(word) = symbols.word() {
             cmd.arg(word);
         }

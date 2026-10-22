@@ -103,7 +103,16 @@ pub(super) fn designer_lib() -> Result<(), String> {
 ///
 /// `symbols`: what the native keeps of its debug info (`cli/symbols.rs`) —
 /// a release's split out to `artifacts/symbols/`.
-pub(super) fn build(symbols: Symbols, dev: bool) -> Result<(YogToml, PathBuf), String> {
+/// Which platforms a build makes natives for.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub(super) enum Platforms {
+    /// `YOG_TARGETS`'s (every one when unset): `yog build`.
+    Selected,
+    /// This machine's only: `yog run`, which plays it here.
+    Host,
+}
+
+pub(super) fn build(symbols: Symbols, dev: bool, platforms: Platforms) -> Result<(YogToml, PathBuf), String> {
     let Prepared {
         root,
         meta,
@@ -111,7 +120,7 @@ pub(super) fn build(symbols: Symbols, dev: bool) -> Result<(YogToml, PathBuf), S
         resources,
         content,
     } = prepare()?;
-    let bundled = build_natives(&root, &meta, &build_dir, symbols)?;
+    let bundled = build_natives(&root, &meta, &build_dir, symbols, platforms)?;
     // Save Cargo.lock as yog.lock
     let new_lock = build_dir.join("Cargo.lock");
     if new_lock.exists() {
@@ -168,8 +177,11 @@ fn per_platform(
 /// Where `yog build` puts the `.yog`, under the mod's root.
 pub(super) const ARTIFACTS_DIR: &str = "artifacts";
 
-/// The platforms `YOG_TARGETS` picks (all when unset).
-fn wanted_targets() -> Vec<&'static Platform> {
+/// The platforms to build for: this machine's, or those `YOG_TARGETS` picks (all when unset).
+fn wanted_targets(platforms: Platforms) -> Vec<&'static Platform> {
+    if platforms == Platforms::Host {
+        return platform::host().into_iter().collect();
+    }
     let selected = selected_targets();
     platform::ALL
         .iter()
@@ -188,6 +200,7 @@ fn build_natives(
     meta: &YogToml,
     build_dir: &Path,
     symbols: Symbols,
+    platforms: Platforms,
 ) -> Result<Vec<(String, PathBuf)>, String> {
     let builder = Builder::detect();
     eprintln!(
@@ -196,7 +209,7 @@ fn build_natives(
         meta.version,
         builder.subcmd()
     );
-    let wanted = wanted_targets();
+    let wanted = wanted_targets(platforms);
     install_targets(&wanted);
     let installed = installed_targets();
     let mut bundled: Vec<(String, PathBuf)> = Vec::new();

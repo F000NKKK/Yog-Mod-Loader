@@ -54,7 +54,7 @@ pub(crate) fn main(args: &[String]) {
         // hot reload checks.
         Some("build") => {
             let symbols = symbols::Symbols::of(rest.first().map(String::as_str));
-            build::build(symbols, has(DEV)).map(|_| ())
+            build::build(symbols, has(DEV), build::Platforms::Selected).map(|_| ())
         }
         Some("check") => build::check(),
         Some("schema") => schema(rest.first().map(String::as_str)),
