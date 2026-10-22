@@ -107,9 +107,9 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     b.tool_levels(&defs);
     b.books(&known, &layouts);
     b.inventories();
+    b.out.packed = own.packed_but(&b.out.loose);
     b.out.outputs.extend(own.outputs);
     b.out.outputs.extend(sounds.output);
-    b.out.packed = own.packed;
     b.finish(&mut defs, made, &known)
 }
 

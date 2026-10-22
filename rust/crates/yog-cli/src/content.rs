@@ -104,6 +104,9 @@ pub struct Compiled {
     pub registrations: String,
     /// The pictures (`.yres` images' files) an atlas took in: left out of the build.
     pub packed: BTreeSet<String>,
+    /// Textures the game loads as files of their own as well (a tab's
+    /// background): their pictures stay in the build though packed.
+    loose: BTreeSet<String>,
     /// How many blocks, items, recipes and books it compiled.
     pub blocks: usize,
     /// See [`Compiled::blocks`].

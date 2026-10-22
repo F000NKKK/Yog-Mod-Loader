@@ -245,6 +245,9 @@ fn advancement(
     match advancement::advancement(cx, &mut out.lang, a, &id) {
         Ok(files) => {
             out.outputs.extend(files);
+            if let Some(bg) = &a.background {
+                out.loose.insert(advancement::background(bg));
+            }
             made.advancements.push(id);
         }
         Err(e) => report_at(cx, at, e),

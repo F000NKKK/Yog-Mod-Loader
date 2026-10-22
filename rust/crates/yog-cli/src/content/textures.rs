@@ -26,6 +26,24 @@ pub(crate) struct Textures {
     pub(crate) ids: BTreeSet<String>,
     pub(crate) outputs: Vec<Output>,
     pub(crate) packed: BTreeSet<String>,
+    /// The packed textures' pictures, by texture id.
+    pictures: BTreeMap<String, String>,
+}
+
+impl Textures {
+    /// The pictures left out of the build: those packed, but `loose`'s
+    /// (textures the game also loads as files).
+    pub(crate) fn packed_but(&self, loose: &BTreeSet<String>) -> BTreeSet<String> {
+        let kept: BTreeSet<&String> = loose
+            .iter()
+            .filter_map(|id| self.pictures.get(id))
+            .collect();
+        self.packed
+            .iter()
+            .filter(|p| !kept.contains(p))
+            .cloned()
+            .collect()
+    }
 }
 
 /// Where an atlas's packed picture goes under the mod's textures: `atlas/blocks`.
@@ -106,6 +124,7 @@ fn texture(b: &mut Building, file: &Path, id: &str, refs: &Refs) -> Result<(), S
                 .push((sprite, img.clone()));
         }
         b.out.packed.insert(picture.output.clone());
+        b.out.pictures.insert(id.to_owned(), picture.output.clone());
     } else {
         let target = yog_ids::asset_file(ns, &yog_ids::texture_file(path));
         if let Some(meta) = texture.game_mcmeta() {
@@ -238,6 +257,19 @@ mod tests {
             .unwrap(),
             output: String::new(),
         }
+    }
+
+    #[test]
+    fn a_texture_also_loaded_as_a_file_keeps_its_picture() {
+        let t = Textures {
+            packed: ["a.png", "b.png"].map(String::from).into(),
+            pictures: [("m:a", "a.png"), ("m:b", "b.png")]
+                .map(|(i, p)| (i.to_owned(), p.to_owned()))
+                .into(),
+            ..Textures::default()
+        };
+        let left_out = t.packed_but(&BTreeSet::from(["m:b".to_owned()]));
+        assert_eq!(left_out, BTreeSet::from(["a.png".to_owned()]));
     }
 
     #[test]

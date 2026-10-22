@@ -124,7 +124,7 @@ enum Era {
 /// A tab's background as a texture id (`minecraft:block/calcite`, the
 /// format since 1.21.5; hosts of older versions make it a file again), a
 /// texture file's (`minecraft:textures/block/calcite.png`) included.
-fn background(bg: &str) -> String {
+pub(super) fn background(bg: &str) -> String {
     let (ns, path) = yog_ids::split(bg);
     yog_ids::texture_of_file(path).map_or_else(|| bg.to_owned(), |t| yog_ids::join(ns, t))
 }
