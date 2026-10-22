@@ -78,6 +78,7 @@ fn a_declared_mirror_is_written_and_read_in_place() {
         spec: spec(),
         wanted: 1,
         rate: Rate::Every(1),
+        scope: None,
     })
     .unwrap();
     let d = declared.declaration.unwrap();

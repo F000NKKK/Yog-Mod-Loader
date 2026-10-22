@@ -7,11 +7,11 @@ use std::collections::HashMap;
 
 use yog_event::Message;
 use yog_event::mirror::{
-    Declaration, Declare, Declared, Keys, Place, Provide, Release, Touch, Write,
+    Declaration, Declare, Declared, Keys, Place, Provide, Release, Scope, Touch, Write,
 };
 use yog_hot_reload::ModuleGeneration;
 use yog_ids::key_space;
-use yog_mirror::{DueList, Store};
+use yog_mirror::{DueList, MirrorSpec, Store};
 use yog_sync::{LazyLock, Mutex};
 
 struct Mirrors {
@@ -42,10 +42,13 @@ impl Mirrors {
                 yog_logging::warn!("mirrors: {e}");
             }
         }
+        for family in yog_mirror::host::FAMILIES {
+            store.family(family);
+        }
         // The game's own mirrors: the Java host answers their addresses.
         for m in yog_mirror::host::ALL {
             let writer = crate::bus::ROUTER.resolve(m.address);
-            if let Err(e) = store.provide(&m.spec(), writer, true) {
+            if let Err(e) = provide_in(&mut store, &m.spec(), writer, true) {
                 yog_logging::warn!("mirrors: {e}");
             }
         }
@@ -61,7 +64,12 @@ impl Mirrors {
 
 fn declare(d: &Declare) -> Declared {
     let mut m = MIRRORS.lock();
-    match m.store.declare(&d.spec, d.wanted, d.rate) {
+    match m.store.declare(
+        &d.spec,
+        d.wanted,
+        d.rate,
+        d.scope.as_ref().map(|s| s.bytes.clone()),
+    ) {
         Ok(made) => {
             if let Some(by) = crate::bus::caller() {
                 m.declared_by.insert(made.id, by);
@@ -94,10 +102,24 @@ fn release(r: &Release) -> bool {
     true
 }
 
+/// `spec` provided by `writer`: in every member when its space is a family.
+fn provide_in(
+    store: &mut Store,
+    spec: &MirrorSpec,
+    writer: u32,
+    host: bool,
+) -> Result<(), yog_data::Diagnostic> {
+    if store.is_family(&spec.space) {
+        store.provide_family(spec, writer, host)
+    } else {
+        store.provide(spec, writer, host)
+    }
+}
+
 fn provide(p: &Provide) -> Option<yog_data::Diagnostic> {
     let writer = crate::bus::ROUTER.resolve(&p.spec.name);
     let mut m = MIRRORS.lock();
-    if let Err(problem) = m.store.provide(&p.spec, writer, p.host) {
+    if let Err(problem) = provide_in(&mut m.store, &p.spec, writer, p.host) {
         return Some(problem);
     }
     if let Some(by) = crate::bus::caller() {
@@ -108,7 +130,7 @@ fn provide(p: &Provide) -> Option<yog_data::Diagnostic> {
 
 fn keys(k: &Keys) -> Vec<u32> {
     let mut m = MIRRORS.lock();
-    let Some(space) = m.store.space_id(&k.space) else {
+    let Ok(space) = m.store.ensure_space(&k.space) else {
         return Vec::new();
     };
     for key in &k.take {
@@ -133,11 +155,17 @@ pub(crate) fn after_tick() {
     // Unlocked: a writer may put keys or touch its mirror meanwhile.
     let mut write = Write::default();
     for d in &due.turns {
+        write.mirror.clear();
+        write.mirror.push_str(&d.mirror);
         write.fields = d.fields;
         write.space = d.space;
         write.rows = d.rows;
         write.columns.clear();
         write.columns.extend_from_slice(due.columns(d));
+        write.scopes.clear();
+        write
+            .scopes
+            .extend(due.scopes(d).iter().map(|s| Scope { bytes: s.to_vec() }));
         write.with_bytes(|payload| crate::bus::tell(d.writer, payload));
     }
     MIRRORS.lock().due = due;

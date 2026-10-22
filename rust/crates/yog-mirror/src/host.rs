@@ -67,8 +67,19 @@ pub const PLAYER: HostMirror = HostMirror {
     fields: &[field(word::NAME, fact::PLAYER_NAME, Kind::U32, 1)],
 };
 
+/// The blocks of the areas asked for (`yog_event::mirror::BlockScope`),
+/// a dimension each: a template, made in every `yog:keys/block/<dim>`.
+pub const BLOCK: HostMirror = HostMirror {
+    address: host_mirror::BLOCK,
+    space: key_space::BLOCK,
+    fields: &[field(word::STATE, fact::BLOCK_STATE, Kind::U32, 1)],
+};
+
 /// Every host mirror.
-pub const ALL: &[&HostMirror] = &[&ENTITY, &PLAYER];
+pub const ALL: &[&HostMirror] = &[&ENTITY, &PLAYER, &BLOCK];
+
+/// The key spaces that are families (a member a dimension).
+pub const FAMILIES: &[&str] = &[key_space::BLOCK];
 
 impl HostMirror {
     pub fn spec(&self) -> MirrorSpec {

@@ -23,6 +23,7 @@ impl Store {
                 format_args!("{} has {n} fields, {MAX_FIELDS} at most", spec.name),
             ));
         }
+        let space = self.ensure_space(&spec.space)?;
         let places = spec
             .fields
             .iter()
@@ -31,9 +32,6 @@ impl Store {
         if let Some(known) = self.mirrors.get_mut(&spec.name) {
             return merge(known, spec, places);
         }
-        let space = self
-            .space_id(&spec.space)
-            .ok_or_else(|| unknown_space(&spec.space))?;
         let rows = Buffer::new(BIT_WORD, bit_words(self.space_of(space).keys.capacity()));
         let mirror = Mirror {
             name: spec.name.as_str().into(),
@@ -46,6 +44,7 @@ impl Store {
             writes: Vec::new(),
             declarations: 0,
             touched: false,
+            scopes: Vec::new(),
         };
         self.mirrors.insert(spec.name.clone(), mirror);
         Ok(())
@@ -58,6 +57,17 @@ impl Store {
             .clone()
             .unwrap_or_else(|| format!("{}{}{}", mirror.name, sep::PATH, field.name));
         let space_name = fact_space(&fact).unwrap_or_else(|| mirror.space.clone());
+        // A family's fact is kept in the member the mirror is of.
+        if self.is_family(&space_name) && Self::member_of(&space_name, &mirror.space) {
+            let space = self
+                .space_id(&mirror.space)
+                .ok_or_else(|| unknown_space(&mirror.space))?;
+            return Ok(Place {
+                space,
+                fact,
+                depth: 0,
+            });
+        }
         let space = self
             .space_id(&space_name)
             .ok_or_else(|| unknown_space(&space_name))?;

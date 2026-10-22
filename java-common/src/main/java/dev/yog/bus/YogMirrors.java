@@ -36,4 +36,14 @@ public final class YogMirrors {
         /** Field `name` (U32 × 1): its index, its bit is {@code 1L << index}. */
         public static final int NAME = 0;
     }
+
+    /** yog:mirror/yog/block (`yog_mirror::host`). */
+    public static final class Block {
+        private Block() {}
+
+        public static final String ADDRESS = "yog:mirror/yog/block";
+        public static final String SPACE = "yog:keys/block";
+        /** Field `state` (U32 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int STATE = 0;
+    }
 }

@@ -65,7 +65,7 @@ fn java_writes_a_column_rust_reads() {
             count: 3,
         }],
     };
-    let d = store.declare(&spec, 1, Rate::Every(1)).unwrap();
+    let d = store.declare(&spec, 1, Rate::Every(1), None).unwrap();
     let column = d.fields[0].unwrap().column;
     let pos = unsafe { ColumnRef::new(column) }.unwrap();
     let first = store.insert(entities, 7, None);

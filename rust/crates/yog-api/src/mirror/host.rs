@@ -33,3 +33,11 @@ pub struct Entities {
 pub struct Players {
     pub name: Option<Atom>,
 }
+
+/// The blocks of the areas asked for, a dimension each: declared with
+/// `Blocks::declare_in(dimension, Some(&BlockScope { min, max }), …)`.
+#[yog_mirror(host = yog_mirror::host::BLOCK)]
+pub struct Blocks {
+    /// Its state: `minecraft:oak_stairs[facing=north,…]`.
+    pub state: Option<Atom>,
+}

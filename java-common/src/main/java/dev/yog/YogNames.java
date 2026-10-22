@@ -1046,9 +1046,10 @@ public final class YogNames {
         public static final String PREFIX = "yog:mirror/yog/";
         public static final String ENTITY = "yog:mirror/yog/entity";
         public static final String PLAYER = "yog:mirror/yog/player";
+        public static final String BLOCK = "yog:mirror/yog/block";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, PLAYER);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, PLAYER, BLOCK);
     }
 
     public static final class KeySpace {

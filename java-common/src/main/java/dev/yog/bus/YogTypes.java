@@ -3974,6 +3974,84 @@ public final class YogTypes {
         }
     }
 
+    /** A declaration's scope, as its mirror's scope type's Yog Data. */
+    public record Scope(byte[] bytes) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("bytes", bytes);
+            return m;
+        }
+
+        public static Scope fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Scope((m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+        }
+
+        public static Scope fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putBytes(this.bytes);
+            p.end(at);
+        }
+
+        public static Scope unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            byte[] f_bytes = u.more(end) ? u.getBytes() : new byte[0];
+            u.leave(end);
+            return new Scope(f_bytes);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Scope fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Scope fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Scope readFrame(YogFrame.Unpacker u) {
+            Scope v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Scope} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                u.leave(end);
+            }
+
+            public byte[] bytes() {
+                if (o0 < 0) return new byte[0];
+                u.seek(o0);
+                return u.getBytes();
+            }
+        }
+    }
+
     /** A key coming into a key space (`parent`: its key in the parent space). */
     public record Key(long key, Long parent) {
         public java.util.Map<String, Object> toData() {
@@ -4550,19 +4628,21 @@ public final class YogTypes {
     }
 
     /** A provider's turn (sent to its mirror's address): the fields due, a bit each in its field order, and where they go. */
-    public record Write(long fields, long space, long rows, long[] columns) {
+    public record Write(String mirror, long fields, long space, long rows, long[] columns, java.util.List<YogTypes.Scope> scopes) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("mirror", mirror);
             m.put("fields", fields);
             m.put("space", space);
             m.put("rows", rows);
             m.put("columns", YogData.listOf(columns));
+            m.put("scopes", scopes.stream().map(e0 -> e0.toData()).toList());
             return m;
         }
 
         public static Write fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Write(YogData.integer(m.get("fields"), 0), YogData.integer(m.get("space"), 0), YogData.integer(m.get("rows"), 0), YogData.longs(m.get("columns")));
+            return new Write(YogData.str(m.get("mirror"), ""), YogData.integer(m.get("fields"), 0), YogData.integer(m.get("space"), 0), YogData.integer(m.get("rows"), 0), YogData.longs(m.get("columns")), YogData.list(m.get("scopes")).stream().map(e0 -> YogTypes.Scope.fromData(e0)).toList());
         }
 
         public static Write fromBytes(byte[] bytes) {
@@ -4571,21 +4651,25 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
+            p.putStr(this.mirror);
             p.putI(this.fields);
             p.putI(this.space);
             p.putI(this.rows);
             p.putLongs(this.columns, false);
+            { int l0 = p.beginList(this.scopes.size()); for (var e0 : this.scopes) { e0.pack(p); } p.end(l0); }
             p.end(at);
         }
 
         public static Write unpack(YogFrame.Unpacker u) {
             int end = u.begin();
+            String f_mirror = u.more(end) ? u.getStr() : "";
             long f_fields = u.more(end) ? u.getI() : 0L;
             long f_space = u.more(end) ? u.getI() : 0L;
             long f_rows = u.more(end) ? u.getI() : 0L;
             long[] f_columns = u.more(end) ? u.getLongs(false) : new long[0];
+            java.util.List<YogTypes.Scope> f_scopes = u.more(end) ? YogFrame.list(u, () -> YogTypes.Scope.unpack(u)) : java.util.List.of();
             u.leave(end);
-            return new Write(f_fields, f_space, f_rows, f_columns);
+            return new Write(f_mirror, f_fields, f_space, f_rows, f_columns, f_scopes);
         }
 
         public byte[] toFrame() {
@@ -4623,7 +4707,10 @@ public final class YogTypes {
             private final int o1;
             private final int o2;
             private final int o3;
-            private final int h3, n3, b3;
+            private final int o4;
+            private final int h4, n4, b4;
+            private final int o5;
+            private final int h5, n5, b5;
 
             public View(YogFrame.Unpacker u) {
                 this.u = u;
@@ -4631,42 +4718,160 @@ public final class YogTypes {
                 if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
                 if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
                 if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
-                if (u.more(end)) { h3 = u.position(); n3 = (int) u.getU(); b3 = u.getByte(); o3 = u.position(); u.skip(YogFrame.packedBytes(n3, b3)); } else { h3 = n3 = b3 = 0; o3 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { h4 = u.position(); n4 = (int) u.getU(); b4 = u.getByte(); o4 = u.position(); u.skip(YogFrame.packedBytes(n4, b4)); } else { h4 = n4 = b4 = 0; o4 = -1; }
+                if (u.more(end)) { h5 = u.position(); n5 = u.count(); int e5 = u.listEnd(); b5 = 0; o5 = u.position(); u.skipTo(e5); } else { h5 = n5 = b5 = 0; o5 = -1; }
                 u.leave(end);
             }
 
-            public long fields() {
-                if (o0 < 0) return 0L;
+            public String mirror() {
+                if (o0 < 0) return "";
                 u.seek(o0);
-                return u.getI();
+                return u.getStr();
             }
 
-            public long space() {
+            public long fields() {
                 if (o1 < 0) return 0L;
                 u.seek(o1);
                 return u.getI();
             }
 
-            public long rows() {
+            public long space() {
                 if (o2 < 0) return 0L;
                 u.seek(o2);
                 return u.getI();
             }
 
+            public long rows() {
+                if (o3 < 0) return 0L;
+                u.seek(o3);
+                return u.getI();
+            }
+
             public long[] columns() {
-                if (o3 < 0) return new long[0];
-                u.seek(h3);
+                if (o4 < 0) return new long[0];
+                u.seek(h4);
                 return u.getLongs(false);
             }
 
             public int columnsLength() {
-                return n3;
+                return n4;
             }
 
             /** Item {@code i}, read in place. */
             public long columns(int i) {
-                long v = u.packedAt(o3, n3, b3, i);
+                long v = u.packedAt(o4, n4, b4, i);
                 return (long) v;
+            }
+
+            public java.util.List<YogTypes.Scope> scopes() {
+                if (o5 < 0) return java.util.List.of();
+                u.seek(h5);
+                return YogFrame.list(u, () -> YogTypes.Scope.unpack(u));
+            }
+
+            public int scopesLength() {
+                return n5;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachScopes(java.util.function.Consumer<YogTypes.Scope.View> each) {
+                int at = o5;
+                for (int j = 0; j < n5; j++) {
+                    u.seek(at);
+                    YogTypes.Scope.View v = new YogTypes.Scope.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
+    /** The blocks of a box (both corners in): the host's block mirror's scope. Its dimension is its key space's (`yog:keys/block/<dimension>`). */
+    public record BlockScope(YogTypes.BlockPos min, YogTypes.BlockPos max) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("min", min.toData());
+            m.put("max", max.toData());
+            return m;
+        }
+
+        public static BlockScope fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BlockScope(YogTypes.BlockPos.fromData(m.get("min")), YogTypes.BlockPos.fromData(m.get("max")));
+        }
+
+        public static BlockScope fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            this.min.pack(p);
+            this.max.pack(p);
+            p.end(at);
+        }
+
+        public static BlockScope unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.BlockPos f_min = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+            YogTypes.BlockPos f_max = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+            u.leave(end);
+            return new BlockScope(f_min, f_max);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BlockScope fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BlockScope fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BlockScope readFrame(YogFrame.Unpacker u) {
+            BlockScope v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BlockScope} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.BlockPos.View min() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return new YogTypes.BlockPos.View(u);
+            }
+
+            public YogTypes.BlockPos.View max() {
+                if (o1 < 0) return null;
+                u.seek(o1);
+                return new YogTypes.BlockPos.View(u);
             }
         }
     }

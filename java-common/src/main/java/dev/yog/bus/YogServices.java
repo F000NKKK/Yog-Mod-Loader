@@ -14906,18 +14906,19 @@ public final class YogServices {
         private Mirror() {}
 
         /** Asks for `wanted` fields of mirror `spec` (a bit each, in its field order) at `rate`; they're written while the declaration lasts. */
-        public record Declare(YogTypes.MirrorSpec spec, long wanted, String rate) {
+        public record Declare(YogTypes.MirrorSpec spec, long wanted, String rate, YogTypes.Scope scope) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("spec", spec.toData());
                 m.put("wanted", wanted);
                 m.put("rate", rate);
+                if (scope != null) m.put("scope", scope.toData());
                 return m;
             }
 
             public static Declare fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new Declare(YogTypes.MirrorSpec.fromData(m.get("spec")), YogData.integer(m.get("wanted"), 0), YogData.str(m.get("rate"), ""));
+                return new Declare(YogTypes.MirrorSpec.fromData(m.get("spec")), YogData.integer(m.get("wanted"), 0), YogData.str(m.get("rate"), ""), (m.get("scope") == null ? null : YogTypes.Scope.fromData(m.get("scope"))));
             }
 
             public static Declare fromBytes(byte[] bytes) {
@@ -14929,6 +14930,7 @@ public final class YogServices {
                 this.spec.pack(p);
                 p.putI(this.wanted);
                 p.putTagged(this.rate);
+                p.putBool(this.scope != null); if (this.scope != null) { this.scope.pack(p); }
                 p.end(at);
             }
 
@@ -14937,8 +14939,9 @@ public final class YogServices {
                 YogTypes.MirrorSpec f_spec = u.more(end) ? YogTypes.MirrorSpec.unpack(u) : null;
                 long f_wanted = u.more(end) ? u.getI() : 0L;
                 String f_rate = u.more(end) ? YogData.str(u.getTagged(), "") : null;
+                YogTypes.Scope f_scope = u.more(end) ? (u.getBool() ? YogTypes.Scope.unpack(u) : null) : null;
                 u.leave(end);
-                return new Declare(f_spec, f_wanted, f_rate);
+                return new Declare(f_spec, f_wanted, f_rate, f_scope);
             }
 
             public byte[] toFrame() {
@@ -14975,6 +14978,7 @@ public final class YogServices {
                 private final int o0;
                 private final int o1;
                 private final int o2;
+                private final int o3;
 
                 public View(YogFrame.Unpacker u) {
                     this.u = u;
@@ -14982,6 +14986,7 @@ public final class YogServices {
                     if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
                     if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
                     if (u.more(end)) { o2 = u.position(); u.skipBytes(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); if (u.getBool()) { { int r1 = u.begin(); u.leave(r1); } } } else { o3 = -1; }
                     u.leave(end);
                 }
 
@@ -15001,6 +15006,12 @@ public final class YogServices {
                     if (o2 < 0) return null;
                     u.seek(o2);
                     return YogData.str(u.getTagged(), "");
+                }
+
+                public YogTypes.Scope scope() {
+                    if (o3 < 0) return null;
+                    u.seek(o3);
+                    return (u.getBool() ? YogTypes.Scope.unpack(u) : null);
                 }
             }
 

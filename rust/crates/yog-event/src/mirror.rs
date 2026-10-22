@@ -2,6 +2,8 @@
 //! its keys — services the runtime answers. A declaration's reply is where
 //! its data is: addresses in this process, read in place (`yog_mirror::view`).
 
+use yog_core::BlockPos;
+use yog_data::with::Raw;
 use yog_data::{Diagnostic, Schema};
 use yog_mirror::{MirrorSpec, Rate};
 
@@ -12,6 +14,24 @@ pub struct Declare {
     pub spec: MirrorSpec,
     pub wanted: u64,
     pub rate: Rate,
+    /// What its provider should cover (the mirror's scope type: a
+    /// [`BlockScope`]…); none when it covers everything.
+    pub scope: Option<Scope>,
+}
+
+/// A declaration's scope, as its mirror's scope type's Yog Data.
+#[derive(Debug, Clone, PartialEq, Eq, Schema)]
+pub struct Scope {
+    #[data(with = "Raw")]
+    pub bytes: Vec<u8>,
+}
+
+/// The blocks of a box (both corners in): the host's block mirror's scope.
+/// Its dimension is its key space's (`yog:keys/block/<dimension>`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Schema)]
+pub struct BlockScope {
+    pub min: BlockPos,
+    pub max: BlockPos,
 }
 
 /// Where a declared field's values are.
@@ -84,6 +104,8 @@ pub struct Keys {
 /// bit each in its field order, and where they go.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Schema)]
 pub struct Write {
+    /// The mirror's address (a family member's ends in its parameter).
+    pub mirror: String,
     pub fields: u64,
     /// The mirror's key space (`*const YogKeySpace`).
     pub space: u64,
@@ -91,4 +113,6 @@ pub struct Write {
     pub rows: u64,
     /// The due fields' columns (`*const YogColumn`), in field order.
     pub columns: Vec<u64>,
+    /// What the declarations asked it to cover.
+    pub scopes: Vec<Scope>,
 }

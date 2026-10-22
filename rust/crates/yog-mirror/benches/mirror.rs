@@ -43,7 +43,7 @@ fn world() -> (Store, Declared) {
     let entity = s.space(key_space::ENTITY, None).unwrap();
     s.provide(&spec("bench:mirror/threat"), 1, false).unwrap();
     let d = s
-        .declare(&spec("bench:mirror/threat"), 0b11, Rate::Every(1))
+        .declare(&spec("bench:mirror/threat"), 0b11, Rate::Every(1), None)
         .unwrap();
     for k in 0..ENTITIES {
         s.insert(entity, k * ID_STEP, None);
@@ -115,7 +115,7 @@ fn store(c: &mut Criterion) {
         for m in 0..mirrors {
             let name = format!("bench:mirror/m{m}");
             s.provide(&spec(&name), m as u32, false).unwrap();
-            s.declare(&spec(&name), 0b11, Rate::Every(1)).unwrap();
+            s.declare(&spec(&name), 0b11, Rate::Every(1), None).unwrap();
         }
         g.bench_with_input(BenchmarkId::new("due", mirrors), &mirrors, |b, _| {
             let (mut tick, mut out) = (0, yog_mirror::DueList::default());

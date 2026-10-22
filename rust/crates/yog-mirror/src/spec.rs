@@ -83,6 +83,8 @@ pub struct Due {
     pub rows: u64,
     /// Its due fields' columns in [`DueList::columns`], in field order.
     pub columns: std::ops::Range<usize>,
+    /// What its declarations asked it to cover, in [`DueList::scopes`].
+    pub scopes: std::ops::Range<usize>,
 }
 
 /// What's due a tick: every provider's turn, their columns in one list —
@@ -91,6 +93,7 @@ pub struct Due {
 pub struct DueList {
     pub turns: Vec<Due>,
     columns: Vec<u64>,
+    scopes: Vec<yog_sync::Arc<[u8]>>,
 }
 
 impl DueList {
@@ -99,9 +102,23 @@ impl DueList {
         &self.columns[due.columns.clone()]
     }
 
+    /// `due`'s scopes (each its mirror's scope type, as Yog Data).
+    pub fn scopes(&self, due: &Due) -> &[yog_sync::Arc<[u8]>] {
+        &self.scopes[due.scopes.clone()]
+    }
+
     pub(crate) fn clear(&mut self) {
         self.turns.clear();
         self.columns.clear();
+        self.scopes.clear();
+    }
+
+    pub(crate) fn push_scope(&mut self, scope: yog_sync::Arc<[u8]>) {
+        self.scopes.push(scope);
+    }
+
+    pub(crate) fn next_scope(&self) -> usize {
+        self.scopes.len()
     }
 
     pub(crate) fn push_column(&mut self, column: u64) {

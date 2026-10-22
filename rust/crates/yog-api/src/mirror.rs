@@ -19,8 +19,9 @@ use crate::registry::{Registry, guard};
 
 mod host;
 mod typed;
-pub use host::{Entities, Players};
+pub use host::{Blocks, Entities, Players};
 pub use typed::{Mirror, MirrorWriter, Mirrored, Row, RowWriter};
+pub use yog_event::mirror::BlockScope;
 pub use yog_mirror::host as host_tables;
 
 /// Bits a word of a row bitmap holds.
@@ -52,10 +53,22 @@ fn no_runtime() -> Diagnostic {
 impl Declared {
     /// Asks for `wanted` fields of `spec` (a bit each, in field order) at `rate`.
     pub fn new(spec: &MirrorSpec, wanted: u64, rate: Rate) -> Result<Declared, Diagnostic> {
+        Self::scoped(spec, wanted, rate, None)
+    }
+
+    /// [`Declared::new`] covering `scope` only (the mirror's scope type as
+    /// Yog Data: a `BlockScope`…).
+    pub fn scoped(
+        spec: &MirrorSpec,
+        wanted: u64,
+        rate: Rate,
+        scope: Option<Vec<u8>>,
+    ) -> Result<Declared, Diagnostic> {
         let request = Declare {
             spec: spec.clone(),
             wanted,
             rate,
+            scope: scope.map(|bytes| yog_event::mirror::Scope { bytes }),
         };
         let reply = crate::call(&request).ok_or_else(no_runtime)?;
         let d = match (reply.declaration, reply.problem) {
@@ -135,6 +148,10 @@ impl Drop for Declared {
 
 /// A provider's turn: the fields due, written for the rows it fills.
 pub struct Writer {
+    /// The mirror's address (a family member's ends in its parameter).
+    mirror: String,
+    /// What its declarations asked it to cover (its scope type's frames).
+    scopes: Vec<Vec<u8>>,
     fields: u64,
     space: Option<KeySpaceRef>,
     rows: Option<ColumnWriter>,
@@ -143,7 +160,7 @@ pub struct Writer {
 }
 
 impl Writer {
-    fn open(w: &Write) -> Writer {
+    fn open(w: Write) -> Writer {
         // SAFETY: the runtime's addresses, alive through this turn.
         let open = |c: u64| unsafe { ColumnRef::new(c as *const _) }.map(|c| c.write());
         let due = (0..u64::BITS as usize).filter(|i| w.fields >> i & 1 == 1);
@@ -153,12 +170,24 @@ impl Writer {
             columns[i] = open(*c);
         }
         Writer {
+            mirror: w.mirror,
+            scopes: w.scopes.into_iter().map(|s| s.bytes).collect(),
             fields: w.fields,
             // SAFETY: as above.
             space: unsafe { KeySpaceRef::new(w.space as *const _) },
             rows: open(w.rows),
             columns,
         }
+    }
+
+    /// The mirror's address.
+    pub fn mirror(&self) -> &str {
+        &self.mirror
+    }
+
+    /// What the declarations asked it to cover, each its scope type's frame.
+    pub fn scopes(&self) -> &[Vec<u8>] {
+        &self.scopes
     }
 
     /// Whether field `field` is due (someone asked for it now).
@@ -203,7 +232,7 @@ unsafe extern "C" fn on_write<F: Fn(&mut Writer) + Send + Sync>(
     let Some(w) = Write::from_bytes(unsafe { payload.as_slice() }) else {
         return status::BAD_PAYLOAD;
     };
-    let mut writer = Writer::open(&w);
+    let mut writer = Writer::open(w);
     guard((), || f(&mut writer));
     status::OK
 }

@@ -348,6 +348,8 @@ const PAYLOADS: &[fn() -> Shape] = &[
     <crate::content::Content as yog_data::Schema>::shape,
     // A mirror provider's turn (sent to its mirror's own address).
     <crate::mirror::Write as yog_data::Schema>::shape,
+    // The host's block mirror's scope (inside a declaration's scope bytes).
+    <crate::mirror::BlockScope as yog_data::Schema>::shape,
 ];
 
 /// Every generated class: its name and text.

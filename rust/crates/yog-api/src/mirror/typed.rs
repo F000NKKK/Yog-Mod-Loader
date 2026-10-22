@@ -4,7 +4,7 @@
 
 use std::marker::PhantomData;
 
-use yog_data::Diagnostic;
+use yog_data::{Diagnostic, Schema};
 use yog_ids::{sep, service_mirror};
 use yog_sync::Arc;
 
@@ -58,6 +58,25 @@ pub trait Mirror: Sized + 'static {
     fn declare(fields: u64, rate: Rate) -> Result<Mirrored<Self>, Diagnostic> {
         Ok(Mirrored {
             declared: Declared::new(&Self::spec(), fields, rate)?,
+            _mirror: PhantomData,
+        })
+    }
+
+    /// [`Mirror::declare`] in member `member` of its family (a dimension:
+    /// `minecraft:overworld`), covering `scope` (its scope type: a
+    /// `BlockScope`…).
+    fn declare_in<S: Schema>(
+        member: &str,
+        scope: Option<&S>,
+        fields: u64,
+        rate: Rate,
+    ) -> Result<Mirrored<Self>, Diagnostic> {
+        let mut spec = Self::spec();
+        spec.name = format!("{}{}{member}", spec.name, sep::PATH);
+        spec.space = format!("{}{}{member}", spec.space, sep::PATH);
+        let scope = scope.map(yog_data::frame::to_frame);
+        Ok(Mirrored {
+            declared: Declared::scoped(&spec, fields, rate, scope)?,
             _mirror: PhantomData,
         })
     }
@@ -163,6 +182,23 @@ impl<M: Mirror> MirrorWriter<'_, M> {
     /// Row `row` no longer filled.
     pub fn leave(&mut self, row: u32) {
         self.writer.leave(row);
+    }
+
+    /// The family member written now (a dimension), when its space is a family's.
+    pub fn member(&self) -> Option<&str> {
+        let base = M::address();
+        self.writer
+            .mirror()
+            .strip_prefix(&base)?
+            .strip_prefix(sep::PATH)
+    }
+
+    /// What the declarations asked it to cover.
+    pub fn scopes<S: Schema>(&self) -> impl Iterator<Item = S> + '_ {
+        self.writer
+            .scopes()
+            .iter()
+            .filter_map(|b| yog_data::frame::read_frame(b))
     }
 
     /// Whether any of `fields` is due.

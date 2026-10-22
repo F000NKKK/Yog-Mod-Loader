@@ -37,6 +37,9 @@ names! {
         ENTITY = crate::concatcp!(PREFIX, crate::kind::ENTITY),
         /// Every player (part of the entities).
         PLAYER = crate::concatcp!(PREFIX, crate::word::PLAYER),
+        /// The blocks of the areas asked for, a dimension each
+        /// (`…/block/<dimension>`).
+        BLOCK = crate::concatcp!(PREFIX, crate::word::BLOCK),
     }
 
     /// The key spaces columns are kept by: `yog:keys/<space>`.
@@ -46,7 +49,9 @@ names! {
         ENTITY = crate::concatcp!(PREFIX, crate::kind::ENTITY),
         /// Players, by their entity's network id; part of [`ENTITY`].
         PLAYER = crate::concatcp!(PREFIX, crate::word::PLAYER),
-        /// Blocks, by packed position (`BlockPos::packed`).
+        /// Blocks, by packed position (`BlockPos::packed`): a family, one
+        /// space a dimension (`yog:keys/block/<dimension>`) — the packed
+        /// position fills the key.
         BLOCK = crate::concatcp!(PREFIX, crate::word::BLOCK),
     }
 

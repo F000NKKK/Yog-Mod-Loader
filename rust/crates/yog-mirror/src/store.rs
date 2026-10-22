@@ -17,6 +17,7 @@ use crate::buffer::Buffer;
 use crate::keys::{KeySpace, bit_words, set_bit};
 use crate::spec::{Declared, Due, DueList, Linked, MirrorSpec, Rate};
 
+mod families;
 mod links;
 
 /// Fields a mirror may have: a bit each in a mask.
@@ -91,6 +92,8 @@ struct Mirror {
     writes: Vec<Write>,
     declarations: u32,
     touched: bool,
+    /// What each declaration with a scope asked its provider to cover.
+    scopes: Vec<(u32, Arc<[u8]>)>,
 }
 
 struct Declaration {
@@ -103,6 +106,7 @@ struct Declaration {
 pub struct Store {
     spaces: Vec<Space>,
     space_ids: HashMap<String, SpaceId>,
+    families: Vec<families::Family>,
     columns: Vec<Option<Column>>,
     by_fact: HashMap<(SpaceId, String), ColumnId>,
     mirrors: HashMap<String, Mirror>,
@@ -202,11 +206,14 @@ impl Store {
 
     /// Asks for `wanted` fields of mirror `spec` (a bit each) at `rate`:
     /// their columns are made (or linked) and written from now on.
+    /// `scope` (the mirror's own scope type, as Yog Data) tells its
+    /// provider what to cover: a block area, a radius.
     pub fn declare(
         &mut self,
         spec: &MirrorSpec,
         wanted: u64,
         rate: Rate,
+        scope: Option<Vec<u8>>,
     ) -> Result<Declared, Diagnostic> {
         self.ensure_mirror(spec)?;
         let id = self.next_declaration;
@@ -234,6 +241,9 @@ impl Store {
             .get_mut(&spec.name)
             .ok_or_else(|| unknown_mirror(&spec.name))?;
         mirror.declarations += 1;
+        if let Some(scope) = scope {
+            mirror.scopes.push((id, scope.into()));
+        }
         let (space, rows) = (mirror.space, std::ptr::from_ref(mirror.rows.raw()));
         self.declarations.insert(
             id,
@@ -268,6 +278,7 @@ impl Store {
         }
         if let Some(m) = self.mirrors.get_mut(&d.mirror) {
             m.declarations -= 1;
+            m.scopes.retain(|(by, _)| *by != id);
         }
         self.forget_unused(&d.mirror);
         self.relink();
@@ -353,6 +364,10 @@ impl Store {
             }
             let keeps_keys = p.host && self.in_use.get(m.space.0 as usize) == Some(&true);
             if fields != 0 || keeps_keys {
+                let scopes = out.next_scope();
+                for (_, scope) in &m.scopes {
+                    out.push_scope(scope.clone());
+                }
                 out.turns.push(Due {
                     writer: p.writer,
                     mirror: m.name.clone(),
@@ -360,6 +375,7 @@ impl Store {
                     space: std::ptr::from_ref(self.spaces[m.space.0 as usize].keys.raw()) as u64,
                     rows: std::ptr::from_ref(m.rows.raw()) as u64,
                     columns: first..out.next_column(),
+                    scopes: scopes..out.next_scope(),
                 });
             }
         }

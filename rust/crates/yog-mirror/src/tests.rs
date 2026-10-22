@@ -111,7 +111,7 @@ fn a_declaration_reads_what_its_provider_writes() {
     let entity = s.space_id(key_space::ENTITY).unwrap();
     s.provide(&threat(key_space::ENTITY), 1, false).unwrap();
     let d = s
-        .declare(&threat(key_space::ENTITY), 0b11, Rate::Every(1))
+        .declare(&threat(key_space::ENTITY), 0b11, Rate::Every(1), None)
         .unwrap();
     let row = s.insert(entity, 42, None);
     let (pos, level) = (column(&d, 0), column(&d, 1));
@@ -133,7 +133,7 @@ fn values_survive_the_space_growing() {
     let mut s = store();
     let entity = s.space_id(key_space::ENTITY).unwrap();
     let d = s
-        .declare(&threat(key_space::ENTITY), 0b10, Rate::Every(1))
+        .declare(&threat(key_space::ENTITY), 0b10, Rate::Every(1), None)
         .unwrap();
     let level = column(&d, 1);
     let first = s.insert(entity, 0, None);
@@ -151,9 +151,11 @@ fn values_survive_the_space_growing() {
 fn a_fact_is_one_column_however_many_link_to_it() {
     let mut s = store();
     let mine = s
-        .declare(&threat(key_space::ENTITY), 0b01, Rate::Every(1))
+        .declare(&threat(key_space::ENTITY), 0b01, Rate::Every(1), None)
         .unwrap();
-    let host = s.declare(&host_entities(), 0b1, Rate::Every(4)).unwrap();
+    let host = s
+        .declare(&host_entities(), 0b1, Rate::Every(4), None)
+        .unwrap();
     assert_eq!(
         mine.fields[0].unwrap().column,
         host.fields[0].unwrap().column
@@ -166,7 +168,7 @@ fn the_host_writes_a_fact_before_any_mod() {
     let mut s = store();
     s.provide(&threat(key_space::ENTITY), 1, false).unwrap();
     let _d = s
-        .declare(&threat(key_space::ENTITY), 0b11, Rate::Every(1))
+        .declare(&threat(key_space::ENTITY), 0b11, Rate::Every(1), None)
         .unwrap();
     assert_eq!(due(&mut s, 0)[0].2, 0b11, "alone, the mod writes pos too");
     s.provide(&host_entities(), 99, true).unwrap();
@@ -189,10 +191,10 @@ fn demand_merges_and_release_stops_it() {
     let mut s = store();
     s.provide(&threat(key_space::ENTITY), 1, false).unwrap();
     let slow = s
-        .declare(&threat(key_space::ENTITY), 0b10, Rate::Every(10))
+        .declare(&threat(key_space::ENTITY), 0b10, Rate::Every(10), None)
         .unwrap();
     let fast = s
-        .declare(&threat(key_space::ENTITY), 0b10, Rate::Every(2))
+        .declare(&threat(key_space::ENTITY), 0b10, Rate::Every(2), None)
         .unwrap();
     let written = |s: &mut Store, ticks: std::ops::Range<u64>| {
         ticks.filter(|&t| !due(s, t).is_empty()).collect::<Vec<_>>()
@@ -220,7 +222,7 @@ fn on_change_columns_are_due_when_touched() {
     let mut s = store();
     s.provide(&threat(key_space::ENTITY), 1, false).unwrap();
     let _d = s
-        .declare(&threat(key_space::ENTITY), 0b10, Rate::Changes)
+        .declare(&threat(key_space::ENTITY), 0b10, Rate::Changes, None)
         .unwrap();
     assert!(due(&mut s, 1).is_empty());
     s.touch(THREAT);
@@ -234,7 +236,7 @@ fn a_player_mirror_reads_entity_facts_through_its_parent() {
     let entity = s.space_id(key_space::ENTITY).unwrap();
     let player = s.space_id(key_space::PLAYER).unwrap();
     let d = s
-        .declare(&threat(key_space::PLAYER), 0b11, Rate::Every(1))
+        .declare(&threat(key_space::PLAYER), 0b11, Rate::Every(1), None)
         .unwrap();
     let (pos, level) = (d.fields[0].unwrap(), d.fields[1].unwrap());
     assert_eq!((pos.depth, level.depth), (1, 0));
@@ -251,24 +253,24 @@ fn problems_are_coded() {
     let mut s = store();
     let mut bad = threat(key_space::ENTITY);
     bad.fields[0].count = 2;
-    s.declare(&threat(key_space::ENTITY), 0b01, Rate::Every(1))
+    s.declare(&threat(key_space::ENTITY), 0b01, Rate::Every(1), None)
         .unwrap();
     let mut other = host_entities();
     other.fields[0].count = 2;
     let code = |e: yog_data::Diagnostic| e.code.map(|c| c.to_string());
     assert_eq!(
-        code(s.declare(&other, 1, Rate::Every(1)).unwrap_err()).as_deref(),
+        code(s.declare(&other, 1, Rate::Every(1), None).unwrap_err()).as_deref(),
         Some(mirror_problem::WRONG_SHAPE)
     );
     assert_eq!(
-        code(s.declare(&bad, 1, Rate::Every(1)).unwrap_err()).as_deref(),
+        code(s.declare(&bad, 1, Rate::Every(1), None).unwrap_err()).as_deref(),
         Some(mirror_problem::TAKEN)
     );
     let mut foreign = host_entities();
     foreign.name = "test:mirror/foreign".into();
     foreign.fields[0].fact = Some(fact::PLAYER_NAME.into());
     assert_eq!(
-        code(s.declare(&foreign, 1, Rate::Every(1)).unwrap_err()).as_deref(),
+        code(s.declare(&foreign, 1, Rate::Every(1), None).unwrap_err()).as_deref(),
         Some(mirror_problem::FOREIGN_FACT)
     );
     s.provide(&threat(key_space::ENTITY), 1, false).unwrap();
@@ -288,7 +290,7 @@ fn the_host_keeps_keys_while_anyone_reads_its_space() {
         space: key_space::PLAYER.into(),
         fields: vec![field("pos", Some(fact::ENTITY_POS), Kind::F64, POS)],
     };
-    let d = s.declare(&players, 0, Rate::Every(1)).unwrap();
+    let d = s.declare(&players, 0, Rate::Every(1), None).unwrap();
     assert_eq!(
         due(&mut s, 1),
         vec![(99, host::ENTITY.address.to_string(), 0)],
@@ -296,4 +298,58 @@ fn the_host_keeps_keys_while_anyone_reads_its_space() {
     );
     s.release(d.id);
     assert!(due(&mut s, 2).is_empty());
+}
+
+#[test]
+fn a_family_member_is_made_when_named_with_its_templates() {
+    let mut s = store();
+    s.family(key_space::BLOCK);
+    s.provide_family(&host::BLOCK.spec(), 7, true).unwrap();
+    let overworld = format!("{}/minecraft:overworld", key_space::BLOCK);
+    let at = |name: &str| MirrorSpec {
+        name: format!("{name}/minecraft:overworld"),
+        space: overworld.clone(),
+        fields: vec![field("state", Some(fact::BLOCK_STATE), Kind::U32, 1)],
+    };
+    let scope = vec![1u8, 2, 3];
+    let host_view = s
+        .declare(
+            &at(host::BLOCK.address),
+            1,
+            Rate::Every(1),
+            Some(scope.clone()),
+        )
+        .unwrap();
+    let mine = s
+        .declare(&at("test:mirror/flow"), 1, Rate::Every(1), None)
+        .unwrap();
+    assert_eq!(
+        host_view.fields[0].unwrap().column,
+        mine.fields[0].unwrap().column,
+        "a family's fact is one column in its member"
+    );
+    let mut out = DueList::default();
+    s.due(0, &mut out);
+    let [turn] = &out.turns[..] else {
+        panic!("one turn: {:?}", out.turns);
+    };
+    assert_eq!(
+        (turn.writer, &*turn.mirror),
+        (7, at(host::BLOCK.address).name.as_str())
+    );
+    assert_eq!(
+        out.scopes(turn)
+            .iter()
+            .map(|s| s.to_vec())
+            .collect::<Vec<_>>(),
+        vec![scope]
+    );
+    let nether = MirrorSpec {
+        name: "test:mirror/far".into(),
+        space: format!("{}/minecraft:the_nether", key_space::BLOCK),
+        fields: Vec::new(),
+    };
+    s.declare(&nether, 0, Rate::Every(1), None).unwrap();
+    s.due(1, &mut out);
+    assert_eq!(out.turns.len(), 2, "the new member got its host mirror too");
 }
