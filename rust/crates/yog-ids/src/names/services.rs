@@ -169,7 +169,7 @@ names! {
     /// `yog:scoreboard/…`: the scoreboard.
     service_scoreboard {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, "scoreboard", crate::sep::PATH),
-        GET = crate::concatcp!(DOMAIN, "get"),
+        GET = crate::concatcp!(DOMAIN, crate::bus_word::GET),
         SET = crate::concatcp!(DOMAIN, crate::serve_param::SET),
         ADD = crate::concatcp!(DOMAIN, "add"),
     }
@@ -276,7 +276,7 @@ names! {
     /// `yog:jvm/…`: Java mods' code, reached by reflection.
     service_jvm {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, "jvm", crate::sep::PATH),
-        CALL = crate::concatcp!(DOMAIN, "call"),
+        CALL = crate::concatcp!(DOMAIN, crate::bus_word::CALL),
     }
 
     /// `yog:menu/…`: the menu entries mods declare (provided by the runtime).

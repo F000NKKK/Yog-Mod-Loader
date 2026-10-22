@@ -1,0 +1,84 @@
+# Nanites — Mixins for Yog mods, typed, through the bus
+
+A nanite is how a Yog mod reaches into the game's (or a Java mod's) code
+the way a Java mod does with Mixins: read and write any member, call any
+method, and hook any point of any method. Nothing less than Mixin can do
+(`never reduce capabilities`); everything typed and on the bus
+(`docs/design/bus.md`, stage 5).
+
+## Names
+
+A nanite names members as the source reads them: Mojang's names
+(`net.minecraft.world.entity.LivingEntity#hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z`),
+the same on every loader and version. At run time the game's classes are
+named otherwise on some hosts:
+
+| Host | Run-time names |
+|---|---|
+| Fabric 1.20.1, 1.21.1 | intermediary (`net.minecraft.class_1309`, `method_5643`) |
+| Forge 1.20.1 | SRG (`m_6469_`) |
+| NeoForge 1.21.1, Fabric/NeoForge 26.2 | Mojang's |
+
+So each host jar carries a **mapping table** for its version: Mojang →
+run-time, classes, fields and methods (by descriptor), only the names that
+differ. It's made when the host is built, from what its Gradle plugin
+already has (Loom's `mappings.tiny`: official → intermediary → named;
+ForgeGradle's `mcp_mappings.tsrg`), by `yog mappings` into Yog Data
+(`yog-mappings.ydata` in the jar). The host reads it once; every name a
+nanite uses goes through it (`YogMappings`). A Java mod's names are its own
+(not mapped).
+
+## Reflection (F5.1)
+
+Services, typed by Yog Data:
+
+| Address | Does |
+|---|---|
+| `yog:nanite/resolve` | a member (class, name, descriptor — Mojang's) → its handle: a number, the `MethodHandle` / `VarHandle` cached host-side |
+| `yog:nanite/call` | a resolved method or constructor called: receiver, arguments → result |
+| `yog:nanite/get`, `…/set` | a resolved field read / written |
+| `yog:nanite/release` | objects the mod holds let go |
+
+Values cross as Yog Data: numbers, strings, booleans, null, lists, and
+**objects** as handles (`Obj(u64)`, an entry in the host's table of
+objects a mod holds; well-known ones by reference: an entity by
+`@entity:<uuid>`, a level by its dimension, the server). A resolved member
+is a number, so a hot call is one bus call with no names looked up.
+
+The Rust side is typed: `#[nanite]` items (`nanite!` blocks) declare the
+members a mod uses — `fn hurt(self: LivingEntity, source: Obj, amount: f32) -> bool`
+— and get functions resolving once and calling by handle.
+
+## Injections (F5.2 …)
+
+Every Mixin capability, declared in the mod's manifest (`yog.toml`
+`[[nanite]]`, typed in the mod's Rust and gathered by `yog build` into the
+`.yog`), so the host knows them before the game's classes load:
+
+| Mixin | Nanite | On the bus |
+|---|---|---|
+| `@Inject` at HEAD / RETURN / TAIL / INVOKE / FIELD / NEW / `@At(...)`, cancellable, locals | `inject` | event `nanite:<mod>/<name>`: the receiver, arguments, locals asked for; the reply cancels, sets the return value |
+| `@Redirect` | `redirect` | a service the mod provides, answering in place of the call |
+| `@ModifyArg(s)`, `@ModifyVariable`, `@ModifyConstant`, `@ModifyReturnValue` | `modify_*` | a changing event: the value in, the value out |
+| `@WrapOperation`, `@WrapWithCondition` | `wrap` | a service given the original as a callable handle |
+| `@Overwrite` | `overwrite` | the method's body a service |
+| `@Accessor`, `@Invoker`, `@Shadow` | reflection | F5.1 (no class changed) |
+| added fields and methods, `@Unique`, `@Implements`, interface injection | `add_field`, `add_method`, `implement` | added members' bodies services; added fields the host's |
+
+Several mods on one point order by the bus's priorities. The host turns
+every mod's nanites into one generated Mixin config at launch (ASM writes
+the mixin classes into a jar under `.yog/nanites/`, added to the class path
+before the game's classes load; on Forge and NeoForge, through their
+early service). A mixin's body only packs what crosses and emits on the
+bus — the mod's code runs in Rust.
+
+## Steps
+
+1. **F5.1** mapping tables (`yog mappings`, built into each host jar);
+   `YogMappings`; reflection services and object handles; `nanite!` in
+   `yog-api`. Benched against `jvm/call`.
+2. **F5.2** the manifest (`[[nanite]]`) and the launch-time generator;
+   `inject` at every `At`.
+3. **F5.3** `redirect`, `modify_*`, `wrap`, `overwrite`.
+4. **F5.4** added members and interfaces; priorities across mods.
+5. **F5.5** a mod moved onto them (Hex's Java-side hooks, Argus).

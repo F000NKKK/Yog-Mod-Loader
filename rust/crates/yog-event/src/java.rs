@@ -350,6 +350,8 @@ const PAYLOADS: &[fn() -> Shape] = &[
     <crate::mirror::Write as yog_data::Schema>::shape,
     // The host's block mirror's scope (inside a declaration's scope bytes).
     <crate::mirror::BlockScope as yog_data::Schema>::shape,
+    // The host's mapping table (in its jar, read once).
+    <crate::nanite::Mappings as yog_data::Schema>::shape,
 ];
 
 /// Every generated class: its name and text.

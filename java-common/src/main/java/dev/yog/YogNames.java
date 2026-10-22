@@ -291,12 +291,14 @@ public final class YogNames {
 
         public static final String ATTACK = "attack";
         public static final String ATTRIBUTE_VALUE = "attribute_value";
+        public static final String CALL = "call";
         public static final String CHAT = "chat";
         public static final String CLIENT = "client";
         public static final String CLOSE = "close";
         public static final String CONTAINER = "container";
         public static final String CRAFT = "craft";
         public static final String DEATH = "death";
+        public static final String GET = "get";
         public static final String DECLARE = "declare";
         public static final String DECLARED = "declared";
         public static final String GAME = "game";
@@ -310,6 +312,7 @@ public final class YogNames {
         public static final String PLACE = "place";
         public static final String RELEASE = "release";
         public static final String SERVER = "server";
+        public static final String SET = "set";
         public static final String SET_DIMENSIONS = "set_dimensions";
         public static final String SET_NBT = "set_nbt";
         public static final String SPAWN = "spawn";
@@ -320,7 +323,7 @@ public final class YogNames {
         public static final String WORLD = "world";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ATTACK, ATTRIBUTE_VALUE, CHAT, CLIENT, CLOSE, CONTAINER, CRAFT, DEATH, DECLARE, DECLARED, GAME, INFO, INPUT, LIFE, NBT, NET, OPEN, PACKET, PLACE, RELEASE, SERVER, SET_DIMENSIONS, SET_NBT, SPAWN, TELEPORT, TELEPORT_TO_DIM, TICK, USE_ITEM, WORLD);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ATTACK, ATTRIBUTE_VALUE, CALL, CHAT, CLIENT, CLOSE, CONTAINER, CRAFT, DEATH, GET, DECLARE, DECLARED, GAME, INFO, INPUT, LIFE, NBT, NET, OPEN, PACKET, PLACE, RELEASE, SERVER, SET, SET_DIMENSIONS, SET_NBT, SPAWN, TELEPORT, TELEPORT_TO_DIM, TICK, USE_ITEM, WORLD);
     }
 
     public static final class Event {
@@ -1097,6 +1100,51 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(FAILED, UNKNOWN_SPACE, WRONG_SHAPE, FOREIGN_FACT, TOO_MANY_FIELDS, TAKEN);
+    }
+
+    public static final class MappingNs {
+        private MappingNs() {}
+
+        public static final String MOJANG = "mojang";
+        public static final String INTERMEDIARY = "intermediary";
+        public static final String SRG = "srg";
+        public static final String OFFICIAL = "official";
+        public static final String NAMED = "named";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MOJANG, INTERMEDIARY, SRG, OFFICIAL, NAMED);
+    }
+
+    public static final class MappingFile {
+        private MappingFile() {}
+
+        public static final String NAME = "yog-mappings.ydata";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NAME);
+    }
+
+    public static final class ServiceNanite {
+        private ServiceNanite() {}
+
+        public static final String DOMAIN = "yog:nanite/";
+        public static final String RESOLVE = "yog:nanite/resolve";
+        public static final String CALL = "yog:nanite/call";
+        public static final String GET = "yog:nanite/get";
+        public static final String SET = "yog:nanite/set";
+        public static final String RELEASE = "yog:nanite/release";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, RESOLVE, CALL, GET, SET, RELEASE);
+    }
+
+    public static final class NaniteRef {
+        private NaniteRef() {}
+
+        public static final String OBJECT = "yog:object";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(OBJECT);
     }
 
     public static final class ResKind {

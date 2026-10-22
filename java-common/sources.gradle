@@ -51,3 +51,21 @@ public final class YogLoader {
     if (!file.exists() || file.text != text) file.text = text
     dir
 }
+
+// The host's mapping table (docs/design/nanites.md, "Names"): Mojang's names
+// → this host's run-time names, for nanites. A version's `runtime_names`
+// (versions/<mc>.properties) says which; without it the names are Mojang's
+// and there's no table. Made once a version by `yog mappings` (../rust)
+// into a directory under build/, a resource source.
+ext.yogMappings = { Project project, String mc ->
+    def dir = new File(project.layout.buildDirectory.get().asFile, "generated/yog-mappings/${mc}")
+    def names = project.findProperty('runtime_names')
+    if (names != null && !dir.exists()) {
+        def rust = new File(commonDir.parentFile, 'rust')
+        def proc = ['cargo', 'run', '-q', '-p', 'yog-cli', '--bin', 'yog', '--', 'mappings', mc, names, dir.absolutePath]
+            .execute(null, rust)
+        proc.consumeProcessOutput(System.out, System.err)
+        if (proc.waitFor() != 0) throw new GradleException("yog mappings ${mc} ${names} failed")
+    }
+    dir
+}

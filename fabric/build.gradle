@@ -52,6 +52,8 @@ sourceSets {
         resources {
             srcDir "${platformDir}/src/main/resources"
             srcDir "../java-common/src/main/resources"
+            // The mapping table nanites look names up in (java-common/sources.gradle).
+            srcDir yogMappings(project, project.minecraft_version)
             // Yog's own textures (`yog:textures/gui/…`), shipped by yog-gfx for the designer and the runtime alike.
             srcDir "../rust/crates/yog-gfx/res"
         }

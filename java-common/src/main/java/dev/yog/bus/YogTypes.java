@@ -4887,6 +4887,111 @@ public final class YogTypes {
         }
     }
 
+    /** Every class a member or the class itself of is renamed. */
+    public record Mappings(String runtime, java.util.List<YogTypes.ClassMap> classes) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("runtime", runtime);
+            m.put("classes", classes.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static Mappings fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Mappings(YogData.str(m.get("runtime"), ""), YogData.list(m.get("classes")).stream().map(e0 -> YogTypes.ClassMap.fromData(e0)).toList());
+        }
+
+        public static Mappings fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.runtime);
+            { int l0 = p.beginList(this.classes.size()); for (var e0 : this.classes) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static Mappings unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_runtime = u.more(end) ? u.getStr() : "";
+            java.util.List<YogTypes.ClassMap> f_classes = u.more(end) ? YogFrame.list(u, () -> YogTypes.ClassMap.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new Mappings(f_runtime, f_classes);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Mappings fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Mappings fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Mappings readFrame(YogFrame.Unpacker u) {
+            Mappings v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Mappings} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int h1, n1, b1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { h1 = u.position(); n1 = u.count(); int e1 = u.listEnd(); b1 = 0; o1 = u.position(); u.skipTo(e1); } else { h1 = n1 = b1 = 0; o1 = -1; }
+                u.leave(end);
+            }
+
+            public String runtime() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public java.util.List<YogTypes.ClassMap> classes() {
+                if (o1 < 0) return java.util.List.of();
+                u.seek(h1);
+                return YogFrame.list(u, () -> YogTypes.ClassMap.unpack(u));
+            }
+
+            public int classesLength() {
+                return n1;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachClasses(java.util.function.Consumer<YogTypes.ClassMap.View> each) {
+                int at = o1;
+                for (int j = 0; j < n1; j++) {
+                    u.seek(at);
+                    YogTypes.ClassMap.View v = new YogTypes.ClassMap.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
     /** The posed geometry of an entity (entity space, see the design doc). */
     public record BodyCapture(String source, java.util.List<YogTypes.BodyMesh> meshes) {
         public java.util.Map<String, Object> toData() {
@@ -7542,6 +7647,149 @@ public final class YogTypes {
         }
     }
 
+    /** A class: its names (internal form, `net/minecraft/world/entity/Entity`) and its renamed members. */
+    public record ClassMap(String named, String runtime, java.util.List<YogTypes.MemberMap> fields, java.util.List<YogTypes.MemberMap> methods) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("named", named);
+            m.put("runtime", runtime);
+            m.put("fields", fields.stream().map(e0 -> e0.toData()).toList());
+            m.put("methods", methods.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static ClassMap fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new ClassMap(YogData.str(m.get("named"), ""), YogData.str(m.get("runtime"), ""), YogData.list(m.get("fields")).stream().map(e0 -> YogTypes.MemberMap.fromData(e0)).toList(), YogData.list(m.get("methods")).stream().map(e0 -> YogTypes.MemberMap.fromData(e0)).toList());
+        }
+
+        public static ClassMap fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.named);
+            p.putStr(this.runtime);
+            { int l0 = p.beginList(this.fields.size()); for (var e0 : this.fields) { e0.pack(p); } p.end(l0); }
+            { int l0 = p.beginList(this.methods.size()); for (var e0 : this.methods) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static ClassMap unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_named = u.more(end) ? u.getStr() : "";
+            String f_runtime = u.more(end) ? u.getStr() : "";
+            java.util.List<YogTypes.MemberMap> f_fields = u.more(end) ? YogFrame.list(u, () -> YogTypes.MemberMap.unpack(u)) : java.util.List.of();
+            java.util.List<YogTypes.MemberMap> f_methods = u.more(end) ? YogFrame.list(u, () -> YogTypes.MemberMap.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new ClassMap(f_named, f_runtime, f_fields, f_methods);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static ClassMap fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static ClassMap fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static ClassMap readFrame(YogFrame.Unpacker u) {
+            ClassMap v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code ClassMap} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int h2, n2, b2;
+            private final int o3;
+            private final int h3, n3, b3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { h2 = u.position(); n2 = u.count(); int e2 = u.listEnd(); b2 = 0; o2 = u.position(); u.skipTo(e2); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                if (u.more(end)) { h3 = u.position(); n3 = u.count(); int e3 = u.listEnd(); b3 = 0; o3 = u.position(); u.skipTo(e3); } else { h3 = n3 = b3 = 0; o3 = -1; }
+                u.leave(end);
+            }
+
+            public String named() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String runtime() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public java.util.List<YogTypes.MemberMap> fields() {
+                if (o2 < 0) return java.util.List.of();
+                u.seek(h2);
+                return YogFrame.list(u, () -> YogTypes.MemberMap.unpack(u));
+            }
+
+            public int fieldsLength() {
+                return n2;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachFields(java.util.function.Consumer<YogTypes.MemberMap.View> each) {
+                int at = o2;
+                for (int j = 0; j < n2; j++) {
+                    u.seek(at);
+                    YogTypes.MemberMap.View v = new YogTypes.MemberMap.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+
+            public java.util.List<YogTypes.MemberMap> methods() {
+                if (o3 < 0) return java.util.List.of();
+                u.seek(h3);
+                return YogFrame.list(u, () -> YogTypes.MemberMap.unpack(u));
+            }
+
+            public int methodsLength() {
+                return n3;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachMethods(java.util.function.Consumer<YogTypes.MemberMap.View> each) {
+                int at = o3;
+                for (int j = 0; j < n3; j++) {
+                    u.seek(at);
+                    YogTypes.MemberMap.View v = new YogTypes.MemberMap.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
     /** Quads with one texture: [`VERTEX_FLOATS`] floats a vertex, four vertices a quad. */
     public record BodyMesh(String texture, float[] verts) {
         public java.util.Map<String, Object> toData() {
@@ -9004,6 +9252,106 @@ public final class YogTypes {
                 if (o1 < 0) return null;
                 u.seek(o1);
                 return YogData.id(u.getTagged());
+            }
+        }
+    }
+
+    /** A member: its name, its descriptor in Mojang's names (a method's; empty for a field) and its run-time name. */
+    public record MemberMap(String named, String desc, String runtime) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("named", named);
+            m.put("desc", desc);
+            m.put("runtime", runtime);
+            return m;
+        }
+
+        public static MemberMap fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new MemberMap(YogData.str(m.get("named"), ""), YogData.str(m.get("desc"), ""), YogData.str(m.get("runtime"), ""));
+        }
+
+        public static MemberMap fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.named);
+            p.putStr(this.desc);
+            p.putStr(this.runtime);
+            p.end(at);
+        }
+
+        public static MemberMap unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_named = u.more(end) ? u.getStr() : "";
+            String f_desc = u.more(end) ? u.getStr() : "";
+            String f_runtime = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new MemberMap(f_named, f_desc, f_runtime);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static MemberMap fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static MemberMap fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static MemberMap readFrame(YogFrame.Unpacker u) {
+            MemberMap v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code MemberMap} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String named() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String desc() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public String runtime() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
             }
         }
     }

@@ -7,6 +7,7 @@ mod check;
 mod control;
 mod data;
 mod deps;
+mod mappings;
 mod new;
 mod prepare;
 mod publish;
@@ -77,6 +78,7 @@ pub(crate) fn main(args: &[String]) {
         Some("run") => run_cmd(rest),
         Some("control") => control::control(rest),
         Some(data::COMMAND) => data::data(rest),
+        Some(mappings::COMMAND) => mappings::mappings(rest),
         Some("publish") => publish_cmd(rest),
         Some("res") => sub(rest, "check", check::res_check, "usage: yog res check"),
         Some("content") => sub(

@@ -250,7 +250,11 @@ fn a_player_mirror_reads_entity_facts_through_its_parent() {
     assert_eq!((up.as_ptr(), row), (entities.as_ptr(), entity_row));
     let at = unsafe { ColumnRef::new(pos.column) }.unwrap();
     at.write().set(entity_row, [1.0f64, 2.0, 3.0]);
-    assert_eq!(at.get::<[f64; 3]>(row), Some([1.0, 2.0, 3.0]), "a player's pos is its entity's");
+    assert_eq!(
+        at.get::<[f64; 3]>(row),
+        Some([1.0, 2.0, 3.0]),
+        "a player's pos is its entity's"
+    );
 }
 
 #[test]

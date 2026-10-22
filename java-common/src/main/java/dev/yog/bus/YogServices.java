@@ -12,7 +12,7 @@ public final class YogServices {
     private YogServices() {}
 
     /** The actions the host answers, by address ({@code YogHostServices}). */
-    public static final java.util.List<java.util.Map.Entry<String, YogBus.Handler>> HOSTED = java.util.List.of(java.util.Map.entry(Advancement.Grant.ADDRESS, Advancement.Grant::serve), java.util.Map.entry(Advancement.Done.ADDRESS, Advancement.Done::serve), java.util.Map.entry(Block.Nbt.ADDRESS, Block.Nbt::serve), java.util.Map.entry(Block.SetNbt.ADDRESS, Block.SetNbt::serve), java.util.Map.entry(Block.State.ADDRESS, Block.State::serve), java.util.Map.entry(Block.SetState.ADDRESS, Block.SetState::serve), java.util.Map.entry(Block.Info.ADDRESS, Block.Info::serve), java.util.Map.entry(Block.Destroy.ADDRESS, Block.Destroy::serve), java.util.Map.entry(Block.Bonemeal.ADDRESS, Block.Bonemeal::serve), java.util.Map.entry(Block.UseItem.ADDRESS, Block.UseItem::serve), java.util.Map.entry(Block.PourFluid.ADDRESS, Block.PourFluid::serve), java.util.Map.entry(Block.RedstonePower.ADDRESS, Block.RedstonePower::serve), java.util.Map.entry(Block.RedstoneSignal.ADDRESS, Block.RedstoneSignal::serve), java.util.Map.entry(Block.SetRedstoneOutput.ADDRESS, Block.SetRedstoneOutput::serve), java.util.Map.entry(Block.InventorySlot.ADDRESS, Block.InventorySlot::serve), java.util.Map.entry(Block.SetInventorySlot.ADDRESS, Block.SetInventorySlot::serve), java.util.Map.entry(Bossbar.Create.ADDRESS, Bossbar.Create::serve), java.util.Map.entry(Bossbar.Remove.ADDRESS, Bossbar.Remove::serve), java.util.Map.entry(Bossbar.SetTitle.ADDRESS, Bossbar.SetTitle::serve), java.util.Map.entry(Bossbar.SetProgress.ADDRESS, Bossbar.SetProgress::serve), java.util.Map.entry(Bossbar.SetColor.ADDRESS, Bossbar.SetColor::serve), java.util.Map.entry(Bossbar.AddPlayer.ADDRESS, Bossbar.AddPlayer::serve), java.util.Map.entry(Bossbar.RemovePlayer.ADDRESS, Bossbar.RemovePlayer::serve), java.util.Map.entry(Bossbar.SetVisible.ADDRESS, Bossbar.SetVisible::serve), java.util.Map.entry(Chat.Broadcast.ADDRESS, Chat.Broadcast::serve), java.util.Map.entry(Chat.Tellraw.ADDRESS, Chat.Tellraw::serve), java.util.Map.entry(Chat.Title.ADDRESS, Chat.Title::serve), java.util.Map.entry(Chat.Actionbar.ADDRESS, Chat.Actionbar::serve), java.util.Map.entry(Chat.ActionbarJson.ADDRESS, Chat.ActionbarJson::serve), java.util.Map.entry(Client.PlaySound.ADDRESS, Client.PlaySound::serve), java.util.Map.entry(Client.StopSound.ADDRESS, Client.StopSound::serve), java.util.Map.entry(Client.HeldItem.ADDRESS, Client.HeldItem::serve), java.util.Map.entry(Client.SetBlockTint.ADDRESS, Client.SetBlockTint::serve), java.util.Map.entry(Client.ScreenSlots.ADDRESS, Client.ScreenSlots::serve), java.util.Map.entry(Client.KeyDown.ADDRESS, Client.KeyDown::serve), java.util.Map.entry(Client.AttributeValue.ADDRESS, Client.AttributeValue::serve), java.util.Map.entry(Client.AdvancementDone.ADDRESS, Client.AdvancementDone::serve), java.util.Map.entry(Client.BodyTrack.ADDRESS, Client.BodyTrack::serve), java.util.Map.entry(Client.BodyTrackType.ADDRESS, Client.BodyTrackType::serve), java.util.Map.entry(Client.SetDimensions.ADDRESS, Client.SetDimensions::serve), java.util.Map.entry(Client.Control.Drive.ADDRESS, Client.Control.Drive::serve), java.util.Map.entry(Client.Control.Release.ADDRESS, Client.Control.Release::serve), java.util.Map.entry(Client.Control.Look.ADDRESS, Client.Control.Look::serve), java.util.Map.entry(Client.Control.Attack.ADDRESS, Client.Control.Attack::serve), java.util.Map.entry(Client.Control.UseItem.ADDRESS, Client.Control.UseItem::serve), java.util.Map.entry(Client.Control.Mine.ADDRESS, Client.Control.Mine::serve), java.util.Map.entry(Client.Control.StopMining.ADDRESS, Client.Control.StopMining::serve), java.util.Map.entry(Client.Control.Place.ADDRESS, Client.Control.Place::serve), java.util.Map.entry(Client.Control.SelectSlot.ADDRESS, Client.Control.SelectSlot::serve), java.util.Map.entry(Client.Control.Click.ADDRESS, Client.Control.Click::serve), java.util.Map.entry(Client.Control.Chat.ADDRESS, Client.Control.Chat::serve), java.util.Map.entry(Client.Local.State.ADDRESS, Client.Local.State::serve), java.util.Map.entry(Client.Local.Inventory.ADDRESS, Client.Local.Inventory::serve), java.util.Map.entry(Client.Local.Scan.ADDRESS, Client.Local.Scan::serve), java.util.Map.entry(Client.Local.Area.ADDRESS, Client.Local.Area::serve), java.util.Map.entry(Client.Local.Entities.ADDRESS, Client.Local.Entities::serve), java.util.Map.entry(Entity.Teleport.ADDRESS, Entity.Teleport::serve), java.util.Map.entry(Entity.TeleportToDim.ADDRESS, Entity.TeleportToDim::serve), java.util.Map.entry(Entity.Position.ADDRESS, Entity.Position::serve), java.util.Map.entry(Entity.Rotation.ADDRESS, Entity.Rotation::serve), java.util.Map.entry(Entity.Velocity.ADDRESS, Entity.Velocity::serve), java.util.Map.entry(Entity.SetVelocity.ADDRESS, Entity.SetVelocity::serve), java.util.Map.entry(Entity.AddVelocity.ADDRESS, Entity.AddVelocity::serve), java.util.Map.entry(Entity.Health.ADDRESS, Entity.Health::serve), java.util.Map.entry(Entity.SetHealth.ADDRESS, Entity.SetHealth::serve), java.util.Map.entry(Entity.Kill.ADDRESS, Entity.Kill::serve), java.util.Map.entry(Entity.Spawn.ADDRESS, Entity.Spawn::serve), java.util.Map.entry(Entity.AddEffect.ADDRESS, Entity.AddEffect::serve), java.util.Map.entry(Entity.RemoveEffect.ADDRESS, Entity.RemoveEffect::serve), java.util.Map.entry(Entity.ClearEffects.ADDRESS, Entity.ClearEffects::serve), java.util.Map.entry(Entity.Nbt.ADDRESS, Entity.Nbt::serve), java.util.Map.entry(Entity.SetNbt.ADDRESS, Entity.SetNbt::serve), java.util.Map.entry(Entity.AttributeBase.ADDRESS, Entity.AttributeBase::serve), java.util.Map.entry(Entity.SetAttributeBase.ADDRESS, Entity.SetAttributeBase::serve), java.util.Map.entry(Entity.AttributeValue.ADDRESS, Entity.AttributeValue::serve), java.util.Map.entry(Entity.Info.ADDRESS, Entity.Info::serve), java.util.Map.entry(Entity.Damage.ADDRESS, Entity.Damage::serve), java.util.Map.entry(Entity.SetFireTicks.ADDRESS, Entity.SetFireTicks::serve), java.util.Map.entry(Entity.Vehicle.ADDRESS, Entity.Vehicle::serve), java.util.Map.entry(Entity.Passengers.ADDRESS, Entity.Passengers::serve), java.util.Map.entry(Entity.Mount.ADDRESS, Entity.Mount::serve), java.util.Map.entry(Entity.Dismount.ADDRESS, Entity.Dismount::serve), java.util.Map.entry(Entity.SetFallDistance.ADDRESS, Entity.SetFallDistance::serve), java.util.Map.entry(Game.Dir.ADDRESS, Game.Dir::serve), java.util.Map.entry(Game.WorldDir.ADDRESS, Game.WorldDir::serve), java.util.Map.entry(Game.Translate.ADDRESS, Game.Translate::serve), java.util.Map.entry(Game.PlatformMods.ADDRESS, Game.PlatformMods::serve), java.util.Map.entry(Item.SpawnItem.ADDRESS, Item.SpawnItem::serve), java.util.Map.entry(Item.EntityStack.ADDRESS, Item.EntityStack::serve), java.util.Map.entry(Item.SetEntityStack.ADDRESS, Item.SetEntityStack::serve), java.util.Map.entry(Item.Block.ADDRESS, Item.Block::serve), java.util.Map.entry(Jvm.Call.ADDRESS, Jvm.Call::serve), java.util.Map.entry(Net.SendToPlayer.ADDRESS, Net.SendToPlayer::serve), java.util.Map.entry(Net.SendToServer.ADDRESS, Net.SendToServer::serve), java.util.Map.entry(Particle.SpawnParticles.ADDRESS, Particle.SpawnParticles::serve), java.util.Map.entry(Player.GiveItem.ADDRESS, Player.GiveItem::serve), java.util.Map.entry(Player.Teleport.ADDRESS, Player.Teleport::serve), java.util.Map.entry(Player.TeleportToDim.ADDRESS, Player.TeleportToDim::serve), java.util.Map.entry(Player.Kick.ADDRESS, Player.Kick::serve), java.util.Map.entry(Player.SetGamemode.ADDRESS, Player.SetGamemode::serve), java.util.Map.entry(Player.Inventory.ADDRESS, Player.Inventory::serve), java.util.Map.entry(Player.SetSlot.ADDRESS, Player.SetSlot::serve), java.util.Map.entry(Player.HeldItemNbt.ADDRESS, Player.HeldItemNbt::serve), java.util.Map.entry(Player.SetHeldItemNbt.ADDRESS, Player.SetHeldItemNbt::serve), java.util.Map.entry(Player.OffhandItemNbt.ADDRESS, Player.OffhandItemNbt::serve), java.util.Map.entry(Player.SetOffhandItemNbt.ADDRESS, Player.SetOffhandItemNbt::serve), java.util.Map.entry(Player.SlotItem.ADDRESS, Player.SlotItem::serve), java.util.Map.entry(Player.SetSlotItem.ADDRESS, Player.SetSlotItem::serve), java.util.Map.entry(Player.AddXp.ADDRESS, Player.AddXp::serve), java.util.Map.entry(Player.SetMayFly.ADDRESS, Player.SetMayFly::serve), java.util.Map.entry(Player.Info.ADDRESS, Player.Info::serve), java.util.Map.entry(Player.SetItemCooldown.ADDRESS, Player.SetItemCooldown::serve), java.util.Map.entry(Player.PlaceBlockFromSlot.ADDRESS, Player.PlaceBlockFromSlot::serve), java.util.Map.entry(Player.Online.ADDRESS, Player.Online::serve), java.util.Map.entry(Scoreboard.Get.ADDRESS, Scoreboard.Get::serve), java.util.Map.entry(Scoreboard.Set.ADDRESS, Scoreboard.Set::serve), java.util.Map.entry(Scoreboard.Add.ADDRESS, Scoreboard.Add::serve), java.util.Map.entry(Sound.Play.ADDRESS, Sound.Play::serve), java.util.Map.entry(Sound.PlayToPlayer.ADDRESS, Sound.PlayToPlayer::serve), java.util.Map.entry(Tag.HasItem.ADDRESS, Tag.HasItem::serve), java.util.Map.entry(Tag.HasBlock.ADDRESS, Tag.HasBlock::serve), java.util.Map.entry(Tag.HasEntity.ADDRESS, Tag.HasEntity::serve), java.util.Map.entry(Tag.Items.ADDRESS, Tag.Items::serve), java.util.Map.entry(Ui.Open.ADDRESS, Ui.Open::serve), java.util.Map.entry(Ui.OpenWithFlags.ADDRESS, Ui.OpenWithFlags::serve), java.util.Map.entry(Ui.Close.ADDRESS, Ui.Close::serve), java.util.Map.entry(World.GetBlock.ADDRESS, World.GetBlock::serve), java.util.Map.entry(World.SetBlock.ADDRESS, World.SetBlock::serve), java.util.Map.entry(World.Time.ADDRESS, World.Time::serve), java.util.Map.entry(World.SetTime.ADDRESS, World.SetTime::serve), java.util.Map.entry(World.IsRaining.ADDRESS, World.IsRaining::serve), java.util.Map.entry(World.SetWeather.ADDRESS, World.SetWeather::serve), java.util.Map.entry(World.IsThundering.ADDRESS, World.IsThundering::serve), java.util.Map.entry(World.SetThunder.ADDRESS, World.SetThunder::serve), java.util.Map.entry(World.FillRegion.ADDRESS, World.FillRegion::serve), java.util.Map.entry(World.ScanRegion.ADDRESS, World.ScanRegion::serve), java.util.Map.entry(World.PlaceFeature.ADDRESS, World.PlaceFeature::serve), java.util.Map.entry(World.Explode.ADDRESS, World.Explode::serve), java.util.Map.entry(World.DropLoot.ADDRESS, World.DropLoot::serve), java.util.Map.entry(World.EntityCount.ADDRESS, World.EntityCount::serve), java.util.Map.entry(World.EntitiesInBox.ADDRESS, World.EntitiesInBox::serve), java.util.Map.entry(World.RaycastBlock.ADDRESS, World.RaycastBlock::serve), java.util.Map.entry(World.RaycastEntity.ADDRESS, World.RaycastEntity::serve));
+    public static final java.util.List<java.util.Map.Entry<String, YogBus.Handler>> HOSTED = java.util.List.of(java.util.Map.entry(Advancement.Grant.ADDRESS, Advancement.Grant::serve), java.util.Map.entry(Advancement.Done.ADDRESS, Advancement.Done::serve), java.util.Map.entry(Block.Nbt.ADDRESS, Block.Nbt::serve), java.util.Map.entry(Block.SetNbt.ADDRESS, Block.SetNbt::serve), java.util.Map.entry(Block.State.ADDRESS, Block.State::serve), java.util.Map.entry(Block.SetState.ADDRESS, Block.SetState::serve), java.util.Map.entry(Block.Info.ADDRESS, Block.Info::serve), java.util.Map.entry(Block.Destroy.ADDRESS, Block.Destroy::serve), java.util.Map.entry(Block.Bonemeal.ADDRESS, Block.Bonemeal::serve), java.util.Map.entry(Block.UseItem.ADDRESS, Block.UseItem::serve), java.util.Map.entry(Block.PourFluid.ADDRESS, Block.PourFluid::serve), java.util.Map.entry(Block.RedstonePower.ADDRESS, Block.RedstonePower::serve), java.util.Map.entry(Block.RedstoneSignal.ADDRESS, Block.RedstoneSignal::serve), java.util.Map.entry(Block.SetRedstoneOutput.ADDRESS, Block.SetRedstoneOutput::serve), java.util.Map.entry(Block.InventorySlot.ADDRESS, Block.InventorySlot::serve), java.util.Map.entry(Block.SetInventorySlot.ADDRESS, Block.SetInventorySlot::serve), java.util.Map.entry(Bossbar.Create.ADDRESS, Bossbar.Create::serve), java.util.Map.entry(Bossbar.Remove.ADDRESS, Bossbar.Remove::serve), java.util.Map.entry(Bossbar.SetTitle.ADDRESS, Bossbar.SetTitle::serve), java.util.Map.entry(Bossbar.SetProgress.ADDRESS, Bossbar.SetProgress::serve), java.util.Map.entry(Bossbar.SetColor.ADDRESS, Bossbar.SetColor::serve), java.util.Map.entry(Bossbar.AddPlayer.ADDRESS, Bossbar.AddPlayer::serve), java.util.Map.entry(Bossbar.RemovePlayer.ADDRESS, Bossbar.RemovePlayer::serve), java.util.Map.entry(Bossbar.SetVisible.ADDRESS, Bossbar.SetVisible::serve), java.util.Map.entry(Chat.Broadcast.ADDRESS, Chat.Broadcast::serve), java.util.Map.entry(Chat.Tellraw.ADDRESS, Chat.Tellraw::serve), java.util.Map.entry(Chat.Title.ADDRESS, Chat.Title::serve), java.util.Map.entry(Chat.Actionbar.ADDRESS, Chat.Actionbar::serve), java.util.Map.entry(Chat.ActionbarJson.ADDRESS, Chat.ActionbarJson::serve), java.util.Map.entry(Client.PlaySound.ADDRESS, Client.PlaySound::serve), java.util.Map.entry(Client.StopSound.ADDRESS, Client.StopSound::serve), java.util.Map.entry(Client.HeldItem.ADDRESS, Client.HeldItem::serve), java.util.Map.entry(Client.SetBlockTint.ADDRESS, Client.SetBlockTint::serve), java.util.Map.entry(Client.ScreenSlots.ADDRESS, Client.ScreenSlots::serve), java.util.Map.entry(Client.KeyDown.ADDRESS, Client.KeyDown::serve), java.util.Map.entry(Client.AttributeValue.ADDRESS, Client.AttributeValue::serve), java.util.Map.entry(Client.AdvancementDone.ADDRESS, Client.AdvancementDone::serve), java.util.Map.entry(Client.BodyTrack.ADDRESS, Client.BodyTrack::serve), java.util.Map.entry(Client.BodyTrackType.ADDRESS, Client.BodyTrackType::serve), java.util.Map.entry(Client.SetDimensions.ADDRESS, Client.SetDimensions::serve), java.util.Map.entry(Client.Control.Drive.ADDRESS, Client.Control.Drive::serve), java.util.Map.entry(Client.Control.Release.ADDRESS, Client.Control.Release::serve), java.util.Map.entry(Client.Control.Look.ADDRESS, Client.Control.Look::serve), java.util.Map.entry(Client.Control.Attack.ADDRESS, Client.Control.Attack::serve), java.util.Map.entry(Client.Control.UseItem.ADDRESS, Client.Control.UseItem::serve), java.util.Map.entry(Client.Control.Mine.ADDRESS, Client.Control.Mine::serve), java.util.Map.entry(Client.Control.StopMining.ADDRESS, Client.Control.StopMining::serve), java.util.Map.entry(Client.Control.Place.ADDRESS, Client.Control.Place::serve), java.util.Map.entry(Client.Control.SelectSlot.ADDRESS, Client.Control.SelectSlot::serve), java.util.Map.entry(Client.Control.Click.ADDRESS, Client.Control.Click::serve), java.util.Map.entry(Client.Control.Chat.ADDRESS, Client.Control.Chat::serve), java.util.Map.entry(Client.Local.State.ADDRESS, Client.Local.State::serve), java.util.Map.entry(Client.Local.Inventory.ADDRESS, Client.Local.Inventory::serve), java.util.Map.entry(Client.Local.Scan.ADDRESS, Client.Local.Scan::serve), java.util.Map.entry(Client.Local.Area.ADDRESS, Client.Local.Area::serve), java.util.Map.entry(Client.Local.Entities.ADDRESS, Client.Local.Entities::serve), java.util.Map.entry(Entity.Teleport.ADDRESS, Entity.Teleport::serve), java.util.Map.entry(Entity.TeleportToDim.ADDRESS, Entity.TeleportToDim::serve), java.util.Map.entry(Entity.Position.ADDRESS, Entity.Position::serve), java.util.Map.entry(Entity.Rotation.ADDRESS, Entity.Rotation::serve), java.util.Map.entry(Entity.Velocity.ADDRESS, Entity.Velocity::serve), java.util.Map.entry(Entity.SetVelocity.ADDRESS, Entity.SetVelocity::serve), java.util.Map.entry(Entity.AddVelocity.ADDRESS, Entity.AddVelocity::serve), java.util.Map.entry(Entity.Health.ADDRESS, Entity.Health::serve), java.util.Map.entry(Entity.SetHealth.ADDRESS, Entity.SetHealth::serve), java.util.Map.entry(Entity.Kill.ADDRESS, Entity.Kill::serve), java.util.Map.entry(Entity.Spawn.ADDRESS, Entity.Spawn::serve), java.util.Map.entry(Entity.AddEffect.ADDRESS, Entity.AddEffect::serve), java.util.Map.entry(Entity.RemoveEffect.ADDRESS, Entity.RemoveEffect::serve), java.util.Map.entry(Entity.ClearEffects.ADDRESS, Entity.ClearEffects::serve), java.util.Map.entry(Entity.Nbt.ADDRESS, Entity.Nbt::serve), java.util.Map.entry(Entity.SetNbt.ADDRESS, Entity.SetNbt::serve), java.util.Map.entry(Entity.AttributeBase.ADDRESS, Entity.AttributeBase::serve), java.util.Map.entry(Entity.SetAttributeBase.ADDRESS, Entity.SetAttributeBase::serve), java.util.Map.entry(Entity.AttributeValue.ADDRESS, Entity.AttributeValue::serve), java.util.Map.entry(Entity.Info.ADDRESS, Entity.Info::serve), java.util.Map.entry(Entity.Damage.ADDRESS, Entity.Damage::serve), java.util.Map.entry(Entity.SetFireTicks.ADDRESS, Entity.SetFireTicks::serve), java.util.Map.entry(Entity.Vehicle.ADDRESS, Entity.Vehicle::serve), java.util.Map.entry(Entity.Passengers.ADDRESS, Entity.Passengers::serve), java.util.Map.entry(Entity.Mount.ADDRESS, Entity.Mount::serve), java.util.Map.entry(Entity.Dismount.ADDRESS, Entity.Dismount::serve), java.util.Map.entry(Entity.SetFallDistance.ADDRESS, Entity.SetFallDistance::serve), java.util.Map.entry(Game.Dir.ADDRESS, Game.Dir::serve), java.util.Map.entry(Game.WorldDir.ADDRESS, Game.WorldDir::serve), java.util.Map.entry(Game.Translate.ADDRESS, Game.Translate::serve), java.util.Map.entry(Game.PlatformMods.ADDRESS, Game.PlatformMods::serve), java.util.Map.entry(Item.SpawnItem.ADDRESS, Item.SpawnItem::serve), java.util.Map.entry(Item.EntityStack.ADDRESS, Item.EntityStack::serve), java.util.Map.entry(Item.SetEntityStack.ADDRESS, Item.SetEntityStack::serve), java.util.Map.entry(Item.Block.ADDRESS, Item.Block::serve), java.util.Map.entry(Jvm.Call.ADDRESS, Jvm.Call::serve), java.util.Map.entry(Nanite.Resolve.ADDRESS, Nanite.Resolve::serve), java.util.Map.entry(Nanite.Call.ADDRESS, Nanite.Call::serve), java.util.Map.entry(Nanite.Get.ADDRESS, Nanite.Get::serve), java.util.Map.entry(Nanite.Set.ADDRESS, Nanite.Set::serve), java.util.Map.entry(Nanite.Release.ADDRESS, Nanite.Release::serve), java.util.Map.entry(Net.SendToPlayer.ADDRESS, Net.SendToPlayer::serve), java.util.Map.entry(Net.SendToServer.ADDRESS, Net.SendToServer::serve), java.util.Map.entry(Particle.SpawnParticles.ADDRESS, Particle.SpawnParticles::serve), java.util.Map.entry(Player.GiveItem.ADDRESS, Player.GiveItem::serve), java.util.Map.entry(Player.Teleport.ADDRESS, Player.Teleport::serve), java.util.Map.entry(Player.TeleportToDim.ADDRESS, Player.TeleportToDim::serve), java.util.Map.entry(Player.Kick.ADDRESS, Player.Kick::serve), java.util.Map.entry(Player.SetGamemode.ADDRESS, Player.SetGamemode::serve), java.util.Map.entry(Player.Inventory.ADDRESS, Player.Inventory::serve), java.util.Map.entry(Player.SetSlot.ADDRESS, Player.SetSlot::serve), java.util.Map.entry(Player.HeldItemNbt.ADDRESS, Player.HeldItemNbt::serve), java.util.Map.entry(Player.SetHeldItemNbt.ADDRESS, Player.SetHeldItemNbt::serve), java.util.Map.entry(Player.OffhandItemNbt.ADDRESS, Player.OffhandItemNbt::serve), java.util.Map.entry(Player.SetOffhandItemNbt.ADDRESS, Player.SetOffhandItemNbt::serve), java.util.Map.entry(Player.SlotItem.ADDRESS, Player.SlotItem::serve), java.util.Map.entry(Player.SetSlotItem.ADDRESS, Player.SetSlotItem::serve), java.util.Map.entry(Player.AddXp.ADDRESS, Player.AddXp::serve), java.util.Map.entry(Player.SetMayFly.ADDRESS, Player.SetMayFly::serve), java.util.Map.entry(Player.Info.ADDRESS, Player.Info::serve), java.util.Map.entry(Player.SetItemCooldown.ADDRESS, Player.SetItemCooldown::serve), java.util.Map.entry(Player.PlaceBlockFromSlot.ADDRESS, Player.PlaceBlockFromSlot::serve), java.util.Map.entry(Player.Online.ADDRESS, Player.Online::serve), java.util.Map.entry(Scoreboard.Get.ADDRESS, Scoreboard.Get::serve), java.util.Map.entry(Scoreboard.Set.ADDRESS, Scoreboard.Set::serve), java.util.Map.entry(Scoreboard.Add.ADDRESS, Scoreboard.Add::serve), java.util.Map.entry(Sound.Play.ADDRESS, Sound.Play::serve), java.util.Map.entry(Sound.PlayToPlayer.ADDRESS, Sound.PlayToPlayer::serve), java.util.Map.entry(Tag.HasItem.ADDRESS, Tag.HasItem::serve), java.util.Map.entry(Tag.HasBlock.ADDRESS, Tag.HasBlock::serve), java.util.Map.entry(Tag.HasEntity.ADDRESS, Tag.HasEntity::serve), java.util.Map.entry(Tag.Items.ADDRESS, Tag.Items::serve), java.util.Map.entry(Ui.Open.ADDRESS, Ui.Open::serve), java.util.Map.entry(Ui.OpenWithFlags.ADDRESS, Ui.OpenWithFlags::serve), java.util.Map.entry(Ui.Close.ADDRESS, Ui.Close::serve), java.util.Map.entry(World.GetBlock.ADDRESS, World.GetBlock::serve), java.util.Map.entry(World.SetBlock.ADDRESS, World.SetBlock::serve), java.util.Map.entry(World.Time.ADDRESS, World.Time::serve), java.util.Map.entry(World.SetTime.ADDRESS, World.SetTime::serve), java.util.Map.entry(World.IsRaining.ADDRESS, World.IsRaining::serve), java.util.Map.entry(World.SetWeather.ADDRESS, World.SetWeather::serve), java.util.Map.entry(World.IsThundering.ADDRESS, World.IsThundering::serve), java.util.Map.entry(World.SetThunder.ADDRESS, World.SetThunder::serve), java.util.Map.entry(World.FillRegion.ADDRESS, World.FillRegion::serve), java.util.Map.entry(World.ScanRegion.ADDRESS, World.ScanRegion::serve), java.util.Map.entry(World.PlaceFeature.ADDRESS, World.PlaceFeature::serve), java.util.Map.entry(World.Explode.ADDRESS, World.Explode::serve), java.util.Map.entry(World.DropLoot.ADDRESS, World.DropLoot::serve), java.util.Map.entry(World.EntityCount.ADDRESS, World.EntityCount::serve), java.util.Map.entry(World.EntitiesInBox.ADDRESS, World.EntitiesInBox::serve), java.util.Map.entry(World.RaycastBlock.ADDRESS, World.RaycastBlock::serve), java.util.Map.entry(World.RaycastEntity.ADDRESS, World.RaycastEntity::serve));
 
     /** `advancement`. */
     public static final class Advancement {
@@ -15502,6 +15502,729 @@ public final class YogServices {
                     }
                 }
                 return new long[0];
+            }
+        }
+    }
+
+    /** `nanite`. */
+    public static final class Nanite {
+        private Nanite() {}
+
+        /** A member by Mojang's names (`class`: `net.minecraft.world.entity.LivingEntity`; `desc`: a method's or constructor's (`<init>`) descriptor, or a field's type) → its handle, for every call after; `None`: no such member. */
+        public record Resolve(String class_, String name, String desc) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("class", class_);
+                m.put("name", name);
+                m.put("desc", desc);
+                return m;
+            }
+
+            public static Resolve fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Resolve(YogData.str(m.get("class"), ""), YogData.str(m.get("name"), ""), YogData.str(m.get("desc"), ""));
+            }
+
+            public static Resolve fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.class_);
+                p.putStr(this.name);
+                p.putStr(this.desc);
+                p.end(at);
+            }
+
+            public static Resolve unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_class_ = u.more(end) ? u.getStr() : "";
+                String f_name = u.more(end) ? u.getStr() : "";
+                String f_desc = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Resolve(f_class_, f_name, f_desc);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Resolve fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Resolve fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Resolve readFrame(YogFrame.Unpacker u) {
+                Resolve v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Resolve} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public String class_() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public String name() {
+                    if (o1 < 0) return "";
+                    u.seek(o1);
+                    return u.getStr();
+                }
+
+                public String desc() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceNanite.RESOLVE);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "nanite.YogReflect.resolve";
+            public static final String ADDRESS = YogNames.ServiceNanite.RESOLVE;
+
+            public Long call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        Long v = (u.getBool() ? Long.valueOf(u.getI()) : null);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, String.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
+                try {
+                    Resolve.View r = new Resolve.View(in.frame());
+                    Object out = (Object) HostMethod.H.invokeExact(r.class_(), r.name(), r.desc());
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
+                } catch (YogData.DecodeException e) {
+                    return YogBus.BAD_PAYLOAD;
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
+                p.putBool(v != null); if (v != null) { p.putI(v); }
+            }
+        }
+
+        /** Method or constructor `member` called on `target` (null: a static one, a constructor) with `args`; its result (`None`: it failed). An object that isn't a number, text, a list or an entity comes back as a reference (`yog_ids::nanite_ref::OBJECT`) the host holds until released. */
+        public record Call(long member, Object target, java.util.List<Object> args) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("member", member);
+                m.put("target", target);
+                m.put("args", args);
+                return m;
+            }
+
+            public static Call fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Call(YogData.integer(m.get("member"), 0), m.get("target"), YogData.list(m.get("args")).stream().map(e0 -> e0).toList());
+            }
+
+            public static Call fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putI(this.member);
+                p.putTagged(this.target);
+                { int l0 = p.beginList(this.args.size()); for (var e0 : this.args) { p.putTagged(e0); } p.end(l0); }
+                p.end(at);
+            }
+
+            public static Call unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                long f_member = u.more(end) ? u.getI() : 0L;
+                Object f_target = u.more(end) ? u.getTagged() : null;
+                java.util.List<Object> f_args = u.more(end) ? YogFrame.list(u, () -> u.getTagged()) : java.util.List.of();
+                u.leave(end);
+                return new Call(f_member, f_target, f_args);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Call fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Call fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Call readFrame(YogFrame.Unpacker u) {
+                Call v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Call} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public long member() {
+                    if (o0 < 0) return 0L;
+                    u.seek(o0);
+                    return u.getI();
+                }
+
+                public Object target() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return u.getTagged();
+                }
+
+                public java.util.List<Object> args() {
+                    if (o2 < 0) return java.util.List.of();
+                    u.seek(o2);
+                    return YogFrame.list(u, () -> u.getTagged());
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceNanite.CALL);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "nanite.YogReflect.call";
+            public static final String ADDRESS = YogNames.ServiceNanite.CALL;
+
+            public Object call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        Object v = (u.getBool() ? u.getTagged() : null);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class, Object.class, java.util.List.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
+                try {
+                    Call.View r = new Call.View(in.frame());
+                    Object out = (Object) HostMethod.H.invokeExact(r.member(), r.target(), r.args());
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
+                } catch (YogData.DecodeException e) {
+                    return YogBus.BAD_PAYLOAD;
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                Object v = (out == null ? null : (Object) out);
+                p.putBool(v != null); if (v != null) { p.putTagged(v); }
+            }
+        }
+
+        /** Field `member` of `target` (null: a static one). */
+        public record Get(long member, Object target) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("member", member);
+                m.put("target", target);
+                return m;
+            }
+
+            public static Get fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Get(YogData.integer(m.get("member"), 0), m.get("target"));
+            }
+
+            public static Get fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putI(this.member);
+                p.putTagged(this.target);
+                p.end(at);
+            }
+
+            public static Get unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                long f_member = u.more(end) ? u.getI() : 0L;
+                Object f_target = u.more(end) ? u.getTagged() : null;
+                u.leave(end);
+                return new Get(f_member, f_target);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Get fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Get fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Get readFrame(YogFrame.Unpacker u) {
+                Get v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Get} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public long member() {
+                    if (o0 < 0) return 0L;
+                    u.seek(o0);
+                    return u.getI();
+                }
+
+                public Object target() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return u.getTagged();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceNanite.GET);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "nanite.YogReflect.get";
+            public static final String ADDRESS = YogNames.ServiceNanite.GET;
+
+            public Object call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        Object v = (u.getBool() ? u.getTagged() : null);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class, Object.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
+                try {
+                    Get.View r = new Get.View(in.frame());
+                    Object out = (Object) HostMethod.H.invokeExact(r.member(), r.target());
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
+                } catch (YogData.DecodeException e) {
+                    return YogBus.BAD_PAYLOAD;
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                Object v = (out == null ? null : (Object) out);
+                p.putBool(v != null); if (v != null) { p.putTagged(v); }
+            }
+        }
+
+        /** Field `member` of `target` set to `value`. */
+        public record Set(long member, Object target, Object value) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("member", member);
+                m.put("target", target);
+                m.put("value", value);
+                return m;
+            }
+
+            public static Set fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Set(YogData.integer(m.get("member"), 0), m.get("target"), m.get("value"));
+            }
+
+            public static Set fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putI(this.member);
+                p.putTagged(this.target);
+                p.putTagged(this.value);
+                p.end(at);
+            }
+
+            public static Set unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                long f_member = u.more(end) ? u.getI() : 0L;
+                Object f_target = u.more(end) ? u.getTagged() : null;
+                Object f_value = u.more(end) ? u.getTagged() : null;
+                u.leave(end);
+                return new Set(f_member, f_target, f_value);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Set fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Set fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Set readFrame(YogFrame.Unpacker u) {
+                Set v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Set} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skipBytes(); } else { o2 = -1; }
+                    u.leave(end);
+                }
+
+                public long member() {
+                    if (o0 < 0) return 0L;
+                    u.seek(o0);
+                    return u.getI();
+                }
+
+                public Object target() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return u.getTagged();
+                }
+
+                public Object value() {
+                    if (o2 < 0) return null;
+                    u.seek(o2);
+                    return u.getTagged();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceNanite.SET);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "nanite.YogReflect.set";
+            public static final String ADDRESS = YogNames.ServiceNanite.SET;
+
+            public boolean call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class, Object.class, Object.class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
+                try {
+                    Set.View r = new Set.View(in.frame());
+                    Object out = (Object) HostMethod.H.invokeExact(r.member(), r.target(), r.value());
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
+                } catch (YogData.DecodeException e) {
+                    return YogBus.BAD_PAYLOAD;
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                boolean v = (Boolean) out;
+                p.putBool(v);
+            }
+        }
+
+        /** The objects referenced let go. */
+        public record Release(long[] objects) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("objects", YogData.listOf(objects));
+                return m;
+            }
+
+            public static Release fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Release(YogData.longs(m.get("objects")));
+            }
+
+            public static Release fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putLongs(this.objects, false);
+                p.end(at);
+            }
+
+            public static Release unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                long[] f_objects = u.more(end) ? u.getLongs(false) : new long[0];
+                u.leave(end);
+                return new Release(f_objects);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Release fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Release fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Release readFrame(YogFrame.Unpacker u) {
+                Release v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Release} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int h0, n0, b0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { h0 = u.position(); n0 = (int) u.getU(); b0 = u.getByte(); o0 = u.position(); u.skip(YogFrame.packedBytes(n0, b0)); } else { h0 = n0 = b0 = 0; o0 = -1; }
+                    u.leave(end);
+                }
+
+                public long[] objects() {
+                    if (o0 < 0) return new long[0];
+                    u.seek(h0);
+                    return u.getLongs(false);
+                }
+
+                public int objectsLength() {
+                    return n0;
+                }
+
+                /** Item {@code i}, read in place. */
+                public long objects(int i) {
+                    long v = u.packedAt(o0, n0, b0, i);
+                    return (long) v;
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceNanite.RELEASE);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "nanite.YogReflect.release";
+            public static final String ADDRESS = YogNames.ServiceNanite.RELEASE;
+
+            public boolean call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+
+            private static final class HostMethod {
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long[].class));
+            }
+
+            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
+            public static int serve(YogMessage in, YogBus.Out sink) {
+                if (HostMethod.H == null) return YogBus.NO_HANDLER;
+                try {
+                    Release.View r = new Release.View(in.frame());
+                    Object out = (Object) HostMethod.H.invokeExact(r.objects());
+                    reply(dev.yog.YogHostServices.none(out), sink.frame());
+                    return YogBus.OK;
+                } catch (YogData.DecodeException e) {
+                    return YogBus.BAD_PAYLOAD;
+                } catch (Throwable t) {
+                    return dev.yog.YogHostServices.failed(ADDRESS, t);
+                }
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                boolean v = (Boolean) out;
+                p.putBool(v);
             }
         }
     }

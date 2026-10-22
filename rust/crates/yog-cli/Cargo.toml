@@ -23,6 +23,10 @@ yog-media = { workspace = true }
 syn = { workspace = true, features = ["visit"] }
 proc-macro2 = { workspace = true, features = ["span-locations"] }
 zip = { workspace = true }
+# `yog mappings` fetches the game's mappings.
+ureq = { workspace = true }
+# The mapping table's types (what the hosts read).
+yog-event = { workspace = true }
 serde_json = { workspace = true }
 base64 = { workspace = true }
 # Image sources (`item:`, `sprite:`, ...) checked in .yui files.

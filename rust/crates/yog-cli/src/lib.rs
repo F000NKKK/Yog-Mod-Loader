@@ -15,6 +15,7 @@ pub mod diagnostics;
 pub mod exports;
 pub mod files;
 pub mod manifest;
+pub mod mappings;
 pub mod media;
 pub mod recipe_area;
 pub(crate) mod rust_code;

@@ -44,6 +44,8 @@ mod images;
 mod jcall;
 mod machine;
 mod mirrors;
+#[cfg(test)]
+mod nanite_jvm;
 #[cfg(feature = "dev")]
 mod registrations;
 mod svg;

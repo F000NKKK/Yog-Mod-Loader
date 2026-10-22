@@ -345,7 +345,7 @@ names! {
         ARGS = "args",
         EVENT = crate::word::EVENT,
         FILE = crate::word::FILE,
-        SET = "set",
+        SET = crate::bus_word::SET,
         MOD_ID = crate::word::MOD,
         ENTRIES = crate::word::ENTRIES,
         NEXT = "next",

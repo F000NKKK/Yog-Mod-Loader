@@ -37,6 +37,7 @@ pub mod key_binding;
 pub mod log;
 pub mod menu;
 pub mod mirror;
+pub mod nanite;
 pub mod net;
 pub mod particle;
 pub mod player;
