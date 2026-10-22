@@ -153,6 +153,7 @@ fn java_records_read_and_write_rust_frames() {
             dimension: "minecraft:the_nether".into(),
             slot: 8,
             attack_strength: 0.75,
+            sneaking: true,
         },
     );
     through_java(
