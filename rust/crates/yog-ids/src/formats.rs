@@ -81,7 +81,10 @@ impl Format {
     /// (every format but `.yui` markup and built `.yog` mods).
     #[must_use]
     pub const fn is_data(self) -> bool {
-        !matches!(self, Format::Ui | Format::Mod | Format::Script | Format::Nanites)
+        !matches!(
+            self,
+            Format::Ui | Format::Mod | Format::Script | Format::Nanites
+        )
     }
 
     /// `name` with this format's extension: `stone` → `stone.yblock`.

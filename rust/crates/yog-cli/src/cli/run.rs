@@ -1,5 +1,6 @@
 //! `yog run`: the mod built, exported into a target's game, the game launched.
 
+use super::symbols::Symbols;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -22,13 +23,13 @@ pub(super) fn list_run_targets() -> Result<(), String> {
 /// Build, export the artifact into the target's game, then launch it —
 /// the target from Yog's home (`yog_home::targets`): a loader on a
 /// Minecraft version, or one of the machine's own.
-pub(super) fn run_target(id: &str, debugging_symbols: bool, dev: bool) -> Result<(), String> {
+pub(super) fn run_target(id: &str, symbols: Symbols, dev: bool) -> Result<(), String> {
     let root = project_root()?;
     let resolver = yog_home::targets::Resolver::new(&yog_home::Home::locate()?)?;
     let target = resolver.target(id)?;
     let plan = resolver.plan(&target);
 
-    let (meta, artifact) = build(debugging_symbols, dev)?;
+    let (meta, artifact) = build(symbols, dev)?;
 
     if let Some(dir) = &plan.export_dir {
         std::fs::create_dir_all(dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
@@ -40,7 +41,7 @@ pub(super) fn run_target(id: &str, debugging_symbols: bool, dev: bool) -> Result
             root.display().to_string().as_bytes(),
         )?;
         eprintln!("==> exported {} -> {}", meta.id, dest.display());
-        refresh_exported(dir, &meta.id, debugging_symbols);
+        refresh_exported(dir, &meta.id, symbols);
     }
 
     let Some(command) = &plan.command else {
@@ -89,7 +90,7 @@ pub(super) fn source_marker(dir: &Path, id: &str) -> PathBuf {
 /// `<id>.source`) and re-exports it — mods from an older build would carry
 /// an older ABI, and the runtime refuses those. A mod that fails to build
 /// keeps its old artifact (with a warning); the run goes on.
-pub(super) fn refresh_exported(dir: &Path, current: &str, debugging_symbols: bool) {
+pub(super) fn refresh_exported(dir: &Path, current: &str, symbols: Symbols) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
@@ -124,8 +125,8 @@ pub(super) fn refresh_exported(dir: &Path, current: &str, debugging_symbols: boo
         eprintln!("==> refreshing {id} ({})", source.display());
         let mut cmd = Command::new(&exe);
         cmd.arg("build").current_dir(&source);
-        if debugging_symbols {
-            cmd.arg("debug");
+        if let Some(word) = symbols.word() {
+            cmd.arg(word);
         }
         let built = cmd.status().is_ok_and(|s| s.success());
         let artifact = source

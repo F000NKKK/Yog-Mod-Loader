@@ -148,6 +148,10 @@ fn function_symbols(object: &object::File<'_>) -> Vec<FunctionSymbol> {
 /// Bytes of an address, on a 64-bit native and on a 32-bit one.
 const ADDRESS_64: u8 = 8;
 const ADDRESS_32: u8 = 4;
+/// The section a native with debug info has.
+const DEBUG_INFO: &str = ".debug_info";
+/// A native's split debug info's extension (`libmod.so.debug`).
+const SPLIT_EXT: &str = yog_ids::symbols::EXT;
 
 /// The unwind tables: `.eh_frame` (with the bases its pointers are
 /// relative to) and `.debug_frame`, those the native has.
@@ -194,11 +198,36 @@ fn frame_tables(object: &object::File<'_>, endian: RunTimeEndian) -> FrameTables
 }
 
 impl SymbolTable {
-    /// Loads debug info from an unstripped native (`.so`/`.dylib`/`.dll`
-    /// built with `debug = true`, `strip = false`).
+    /// Loads a native's debug info: its own (built with `debug = true`,
+    /// `strip = false`), or — a release's, stripped — the file split from it
+    /// beside it (`<native>.debug`, `yog build release`).
     pub fn load(path: &Path) -> Result<Self, SymbolError> {
+        let beside = path.with_added_extension(SPLIT_EXT);
         let data = std::fs::read(path)?;
+        let own = object::File::parse(&*data)?
+            .section_by_name(DEBUG_INFO)
+            .is_some();
+        if !own && beside.is_file() {
+            return Self::load_split(path, &beside);
+        }
+        Self::load_split(path, path)
+    }
+
+    /// Loads `native`'s code and unwind tables with the debug info in
+    /// `debug` (the same file, or the one split from it).
+    pub fn load_split(native: &Path, debug: &Path) -> Result<Self, SymbolError> {
+        let data = std::fs::read(native)?;
         let object = object::File::parse(&*data)?;
+        let debug_data = if debug == native {
+            None
+        } else {
+            Some(std::fs::read(debug)?)
+        };
+        let debug_object = match &debug_data {
+            Some(d) => Some(object::File::parse(&**d)?),
+            None => None,
+        };
+        let dwarf_source = debug_object.as_ref().unwrap_or(&object);
 
         let endian = if object.is_little_endian() {
             RunTimeEndian::Little
@@ -207,7 +236,7 @@ impl SymbolTable {
         };
 
         let load_section = |id: gimli::SectionId| -> Result<R, SymbolError> {
-            let data = match object.section_by_name(id.name()) {
+            let data = match dwarf_source.section_by_name(id.name()) {
                 Some(section) => section.uncompressed_data()?.into_owned(),
                 None => Vec::new(),
             };

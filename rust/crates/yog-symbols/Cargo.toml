@@ -10,6 +10,8 @@ description = "DWARF symbol resolution for Yog mod natives — address<->source-
 crate-type = ["lib"]
 
 [dependencies]
+# The split debug info's folder and extension.
+yog-ids = { workspace = true }
 object = { workspace = true }
 gimli = { workspace = true }
 addr2line = { workspace = true }

@@ -12,6 +12,8 @@ pub mod id {
     pub const LOADER_SDK: &str = "yog.sdk.loader";
     /// zig, the linker `yog build` cross-links every platform with (a folder holding `zig`).
     pub const ZIG: &str = "zig";
+    /// The loader runtime's debug info, split from its release (`symbols/<platform>/<lib>.debug`).
+    pub const RUNTIME_SYMBOLS: &str = "yog.symbols.runtime";
     /// The prefix of a JDK's id: `yog.jdk.21`.
     pub const JDK_PREFIX: &str = "yog.jdk.";
 
@@ -64,6 +66,18 @@ impl Components {
             .iter()
             .filter(|c| c.id == id)
             .max_by(|a, b| crate::version::compare(&a.version, &b.version))
+    }
+
+    /// The installed runtime symbols' debug info for library `lib` of
+    /// platform `tag` (`<component>/<tag>/<lib>.debug`), if it's there.
+    pub fn runtime_symbols(&self, tag: &str, lib: &str) -> Option<PathBuf> {
+        let base = &self.newest(id::RUNTIME_SYMBOLS)?.path;
+        let file = base.join(tag).join(format!(
+            "{lib}{}{}",
+            yog_ids::sep::EXT,
+            yog_ids::symbols::EXT
+        ));
+        file.is_file().then_some(file)
     }
 
     /// Installs `c`, replacing the same id and version.

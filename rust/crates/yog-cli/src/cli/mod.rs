@@ -13,6 +13,7 @@ mod prepare;
 mod publish;
 mod run;
 mod setup;
+mod symbols;
 mod targets;
 
 /// What `yog help` prints.
@@ -25,8 +26,6 @@ const LIST: &str = "--list";
 const MOD: &str = "--mod";
 const DRY_RUN: &str = "--dry-run";
 const HELP: [&str; 2] = ["-h", "--help"];
-/// `yog build debug`: debug info kept in the native.
-const DEBUG_WORD: &str = "debug";
 /// What a flag starts with.
 const FLAG: &str = "--";
 
@@ -48,11 +47,13 @@ pub(crate) fn main(args: &[String]) {
     let has = |flag: &str| rest.iter().any(|a| a == flag);
     let result = match args.get(1).map(String::as_str) {
         // `yog build debug`: the same `--release` build with DWARF debug
-        // info kept for `yog-symbols`/`yog-debugger`; `--dev`: for a game
+        // info kept for `yog-symbols`/`yog-debugger`; `yog build release`:
+        // optimized, the debug info split out beside it; `--dev`: for a game
         // that hot-reloads it (Yog-IDLE, dev.sh) — the `.yog` carries what
         // hot reload checks.
         Some("build") => {
-            build::build(rest.first().is_some_and(|a| a == DEBUG_WORD), has(DEV)).map(|_| ())
+            let symbols = symbols::Symbols::of(rest.first().map(String::as_str));
+            build::build(symbols, has(DEV)).map(|_| ())
         }
         Some("check") => build::check(),
         Some("schema") => schema(rest.first().map(String::as_str)),
@@ -147,7 +148,12 @@ fn run_cmd(rest: &[String]) -> Result<(), String> {
     if has(LIST) {
         return run::list_run_targets();
     }
-    let (debug, dev) = (has(DEBUG_FLAG), has(DEV));
+    let symbols = if has(DEBUG_FLAG) {
+        symbols::Symbols::Kept
+    } else {
+        symbols::Symbols::Stripped
+    };
+    let dev = has(DEV);
     let words: Vec<&str> = rest
         .iter()
         .map(String::as_str)
@@ -155,8 +161,8 @@ fn run_cmd(rest: &[String]) -> Result<(), String> {
         .collect();
     match words.as_slice() {
         // `yog run fabric 26.2` is `yog run fabric-26.2`.
-        [loader, mc] => run::run_target(&[*loader, mc].join(yog_ids::sep::HYPHEN), debug, dev),
-        [id] => run::run_target(id, debug, dev),
+        [loader, mc] => run::run_target(&[*loader, mc].join(yog_ids::sep::HYPHEN), symbols, dev),
+        [id] => run::run_target(id, symbols, dev),
         _ => Err(
             "usage: yog run <target> | <loader> <mc> [--debug] [--dev]; yog run --list [--json]"
                 .into(),

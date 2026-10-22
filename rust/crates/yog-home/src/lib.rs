@@ -34,6 +34,7 @@ const LOADER_SDK_DIR: &str = "loader";
 const JDK_DIR: &str = "jdk";
 const INSTANCES_DIR: &str = "instances";
 const TOOLS_DIR: &str = "tools";
+const COMPONENTS_DIR: &str = "components";
 const CACHE_DIR: &str = "cache";
 /// Where Yog Installer installs itself.
 const INSTALLER_DIR: &str = "installer";
@@ -96,6 +97,12 @@ impl Home {
 
     pub fn instances_dir(&self) -> PathBuf {
         self.root.join(INSTANCES_DIR)
+    }
+
+    /// A component released as an archive (its catalog source a GitHub
+    /// release): `components/<id>/<version>`.
+    pub fn component_dir(&self, id: &str, version: &str) -> PathBuf {
+        self.root.join(COMPONENTS_DIR).join(id).join(version)
     }
 
     /// A tool's version: `tools/<name>/<version>`.

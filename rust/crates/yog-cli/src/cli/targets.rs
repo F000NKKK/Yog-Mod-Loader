@@ -32,24 +32,13 @@ impl Builder {
         build_dir: &Path,
         triple: &str,
         root: &Path,
-        debugging_symbols: bool,
+        symbols: super::symbols::Symbols,
     ) -> Result<(), ()> {
         let mut cmd = Command::new("cargo");
         cmd.current_dir(build_dir)
             .env("CARGO_TARGET_DIR", root.join("target"))
             .args([self.subcmd(), "--release", "--target", triple]);
-        if debugging_symbols {
-            // Still `--release` (the output layout `package()` expects), but
-            // a debug build in all but name: debug info kept, and nothing
-            // optimized — inlining and instruction scheduling make a
-            // debugger's line steps hop between files and back.
-            cmd.env("CARGO_PROFILE_RELEASE_DEBUG", "true");
-            cmd.env("CARGO_PROFILE_RELEASE_STRIP", "none");
-            cmd.env("CARGO_PROFILE_RELEASE_OPT_LEVEL", "0");
-            cmd.env("CARGO_PROFILE_RELEASE_LTO", "false");
-            cmd.env("CARGO_PROFILE_RELEASE_CODEGEN_UNITS", "256");
-            cmd.env("CARGO_PROFILE_RELEASE_INCREMENTAL", "true");
-        }
+        cmd.envs(symbols.profile().iter().copied());
         match super::cargo_out::run(&mut cmd, build_dir, root) {
             Ok(true) => Ok(()),
             _ => Err(()),

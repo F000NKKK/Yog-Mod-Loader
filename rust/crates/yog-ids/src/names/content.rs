@@ -37,6 +37,15 @@ names! {
         NATIVES = "natives",
     }
 
+    /// A release's debug info, split from its natives: one folder per
+    /// platform (`symbols/linux-x86_64/libmymod.so.debug`), read beside the
+    /// stripped native or from Yog Installer's symbols component.
+    symbols {
+        DIR = "symbols",
+        /// What a native's split debug info adds to its file name.
+        EXT = "debug",
+    }
+
     /// The pack the build writes for the hosts.
     pack {
         /// The game's data: `data/<ns>/…`.

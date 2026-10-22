@@ -135,3 +135,56 @@ fn absolute_path_matches_a_dotdot_relative_compile() {
     );
     assert_eq!(table.resolve_addr(addrs[0]).unwrap().file, source);
 }
+
+/// The toolchain's `rust-objcopy`, as `yog build release` splits with it.
+fn objcopy() -> PathBuf {
+    let out = Command::new("rustc")
+        .args(["--print", "sysroot"])
+        .output()
+        .unwrap();
+    let rustlib = PathBuf::from(String::from_utf8_lossy(&out.stdout).trim()).join("lib/rustlib");
+    let file = format!("rust-objcopy{}", std::env::consts::EXE_SUFFIX);
+    std::fs::read_dir(&rustlib)
+        .unwrap()
+        .flatten()
+        .map(|host| host.path().join("bin").join(&file))
+        .find(|p| p.is_file())
+        .expect("the toolchain's rust-objcopy")
+}
+
+/// A release's native, stripped, with its debug info split beside it
+/// (`<native>.debug`): the same lines found as in the whole one.
+#[test]
+fn a_stripped_native_reads_its_split_debug_info() {
+    let whole = build_fixture("split");
+    let stripped =
+        whole.with_file_name(format!("libyog_symbols_fixture_stripped.{}", cdylib_ext()));
+    let debug = stripped.with_added_extension("debug");
+    let objcopy = objcopy();
+    let run = |args: &[&std::ffi::OsStr]| {
+        assert!(
+            Command::new(&objcopy)
+                .args(args)
+                .status()
+                .unwrap()
+                .success()
+        )
+    };
+    run(&[
+        "--only-keep-debug".as_ref(),
+        whole.as_os_str(),
+        debug.as_os_str(),
+    ]);
+    run(&[
+        "--strip-debug".as_ref(),
+        whole.as_os_str(),
+        stripped.as_os_str(),
+    ]);
+    let expected = SymbolTable::load(&whole)
+        .unwrap()
+        .resolve_breakpoint("fixture.rs", 8);
+    let table = SymbolTable::load(&stripped).expect("the split debug info found beside it");
+    assert!(!expected.is_empty());
+    assert_eq!(table.resolve_breakpoint("fixture.rs", 8), expected);
+    assert_eq!(table.resolve_addr(expected[0]).unwrap().line, 8);
+}

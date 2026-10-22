@@ -185,6 +185,13 @@ runtime_lib_for_os() {
 
 cargo_builder() { command -v cargo-zigbuild >/dev/null 2>&1 && echo zigbuild || echo build; }
 
+# A release's runtime keeps its debug info only to split it out: the jars get
+# it stripped, artifacts/symbols/<tag>/ the rest (yog-symbols reads a
+# `<native>.debug` beside the native; Yog Installer's runtime symbols component).
+SYMBOLS_DIR="$ROOT/artifacts/symbols"
+SYMBOLS_ZIP="$ROOT/artifacts/yog-runtime-symbols.zip"
+rust_objcopy() { find "$(rustc --print sysroot)/lib/rustlib" -path '*/bin/rust-objcopy*' -type f | head -1; }
+
 # Build the runtime for every available platform and embed each into the loader
 # jars (resources/natives/<tag>/) so a single jar works on all OSes.
 build_rust() {
@@ -196,6 +203,14 @@ build_rust() {
     local features=""; [ "$DEV" = 1 ] && features="--features dev"
     installed="$(rustup target list --installed 2>/dev/null)"
     built=()
+    local split=0 oc=""
+    if [ "$DEV" = 0 ] && [ "$CONFIG" = "Release" ]; then
+        oc="$(rust_objcopy)"
+        [ -n "$oc" ] || die "no rust-objcopy in the toolchain (it ships with rustc) — can't split the release's symbols"
+        split=1
+        export CARGO_PROFILE_RELEASE_DEBUG=true CARGO_PROFILE_RELEASE_STRIP=none
+        rm -rf "$SYMBOLS_DIR" "$SYMBOLS_ZIP"
+    fi
     for spec in "${RUNTIME_TARGETS[@]}"; do
         IFS='|' read -r triple tag os <<<"$spec"
         # YOG_TARGETS (comma-separated tags/triples) narrows this, same as `yog build`.
@@ -209,6 +224,13 @@ build_rust() {
         if cargo "$builder" $profile $features --target "$triple" -p yog-runtime \
                 --manifest-path "$ROOT/rust/Cargo.toml" >/dev/null 2>&1; then
             local src="$ROOT/rust/target/$triple/$(cargo_profile_dir)/$(runtime_lib_for_os "$os")"
+            if [ -f "$src" ] && [ "$split" = 1 ]; then
+                local lib; lib="$(basename "$src")"
+                mkdir -p "$SYMBOLS_DIR/$tag" "$ROOT/rust/target/$triple/stripped"
+                "$oc" --only-keep-debug "$src" "$SYMBOLS_DIR/$tag/$lib.debug"
+                "$oc" --strip-debug "$src" "$ROOT/rust/target/$triple/stripped/$lib"
+                src="$ROOT/rust/target/$triple/stripped/$lib"
+            fi
             if [ -f "$src" ]; then
                 for l in "${LOADERS[@]}"; do
                     mkdir -p "$ROOT/$l/src/main/resources/natives/$tag"
@@ -222,6 +244,11 @@ build_rust() {
     done
     [ ${#built[@]} -gt 0 ] || die "no runtime platform built"
     echo "    embedded runtime for: ${built[*]}"
+    if [ "$split" = 1 ]; then
+        unset CARGO_PROFILE_RELEASE_DEBUG CARGO_PROFILE_RELEASE_STRIP
+        (cd "$(dirname "$SYMBOLS_DIR")" && zip -qr "$SYMBOLS_ZIP" "$(basename "$SYMBOLS_DIR")")
+        echo "    runtime debug info -> ${SYMBOLS_ZIP#$ROOT/}"
+    fi
 }
 
 # Gradle keeps build/ outputs from the previously selected MC platform; on a

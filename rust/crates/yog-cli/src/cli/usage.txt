@@ -6,6 +6,7 @@ Commands:
   new <name>          Create a new mod project in ./<name>/
   build               Compile the current mod and package it as artifacts/<id>.yog
   build debug         Same, but keep debug info in the native (for yog-debugger)
+  build release       Optimized, the debug info split out to artifacts/symbols/<platform>/
   build [debug] --dev For a game that hot-reloads it (Yog-IDLE, dev.sh): what hot reload checks
   check               Generate .yog-build/ and `cargo check` the mod (host only)
   bench [filter]      Run the mod's benches/*.rs #[yog_api::bench] functions (host only)

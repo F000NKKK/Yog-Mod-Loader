@@ -1321,6 +1321,16 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(MANIFEST, NATIVES);
     }
 
+    public static final class Symbols {
+        private Symbols() {}
+
+        public static final String DIR = "symbols";
+        public static final String EXT = "debug";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIR, EXT);
+    }
+
     public static final class Pack {
         private Pack() {}
 

@@ -13,6 +13,7 @@ use super::prepare::{Prepared, prepare};
 use yog_ids::platform::{self, Platform};
 
 use super::cargo_out;
+use super::symbols::Symbols;
 use super::targets::{Builder, install_targets, installed_targets, lib_filename, selected_targets};
 
 /// `yog check` — `cargo check` of the mod for the host platform, after the
@@ -100,14 +101,9 @@ pub(super) fn designer_lib() -> Result<(), String> {
 /// `yog.toml` metadata and the path to the produced `.yog` artifact, so
 /// callers like `run_target` can reuse them without re-parsing/rebuilding.
 ///
-/// `debugging_symbols` (`yog build debug` / `yog run <target> --debug` at the
-/// CLI surface): still a `--release` build (same output layout `package()`
-/// expects), but unoptimized and with debug info retained instead of
-/// stripped — for `yog-symbols`/`yog-debugger` to have something to load
-/// and step through line by line. No separate artifact layout: the native
-/// this produces is simply larger, slower and symbol-ful, packaged the same
-/// way.
-pub(super) fn build(debugging_symbols: bool, dev: bool) -> Result<(YogToml, PathBuf), String> {
+/// `symbols`: what the native keeps of its debug info (`cli/symbols.rs`) —
+/// a release's split out to `artifacts/symbols/`.
+pub(super) fn build(symbols: Symbols, dev: bool) -> Result<(YogToml, PathBuf), String> {
     let Prepared {
         root,
         meta,
@@ -115,7 +111,7 @@ pub(super) fn build(debugging_symbols: bool, dev: bool) -> Result<(YogToml, Path
         resources,
         content,
     } = prepare()?;
-    let bundled = build_natives(&root, &meta, &build_dir, debugging_symbols)?;
+    let bundled = build_natives(&root, &meta, &build_dir, symbols)?;
     // Save Cargo.lock as yog.lock
     let new_lock = build_dir.join("Cargo.lock");
     if new_lock.exists() {
@@ -124,12 +120,49 @@ pub(super) fn build(debugging_symbols: bool, dev: bool) -> Result<(YogToml, Path
     let assets = assets(&root, resources, content, dev)?;
     let artifacts = root.join(ARTIFACTS_DIR);
     std::fs::create_dir_all(&artifacts).map_err(|e| e.to_string())?;
+    let bundled = match symbols {
+        Symbols::Split => {
+            let split = super::symbols::split(bundled, &build_dir, &artifacts)?;
+            eprintln!(
+                "    debug info split out to {}/",
+                artifacts.join(super::symbols::SYMBOLS_DIR).display()
+            );
+            split
+        }
+        Symbols::Stripped | Symbols::Kept => bundled,
+    };
     let out = artifacts.join(yog_ids::Format::Mod.file(&meta.id));
     package(&out, &meta, &bundled, &assets)
         .map_err(|e| diagnostics::failed(build_problem::PACKAGE, e))?;
     let tags: Vec<&str> = bundled.iter().map(|(t, _)| t.as_str()).collect();
     eprintln!("==> packaged {} [{}]", out.display(), tags.join(", "));
+    if bundled.len() > 1 {
+        per_platform(&artifacts, &meta, &bundled, &assets)?;
+    }
     Ok((meta, out))
+}
+
+/// Each platform's own `.yog` (`artifacts/<platform>/<id>.yog`): the same
+/// mod with only that platform's native — what a player of it downloads,
+/// a fifth of the whole.
+fn per_platform(
+    artifacts: &Path,
+    meta: &YogToml,
+    bundled: &[(String, PathBuf)],
+    assets: &[(String, Vec<u8>)],
+) -> Result<(), String> {
+    for native in bundled {
+        let dir = artifacts.join(&native.0);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        let out = dir.join(yog_ids::Format::Mod.file(&meta.id));
+        package(&out, meta, std::slice::from_ref(native), assets)
+            .map_err(|e| diagnostics::failed(build_problem::PACKAGE, e))?;
+    }
+    eprintln!(
+        "    and one .yog a platform, in {}/<platform>/",
+        artifacts.display()
+    );
+    Ok(())
 }
 
 /// Where `yog build` puts the `.yog`, under the mod's root.
@@ -154,7 +187,7 @@ fn build_natives(
     root: &Path,
     meta: &YogToml,
     build_dir: &Path,
-    debugging_symbols: bool,
+    symbols: Symbols,
 ) -> Result<Vec<(String, PathBuf)>, String> {
     let builder = Builder::detect();
     eprintln!(
@@ -176,10 +209,7 @@ fn build_natives(
             );
             continue;
         }
-        if builder
-            .build(build_dir, t.triple, root, debugging_symbols)
-            .is_err()
-        {
+        if builder.build(build_dir, t.triple, root, symbols).is_err() {
             failed += 1;
             eprintln!("    skip {} (build failed)", t.tag);
             continue;
@@ -265,6 +295,7 @@ pub(super) fn gather_assets(
     compiled: Vec<(String, Vec<u8>)>,
 ) -> Vec<(String, Vec<u8>)> {
     let mut out = yog_cli::content::OutputSet::default();
+    let mut left_out = 0usize;
 
     let mut stack: Vec<PathBuf> = ["assets", "data"]
         .iter()
@@ -280,6 +311,8 @@ pub(super) fn gather_assets(
             let path = entry.path();
             if path.is_dir() {
                 stack.push(path);
+            } else if is_source(&path) {
+                left_out += 1;
             } else if let Ok(rel) = path.strip_prefix(root) {
                 let key = yog_cli::slash_path(rel);
                 if let Ok(bytes) = std::fs::read(&path) {
@@ -289,10 +322,29 @@ pub(super) fn gather_assets(
         }
     }
 
+    if left_out > 0 {
+        eprintln!(
+            "    left out {left_out} editor/source file(s) the game doesn't read ({})",
+            SOURCE_FILES.join(", ")
+        );
+    }
     for (key, bytes) in compiled {
         out.put(key, bytes);
     }
     out.into_vec()
+}
+
+/// What a mod's `assets/` and `data/` may hold that the game never reads:
+/// editors' files and scripts made them, not the game's formats.
+const SOURCE_FILES: &[&str] = &[
+    "aseprite", "ase", "psd", "kra", "xcf", "blend", "py", "sh", "ps1", "bat",
+];
+
+/// Whether `path` is one of [`SOURCE_FILES`].
+fn is_source(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| SOURCE_FILES.contains(&e.to_ascii_lowercase().as_str()))
 }
 
 pub(super) fn package(

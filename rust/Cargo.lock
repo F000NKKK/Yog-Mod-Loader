@@ -2441,6 +2441,7 @@ dependencies = [
  "gimli",
  "nix",
  "object",
+ "yog-ids",
  "yog-sync",
 ]
 
