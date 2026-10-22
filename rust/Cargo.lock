@@ -2226,7 +2226,7 @@ dependencies = [
 
 [[package]]
 name = "yog-event"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "pastey",
  "yog-body",
