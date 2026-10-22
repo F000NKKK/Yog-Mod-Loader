@@ -192,7 +192,6 @@ fn pascal(s: &str) -> String {
 pub struct Table {
     file: String,
     name: String,
-    serde: bool,
     columns: Vec<(String, Column)>,
     /// (row id, variant, each column's expression).
     rows: Vec<(String, String, Vec<String>)>,
@@ -252,7 +251,6 @@ pub fn check(
     Ok(Table {
         file: file.to_string(),
         name,
-        serde: t.serde,
         columns,
         rows,
     })
@@ -364,11 +362,8 @@ fn map_key(k: &Scalar, key: &str) -> Value {
 pub fn rust(t: &Table) -> String {
     let mut code = String::new();
     let n = &t.name;
-    let derive = if t.serde {
-        ", ::serde::Serialize, ::serde::Deserialize"
-    } else {
-        ""
-    };
+    // Read and written as Yog Data (a mod's stores, packets): by its rows' ids.
+    let derive = ", ::yog_api::Schema";
     let _ = writeln!(
         code,
         "\n/// The `{}` table: a variant per row.\n#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord{derive})]\n#[allow(dead_code)]\npub enum {n} {{",
@@ -457,7 +452,7 @@ mod tests {
     #[test]
     fn a_table_is_an_enum_with_a_method_per_column() {
         let t = table(
-            r#"{ kind: "table", id: "tier", serde: true,
+            r#"{ kind: "table", id: "tier",
                 columns: { size: "u32", chip: "item", name: "text", inputs: "{item: u64}" },
                 rows: {
                     wood: { size: 16, chip: "@item:mymod:chip_wood", name: "@Strings.tier_wood", inputs: { "minecraft:oak_log": 1 } },
@@ -470,7 +465,7 @@ mod tests {
             code.contains("pub enum Tier {\n    Wood,\n    Stone,\n}"),
             "{code}"
         );
-        assert!(code.contains("::serde::Serialize"));
+        assert!(code.contains("::yog_api::Schema"));
         assert!(code.contains("pub const ALL: [Tier; 2] = [Tier::Wood, Tier::Stone];"));
         assert!(code.contains("pub fn size(self) -> u32"));
         assert!(code.contains("Tier::Stone => 32,"));

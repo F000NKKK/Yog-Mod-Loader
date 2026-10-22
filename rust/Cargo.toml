@@ -111,6 +111,7 @@ yog-ui = { version = "0.47.0", path = "crates/yog-ui" }
 yog-worldgen = { version = "0.5.0", path = "crates/yog-worldgen" }
 syn = { version = "3", features = ["full", "extra-traits"] }
 quote = "1"
+proc-macro-crate = "3.5.0"
 proc-macro2 = "1"
 serde = { version = "1", features = ["derive"] }
 linkme = "0.3"

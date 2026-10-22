@@ -113,6 +113,9 @@ names! {
         KIT = crate::concatcp!(PREFIX, "kit"),
         GFX = crate::concatcp!(PREFIX, "gfx"),
         REGISTRY = crate::concatcp!(PREFIX, crate::serve_param::REGISTRY),
+        /// The data crate: its name, and its name in Rust code (yog-api's module of it too).
+        DATA = crate::concatcp!(PREFIX, crate::word::DATA),
+        DATA_RUST_NAME = crate::concatcp!(crate::ns::YOG, crate::sep::WORD, crate::word::DATA),
     }
 
     /// Where the game keeps resources, and what their files end with.

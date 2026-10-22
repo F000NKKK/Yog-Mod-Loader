@@ -121,12 +121,6 @@ fn variants(e: &syn::DataEnum, top: &Attrs) -> syn::Result<Vec<Variant>> {
                 ));
             }
         };
-        if top.tag.is_none() && !matches!(kind, VariantKind::Unit) {
-            return Err(syn::Error::new_spanned(
-                &v.ident,
-                "Schema: variants with fields need `#[data(tag = \"type\")]` on the enum",
-            ));
-        }
         if a.other && (top.tag.is_none() || !matches!(kind, VariantKind::Wrap(_))) {
             return Err(syn::Error::new_spanned(
                 &v.ident,

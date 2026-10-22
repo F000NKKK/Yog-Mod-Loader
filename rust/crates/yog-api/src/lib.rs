@@ -39,6 +39,8 @@ pub use yog_abi::{YogBytes, YogReply, YogStatus};
 /// Yog Data — what content definitions and book pages' `data`
 /// (`Registry::on_book_page`) are; re-exported for mods.
 pub use yog_data;
+/// `#[derive(Schema)]`: a type read and written as Yog Data (stores, packets, frames).
+pub use yog_data::Schema;
 /// The names Yog shares — kinds, namespaces, lang keys — for a mod to use as the loader does.
 pub use yog_ids;
 /// The sync primitives Yog code uses (locks that outlive a panic) — a mod's too.
@@ -109,6 +111,8 @@ macro_rules! export_mod {
                 // SAFETY: the runtime passes a valid YogApi pointer, verified via
                 // yog_abi_version() and abi_version/size checks before this call.
                 let mut registry = unsafe { $crate::Registry::from_raw(api) };
+                // The world's folder known before the mod's own handlers run.
+                $crate::storage::__know_world(&mut registry);
                 <$mod_ty as $crate::Mod>::register(&mut registry);
 
                 // Blocks and items of `content/**/*.yblock|*.yitem`
@@ -126,7 +130,7 @@ macro_rules! export_mod {
                 }
 
                 // What it keeps, saved with the world (after the mod's own handlers).
-                $crate::storage::__install(&mut registry);
+                $crate::storage::__save_with_world(&mut registry);
             }));
             if outcome.is_err() {
                 $crate::error!(

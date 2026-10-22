@@ -86,13 +86,19 @@ fn game_dir() -> PathBuf {
     crate::game::dir().map(PathBuf::from).unwrap_or_default()
 }
 
-/// The world's folder known, kept and saved with the world; registered by
-/// `export_mod!` after the mod's own handlers (theirs run first).
+/// The world's folder known as it starts — registered by `export_mod!`
+/// before the mod's own handlers, so theirs find its stores.
 #[doc(hidden)]
-pub fn __install(registry: &mut Registry) {
+pub fn __know_world(registry: &mut Registry) {
     registry.on::<Started, _>(|e, _| {
         *WORLD.lock() = Some(PathBuf::from(&e.world_dir));
     });
+}
+
+/// What's kept saved with the world — registered by `export_mod!` after
+/// the mod's own handlers, so what theirs put in the stores is written.
+#[doc(hidden)]
+pub fn __save_with_world(registry: &mut Registry) {
     registry.on::<Stopping, _>(|_, _| CLOSING.store(true, Ordering::Release));
     registry.on::<Saving, _>(|_, _| saving());
 }

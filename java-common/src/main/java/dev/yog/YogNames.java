@@ -1132,9 +1132,11 @@ public final class YogNames {
         public static final String KIT = "yog-kit";
         public static final String GFX = "yog-gfx";
         public static final String REGISTRY = "yog-registry";
+        public static final String DATA = "yog-data";
+        public static final String DATA_RUST_NAME = "yog_data";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, API_WORD, API, API_RUST_NAME, API_VERSION_KEY, ABI, UI, KIT, GFX, REGISTRY);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, API_WORD, API, API_RUST_NAME, API_VERSION_KEY, ABI, UI, KIT, GFX, REGISTRY, DATA, DATA_RUST_NAME);
     }
 
     public static final class Res {

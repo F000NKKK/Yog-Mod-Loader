@@ -43,13 +43,45 @@ fn krate() -> Tokens {
     KRATE.with(|k| k.borrow().clone())
 }
 
+/// Where `yog_data` is for the crate deriving: its own dependency (or the
+/// crate itself), else yog-api's re-export — a mod's only dependency.
+fn default_path() -> syn::Path {
+    use proc_macro_crate::{FoundCrate, crate_name};
+    use yog_ids::rust_crate;
+    let own = quote::format_ident!("{}", rust_crate::DATA_RUST_NAME);
+    match crate_name(rust_crate::DATA) {
+        Ok(FoundCrate::Name(name)) => {
+            let name = quote::format_ident!("{name}");
+            return syn::parse_quote!(::#name);
+        }
+        Ok(FoundCrate::Itself) => return syn::parse_quote!(::#own),
+        Err(_) => {}
+    }
+    match crate_name(rust_crate::API) {
+        Ok(FoundCrate::Name(api)) => {
+            let api = quote::format_ident!("{api}");
+            syn::parse_quote!(::#api::#own)
+        }
+        _ => syn::parse_quote!(::#own),
+    }
+}
+
 #[proc_macro_derive(Schema, attributes(data))]
 pub fn derive_schema(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let container = match attrs(&input.attrs) {
+    let mut container = match attrs(&input.attrs) {
         Ok(a) => a,
         Err(e) => return e.to_compile_error().into(),
     };
+    // An enum with data in its variants is tagged, by `type` unless it says.
+    if let syn::Data::Enum(e) = &input.data
+        && container.tag.is_none()
+        && e.variants
+            .iter()
+            .any(|v| !matches!(v.fields, syn::Fields::Unit))
+    {
+        container.tag = Some(yog_ids::word::TYPE.to_owned());
+    }
     let camel = match container.rename_all.as_deref() {
         None => false,
         Some(attr_name::CAMEL_CASE) => true,
@@ -63,11 +95,9 @@ pub fn derive_schema(input: TokenStream) -> TokenStream {
         }
     };
     CAMEL.with(|c| c.set(camel));
-    let path = container
-        .krate
-        .unwrap_or_else(|| syn::parse_quote!(::yog_data));
+    let path = container.krate.take().unwrap_or_else(default_path);
     KRATE.with(|k| *k.borrow_mut() = quote!(#path));
-    match expand(&input) {
+    match expand(&input, &container) {
         Ok(t) => t.into(),
         Err(e) => e.to_compile_error().into(),
     }
@@ -574,11 +604,10 @@ fn view_items(input: &DeriveInput, fields: &[NamedField]) -> syn::Result<Tokens>
     })
 }
 
-fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
+fn expand(input: &DeriveInput, top: &Attrs) -> syn::Result<Tokens> {
     let krate = krate();
     let name = &input.ident;
     let (impl_g, ty_g, where_g) = input.generics.split_for_impl();
-    let top = attrs(&input.attrs)?;
     let shape_name = top.rename.clone().unwrap_or_else(|| name.to_string());
     let doc = docs(&input.attrs);
     let body = match &input.data {
@@ -592,7 +621,7 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
                 ));
             }
         },
-        Data::Enum(e) => enums::expand_enum(e, &top, &shape_name, &doc)?,
+        Data::Enum(e) => enums::expand_enum(e, top, &shape_name, &doc)?,
         Data::Union(_) => {
             return Err(syn::Error::new_spanned(
                 name,
@@ -600,7 +629,7 @@ fn expand(input: &DeriveInput) -> syn::Result<Tokens> {
             ));
         }
     };
-    let view = view_of(input, &top)?;
+    let view = view_of(input, top)?;
     let fields = fields_of(input)?;
     Ok(quote! {
         impl #impl_g #krate::Schema for #name #ty_g #where_g {

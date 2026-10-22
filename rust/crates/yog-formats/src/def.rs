@@ -267,10 +267,6 @@ pub struct TableDef {
     pub id: String,
     pub columns: Ordered<String>,
     pub rows: Ordered<yog_data::Value>,
-    /// The enum (de)serializes with serde (`Wood` as `"Wood"`): the mod
-    /// depends on serde.
-    #[data(default)]
-    pub serde: bool,
 }
 
 /// `{ kind: "dimension", id: "crystal_caves", dimension_type: { has_sky_light:

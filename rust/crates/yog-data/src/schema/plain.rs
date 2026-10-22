@@ -586,27 +586,37 @@ impl<T: Schema, E: Schema> Schema for Result<T, E> {
 pub(crate) const RESULT_OK: &str = "ok";
 pub(crate) const RESULT_ERR: &str = "err";
 
-/// A pair, written `[a, b]` (a point, a size).
-impl<A: Schema, B: Schema> Schema for (A, B) {
-    fn shape() -> Shape {
-        Shape::List(Value::shape)
-    }
-    fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
-        let ValueRef::List(items) = v else {
-            cx.expected("a pair [a, b]", v);
-            return None;
-        };
-        if items.len() != 2 {
-            cx.problem(format!("expected 2 items, found {}", items.len()));
-            return None;
+/// A tuple, written as a list of its items in order: a pair `[a, b]` (a
+/// point, a size), a triple `[x, y, z]` (a position).
+macro_rules! tuples {
+    ($($what:literal: $n:literal => ($($t:ident $i:tt),+);)+) => {$(
+        impl<$($t: Schema),+> Schema for ($($t,)+) {
+            fn shape() -> Shape {
+                Shape::List(Value::shape)
+            }
+            fn read(v: &ValueRef<'_>, cx: &mut Reader) -> Option<Self> {
+                let ValueRef::List(items) = v else {
+                    cx.expected($what, v);
+                    return None;
+                };
+                if items.len() != $n {
+                    cx.problem(format!("expected {} items, found {}", $n, items.len()));
+                    return None;
+                }
+                let read = ($(cx.at(Seg::Index($i), |cx| $t::read(&items[$i], cx)),)+);
+                Some(($(read.$i?,)+))
+            }
+            fn write(&self) -> Value {
+                Value::List(vec![$(self.$i.write()),+])
+            }
         }
-        let a = cx.at(Seg::Index(0), |cx| A::read(&items[0], cx));
-        let b = cx.at(Seg::Index(1), |cx| B::read(&items[1], cx));
-        Some((a?, b?))
-    }
-    fn write(&self) -> Value {
-        Value::List(vec![self.0.write(), self.1.write()])
-    }
+    )+};
+}
+
+tuples! {
+    "a pair [a, b]": 2 => (A 0, B 1);
+    "a triple [a, b, c]": 3 => (A 0, B 1, C 2);
+    "four [a, b, c, d]": 4 => (A 0, B 1, C 2, D 3);
 }
 
 fn read_map<T: Schema>(
