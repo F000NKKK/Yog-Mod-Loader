@@ -41,17 +41,17 @@ public final class YogClientEvents {
         new YogEvents.Client.Game.Tick().emit();
     }
 
-    /** The HUD being extracted for this frame: the mods' 2-D draws go into it, their raw GL onto the main target. */
+    /** The HUD being extracted for this frame: the mods' 2-D draws go into it, their raw GL drawn with it ({@link YogGlPip}). */
     public static void hud(GuiGraphicsExtractor ctx, float partialTick) {
         NativeBridge.nativeGlInit();
         Minecraft mc = Minecraft.getInstance();
         Vec3 eye = mc.player != null ? mc.player.getEyePosition() : Vec3.ZERO;
         NativeDraw.hudDrawContext = ctx;
-        boolean gl = YogGl.begin();
-        NativeBridge.nativeOnHudRender(partialTick,
-                mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight(), (float) mc.getWindow().getGuiScale(),
+        int w = mc.getWindow().getGuiScaledWidth(), h = mc.getWindow().getGuiScaledHeight();
+        NativeBridge.nativeGfxRecordStart();
+        NativeBridge.nativeOnHudRender(partialTick, w, h, (float) mc.getWindow().getGuiScale(),
                 (float) eye.x, (float) eye.y, (float) eye.z);
-        if (gl) YogGl.end();
+        YogGlPip.add(ctx, NativeBridge.nativeGfxRecordFinish(), w, h);
         NativeDraw.hudDrawContext = null;
     }
 

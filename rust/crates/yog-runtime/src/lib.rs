@@ -19,6 +19,7 @@ mod gfx_table;
 mod gl_context;
 mod globals;
 mod gpu;
+mod gpu_record;
 mod handlers;
 mod intermod;
 mod jni_client;

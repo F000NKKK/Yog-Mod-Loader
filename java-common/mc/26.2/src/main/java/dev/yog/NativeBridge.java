@@ -307,6 +307,15 @@ public final class NativeBridge {
     /** Initialize the glow GL context on the render thread.  Call once after the GL context exists. */
     public static native void nativeGlInit();
 
+    /** From now on, this thread's raw GL draws are kept, not made ({@code gpu_record}). */
+    public static native void nativeGfxRecordStart();
+
+    /** Stops keeping them: the recording's id (0: nothing was drawn). */
+    public static native long nativeGfxRecordFinish();
+
+    /** Draws recording {@code id} now, on the target bound. */
+    public static native void nativeGfxReplay(long id);
+
     /** HUD render — fired every frame; deltaTick is partial-tick interpolation. */
     public static native void nativeOnHudRender(
             float deltaTick, int screenW, int screenH, float scaleFactor,

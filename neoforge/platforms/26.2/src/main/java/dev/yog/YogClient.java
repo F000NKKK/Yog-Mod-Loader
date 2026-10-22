@@ -31,7 +31,13 @@ public final class YogClient {
             var tinted = YogClientEvents.tintedBlocks();
             if (!tinted.isEmpty()) e.register(java.util.List.of(new YogClientApi.Tint()), tinted.toArray(new Block[0]));
         });
-        modBus.addListener(RegisterPictureInPictureRenderersEvent.class, e -> e.register(YogBlocksPip.State.class, YogBlocksPip::new));
+        modBus.addListener(RegisterPictureInPictureRenderersEvent.class, e -> {
+            e.register(YogBlocksPip.State.class, YogBlocksPip::new);
+            e.register(YogGlPip.Layer0.class, () -> new YogGlPip<>(YogGlPip.Layer0.class));
+            e.register(YogGlPip.Layer1.class, () -> new YogGlPip<>(YogGlPip.Layer1.class));
+            e.register(YogGlPip.Layer2.class, () -> new YogGlPip<>(YogGlPip.Layer2.class));
+            e.register(YogGlPip.Layer3.class, () -> new YogGlPip<>(YogGlPip.Layer3.class));
+        });
         modBus.addListener(RegisterClientTooltipComponentFactoriesEvent.class, e -> e.register(YogTooltipData.class, YogClientTooltip::new));
         modBus.addListener(RegisterMenuScreensEvent.class, e -> e.register(YogContentRegistry.INVENTORY_MENU_TYPE, YogInventoryScreen::new));
         modBus.addListener(RegisterKeyMappingsEvent.class, e -> {

@@ -29,13 +29,15 @@ public final class NativeDraw {
 
     /**
      * Draws Yog UI {@code uiId} ({@code w}×{@code h}) into {@code ctx}: its
-     * 2-D draws recorded there, its surfaces' raw GL onto the main target.
+     * 2-D draws recorded there, its surfaces' raw GL kept and drawn with the
+     * GUI ({@link YogGlPip}).
      */
     static void ui(GuiGraphicsExtractor ctx, String uiId, int w, int h) {
         hudDrawContext = ctx;
-        boolean gl = YogGl.begin();
+        NativeBridge.nativeGlInit();
+        NativeBridge.nativeGfxRecordStart();
         NativeBridge.nativeUIRender(uiId, w, h);
-        if (gl) YogGl.end();
+        YogGlPip.add(ctx, NativeBridge.nativeGfxRecordFinish(), w, h);
         hudDrawContext = null;
     }
 

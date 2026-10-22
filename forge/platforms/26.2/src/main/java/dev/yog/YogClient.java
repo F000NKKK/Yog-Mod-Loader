@@ -35,7 +35,10 @@ public final class YogClient {
             var tinted = YogClientEvents.tintedBlocks();
             if (!tinted.isEmpty()) e.register(java.util.List.of(new YogClientApi.Tint()), tinted.toArray(new Block[0]));
         });
-        RegisterPictureInPictureRendererEvent.BUS.addListener(e -> e.register(new YogBlocksPip()));
+        RegisterPictureInPictureRendererEvent.BUS.addListener(e -> {
+            e.register(new YogBlocksPip());
+            for (YogGlPip<?> gl : YogGlPip.all()) e.register(gl);
+        });
         RegisterClientTooltipComponentFactoriesEvent.BUS.addListener(e -> e.register(YogTooltipData.class, YogClientTooltip::new));
         RegisterKeyMappingsEvent.BUS.addListener(e -> {
             for (KeyMapping key : YogClientEvents.keyMappings(KeyMapping.Category::register)) e.register(key);

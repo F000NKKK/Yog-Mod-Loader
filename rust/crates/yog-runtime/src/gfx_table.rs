@@ -1,26 +1,11 @@
 //! 2D drawing through the game, and the GFX function table.
 
 use crate::fonts::Named;
+use crate::gpu_record::*;
 use crate::gpu::gfx_buf_create;
-use crate::gpu::gfx_buf_data;
 use crate::gpu::gfx_buf_delete;
-use crate::gpu::gfx_buf_subdata;
-use crate::gpu::gfx_clear_scissor;
-use crate::gpu::gfx_draw_arrays;
-use crate::gpu::gfx_draw_elements;
 use crate::gpu::gfx_prog_create;
 use crate::gpu::gfx_prog_delete;
-use crate::gpu::gfx_prog_uniform_1f;
-use crate::gpu::gfx_prog_uniform_1i;
-use crate::gpu::gfx_prog_uniform_2f;
-use crate::gpu::gfx_prog_uniform_3f;
-use crate::gpu::gfx_prog_uniform_4f;
-use crate::gpu::gfx_prog_uniform_mat4;
-use crate::gpu::gfx_set_blend;
-use crate::gpu::gfx_set_depth;
-use crate::gpu::gfx_set_scissor;
-use crate::gpu::gfx_set_viewport;
-use crate::gpu::gfx_tex_bind;
 use crate::gpu::gfx_tex_create;
 use crate::gpu::gfx_tex_delete;
 use crate::gpu::gfx_tex_from_mc;
@@ -212,31 +197,31 @@ pub(super) static GFX_FN_TABLE: YogGfxApi = YogGfxApi {
     _pad1: 0.0,
     buf_create: gfx_buf_create,
     buf_delete: gfx_buf_delete,
-    buf_data: gfx_buf_data,
-    buf_subdata: gfx_buf_subdata,
+    buf_data: rec_buf_data,
+    buf_subdata: rec_buf_subdata,
     vao_create: gfx_vao_create,
     vao_delete: gfx_vao_delete,
     vao_attrib: gfx_vao_attrib,
     vao_set_ebo: gfx_vao_set_ebo,
     prog_create: gfx_prog_create,
     prog_delete: gfx_prog_delete,
-    prog_uniform_1i: gfx_prog_uniform_1i,
-    prog_uniform_1f: gfx_prog_uniform_1f,
-    prog_uniform_2f: gfx_prog_uniform_2f,
-    prog_uniform_3f: gfx_prog_uniform_3f,
-    prog_uniform_4f: gfx_prog_uniform_4f,
-    prog_uniform_mat4: gfx_prog_uniform_mat4,
+    prog_uniform_1i: rec_uniform_1i,
+    prog_uniform_1f: rec_uniform_1f,
+    prog_uniform_2f: rec_uniform_2f,
+    prog_uniform_3f: rec_uniform_3f,
+    prog_uniform_4f: rec_uniform_4f,
+    prog_uniform_mat4: rec_uniform_mat4,
     tex_create: gfx_tex_create,
     tex_delete: gfx_tex_delete,
-    tex_bind: gfx_tex_bind,
+    tex_bind: rec_tex_bind,
     tex_from_mc: gfx_tex_from_mc,
-    draw_arrays: gfx_draw_arrays,
-    draw_elements: gfx_draw_elements,
-    set_blend: gfx_set_blend,
-    set_depth: gfx_set_depth,
-    set_scissor: gfx_set_scissor,
-    clear_scissor: gfx_clear_scissor,
-    set_viewport: gfx_set_viewport,
+    draw_arrays: rec_draw_arrays,
+    draw_elements: rec_draw_elements,
+    set_blend: rec_set_blend,
+    set_depth: rec_set_depth,
+    set_scissor: rec_set_scissor,
+    clear_scissor: rec_clear_scissor,
+    set_viewport: rec_set_viewport,
     draw2d_rect: gfx_draw2d_rect,
     draw2d_gradient: gfx_draw2d_gradient,
     draw2d_text: gfx_draw2d_text,

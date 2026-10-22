@@ -2,6 +2,7 @@ package dev.yog;
 
 import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.textures.GpuTexture;
 import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
@@ -36,12 +37,17 @@ final class YogGl {
     /** Remembers GL's state and binds the main render target (color + depth) for drawing. */
     static boolean begin() {
         RenderTarget target = Minecraft.getInstance().gameRenderer.mainRenderTarget();
-        if (!(target.getColorTexture() instanceof GlTexture color) || !(target.getDepthTexture() instanceof GlTexture depth)) {
+        return beginOn(target.getColorTexture(), target.getDepthTexture(), target.width, target.height);
+    }
+
+    /** Remembers GL's state and binds {@code color} and {@code depth} ({@code w}×{@code h}) for drawing. */
+    static boolean beginOn(GpuTexture colorTexture, GpuTexture depthTexture, int w, int h) {
+        if (!(colorTexture instanceof GlTexture color) || !(depthTexture instanceof GlTexture depth)) {
             return false;
         }
         save();
         GL33C.glBindFramebuffer(GL33C.GL_FRAMEBUFFER, fbo(color.glId(), depth.glId()));
-        GL33C.glViewport(0, 0, target.width, target.height);
+        GL33C.glViewport(0, 0, w, h);
         GL33C.glDisable(GL33C.GL_SCISSOR_TEST);
         // The last pass may have left color writes masked off.
         GL33C.glColorMask(true, true, true, true);
