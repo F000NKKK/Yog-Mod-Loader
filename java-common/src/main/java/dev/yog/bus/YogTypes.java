@@ -4628,12 +4628,13 @@ public final class YogTypes {
     }
 
     /** A provider's turn (sent to its mirror's address): the fields due, a bit each in its field order, and where they go. */
-    public record Write(String mirror, long fields, long space, long rows, long[] columns, java.util.List<YogTypes.Scope> scopes) {
+    public record Write(String mirror, long fields, long space, String spaceName, long rows, long[] columns, java.util.List<YogTypes.Scope> scopes) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("mirror", mirror);
             m.put("fields", fields);
             m.put("space", space);
+            m.put("space_name", spaceName);
             m.put("rows", rows);
             m.put("columns", YogData.listOf(columns));
             m.put("scopes", scopes.stream().map(e0 -> e0.toData()).toList());
@@ -4642,7 +4643,7 @@ public final class YogTypes {
 
         public static Write fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Write(YogData.str(m.get("mirror"), ""), YogData.integer(m.get("fields"), 0), YogData.integer(m.get("space"), 0), YogData.integer(m.get("rows"), 0), YogData.longs(m.get("columns")), YogData.list(m.get("scopes")).stream().map(e0 -> YogTypes.Scope.fromData(e0)).toList());
+            return new Write(YogData.str(m.get("mirror"), ""), YogData.integer(m.get("fields"), 0), YogData.integer(m.get("space"), 0), YogData.str(m.get("space_name"), ""), YogData.integer(m.get("rows"), 0), YogData.longs(m.get("columns")), YogData.list(m.get("scopes")).stream().map(e0 -> YogTypes.Scope.fromData(e0)).toList());
         }
 
         public static Write fromBytes(byte[] bytes) {
@@ -4654,6 +4655,7 @@ public final class YogTypes {
             p.putStr(this.mirror);
             p.putI(this.fields);
             p.putI(this.space);
+            p.putStr(this.spaceName);
             p.putI(this.rows);
             p.putLongs(this.columns, false);
             { int l0 = p.beginList(this.scopes.size()); for (var e0 : this.scopes) { e0.pack(p); } p.end(l0); }
@@ -4665,11 +4667,12 @@ public final class YogTypes {
             String f_mirror = u.more(end) ? u.getStr() : "";
             long f_fields = u.more(end) ? u.getI() : 0L;
             long f_space = u.more(end) ? u.getI() : 0L;
+            String f_spaceName = u.more(end) ? u.getStr() : "";
             long f_rows = u.more(end) ? u.getI() : 0L;
             long[] f_columns = u.more(end) ? u.getLongs(false) : new long[0];
             java.util.List<YogTypes.Scope> f_scopes = u.more(end) ? YogFrame.list(u, () -> YogTypes.Scope.unpack(u)) : java.util.List.of();
             u.leave(end);
-            return new Write(f_mirror, f_fields, f_space, f_rows, f_columns, f_scopes);
+            return new Write(f_mirror, f_fields, f_space, f_spaceName, f_rows, f_columns, f_scopes);
         }
 
         public byte[] toFrame() {
@@ -4708,9 +4711,10 @@ public final class YogTypes {
             private final int o2;
             private final int o3;
             private final int o4;
-            private final int h4, n4, b4;
             private final int o5;
             private final int h5, n5, b5;
+            private final int o6;
+            private final int h6, n6, b6;
 
             public View(YogFrame.Unpacker u) {
                 this.u = u;
@@ -4719,8 +4723,9 @@ public final class YogTypes {
                 if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
                 if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
                 if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
-                if (u.more(end)) { h4 = u.position(); n4 = (int) u.getU(); b4 = u.getByte(); o4 = u.position(); u.skip(YogFrame.packedBytes(n4, b4)); } else { h4 = n4 = b4 = 0; o4 = -1; }
-                if (u.more(end)) { h5 = u.position(); n5 = u.count(); int e5 = u.listEnd(); b5 = 0; o5 = u.position(); u.skipTo(e5); } else { h5 = n5 = b5 = 0; o5 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                if (u.more(end)) { h5 = u.position(); n5 = (int) u.getU(); b5 = u.getByte(); o5 = u.position(); u.skip(YogFrame.packedBytes(n5, b5)); } else { h5 = n5 = b5 = 0; o5 = -1; }
+                if (u.more(end)) { h6 = u.position(); n6 = u.count(); int e6 = u.listEnd(); b6 = 0; o6 = u.position(); u.skipTo(e6); } else { h6 = n6 = b6 = 0; o6 = -1; }
                 u.leave(end);
             }
 
@@ -4742,42 +4747,48 @@ public final class YogTypes {
                 return u.getI();
             }
 
-            public long rows() {
-                if (o3 < 0) return 0L;
+            public String spaceName() {
+                if (o3 < 0) return "";
                 u.seek(o3);
+                return u.getStr();
+            }
+
+            public long rows() {
+                if (o4 < 0) return 0L;
+                u.seek(o4);
                 return u.getI();
             }
 
             public long[] columns() {
-                if (o4 < 0) return new long[0];
-                u.seek(h4);
+                if (o5 < 0) return new long[0];
+                u.seek(h5);
                 return u.getLongs(false);
             }
 
             public int columnsLength() {
-                return n4;
+                return n5;
             }
 
             /** Item {@code i}, read in place. */
             public long columns(int i) {
-                long v = u.packedAt(o4, n4, b4, i);
+                long v = u.packedAt(o5, n5, b5, i);
                 return (long) v;
             }
 
             public java.util.List<YogTypes.Scope> scopes() {
-                if (o5 < 0) return java.util.List.of();
-                u.seek(h5);
+                if (o6 < 0) return java.util.List.of();
+                u.seek(h6);
                 return YogFrame.list(u, () -> YogTypes.Scope.unpack(u));
             }
 
             public int scopesLength() {
-                return n5;
+                return n6;
             }
 
             /** Each item, viewed in turn. */
             public void forEachScopes(java.util.function.Consumer<YogTypes.Scope.View> each) {
-                int at = o5;
-                for (int j = 0; j < n5; j++) {
+                int at = o6;
+                for (int j = 0; j < n6; j++) {
                     u.seek(at);
                     YogTypes.Scope.View v = new YogTypes.Scope.View(u);
                     at = u.position();

@@ -9,7 +9,7 @@ use std::os::raw::c_void;
 use yog_abi::{YogBytes, YogReply, YogStatus, YogStr, status};
 use yog_data::Diagnostic;
 use yog_event::Message;
-use yog_event::mirror::{Declare, Provide, Release, Write};
+use yog_event::mirror::{Declare, Key, Keys, Provide, Release, Write};
 use yog_mirror::{Bits, ColumnRef, ColumnWriter, KeySpaceRef};
 use yog_sync::Arc;
 
@@ -150,6 +150,8 @@ impl Drop for Declared {
 pub struct Writer {
     /// The mirror's address (a family member's ends in its parameter).
     mirror: String,
+    /// Its key space's name.
+    space_name: String,
     /// What its declarations asked it to cover (its scope type's frames).
     scopes: Vec<Vec<u8>>,
     fields: u64,
@@ -171,6 +173,7 @@ impl Writer {
         }
         Writer {
             mirror: w.mirror,
+            space_name: w.space_name,
             scopes: w.scopes.into_iter().map(|s| s.bytes).collect(),
             fields: w.fields,
             // SAFETY: as above.
@@ -188,6 +191,31 @@ impl Writer {
     /// What the declarations asked it to cover, each its scope type's frame.
     pub fn scopes(&self) -> &[Vec<u8>] {
         &self.scopes
+    }
+
+    /// Makes its key space's keys `live` (each with its parent key): the
+    /// new ones put, the others taken — for a mod's own key space.
+    pub fn keep_keys(&mut self, live: &[(u64, Option<u64>)]) {
+        let Some(space) = self.space else { return };
+        let wanted: std::collections::HashSet<u64> = live.iter().map(|(k, _)| *k).collect();
+        let take: Vec<u64> = space
+            .live()
+            .map(|(_, k)| k)
+            .filter(|k| !wanted.contains(k))
+            .collect();
+        let put: Vec<Key> = live
+            .iter()
+            .filter(|(k, _)| space.row_of(*k).is_none())
+            .map(|&(key, parent)| Key { key, parent })
+            .collect();
+        if put.is_empty() && take.is_empty() {
+            return;
+        }
+        crate::call(&Keys {
+            space: self.space_name.clone(),
+            put,
+            take,
+        });
     }
 
     /// Whether field `field` is due (someone asked for it now).
@@ -250,7 +278,7 @@ impl Registry {
     pub(crate) fn providing_mirror<F: Fn(&mut Writer) + Send + Sync + 'static>(
         &mut self,
         spec: &MirrorSpec,
-        host: bool,
+        family: bool,
         write: Arc<F>,
     ) -> bool {
         let bus = unsafe { &*self.api().bus };
@@ -265,7 +293,8 @@ impl Registry {
         }
         let problem = self.call(&Provide {
             spec: spec.clone(),
-            host,
+            host: false,
+            family,
         });
         match problem.flatten() {
             Some(p) => {

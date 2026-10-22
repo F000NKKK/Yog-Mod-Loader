@@ -15144,17 +15144,18 @@ public final class YogServices {
         }
 
         /** Makes the caller mirror `spec`'s provider. It answers the mirror's own address (`spec.name`) with a [`Write`] whenever fields are due; `host`: the game's own mirrors, first for every fact they write. The answer is what's wrong, if anything. */
-        public record Provide(YogTypes.MirrorSpec spec, boolean host) {
+        public record Provide(YogTypes.MirrorSpec spec, boolean host, boolean family) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("spec", spec.toData());
                 m.put("host", host);
+                m.put("family", family);
                 return m;
             }
 
             public static Provide fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new Provide(YogTypes.MirrorSpec.fromData(m.get("spec")), YogData.bool(m.get("host"), false));
+                return new Provide(YogTypes.MirrorSpec.fromData(m.get("spec")), YogData.bool(m.get("host"), false), YogData.bool(m.get("family"), false));
             }
 
             public static Provide fromBytes(byte[] bytes) {
@@ -15165,6 +15166,7 @@ public final class YogServices {
                 int at = p.begin();
                 this.spec.pack(p);
                 p.putBool(this.host);
+                p.putBool(this.family);
                 p.end(at);
             }
 
@@ -15172,8 +15174,9 @@ public final class YogServices {
                 int end = u.begin();
                 YogTypes.MirrorSpec f_spec = u.more(end) ? YogTypes.MirrorSpec.unpack(u) : null;
                 boolean f_host = u.more(end) ? u.getBool() : false;
+                boolean f_family = u.more(end) ? u.getBool() : false;
                 u.leave(end);
-                return new Provide(f_spec, f_host);
+                return new Provide(f_spec, f_host, f_family);
             }
 
             public byte[] toFrame() {
@@ -15209,12 +15212,14 @@ public final class YogServices {
                 private final YogFrame.Unpacker u;
                 private final int o0;
                 private final int o1;
+                private final int o2;
 
                 public View(YogFrame.Unpacker u) {
                     this.u = u;
                     int end = u.begin();
                     if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
                     if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
                     u.leave(end);
                 }
 
@@ -15227,6 +15232,12 @@ public final class YogServices {
                 public boolean host() {
                     if (o1 < 0) return false;
                     u.seek(o1);
+                    return u.getBool();
+                }
+
+                public boolean family() {
+                    if (o2 < 0) return false;
+                    u.seek(o2);
                     return u.getBool();
                 }
             }

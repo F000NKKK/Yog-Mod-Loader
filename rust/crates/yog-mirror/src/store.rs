@@ -30,6 +30,7 @@ type ColumnId = u32;
 pub struct SpaceId(u32);
 
 struct Space {
+    name: Arc<str>,
     keys: KeySpace,
     parent: Option<SpaceId>,
     /// Rows its columns and mirrors' rows were last grown to.
@@ -141,6 +142,7 @@ impl Store {
         let id = SpaceId(self.spaces.len() as u32);
         let grown = keys.capacity();
         self.spaces.push(Space {
+            name: name.into(),
             keys,
             parent,
             grown,
@@ -373,6 +375,7 @@ impl Store {
                     mirror: m.name.clone(),
                     fields,
                     space: std::ptr::from_ref(self.spaces[m.space.0 as usize].keys.raw()) as u64,
+                    space_name: self.spaces[m.space.0 as usize].name.clone(),
                     rows: std::ptr::from_ref(m.rows.raw()) as u64,
                     columns: first..out.next_column(),
                     scopes: scopes..out.next_scope(),

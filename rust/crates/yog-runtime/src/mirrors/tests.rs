@@ -61,7 +61,8 @@ fn a_declared_mirror_is_written_and_read_in_place() {
     assert_eq!(
         call(&Provide {
             spec: spec(),
-            host: false
+            host: false,
+            family: false
         }),
         Some(None)
     );

@@ -79,6 +79,8 @@ pub struct Due {
     pub fields: u64,
     /// The mirror's key space (`*const YogKeySpace`).
     pub space: u64,
+    /// Its name.
+    pub space_name: yog_sync::Arc<str>,
     /// The mirror's rows (`*const YogColumn`).
     pub rows: u64,
     /// Its due fields' columns in [`DueList::columns`], in field order.

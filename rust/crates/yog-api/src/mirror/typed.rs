@@ -21,6 +21,8 @@ pub trait Mirror: Sized + 'static {
     const SPACE: &'static str;
     /// Every field's bit.
     const ALL: u64;
+    /// Its key space is a family (a member each parameter, `declare_in`).
+    const FAMILY: bool = false;
     /// A row read.
     type View<'a>: From<Row<'a, Self>>;
     /// A row written.
@@ -201,6 +203,11 @@ impl<M: Mirror> MirrorWriter<'_, M> {
             .filter_map(|b| yog_data::frame::read_frame(b))
     }
 
+    /// Makes the key space's keys `live` (a mod's own key space).
+    pub fn keep_keys(&mut self, live: &[(u64, Option<u64>)]) {
+        self.writer.keep_keys(live);
+    }
+
     /// Whether any of `fields` is due.
     pub fn wants(&self, fields: u64) -> bool {
         (0..u64::BITS as usize).any(|i| fields >> i & 1 == 1 && self.writer.wants(i))
@@ -219,6 +226,6 @@ impl Registry {
                 _mirror: PhantomData,
             })
         });
-        self.providing_mirror(&M::spec(), false, write)
+        self.providing_mirror(&M::spec(), M::FAMILY, write)
     }
 }

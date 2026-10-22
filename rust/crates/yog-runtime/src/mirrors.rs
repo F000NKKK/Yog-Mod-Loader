@@ -119,6 +119,9 @@ fn provide_in(
 fn provide(p: &Provide) -> Option<yog_data::Diagnostic> {
     let writer = crate::bus::ROUTER.resolve(&p.spec.name);
     let mut m = MIRRORS.lock();
+    if p.family {
+        m.store.family(&p.spec.space);
+    }
     if let Err(problem) = provide_in(&mut m.store, &p.spec, writer, p.host) {
         return Some(problem);
     }
@@ -159,6 +162,8 @@ pub(crate) fn after_tick() {
         write.mirror.push_str(&d.mirror);
         write.fields = d.fields;
         write.space = d.space;
+        write.space_name.clear();
+        write.space_name.push_str(&d.space_name);
         write.rows = d.rows;
         write.columns.clear();
         write.columns.extend_from_slice(due.columns(d));

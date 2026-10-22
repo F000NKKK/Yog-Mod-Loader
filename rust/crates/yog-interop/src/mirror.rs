@@ -19,6 +19,8 @@ const FACT: &str = "fact";
 const SPACE: &str = "space";
 const OWNER: &str = "owner";
 const HOST: &str = "host";
+/// A bare flag: its space is a family (`declare_in` names a member).
+const FAMILY: &str = "family";
 
 /// What `#[yog_mirror(…)]` says: a mod's own mirror, or the host's
 /// (`host = yog_mirror::host::ENTITY`: its table is the source of its
@@ -27,12 +29,13 @@ enum Args {
     Own {
         space: syn::Expr,
         owner: Option<syn::LitStr>,
+        family: bool,
     },
     Host(syn::Expr),
 }
 
 fn args_of(attr: TokenStream) -> syn::Result<Args> {
-    let (mut space, mut owner, mut host) = (None, None, None);
+    let (mut space, mut owner, mut host, mut family) = (None, None, None, false);
     let parser = syn::meta::parser(|m| {
         if m.path.is_ident(SPACE) {
             space = Some(m.value()?.parse::<syn::Expr>()?);
@@ -40,9 +43,11 @@ fn args_of(attr: TokenStream) -> syn::Result<Args> {
             owner = Some(m.value()?.parse::<syn::LitStr>()?);
         } else if m.path.is_ident(HOST) {
             host = Some(m.value()?.parse::<syn::Expr>()?);
+        } else if m.path.is_ident(FAMILY) {
+            family = true;
         } else {
             return Err(m.error(format!(
-                "expected `{SPACE} = …`, `{OWNER} = \"…\"` or `{HOST} = …`"
+                "expected `{SPACE} = …`, `{OWNER} = \"…\"`, `{FAMILY}` or `{HOST} = …`"
             )));
         }
         Ok(())
@@ -50,7 +55,11 @@ fn args_of(attr: TokenStream) -> syn::Result<Args> {
     syn::parse::Parser::parse2(parser, attr)?;
     match (host, space) {
         (Some(host), None) => Ok(Args::Host(host)),
-        (None, Some(space)) => Ok(Args::Own { space, owner }),
+        (None, Some(space)) => Ok(Args::Own {
+            space,
+            owner,
+            family,
+        }),
         _ => Err(syn::Error::new(
             proc_macro2::Span::call_site(),
             format!("either `{SPACE} = …` or `{HOST} = …`"),
@@ -182,7 +191,11 @@ fn mirror_impl(it: &Item, args: &Args) -> TokenStream {
 fn source(it: &Item, args: &Args) -> TokenStream {
     let m = api();
     match args {
-        Args::Own { space, owner } => {
+        Args::Own {
+            space,
+            owner,
+            family,
+        } => {
             let owner = match owner {
                 Some(o) => quote! { Some(#o) },
                 None => quote! { None },
@@ -203,6 +216,7 @@ fn source(it: &Item, args: &Args) -> TokenStream {
             quote! {
                 const OWNER: Option<&'static str> = #owner;
                 const SPACE: &'static str = #space;
+                const FAMILY: bool = #family;
 
                 fn fields() -> Vec<#m::FieldSpec> {
                     vec![#(#specs),*]

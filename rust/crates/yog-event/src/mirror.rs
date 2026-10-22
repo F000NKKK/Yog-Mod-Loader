@@ -76,6 +76,10 @@ pub struct Release {
 pub struct Provide {
     pub spec: MirrorSpec,
     pub host: bool,
+    /// Its space is a family: a member each parameter
+    /// (`<space>/<parameter>`), made when it's first named, with this
+    /// mirror in it as `<name>/<parameter>`.
+    pub family: bool,
 }
 
 /// Mirror `name`'s provider saying it changed (its on-change fields are due).
@@ -109,6 +113,8 @@ pub struct Write {
     pub fields: u64,
     /// The mirror's key space (`*const YogKeySpace`).
     pub space: u64,
+    /// Its name (what [`Keys`] takes).
+    pub space_name: String,
     /// The mirror's rows (`*const YogColumn`): a bit set a row it fills.
     pub rows: u64,
     /// The due fields' columns (`*const YogColumn`), in field order.
