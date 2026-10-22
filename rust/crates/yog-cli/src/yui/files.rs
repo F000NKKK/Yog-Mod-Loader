@@ -4,6 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use super::{generate_with, parse_xml};
+use yog_data::Diagnostic;
 
 /// Where generated screen code goes, under the project root.
 pub const GENERATED_DIR: &str = ".yog-build/generated";
@@ -55,8 +56,10 @@ const GENERATED_EXT: &str = ".g.rs";
 /// Generates `.yog-build/generated/<name>.g.rs` for one `.yui` file of the
 /// project at `root` — only rewritten when the output changed, so cargo
 /// doesn't rebuild for nothing. Its path, and what to warn of.
-pub fn generate_file(root: &Path, yui: &Path) -> Result<(PathBuf, Vec<String>), String> {
-    let src = std::fs::read_to_string(yui).map_err(|e| format!("{}: {e}", yui.display()))?;
+pub fn generate_file(root: &Path, yui: &Path) -> Result<(PathBuf, Vec<Diagnostic>), Diagnostic> {
+    let shown = crate::shown_path(root, yui);
+    let screen = |d: Diagnostic| d.in_file(&shown).or_code(yog_ids::build_problem::SCREEN);
+    let src = std::fs::read_to_string(yui).map_err(|e| screen(e.to_string().into()))?;
     let name = include_name(root, yui);
     let mod_id = std::fs::read_to_string(root.join(crate::manifest::MANIFEST))
         .ok()
@@ -75,17 +78,11 @@ pub fn generate_file(root: &Path, yui: &Path) -> Result<(PathBuf, Vec<String>), 
     } else {
         Vec::new()
     };
-    let (code, warnings) = generate_with(&src, &name, mod_id.as_deref(), &layouts)
-        .map_err(|e| format!("{}: {e}", yui.display()))?;
+    let (code, warnings) =
+        generate_with(&src, &name, mod_id.as_deref(), &layouts).map_err(screen)?;
     let out = generated_path(root, &name);
     crate::write_if_changed(&out, &code)?;
-    Ok((
-        out,
-        warnings
-            .into_iter()
-            .map(|w| format!("{}: {w}", yui.display()))
-            .collect(),
-    ))
+    Ok((out, warnings.into_iter().map(screen).collect()))
 }
 
 /// What opens a `<RecipeArea>`: a screen with one needs the mod's layouts.
@@ -107,12 +104,12 @@ pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
 /// What [`generate_all`] did: how many screens it read, what to warn of.
 pub struct Generated {
     pub screens: usize,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<Diagnostic>,
 }
 
 /// `yog build`'s step: regenerates every `src/**/*.yui`'s `.g.rs` and drops
 /// generated files whose `.yui` is gone.
-pub fn generate_all(root: &Path) -> Result<Generated, String> {
+pub fn generate_all(root: &Path) -> Result<Generated, Diagnostic> {
     let files = find_yui_files(&root.join(yog_ids::project::SRC));
     let mut wanted = Vec::new();
     let mut warnings = Vec::new();
@@ -128,7 +125,7 @@ pub fn generate_all(root: &Path) -> Result<Generated, String> {
     // Components without a code-behind, for `ui_components!()`.
     let (index, warning) = crate::yui_component::write_index(root)?;
     wanted.push(index);
-    warnings.extend(warning);
+    warnings.extend(warning.map(|w| Diagnostic::warning(yog_ids::build_problem::SCREEN, w)));
     // `.yres` accessors live there too (`crate::yres` cleans those up).
     let res_index = root.join(crate::yres::GENERATED_FILE);
     let res_dir = root.join(crate::yres::GENERATED_DIR);

@@ -293,14 +293,11 @@ impl Schema for YresFile {
     }
 }
 
-/// Parses `.yres` text. Every problem is reported, `line:column: name: message`
-/// one per line; names aren't validated here (see [`valid_name`]).
-pub fn parse(text: &str) -> Result<Vec<Entry>, String> {
-    let doc = yog_data::text::parse(text).map_err(|e| e.to_string())?;
-    let mut entries = yog_data::schema::from_doc::<YresFile>(text, &doc)
-        .map_err(|e| e.to_string())?
-        .value
-        .0;
+/// Parses `.yres` text: its entries, or every problem, each with its code
+/// and place; names aren't validated here (see [`valid_name`]).
+pub fn parse(text: &str) -> Result<Vec<Entry>, yog_data::Errors> {
+    let doc = yog_data::text::parse(text).map_err(yog_data::Errors::from)?;
+    let mut entries = yog_data::schema::from_doc::<YresFile>(text, &doc)?.value.0;
     // Each name's line: the spans are in the same order as the names.
     let mut lines = HashMap::new();
     if let yog_data::Value::Map(map) = &doc.value {

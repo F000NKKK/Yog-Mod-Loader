@@ -1,18 +1,9 @@
 //! Reading a value against a schema: its problems, with their paths.
-use super::{LineCol, MapRef, Path, Ref, Res, Schema, Seg, Text, ValueRef, fmt};
+use crate::Diagnostic;
+
+use super::{MapRef, Path, Ref, Res, Schema, Seg, Text, ValueRef};
 
 // ── Reading ─────────────────────────────────────────────────────────────────
-
-/// A problem found reading a value.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Problem {
-    pub path: Path,
-    /// What it is (`yog_ids::problem_code`).
-    pub code: &'static str,
-    pub message: String,
-    /// About the key at `path` rather than its value (an unknown field).
-    pub at_key: bool,
-}
 
 /// Where a reference was found.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,7 +23,7 @@ pub struct Reader<'r> {
     pub(super) value_only: bool,
     /// What the tool makes of references and texts (none: kept as written).
     pub(super) resolver: Option<&'r mut dyn Resolve>,
-    pub problems: Vec<Problem>,
+    pub problems: Vec<Diagnostic>,
     pub refs: Vec<Found<Ref>>,
     pub tags: Vec<Found<Ref>>,
     pub resources: Vec<Found<Res>>,
@@ -165,23 +156,19 @@ impl<'r> Reader<'r> {
 
     /// Reports a problem with the value being read.
     pub fn problem(&mut self, message: impl Into<String>) {
-        self.problem_of(yog_ids::problem_code::INVALID, message);
+        self.problem_of(yog_ids::data_problem::INVALID, message);
     }
 
-    /// Reports a problem of kind `code` (`yog_ids::problem_code`) with the value being read.
+    /// Reports a problem of kind `code` (`yog_ids::data_problem`) with the value being read.
     pub fn problem_of(&mut self, code: &'static str, message: impl Into<String>) {
-        self.problems.push(Problem {
-            path: self.path(),
-            code,
-            message: message.into(),
-            at_key: false,
-        });
+        let found = Diagnostic::error(code, message.into()).at_path(self.path());
+        self.problems.push(found);
     }
 
     /// "expected X, found Y".
     pub fn expected(&mut self, what: &str, found: &ValueRef) {
         self.problem_of(
-            yog_ids::problem_code::EXPECTED,
+            yog_ids::data_problem::EXPECTED,
             format!("expected {what}, found {}", found_text(found)),
         );
     }
@@ -259,12 +246,13 @@ impl<'r> Reader<'r> {
                         )
                     }
                 });
-            self.problems.push(Problem {
-                path: self.path().key(key),
-                code: yog_ids::problem_code::UNKNOWN_FIELD,
-                message: format!("unknown field `{key}`{hint}"),
-                at_key: true,
-            });
+            let mut found = Diagnostic::error(
+                yog_ids::data_problem::UNKNOWN_FIELD,
+                format!("unknown field `{key}`{hint}"),
+            )
+            .at_path(self.path().key(key));
+            found.on_key = true;
+            self.problems.push(found);
         }
     }
 
@@ -290,7 +278,7 @@ impl<'r> Reader<'r> {
             Some(v) => self.at(Seg::Key(key.to_string()), |cx| T::read(v, cx)),
             None => T::absent().or_else(|| {
                 self.problem_of(
-                    yog_ids::problem_code::MISSING_FIELD,
+                    yog_ids::data_problem::MISSING_FIELD,
                     format!("missing `{key}`"),
                 );
                 None
@@ -321,7 +309,7 @@ impl<'r> Reader<'r> {
             Some(v) => self.in_field(key, |cx| W::read(v, cx)),
             None => W::absent().or_else(|| {
                 self.problem_of(
-                    yog_ids::problem_code::MISSING_FIELD,
+                    yog_ids::data_problem::MISSING_FIELD,
                     format!("missing `{key}`"),
                 );
                 None
@@ -410,44 +398,6 @@ fn edit_distance(a: &str, b: &str) -> usize {
     prev[b.len()]
 }
 
-/// Problems found reading a document, with where each is.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Errors(pub Vec<Located>);
-
-/// A problem and its place in the source.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Located {
-    pub at: Option<LineCol>,
-    pub path: Path,
-    pub message: String,
-}
-
-impl fmt::Display for Located {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(at) = self.at {
-            write!(f, "{at}: ")?;
-        }
-        if !self.path.is_root() {
-            write!(f, "{}: ", self.path)?;
-        }
-        f.write_str(&self.message)
-    }
-}
-
-impl fmt::Display for Errors {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (i, e) in self.0.iter().enumerate() {
-            if i > 0 {
-                f.write_str("\n")?;
-            }
-            write!(f, "{e}")?;
-        }
-        Ok(())
-    }
-}
-
-impl std::error::Error for Errors {}
-
 /// What reading a document gives: the value and the references in it.
 #[derive(Debug)]
 pub struct Read<T> {
@@ -518,7 +468,7 @@ impl Reader<'_> {
                 let bad = show(n);
                 self.at(Seg::Key(key.to_string()), |cx| {
                     cx.problem_of(
-                        yog_ids::problem_code::OUT_OF_RANGE,
+                        yog_ids::data_problem::OUT_OF_RANGE,
                         format!("{bad} is out of range ({}..={})", show(lo), show(hi)),
                     )
                 });

@@ -137,17 +137,7 @@ fn mod_root(file: &Path) -> Result<PathBuf, ServiceError> {
 }
 
 fn parse(text: &str, set_and_mod: Option<(&str, &str)>) -> Reply {
-    let entries = yog_formats::yres::parse(text).map_err(|e| {
-        // `line:column: message` → {line, message}.
-        let line = e
-            .split(':')
-            .next()
-            .and_then(|l| l.trim().parse::<u64>().ok());
-        match line {
-            Some(line) => ServiceError::at(yog_ids::problem_code::SYNTAX, e, line as u32, None),
-            None => ServiceError::from(e),
-        }
-    })?;
+    let entries = yog_formats::yres::parse(text)?;
     let entries = entries.iter().map(|e| info(e, set_and_mod)).collect();
     Ok(Parsed { entries }.write())
 }

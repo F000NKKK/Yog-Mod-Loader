@@ -10,7 +10,7 @@ use yog_ids::Format;
 /// Runs `yog ui gen <path>` in the file's folder, so a saved screen's
 /// generated `foo.g.rs` is current without a full build (`yog` finds the
 /// project from the `yog.toml` above the file). The result carries what
-/// `yog` printed either way — its errors and warnings go to the Error List;
+/// `yog` found either way — its errors and warnings go to the Error List;
 /// `Err` only when `yog` couldn't run at all.
 pub fn codegen(path: &str) -> Result<Codegen, String> {
     let file = PathBuf::from(path);
@@ -38,44 +38,34 @@ pub fn codegen(path: &str) -> Result<Codegen, String> {
     if let Some(dir) = dir {
         command.current_dir(dir);
     }
-    let output = command
-        .output()
+    let (output, problems) = crate::diagnostics::collected(&mut command)
         .map_err(|e| format!("failed to run yog: {e}"))?;
-    let log = String::from_utf8_lossy(&output.stderr).into_owned();
-    let ok = output.status.success();
+    let failed = || {
+        let errors: Vec<String> = problems
+            .iter()
+            .filter(|d| d.is_error())
+            .map(ToString::to_string)
+            .collect();
+        if errors.is_empty() {
+            format!("yog {} failed ({})", args.join(" "), output.status)
+        } else {
+            errors.join("\n")
+        }
+    };
     Ok(Codegen {
-        // "==> src/foo.yui -> /project/.yog-build/generated/foo.g.rs"
-        generated: log
-            .lines()
-            .find_map(|l| l.rsplit_once(" -> ").map(|(_, out)| out.trim().to_string()))
-            .filter(|_| ok)
-            .unwrap_or_default(),
-        error: (!ok).then(|| {
-            let message = log
-                .lines()
-                .map(|l| l.trim_start_matches("yog: error: "))
-                .collect::<Vec<_>>()
-                .join("\n");
-            if message.trim().is_empty() {
-                format!("yog {} failed ({})", args.join(" "), output.status)
-            } else {
-                message.trim().to_string()
-            }
-        }),
-        root: dir
+        error: (!output.status.success()).then(failed),
+        root: project
             .map(|d| d.to_string_lossy().into_owned())
             .unwrap_or_default(),
-        log,
+        problems,
     })
 }
 
-/// One regeneration: the generated file (empty on failure), the failure's
-/// message, and `yog`'s full output with the folder it ran in — what the
-/// Error List reads the file's errors and warnings from.
+/// One regeneration: the failure's message, and what `yog` found — each
+/// record's file relative to `root`, the project's folder.
 #[derive(yog_data::Schema)]
 pub struct Codegen {
-    pub generated: String,
     pub error: Option<String>,
-    pub log: String,
+    pub problems: Vec<yog_data::Diagnostic>,
     pub root: String,
 }

@@ -2,9 +2,10 @@
 //! checked here and made an enum in the mod's code (`yog_formats::def::TableDef`).
 
 use std::fmt::Write as _;
+use yog_data::Diagnostic;
 
 use super::refs::{self, RefKind};
-use yog_data::Value;
+use yog_data::{Path as At, Value};
 use yog_formats::def::TableDef;
 
 use crate::yres;
@@ -200,25 +201,36 @@ pub struct Table {
 /// Column names every table's code has already (its id, index, lookup, list).
 const RESERVED_COLUMNS: [&str; 4] = ["id", "index", "from_id", "all"];
 
+/// A problem with the table's value at `keys` (`rows.wood.size`).
+fn problem_at(keys: &[&str], message: impl std::fmt::Display) -> Diagnostic {
+    let path = keys.iter().fold(At::root(), |at, k| at.key(k));
+    Diagnostic::error(yog_ids::build_problem::CONTENT, message).at_path(path)
+}
+
+/// The table's fields problems are at.
+const ID: &str = yog_data::field!(TableDef, id);
+const COLUMNS: &str = yog_data::field!(TableDef, columns);
+const ROWS: &str = yog_data::field!(TableDef, rows);
+
 /// A table's row: its id, its variant's name, each column's expression.
 type Row = (String, String, Vec<String>);
 
-/// Checks a table; its errors as `path: message`.
+/// Checks a table; its problems, each at its path.
 pub fn check(
     file: &str,
     t: TableDef,
     refs: &yres::Refs,
     known: &refs::Known,
-) -> Result<Table, Vec<String>> {
+) -> Result<Table, Vec<Diagnostic>> {
     let mut errors = Vec::new();
     let name = pascal(&t.id);
     if name.is_empty()
         || !name.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
         || !name.chars().all(|c| c.is_ascii_alphanumeric())
     {
-        errors.push(format!(
-            "id: `{}`: a name like `tier` or `power_level`",
-            t.id
+        errors.push(problem_at(
+            &[ID],
+            format!("`{}`: a name like `tier` or `power_level`", t.id),
         ));
     }
     let columns = check_columns(&t, &mut errors);
@@ -226,13 +238,13 @@ pub fn check(
     for (id, v) in &t.rows.0 {
         if let Some(row) = check_row(id, v, &columns, (refs, known), &mut errors) {
             if rows.iter().any(|(_, variant, _)| *variant == row.1) {
-                errors.push(format!("rows.{id}: twice"));
+                errors.push(problem_at(&[ROWS, id], "twice"));
             }
             rows.push(row);
         }
     }
     if rows.is_empty() {
-        errors.push("rows: none".into());
+        errors.push(problem_at(&[ROWS], "none"));
     }
     if !errors.is_empty() {
         return Err(errors);
@@ -247,18 +259,18 @@ pub fn check(
 }
 
 /// The table's columns, each with its type; a bad name or type is an error.
-fn check_columns(t: &TableDef, errors: &mut Vec<String>) -> Vec<(String, Column)> {
+fn check_columns(t: &TableDef, errors: &mut Vec<Diagnostic>) -> Vec<(String, Column)> {
     let mut columns = Vec::new();
     for (c, ty) in &t.columns.0 {
         if !super::valid_path(c) || c.contains('/') || c.starts_with(|ch: char| ch.is_ascii_digit())
         {
-            errors.push(format!("columns.{c}: a name like `world_size`"));
+            errors.push(problem_at(&[COLUMNS, c], "a name like `world_size`"));
         } else if RESERVED_COLUMNS.contains(&c.as_str()) {
-            errors.push(format!("columns.{c}: taken (every table has it)"));
+            errors.push(problem_at(&[COLUMNS, c], "taken (every table has it)"));
         }
         match column(ty) {
             Ok(col) => columns.push((c.clone(), col)),
-            Err(e) => errors.push(format!("columns.{c}: {e}")),
+            Err(e) => errors.push(problem_at(&[COLUMNS, c], e)),
         }
     }
     columns
@@ -271,7 +283,7 @@ fn check_row(
     v: &Value,
     columns: &[(String, Column)],
     cx: (&yres::Refs, &refs::Known),
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) -> Option<Row> {
     let variant = pascal(id);
     if !variant
@@ -279,27 +291,27 @@ fn check_row(
         .next()
         .is_some_and(|c| c.is_ascii_alphabetic())
     {
-        errors.push(format!("rows.{id}: a name like `wood`"));
+        errors.push(problem_at(&[ROWS, id], "a name like `wood`"));
         return None;
     }
     let Some(map) = v.as_map() else {
-        errors.push(format!("rows.{id}: a row is a map of its columns"));
+        errors.push(problem_at(&[ROWS, id], "a row is a map of its columns"));
         return None;
     };
     for (k, _) in map.iter() {
         if !columns.iter().any(|(c, _)| c == k) {
-            errors.push(format!("rows.{id}.{k}: no such column"));
+            errors.push(problem_at(&[ROWS, id, k], "no such column"));
         }
     }
     let mut exprs = Vec::new();
     for (c, col) in columns {
         let Some(cell) = map.get(c) else {
-            errors.push(format!("rows.{id}.{c}: missing"));
+            errors.push(problem_at(&[ROWS, id, c], "missing"));
             continue;
         };
         match cell_expr(col, cell, cx) {
             Ok(e) => exprs.push(e),
-            Err(e) => errors.push(format!("rows.{id}.{c}: {e}")),
+            Err(e) => errors.push(problem_at(&[ROWS, id, c], e)),
         }
     }
     Some((id.to_string(), variant, exprs))
@@ -423,7 +435,7 @@ pub fn rust(t: &Table) -> String {
 mod tests {
     use super::*;
 
-    fn table(text: &str) -> Result<Table, Vec<String>> {
+    fn table(text: &str) -> Result<Table, Vec<Diagnostic>> {
         let doc = yog_data::text::parse(text).unwrap();
         let def = match yog_data::schema::from_doc::<yog_formats::def::Def>(text, &doc)
             .unwrap()
@@ -474,7 +486,11 @@ mod tests {
                 rows: { wood: { size: 300, chip: "@item:mymod:nope", extra: 1 } } }"#,
         )
         .unwrap_err();
-        let all = e.join("\n");
+        let all = e
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n");
         assert!(all.contains("columns.odd"), "{all}");
         assert!(
             all.contains("rows.wood.size: 300 doesn't fit a u8"),

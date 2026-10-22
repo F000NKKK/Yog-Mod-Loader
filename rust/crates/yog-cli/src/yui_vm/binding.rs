@@ -4,6 +4,7 @@ use yog_ids::yui_vm as v;
 
 use super::expr::{Ex, Scope, parse_expr};
 use crate::yui::{Element, err};
+use yog_data::Diagnostic;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) enum Mode {
@@ -56,28 +57,28 @@ impl Binding {
     }
 
     /// The bound value as Rust in `scope`.
-    pub(super) fn rust(&self, scope: Scope, el: &Element) -> Result<String, String> {
+    pub(super) fn rust(&self, scope: Scope, el: &Element) -> Result<String, Diagnostic> {
         match &self.bound {
             Bound::Rust(r) => Ok(r.clone()),
             Bound::Expr(e) => e
                 .emit(scope, false)
-                .map_err(|e| format!("line {}: {e}", el.line)),
+                .map_err(|e| Diagnostic::from(format!("{e}")).at_line(el.line)),
         }
     }
 
     /// Its expression as Rust in `scope`; an error at `el` when it has none.
-    pub(super) fn emit(&self, scope: Scope, el: &Element) -> Result<String, String> {
+    pub(super) fn emit(&self, scope: Scope, el: &Element) -> Result<String, Diagnostic> {
         match self.expr() {
             Some(e) => e
                 .emit(scope, false)
-                .map_err(|e| format!("line {}: {e}", el.line)),
+                .map_err(|e| Diagnostic::from(format!("{e}")).at_line(el.line)),
             None => err(el, format_args!("`{}` needs {{x:Bind ...}}", self.raw)),
         }
     }
 
     /// What writes a new value back to the view model: its `BindBack`
     /// method's call on `arg`, or (two-way) its field set to `value`.
-    pub(super) fn write_back(&self, arg: &str, value: &str) -> Result<WriteBack, String> {
+    pub(super) fn write_back(&self, arg: &str, value: &str) -> Result<WriteBack, Diagnostic> {
         Ok(match (&self.bind_back, self.mode, self.expr()) {
             (Some(m), _, _) => WriteBack::Stmt(format!("vm.{m}({arg});")),
             (None, Mode::TwoWay, Some(e)) if e.is_place() => {
@@ -121,7 +122,7 @@ fn split_top(s: &str) -> Vec<&str> {
 const OPTION_IS: char = '=';
 
 /// `value` as a binding; none when it isn't one.
-pub(super) fn parse_binding(value: &str) -> Option<Result<Binding, String>> {
+pub(super) fn parse_binding(value: &str) -> Option<Result<Binding, Diagnostic>> {
     let inner = value
         .trim()
         .strip_prefix(yog_ids::yui_markup::BIND)?
@@ -129,7 +130,7 @@ pub(super) fn parse_binding(value: &str) -> Option<Result<Binding, String>> {
     Some(read_binding(value, inner))
 }
 
-fn read_binding(value: &str, inner: &str) -> Result<Binding, String> {
+fn read_binding(value: &str, inner: &str) -> Result<Binding, Diagnostic> {
     let mut parts = split_top(inner).into_iter().map(str::trim);
     let expr = parts
         .next()
@@ -141,9 +142,9 @@ fn read_binding(value: &str, inner: &str) -> Result<Binding, String> {
     );
     for part in parts {
         let Some((k, o)) = part.split_once(OPTION_IS) else {
-            return Err(format!(
-                "{value}: expected Mode=, BindBack= or Fallback=, got `{part}`"
-            ));
+            return Err(
+                format!("{value}: expected Mode=, BindBack= or Fallback=, got `{part}`").into(),
+            );
         };
         let o = o.trim();
         match k.trim() {
@@ -151,12 +152,12 @@ fn read_binding(value: &str, inner: &str) -> Result<Binding, String> {
                 b.mode = match o {
                     v::ONE_WAY | v::ONE_TIME => Mode::OneWay,
                     v::TWO_WAY => Mode::TwoWay,
-                    _ => return Err(format!("{value}: Mode is OneWay, OneTime or TwoWay")),
+                    _ => return Err(format!("{value}: Mode is OneWay, OneTime or TwoWay").into()),
                 }
             }
             v::BIND_BACK => b.bind_back = Some(o.to_string()),
             v::FALLBACK => b.fallback = Some(o.trim_matches('\'').to_string()),
-            other => return Err(format!("{value}: unknown binding option `{other}`")),
+            other => return Err(format!("{value}: unknown binding option `{other}`").into()),
         }
     }
     Ok(b)
@@ -168,7 +169,7 @@ fn read_binding(value: &str, inner: &str) -> Result<Binding, String> {
 /// `Option`). `None` when `value` isn't a binding. Options (`Mode=`,
 /// `BindBack=`, `Fallback=`) are parsed and ignored here. Shared with the
 /// `.yui` component generator so there's one binding syntax.
-pub(crate) fn compile_bind(value: &str) -> Option<Result<String, String>> {
+pub(crate) fn compile_bind(value: &str) -> Option<Result<String, Diagnostic>> {
     Some(parse_binding(value)?.and_then(|b| match b.bound {
         Bound::Expr(e) => e.emit(Scope::Screen, false),
         Bound::Rust(r) => Ok(r),

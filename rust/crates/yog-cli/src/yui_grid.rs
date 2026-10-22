@@ -26,6 +26,7 @@
 //! so the screen, view-model and component generators need no Grid logic.
 
 use crate::yui::{Element, RAW_CALL, err};
+use yog_data::Diagnostic;
 use yog_ids::{yui, yui_attr as at};
 
 const ATTACHED: &[&str] = &[
@@ -60,7 +61,7 @@ fn length(v: &str) -> Option<String> {
 }
 
 /// `rows="Auto,*,26"` → track expressions.
-fn compact(el: &Element, key: &str, value: &str, what: &str) -> Result<Vec<String>, String> {
+fn compact(el: &Element, key: &str, value: &str, what: &str) -> Result<Vec<String>, Diagnostic> {
     if value.trim_start().starts_with('{') {
         return err(
             el,
@@ -71,19 +72,14 @@ fn compact(el: &Element, key: &str, value: &str, what: &str) -> Result<Vec<Strin
         .split(',')
         .map(|part| {
             length(part).ok_or_else(|| {
-                format!(
-                    "line {}: <{}> {key}=\"{value}\": `{}` isn't a {what} size — expected Auto, *, 2* or pixels (26)",
-                    el.line,
-                    el.name,
-                    part.trim()
-                )
+                Diagnostic::from(format!("<{}> {key}=\"{value}\": `{}` isn't a {what} size — expected Auto, *, 2* or pixels (26)", el.name, part.trim())).at_line(el.line)
             })
         })
         .collect()
 }
 
 /// `<Grid.RowDefinitions>` → track expressions.
-fn elements(prop: &Element, row: bool) -> Result<Vec<String>, String> {
+fn elements(prop: &Element, row: bool) -> Result<Vec<String>, Diagnostic> {
     let (def, size, min, max) = if row {
         (
             yui::ROW_DEFINITION,
@@ -134,18 +130,18 @@ fn elements(prop: &Element, row: bool) -> Result<Vec<String>, String> {
         }
         let v = d.attr(size).unwrap_or("*");
         let mut t = length(v).ok_or_else(|| {
-            format!(
-                "line {}: <{def}> {size}=\"{v}\": expected Auto, *, 2* or pixels (26)",
-                d.line
-            )
+            Diagnostic::from(format!(
+                "<{def}> {size}=\"{v}\": expected Auto, *, 2* or pixels (26)"
+            ))
+            .at_line(d.line)
         })?;
         for (key, call) in [(min, "min"), (max, "max")] {
             if let Some(v) = d.attr(key) {
                 let n = num(v).ok_or_else(|| {
-                    format!(
-                        "line {}: <{def}> {key}=\"{v}\": expected a number of pixels",
-                        d.line
-                    )
+                    Diagnostic::from(format!(
+                        "<{def}> {key}=\"{v}\": expected a number of pixels"
+                    ))
+                    .at_line(d.line)
                 })?;
                 t.push_str(&format!(".{call}({n:?})"));
             }
@@ -155,7 +151,7 @@ fn elements(prop: &Element, row: bool) -> Result<Vec<String>, String> {
     Ok(out)
 }
 
-fn index(el: &Element, key: &str, v: &str, min: u16) -> Result<u16, String> {
+fn index(el: &Element, key: &str, v: &str, min: u16) -> Result<u16, Diagnostic> {
     v.trim()
         .parse::<u16>()
         .ok()
@@ -166,10 +162,8 @@ fn index(el: &Element, key: &str, v: &str, min: u16) -> Result<u16, String> {
             } else {
                 "a whole number, at least 1"
             };
-            format!(
-                "line {}: <{}> {key}=\"{v}\": expected {what}",
-                el.line, el.name
-            )
+            Diagnostic::from(format!("<{}> {key}=\"{v}\": expected {what}", el.name))
+                .at_line(el.line)
         })
 }
 
@@ -201,7 +195,7 @@ const GRID_MEMBER: &str = yog_ids::concatcp!(yui::GRID, yog_ids::sep::MEMBER);
 
 /// Checks and lowers every `<Grid>` and `Grid.*` attached property under
 /// `el` (see the module docs).
-pub fn normalize(el: &mut Element) -> Result<(), String> {
+pub fn normalize(el: &mut Element) -> Result<(), Diagnostic> {
     let is_grid = el.name == yui::GRID;
     let mut tracks = definitions(el, is_grid)?;
     if is_grid {
@@ -224,7 +218,7 @@ pub fn normalize(el: &mut Element) -> Result<(), String> {
 
 /// `<Grid.RowDefinitions>` / `<Grid.ColumnDefinitions>` taken out of
 /// `el`'s children (only a grid has them, once each).
-fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, String> {
+fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, Diagnostic> {
     let mut tracks = Tracks::default();
     let mut kept = Vec::with_capacity(el.children.len());
     for child in std::mem::take(&mut el.children) {
@@ -258,7 +252,7 @@ fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, String> {
 }
 
 /// A grid's own attributes (`rows`, `columns`, spacings) as builder calls.
-fn grid_calls(el: &mut Element, tracks: &mut Tracks) -> Result<Vec<String>, String> {
+fn grid_calls(el: &mut Element, tracks: &mut Tracks) -> Result<Vec<String>, Diagnostic> {
     let mut calls = Vec::new();
     let mut attrs = Vec::new();
     for (k, v) in std::mem::take(&mut el.attrs) {
@@ -280,10 +274,8 @@ fn grid_calls(el: &mut Element, tracks: &mut Tracks) -> Result<Vec<String>, Stri
             }
             at::ROW_SPACING | at::COLUMN_SPACING => {
                 let n = num(&v).ok_or_else(|| {
-                    format!(
-                        "line {}: <Grid> {k}=\"{v}\": expected a number of pixels",
-                        el.line
-                    )
+                    Diagnostic::from(format!("<Grid> {k}=\"{v}\": expected a number of pixels"))
+                        .at_line(el.line)
                 })?;
                 let m = if k == at::ROW_SPACING {
                     "row_spacing"
@@ -307,7 +299,7 @@ fn grid_calls(el: &mut Element, tracks: &mut Tracks) -> Result<Vec<String>, Stri
 
 /// A child's attached `Grid.*` properties: its cell (`grid`: the grid's
 /// rows and columns; none: its parent isn't one, and the child can't say them).
-fn cell(child: &mut Element, grid: Option<(usize, usize)>, parent: &str) -> Result<(), String> {
+fn cell(child: &mut Element, grid: Option<(usize, usize)>, parent: &str) -> Result<(), Diagnostic> {
     let mut cell = [0u16, 0, 1, 1];
     let mut any = false;
     let mut attrs = Vec::new();
@@ -388,8 +380,9 @@ fn push_calls(el: &mut Element, calls: Vec<String>, tag: &str) {
 #[cfg(test)]
 mod tests {
     use crate::yui;
+    use yog_data::Diagnostic;
 
-    fn codegen(body: &str) -> Result<String, String> {
+    fn codegen(body: &str) -> Result<String, Diagnostic> {
         yui::generate(
             &format!("<Screen id=\"m:s\" width=\"100\" height=\"100\">{body}</Screen>"),
             "s",
@@ -436,33 +429,61 @@ mod tests {
     #[test]
     fn errors() {
         let e = |body: &str| codegen(body).unwrap_err();
-        assert!(e(r#"<Grid rows="abc"/>"#).contains("`abc` isn't a row size"));
+        assert!(
+            e(r#"<Grid rows="abc"/>"#)
+                .message
+                .contains("`abc` isn't a row size")
+        );
         assert!(e(r#"<Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/></Grid.RowDefinitions></Grid>"#)
-            .contains("lowercase: height"));
+            .message.contains("lowercase: height"));
         assert!(e(
             r#"<Grid><Grid.RowDefinitions><RowDefinition height="x"/></Grid.RowDefinitions></Grid>"#
         )
-        .contains("height=\"x\""));
+        .message.contains("height=\"x\""));
         assert!(
             e(r#"<Grid rows="*,*"><Label Grid.Row="2"/></Grid>"#)
+                .message
                 .contains("past the grid's last row (it has 2 rows")
         );
         assert!(
             e(r#"<Grid columns="*,*"><Label Grid.Column="1" Grid.ColumnSpan="2"/></Grid>"#)
+                .message
                 .contains("Grid.ColumnSpan=\"2\" from column 1")
         );
-        assert!(e(r#"<Grid><Label Grid.Row="1"/></Grid>"#).contains("it has 1 row,"));
         assert!(
-            e(r#"<Column><Label Grid.Row="0"/></Column>"#).contains("only children of a <Grid>")
+            e(r#"<Grid><Label Grid.Row="1"/></Grid>"#)
+                .message
+                .contains("it has 1 row,")
         );
-        assert!(e(r#"<Grid rows="*"><Grid.RowDefinitions/></Grid>"#).contains("keep one"));
         assert!(
-            e(r#"<Column><Grid.RowDefinitions/></Column>"#).contains("directly inside a <Grid>")
+            e(r#"<Column><Label Grid.Row="0"/></Column>"#)
+                .message
+                .contains("only children of a <Grid>")
         );
-        assert!(e(r#"<Grid><Label Grid.RowSpan="0"/></Grid>"#).contains("at least 1"));
-        assert!(e(r#"<Grid><Label HorizontalAlignment="Left"/></Grid>"#).contains("halign"));
         assert!(
-            e(r#"<Grid><Label halign="middle"/></Grid>"#).contains("left, center, right, stretch")
+            e(r#"<Grid rows="*"><Grid.RowDefinitions/></Grid>"#)
+                .message
+                .contains("keep one")
+        );
+        assert!(
+            e(r#"<Column><Grid.RowDefinitions/></Column>"#)
+                .message
+                .contains("directly inside a <Grid>")
+        );
+        assert!(
+            e(r#"<Grid><Label Grid.RowSpan="0"/></Grid>"#)
+                .message
+                .contains("at least 1")
+        );
+        assert!(
+            e(r#"<Grid><Label HorizontalAlignment="Left"/></Grid>"#)
+                .message
+                .contains("halign")
+        );
+        assert!(
+            e(r#"<Grid><Label halign="middle"/></Grid>"#)
+                .message
+                .contains("left, center, right, stretch")
         );
     }
 }

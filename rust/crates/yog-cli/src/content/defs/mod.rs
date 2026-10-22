@@ -9,9 +9,9 @@ pub(in crate::content) mod worldgen;
 
 use std::collections::{BTreeMap, HashMap};
 use yog_data::Path as At;
-use yog_data::Schema;
 use yog_data::schema::Read;
 use yog_data::text::Doc;
+use yog_data::{Diagnostic, Schema};
 use yog_formats::def::{ArmorMaterial, Def, RecipeKindDef, SoundGroup, ToolMaterial};
 use yog_ids::word::ID;
 
@@ -247,19 +247,21 @@ fn advancement(
             out.outputs.extend(files);
             made.advancements.push(id);
         }
-        Err((key, e)) => cx.err(at.line_of(key), format!("{key}: {e}")),
+        Err(e) => report_at(cx, at, e),
     }
 }
 
-/// A table's problems (`rows.wood.size: …`), each at its line.
-fn table_errors(cx: &mut Ctx, at: &Located, errors: Vec<String>) {
+/// A table's problems, each at its value's line.
+fn table_errors(cx: &mut Ctx, at: &Located, errors: Vec<Diagnostic>) {
     for e in errors {
-        let path = e.split_once(yog_ids::sep::NAMESPACE).map_or("", |(p, _)| p);
-        let path = path
-            .split(yog_ids::sep::EXT)
-            .fold(At::root(), |at, k| at.key(k));
-        cx.err(at.line(&path), e);
+        report_at(cx, at, e);
     }
+}
+
+/// `e` reported at its value's line.
+fn report_at(cx: &mut Ctx, at: &Located, e: Diagnostic) {
+    let line = at.line(&e.path);
+    cx.errors.push(e.in_file(&cx.file).at_line(line));
 }
 
 /// Whether what the file names exists: content and tags (a tag's

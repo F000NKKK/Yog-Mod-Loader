@@ -3,6 +3,7 @@
 //! that reads the view model.
 
 use std::fmt::Write as _;
+use yog_data::Diagnostic;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum Tok {
@@ -61,7 +62,7 @@ impl Lexer {
         }))
     }
 
-    fn string(&mut self) -> Result<Tok, String> {
+    fn string(&mut self) -> Result<Tok, Diagnostic> {
         self.i += 1;
         let text = self.take_while(self.i, |cs, i| cs[i] != QUOTE);
         if self.i >= self.cs.len() {
@@ -79,7 +80,7 @@ impl Lexer {
         Some(tok.clone())
     }
 
-    fn next(&mut self) -> Result<Option<Tok>, String> {
+    fn next(&mut self) -> Result<Option<Tok>, Diagnostic> {
         while self.cs.get(self.i).is_some_and(|c| c.is_whitespace()) {
             self.i += 1;
         }
@@ -96,7 +97,7 @@ impl Lexer {
     }
 }
 
-pub(super) fn lex(src: &str) -> Result<Vec<Tok>, String> {
+pub(super) fn lex(src: &str) -> Result<Vec<Tok>, Diagnostic> {
     let mut lexer = Lexer {
         cs: src.chars().collect(),
         i: 0,
@@ -165,7 +166,7 @@ impl ExParser {
         here
     }
 
-    fn expr(&mut self) -> Result<Ex, String> {
+    fn expr(&mut self) -> Result<Ex, Diagnostic> {
         let a = self.unary()?;
         let op = if self.eat(&Tok::Eq) {
             "=="
@@ -178,14 +179,14 @@ impl ExParser {
         Ok(Ex::Cmp(Box::new(a), op, Box::new(b)))
     }
 
-    fn unary(&mut self) -> Result<Ex, String> {
+    fn unary(&mut self) -> Result<Ex, Diagnostic> {
         if self.eat(&Tok::Not) {
             return Ok(Ex::Not(Box::new(self.postfix()?)));
         }
         self.postfix()
     }
 
-    fn call(&mut self) -> Result<Option<Vec<Ex>>, String> {
+    fn call(&mut self) -> Result<Option<Vec<Ex>>, Diagnostic> {
         if !self.eat(&Tok::Open) {
             return Ok(None);
         }
@@ -205,7 +206,7 @@ impl ExParser {
     }
 
     /// A name, a type path (`Type::f(x)`), `true`/`false`.
-    fn named(&mut self, id: String) -> Result<Head, String> {
+    fn named(&mut self, id: String) -> Result<Head, Diagnostic> {
         if self.peek() != Some(&Tok::PathSep) {
             if id == yog_ids::yui_value::TRUE || id == yog_ids::yui_value::FALSE {
                 return Ok(Head::Lit(id));
@@ -223,7 +224,7 @@ impl ExParser {
         Ok(Head::Type(path, self.call()?))
     }
 
-    fn head(&mut self) -> Result<Head, String> {
+    fn head(&mut self) -> Result<Head, Diagnostic> {
         match self.bump() {
             Some(Tok::Ident(id)) => self.named(id),
             Some(Tok::Num(n)) => Ok(Head::Lit(n)),
@@ -235,12 +236,12 @@ impl ExParser {
                 }
                 Ok(Head::Paren(Box::new(e)))
             }
-            Some(t) => Err(format!("unexpected {t:?}")),
+            Some(t) => Err(format!("unexpected {t:?}").into()),
             None => Err("expected an expression".into()),
         }
     }
 
-    fn postfix(&mut self) -> Result<Ex, String> {
+    fn postfix(&mut self) -> Result<Ex, Diagnostic> {
         let head = self.head()?;
         let mut segs = Vec::new();
         loop {
@@ -261,14 +262,14 @@ impl ExParser {
     }
 }
 
-pub(super) fn parse_expr(src: &str) -> Result<Ex, String> {
+pub(super) fn parse_expr(src: &str) -> Result<Ex, Diagnostic> {
     let mut p = ExParser {
         toks: lex(src)?,
         pos: 0,
     };
     let e = p.expr()?;
     if let Some(t) = p.toks.get(p.pos) {
-        return Err(format!("unexpected {t:?}"));
+        return Err(format!("unexpected {t:?}").into());
     }
     Ok(e)
 }
@@ -316,7 +317,7 @@ impl Ex {
         by_ref: bool,
         scope: Scope,
         command: bool,
-    ) -> Result<String, String> {
+    ) -> Result<String, Diagnostic> {
         let Some(a) = a else { return Ok(String::new()) };
         let parts = a
             .iter()
@@ -328,20 +329,20 @@ impl Ex {
                     s
                 })
             })
-            .collect::<Result<Vec<_>, String>>()?;
+            .collect::<Result<Vec<_>, Diagnostic>>()?;
         Ok(format!("({})", parts.join(", ")))
     }
 
     /// A bare name's root in `scope`: the view model's field, the item's,
     /// or one of the names a scope has.
-    fn root(n: &str, scope: Scope, command: bool) -> Result<String, String> {
+    fn root(n: &str, scope: Scope, command: bool) -> Result<String, Diagnostic> {
         Ok(match (n, scope) {
             (VM, _) => VM.to_string(),
             (CX, _) if command => CX.to_string(),
             (CX, _) => return Err("`cx` is only available in commands".into()),
             (ITEM | INDEX, Scope::Template) => n.to_string(),
             (ITEM | INDEX, Scope::Screen) => {
-                return Err(format!("`{n}` is only available in item templates"));
+                return Err(format!("`{n}` is only available in item templates").into());
             }
             (_, Scope::Screen) => format!("{VM}.{n}"),
             (_, Scope::Template) => format!("{ITEM}.{n}"),
@@ -350,7 +351,7 @@ impl Ex {
 
     /// The expression as Rust in `scope` (`command`: in a command's body,
     /// where `cx` is).
-    pub(super) fn emit(&self, scope: Scope, command: bool) -> Result<String, String> {
+    pub(super) fn emit(&self, scope: Scope, command: bool) -> Result<String, Diagnostic> {
         Ok(match self {
             Ex::Post(h, segs) => {
                 let mut s = match h {

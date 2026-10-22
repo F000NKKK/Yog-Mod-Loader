@@ -2,7 +2,7 @@
 //! where it is — a parameter's path, a file's line and column — so a tool
 //! shows it without reading it out of a string.
 
-use yog_data::Schema;
+use yog_data::{Diagnostic, Path, Schema};
 
 /// The error a request is answered with.
 #[derive(Debug, Clone, Default, PartialEq, Schema)]
@@ -10,23 +10,9 @@ pub struct ServiceError {
     pub message: String,
     /// Every problem, each with its code; at least one.
     #[data(default)]
-    pub problems: Vec<Problem>,
+    pub problems: Vec<Diagnostic>,
     /// The file the request is about, when it's about one.
     pub file: Option<String>,
-}
-
-/// One problem: what it is, what's wrong, and where.
-#[derive(Debug, Clone, Default, PartialEq, Schema)]
-pub struct Problem {
-    /// What it is (`yog_ids::problem_code`).
-    pub code: String,
-    pub message: String,
-    /// The value it's about: a parameter, a field of one (`args.nodes[2].icon`).
-    #[data(default)]
-    pub path: String,
-    /// The line and column of the text it's in, when it's about text.
-    pub line: Option<u32>,
-    pub col: Option<u32>,
 }
 
 impl ServiceError {
@@ -34,11 +20,7 @@ impl ServiceError {
     pub fn of(code: &str, message: impl Into<String>) -> Self {
         let message = message.into();
         ServiceError {
-            problems: vec![Problem {
-                code: code.to_string(),
-                message: message.clone(),
-                ..Problem::default()
-            }],
+            problems: vec![Diagnostic::error(code, &message)],
             message,
             file: None,
         }
@@ -55,7 +37,7 @@ impl ServiceError {
     /// Text that doesn't parse.
     pub fn syntax(e: &yog_data::SyntaxError) -> Self {
         Self::at(
-            yog_ids::problem_code::SYNTAX,
+            yog_ids::data_problem::SYNTAX,
             e.message.clone(),
             e.at.line,
             Some(e.at.col),
@@ -64,22 +46,17 @@ impl ServiceError {
 
     /// What a request names isn't there.
     pub fn not_found(message: impl Into<String>) -> Self {
-        Self::of(yog_ids::problem_code::NOT_FOUND, message)
+        Self::of(yog_ids::request_problem::NOT_FOUND, message)
     }
 
     /// Parameter `name` that doesn't read: each of its problems, at its path.
-    pub fn param(name: &str, problems: Vec<yog_data::schema::Problem>) -> Self {
-        let problems: Vec<Problem> = problems
+    pub fn param(name: &str, problems: Vec<Diagnostic>) -> Self {
+        let param = Path::root().key(name);
+        let problems: Vec<Diagnostic> = problems
             .into_iter()
-            .map(|p| Problem {
-                code: p.code.to_string(),
-                path: if p.path.is_root() {
-                    name.to_string()
-                } else {
-                    format!("{name}.{}", p.path)
-                },
-                message: p.message,
-                ..Problem::default()
+            .map(|p| {
+                let path = param.then(&p.path);
+                p.at_path(path)
             })
             .collect();
         let message = match problems.as_slice() {
@@ -96,12 +73,23 @@ impl ServiceError {
 
 impl From<String> for ServiceError {
     fn from(message: String) -> Self {
-        Self::of(yog_ids::problem_code::FAILED, message)
+        Self::of(yog_ids::request_problem::FAILED, message)
     }
 }
 
 impl From<&str> for ServiceError {
     fn from(message: &str) -> Self {
         message.to_string().into()
+    }
+}
+
+/// Yog Data that didn't read: each problem with its code, field and place.
+impl From<yog_data::Errors> for ServiceError {
+    fn from(found: yog_data::Errors) -> Self {
+        ServiceError {
+            message: found.to_string(),
+            problems: found.0,
+            file: None,
+        }
     }
 }

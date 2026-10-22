@@ -14,7 +14,7 @@ pub mod texture;
 pub mod yres;
 pub mod yui;
 
-use yog_data::schema::Problem;
+use yog_data::Diagnostic;
 use yog_data::{Schema, Shape, Value};
 
 use yog_ids::{Format, file};
@@ -88,7 +88,7 @@ pub fn shape(format: Format) -> Option<Shape> {
 /// What's wrong with `value` as a file of `format`: every problem, at its
 /// path (none for a format without a shape).
 #[must_use]
-pub fn problems(format: Format, value: &Value) -> Vec<Problem> {
+pub fn problems(format: Format, value: &Value) -> Vec<Diagnostic> {
     with_type!(format, T => yog_data::from_value::<T>(value).err().unwrap_or_default(), else Vec::new())
 }
 

@@ -17,6 +17,7 @@ use super::binding::{Binding, Bound, Mode, WriteBack, parse_binding};
 use super::expr::{Ex, Head, Scope};
 use super::state::{Ctx, SCREEN_OWNER, VmGen, path_lit};
 use crate::yui::{self, Element, RAW_CALL, err};
+use yog_data::Diagnostic;
 
 /// The states an attribute may be prefixed with, and their flags.
 const STATES: &[(&str, &str)] = &[
@@ -63,7 +64,7 @@ impl Read {
 }
 
 /// The built-in element `el` stands for, and whether it's a list.
-fn kind_of(el: &Element) -> Result<(&str, bool), String> {
+fn kind_of(el: &Element) -> Result<(&str, bool), Diagnostic> {
     let name = el.name.as_str();
     let kind = match name {
         y::TOGGLE_BUTTON => y::BUTTON,
@@ -93,7 +94,7 @@ impl VmGen<'_> {
         el: &Element,
         path: &[u16],
         items: Option<&str>,
-    ) -> Result<Element, String> {
+    ) -> Result<Element, Diagnostic> {
         let el = &self.resolve(el)?;
         let (kind, is_list) = kind_of(el)?;
         let mut r = self.read_attrs(el, kind, is_list)?;
@@ -120,7 +121,7 @@ impl VmGen<'_> {
 
     /// Reads `el`'s attributes: state paints, bindings and the command,
     /// list attributes, the rest as they are.
-    fn read_attrs(&self, el: &Element, kind: &str, is_list: bool) -> Result<Read, String> {
+    fn read_attrs(&self, el: &Element, kind: &str, is_list: bool) -> Result<Read, Diagnostic> {
         let out = Element {
             name: kind.to_string(),
             attrs: Vec::new(),
@@ -162,7 +163,7 @@ impl VmGen<'_> {
                     el,
                     &mut r,
                     k,
-                    b.map_err(|e| format!("line {}: {e}", el.line))?,
+                    b.map_err(|e| Diagnostic::from(format!("{e}")).at_line(el.line))?,
                 )?,
                 None => plain_attr(el, &mut r, k, val)?,
             }
@@ -179,7 +180,7 @@ impl VmGen<'_> {
         state: &str,
         attr: &str,
         val: &str,
-    ) -> Result<(&'static str, String), String> {
+    ) -> Result<(&'static str, String), Diagnostic> {
         let Some(&(_, flag)) = STATES.iter().find(|(s, _)| *s == state) else {
             return err(
                 el,
@@ -223,7 +224,7 @@ impl VmGen<'_> {
         el: &Element,
         kind: &'s str,
         path: &'s [u16],
-    ) -> Result<Spot<'s>, String> {
+    ) -> Result<Spot<'s>, Diagnostic> {
         let screen = ctx.scope == Scope::Screen;
         let text_box = (kind == y::TEXT_BOX && screen).then(|| {
             let _ = writeln!(self.parts, "        parts.text_box({});", path_lit(path));
@@ -255,7 +256,7 @@ impl VmGen<'_> {
         spot: &Spot,
         r: &mut Read,
         items: Option<&str>,
-    ) -> Result<(), String> {
+    ) -> Result<(), Diagnostic> {
         if spot.kind == y::TEXT_BOX {
             return self.text_box_events(el, spot, r);
         }
@@ -301,12 +302,10 @@ impl VmGen<'_> {
     }
 
     /// A text box's events: its text written back, its command on submit.
-    fn text_box_events(&mut self, el: &Element, spot: &Spot, r: &Read) -> Result<(), String> {
+    fn text_box_events(&mut self, el: &Element, spot: &Spot, r: &Read) -> Result<(), Diagnostic> {
         let tb = spot.text_box.ok_or_else(|| {
-            format!(
-                "line {}: text boxes in item templates aren't supported",
-                el.line
-            )
+            Diagnostic::from("text boxes in item templates aren't supported".to_string())
+                .at_line(el.line)
         })?;
         if let Some((_, b)) = r.bindings.iter().find(|(k, _)| k == at::TEXT) {
             match b.write_back("text", "text")? {
@@ -341,7 +340,7 @@ impl VmGen<'_> {
         el: &Element,
         spot: &Spot,
         r: &mut Read,
-    ) -> Result<(), String> {
+    ) -> Result<(), Diagnostic> {
         // A component's bound properties: when any changes, the instance is
         // rebuilt with the new values (then its other bindings re-applied).
         let rebuild = if yui::is_custom_component(spot.kind)
@@ -386,7 +385,7 @@ impl VmGen<'_> {
         path: &[u16],
         items: Option<&str>,
         out: &mut Element,
-    ) -> Result<(), String> {
+    ) -> Result<(), Diagnostic> {
         let mut i = 0u16;
         for child in &el.children {
             if child.name.contains(yog_ids::sep::MEMBER) {
@@ -405,7 +404,7 @@ impl VmGen<'_> {
 
 /// A two-way toggle's statement: its field flipped, or its `BindBack`
 /// method called with the flipped value.
-fn toggled(el: &Element, t: &Binding) -> Result<String, String> {
+fn toggled(el: &Element, t: &Binding) -> Result<String, Diagnostic> {
     match (&t.bind_back, t.expr()) {
         (Some(m), Some(e)) => Ok(format!(
             "let __v = !{}; vm.{m}(__v); ",
@@ -424,7 +423,7 @@ fn toggled(el: &Element, t: &Binding) -> Result<String, String> {
 
 /// A bound attribute: the command, a list's binding (on a list only), or
 /// one to apply.
-fn read_binding(el: &Element, r: &mut Read, k: &str, b: Binding) -> Result<(), String> {
+fn read_binding(el: &Element, r: &mut Read, k: &str, b: Binding) -> Result<(), Diagnostic> {
     if k == v::COMMAND {
         r.command = Some(b);
         return Ok(());
@@ -441,7 +440,7 @@ fn read_binding(el: &Element, r: &mut Read, k: &str, b: Binding) -> Result<(), S
 
 /// A plain attribute: a list's own, a fixed visibility or check, a
 /// `.yres` text (bound, so it follows the language), or one as it is.
-fn plain_attr(el: &Element, r: &mut Read, k: &str, val: &str) -> Result<(), String> {
+fn plain_attr(el: &Element, r: &mut Read, k: &str, val: &str) -> Result<(), Diagnostic> {
     let res_text =
         val.starts_with(yog_ids::sep::TYPED) && !val.starts_with(ESCAPED_AT) && val.len() > 1;
     match k {

@@ -7,8 +7,8 @@ use std::process::Command;
 
 use yog_cli::cargo_toml::generate_cargo_toml;
 use yog_cli::manifest::{BUILD_DIR, MANIFEST, YogToml, project_root};
-use yog_cli::{bench, content, yres, yui};
-use yog_ids::rust_crate;
+use yog_cli::{bench, content, diagnostics, yres, yui};
+use yog_ids::{build_problem, rust_crate};
 
 use super::check::warn_all;
 use super::targets::generate_rust_toolchain;
@@ -29,13 +29,14 @@ pub(super) struct Prepared {
 /// the translations.
 pub(super) fn prepare() -> Result<Prepared, String> {
     let root = project_root()?;
-    let mut meta = read_meta(&root)?;
+    let mut meta = read_meta(&root).map_err(|e| diagnostics::failed(build_problem::MANIFEST, e))?;
     // Resources first: `.yui` screens and yog.toml (name, description,
     // icon) refer to them.
     let resources = yres::compile(&root, &meta.id)?;
     warn_all(&resources.warnings);
     yres::write_sources(&root, &resources)?;
-    resolve_metadata(&mut meta, &resources.refs)?;
+    resolve_metadata(&mut meta, &resources.refs)
+        .map_err(|e| diagnostics::failed(build_problem::MANIFEST, e))?;
     yui::set_resource_refs(&resources.refs);
     // Blocks and items: models, states, loot, lang and their Rust glue.
     let content = content::compile(&root, &meta.id, &resources.refs)?;
@@ -78,13 +79,14 @@ fn read_meta(root: &Path) -> Result<YogToml, String> {
 fn write_build_dir(root: &Path, meta: &YogToml) -> Result<PathBuf, String> {
     let build_dir = root.join(BUILD_DIR);
     std::fs::create_dir_all(&build_dir).map_err(|e| e.to_string())?;
-    let benches = bench::discover(root)?;
+    let benches = bench::discover(root).map_err(diagnostics::reported)?;
     bench::write_sources(root, &benches)?;
     write_file(
         &build_dir.join(CARGO_TOML),
         generate_cargo_toml(meta, &benches).as_bytes(),
     )?;
-    let yui::Generated { screens, warnings } = yui::generate_all(root)?;
+    let yui::Generated { screens, warnings } =
+        yui::generate_all(root).map_err(diagnostics::reported)?;
     warn_all(&warnings);
     if screens > 0 {
         eprintln!(

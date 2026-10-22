@@ -40,9 +40,9 @@ fn data_naming_renamed_content_gets_each_versions_name() {
     )
     .unwrap();
     assert!(
-        c.warnings
-            .iter()
-            .any(|w| w.contains("minecraft:crafter, which Minecraft 1.20.1 hasn't got")),
+        c.warnings.iter().any(|w| w
+            .message
+            .contains("minecraft:crafter, which Minecraft 1.20.1 hasn't got")),
         "{:?}",
         c.warnings
     );

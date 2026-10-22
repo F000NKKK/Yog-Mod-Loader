@@ -22,6 +22,7 @@ use crate::yui::{self, Element, UI_USE, err};
 use expr::Scope;
 use state::{Ctx, SCREEN_OWNER, VIEW_FIELDS, VIEW_TREE, VmGen};
 
+use yog_data::Diagnostic;
 /// The codegen version checked by `yog_kit::__codegen::require`.
 use yog_ids::versions::UI_CODEGEN as CODEGEN;
 
@@ -42,7 +43,7 @@ struct Root {
 
 /// The root's id and view model (and how the view model is made: its
 /// `x:Create`, else its `Default`).
-fn read_root(root: &Element) -> Result<Root, String> {
+fn read_root(root: &Element) -> Result<Root, Diagnostic> {
     if root.name != yog_ids::yui::SCREEN {
         return err(root, "a view-model screen's root must be <Screen>");
     }
@@ -50,10 +51,8 @@ fn read_root(root: &Element) -> Result<Root, String> {
         .attr(yog_ids::yui_attr::ID)
         .filter(|s| !s.trim().is_empty())
         .ok_or_else(|| {
-            format!(
-                "line {}: <Screen> needs an id (the UI id, e.g. \"mymod:main\")",
-                root.line
-            )
+            Diagnostic::from("<Screen> needs an id (the UI id, e.g. \"mymod:main\")".to_string())
+                .at_line(root.line)
         })?
         .to_string();
     let vm = root
@@ -76,7 +75,7 @@ pub fn generate(
     root: &Element,
     name: &str,
     mod_id: Option<&str>,
-) -> Result<(String, Vec<String>), String> {
+) -> Result<(String, Vec<Diagnostic>), Diagnostic> {
     let Root { id, vm, create } = read_root(root)?;
     let frame = yui::screen_frame(root)?;
     let mut g = VmGen::new(format!("{name}.yui"), mod_id, yui::screen_theme(root)?);

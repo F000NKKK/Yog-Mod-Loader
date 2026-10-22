@@ -2,6 +2,7 @@
 //! its first word.
 
 mod build;
+mod cargo_out;
 mod check;
 mod control;
 mod data;
@@ -96,6 +97,10 @@ pub(crate) fn main(args: &[String]) {
         Some(other) => Err(format!("unknown command: {other}")),
     };
     if let Err(e) = result {
+        // Said already as what it is, or said here as a failure.
+        if yog_cli::diagnostics::errors_reported() == 0 {
+            yog_cli::diagnostics::failed(yog_ids::build_problem::FAILED, &e);
+        }
         eprintln!("yog: error: {e}");
         std::process::exit(1);
     }

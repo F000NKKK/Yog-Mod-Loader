@@ -9,6 +9,7 @@ use super::values::{boolean, number, pick, str_consts};
 use super::widget::Gen;
 use super::{Element, UI_USE, parse_xml};
 use crate::rust_code::{f32_lit, fill};
+use yog_data::Diagnostic;
 
 /// A `<Screen>`'s frame: its size, where it sits, how it opens.
 pub(crate) struct Frame {
@@ -23,7 +24,7 @@ pub(crate) struct Frame {
 
 /// A `<Screen>`'s frame: `width` × `height` (the vanilla container's size
 /// by default), `anchor` (centred), `modal` (yes), `pause` and `live` (no).
-pub(crate) fn screen_frame(root: &Element) -> Result<Frame, String> {
+pub(crate) fn screen_frame(root: &Element) -> Result<Frame, Diagnostic> {
     let size = |key: &str, default: f32| {
         root.attr(key)
             .map(|v| number(root, key, v))
@@ -55,7 +56,7 @@ pub(crate) fn screen_frame(root: &Element) -> Result<Frame, String> {
 }
 
 /// The theme `<Screen theme="...">` names, if any.
-pub(crate) fn screen_theme(root: &Element) -> Result<Option<yog_ui::theme::Theme>, String> {
+pub(crate) fn screen_theme(root: &Element) -> Result<Option<yog_ui::theme::Theme>, Diagnostic> {
     let Some(id) = root
         .attr(yog_ids::yui_attr::THEME)
         .map(str::trim)
@@ -64,11 +65,11 @@ pub(crate) fn screen_theme(root: &Element) -> Result<Option<yog_ui::theme::Theme
         return Ok(None);
     };
     yog_ui::theme::Theme::builtin(id).map(Some).ok_or_else(|| {
-        format!(
-            "line {}: <Screen> theme=\"{id}\": no such theme (built in: {})",
-            root.line,
+        Diagnostic::from(format!(
+            "<Screen> theme=\"{id}\": no such theme (built in: {})",
             yog_ui::theme::Theme::BUILTIN.join(", ")
-        )
+        ))
+        .at_line(root.line)
     })
 }
 
@@ -85,7 +86,7 @@ pub(crate) fn apply_theme(el: &mut Element, theme: &yog_ui::theme::Theme) {
 /// path under `src/` without the extension (`mod_list`, `screens/options`):
 /// what the code-behind passes to `ui_include!`.
 #[cfg(test)]
-pub fn generate(src: &str, name: &str) -> Result<String, String> {
+pub fn generate(src: &str, name: &str) -> Result<String, Diagnostic> {
     generate_for(src, name, None).map(|(code, _)| code)
 }
 
@@ -95,7 +96,7 @@ pub fn generate_for(
     src: &str,
     name: &str,
     mod_id: Option<&str>,
-) -> Result<(String, Vec<String>), String> {
+) -> Result<(String, Vec<Diagnostic>), Diagnostic> {
     generate_with(src, name, mod_id, &[])
 }
 
@@ -106,7 +107,7 @@ pub fn generate_with(
     name: &str,
     mod_id: Option<&str>,
     layouts: &[yog_formats::book::layout::RecipeLayout],
-) -> Result<(String, Vec<String>), String> {
+) -> Result<(String, Vec<Diagnostic>), Diagnostic> {
     let mut root = parse_xml(src)?;
     // A book's kind of page or a recipe layout isn't code: the build reads it as data.
     if crate::book_page::is_book_ui(&root) {
@@ -158,21 +159,20 @@ const WHOLE: f32 = 100.0;
 const TEMPLATE: &str = include_str!("screen.g.rs.in");
 
 /// A plain `<Screen>`'s code.
-fn screen_code(root: &Element, name: &str, mod_id: Option<&str>) -> Result<String, String> {
+fn screen_code(root: &Element, name: &str, mod_id: Option<&str>) -> Result<String, Diagnostic> {
     if root.name != yog_ids::yui::SCREEN {
-        return Err(format!(
-            "line {}: the root element must be <Screen>, not <{}>",
-            root.line, root.name
-        ));
+        return Err(Diagnostic::from(format!(
+            "the root element must be <Screen>, not <{}>",
+            root.name
+        ))
+        .at_line(root.line));
     }
     let id = root
         .attr(at::ID)
         .filter(|s| !s.trim().is_empty())
         .ok_or_else(|| {
-            format!(
-                "line {}: <Screen> needs an id (the UI id, e.g. \"mymod:main\")",
-                root.line
-            )
+            Diagnostic::from("<Screen> needs an id (the UI id, e.g. \"mymod:main\")".to_string())
+                .at_line(root.line)
         })?
         .to_string();
     let frame = screen_frame(root)?;

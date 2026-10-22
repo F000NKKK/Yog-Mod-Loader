@@ -3,6 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
+use yog_cli::diagnostics::{self, Diagnostic};
 use yog_cli::manifest::{MANIFEST, YogToml, project_root};
 use yog_cli::{content, yres, yui, yui_component};
 
@@ -18,7 +19,8 @@ pub(super) fn ui_gen(files: &[String]) -> Result<(), String> {
         let root = project_root()?;
         load_resource_refs(&root);
         for file in yui::find_yui_files(&root.join("src")) {
-            let (out, warnings) = yui::generate_file(&root, &file)?;
+            let (out, warnings) =
+                yui::generate_file(&root, &file).map_err(diagnostics::reported)?;
             eprintln!("==> {} -> {}", file.display(), out.display());
             warn_all(&warnings);
         }
@@ -33,7 +35,7 @@ pub(super) fn ui_gen(files: &[String]) -> Result<(), String> {
             )
         })?;
         load_resource_refs(&root);
-        let (out, warnings) = yui::generate_file(&root, &file)?;
+        let (out, warnings) = yui::generate_file(&root, &file).map_err(diagnostics::reported)?;
         eprintln!("==> {} -> {}", file.display(), out.display());
         warn_all(&warnings);
         warn_index(&root)?;
@@ -41,17 +43,18 @@ pub(super) fn ui_gen(files: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-/// Says each of `warnings`.
-pub(super) fn warn_all(warnings: &[String]) {
+/// Says (and reports) each of `warnings`.
+pub(super) fn warn_all(warnings: &[Diagnostic]) {
     for w in warnings {
         eprintln!("    warning: {w}");
+        diagnostics::report(w);
     }
 }
 
 /// Writes the components' index, saying what's wrong with it.
 pub(super) fn warn_index(root: &Path) -> Result<(), String> {
     if let (_, Some(w)) = yui_component::write_index(root)? {
-        eprintln!("    warning: {w}");
+        warn_all(&[Diagnostic::warning(yog_ids::build_problem::SCREEN, w)]);
     }
     Ok(())
 }

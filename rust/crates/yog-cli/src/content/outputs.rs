@@ -1,6 +1,8 @@
 //! Merging what every file produced: tags, lang files, per-version overlays.
 
+use crate::content::ctx::{caveat, problem};
 use crate::content::{Compiled, Output, datapack, pretty, refs};
+use crate::diagnostics::Diagnostic;
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
@@ -58,9 +60,9 @@ pub(super) fn version_overlays(out: &mut Compiled, datapack: &str) {
                 overlays.push((datapack::for_version(version, path), pretty(&copy)));
             }
             for id in missing {
-                out.warnings.push(format!(
+                out.warnings.push(caveat(format!(
                     "{path} names {id}, which Minecraft {version} hasn't got"
-                ));
+                )));
             }
         }
     }
@@ -146,9 +148,11 @@ pub fn merge_outputs(
     if m.errors.is_empty() {
         Ok(())
     } else {
+        crate::diagnostics::report_all(&m.errors);
         Err(format!(
-            "merging blocks/items into the mod's files:\n  {}",
-            m.errors.join("\n  ")
+            "merging blocks/items into the mod's files:{}{}",
+            crate::diagnostics::LIST_SEP,
+            crate::diagnostics::listed(&m.errors)
         ))
     }
 }
@@ -157,7 +161,7 @@ pub fn merge_outputs(
 struct Merging<'a> {
     set: OutputSet,
     root: &'a Path,
-    errors: Vec<String>,
+    errors: Vec<Diagnostic>,
 }
 
 impl Merging<'_> {
@@ -165,7 +169,7 @@ impl Merging<'_> {
     /// problem noted when it won't read.
     fn object(&mut self, path: &str) -> Option<Map<String, Value>> {
         json_output(&self.set, self.root, path)
-            .map_err(|e| self.errors.push(e))
+            .map_err(|e| self.errors.push(problem(e).in_file(path)))
             .ok()
     }
 

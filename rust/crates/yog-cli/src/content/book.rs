@@ -12,9 +12,11 @@ use yog_formats::def::RecipeKindDef;
 use yog_ids::kind;
 
 use crate::content::ctx::Ctx;
+use crate::content::ctx::problem;
 use crate::content::files::BookFile;
 use crate::content::refs::{self, RefKind};
 use crate::content::valid_id;
+use crate::diagnostics::Diagnostic;
 
 /// What a book is checked against: the ids it may name, how recipes are
 /// shown, each recipe's kind (recipe → kind), the mod's kinds of page.
@@ -347,7 +349,7 @@ pub(super) fn recipe_layouts(
     ns: &str,
     kinds: &HashMap<String, RecipeKindDef>,
     known: &refs::Known,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) -> Vec<RecipeLayout> {
     let mut laid_out: HashMap<String, String> = HashMap::new();
     let mut out = Vec::new();
@@ -368,20 +370,19 @@ fn layout_kinds(
     l: &RecipeLayout,
     kinds: &HashMap<String, RecipeKindDef>,
     laid_out: &mut HashMap<String, String>,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) {
     for k in &l.kinds {
         let game = yog_formats::recipe::TYPES.contains(&k.as_str());
         if !game && !kinds.contains_key(k) {
-            errors.push(format!(
-                "{shown}: recipe_layout: `{k}`: one of {}, or a kind the mod declares (a .ydef of kind recipe_kind)",
+            errors.push(problem(format!("recipe_layout: `{k}`: one of {}, or a kind the mod declares (a .ydef of kind recipe_kind)",
                 yog_formats::recipe::TYPES.join(", ")
-            ));
+            )).in_file(shown));
         }
         if let Some(other) = laid_out.insert(k.clone(), shown.to_string()) {
-            errors.push(format!(
-                "{shown}: recipe kind {k} is also laid out by {other}"
-            ));
+            errors.push(
+                problem(format!("recipe kind {k} is also laid out by {other}")).in_file(shown),
+            );
         }
     }
 }
@@ -392,7 +393,7 @@ fn layout_parts(
     l: &RecipeLayout,
     kinds: &HashMap<String, RecipeKindDef>,
     known: &refs::Known,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) {
     for part in &l.parts {
         match part {
@@ -400,17 +401,20 @@ fn layout_parts(
                 for k in l.kinds.iter().filter_map(|k| kinds.get(k)) {
                     if !k.slots.0.iter().any(|(s, _)| s == slot) {
                         let all: Vec<&str> = k.slots.0.iter().map(|(s, _)| s.as_str()).collect();
-                        errors.push(format!(
-                            "{shown}: <RecipeSlot slot=\"{slot}\">: {} has no slot `{slot}` — {}",
-                            k.id,
-                            all.join(", ")
-                        ));
+                        errors.push(
+                            problem(format!(
+                                "<RecipeSlot slot=\"{slot}\">: {} has no slot `{slot}` — {}",
+                                k.id,
+                                all.join(", ")
+                            ))
+                            .in_file(shown),
+                        );
                     }
                 }
             }
             LayoutPart::Item { item, .. } => {
                 if let Err(e) = known.check(RefKind::Item, item) {
-                    errors.push(format!("{shown}: <ItemSlot item=\"{item}\">: {e}"));
+                    errors.push(problem(format!("<ItemSlot item=\"{item}\">: {e}")).in_file(shown));
                 }
             }
             _ => {}

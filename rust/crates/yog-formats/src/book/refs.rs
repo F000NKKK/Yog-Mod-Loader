@@ -134,13 +134,7 @@ impl Book {
     /// Reads a `.ybook` (`text`), references and texts going through
     /// `resolver`: the book as the game shows it, and what it references.
     pub fn read(text: &str, resolver: &mut dyn Resolve) -> Result<Read<Book>, Errors> {
-        let doc = yog_data::text::parse(text).map_err(|e| {
-            Errors(vec![yog_data::schema::Located {
-                at: Some(e.at),
-                path: yog_data::Path::root(),
-                message: e.message,
-            }])
-        })?;
+        let doc = yog_data::text::parse(text).map_err(Errors::from)?;
         yog_data::from_doc_with(text, &doc, resolver)
     }
 }

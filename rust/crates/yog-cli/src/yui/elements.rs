@@ -3,6 +3,7 @@
 
 use super::values::{is_resource_text, resource_color, text_attr};
 use super::{Element, RAW_VALUE};
+use yog_data::Diagnostic;
 
 /// Whether `<kind>` is a built-in element.
 pub(crate) fn is_builtin(kind: &str) -> bool {
@@ -120,7 +121,7 @@ pub(super) fn is_component_name(kind: &str) -> bool {
 
 /// A custom component built by name from its own (non-common) attributes;
 /// `@key` values are translated like `text`.
-pub(super) fn component_expr(el: &Element) -> Result<String, String> {
+pub(super) fn component_expr(el: &Element) -> Result<String, Diagnostic> {
     let props: Vec<String> = el
         .attrs
         .iter()
@@ -141,7 +142,7 @@ pub(super) fn component_expr(el: &Element) -> Result<String, String> {
                 _ => Ok(format!("({k:?}, {v:?})")),
             }
         })
-        .collect::<Result<_, String>>()?;
+        .collect::<Result<_, Diagnostic>>()?;
     Ok(format!(
         "::yog_api::ui::component::build({:?}, &[{}])",
         el.name,

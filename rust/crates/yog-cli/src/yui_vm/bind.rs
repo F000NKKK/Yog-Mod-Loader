@@ -8,6 +8,7 @@ use super::state::{Ctx, VmGen, path_lit};
 use super::target::{VALUE_MARK, target};
 use super::{NEW_VALUE, WIDGET};
 use crate::yui::{Element, err};
+use yog_data::Diagnostic;
 
 /// Where a bound element is: its kind, its path in the tree, the view's
 /// text box and scroller it is (none in a template).
@@ -44,7 +45,7 @@ impl VmGen<'_> {
         at: &Spot,
         key: &str,
         b: &Binding,
-    ) -> Result<(), String> {
+    ) -> Result<(), Diagnostic> {
         let Some(t) = target(at.kind, key) else {
             return err(el, format!("{key} can't be bound"));
         };
@@ -93,7 +94,7 @@ impl VmGen<'_> {
         b: &Binding,
         scope: Scope,
         items: Option<&str>,
-    ) -> Result<String, String> {
+    ) -> Result<String, Diagnostic> {
         let Bound::Expr(e) = &b.bound else {
             return err(el, "command needs {x:Bind method(...)}");
         };
@@ -101,8 +102,7 @@ impl VmGen<'_> {
         match (scope, items) {
             (Scope::Screen, _) | (Scope::Template, None) => Ok(format!(
                 "{};",
-                e.emit(Scope::Screen, true)
-                    .map_err(|m| format!("line {line}: {m}"))?
+                e.emit(Scope::Screen, true).map_err(|m| m.at_line(line))?
             )),
             (Scope::Template, Some(items)) => template_command(el, e, items),
         }
@@ -111,7 +111,7 @@ impl VmGen<'_> {
 
 /// A command in an item template: `vm.method(args)` / `cx.method()`, the
 /// item's arguments cloned out of the item first.
-fn template_command(el: &Element, e: &Ex, items: &str) -> Result<String, String> {
+fn template_command(el: &Element, e: &Ex, items: &str) -> Result<String, Diagnostic> {
     let line = el.line;
     let Ex::Post(head, segs) = e else {
         return err(el, "command must be a call: vm.method(...) or cx.close()");
@@ -141,7 +141,7 @@ fn template_command(el: &Element, e: &Ex, items: &str) -> Result<String, String>
     );
     let call = call
         .emit(Scope::Template, true)
-        .map_err(|m| format!("line {line}: {m}"))?;
+        .map_err(|m| Diagnostic::from(format!("{m}")).at_line(line))?;
     if args.is_empty() {
         return Ok(format!("let _ = {INDEX}; {call};"));
     }
@@ -152,7 +152,7 @@ fn template_command(el: &Element, e: &Ex, items: &str) -> Result<String, String>
                 .map(|s| format!("::std::clone::Clone::clone(&({s}))"))
         })
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|m| format!("line {line}: {m}"))?;
+        .map_err(|m| Diagnostic::from(format!("{m}")).at_line(line))?;
     Ok(format!(
         "let __args = ::std::iter::IntoIterator::into_iter({items}).enumerate().nth(index as usize).map(|(index, item)| {{ let _ = (&index, &item); ({},) }});\n                if let ::std::option::Option::Some(({},)) = __args {{ {call}; }}",
         cloned.join(", "),

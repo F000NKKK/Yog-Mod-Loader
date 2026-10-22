@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 
 use super::names::{name_problem, valid_locale, valid_set_name};
 use super::{Entry, Kind, NEUTRAL_LOCALE, find, parse};
+use crate::diagnostics::Diagnostic;
 use crate::shown_path;
+use crate::yres::problem;
 
 /// One `.yres` file.
 #[derive(Debug, Clone)]
@@ -31,7 +33,7 @@ struct Read {
 }
 
 /// Reads and checks every `.yres` of the mod — errors are `file:line: message`.
-pub(super) fn load(root: &Path, errors: &mut Vec<String>) -> BTreeMap<String, Set> {
+pub(super) fn load(root: &Path, errors: &mut Vec<Diagnostic>) -> BTreeMap<String, Set> {
     let mut sets: BTreeMap<String, Set> = BTreeMap::new();
     let mut cultures: Vec<Read> = Vec::new();
     for path in find(root) {
@@ -51,7 +53,7 @@ pub(super) fn load(root: &Path, errors: &mut Vec<String>) -> BTreeMap<String, Se
 
 /// The file at `path`: its name says its set and locale, its entries'
 /// names are valid.
-fn read_file(root: &Path, path: PathBuf, errors: &mut Vec<String>) -> Option<Read> {
+fn read_file(root: &Path, path: PathBuf, errors: &mut Vec<Diagnostic>) -> Option<Read> {
     let shown = shown_path(root, &path);
     let file_name = path
         .file_name()
@@ -60,22 +62,26 @@ fn read_file(root: &Path, path: PathBuf, errors: &mut Vec<String>) -> Option<Rea
         .into_owned();
     let (set, locale) = yog_formats::yres::split_file_name(&file_name)?;
     if let Err(e) = check_name(set, locale) {
-        errors.push(format!("{shown}: {e}"));
+        errors.push(problem(e.to_string()).in_file(&shown));
         return None;
     }
-    let entries = match crate::files::read_source(&path)
-        .map_err(|e| e.to_string())
-        .and_then(|t| parse(&t))
-    {
-        Ok(entries) => entries,
+    let text = match crate::files::read_source(&path) {
+        Ok(text) => text,
         Err(e) => {
-            errors.push(format!("{shown}:{}", e.trim_start_matches("line ")));
+            errors.push(problem(e).in_file(&shown));
+            return None;
+        }
+    };
+    let entries = match parse(&text) {
+        Ok(entries) => entries,
+        Err(found) => {
+            errors.extend(found.0.into_iter().map(|l| l.in_file(&shown)));
             return None;
         }
     };
     for e in &entries {
-        if let Some(problem) = name_problem(&e.name) {
-            errors.push(format!("{shown}:{}: {problem}", e.line));
+        if let Some(found) = name_problem(&e.name) {
+            errors.push(problem(found).in_file(&shown).at_line(e.line));
         }
     }
     Some(Read {
@@ -108,17 +114,20 @@ fn add_neutral(
     root: &Path,
     sets: &mut BTreeMap<String, Set>,
     read: Read,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) {
     if let Some(other) = sets.get(&read.set) {
         let (shown, other) = (
             shown_path(root, &read.file.path),
             shown_path(root, &other.neutral.path),
         );
-        errors.push(format!(
-            "{shown}: resource set {} is also defined by {other}",
-            read.set
-        ));
+        errors.push(
+            problem(format!(
+                "resource set {} is also defined by {other}",
+                read.set
+            ))
+            .in_file(&shown),
+        );
         return;
     }
     sets.insert(
@@ -136,22 +145,25 @@ fn add_culture(
     root: &Path,
     sets: &mut BTreeMap<String, Set>,
     read: Read,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) {
     let Read { set, locale, file } = read;
     let locale = locale.unwrap_or_default();
     let shown = shown_path(root, &file.path);
     let Some(target) = sets.get_mut(&set) else {
-        errors.push(format!(
-            "{shown}: no neutral {set}.yres for this culture variant"
-        ));
+        errors.push(
+            problem(format!("no neutral {set}.yres for this culture variant")).in_file(&shown),
+        );
         return;
     };
     if let Some(other) = target.cultures.get(&locale) {
-        errors.push(format!(
-            "{shown}: {set} {locale} is also defined by {}",
-            shown_path(root, &other.path)
-        ));
+        errors.push(
+            problem(format!(
+                "{set} {locale} is also defined by {}",
+                shown_path(root, &other.path)
+            ))
+            .in_file(&shown),
+        );
         return;
     }
     for e in file
@@ -159,7 +171,14 @@ fn add_culture(
         .iter()
         .filter(|e| e.kind != Kind::String || e.key.is_some())
     {
-        errors.push(format!("{shown}:{}: {:?}: culture variants hold texts only (no type other than string, no `key`)", e.line, e.name));
+        errors.push(
+            problem(format!(
+                "{:?}: culture variants hold texts only (no type other than string, no `key`)",
+                e.name
+            ))
+            .in_file(&shown)
+            .at_line(e.line),
+        );
     }
     target.cultures.insert(locale, file);
 }

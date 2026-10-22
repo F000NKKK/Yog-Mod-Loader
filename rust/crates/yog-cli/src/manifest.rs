@@ -221,17 +221,7 @@ pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
 /// What `yog.toml` got wrong, a line each: `yog.toml:<line>: <path>: <message>`.
 fn toml_problems(e: &yog_data::Errors) -> String {
     e.0.iter()
-        .map(|l| match l.at {
-            Some(at) => {
-                let path = if l.path.is_root() {
-                    String::new()
-                } else {
-                    format!("{}: ", l.path)
-                };
-                format!("yog.toml:{}: {path}{}", at.line, l.message)
-            }
-            None => format!("yog.toml: {}", l.message),
-        })
+        .map(|l| l.clone().in_file(MANIFEST).to_string())
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -410,8 +400,8 @@ blocks = ["stove"]
         assert_eq!(
             e.lines().collect::<Vec<_>>(),
             [
-                "yog.toml:3: mod.autors: unknown field `autors` — did you mean `authors`?",
-                "yog.toml:6: external.create.item: unknown field `item` — did you mean `items`?",
+                "yog.toml:3:1: mod.autors: unknown field `autors` — did you mean `authors`?",
+                "yog.toml:6:1: external.create.item: unknown field `item` — did you mean `items`?",
             ]
         );
         let t = parse_yog_toml("[mod]\nid = \"m\"\nname = \"@@me\"\n").unwrap();

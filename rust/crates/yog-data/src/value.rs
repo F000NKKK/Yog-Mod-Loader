@@ -332,7 +332,8 @@ impl From<Map> for Value {
 }
 
 /// One step of a [`Path`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, crate::Schema)]
+#[data(tag = "type")]
 pub enum Seg {
     Key(String),
     Index(usize),
@@ -369,10 +370,30 @@ impl Path {
         p
     }
 
+    /// `rest` under this path.
+    pub fn then(&self, rest: &Path) -> Path {
+        let mut p = self.clone();
+        p.0.extend(rest.0.iter().cloned());
+        p
+    }
+
     pub fn index(&self, i: usize) -> Path {
         let mut p = self.clone();
         p.0.push(Seg::Index(i));
         p
+    }
+}
+
+/// A path as its steps.
+impl crate::Schema for Path {
+    fn shape() -> crate::Shape {
+        Vec::<Seg>::shape()
+    }
+    fn read(v: &crate::ValueRef<'_>, cx: &mut crate::Reader) -> Option<Self> {
+        Vec::<Seg>::read(v, cx).map(Path)
+    }
+    fn write(&self) -> Value {
+        self.0.write()
     }
 }
 

@@ -7,9 +7,10 @@ use std::fmt::Write as _;
 use yog_gfx::image::ImageSource;
 
 use super::{Element, err};
+use yog_data::Diagnostic;
 
 /// A number attribute.
-pub(crate) fn number(el: &Element, key: &str, value: &str) -> Result<f32, String> {
+pub(crate) fn number(el: &Element, key: &str, value: &str) -> Result<f32, Diagnostic> {
     value
         .trim()
         .parse::<f32>()
@@ -17,7 +18,7 @@ pub(crate) fn number(el: &Element, key: &str, value: &str) -> Result<f32, String
 }
 
 /// A yes/no attribute: `true` or `false`.
-pub(crate) fn boolean(el: &Element, key: &str, value: &str) -> Result<bool, String> {
+pub(crate) fn boolean(el: &Element, key: &str, value: &str) -> Result<bool, Diagnostic> {
     match value.trim() {
         yog_ids::yui_value::TRUE => Ok(true),
         yog_ids::yui_value::FALSE => Ok(false),
@@ -39,20 +40,22 @@ pub const HEX_MARK: &str = yog_ui::attr::HEX_MARKS[0];
 
 /// A color attribute: a literal (see [`color`]) or `@<Set>.<name>`, a color
 /// of `resources/<Set>.yres` (see [`set_resource_refs`]).
-pub(crate) fn color_attr(el: &Element, key: &str, value: &str) -> Result<u32, String> {
+pub(crate) fn color_attr(el: &Element, key: &str, value: &str) -> Result<u32, Diagnostic> {
     if let Some(reference) = value.trim().strip_prefix('@') {
         return resource_color(reference).ok_or_else(|| {
-            format!(
-                "line {}: <{}> {key}=\"{value}\": no color `{reference}` in resources/*.yres",
-                el.line, el.name
-            )
+            Diagnostic::from(format!(
+                "<{}> {key}=\"{value}\": no color `{reference}` in resources/*.yres",
+                el.name
+            ))
+            .at_line(el.line)
         });
     }
     color(value).ok_or_else(|| {
-        format!(
-            "line {}: <{}> {key}=\"{value}\": expected #RRGGBB, #AARRGGBB or @<Set>.<name>",
-            el.line, el.name
-        )
+        Diagnostic::from(format!(
+            "<{}> {key}=\"{value}\": expected #RRGGBB, #AARRGGBB or @<Set>.<name>",
+            el.name
+        ))
+        .at_line(el.line)
     })
 }
 
@@ -88,18 +91,18 @@ pub(super) fn pick<'v>(
     key: &str,
     value: &str,
     options: &[&'v str],
-) -> Result<&'v str, String> {
+) -> Result<&'v str, Diagnostic> {
     options
         .iter()
         .find(|o| **o == value.trim())
         .copied()
         .ok_or_else(|| {
-            format!(
-                "line {}: <{}> {key}=\"{value}\": expected one of {}",
-                el.line,
+            Diagnostic::from(format!(
+                "<{}> {key}=\"{value}\": expected one of {}",
                 el.name,
                 options.join(", ")
-            )
+            ))
+            .at_line(el.line)
         })
 }
 
@@ -123,7 +126,7 @@ pub fn pascal(value: &str) -> String {
 /// that content's name — each looked up when the tree is built
 /// (`::yog_api::tr`, so it follows the game's language); `"@@..."` is a
 /// literal text starting with `@`; anything else is the literal text.
-pub fn text_expr(value: &str) -> Result<String, String> {
+pub fn text_expr(value: &str) -> Result<String, Diagnostic> {
     if value.trim() == "@" || !value.starts_with('@') {
         return Ok(format!("{value:?}"));
     }
@@ -132,7 +135,7 @@ pub fn text_expr(value: &str) -> Result<String, String> {
         Ok(yog_data::Value::Str(s)) => Ok(format!("{s:?}")),
         Ok(yog_data::Value::Lang(key)) => Ok(tr(&key)),
         Ok(yog_data::Value::Res(r)) => {
-            RESOURCE_REFS.with(|refs| refs.borrow().text(&r).map(|(k, _)| tr(k)))
+            RESOURCE_REFS.with(|refs| Ok(refs.borrow().text(&r).map(|(k, _)| tr(k))?))
         }
         Ok(yog_data::Value::Ref(r))
             if matches!(
@@ -144,12 +147,12 @@ pub fn text_expr(value: &str) -> Result<String, String> {
             let id = r.id.split(STATE_OPEN).next().unwrap_or(&r.id);
             Ok(tr(&yog_ids::lang_key(&r.kind, id)))
         }
-        Ok(other) => Err(format!("{} isn't a text", other.kind_name())),
+        Ok(other) => Err(format!("{} isn't a text", other.kind_name()).into()),
         Err(_) if !value.contains(':') => Err(format!(
             "write a translation key as `@lang:{}`, a .yres text as `@Set.name`, a literal `@` as `@@`",
             value[1..].trim()
-        )),
-        Err(e) => Err(e),
+        ).into()),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -157,8 +160,10 @@ pub fn text_expr(value: &str) -> Result<String, String> {
 const STATE_OPEN: char = '[';
 
 /// [`text_expr`] for attribute `key` of `el`, a problem saying where.
-pub(crate) fn text_attr(el: &Element, key: &str, value: &str) -> Result<String, String> {
-    text_expr(value).map_err(|e| format!("line {}: <{}> {key}=\"{value}\": {e}", el.line, el.name))
+pub(crate) fn text_attr(el: &Element, key: &str, value: &str) -> Result<String, Diagnostic> {
+    text_expr(value).map_err(|e| {
+        Diagnostic::from(format!("<{}> {key}=\"{value}\": {e}", el.name)).at_line(el.line)
+    })
 }
 
 thread_local! {
@@ -255,7 +260,7 @@ pub(crate) fn image_source(
     attr: &str,
     source: &str,
     mod_id: Option<&str>,
-) -> Result<String, String> {
+) -> Result<String, Diagnostic> {
     let line = el.line;
     let kind = el.name.as_str();
     let mod_id = mod_id.map(str::to_owned);
@@ -264,24 +269,31 @@ pub(crate) fn image_source(
         Some(name) => {
             resolved = RESOURCE_REFS
                 .with(|r| r.borrow().images.get(name).cloned())
-                .ok_or_else(|| format!("line {line}: <{kind}> {attr}=\"{source}\": no image `{name}` in resources/*.yres"))?;
+                .ok_or_else(|| {
+                    Diagnostic::from(format!(
+                        "<{kind}> {attr}=\"{source}\": no image `{name}` in resources/*.yres"
+                    ))
+                    .at_line(line)
+                })?;
             resolved.as_str()
         }
         None => source,
     };
     let parsed = ImageSource::parse(source).ok_or_else(|| {
-        format!(
-            "line {line}: <{kind}> {attr}=\"{source}\": expected item:<id>, block:<id>, \
+        Diagnostic::from(format!(
+            "<{kind}> {attr}=\"{source}\": expected item:<id>, block:<id>, \
              sprite:<name>, mod:<path> or <namespace>:<path>"
-        )
+        ))
+        .at_line(line)
     })?;
     let source = match parsed {
         ImageSource::ModPath(path) => match &mod_id {
             Some(id) => yog_gfx::image::texture_id(id, &path),
             None => {
-                return Err(format!(
-                    "line {line}: <{kind}> {attr}=\"{source}\": mod: needs the mod id (no yog.toml found)"
-                ));
+                return Err(Diagnostic::from(format!(
+                    "<{kind}> {attr}=\"{source}\": mod: needs the mod id (no yog.toml found)"
+                ))
+                .at_line(line));
             }
         },
         ImageSource::Sprite(name)
@@ -291,17 +303,19 @@ pub(crate) fn image_source(
                 .iter()
                 .map(|s| s.name.as_str())
                 .collect();
-            return Err(format!(
-                "line {line}: <{kind}> {attr}=\"{source}\": unknown sprite (known: {})",
+            return Err(Diagnostic::from(format!(
+                "<{kind}> {attr}=\"{source}\": unknown sprite (known: {})",
                 names.join(", ")
-            ));
+            ))
+            .at_line(line));
         }
         ImageSource::Texture(_) => {
             if let Some(alias) = yog_gfx::image::suggest_alias(source) {
-                return Err(format!(
-                    "line {line}: <{kind}> {attr}=\"{source}\" is a raw resource path, which \
+                return Err(Diagnostic::from(format!(
+                    "<{kind}> {attr}=\"{source}\" is a raw resource path, which \
                      changes between Minecraft versions — write {attr}=\"{alias}\""
-                ));
+                ))
+                .at_line(line));
             }
             source.to_string()
         }
@@ -312,7 +326,7 @@ pub(crate) fn image_source(
 
 /// A `font` attribute: a Yog font, or a game font by Yog's alias — never
 /// the game's own id.
-pub(super) fn font_attr<'a>(el: &Element, v: &'a str) -> Result<&'a str, String> {
+pub(super) fn font_attr<'a>(el: &Element, v: &'a str) -> Result<&'a str, Diagnostic> {
     let font = v.trim();
     match yog_ids::split(font) {
         (yog_ids::ns::MINECRAFT, name) if !font.is_empty() => err(

@@ -172,7 +172,7 @@ fn a_parameter_that_doesnt_read_says_where() {
     )
     .unwrap_err();
     assert_eq!(e.problems.len(), 1);
-    assert_eq!(e.problems[0].path, "texture");
+    assert_eq!(e.problems[0].path.to_string(), "texture");
     assert!(e.message.contains("texture"), "{e:?}");
 }
 
@@ -208,13 +208,16 @@ fn textures_and_advancements_take_references_as_written() {
     assert!(texture("@texture:mymod:block/ruby").is_ok());
     // A bare id isn't a reference: said, at the parameter.
     let bare = texture("mymod:block/ruby").unwrap_err();
-    assert_eq!(bare.problems[0].path, "texture");
+    assert_eq!(bare.problems[0].path.to_string(), "texture");
     assert_eq!(
-        bare.problems[0].code,
-        yog_ids::problem_code::NOT_A_REFERENCE
+        bare.problems[0].code.as_deref(),
+        Some(yog_ids::data_problem::NOT_A_REFERENCE)
     );
     let missing = texture("@texture:mymod:block/none").unwrap_err();
-    assert_eq!(missing.problems[0].code, yog_ids::problem_code::NOT_FOUND);
+    assert_eq!(
+        missing.problems[0].code.as_deref(),
+        Some(yog_ids::request_problem::NOT_FOUND)
+    );
     let args = format!(
         r#"{{ args: {{ path: "{p}", selected: "mymod:next", nodes: [
             {{ id: "mymod:root", parent: null, icon: "@item:minecraft:stick", frame: "task", title: "Root", description: "@lang:gui.done", background: "minecraft:textures/block/calcite.png" }},
@@ -247,13 +250,13 @@ fn a_source_being_edited_is_checked_where_it_goes_wrong() {
     assert_eq!(unknown.len(), 1, "{unknown:?}");
     assert_eq!(
         unknown[0].get("code").and_then(Value::as_str),
-        Some(yog_ids::problem_code::UNKNOWN_FIELD)
+        Some(yog_ids::data_problem::UNKNOWN_FIELD)
     );
     assert_eq!(unknown[0].get("line"), Some(&Value::Int(3)));
     assert_eq!(unknown[0].get("col"), Some(&Value::Int(3)));
     let syntax = problems(&check("{ hardness: }"));
     assert_eq!(
         syntax[0].get("code").and_then(Value::as_str),
-        Some(yog_ids::problem_code::SYNTAX)
+        Some(yog_ids::data_problem::SYNTAX)
     );
 }

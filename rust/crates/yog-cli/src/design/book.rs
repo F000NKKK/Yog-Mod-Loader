@@ -590,7 +590,8 @@ pub fn page_preview(args: &BookArgs) -> BookRendered {
         .map(crate::design::mod_ui::ns)
         .unwrap_or_else(|| yog_ids::ns::MINECRAFT.into());
     let kind = match yog_formats::yui::parse(&args.text)
-        .and_then(|el| yog_formats::book::page_type::compile(&el, &ns))
+        .map_err(String::from)
+        .and_then(|el| yog_formats::book::page_type::compile(&el, &ns).map_err(String::from))
     {
         Ok(k) => k,
         Err(e) => return fail(e),

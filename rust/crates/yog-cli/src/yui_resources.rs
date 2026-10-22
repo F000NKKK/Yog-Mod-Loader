@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 
+use yog_data::Diagnostic;
 use yog_ids::sep::TYPED;
 use yog_ids::{yui, yui_attr};
 
@@ -21,12 +22,17 @@ impl Entry<'_> {
     }
 }
 
-/// A screen's values and styles; the problems reading them (line, message).
+/// A screen's values and styles; the problems reading them.
 #[derive(Default)]
 pub struct Resources {
     pub values: HashMap<String, String>,
     pub styles: HashMap<String, Vec<(String, String)>>,
-    pub problems: Vec<(usize, String)>,
+    pub problems: Vec<Diagnostic>,
+}
+
+/// A problem with the resources at `line`.
+fn problem(line: usize, message: impl std::fmt::Display) -> Diagnostic {
+    Diagnostic::error(yog_ids::build_problem::SCREEN, message).at_line(line)
 }
 
 /// The resource `v` names (`@Accent` → `Accent`); none for anything else
@@ -48,7 +54,7 @@ impl Resources {
         for r in entries {
             let Some(key) = r.attr(yui_attr::X_KEY) else {
                 out.problems
-                    .push((r.line, format!("<{}> needs an x:Key", r.kind)));
+                    .push(problem(r.line, format!("<{}> needs an x:Key", r.kind)));
                 continue;
             };
             if r.kind == yui::STYLE {
@@ -56,7 +62,7 @@ impl Resources {
             } else if let Some(v) = r.attr(yui_attr::VALUE) {
                 out.values.insert(key.to_string(), v.to_string());
             } else {
-                out.problems.push((
+                out.problems.push(problem(
                     r.line,
                     format!(
                         "<{}> needs a value (e.g. <Color x:Key=\"Accent\" value=\"#FFD700\"/>)",
@@ -69,9 +75,9 @@ impl Resources {
             let before = pending.len();
             pending.retain(|s| !out.style(s));
             if pending.len() == before {
-                out.problems.push((
+                out.problems.push(problem(
                     pending[0].line,
-                    "<Style> based_on names an unknown (or circular) style".into(),
+                    "<Style> based_on names an unknown (or circular) style",
                 ));
                 break;
             }
@@ -96,8 +102,10 @@ impl Resources {
                 Some(n) => match self.values.get(n) {
                     Some(r) => r.clone(),
                     None => {
-                        self.problems
-                            .push((s.line, format!("<Style> {k}=\"{v}\": no resource `{n}`")));
+                        self.problems.push(problem(
+                            s.line,
+                            format!("<Style> {k}=\"{v}\": no resource `{n}`"),
+                        ));
                         v.to_string()
                     }
                 },

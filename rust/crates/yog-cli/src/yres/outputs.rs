@@ -7,6 +7,8 @@ use std::fmt::Write as _;
 use std::path::Path;
 
 use super::{Compiled, GENERATED_DIR, GENERATED_FILE, parse};
+use crate::diagnostics::Diagnostic;
+use crate::yres::problem;
 
 /// The lang JSON of `entries` (key, text), order kept.
 fn lang_json(entries: &[(String, String)]) -> String {
@@ -30,19 +32,26 @@ pub(super) fn lang_file(
     locale: &str,
     entries: Vec<(String, String)>,
     origin: &HashMap<String, String>,
-) -> Result<(String, Vec<u8>), Vec<String>> {
+) -> Result<(String, Vec<u8>), Vec<Diagnostic>> {
     let path = yog_ids::asset_file(mod_id, &yog_ids::lang_file(locale));
     let Ok(text) = std::fs::read_to_string(root.join(&path)) else {
         return Ok((path, lang_json(&entries).into_bytes()));
     };
-    let hand =
-        parse(&text).map_err(|e| vec![format!("{path}:{}", e.trim_start_matches("line "))])?;
-    let twice: Vec<String> = hand
+    let hand = parse(&text).map_err(|found| {
+        found
+            .0
+            .iter()
+            .map(|l| l.clone().in_file(&path))
+            .collect::<Vec<_>>()
+    })?;
+    let twice: Vec<Diagnostic> = hand
         .iter()
         .filter_map(|h| {
-            origin
-                .get(&h.name)
-                .map(|at| format!("{path}:{}: {:?} is also defined at {at}", h.line, h.name))
+            origin.get(&h.name).map(|at| {
+                problem(format!("{:?} is also defined at {at}", h.name))
+                    .in_file(&path)
+                    .at_line(h.line)
+            })
         })
         .collect();
     if !twice.is_empty() {
@@ -62,18 +71,21 @@ pub(super) fn sounds_json(
     root: &Path,
     mod_id: &str,
     sounds: BTreeMap<String, serde_json::Value>,
-) -> Result<(String, Vec<u8>), Vec<String>> {
+) -> Result<(String, Vec<u8>), Vec<Diagnostic>> {
     let path = yog_ids::asset_file(mod_id, yog_ids::res::SOUNDS_JSON);
     let mut all = serde_json::Map::new();
     if let Ok(text) = std::fs::read_to_string(root.join(&path)) {
-        all = serde_json::from_str(&text).map_err(|e| vec![format!("{path}: {e}")])?;
+        all = serde_json::from_str(&text).map_err(|e| vec![problem(e).in_file(&path)])?;
     }
     let mut errors = Vec::new();
     for (event, def) in sounds {
         if all.insert(event.clone(), def).is_some() {
-            errors.push(format!(
-                "{path}: sound event {event:?} is also defined by a .yres sound"
-            ));
+            errors.push(
+                problem(format!(
+                    "sound event {event:?} is also defined by a .yres sound"
+                ))
+                .in_file(&path),
+            );
         }
     }
     if !errors.is_empty() {

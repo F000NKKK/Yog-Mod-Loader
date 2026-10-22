@@ -12,8 +12,10 @@ use yog_ids::sep::{TAG, WORD};
 use yog_registry::ToolLadder;
 
 use crate::content::Compiled;
+use crate::content::ctx::problem;
 use crate::content::datapack;
 use crate::content::defs::{DefFile, Defs};
+use crate::diagnostics::Diagnostic;
 
 /// What the tag of what a tool level above the game's can't mine is named:
 /// `<ns>:incorrect_for_<level>_tool`, as the game's are.
@@ -54,13 +56,13 @@ impl Found<'_> {
         yog_ids::qualify_in(self.ns, id)
     }
 
-    fn take(&mut self, f: &DefFile, errors: &mut Vec<String>) {
+    fn take(&mut self, f: &DefFile, errors: &mut Vec<Diagnostic>) {
         let file = &f.shown;
         match &f.read.value {
             Def::Ladder { id } => {
                 let id = self.full(id);
                 if self.order.insert(id.clone(), Vec::new()).is_some() {
-                    errors.push(format!("{file}:1: ladder {id} is defined twice"));
+                    errors.push(problem(format!("{file}:1: ladder {id} is defined twice")));
                 }
             }
             Def::Level { id, ladder, above } => {
@@ -85,7 +87,7 @@ impl Found<'_> {
         }
     }
 
-    fn sound_group(&mut self, file: &str, mut g: SoundGroup, errors: &mut Vec<String>) {
+    fn sound_group(&mut self, file: &str, mut g: SoundGroup, errors: &mut Vec<Diagnostic>) {
         // Short ids — the group's and its sounds' — are the mod's.
         for s in [
             &mut g.id,
@@ -98,21 +100,27 @@ impl Found<'_> {
             *s = yog_ids::qualify_in(self.ns, s);
         }
         if SoundGroup::built_in(&g.id).is_some() {
-            errors.push(format!("{file}:1: sound group {} is the game's", g.id));
+            errors.push(problem(format!(
+                "{file}:1: sound group {} is the game's",
+                g.id
+            )));
         } else if self.sound_groups.iter().any(|x| x.id == g.id) {
-            errors.push(format!("{file}:1: sound group {} is defined twice", g.id));
+            errors.push(problem(format!(
+                "{file}:1: sound group {} is defined twice",
+                g.id
+            )));
         } else {
             self.sound_groups.push(g);
         }
     }
 
-    fn armor_material(&mut self, file: &str, m: &ArmorMaterialDef, errors: &mut Vec<String>) {
+    fn armor_material(&mut self, file: &str, m: &ArmorMaterialDef, errors: &mut Vec<Diagnostic>) {
         let id = self.full(&m.id);
         if ArmorMaterial::built_in(&id).is_some() || self.armor_materials.iter().any(|x| x.id == id)
         {
-            errors.push(format!(
+            errors.push(problem(format!(
                 "{file}:1: armor material {id} is the game's or defined twice"
-            ));
+            )));
             return;
         }
         self.armor_materials.push(ArmorMaterial {
@@ -134,7 +142,11 @@ impl Found<'_> {
 
 /// Reads the `.ydef`s' ladders, the levels placed on them (`above`, in any
 /// order of files), tool and armor materials and sound groups.
-pub(in crate::content) fn read_defs(files: &[DefFile], ns: &str, errors: &mut Vec<String>) -> Defs {
+pub(in crate::content) fn read_defs(
+    files: &[DefFile],
+    ns: &str,
+    errors: &mut Vec<Diagnostic>,
+) -> Defs {
     let game = ToolLadder::game();
     let order = BTreeMap::from([(
         game.ladder.clone(),
@@ -166,16 +178,16 @@ pub(in crate::content) fn read_defs(files: &[DefFile], ns: &str, errors: &mut Ve
 fn place_levels(
     order: &mut BTreeMap<String, Vec<String>>,
     mut levels: Vec<Level>,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) {
     loop {
         let before = levels.len();
         levels.retain(|l| {
             let Some(list) = order.get_mut(&l.ladder) else {
-                errors.push(format!(
+                errors.push(problem(format!(
                     "{}:{}: level {}: no ladder {}",
                     l.file, l.line, l.id, l.ladder
-                ));
+                )));
                 return false;
             };
             let at = match &l.above {
@@ -186,10 +198,10 @@ fn place_levels(
                 },
             };
             if list.contains(&l.id) {
-                errors.push(format!(
+                errors.push(problem(format!(
                     "{}:{}: level {} is defined twice",
                     l.file, l.line, l.id
-                ));
+                )));
             } else {
                 list.insert(at, l.id.clone());
             }
@@ -201,7 +213,7 @@ fn place_levels(
     }
     for l in levels {
         let above = l.above.unwrap_or_default();
-        errors.push(format!("{}:{}: level {}: above {above}, which isn't a level of {} (or the levels go round in a circle)", l.file, l.line, l.id, l.ladder));
+        errors.push(problem(format!("{}:{}: level {}: above {above}, which isn't a level of {} (or the levels go round in a circle)", l.file, l.line, l.id, l.ladder)));
     }
 }
 
@@ -212,7 +224,7 @@ fn place_levels(
 fn tool_materials(
     order: &BTreeMap<String, Vec<String>>,
     tools: Vec<(String, ToolMaterialDef)>,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) -> Vec<ToolMaterial> {
     let ladder = order
         .get(&ToolLadder::game().ladder)
@@ -221,17 +233,17 @@ fn tool_materials(
     let mut out: Vec<ToolMaterial> = Vec::new();
     for (file, m) in tools {
         if ToolMaterial::built_in(&m.id).is_some() || out.iter().any(|x| x.id == m.id) {
-            errors.push(format!(
+            errors.push(problem(format!(
                 "{file}:1: tool material {} is the game's or defined twice",
                 m.id
-            ));
+            )));
             continue;
         }
         let Some(at) = ladder.iter().position(|l| l == &m.level) else {
-            errors.push(format!(
+            errors.push(problem(format!(
                 "{file}:1: level: {} isn't a level of the tool ladder",
                 m.level
-            ));
+            )));
             continue;
         };
         let (level_index, incorrect) = game_level(&ladder, at, &m.level);

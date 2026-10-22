@@ -13,6 +13,7 @@ use crate::content::block_item::{compile_file, inventory_screens};
 use crate::content::body::{compile_body, compile_entity, compile_font};
 use crate::content::book::{BookAgainst, compile_book, recipe_layouts};
 use crate::content::ctx::{Deferred, Shared, Sink, Wanted};
+use crate::content::ctx::{caveat, problem};
 use crate::content::defs::data::{definition_path, loot_path};
 use crate::content::defs::ladder::{read_defs, tool_level_tags};
 use crate::content::defs::worldgen::dimension_path;
@@ -26,6 +27,7 @@ use crate::content::source::{Content, mentions_content_macro, registrations, rus
 use crate::content::{
     CONTENT_DIR, Compiled, content_format, datapack, find, looks, refs, textures, valid_namespace,
 };
+use crate::diagnostics::Diagnostic;
 use crate::yres;
 
 /// Ids defined so far, each by the file defining it: a second one is a mistake.
@@ -34,9 +36,9 @@ struct Ids(HashMap<String, String>);
 
 impl Ids {
     /// `id` (a `what`) defined by `file`.
-    fn claim(&mut self, errors: &mut Vec<String>, file: &str, what: &str, id: &str) {
+    fn claim(&mut self, errors: &mut Vec<Diagnostic>, file: &str, what: &str, id: &str) {
         if let Some(other) = self.0.insert(id.to_string(), file.to_string()) {
-            errors.push(format!("{file}: {what} {id} is also defined by {other}"));
+            errors.push(problem(format!("{what} {id} is also defined by {other}")).in_file(file));
         }
     }
 }
@@ -142,7 +144,12 @@ impl<'a> Build<'a> {
         };
         let text = match crate::files::read_source(path) {
             Ok(t) => t,
-            Err(e) => return self.sink.errors.push(format!("{shown}: {e}")),
+            Err(e) => {
+                return self
+                    .sink
+                    .errors
+                    .push(problem(format!("{e}")).in_file(&shown));
+            }
         };
         let errors = &mut self.sink.errors;
         match kind {
@@ -246,12 +253,12 @@ impl<'a> Build<'a> {
                         .iter()
                         .any(|b| b.model == (kind == Format::Model) && &b.id == id)
                 {
-                    self.sink.errors.push(format!(
+                    self.sink.errors.push(problem(format!(
                         "{}: {} `{id}`: no such file in {CONTENT_DIR}/ (`.{}`)",
                         e.file,
                         kind.noun(),
                         kind.ext()
-                    ));
+                    )));
                 }
             }
         }
@@ -316,10 +323,10 @@ impl<'a> Build<'a> {
             p.contains_key(id) || refs::is_vanilla_potion(id)
         };
         if !defined(&self.potions, &brew.from) {
-            return self.sink.errors.push(format!("brewing recipe input `{}`: no potion `.yitem` or Yog default potion alias defines it", brew.from));
+            return self.sink.errors.push(problem(format!("brewing recipe input `{}`: no potion `.yitem` or Yog default potion alias defines it", brew.from)));
         }
         if !defined(&self.potions, &to) {
-            return self.sink.errors.push(format!("brewing recipe result `{to}`: no potion `.yitem` or Yog default potion alias defines it"));
+            return self.sink.errors.push(problem(format!("brewing recipe result `{to}`: no potion `.yitem` or Yog default potion alias defines it")));
         }
         self.potions
             .entry(to.clone())
@@ -343,7 +350,9 @@ impl<'a> Build<'a> {
         } in std::mem::take(&mut self.sink.deferred)
         {
             if let Err(e) = check_wanted(&wanted, defs, known) {
-                self.sink.errors.push(format!("{file}:{line}: {path}: {e}"));
+                self.sink
+                    .errors
+                    .push(problem(format!("{path}: {e}")).in_file(file).at_line(line));
             }
         }
     }
@@ -354,11 +363,18 @@ impl<'a> Build<'a> {
             let Some((level, line)) = &e.block.tool_level else {
                 continue;
             };
-            let at = |m: String| format!("{}:{line}: block.tool_level: {m}", e.file);
+            let at = |d: Diagnostic| d.in_file(&e.file).at_line(*line);
+            let field = yog_data::field!(yog_formats::content::BlockProps, tool_level);
             match tool_level_tags(&e.id, level, defs, &mut self.out) {
                 Ok(None) => {}
-                Ok(Some(caveat)) => self.sink.warnings.push(at(caveat)),
-                Err(m) => self.sink.errors.push(at(m)),
+                Ok(Some(m)) => self
+                    .sink
+                    .warnings
+                    .push(at(caveat(format!("block.{field}: {m}")))),
+                Err(m) => self
+                    .sink
+                    .errors
+                    .push(at(problem(format!("block.{field}: {m}")))),
             }
         }
     }
@@ -397,7 +413,13 @@ impl<'a> Build<'a> {
         let screens = inventory_screens(&self.shared.root.join(yog_ids::project::SRC));
         for (file, line, id) in &self.sink.inventories {
             if yog_ids::split(id).0 == ns && !screens.contains(id) {
-                self.sink.errors.push(format!("{file}:{line}: block.inventory `{id}`: no .yui <Screen id=\"{id}\"> with <Slot>s in src/"));
+                self.sink.errors.push(
+                    problem(format!(
+                        "block.inventory `{id}`: no .yui <Screen id=\"{id}\"> with <Slot>s in src/"
+                    ))
+                    .in_file(file)
+                    .at_line(*line),
+                );
             }
         }
     }
@@ -420,9 +442,11 @@ impl<'a> Build<'a> {
         }
         self.out.warnings = std::mem::take(&mut self.sink.warnings);
         if !self.sink.errors.is_empty() {
+            crate::diagnostics::report_all(&self.sink.errors);
             return Err(format!(
-                "invalid blocks/items in {CONTENT_DIR}/:\n  {}",
-                self.sink.errors.join("\n  ")
+                "invalid blocks/items in {CONTENT_DIR}/:{}{}",
+                crate::diagnostics::LIST_SEP,
+                crate::diagnostics::listed(&self.sink.errors)
             ));
         }
         let potions = std::mem::take(&mut self.potions);
@@ -452,7 +476,7 @@ impl<'a> Build<'a> {
         if content.registers_anything()
             && !mentions_content_macro(&self.shared.root.join(yog_ids::project::SRC))
         {
-            self.out.warnings.push(format!("{CONTENT_DIR} has blocks/items, but src/ never calls `yog_api::content!();` — they get models but aren't registered"));
+            self.out.warnings.push(caveat(format!("{CONTENT_DIR} has blocks/items, but src/ never calls `yog_api::content!();` — they get models but aren't registered")));
         }
         self.out.source = Some(rust_source(&content));
         version_overlays(&mut self.out, &known.datapack);

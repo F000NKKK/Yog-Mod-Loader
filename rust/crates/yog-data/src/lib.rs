@@ -16,6 +16,7 @@ extern crate self as yog_data;
 pub mod atom;
 pub mod binary;
 mod borrowed;
+pub mod diagnostic;
 pub mod export;
 pub mod frame;
 pub mod io;
@@ -33,6 +34,7 @@ pub mod with;
 pub use atom::Atom;
 pub use borrowed::{MapRef, ValueRef};
 pub use bumpalo::Bump;
+pub use diagnostic::{Diagnostic, Errors, Severity};
 pub use stream::{Stream, StreamWriter};
 pub use text::{Doc, LineCol, Span, Spans, SyntaxError};
 pub use value::{Map, Path, Ref, Res, Seg, Value};
@@ -40,9 +42,9 @@ pub mod schema;
 pub mod source;
 
 pub use schema::{
-    AnyRefOrTag, BlockId, Color, EntityId, Errors, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds,
-    OneOrList, OneOrTag, Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text,
-    built_in, from_doc_with, from_text, from_value, from_value_with, kinds, read_bytes,
+    AnyRefOrTag, BlockId, Color, EntityId, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds, OneOrList,
+    OneOrTag, Ordered, Read, Reader, RecipeId, Resolve, Schema, Shape, TagId, Text, built_in,
+    from_doc_with, from_text, from_value, from_value_with, kinds, placed, read_bytes,
     read_ref_value, read_value, to_bytes, to_text,
 };
 pub use yog_data_derive::Schema;

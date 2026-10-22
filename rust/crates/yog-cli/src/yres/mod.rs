@@ -29,6 +29,7 @@ pub use names::{
 };
 pub use outputs::write_sources;
 
+use crate::diagnostics::Diagnostic;
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -118,7 +119,7 @@ pub struct Compiled {
     /// `<Set>` → generated Rust source.
     pub sources: BTreeMap<String, String>,
     pub refs: Refs,
-    pub warnings: Vec<String>,
+    pub warnings: Vec<Diagnostic>,
     /// Number of `.yres` files read.
     pub files: usize,
 }
@@ -203,3 +204,13 @@ pub fn resolve_image(refs: &Refs, value: &str) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests;
+
+/// A resources error (`YB0003`), where it is to be said by the caller.
+pub(crate) fn problem(msg: impl std::fmt::Display) -> crate::diagnostics::Diagnostic {
+    crate::diagnostics::Diagnostic::error(yog_ids::build_problem::RESOURCES, msg)
+}
+
+/// A resources warning (`YB0003`).
+pub(crate) fn caveat(msg: impl std::fmt::Display) -> crate::diagnostics::Diagnostic {
+    crate::diagnostics::Diagnostic::warning(yog_ids::build_problem::RESOURCES, msg)
+}

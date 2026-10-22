@@ -50,65 +50,11 @@ impl Builder {
             cmd.env("CARGO_PROFILE_RELEASE_CODEGEN_UNITS", "256");
             cmd.env("CARGO_PROFILE_RELEASE_INCREMENTAL", "true");
         }
-        let output = cmd.output();
-        match output {
-            Ok(o) => {
-                eprint!(
-                    "{}",
-                    filter_benign_warnings(&String::from_utf8_lossy(&o.stderr))
-                );
-                if o.status.success() { Ok(()) } else { Err(()) }
-            }
+        match super::cargo_out::run(&mut cmd, build_dir, root) {
+            Ok(true) => Ok(()),
             _ => Err(()),
         }
     }
-}
-
-/// Warnings that come from the zig cross-linking toolchain itself, not from
-/// the mod's code, and that the mod author can't act on:
-/// - "xcrun … MacOSX.sdk failed" — rustc probing for a macOS SDK when
-///   cross-linking Apple targets (zig handles the actual linking).
-/// - "linker stderr: ignoring deprecated linker optimization setting" —
-///   rustc always passes `-Wl,-O1` to gnu-flavored linkers; zig's ld (0.16+)
-///   ignores it and says so on every link.
-pub(super) fn is_benign_warning(t: &str) -> bool {
-    t.starts_with("warning:")
-        && ((t.contains("xcrun") && t.contains("failed"))
-            || (t.contains("linker stderr")
-                && t.contains("deprecated linker optimization setting")))
-}
-
-/// Drop each [`is_benign_warning`] block, along with the matching cargo
-/// "generated 1 warning" line.
-pub(super) fn filter_benign_warnings(stderr: &str) -> String {
-    let mut out = String::new();
-    let mut in_block = false;
-    let mut suppressed = 0usize;
-    for line in stderr.lines() {
-        let t = line.trim_start();
-        if is_benign_warning(t) {
-            in_block = true;
-            suppressed += 1;
-            continue;
-        }
-        if in_block {
-            if t == "|" || t.starts_with("= note:") || t.starts_with("= help:") || t.is_empty() {
-                continue;
-            }
-            in_block = false;
-        }
-        // Cargo's per-crate summary counting only the suppressed warning.
-        // (`generated 1 warning (1 duplicate)` when it came twice.)
-        let only_one =
-            t.ends_with("generated 1 warning") || t.ends_with("generated 1 warning (1 duplicate)");
-        if suppressed > 0 && t.starts_with("warning:") && only_one {
-            suppressed -= 1;
-            continue;
-        }
-        out.push_str(line);
-        out.push('\n');
-    }
-    out
 }
 
 /// `YOG_TARGETS` — comma-separated platform tags or triples
@@ -286,6 +232,3 @@ pub(super) fn first_line_of(program: &str, args: &[&str]) -> Option<String> {
     let text = String::from_utf8_lossy(&out.stdout);
     Some(text.lines().next().unwrap_or("").trim().to_string())
 }
-
-#[cfg(test)]
-mod tests;

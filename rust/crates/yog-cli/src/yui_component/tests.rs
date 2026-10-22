@@ -1,7 +1,9 @@
 use super::*;
 
 fn codegen(src: &str) -> Result<String, String> {
-    generate(&yui::parse_xml(src)?, "ui/stat_bar", None).map(|(c, _)| c)
+    generate(&yui::parse_xml(src)?, "ui/stat_bar", None)
+        .map(|(c, _)| c)
+        .map_err(String::from)
 }
 
 #[test]

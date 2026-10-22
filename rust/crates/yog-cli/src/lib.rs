@@ -11,6 +11,7 @@ pub mod cargo_toml;
 mod consts;
 pub mod content;
 pub mod design;
+pub mod diagnostics;
 pub mod exports;
 pub mod files;
 pub mod manifest;

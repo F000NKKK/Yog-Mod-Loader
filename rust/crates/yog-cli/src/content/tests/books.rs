@@ -66,7 +66,9 @@ fn compiles_a_book() {
     )
     .unwrap_err();
     assert!(
-        e.contains("bad.ybook:3: entries[0].category: `c`: name it by a reference — `@category:c`"),
+        e.contains(
+            "bad.ybook:3:59: entries[0].category: `c`: name it by a reference — `@category:c`"
+        ),
         "{e}"
     );
     assert!(

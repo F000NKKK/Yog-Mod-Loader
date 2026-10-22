@@ -6,6 +6,7 @@ use yog_data::Path as At;
 use yog_ids::Format;
 
 use crate::content::CONTENT_DIR;
+use crate::diagnostics::Diagnostic;
 use crate::yres;
 
 /// Per-file checking state.
@@ -14,8 +15,8 @@ pub(in crate::content) struct Ctx<'a> {
     pub(in crate::content) refs: &'a yres::Refs,
     pub(in crate::content) file: String,
     pub(in crate::content) ns: String,
-    pub(in crate::content) errors: &'a mut Vec<String>,
-    pub(in crate::content) warnings: &'a mut Vec<String>,
+    pub(in crate::content) errors: &'a mut Vec<Diagnostic>,
+    pub(in crate::content) warnings: &'a mut Vec<Diagnostic>,
     /// The mod's own textures' ids (`.ytexture` files).
     pub(in crate::content) own_textures: &'a BTreeSet<String>,
     /// `block.inventory` screen ids named so far: (file, line, id) —
@@ -66,8 +67,8 @@ impl Shared<'_> {
 /// What checking every content file reports into.
 #[derive(Default)]
 pub(in crate::content) struct Sink {
-    pub(in crate::content) errors: Vec<String>,
-    pub(in crate::content) warnings: Vec<String>,
+    pub(in crate::content) errors: Vec<Diagnostic>,
+    pub(in crate::content) warnings: Vec<Diagnostic>,
     pub(in crate::content) inventories: Vec<(String, usize, String)>,
     pub(in crate::content) deferred: Vec<Deferred>,
 }
@@ -91,7 +92,8 @@ impl Sink {
 
 impl Ctx<'_> {
     pub(in crate::content) fn err(&mut self, line: usize, msg: impl std::fmt::Display) {
-        self.errors.push(format!("{}:{line}: {msg}", self.file));
+        self.errors
+            .push(problem(msg).in_file(&self.file).at_line(line));
     }
 
     /// Checks `wanted`, named at `path` (line `line`), once every file is read.
@@ -105,29 +107,25 @@ impl Ctx<'_> {
     }
 
     pub(in crate::content) fn warn(&mut self, line: usize, msg: impl std::fmt::Display) {
-        self.warnings.push(format!("{}:{line}: {msg}", self.file));
+        self.warnings
+            .push(caveat(msg).in_file(&self.file).at_line(line));
     }
 
     /// A problem with the value at `path`.
     pub(in crate::content) fn err_at(&mut self, loc: Loc, path: &At, msg: impl std::fmt::Display) {
-        let line = loc(path);
-        self.err(line, format!("{path}: {msg}"));
+        let found = problem(msg).in_file(&self.file).at_line(loc(path));
+        self.errors.push(found.at_path(path.clone()));
     }
 
     pub(in crate::content) fn warn_at(&mut self, loc: Loc, path: &At, msg: impl std::fmt::Display) {
-        let line = loc(path);
-        self.warn(line, format!("{path}: {msg}"));
+        let found = caveat(msg).in_file(&self.file).at_line(loc(path));
+        self.warnings.push(found.at_path(path.clone()));
     }
 
     /// Reports what reading a file through its schema found.
     pub(in crate::content) fn schema_errors(&mut self, errors: yog_data::Errors) {
         for e in errors.0 {
-            let l = e.at.map_or(1, |a| a.line as usize);
-            if e.path.is_root() {
-                self.err(l, e.message)
-            } else {
-                self.err(l, format!("{}: {}", e.path, e.message))
-            }
+            self.errors.push(e.in_file(&self.file));
         }
     }
 
@@ -165,3 +163,13 @@ impl Ctx<'_> {
 
 /// Where a path of the file being read is: its line.
 pub(in crate::content) type Loc<'a> = &'a dyn Fn(&At) -> usize;
+
+/// A content error (`YB0002`), where it is to be said by the caller.
+pub(in crate::content) fn problem(msg: impl std::fmt::Display) -> Diagnostic {
+    Diagnostic::error(yog_ids::build_problem::CONTENT, msg)
+}
+
+/// A content warning (`YB0002`).
+pub(in crate::content) fn caveat(msg: impl std::fmt::Display) -> Diagnostic {
+    Diagnostic::warning(yog_ids::build_problem::CONTENT, msg)
+}

@@ -17,6 +17,7 @@ use super::values::{
 };
 use super::{Element, RAW_CALL, err};
 use crate::rust_code::f32_lit;
+use yog_data::Diagnostic;
 
 /// What generating a tree finds: the events its widgets raise, their ids.
 pub(crate) struct Gen {
@@ -40,7 +41,7 @@ pub(crate) fn static_widget(
     in_canvas: bool,
     depth: usize,
     mod_id: Option<&str>,
-) -> Result<(String, Vec<String>), String> {
+) -> Result<(String, Vec<String>), Diagnostic> {
     let mut codegen = Gen::new(mod_id);
     let expr = codegen.widget(el, in_canvas, depth)?;
     Ok((expr, codegen.ids.into_vec()))
@@ -62,7 +63,7 @@ impl Gen {
         el: &Element,
         in_canvas: bool,
         depth: usize,
-    ) -> Result<String, String> {
+    ) -> Result<String, Diagnostic> {
         let kind = el.name.as_str();
         let is_component = check_element(el, depth)?;
         let mut expr = self.base(el, is_component)?;
@@ -84,7 +85,7 @@ impl Gen {
     }
 
     /// The element's own widget, before its attributes.
-    fn base(&mut self, el: &Element, is_component: bool) -> Result<String, String> {
+    fn base(&mut self, el: &Element, is_component: bool) -> Result<String, Diagnostic> {
         let text = || text_attr(el, at::TEXT, el.attr(at::TEXT).unwrap_or_default());
         Ok(match el.name.as_str() {
             y::SCREEN | y::CANVAS | y::COLUMN => "widget::panel(FlexDir::Column)".to_string(),
@@ -119,7 +120,7 @@ impl Gen {
         key: &str,
         v: &str,
         calls: &mut Vec<String>,
-    ) -> Result<(), String> {
+    ) -> Result<(), Diagnostic> {
         if key.starts_with(RAW_CALL) {
             // Builder calls added by the view-model generator.
             calls.push(v.to_string());
@@ -168,38 +169,44 @@ impl Gen {
 
     /// `widget::surface(...)` for a `<Surface>`: the id its drawing is
     /// registered under (`ns:path`; `mod:path` = the mod's namespace).
-    fn surface(&mut self, el: &Element) -> Result<String, String> {
+    fn surface(&mut self, el: &Element) -> Result<String, Diagnostic> {
         let line = el.line;
         let source = el
             .attr(at::SOURCE)
-            .ok_or_else(|| format!("line {line}: <Surface> needs a source (the id its code registers, e.g. source=\"mod:grid\")"))?
+            .ok_or_else(|| {
+                Diagnostic::from("<Surface> needs a source (the id its code registers, e.g. source=\"mod:grid\")".to_string())
+                .at_line(line)
+            })?
             .trim();
         let id = match (source.strip_prefix(MOD_SCHEME), &self.mod_id) {
             (Some(path), Some(m)) => yog_ids::join(m, path),
             (Some(_), None) => {
-                return Err(format!(
-                    "line {line}: <Surface> source=\"{source}\": mod: needs the mod id (no yog.toml found)"
-                ));
+                return Err(Diagnostic::from(format!(
+                    "<Surface> source=\"{source}\": mod: needs the mod id (no yog.toml found)"
+                ))
+                .at_line(line));
             }
             (None, _) => source.to_string(),
         };
         if !id.contains(yog_ids::sep::NAMESPACE) || !crate::content::valid_id(&id) {
-            return Err(format!(
-                "line {line}: <Surface> source=\"{source}\": expected <namespace>:<name> or mod:<name> \
+            return Err(Diagnostic::from(format!(
+                "<Surface> source=\"{source}\": expected <namespace>:<name> or mod:<name> \
                  (lower case a-z, 0-9, `_`, `-`, `.`, `/`)"
-            ));
+            ))
+            .at_line(line));
         }
         Ok(format!("widget::surface({id:?})"))
     }
 
     /// `widget::image(...)` for an `<Image>`: its `source` checked and
     /// `mod:` resolved, plus `stretch`/`uv`/`tint`.
-    fn image(&mut self, el: &Element) -> Result<String, String> {
+    fn image(&mut self, el: &Element) -> Result<String, Diagnostic> {
         let line = el.line;
         let source = el
             .attr(at::SOURCE)
             .ok_or_else(|| {
-                format!("line {line}: <Image> needs a source (e.g. source=\"item:apple\")")
+                Diagnostic::from("<Image> needs a source (e.g. source=\"item:apple\")".to_string())
+                    .at_line(line)
             })?
             .trim();
         let source = image_source(el, at::SOURCE, source, self.mod_id.as_deref())?;
@@ -207,10 +214,11 @@ impl Gen {
         if let Some(v) = el.attr(at::STRETCH) {
             let names = || Stretch::ALL.map(|(_, n)| n).join(", ");
             let s = Stretch::parse(v).map(Stretch::name).ok_or_else(|| {
-                format!(
-                    "line {line}: <Image> stretch=\"{v}\": expected one of {}",
+                Diagnostic::from(format!(
+                    "<Image> stretch=\"{v}\": expected one of {}",
                     names()
-                )
+                ))
+                .at_line(line)
             })?;
             let _ = write!(expr, ".stretch(::yog_api::ui::Stretch::{s})");
         }
@@ -221,9 +229,10 @@ impl Gen {
                 .map(|p| number(el, at::UV, p))
                 .collect::<Result<_, _>>()?;
             let [u, vv, w, h] = nums[..] else {
-                return Err(format!(
-                    "line {line}: <Image> uv=\"{v}\": expected \"u v width height\""
-                ));
+                return Err(Diagnostic::from(format!(
+                    "<Image> uv=\"{v}\": expected \"u v width height\""
+                ))
+                .at_line(line));
             };
             let _ = write!(
                 expr,
@@ -248,7 +257,7 @@ impl Gen {
 /// Whether `el` may be where it is: a known element (or a component's
 /// PascalCase name), a `<Screen>` only at the root, children only in a
 /// container, only attributes it takes. Whether it's a component.
-fn check_element(el: &Element, depth: usize) -> Result<bool, String> {
+fn check_element(el: &Element, depth: usize) -> Result<bool, Diagnostic> {
     let kind = el.name.as_str();
     let is_container = CONTAINERS.contains(&kind);
     // Any other PascalCase element is one of the mod's own components
@@ -256,21 +265,15 @@ fn check_element(el: &Element, depth: usize) -> Result<bool, String> {
     let is_component = !is_container && !LEAVES.contains(&kind) && is_component_name(kind);
     if !is_container && !LEAVES.contains(&kind) && !is_component {
         let (_, containers) = CONTAINERS.split_at(1);
-        return Err(format!(
-            "line {}: unknown element <{kind}> (expected one of {}, {}, or a custom component's PascalCase name)",
-            el.line,
-            containers.join(", "),
-            LEAVES.join(", ")
-        ));
+        return Err(Diagnostic::from(format!("unknown element <{kind}> (expected one of {}, {}, or a custom component's PascalCase name)", containers.join(", "), LEAVES.join(", "))).at_line(el.line));
     }
     if kind == y::SCREEN && depth > 0 {
-        return Err(format!(
-            "line {}: <Screen> must be the root element",
-            el.line
-        ));
+        return Err(
+            Diagnostic::from("<Screen> must be the root element".to_string()).at_line(el.line),
+        );
     }
     if !is_container && !el.children.is_empty() {
-        return Err(format!("line {}: <{kind}> can't have children", el.line));
+        return Err(Diagnostic::from(format!("<{kind}> can't have children")).at_line(el.line));
     }
     let foreign = |key: &str| {
         !key.starts_with(RAW_CALL)
@@ -281,17 +284,16 @@ fn check_element(el: &Element, depth: usize) -> Result<bool, String> {
         let hint = wpf_hint(key)
             .map(|h| format!(" — .yui writes it `{h}`"))
             .unwrap_or_default();
-        return Err(format!(
-            "line {}: <{kind}> has no attribute `{key}`{hint}",
-            el.line
-        ));
+        return Err(
+            Diagnostic::from(format!("<{kind}> has no attribute `{key}`{hint}")).at_line(el.line),
+        );
     }
     Ok(is_component)
 }
 
 /// A screen's size, and where the element is: always in a canvas, else
 /// when it says.
-fn position(el: &Element, in_canvas: bool, calls: &mut Vec<String>) -> Result<(), String> {
+fn position(el: &Element, in_canvas: bool, calls: &mut Vec<String>) -> Result<(), Diagnostic> {
     if el.name == y::SCREEN {
         for (key, call) in [(at::WIDTH, at::W), (at::HEIGHT, at::H)] {
             if let Some(v) = el.attr(key) {
@@ -336,13 +338,11 @@ fn machine(el: &Element) -> String {
 }
 
 /// An `<InvSlot>`: its item and how many.
-fn inv_slot(el: &Element) -> Result<String, String> {
+fn inv_slot(el: &Element) -> Result<String, Diagnostic> {
     let count = match el.attr(at::COUNT) {
         Some(c) => c.trim().parse::<u32>().map_err(|_| {
-            format!(
-                "line {}: <InvSlot> count=\"{c}\": expected a whole number",
-                el.line
-            )
+            Diagnostic::from(format!("<InvSlot> count=\"{c}\": expected a whole number"))
+                .at_line(el.line)
         })?,
         None => ONE,
     };
@@ -353,13 +353,13 @@ fn inv_slot(el: &Element) -> Result<String, String> {
 }
 
 /// A `<Slot>`: the container's slot of its number, and what it takes.
-fn slot(el: &Element) -> Result<String, String> {
+fn slot(el: &Element) -> Result<String, Diagnostic> {
     let index = el.attr(at::INDEX).unwrap_or_default();
     let index = index.trim().parse::<usize>().map_err(|_| {
-        format!(
-            "line {}: <Slot> index=\"{index}\": expected the container slot's number (0, 1, ...)",
-            el.line
-        )
+        Diagnostic::from(format!(
+            "<Slot> index=\"{index}\": expected the container slot's number (0, 1, ...)"
+        ))
+        .at_line(el.line)
     })?;
     let accepts: Vec<&str> = el
         .attr(at::ACCEPTS)
@@ -373,10 +373,7 @@ fn slot(el: &Element) -> Result<String, String> {
             .split_once(yog_ids::sep::NAMESPACE)
             .is_some_and(|(ns, path)| yog_ids::valid_namespace(ns) && yog_ids::valid_path(path));
         if !ok {
-            return Err(format!(
-                "line {}: <Slot> accepts=\"{a}\": expected an item id (minecraft:redstone) or an item tag (#c:dusts), with its namespace",
-                el.line
-            ));
+            return Err(Diagnostic::from(format!("<Slot> accepts=\"{a}\": expected an item id (minecraft:redstone) or an item tag (#c:dusts), with its namespace")).at_line(el.line));
         }
     }
     Ok(if accepts.is_empty() {

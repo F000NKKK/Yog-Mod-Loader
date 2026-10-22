@@ -117,8 +117,8 @@ fn what_a_version_or_loader_hasnt_got_keeps_a_recipe_out_of_it() {
         c.map(|c| {
             c.warnings
                 .iter()
-                .filter(|w| w.contains("left out"))
-                .cloned()
+                .filter(|w| w.message.contains("left out"))
+                .map(ToString::to_string)
                 .collect::<Vec<_>>()
                 .join("\n")
         })

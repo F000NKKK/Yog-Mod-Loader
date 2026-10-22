@@ -168,7 +168,9 @@ fn armor_materials_get_their_worn_look_as_equipment() {
         .find(|(p, _)| p == "assets/mymod/textures/entity/equipment/humanoid/mythril.png");
     assert_eq!(worn.map(|(_, b)| b.as_slice()), Some(&b"one"[..]));
     assert!(
-        out.warnings.iter().any(|w| w.contains("mythril_layer_2")),
+        out.warnings
+            .iter()
+            .any(|w| w.message.contains("mythril_layer_2")),
         "{:?}",
         out.warnings
     );

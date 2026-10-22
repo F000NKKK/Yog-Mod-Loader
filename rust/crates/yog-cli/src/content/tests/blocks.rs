@@ -331,10 +331,10 @@ fn reports_errors_with_lines() {
     )]);
     let e = compile(&root, "mymod", &yres::Refs::default()).unwrap_err();
     for want in [
-        "content/bad.yblock:5: model.elements[0].to: 99 is out of range (-16..=32)",
-        "content/bad.yblock:6: model.elements[0].rotation.axis: unknown `q` — did you mean `x`?",
-        "content/bad.yblock:7: model.elements[0].faces.nort: unknown field `nort` — did you mean `north`?",
-        "content/bad.yblock:10: bogus: unknown field `bogus`",
+        "content/bad.yblock:5:32: model.elements[0].to: 99 is out of range (-16..=32)",
+        "content/bad.yblock:6:29: model.elements[0].rotation.axis: unknown `q` — did you mean `x`?",
+        "content/bad.yblock:7:18: model.elements[0].faces.nort: unknown field `nort` — did you mean `north`?",
+        "content/bad.yblock:10:3: bogus: unknown field `bogus`",
     ] {
         assert!(e.contains(want), "missing {want}\n{e}");
     }

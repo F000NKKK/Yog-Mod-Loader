@@ -14,6 +14,9 @@ pub const MC_CLIENT_JAR: &str = "YOG_MC_CLIENT_JAR";
 /// The game's control socket (`127.0.0.1:<port>`), and the token a client proves itself with.
 pub const CONTROL_SOCKET: &str = "YOG_CONTROL_SOCKET";
 pub const CONTROL_TOKEN: &str = "YOG_CONTROL_TOKEN";
+/// Where `yog build` and `yog check` write each diagnostic as a Yog Data
+/// frame (the IDE's Error List reads them; the text goes on as ever).
+pub const DIAGNOSTICS: &str = "YOG_DIAGNOSTICS";
 /// Where a designer writes what it draws, as a PNG.
 pub const DESIGNER_PNG: &str = "YOG_DESIGNER_PNG";
 /// Where the images designer writes what it draws, as a PNG.

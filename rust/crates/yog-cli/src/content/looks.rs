@@ -11,7 +11,9 @@ use std::path::Path;
 use yog_ids::res;
 
 use crate::consts::item_def;
+use crate::content::ctx::caveat;
 use crate::content::{Compiled, pretty};
+use crate::diagnostics::Diagnostic;
 
 /// An opaque colour from `0xRRGGBB`, as the game's item tints take it (ARGB, signed).
 const OPAQUE: u32 = 0xFF00_0000;
@@ -61,7 +63,7 @@ pub(super) fn equipment(
     root: &Path,
     out: &mut Compiled,
     texture: &str,
-    warnings: &mut Vec<String>,
+    warnings: &mut Vec<Diagnostic>,
 ) {
     let (ns, path) = yog_ids::split(texture);
     let layer = json!([{ (equipment::TEXTURE): texture }]);
@@ -101,9 +103,9 @@ pub(super) fn equipment(
             .or_else(|| std::fs::read(root.join(&old)).ok());
         match picture {
             Some(bytes) => out.outputs.push((new, bytes)),
-            None => warnings.push(format!(
+            None => warnings.push(caveat(format!(
                 "armor texture {texture}: no {old}, worn armor shows nothing"
-            )),
+            ))),
         }
     }
 }

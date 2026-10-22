@@ -182,9 +182,8 @@ names! {
         TAG = crate::concatcp!(crate::sep::TYPED, crate::kind::TAG, crate::sep::NAMESPACE),
     }
 
-    /// What a problem is, as the Error List and the docs name it: `YD…` a
-    /// problem with Yog Data, `YC…` with a request to the CLI.
-    problem_code {
+    /// What's wrong with Yog Data (`YD…`), as the Error List and the docs name it.
+    data_problem {
         /// Any other problem with a value.
         INVALID = "YD0000",
         /// Text that doesn't parse.
@@ -202,10 +201,38 @@ names! {
         BAD_TYPED = "YD0008",
         /// Binary Yog Data that won't decode.
         BAD_BINARY = "YD0009",
+    }
+
+    /// What's wrong with a request to the CLI's service (`YC…`).
+    request_problem {
         /// A request that failed otherwise.
         FAILED = "YC0000",
         /// What a request names isn't there.
         NOT_FOUND = "YC0001",
+    }
+
+    /// What's wrong with a mod's build (`YB…`).
+    build_problem {
+        /// A build that failed otherwise.
+        FAILED = "YB0000",
+        /// `yog.toml` that isn't right.
+        MANIFEST = "YB0001",
+        /// A content file (`content/**`) that isn't right.
+        CONTENT = "YB0002",
+        /// A resource file (`.yres`) that isn't right.
+        RESOURCES = "YB0003",
+        /// A screen (`.yui`) that isn't right.
+        SCREEN = "YB0004",
+        /// Cargo itself failed — resolving, fetching, its toolchain — not the compiler.
+        CARGO = "YB0005",
+        /// The compiler's say without a code of its own.
+        COMPILER = "YB0006",
+        /// No platform's library got built.
+        NO_PLATFORM = "YB0007",
+        /// The `.yog` couldn't be packaged.
+        PACKAGE = "YB0008",
+        /// A benchmark file (`benches/*.rs`) that isn't right.
+        BENCH = "YB0009",
     }
 
     /// The words of Yog Data's `#[data(...)]` attribute: the attribute

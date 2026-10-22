@@ -13,7 +13,7 @@ mod data;
 mod error;
 mod media;
 
-pub use error::{Problem, ServiceError};
+pub use error::ServiceError;
 
 use yog_data::Schema;
 

@@ -24,6 +24,7 @@ use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
 use crate::borrowed::{MapRef, ValueRef};
+use crate::diagnostic::{Diagnostic, Errors};
 use crate::frame::{Packer, Unpacker};
 use crate::text::{self, Doc, LineCol};
 use crate::typed;
@@ -164,20 +165,20 @@ pub fn read_both<A: Schema, B: Schema>(
 }
 
 /// Reads `v` as `T`: the value and its references, or every problem.
-pub fn from_value<T: Schema>(v: &Value) -> Result<Read<T>, Vec<Problem>> {
+pub fn from_value<T: Schema>(v: &Value) -> Result<Read<T>, Vec<Diagnostic>> {
     let arena = bumpalo::Bump::new();
     read_with(&v.borrow(&arena), Reader::new())
 }
 
 /// Reads `v` as `T`, nothing else: what the game wants of content (the
 /// references met aren't kept).
-pub fn read_value<T: Schema>(v: &Value) -> Result<T, Vec<Problem>> {
+pub fn read_value<T: Schema>(v: &Value) -> Result<T, Vec<Diagnostic>> {
     let arena = bumpalo::Bump::new();
     read_ref_value(&v.borrow(&arena))
 }
 
 /// [`read_value`] of a borrowed value.
-pub fn read_ref_value<T: Schema>(v: &ValueRef) -> Result<T, Vec<Problem>> {
+pub fn read_ref_value<T: Schema>(v: &ValueRef) -> Result<T, Vec<Diagnostic>> {
     let reader = Reader {
         value_only: true,
         ..Reader::new()
@@ -187,7 +188,7 @@ pub fn read_ref_value<T: Schema>(v: &ValueRef) -> Result<T, Vec<Problem>> {
 
 /// Reads the binary form as `T`, borrowed all the way: no string is
 /// copied but into `T` itself — content as the runtime takes it.
-pub fn read_bytes<T: Schema>(bytes: &[u8]) -> Result<T, Vec<Problem>> {
+pub fn read_bytes<T: Schema>(bytes: &[u8]) -> Result<T, Vec<Diagnostic>> {
     // Straight, the usual case; the slow way says what's wrong.
     if let Ok(mut d) = Decoder::open(bytes)
         && let Some(v) = T::decode(&mut d)
@@ -196,14 +197,8 @@ pub fn read_bytes<T: Schema>(bytes: &[u8]) -> Result<T, Vec<Problem>> {
         return Ok(v);
     }
     let arena = bumpalo::Bump::new();
-    let v = crate::binary::decode_ref(bytes, &arena).map_err(|e| {
-        vec![Problem {
-            path: Path::root(),
-            code: yog_ids::problem_code::BAD_BINARY,
-            message: e.to_string(),
-            at_key: false,
-        }]
-    })?;
+    let v = crate::binary::decode_ref(bytes, &arena)
+        .map_err(|e| vec![Diagnostic::error(yog_ids::data_problem::BAD_BINARY, e)])?;
     read_ref_value(&v)
 }
 
@@ -211,12 +206,12 @@ pub fn read_bytes<T: Schema>(bytes: &[u8]) -> Result<T, Vec<Problem>> {
 pub fn from_value_with<T: Schema>(
     v: &Value,
     resolver: &mut dyn Resolve,
-) -> Result<Read<T>, Vec<Problem>> {
+) -> Result<Read<T>, Vec<Diagnostic>> {
     let arena = bumpalo::Bump::new();
     read_with(&v.borrow(&arena), Reader::with_resolver(resolver))
 }
 
-fn read_with<T: Schema>(v: &ValueRef, mut cx: Reader<'_>) -> Result<Read<T>, Vec<Problem>> {
+fn read_with<T: Schema>(v: &ValueRef, mut cx: Reader<'_>) -> Result<Read<T>, Vec<Diagnostic>> {
     let value = T::read(v, &mut cx);
     match value {
         Some(value) if cx.problems.is_empty() => Ok(Read {
@@ -244,26 +239,14 @@ pub fn built_in<T: Schema + Default>(what: &str, text: &str) -> T {
 
 /// Parses `text` and reads it as `T`; problems come with their line and column.
 pub fn from_text<T: Schema>(text: &str) -> Result<Read<T>, Errors> {
-    let doc = text::parse(text).map_err(|e| {
-        Errors(vec![Located {
-            at: Some(e.at),
-            path: Path::root(),
-            message: e.message,
-        }])
-    })?;
+    let doc = text::parse(text)?;
     from_doc(text, &doc)
 }
 
 /// Parses TOML `text` and reads it as `T`.
 #[cfg(feature = "toml")]
 pub fn from_toml<T: Schema>(text: &str) -> Result<Read<T>, Errors> {
-    let doc = crate::toml::parse(text).map_err(|e| {
-        Errors(vec![Located {
-            at: Some(e.at),
-            path: Path::root(),
-            message: e.message,
-        }])
-    })?;
+    let doc = crate::toml::parse(text)?;
     from_doc(text, &doc)
 }
 
@@ -284,32 +267,27 @@ pub fn from_doc_with<T: Schema>(
 fn locate<T>(
     text: &str,
     doc: &Doc,
-    read: Result<Read<T>, Vec<Problem>>,
+    read: Result<Read<T>, Vec<Diagnostic>>,
 ) -> Result<Read<T>, Errors> {
     read.map_err(|problems| {
-        let mut located: Vec<(u32, Located)> = problems
-            .into_iter()
-            .map(|p| {
-                let spans = doc.spans_at(&p.path);
-                let span = if p.at_key {
-                    spans.key.unwrap_or(spans.span)
-                } else {
-                    spans.span
-                };
-                (
-                    span.start,
-                    Located {
-                        at: Some(LineCol::of(text, span.start as usize)),
-                        path: p.path,
-                        message: p.message,
-                    },
-                )
-            })
-            .collect();
+        let mut located: Vec<Diagnostic> =
+            problems.into_iter().map(|p| placed(text, doc, p)).collect();
         // In file order, as an editor lists them.
-        located.sort_by_key(|(offset, _)| *offset);
-        Errors(located.into_iter().map(|(_, l)| l).collect())
+        located.sort_by_key(|d| (d.line, d.col));
+        Errors(located)
     })
+}
+
+/// `d` (about a value of `doc`, parsed from `text`) at its line and column:
+/// its key's for one about the key (an unknown field).
+pub fn placed(text: &str, doc: &Doc, d: Diagnostic) -> Diagnostic {
+    let spans = doc.spans_at(&d.path);
+    let span = match (d.on_key, spans.key) {
+        (true, Some(key)) => key,
+        _ => spans.span,
+    };
+    let at = LineCol::of(text, span.start as usize);
+    d.at(at)
 }
 
 /// `value` as text, indented.

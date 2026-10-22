@@ -2,6 +2,8 @@
 //! book pages and recipe layouts from: elements with attributes in source
 //! order and their lines, for messages.
 
+use yog_data::Diagnostic;
+
 /// One XML element: name, attributes in source order, child elements.
 #[derive(Debug, Clone)]
 pub struct Element {
@@ -50,8 +52,8 @@ impl<'a> Parser<'a> {
         line
     }
 
-    fn err<T>(&self, msg: impl std::fmt::Display) -> Result<T, String> {
-        Err(format!("line {}: {msg}", self.line()))
+    fn err<T>(&self, msg: impl std::fmt::Display) -> Result<T, Diagnostic> {
+        Err(Diagnostic::from(msg.to_string()).at_line(self.line()))
     }
 
     fn rest(&self) -> &'a str {
@@ -64,7 +66,7 @@ impl<'a> Parser<'a> {
     }
 
     /// Skips whitespace, comments, `<?...?>` and `<!DOCTYPE ...>`.
-    fn skip_misc(&mut self) -> Result<(), String> {
+    fn skip_misc(&mut self) -> Result<(), Diagnostic> {
         loop {
             self.skip_ws();
             let rest = self.rest();
@@ -84,7 +86,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn name(&mut self) -> Result<String, String> {
+    fn name(&mut self) -> Result<String, Diagnostic> {
         let rest = self.rest();
         let len = rest
             .find(|c: char| !(c.is_alphanumeric() || matches!(c, '_' | '-' | ':' | '.')))
@@ -105,7 +107,7 @@ impl<'a> Parser<'a> {
         found
     }
 
-    fn element(&mut self) -> Result<Element, String> {
+    fn element(&mut self) -> Result<Element, Diagnostic> {
         let line = self.line();
         if !self.eat("<") {
             return self.err("expected an element");
@@ -144,7 +146,7 @@ impl<'a> Parser<'a> {
     }
 
     /// `key="value"` (or single-quoted), unescaped.
-    fn attribute(&mut self) -> Result<(String, String), String> {
+    fn attribute(&mut self) -> Result<(String, String), Diagnostic> {
         let key = self.name()?;
         self.skip_ws();
         if !self.eat("=") {
@@ -160,13 +162,13 @@ impl<'a> Parser<'a> {
             return self.err(format!("attribute `{key}`: unterminated value"));
         };
         let value =
-            unescape(&self.rest()[..end]).map_err(|e| format!("line {}: {e}", self.line()))?;
+            unescape(&self.rest()[..end]).map_err(|e| Diagnostic::from(e).at_line(self.line()))?;
         self.pos += end + quote.len_utf8();
         Ok((key, value))
     }
 
     /// The elements inside `<name>`, through its closing tag.
-    fn children(&mut self, name: &str) -> Result<Vec<Element>, String> {
+    fn children(&mut self, name: &str) -> Result<Vec<Element>, Diagnostic> {
         let mut children = Vec::new();
         loop {
             self.skip_misc()?;
@@ -231,7 +233,7 @@ fn unescape(raw: &str) -> Result<String, String> {
 }
 
 /// Parses an XML document (the subset `.yui` uses) into its root element.
-pub fn parse(src: &str) -> Result<Element, String> {
+pub fn parse(src: &str) -> Result<Element, Diagnostic> {
     let src = src.strip_prefix('\u{feff}').unwrap_or(src);
     let mut p = Parser::new(src);
     p.skip_misc()?;

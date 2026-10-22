@@ -27,6 +27,7 @@
 //! (their replies' defaults).
 
 use std::path::Path;
+use yog_data::Diagnostic;
 
 use crate::manifest::YogToml;
 
@@ -55,8 +56,13 @@ pub struct BenchFile {
     pub functions: Vec<(String, Takes)>,
 }
 
+/// A problem with a benchmark file.
+fn problem(message: impl std::fmt::Display) -> Diagnostic {
+    Diagnostic::error(yog_ids::build_problem::BENCH, message)
+}
+
 /// The mod's benchmark files, by name; none without a `benches/` folder.
-pub fn discover(root: &Path) -> Result<Vec<BenchFile>, String> {
+pub fn discover(root: &Path) -> Result<Vec<BenchFile>, Diagnostic> {
     let dir = root.join(BENCH_DIR);
     let Ok(entries) = std::fs::read_dir(&dir) else {
         return Ok(Vec::new());
@@ -70,9 +76,9 @@ pub fn discover(root: &Path) -> Result<Vec<BenchFile>, String> {
         let Some(name) = path.file_stem().and_then(|s| s.to_str()) else {
             continue;
         };
-        let source =
-            std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        let functions = functions(&source).map_err(|e| format!("{BENCH_DIR}/{name}.rs: {e}"))?;
+        let shown = crate::shown_path(root, &path);
+        let source = std::fs::read_to_string(&path).map_err(|e| problem(e).in_file(&shown))?;
+        let functions = functions(&source).map_err(|e| e.in_file(&shown))?;
         if !functions.is_empty() {
             files.push(BenchFile {
                 name: name.to_string(),
@@ -85,7 +91,7 @@ pub fn discover(root: &Path) -> Result<Vec<BenchFile>, String> {
 }
 
 /// The `#[yog_api::bench]` functions of a benchmark file, in source order.
-pub fn functions(source: &str) -> Result<Vec<(String, Takes)>, String> {
+pub fn functions(source: &str) -> Result<Vec<(String, Takes)>, Diagnostic> {
     let mut out = Vec::new();
     let mut rest = source;
     while let Some(at) = rest.find(ATTRIBUTE) {
@@ -95,7 +101,7 @@ pub fn functions(source: &str) -> Result<Vec<(String, Takes)>, String> {
             + 1;
         rest = &rest[at + ATTRIBUTE.len()..];
         let Some(fn_at) = rest.find("fn ") else {
-            return Err(format!("line {line}: {ATTRIBUTE} must be on a function"));
+            return Err(problem(format!("{ATTRIBUTE} must be on a function")).at_line(line));
         };
         let after = &rest[fn_at + 3..];
         let name: String = after
@@ -113,9 +119,10 @@ pub fn functions(source: &str) -> Result<Vec<(String, Takes)>, String> {
         } else if params.contains("Bencher") {
             Takes::Bencher
         } else {
-            return Err(format!(
-                "line {line}: `{name}` must take `&mut Bencher` or `&mut Criterion`"
-            ));
+            return Err(problem(format!(
+                "`{name}` must take `&mut Bencher` or `&mut Criterion`"
+            ))
+            .at_line(line));
         };
         out.push((name, takes));
     }
@@ -226,7 +233,7 @@ mod tests {
     #[test]
     fn rejects_a_function_without_a_bencher() {
         let e = functions("\n#[yog_api::bench]\nfn nope(x: u32) {}\n").unwrap_err();
-        assert!(e.starts_with("line 2:"), "{e}");
+        assert_eq!(e.line, Some(2), "{e}");
     }
 
     #[test]

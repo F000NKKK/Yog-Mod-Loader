@@ -43,25 +43,35 @@ fn parses_all_shapes_in_order() {
 
 #[test]
 fn errors_carry_lines() {
-    let err = parse("{\n  \"a\": \"1\",\n  \"a\": \"2\"\n}").unwrap_err();
+    let err = parse("{\n  \"a\": \"1\",\n  \"a\": \"2\"\n}")
+        .unwrap_err()
+        .to_string();
     assert_eq!(err, "3:3: `a` is already set in this object");
-    let err = parse("{\n  \"a\": { \"type\": \"bool\", \"value\": \"x\" }\n}").unwrap_err();
+    let err = parse("{\n  \"a\": { \"type\": \"bool\", \"value\": \"x\" }\n}")
+        .unwrap_err()
+        .to_string();
     assert_eq!(err, "2:35: a.value: a bool needs a true/false value");
-    let err = parse("{\n\"a\": { \"value\": \"x\", \"note\": \"y\" }\n}").unwrap_err();
+    let err = parse("{\n\"a\": { \"value\": \"x\", \"note\": \"y\" }\n}")
+        .unwrap_err()
+        .to_string();
     assert!(err.contains("2:22: a.note: unknown field `note`"), "{err}");
     let err =
         parse("{\n\"a\": { \"type\": \"image\", \"value\": \"@bytes:AAAA\", \"key\": \"k\" }\n}")
-            .unwrap_err();
+            .unwrap_err()
+            .to_string();
     assert!(
         err.contains("a.key: only string entries have a `key`"),
         "{err}"
     );
-    let err = parse("{\n  \"a\": \"1\"\n  \"b\": \"2\"\n}").unwrap_err();
+    let err = parse("{\n  \"a\": \"1\"\n  \"b\": \"2\"\n}")
+        .unwrap_err()
+        .to_string();
     assert_eq!(err, "3:3: expected `,` or `}`");
     // Every problem at once.
     let err =
         parse("{\n  \"a\": [],\n  \"b\": { \"type\": \"img\", \"value\": \"@Strings.x\" }\n}")
-            .unwrap_err();
+            .unwrap_err()
+            .to_string();
     assert_eq!(
         err.lines().collect::<Vec<_>>(),
         [
@@ -70,7 +80,12 @@ fn errors_carry_lines() {
             "3:34: b.value: expected plain text, found a resource (write `@@` for a literal `@`)",
         ]
     );
-    assert!(parse("[]").unwrap_err().contains("expected `{`"));
+    assert!(
+        parse("[]")
+            .unwrap_err()
+            .to_string()
+            .contains("expected `{`")
+    );
     assert!(parse("\u{FEFF}{ }").unwrap().is_empty());
 }
 
@@ -195,8 +210,11 @@ fn compiles_a_mod() {
     assert!(icons.contains("pub const ON: bool = true;"), "{icons}");
     assert!(icons.contains("\"m:click\""), "{icons}");
     assert_eq!(c.warnings.len(), 2, "{:?}", c.warnings);
-    assert!(c.warnings[0].contains("1 text(s) not translated") && c.warnings[0].contains("gone"));
-    assert!(c.warnings[1].contains("left out: x"));
+    assert!(
+        c.warnings[0].message.contains("1 text(s) not translated")
+            && c.warnings[0].message.contains("gone")
+    );
+    assert!(c.warnings[1].message.contains("left out: x"));
 
     write_sources(&root, &c).unwrap();
     let icons_rs = std::fs::read_to_string(root.join(GENERATED_DIR).join("Icons.g.rs")).unwrap();

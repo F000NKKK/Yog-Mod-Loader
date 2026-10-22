@@ -109,10 +109,11 @@ fn raw_texture_paths_are_errors_naming_the_alias() {
         None,
     )
     .unwrap_err();
-    assert!(err.contains(r#"source="item:apple""#), "{err}");
+    assert!(err.message.contains(r#"source="item:apple""#), "{err}");
     assert!(
         generate_for(&screen(r#"<Image texture="item:apple"/>"#), "s", None)
             .unwrap_err()
+            .message
             .contains("no attribute `texture`")
     );
 }
@@ -133,7 +134,8 @@ fn image_backgrounds() {
     );
     let err = generate_for(&screen(r#"<Column bg="sprite:nope"/>"#), "s", None).unwrap_err();
     assert!(
-        err.contains("<Column> bg=\"sprite:nope\": unknown sprite"),
+        err.message
+            .contains("<Column> bg=\"sprite:nope\": unknown sprite"),
         "{err}"
     );
 }
@@ -166,10 +168,10 @@ fn inventory_slots() {
         None,
     )
     .unwrap_err();
-    assert!(err.contains("with its namespace"), "{err}");
+    assert!(err.message.contains("with its namespace"), "{err}");
     let err = generate_for(&screen(r#"<Slot index="first"/>"#), "s", None).unwrap_err();
     assert!(
-        err.contains("expected the container slot's number"),
+        err.message.contains("expected the container slot's number"),
         "{err}"
     );
 }
@@ -227,14 +229,21 @@ fn generates_builder_code() {
 fn reports_errors_with_lines() {
     let bad = "<Screen id=\"a:b\">\n  <Label txt=\"x\"/>\n</Screen>";
     let err = generate(bad, "x.yui").unwrap_err();
-    assert!(err.contains("line 2") && err.contains("txt"), "{err}");
+    assert_eq!(err.line, Some(2), "{err}");
+    assert!(err.message.contains("txt"), "{err}");
     assert!(generate("<Screen id=\"a:b\"><Label/></Scren>", "x.yui").is_err());
     assert!(generate("<Column/>", "x.yui").is_err());
-    assert!(generate("<Screen/>", "x.yui").unwrap_err().contains("id"));
+    assert!(
+        generate("<Screen/>", "x.yui")
+            .unwrap_err()
+            .message
+            .contains("id")
+    );
     let bad_color = "<Screen id=\"a:b\" bg=\"red\"/>";
     assert!(
         generate(bad_color, "x.yui")
             .unwrap_err()
+            .message
             .contains("#RRGGBB")
     );
 }
@@ -289,9 +298,19 @@ fn text_box_and_font() {
     assert!(code.contains(r#"pub const GO: &str = "go";"#));
     assert!(code.contains("pub fn text_box("));
     let bad = r#"<Screen id="a:b"><TextBox max_length="x"/></Screen>"#;
-    assert!(generate(bad, "x").unwrap_err().contains("whole number"));
+    assert!(
+        generate(bad, "x")
+            .unwrap_err()
+            .message
+            .contains("whole number")
+    );
     let direct = r#"<Screen id="a:b"><Label text="x" font="minecraft:alt"/></Screen>"#;
-    assert!(generate(direct, "x").unwrap_err().contains("yog:font/alt"));
+    assert!(
+        generate(direct, "x")
+            .unwrap_err()
+            .message
+            .contains("yog:font/alt")
+    );
 }
 
 #[test]
@@ -337,16 +356,19 @@ fn text_starting_with_at_is_a_translation_key() {
     assert!(
         text_expr("@gui.done")
             .unwrap_err()
+            .message
             .contains("`@lang:gui.done`")
     );
     assert!(
         text_expr("@Strings.nope")
             .unwrap_err()
+            .message
             .contains("no text `Strings.nope`")
     );
     assert!(
         text_expr("@image:sprite:x")
             .unwrap_err()
+            .message
             .contains("isn't a text")
     );
     let mut refs = crate::yres::Refs::default();
@@ -388,5 +410,10 @@ fn color_attributes_resolve_yres_colors() {
     set_resource_refs(&crate::yres::Refs::default());
     let code = code.unwrap();
     assert!(code.contains("0xFF123456"), "{code}");
-    assert!(missing.unwrap_err().contains("no color `Colors.nope`"));
+    assert!(
+        missing
+            .unwrap_err()
+            .message
+            .contains("no color `Colors.nope`")
+    );
 }

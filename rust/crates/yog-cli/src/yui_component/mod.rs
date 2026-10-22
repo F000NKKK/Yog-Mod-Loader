@@ -36,6 +36,7 @@ use yog_ids::yui_attr as at;
 use yog_ids::yui_component as ca;
 
 use crate::yui::{self, Element, RAW_CALL, RAW_VALUE, UI_USE, err};
+use yog_data::Diagnostic;
 
 /// Index of the components without a code-behind, included by `ui_components!()`.
 pub const INDEX_FILE: &str = ".yog-build/generated/components.g.rs";
@@ -135,7 +136,7 @@ fn is_ident(s: &str) -> bool {
 }
 
 /// The component's type name: `name=`, else the file's PascalCase stem.
-fn type_name(root: &Element, include_name: &str) -> Result<String, String> {
+fn type_name(root: &Element, include_name: &str) -> Result<String, Diagnostic> {
     let name = match root.attr(ca::NAME).map(str::trim).filter(|s| !s.is_empty()) {
         Some(n) => n.to_string(),
         None => yui::pascal(
@@ -178,7 +179,7 @@ pub(crate) fn options_of(written: Option<&str>) -> Vec<String> {
 }
 
 /// The declarations, in order, and the one body element after them.
-fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String> {
+fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), Diagnostic> {
     let mut props: Vec<Prop> = Vec::new();
     let mut body = None;
     for child in &root.children {
@@ -204,7 +205,7 @@ fn declarations(root: &Element) -> Result<(Vec<Prop>, Option<&Element>), String>
 }
 
 /// One `<Property>` or `<Event>`.
-fn declaration(child: &Element) -> Result<Prop, String> {
+fn declaration(child: &Element) -> Result<Prop, Diagnostic> {
     let event = child.name == yog_ids::yui::EVENT;
     let allowed = if event { EVENT_ATTRS } else { PROP_ATTRS };
     if let Some((key, _)) = child
@@ -256,7 +257,7 @@ fn declaration(child: &Element) -> Result<Prop, String> {
 }
 
 /// A `<Property>`'s type: one of [`KINDS`] (text when it gives none).
-fn declared_kind(child: &Element) -> Result<String, String> {
+fn declared_kind(child: &Element) -> Result<String, Diagnostic> {
     let kind = child.attr(ca::TYPE).unwrap_or(pk::TEXT).trim().to_string();
     if !KINDS.iter().any(|k| k.word == kind) {
         let known: Vec<&str> = KINDS.iter().map(|k| k.word).collect();
@@ -270,7 +271,7 @@ fn declared_kind(child: &Element) -> Result<String, String> {
 
 /// A property's default — as written, or its type's — checked against its
 /// type; a color's as its value.
-fn checked_default(child: &Element, kind: &str, options: &[String]) -> Result<String, String> {
+fn checked_default(child: &Element, kind: &str, options: &[String]) -> Result<String, Diagnostic> {
     let default = child
         .attr(ca::DEFAULT)
         .map_or_else(|| default_of(kind, options), str::to_string);
@@ -306,7 +307,7 @@ const CONV: &str = "::yog_api::ui::component::bind";
 
 /// The body with every `{x:Bind ...}` attribute turned into a builder call
 /// (or, on a nested component, a Rust-valued property).
-fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
+fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, Diagnostic> {
     let kind = el.name.as_str();
     if kind == yog_ids::yui::COMPONENT || kind == yog_ids::yui::SCREEN {
         return err(el, "can't be inside a component");
@@ -327,7 +328,9 @@ fn bind_tree(el: &Element, counter: &mut usize) -> Result<Element, String> {
             out.attrs.push((key.clone(), value.clone()));
             continue;
         };
-        let e = rust.map_err(|e| format!("line {}: <{kind}> {key}=\"{value}\": {e}", el.line))?;
+        let e = rust.map_err(|e| {
+            Diagnostic::from(format!("<{kind}> {key}=\"{value}\": {e}")).at_line(el.line)
+        })?;
         if !yui::is_builtin(kind) && !yui::is_common_attr(key) {
             // A nested component's property: passed as text.
             out.attrs
@@ -407,7 +410,7 @@ struct Meta<'a> {
 const RES_MARK: char = '@';
 
 impl<'a> Meta<'a> {
-    fn read(root: &'a Element) -> Result<Meta<'a>, String> {
+    fn read(root: &'a Element) -> Result<Meta<'a>, Diagnostic> {
         if let Some((key, _)) = root.attrs.iter().find(|(k, _)| {
             !ROOT_ATTRS.contains(&k.as_str()) && !k.starts_with(yog_ids::yui_markup::DESIGN)
         }) {
@@ -454,7 +457,7 @@ impl<'a> Meta<'a> {
 }
 
 /// A design size: GUI pixels, none for 0.
-fn design_size(root: &Element, key: &str) -> Result<f32, String> {
+fn design_size(root: &Element, key: &str) -> Result<f32, Diagnostic> {
     match root.attr(key).map(str::trim) {
         None | Some("") => Ok(0.0),
         Some(v) => match v.parse::<f32>() {
@@ -516,7 +519,7 @@ pub fn generate(
     root: &Element,
     name: &str,
     mod_id: Option<&str>,
-) -> Result<(String, Vec<String>), String> {
+) -> Result<(String, Vec<Diagnostic>), Diagnostic> {
     let ty = type_name(root, name)?;
     let meta = Meta::read(root)?;
     let (props, body) = declarations(root)?;
@@ -583,7 +586,7 @@ const COMPONENTS_MACRO: &str = "ui_components!";
 /// has no code-behind `.rs` next to it (those `ui_include!` themselves).
 /// With a warning when there are such components but `src/lib.rs` doesn't
 /// call `yog_api::ui_components!()`.
-pub fn write_index(root: &Path) -> Result<(PathBuf, Option<String>), String> {
+pub fn write_index(root: &Path) -> Result<(PathBuf, Option<String>), Diagnostic> {
     let mut out = String::from(
         "// <auto-generated> by yog: component .yui files without a code-behind,\n\
          // compiled in by `yog_api::ui_components!()` — do not edit. </auto-generated>\n",

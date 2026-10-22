@@ -8,6 +8,7 @@
 use yog_formats::book::layout::RecipeLayout;
 
 use crate::yui::Element;
+use yog_data::Diagnostic;
 
 fn el(name: &str, attrs: &[(&str, String)], line: usize) -> Element {
     Element {
@@ -34,7 +35,7 @@ fn max_slot(root: &Element) -> Option<usize> {
 
 /// Expands every `<RecipeArea>` in `root`; `layouts`: the mod's, `ns` its
 /// namespace (for a kind written without one).
-pub fn expand(root: &mut Element, layouts: &[RecipeLayout], ns: &str) -> Result<(), String> {
+pub fn expand(root: &mut Element, layouts: &[RecipeLayout], ns: &str) -> Result<(), Diagnostic> {
     let mut next = max_slot(root).map_or(0, |m| m + 1);
     walk(root, layouts, ns, &mut next)
 }
@@ -44,7 +45,7 @@ fn walk(
     layouts: &[RecipeLayout],
     ns: &str,
     next: &mut usize,
-) -> Result<(), String> {
+) -> Result<(), Diagnostic> {
     for child in &mut el_.children {
         if child.name == yog_ids::yui::RECIPE_AREA {
             *child = area(child, layouts, ns, next)?;
@@ -60,16 +61,17 @@ fn area(
     layouts: &[RecipeLayout],
     ns: &str,
     next: &mut usize,
-) -> Result<Element, String> {
+) -> Result<Element, Diagnostic> {
     let line = a.line;
     let kind = a
         .attr(yog_ids::yui_attr::KIND)
         .map(str::trim)
         .unwrap_or_default();
     if kind.is_empty() {
-        return Err(format!(
-            "line {line}: <RecipeArea> needs kind=\"…\" (a kind of recipe the mod declares)"
-        ));
+        return Err(Diagnostic::from(
+            "<RecipeArea> needs kind=\"…\" (a kind of recipe the mod declares)".to_string(),
+        )
+        .at_line(line));
     }
     let kind = if kind.contains(':') {
         kind.to_string()
@@ -77,9 +79,7 @@ fn area(
         format!("{ns}:{kind}")
     };
     let Some(layout) = layouts.iter().find(|l| l.kinds.contains(&kind)) else {
-        return Err(format!(
-            "line {line}: <RecipeArea kind=\"{kind}\">: no layout for it — a .yui <Component recipe_layout=\"…\">"
-        ));
+        return Err(Diagnostic::from(format!("<RecipeArea kind=\"{kind}\">: no layout for it — a .yui <Component recipe_layout=\"…\">")).at_line(line));
     };
     let mut canvas = el(
         yog_ids::yui::CANVAS,
@@ -107,9 +107,7 @@ fn area(
         .collect();
     let result = area.result;
     let Some(result) = result else {
-        return Err(format!(
-            "line {line}: <RecipeArea kind=\"{kind}\">: its layout has no <RecipeResult> — where would the result go?"
-        ));
+        return Err(Diagnostic::from(format!("<RecipeArea kind=\"{kind}\">: its layout has no <RecipeResult> — where would the result go?")).at_line(line));
     };
     canvas.children.push(el(
         yog_ids::yui::MACHINE,
@@ -170,6 +168,7 @@ mod tests {
         assert!(
             expand(&mut bad, &[], "m")
                 .unwrap_err()
+                .message
                 .contains("no layout for it")
         );
     }

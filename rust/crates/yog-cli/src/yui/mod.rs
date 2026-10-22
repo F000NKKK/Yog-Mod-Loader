@@ -20,6 +20,8 @@
 //! screen's hand-written code-behind module with `yog_api::ui_include!("foo")`.
 //! See `docs/yui.md` in Yog-IDLE for the full format.
 
+use yog_data::Diagnostic;
+
 mod anchor;
 mod attr_code;
 mod elements;
@@ -52,8 +54,8 @@ pub(crate) const UI_USE: &str =
     "use ::yog_api::ui::{widget, Align, Dock, FlexDir, FocusStyle, Units};";
 
 /// `line N: <Kind> msg`.
-pub(crate) fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
-    Err(format!("line {}: <{}> {msg}", el.line, el.name))
+pub(crate) fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, Diagnostic> {
+    Err(Diagnostic::from(format!("<{}> {msg}", el.name)).at_line(el.line))
 }
 
 /// Prefix of a custom component property's value that is a Rust

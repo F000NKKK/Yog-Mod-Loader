@@ -11,8 +11,10 @@ use super::placeholders::{lang_text, params, segments};
 use super::{
     Compiled, Entry, Kind, NEUTRAL_LOCALE, Picture, Value, accessors, outputs, value_problem,
 };
+use crate::diagnostics::Diagnostic;
 use crate::rust_code::is_keyword;
 use crate::shown_path;
+use crate::yres::{caveat, problem};
 
 /// A set's texts: name → (translation key, parameters) — what its
 /// culture variants are checked against.
@@ -21,18 +23,39 @@ type Texts = HashMap<String, (String, Vec<String>)>;
 /// One entry's accessor as it's being written: where the entry is, its
 /// set, its accessor's name and doc, its `@<Set>.<name>`.
 struct Accessor<'a> {
-    at: String,
+    at: Place,
     set: &'a str,
     acc: String,
     doc: String,
     reference: String,
 }
 
+/// Where an entry is: its file and its line.
+#[derive(Debug, Clone)]
+struct Place {
+    file: String,
+    line: usize,
+}
+
+impl Place {
+    /// A problem with the entry here.
+    fn problem(&self, msg: impl std::fmt::Display) -> Diagnostic {
+        problem(msg).in_file(&self.file).at_line(self.line)
+    }
+}
+
+/// As the text says it: `file:line`.
+impl std::fmt::Display for Place {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.file, self.line)
+    }
+}
+
 /// Everything the sets compile into so far.
 struct Build<'a> {
     root: &'a Path,
     mod_id: &'a str,
-    errors: Vec<String>,
+    errors: Vec<Diagnostic>,
     c: Compiled,
     /// Locale → (key, text), in set order then file order.
     lang: BTreeMap<String, Vec<(String, String)>>,
@@ -95,7 +118,10 @@ impl Build<'_> {
         let mut names: HashMap<String, usize> = HashMap::new();
         let mut texts = Texts::new();
         for e in &set.neutral.entries {
-            let at = format!("{shown}:{}", e.line);
+            let at = Place {
+                file: shown.clone(),
+                line: e.line,
+            };
             let acc = accessor_name(&e.name);
             self.check_accessor(&at, e, &acc, &mut names);
             let a = Accessor {
@@ -105,8 +131,8 @@ impl Build<'_> {
                 set: &set.name,
                 acc,
             };
-            if let Some(problem) = value_problem(e) {
-                self.errors.push(format!("{}: {problem}", a.at));
+            if let Some(found) = value_problem(e) {
+                self.errors.push(a.at.problem(found));
                 continue;
             }
             let written = match e.kind {
@@ -124,22 +150,22 @@ impl Build<'_> {
     /// An accessor's name: not a keyword, one entry's.
     fn check_accessor(
         &mut self,
-        at: &str,
+        at: &Place,
         e: &Entry,
         acc: &str,
         names: &mut HashMap<String, usize>,
     ) {
         if is_keyword(acc) {
-            self.errors.push(format!(
-                "{at}: {:?} gives the accessor `{acc}`, a Rust keyword — rename it",
+            self.errors.push(at.problem(format!(
+                "{:?} gives the accessor `{acc}`, a Rust keyword — rename it",
                 e.name
-            ));
+            )));
         }
         if let Some(first) = names.insert(acc.to_string(), e.line) {
-            self.errors.push(format!(
-                "{at}: {:?} gives the same accessor `{acc}` as the entry on line {first}",
+            self.errors.push(at.problem(format!(
+                "{:?} gives the same accessor `{acc}` as the entry on line {first}",
                 e.name
-            ));
+            )));
         }
     }
 
@@ -150,15 +176,16 @@ impl Build<'_> {
             .key
             .clone()
             .unwrap_or_else(|| default_key(a.set, self.mod_id, &e.name));
-        if let Some(first) = self.key_origin.insert(key.clone(), a.at.clone()) {
-            self.errors.push(format!(
-                "{}: translation key {key:?} is also used at {first}",
-                a.at
-            ));
+        if let Some(first) = self.key_origin.insert(key.clone(), a.at.to_string()) {
+            self.errors
+                .push(a.at.problem(format!("translation key {key:?} is also used at {first}")));
         }
         let read = segments(e.text()).and_then(|segs| params(&segs).map(|ps| (segs, ps)));
         let (segs, ps) = read
-            .map_err(|err| self.errors.push(format!("{}: {:?}: {err}", a.at, e.name)))
+            .map_err(|err| {
+                self.errors
+                    .push(a.at.problem(format!("{:?}: {err}", e.name)))
+            })
             .ok()?;
         if let Ok(text) = lang_text(&segs, &ps) {
             self.lang
@@ -194,10 +221,8 @@ impl Build<'_> {
         if let Some(other) = self.bundled.insert(target.clone(), (e.name.clone(), data))
             && other.0 != e.name
         {
-            self.errors.push(format!(
-                "{}: {:?} goes to {target}, like {:?}",
-                a.at, e.name, other.0
-            ));
+            self.errors
+                .push(a.at.problem(format!("{:?} goes to {target}, like {:?}", e.name, other.0)));
         }
         Some(accessors::medium(&a.acc, &id, &a.doc))
     }
@@ -213,7 +238,10 @@ impl Build<'_> {
         let png =
             yog_media::image::decode(bytes).and_then(|img| yog_media::image::encode_png(&img));
         let png = png
-            .map_err(|err| self.errors.push(format!("{}: {:?}: {err}", a.at, e.name)))
+            .map_err(|err| {
+                self.errors
+                    .push(a.at.problem(format!("{:?}: {err}", e.name)))
+            })
             .ok()?;
         let source = yog_ids::join(self.mod_id, path);
         let target = yog_ids::asset_file(self.mod_id, &yog_ids::texture_file(path));
@@ -250,7 +278,7 @@ impl Build<'_> {
         }
         if self.sounds.insert(event.clone(), def).is_some() {
             self.errors
-                .push(format!("{}: sound event {event:?} is defined twice", a.at));
+                .push(a.at.problem(format!("sound event {event:?} is defined twice")));
         }
         let file = format!("{}{path}{}", yog_ids::res::SOUNDS, yog_ids::res::OGG);
         (
@@ -304,25 +332,33 @@ impl Build<'_> {
                         .entry(locale.clone())
                         .or_default()
                         .push((key.clone(), text)),
-                    Err(err) => self
-                        .errors
-                        .push(format!("{shown}:{}: {:?}: {err}", t.line, t.name)),
+                    Err(err) => self.errors.push(
+                        problem(format!("{:?}: {err}", t.name))
+                            .in_file(&shown)
+                            .at_line(t.line),
+                    ),
                 }
             }
             if !missing.is_empty() {
-                self.c.warnings.push(format!(
-                    "{shown}: {} text(s) not translated (shown in {NEUTRAL_LOCALE}): {}",
-                    missing.len(),
-                    preview(&missing)
-                ));
+                self.c.warnings.push(
+                    caveat(format!(
+                        "{} text(s) not translated (shown in {NEUTRAL_LOCALE}): {}",
+                        missing.len(),
+                        preview(&missing)
+                    ))
+                    .in_file(&shown),
+                );
             }
             if !extra.is_empty() {
-                self.c.warnings.push(format!(
-                    "{shown}: {} text(s) not in {}.yres, left out: {}",
-                    extra.len(),
-                    set.name,
-                    preview(&extra)
-                ));
+                self.c.warnings.push(
+                    caveat(format!(
+                        "{} text(s) not in {}.yres, left out: {}",
+                        extra.len(),
+                        set.name,
+                        preview(&extra)
+                    ))
+                    .in_file(&shown),
+                );
             }
         }
     }
@@ -346,9 +382,11 @@ impl Build<'_> {
             }
         }
         if !self.errors.is_empty() {
+            crate::diagnostics::report_all(&self.errors);
             return Err(format!(
-                "invalid .yres resources:\n  {}",
-                self.errors.join("\n  ")
+                "invalid .yres resources:{}{}",
+                crate::diagnostics::LIST_SEP,
+                crate::diagnostics::listed(&self.errors)
             ));
         }
         Ok(self.c)

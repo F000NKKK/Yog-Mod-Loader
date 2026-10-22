@@ -15,6 +15,7 @@ use super::binding::{Binding, Mode, WriteBack};
 use super::expr::{INDEX, Scope};
 use super::state::{Ctx, INSTANCE_FIELDS, ITEM_TREE, SCREEN_OWNER, VIEW_FIELDS, VmGen, path_lit};
 use crate::yui::{self, Element, RAW_VALUE, UI_USE, err};
+use yog_data::Diagnostic;
 
 /// `Some(x)` / `None` as generated code writes them.
 fn option(v: Option<String>) -> String {
@@ -42,7 +43,7 @@ struct Source {
 }
 
 /// The single element inside a template/empty property element.
-fn only_child(el: &Element) -> Result<&Element, String> {
+fn only_child(el: &Element) -> Result<&Element, Diagnostic> {
     let c = match el.children.as_slice() {
         [t] if t.name == v::DATA_TEMPLATE => t,
         _ => el,
@@ -54,7 +55,7 @@ fn only_child(el: &Element) -> Result<&Element, String> {
 }
 
 /// A list's `<X.ItemTemplate>` (or a bare `<DataTemplate>`) and `<X.Empty>`.
-fn templates(el: &Element) -> Result<Templates<'_>, String> {
+fn templates(el: &Element) -> Result<Templates<'_>, Diagnostic> {
     let name = el.name.as_str();
     let (mut item, mut empty) = (None, None);
     for c in &el.children {
@@ -77,10 +78,10 @@ fn templates(el: &Element) -> Result<Templates<'_>, String> {
         }
     }
     let item = item.ok_or_else(|| {
-        format!(
-            "line {}: <{name}> needs an item template (<{name}.ItemTemplate><DataTemplate>...)",
-            el.line
-        )
+        Diagnostic::from(format!(
+            "<{name}> needs an item template (<{name}.ItemTemplate><DataTemplate>...)"
+        ))
+        .at_line(el.line)
     })?;
     Ok(Templates { item, empty })
 }
@@ -91,7 +92,7 @@ fn bound<'b>(bindings: &'b [(String, Binding)], key: &str) -> Option<&'b Binding
 }
 
 /// What list `el` is filled from: its items (or content) and their keys.
-fn source(el: &Element, bindings: &[(String, Binding)]) -> Result<Source, String> {
+fn source(el: &Element, bindings: &[(String, Binding)]) -> Result<Source, Diagnostic> {
     let attr = if el.name == y::CONTENT_PRESENTER {
         v::CONTENT
     } else {
@@ -127,7 +128,7 @@ impl VmGen<'_> {
         bindings: &[(String, Binding)],
         attrs: &HashMap<String, String>,
         spot: &Spot,
-    ) -> Result<(), String> {
+    ) -> Result<(), Diagnostic> {
         self.n_lists += 1;
         let owner = self.n_lists;
         let src = source(el, bindings)?;
@@ -191,7 +192,7 @@ impl VmGen<'_> {
         template: &Element,
         owner: u16,
         items: &str,
-    ) -> Result<String, String> {
+    ) -> Result<String, Diagnostic> {
         let mut tctx = Ctx::new(Scope::Template, INSTANCE_FIELDS, ITEM_TREE, owner);
         let saved = std::mem::take(&mut self.n_slots);
         let tel = self.element(&mut tctx, template, &[], Some(items))?;
@@ -223,7 +224,7 @@ impl VmGen<'_> {
         &mut self,
         t: usize,
         empty: Option<&Element>,
-    ) -> Result<(String, String), String> {
+    ) -> Result<(String, String), Diagnostic> {
         let Some(e) = empty else {
             return Ok((option(None), String::new()));
         };
@@ -246,7 +247,7 @@ impl VmGen<'_> {
         b: &Binding,
         owner: u16,
         src: &Source,
-    ) -> Result<(), String> {
+    ) -> Result<(), Diagnostic> {
         let write = match b.write_back("__k", "::std::option::Option::Some(__k)")? {
             WriteBack::Stmt(w) => w,
             WriteBack::Nowhere => {
@@ -274,7 +275,7 @@ impl VmGen<'_> {
         out: &Element,
         bindings: &mut Vec<(String, Binding)>,
         path: &[u16],
-    ) -> Result<String, String> {
+    ) -> Result<String, Diagnostic> {
         let mut inst = out.clone();
         let mut sets = String::new();
         let (props, rest): (Vec<_>, Vec<_>) = std::mem::take(bindings)

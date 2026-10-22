@@ -21,6 +21,7 @@
 //! element when what it says isn't empty (an empty list, `false` and
 //! `""` are empty).
 
+use yog_data::Diagnostic;
 use yog_data::{Map, Reader, Schema, Shape, Value, ValueRef};
 
 use crate::binding::{self, Piece};
@@ -238,8 +239,8 @@ pub fn is_book_page(root: &Element) -> bool {
     root.name == yui::COMPONENT && root.attr(yui_attr::BOOK_PAGE).is_some()
 }
 
-fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
-    Err(format!("line {}: <{}>: {msg}", el.line, el.name))
+fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, Diagnostic> {
+    Err(Diagnostic::from(format!("<{}>: {msg}", el.name)).at_line(el.line))
 }
 
 impl PropKind {
@@ -259,7 +260,7 @@ impl PropKind {
     }
 }
 
-fn number(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> {
+fn number(el: &Element, key: &str, default: Option<f32>) -> Result<f32, Diagnostic> {
     match el.attr(key) {
         Some(v) => v
             .trim()
@@ -272,7 +273,7 @@ fn number(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> 
 }
 
 /// Attribute `key`, which `el` needs (`what` says what it is).
-fn needs(el: &Element, key: &str, what: &str) -> Result<String, String> {
+fn needs(el: &Element, key: &str, what: &str) -> Result<String, Diagnostic> {
     el.attr(key)
         .map(|v| Ok(v.to_string()))
         .unwrap_or_else(|| err(el, format_args!("needs {key}=\"…\"{what}")))
@@ -280,7 +281,7 @@ fn needs(el: &Element, key: &str, what: &str) -> Result<String, String> {
 
 /// `root` (a `<Component book_page="…">`) as a page type; `ns`: the mod's
 /// namespace, for a `book_page` written without one.
-pub fn compile(root: &Element, ns: &str) -> Result<PageType, String> {
+pub fn compile(root: &Element, ns: &str) -> Result<PageType, Diagnostic> {
     let id = yog_ids::qualify_in(
         ns,
         root.attr(yui_attr::BOOK_PAGE).unwrap_or_default().trim(),
@@ -333,7 +334,7 @@ fn elements(root: &Element) -> Vec<&Element> {
 }
 
 /// `<Property name type default>`: a field of the pages.
-fn property(el: &Element) -> Result<PageProperty, String> {
+fn property(el: &Element) -> Result<PageProperty, Diagnostic> {
     let name = el.attr(yui_attr::NAME).unwrap_or_default().to_string();
     if name.is_empty() {
         return err(el, "needs name=\"…\"");
@@ -355,10 +356,8 @@ fn property(el: &Element) -> Result<PageProperty, String> {
         (None, _) => None,
         (Some(d), PropKind::Data | PropKind::Number | PropKind::Bool) => {
             Some(yog_data::text::parse_value(d).map_err(|e| {
-                format!(
-                    "line {}: <{}> default=\"{d}\": {}",
-                    el.line, el.name, e.message
-                )
+                Diagnostic::from(format!("<{}> default=\"{d}\": {}", el.name, e.message))
+                    .at_line(el.line)
             })?)
         }
         (Some(d), _) => Some(Value::from(d)),
@@ -371,7 +370,7 @@ fn property(el: &Element) -> Result<PageProperty, String> {
 }
 
 /// One of the elements a page shows.
-fn element(el: &Element) -> Result<PageElement, String> {
+fn element(el: &Element) -> Result<PageElement, Diagnostic> {
     let visible = el.attr(yui_attr::VISIBLE).map(str::to_string);
     Ok(match el.name.as_str() {
         yui::BOOK_HEADER => PageElement::Header {
@@ -485,12 +484,14 @@ mod tests {
         assert!(
             compile(&bad, "m")
                 .unwrap_err()
+                .message
                 .contains("`nope` isn't a property")
         );
         let bad = crate::yui::parse(r#"<Component book_page="p"><Row/></Component>"#).unwrap();
         assert!(
             compile(&bad, "m")
                 .unwrap_err()
+                .message
                 .contains("not a book page's element")
         );
     }

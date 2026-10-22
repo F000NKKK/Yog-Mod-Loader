@@ -190,8 +190,8 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, CATEGORY, TEXTURE, TAG);
     }
 
-    public static final class ProblemCode {
-        private ProblemCode() {}
+    public static final class DataProblem {
+        private DataProblem() {}
 
         public static final String INVALID = "YD0000";
         public static final String SYNTAX = "YD0001";
@@ -203,11 +203,37 @@ public final class YogNames {
         public static final String OUT_OF_RANGE = "YD0007";
         public static final String BAD_TYPED = "YD0008";
         public static final String BAD_BINARY = "YD0009";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INVALID, SYNTAX, EXPECTED, NOT_A_REFERENCE, WRONG_KIND, UNKNOWN_FIELD, MISSING_FIELD, OUT_OF_RANGE, BAD_TYPED, BAD_BINARY);
+    }
+
+    public static final class RequestProblem {
+        private RequestProblem() {}
+
         public static final String FAILED = "YC0000";
         public static final String NOT_FOUND = "YC0001";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INVALID, SYNTAX, EXPECTED, NOT_A_REFERENCE, WRONG_KIND, UNKNOWN_FIELD, MISSING_FIELD, OUT_OF_RANGE, BAD_TYPED, BAD_BINARY, FAILED, NOT_FOUND);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(FAILED, NOT_FOUND);
+    }
+
+    public static final class BuildProblem {
+        private BuildProblem() {}
+
+        public static final String FAILED = "YB0000";
+        public static final String MANIFEST = "YB0001";
+        public static final String CONTENT = "YB0002";
+        public static final String RESOURCES = "YB0003";
+        public static final String SCREEN = "YB0004";
+        public static final String CARGO = "YB0005";
+        public static final String COMPILER = "YB0006";
+        public static final String NO_PLATFORM = "YB0007";
+        public static final String PACKAGE = "YB0008";
+        public static final String BENCH = "YB0009";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(FAILED, MANIFEST, CONTENT, RESOURCES, SCREEN, CARGO, COMPILER, NO_PLATFORM, PACKAGE, BENCH);
     }
 
     public static final class DataAttr {

@@ -2,7 +2,8 @@
 //! the old one for the versions that read that.
 
 use serde_json::{Map, Value, json};
-use yog_data::OneOrTag;
+use yog_data::Path as At;
+use yog_data::{Diagnostic, OneOrTag};
 use yog_formats::def::{AdvancementDef, CriterionDef};
 use yog_ids::advancement as adv;
 use yog_ids::kind::{ITEM, TAG as TAG_FIELD};
@@ -32,8 +33,18 @@ fn old_advancement_format(version: &str) -> bool {
     ) < NEW_FORMAT
 }
 
-/// What a field of a `.ydef` advancement got wrong: the field, and why.
-pub(super) type Problem = (&'static str, String);
+/// The advancement's fields problems are at.
+const FRAME: &str = yog_data::field!(AdvancementDef, frame);
+const TITLE: &str = yog_data::field!(AdvancementDef, title);
+const DESCRIPTION: &str = yog_data::field!(AdvancementDef, description);
+const CRITERIA: &str = yog_data::field!(AdvancementDef, criteria);
+
+/// What the advancement's field `key` (its item `index` of a list) got wrong.
+fn problem(key: &str, index: Option<usize>, message: impl std::fmt::Display) -> Diagnostic {
+    let field = At::root().key(key);
+    let path = index.map_or(field.clone(), |i| field.index(i));
+    Diagnostic::error(yog_ids::build_problem::CONTENT, message).at_path(path)
+}
 
 /// Advancement `id` (the mod's own, checked): its JSON in the newest format,
 /// and the old one as an overlay for the versions that read that.
@@ -42,10 +53,11 @@ pub(super) fn advancement(
     lang: &mut Lang,
     a: &AdvancementDef,
     id: &str,
-) -> Result<Vec<Output>, Problem> {
+) -> Result<Vec<Output>, Diagnostic> {
     if ![adv::TASK, adv::GOAL, adv::CHALLENGE].contains(&a.frame.as_str()) {
-        return Err((
-            "frame",
+        return Err(problem(
+            FRAME,
+            None,
             format!(
                 "`{}`: {}, {} or {}",
                 a.frame,
@@ -77,7 +89,7 @@ struct Shown {
     parent: Option<String>,
 }
 
-fn shown(cx: &mut Ctx, lang: &mut Lang, a: &AdvancementDef, id: &str) -> Result<Shown, Problem> {
+fn shown(cx: &mut Ctx, lang: &mut Lang, a: &AdvancementDef, id: &str) -> Result<Shown, Diagnostic> {
     let (ns, path) = yog_ids::split(id);
     let base_key = [
         yog_ids::kind::ADVANCEMENT,
@@ -85,10 +97,11 @@ fn shown(cx: &mut Ctx, lang: &mut Lang, a: &AdvancementDef, id: &str) -> Result<
         &path.replace(yog_ids::sep::PATH, EXT),
     ]
     .join(EXT);
-    let title = text_key(cx, lang, &a.title, ns, base_key.clone()).map_err(|e| ("title", e))?;
+    let title =
+        text_key(cx, lang, &a.title, ns, base_key.clone()).map_err(|e| problem(TITLE, None, e))?;
     let description = match &a.description {
         Some(d) => {
-            json!({ "translate": text_key(cx, lang, d, ns, format!("{base_key}.desc")).map_err(|e| ("description", e))? })
+            json!({ "translate": text_key(cx, lang, d, ns, format!("{base_key}.desc")).map_err(|e| problem(DESCRIPTION, None, e))? })
         }
         None => json!({ "text": "" }),
     };
@@ -101,19 +114,15 @@ fn shown(cx: &mut Ctx, lang: &mut Lang, a: &AdvancementDef, id: &str) -> Result<
 }
 
 /// The advancement's JSON, in the old format or the new.
-fn written(a: &AdvancementDef, shown: &Shown, old: bool) -> Result<Value, Problem> {
+fn written(a: &AdvancementDef, shown: &Shown, old: bool) -> Result<Value, Diagnostic> {
     let mut criteria = Map::new();
     let mut requirements = Vec::new();
     for (i, c) in a.criteria.iter().enumerate() {
         let name = format!("c{i}");
         criteria.insert(
             name.clone(),
-            criterion(c, old).ok_or_else(|| {
-                (
-                    "criteria",
-                    format!("criteria[{i}]: one of granted, has_item, used_item"),
-                )
-            })?,
+            criterion(c, old)
+                .ok_or_else(|| problem(CRITERIA, Some(i), "one of granted, has_item, used_item"))?,
         );
         requirements.push(json!([name]));
     }

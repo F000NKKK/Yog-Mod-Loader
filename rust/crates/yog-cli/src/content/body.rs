@@ -2,9 +2,11 @@
 
 use crate::content::Compiled;
 use crate::content::block_item::text_key;
+use crate::content::ctx::problem;
 use crate::content::ctx::{Ctx, Shared};
 use crate::content::file::file_id;
 use crate::content::files::{BodyFile, EntityFile, FontFile};
+use crate::diagnostics::Diagnostic;
 use std::path::Path;
 use yog_ids::Format;
 
@@ -87,13 +89,13 @@ pub(super) fn compile_font(
     shown: &str,
     text: &str,
     path: &Path,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) -> Option<FontFile> {
     let font = match yog_data::from_text::<yog_font::Font>(text) {
         Ok(read) => read.value,
         Err(problems) => {
-            for problem in problems.0 {
-                errors.push(format!("{shown}: {problem}"));
+            for found in &problems.0 {
+                errors.push(found.clone().in_file(shown));
             }
             return None;
         }
@@ -102,7 +104,7 @@ pub(super) fn compile_font(
         errors.extend(
             problems
                 .into_iter()
-                .map(|problem| format!("{shown}: {problem}")),
+                .map(|found| problem(found).in_file(shown)),
         );
         return None;
     }
@@ -120,13 +122,13 @@ pub(super) fn compile_body(
     text: &str,
     kind: Format,
     path: &Path,
-    errors: &mut Vec<String>,
+    errors: &mut Vec<Diagnostic>,
 ) -> Option<BodyFile> {
     let ns = cx.ns;
     let id = cx.content_id(path);
-    let report = |errors: &mut Vec<String>, e: yog_data::Errors| {
-        for l in e.0 {
-            errors.push(format!("{shown}:{l}"));
+    let report = |errors: &mut Vec<Diagnostic>, e: yog_data::Errors| {
+        for l in &e.0 {
+            errors.push(l.clone().in_file(shown));
         }
     };
     let value = if kind == Format::Model {
@@ -138,18 +140,21 @@ pub(super) fn compile_body(
             }
         };
         if let Err(e) = yog_body::Model::new(&file) {
-            errors.push(format!("{shown}: {e}"));
+            errors.push(problem(e.to_string()).in_file(shown));
             return None;
         }
         // The mod's own texture must be one of its `.ytexture`s.
         let (tns, tpath) = yog_ids::split(&file.texture);
         if tns == ns && !cx.own_textures.contains(&file.texture) {
-            errors.push(format!(
-                "{shown}: texture `{}`: no {}/{}",
-                file.texture,
-                crate::yres::RESOURCES_DIR,
-                Format::Texture.file(tpath)
-            ));
+            errors.push(
+                problem(format!(
+                    "texture `{}`: no {}/{}",
+                    file.texture,
+                    crate::yres::RESOURCES_DIR,
+                    Format::Texture.file(tpath)
+                ))
+                .in_file(shown),
+            );
             return None;
         }
         yog_data::Schema::write(&file)
@@ -162,7 +167,7 @@ pub(super) fn compile_body(
             }
         };
         if let Err(e) = yog_body::anim::Clips::new(&file) {
-            errors.push(format!("{shown}: {e}"));
+            errors.push(problem(e.to_string()).in_file(shown));
             return None;
         }
         yog_data::Schema::write(&file)

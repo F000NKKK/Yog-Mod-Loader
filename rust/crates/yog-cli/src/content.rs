@@ -96,7 +96,8 @@ pub struct Compiled {
     /// Data the code includes (`include_bytes!`), by path under
     /// `.yog-build/generated/`: the books, as Yog Data.
     pub data_files: Vec<(String, Vec<u8>)>,
-    pub warnings: Vec<String>,
+    /// What's suspect but builds.
+    pub warnings: Vec<crate::diagnostics::Diagnostic>,
     /// [`yog_registry::REGISTRATIONS_FILE`]: what the mod registers at the
     /// game's start — packaged by dev builds only, for hot reload.
     pub registrations: String,

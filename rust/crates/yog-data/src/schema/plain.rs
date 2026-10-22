@@ -190,7 +190,7 @@ impl Schema for String {
                     None
                 }
                 Err(e) => {
-                    cx.problem_of(yog_ids::problem_code::BAD_TYPED, e);
+                    cx.problem_of(yog_ids::data_problem::BAD_TYPED, e);
                     None
                 }
             },

@@ -6,15 +6,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use yog_cli::manifest::YogToml;
-use yog_cli::{bench, content};
+use yog_cli::{bench, content, diagnostics};
+use yog_ids::build_problem;
 
 use super::prepare::{Prepared, prepare};
 use yog_ids::platform::{self, Platform};
 
-use super::targets::{
-    Builder, filter_benign_warnings, install_targets, installed_targets, lib_filename,
-    selected_targets,
-};
+use super::cargo_out;
+use super::targets::{Builder, install_targets, installed_targets, lib_filename, selected_targets};
 
 /// `yog check` — `cargo check` of the mod for the host platform, after the
 /// same generation `yog build` does; nothing is packaged. Quick feedback
@@ -23,14 +22,14 @@ pub(super) fn check() -> Result<(), String> {
     let Prepared {
         root, build_dir, ..
     } = prepare()?;
-    let status = Command::new("cargo")
-        .current_dir(&build_dir)
+    let mut cmd = Command::new("cargo");
+    cmd.current_dir(&build_dir)
         .env("CARGO_TARGET_DIR", root.join("target"))
-        .arg("check")
-        .status()
+        .arg("check");
+    let ok = cargo_out::run(&mut cmd, &build_dir, &root)
         .map_err(|e| format!("failed to run cargo: {e}"))?;
-    if !status.success() {
-        return Err(format!("cargo check failed ({status})"));
+    if !ok {
+        return Err("cargo check failed".to_owned());
     }
     eprintln!("==> check OK");
     Ok(())
@@ -44,7 +43,10 @@ pub(super) fn run_benches(args: &[String]) -> Result<(), String> {
     let Prepared {
         root, build_dir, ..
     } = prepare()?;
-    if bench::discover(&root)?.is_empty() {
+    if bench::discover(&root)
+        .map_err(diagnostics::reported)?
+        .is_empty()
+    {
         return Err(format!(
             "no benchmarks: add {}/<name>.rs with #[yog_api::bench] functions",
             bench::BENCH_DIR
@@ -75,20 +77,14 @@ pub(super) fn designer_lib() -> Result<(), String> {
         ..
     } = prepare()?;
     let target_dir = root.join("target").join("designer");
-    let out = Command::new("cargo")
-        .current_dir(&build_dir)
+    let mut cmd = Command::new("cargo");
+    cmd.current_dir(&build_dir)
         .env("CARGO_TARGET_DIR", &target_dir)
-        .args(["build", "--lib", "--color", "never"])
-        .stdout(std::process::Stdio::null())
-        .output()
+        .args(["build", "--lib", "--color", "never"]);
+    let ok = cargo_out::run(&mut cmd, &build_dir, &root)
         .map_err(|e| format!("failed to run cargo: {e}"))?;
-    // The toolchain's own noise left out, as `yog build` does.
-    eprint!(
-        "{}",
-        filter_benign_warnings(&String::from_utf8_lossy(&out.stderr))
-    );
-    if !out.status.success() {
-        return Err(format!("cargo build failed ({})", out.status));
+    if !ok {
+        return Err("cargo build failed".to_owned());
     }
     let lib = target_dir
         .join("debug")
@@ -129,7 +125,8 @@ pub(super) fn build(debugging_symbols: bool, dev: bool) -> Result<(YogToml, Path
     let artifacts = root.join(ARTIFACTS_DIR);
     std::fs::create_dir_all(&artifacts).map_err(|e| e.to_string())?;
     let out = artifacts.join(yog_ids::Format::Mod.file(&meta.id));
-    package(&out, &meta, &bundled, &assets)?;
+    package(&out, &meta, &bundled, &assets)
+        .map_err(|e| diagnostics::failed(build_problem::PACKAGE, e))?;
     let tags: Vec<&str> = bundled.iter().map(|(t, _)| t.as_str()).collect();
     eprintln!("==> packaged {} [{}]", out.display(), tags.join(", "));
     Ok((meta, out))
@@ -202,11 +199,12 @@ fn build_natives(
         }
     }
     if bundled.is_empty() {
-        return Err(if failed > 0 {
-            "no platform built — the build failed (errors above)".into()
+        let why = if failed > 0 {
+            "no platform built — the build failed (errors above)"
         } else {
-            "no platform built — run `yog setup` to install cross-compilation tools".into()
-        });
+            "no platform built — run `yog setup` to install cross-compilation tools"
+        };
+        return Err(diagnostics::failed(build_problem::NO_PLATFORM, why));
     }
     Ok(bundled)
 }

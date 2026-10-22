@@ -7,7 +7,7 @@ use std::io::{self, Read, Write};
 use crate::Schema;
 
 /// How a frame's length is written.
-pub(crate) type Len = u32;
+pub type Len = u32;
 /// The longest frame read: anything longer is a broken or hostile peer.
 pub const MAX_FRAME: usize = 256 << 20;
 

@@ -4,7 +4,9 @@ use super::*;
 fn codegen(body: &str) -> Result<String, String> {
     let src =
         format!(r#"<Screen id="t:s" width="200" height="100" x:ViewModel="Vm">{body}</Screen>"#);
-    crate::yui::generate_for(&src, "s", None).map(|(c, _)| c)
+    crate::yui::generate_for(&src, "s", None)
+        .map(|(c, _)| c)
+        .map_err(String::from)
 }
 
 #[test]
@@ -32,6 +34,7 @@ fn themes() {
     assert!(
         crate::yui::generate_for(&bad, "s", None)
             .unwrap_err()
+            .message
             .contains("no such theme")
     );
 }

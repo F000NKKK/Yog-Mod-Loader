@@ -15,6 +15,8 @@ use yog_ids::atlas_source as src;
 use yog_media::image::Image;
 
 use super::Output;
+use crate::content::ctx::problem;
+use crate::diagnostics::Diagnostic;
 use crate::yres::{RESOURCES_DIR, Refs};
 
 /// The mod's textures: their ids, the files they become, and the pictures
@@ -39,7 +41,7 @@ struct Building {
 }
 
 /// Every `.ytexture` under `resources/` of the mod at `root`; problems go to `errors`.
-pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>) -> Textures {
+pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<Diagnostic>) -> Textures {
     let resources = root.join(RESOURCES_DIR);
     let mut b = Building::default();
     for file in crate::files::with_ext(&resources, Format::Texture.ext()) {
@@ -53,7 +55,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
             continue;
         };
         if let Err(e) = texture(&mut b, &file, &id, refs) {
-            errors.push(format!("{shown}: {e}"));
+            errors.push(problem(e.to_string()).in_file(&shown));
         }
     }
     for atlas in b
@@ -64,7 +66,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<String>)
         .collect::<BTreeSet<_>>()
     {
         if let Err(e) = write_atlas(&mut b, &atlas, mod_id) {
-            errors.push(format!("atlas {atlas}: {e}"));
+            errors.push(problem(format!("atlas {atlas}: {e}")));
         }
     }
     b.out

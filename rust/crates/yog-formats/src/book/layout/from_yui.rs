@@ -1,5 +1,6 @@
 //! A recipe layout from its `.yui` component (`<Component recipe_layout="…">`).
 
+use yog_data::Diagnostic;
 use yog_ids::{yui, yui_attr};
 
 use super::{ICON_PX, LayoutPart, RecipeLayout, game_kinds};
@@ -17,11 +18,11 @@ pub fn is_recipe_layout(root: &Element) -> bool {
     root.name == yui::COMPONENT && root.attr(yui_attr::RECIPE_LAYOUT).is_some()
 }
 
-fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, String> {
-    Err(format!("line {}: <{}>: {msg}", el.line, el.name))
+fn err<T>(el: &Element, msg: impl std::fmt::Display) -> Result<T, Diagnostic> {
+    Err(Diagnostic::from(format!("<{}>: {msg}", el.name)).at_line(el.line))
 }
 
-fn num(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> {
+fn num(el: &Element, key: &str, default: Option<f32>) -> Result<f32, Diagnostic> {
     match el.attr(key) {
         Some(v) => v
             .trim()
@@ -33,7 +34,7 @@ fn num(el: &Element, key: &str, default: Option<f32>) -> Result<f32, String> {
     }
 }
 
-fn at(el: &Element) -> Result<[f32; 2], String> {
+fn at(el: &Element) -> Result<[f32; 2], Diagnostic> {
     Ok([
         num(el, yui_attr::X, Some(0.0))?,
         num(el, yui_attr::Y, Some(0.0))?,
@@ -45,7 +46,7 @@ fn flag(el: &Element, key: &str) -> bool {
 }
 
 /// Attribute `key`, which `el` needs (`what` says what it is).
-fn needs<'a>(el: &'a Element, key: &str, what: &str) -> Result<&'a str, String> {
+fn needs<'a>(el: &'a Element, key: &str, what: &str) -> Result<&'a str, Diagnostic> {
     el.attr(key)
         .map(Ok)
         .unwrap_or_else(|| err(el, format_args!("needs {key}=\"…\"{what}")))
@@ -53,7 +54,7 @@ fn needs<'a>(el: &'a Element, key: &str, what: &str) -> Result<&'a str, String> 
 
 /// `root` (a `<Component recipe_layout="…">`) as a layout; `ns`: the mod's
 /// namespace, for its own kinds written without one.
-pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, String> {
+pub fn compile(root: &Element, ns: &str) -> Result<RecipeLayout, Diagnostic> {
     let kinds = kinds(root, ns);
     if kinds.is_empty() {
         return err(
@@ -117,7 +118,7 @@ struct Parts {
 }
 
 impl Parts {
-    fn add(&mut self, el: &Element) -> Result<(), String> {
+    fn add(&mut self, el: &Element) -> Result<(), Diagnostic> {
         let part = match el.name.as_str() {
             yui::IMAGE => image(el)?,
             yui::RECIPE_SLOT => return self.slot(el),
@@ -164,7 +165,7 @@ impl Parts {
     }
 
     /// A place of a slot: the slot's part made the first time.
-    fn slot(&mut self, el: &Element) -> Result<(), String> {
+    fn slot(&mut self, el: &Element) -> Result<(), Diagnostic> {
         let slot = needs(el, yui_attr::SLOT, " (the kind's slot)")?.to_string();
         let index = match el.attr(yui_attr::INDEX) {
             Some(i) => i
@@ -202,7 +203,7 @@ impl Parts {
     }
 
     /// The parts, each slot's places in order (0, 1, … with no gap).
-    fn finish(mut self) -> Result<Vec<LayoutPart>, String> {
+    fn finish(mut self) -> Result<Vec<LayoutPart>, Diagnostic> {
         for part in &mut self.parts {
             if let LayoutPart::Slots { slot, at, frame } = part
                 && let Some((_, p, f)) = self.places.iter().find(|(s, ..)| s == slot)
@@ -213,7 +214,8 @@ impl Parts {
                     return Err(format!(
                         "{slot}: place {} isn't laid out (a slot's places are 0, 1, … in a row)",
                         gap.0
-                    ));
+                    )
+                    .into());
                 }
                 *at = p.into_iter().map(|(_, a)| a).collect();
                 *frame = *f;
@@ -224,7 +226,7 @@ impl Parts {
 }
 
 /// `<Image source uv>` (or `w h` from the image's corner).
-fn image(el: &Element) -> Result<LayoutPart, String> {
+fn image(el: &Element) -> Result<LayoutPart, Diagnostic> {
     let source = needs(el, yui_attr::SOURCE, "")?.to_string();
     let uv = match el.attr(yui_attr::UV) {
         Some(v) => {
@@ -252,7 +254,7 @@ fn image(el: &Element) -> Result<LayoutPart, String> {
 }
 
 /// `<BlockSlot block size>`: a block state in 3D.
-fn block(el: &Element) -> Result<LayoutPart, String> {
+fn block(el: &Element) -> Result<LayoutPart, Diagnostic> {
     let block = needs(
         el,
         yui_attr::BLOCK,

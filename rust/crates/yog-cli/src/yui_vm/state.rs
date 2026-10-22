@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use super::expr::Scope;
 use crate::yui::{self, Element, err};
 use crate::yui_resources::{Entry, Resources, local_name};
+use yog_data::Diagnostic;
 
 /// Where generated update code writes: the view or a template instance.
 pub(super) struct Ctx {
@@ -130,7 +131,7 @@ impl<'a> VmGen<'a> {
     }
 
     /// An attribute's value with a `@local` resource resolved.
-    fn resolved(&self, el: &Element, k: &str, v: &str) -> Result<String, String> {
+    fn resolved(&self, el: &Element, k: &str, v: &str) -> Result<String, Diagnostic> {
         let Some(name) = local_name(v) else {
             return Ok(v.to_string());
         };
@@ -145,7 +146,7 @@ impl<'a> VmGen<'a> {
     }
 
     /// Resolves `@local` resources, `x:Name` and `style` into plain attributes.
-    pub(super) fn resolve(&self, el: &Element) -> Result<Element, String> {
+    pub(super) fn resolve(&self, el: &Element) -> Result<Element, Diagnostic> {
         let mut out = el.clone();
         out.attrs.clear();
         let mut style: Vec<(String, String)> = Vec::new();
@@ -181,7 +182,7 @@ impl<'a> VmGen<'a> {
     }
 
     /// The screen's `<Screen.Resources>`: its values and styles.
-    pub(super) fn collect_resources(&mut self, res: &Element) -> Result<(), String> {
+    pub(super) fn collect_resources(&mut self, res: &Element) -> Result<(), Diagnostic> {
         let entries: Vec<Entry> = res
             .children
             .iter()
@@ -196,8 +197,8 @@ impl<'a> VmGen<'a> {
             })
             .collect();
         let read = Resources::read(&entries);
-        if let Some((line, msg)) = read.problems.into_iter().next() {
-            return Err(format!("line {line}: {msg}"));
+        if let Some(found) = read.problems.into_iter().next() {
+            return Err(found);
         }
         self.resources = read.values;
         self.styles = read.styles;
