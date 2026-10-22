@@ -18,6 +18,8 @@ impl LivingEntity {
     pub fn make(source: &DamageSource, ticks: i32) -> Option<Self>;
     pub fn named(id: i64) -> Option<String>;
     pub fn tick(&self);
+    #[name("getLastHurtByMob")]
+    pub fn last_hurt_by(&self) -> Option<LivingEntity>;
 }
 
 #[test]

@@ -5,7 +5,8 @@
 //! `#[nanite]` gives each body-less `fn` its body: the member resolved once
 //! (by its name and the descriptor its Rust types make), then called by its
 //! handle — `&self` an instance's, none a static one's; `#[field]` reads a
-//! field (and makes `set_<name>`), `#[new]` calls a constructor.
+//! field (and makes `set_<name>`), `#[new]` calls a constructor;
+//! `#[name("getScaleData")]` gives the Java name when the Rust one differs.
 
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
@@ -13,6 +14,8 @@ use quote::{format_ident, quote};
 /// The member attributes.
 const FIELD: &str = "field";
 const NEW: &str = "new";
+/// `#[name("getScaleData")]`: the Java name, when the Rust one differs.
+const NAME: &str = "name";
 
 fn api() -> TokenStream {
     quote! { ::yog_api::nanite }
@@ -89,6 +92,11 @@ fn sig_of(f: &syn::ForeignItemFn) -> syn::Result<Sig> {
     })
 }
 
+/// The `#[name("…")]` a member gives, if any.
+fn java_name(f: &syn::ForeignItemFn) -> Option<syn::LitStr> {
+    f.attrs.iter().find(|a| a.path().is_ident(NAME))?.parse_args().ok()
+}
+
 fn has(f: &syn::ForeignItemFn, attr: &str) -> bool {
     f.attrs.iter().any(|a| a.path().is_ident(attr))
 }
@@ -158,7 +166,7 @@ fn java_name_and_desc(f: &syn::ForeignItemFn, sig: &Sig) -> (TokenStream, TokenS
     let n = api();
     let tys: Vec<&syn::Type> = sig.params.iter().map(|(t, _)| t).collect();
     let ret = &sig.ret;
-    let java_name = syn::LitStr::new(&f.sig.ident.to_string(), Span::call_site());
+    let java_name = java_name(f).unwrap_or_else(|| syn::LitStr::new(&f.sig.ident.to_string(), Span::call_site()));
     if has(f, FIELD) {
         (quote! { #java_name }, quote! { <#ret as #n::Java>::desc() })
     } else if has(f, NEW) {
@@ -189,7 +197,7 @@ fn body(f: &syn::ForeignItemFn, sig: &Sig, stat: &syn::Ident) -> TokenStream {
     let attrs: Vec<&syn::Attribute> = f
         .attrs
         .iter()
-        .filter(|a| !a.path().is_ident(FIELD) && !a.path().is_ident(NEW))
+        .filter(|a| ![FIELD, NEW, NAME].iter().any(|n| a.path().is_ident(n)))
         .collect();
     if !has(f, FIELD) {
         return quote! {
