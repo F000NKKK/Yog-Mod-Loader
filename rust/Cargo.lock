@@ -2309,7 +2309,7 @@ dependencies = [
 
 [[package]]
 name = "yog-interop"
-version = "0.23.1"
+version = "0.23.2"
 dependencies = [
  "proc-macro2",
  "quote",
