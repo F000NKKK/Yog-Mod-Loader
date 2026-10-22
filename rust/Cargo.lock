@@ -2121,7 +2121,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.49.2"
+version = "0.49.3"
 dependencies = [
  "base64",
  "criterion",
