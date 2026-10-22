@@ -938,9 +938,11 @@ public final class YogNames {
         public static final String AREA = "yog:client/local/area";
         public static final String ENTITIES = "yog:client/local/entities";
         public static final String DIG_SPEEDS = "yog:client/local/dig_speeds";
+        public static final String RAYCAST = "yog:client/local/raycast";
+        public static final String TARGET = "yog:client/local/target";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, STATE, INVENTORY, SCAN, AREA, ENTITIES, DIG_SPEEDS);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, STATE, INVENTORY, SCAN, AREA, ENTITIES, DIG_SPEEDS, RAYCAST, TARGET);
     }
 
     public static final class ServiceClientControl {

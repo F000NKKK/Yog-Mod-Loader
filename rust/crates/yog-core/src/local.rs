@@ -25,6 +25,8 @@ pub struct LocalState {
     pub slot: u32,
     /// How charged the next attack is: 1 does full damage.
     pub attack_strength: f32,
+    /// Crouching (sneaking).
+    pub sneaking: bool,
 }
 
 impl LocalState {

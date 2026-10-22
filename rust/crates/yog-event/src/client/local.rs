@@ -1,7 +1,7 @@
 //! What this client's player is and sees: the host's actions (nothing on
 //! a dedicated server, nor without a player).
 
-use yog_core::{BlockArea, DigSpeed, BlockPos, LocalState, NearbyEntity, PlacedBlock, SlotStack};
+use yog_core::{BlockArea, BlockHit, DigSpeed, Point, BlockPos, LocalState, NearbyEntity, PlacedBlock, SlotStack};
 use yog_ids as ids;
 
 actions! {
@@ -17,4 +17,8 @@ actions! {
     Entities { radius: f64 } -> Vec<NearbyEntity> = ids::service_client_local::ENTITIES, "YogClientOps.entities";
     /// How fast each of `blocks` (ids) is dug with the best tool in the hotbar, in order.
     DigSpeeds { blocks: Vec<String> } -> Vec<DigSpeed> = ids::service_client_local::DIG_SPEEDS, "YogDigSpeeds.of";
+    /// The first block outline a ray from `from` to `to` hits in the client's world (fluids aside).
+    Raycast { from: Point, to: Point } -> Option<BlockHit> = ids::service_client_local::RAYCAST, "YogClientOps.raycast";
+    /// The block the crosshair is on, if it's on one.
+    Target {  } -> Option<BlockHit> = ids::service_client_local::TARGET, "YogClientOps.target";
 }

@@ -1802,7 +1802,7 @@ public final class YogTypes {
     }
 
     /** This client's player: where it is and looks, how it moves and fares. */
-    public record LocalState(YogTypes.Point pos, float yaw, float pitch, YogTypes.Point velocity, boolean onGround, boolean inWater, double eyeHeight, float health, int food, String dimension, long slot, float attackStrength) {
+    public record LocalState(YogTypes.Point pos, float yaw, float pitch, YogTypes.Point velocity, boolean onGround, boolean inWater, double eyeHeight, float health, int food, String dimension, long slot, float attackStrength, boolean sneaking) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("pos", pos.toData());
@@ -1817,12 +1817,13 @@ public final class YogTypes {
             m.put("dimension", dimension);
             m.put("slot", slot);
             m.put("attack_strength", attackStrength);
+            m.put("sneaking", sneaking);
             return m;
         }
 
         public static LocalState fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new LocalState(YogTypes.Point.fromData(m.get("pos")), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), YogTypes.Point.fromData(m.get("velocity")), YogData.bool(m.get("on_ground"), false), YogData.bool(m.get("in_water"), false), YogData.number(m.get("eye_height"), 0), (float) YogData.number(m.get("health"), 0), (int) YogData.integer(m.get("food"), 0), YogData.str(m.get("dimension"), ""), YogData.integer(m.get("slot"), 0), (float) YogData.number(m.get("attack_strength"), 0));
+            return new LocalState(YogTypes.Point.fromData(m.get("pos")), (float) YogData.number(m.get("yaw"), 0), (float) YogData.number(m.get("pitch"), 0), YogTypes.Point.fromData(m.get("velocity")), YogData.bool(m.get("on_ground"), false), YogData.bool(m.get("in_water"), false), YogData.number(m.get("eye_height"), 0), (float) YogData.number(m.get("health"), 0), (int) YogData.integer(m.get("food"), 0), YogData.str(m.get("dimension"), ""), YogData.integer(m.get("slot"), 0), (float) YogData.number(m.get("attack_strength"), 0), YogData.bool(m.get("sneaking"), false));
         }
 
         public static LocalState fromBytes(byte[] bytes) {
@@ -1843,6 +1844,7 @@ public final class YogTypes {
             p.putAtom(this.dimension);
             p.putI(this.slot);
             p.putF32(this.attackStrength);
+            p.putBool(this.sneaking);
             p.end(at);
         }
 
@@ -1860,8 +1862,9 @@ public final class YogTypes {
             String f_dimension = u.more(end) ? u.getAtom() : "";
             long f_slot = u.more(end) ? u.getI() : 0L;
             float f_attackStrength = u.more(end) ? u.getF32() : 0.0f;
+            boolean f_sneaking = u.more(end) ? u.getBool() : false;
             u.leave(end);
-            return new LocalState(f_pos, f_yaw, f_pitch, f_velocity, f_onGround, f_inWater, f_eyeHeight, f_health, f_food, f_dimension, f_slot, f_attackStrength);
+            return new LocalState(f_pos, f_yaw, f_pitch, f_velocity, f_onGround, f_inWater, f_eyeHeight, f_health, f_food, f_dimension, f_slot, f_attackStrength, f_sneaking);
         }
 
         public byte[] toFrame() {
@@ -1907,6 +1910,7 @@ public final class YogTypes {
             private final int o9;
             private final int o10;
             private final int o11;
+            private final int o12;
 
             public View(YogFrame.Unpacker u) {
                 this.u = u;
@@ -1923,6 +1927,7 @@ public final class YogTypes {
                 if (u.more(end)) { o9 = u.position(); u.getU(); } else { o9 = -1; }
                 if (u.more(end)) { o10 = u.position(); u.getU(); } else { o10 = -1; }
                 if (u.more(end)) { o11 = u.position(); u.skip(4); } else { o11 = -1; }
+                if (u.more(end)) { o12 = u.position(); u.skip(1); } else { o12 = -1; }
                 u.leave(end);
             }
 
@@ -1996,6 +2001,12 @@ public final class YogTypes {
                 if (o11 < 0) return 0.0f;
                 u.seek(o11);
                 return u.getF32();
+            }
+
+            public boolean sneaking() {
+                if (o12 < 0) return false;
+                u.seek(o12);
+                return u.getBool();
             }
         }
     }
@@ -2556,6 +2567,106 @@ public final class YogTypes {
                 if (o1 < 0) return 0.0f;
                 u.seek(o1);
                 return u.getF32();
+            }
+        }
+    }
+
+    /** A block a ray stopped at. */
+    public record BlockHit(YogTypes.BlockPos pos, String face, YogTypes.Point hit) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("pos", pos.toData());
+            m.put("face", face);
+            m.put("hit", hit.toData());
+            return m;
+        }
+
+        public static BlockHit fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new BlockHit(YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("face"), ""), YogTypes.Point.fromData(m.get("hit")));
+        }
+
+        public static BlockHit fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            this.pos.pack(p);
+            p.putU(switch (this.face) { case "down" -> 0; case "up" -> 1; case "north" -> 2; case "south" -> 3; case "west" -> 4; case "east" -> 5; default -> 0; });
+            this.hit.pack(p);
+            p.end(at);
+        }
+
+        public static BlockHit unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
+            String f_face = u.more(end) ? switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; } : "down";
+            YogTypes.Point f_hit = u.more(end) ? YogTypes.Point.unpack(u) : null;
+            u.leave(end);
+            return new BlockHit(f_pos, f_face, f_hit);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static BlockHit fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static BlockHit fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static BlockHit readFrame(YogFrame.Unpacker u) {
+            BlockHit v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code BlockHit} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public YogTypes.BlockPos.View pos() {
+                if (o0 < 0) return null;
+                u.seek(o0);
+                return new YogTypes.BlockPos.View(u);
+            }
+
+            public String face() {
+                if (o1 < 0) return "down";
+                u.seek(o1);
+                return switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; };
+            }
+
+            public YogTypes.Point.View hit() {
+                if (o2 < 0) return null;
+                u.seek(o2);
+                return new YogTypes.Point.View(u);
             }
         }
     }
@@ -3921,106 +4032,6 @@ public final class YogTypes {
                 if (o7 < 0) return false;
                 u.seek(o7);
                 return u.getBool();
-            }
-        }
-    }
-
-    /** A block a ray stopped at. */
-    public record BlockHit(YogTypes.BlockPos pos, String face, YogTypes.Point hit) {
-        public java.util.Map<String, Object> toData() {
-            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
-            m.put("pos", pos.toData());
-            m.put("face", face);
-            m.put("hit", hit.toData());
-            return m;
-        }
-
-        public static BlockHit fromData(Object data) {
-            java.util.Map<String, Object> m = YogData.map(data);
-            return new BlockHit(YogTypes.BlockPos.fromData(m.get("pos")), YogData.str(m.get("face"), ""), YogTypes.Point.fromData(m.get("hit")));
-        }
-
-        public static BlockHit fromBytes(byte[] bytes) {
-            return fromData(YogData.decode(bytes));
-        }
-
-        public void pack(YogFrame.Packer p) {
-            int at = p.begin();
-            this.pos.pack(p);
-            p.putU(switch (this.face) { case "down" -> 0; case "up" -> 1; case "north" -> 2; case "south" -> 3; case "west" -> 4; case "east" -> 5; default -> 0; });
-            this.hit.pack(p);
-            p.end(at);
-        }
-
-        public static BlockHit unpack(YogFrame.Unpacker u) {
-            int end = u.begin();
-            YogTypes.BlockPos f_pos = u.more(end) ? YogTypes.BlockPos.unpack(u) : null;
-            String f_face = u.more(end) ? switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; } : "down";
-            YogTypes.Point f_hit = u.more(end) ? YogTypes.Point.unpack(u) : null;
-            u.leave(end);
-            return new BlockHit(f_pos, f_face, f_hit);
-        }
-
-        public byte[] toFrame() {
-            YogFrame.Packer p = new YogFrame.Packer();
-            pack(p);
-            return p.finish();
-        }
-
-        /** Packed by one of this thread's packers: what the bus sends in place. */
-        public YogFrame.Packer packedFrame() {
-            YogFrame.Packer p = YogFrame.Packer.take();
-            pack(p);
-            return p;
-        }
-
-        public static BlockHit fromFrame(byte[] bytes) {
-            return readFrame(new YogFrame.Unpacker(bytes));
-        }
-
-        /** Read where the message is (the arena, in place). */
-        public static BlockHit fromFrame(YogMessage m) {
-            return readFrame(m.frame());
-        }
-
-        private static BlockHit readFrame(YogFrame.Unpacker u) {
-            BlockHit v = unpack(u);
-            u.finish();
-            return v;
-        }
-
-        /** {@code BlockHit} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
-        public static final class View {
-            private final YogFrame.Unpacker u;
-            private final int o0;
-            private final int o1;
-            private final int o2;
-
-            public View(YogFrame.Unpacker u) {
-                this.u = u;
-                int end = u.begin();
-                if (u.more(end)) { o0 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o0 = -1; }
-                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
-                if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
-                u.leave(end);
-            }
-
-            public YogTypes.BlockPos.View pos() {
-                if (o0 < 0) return null;
-                u.seek(o0);
-                return new YogTypes.BlockPos.View(u);
-            }
-
-            public String face() {
-                if (o1 < 0) return "down";
-                u.seek(o1);
-                return switch ((int) u.getU()) { case 0 -> "down"; case 1 -> "up"; case 2 -> "north"; case 3 -> "south"; case 4 -> "west"; case 5 -> "east"; default -> ""; };
-            }
-
-            public YogTypes.Point.View hit() {
-                if (o2 < 0) return null;
-                u.seek(o2);
-                return new YogTypes.Point.View(u);
             }
         }
     }
@@ -10410,14 +10421,6 @@ public final class YogTypes {
         public static final String SERVICE = "service";
     }
 
-    /** How bad it is. */
-    public static final class Severity {
-        private Severity() {}
-        public static final String ERROR = "error";
-        public static final String WARNING = "warning";
-        public static final String NOTE = "note";
-    }
-
     /** The six block faces, in Minecraft's `Direction` order, named as `yog_ids::direction` names them (a test holds them to it). */
     public static final class Face {
         private Face() {}
@@ -10427,6 +10430,14 @@ public final class YogTypes {
         public static final String SOUTH = "south";
         public static final String WEST = "west";
         public static final String EAST = "east";
+    }
+
+    /** How bad it is. */
+    public static final class Severity {
+        private Severity() {}
+        public static final String ERROR = "error";
+        public static final String WARNING = "warning";
+        public static final String NOTE = "note";
     }
 
     /** Whose ticks a mirror is written after: the server's (the world as it is), or a client's (the world as that player sees it — what a client mod reads on any server). */

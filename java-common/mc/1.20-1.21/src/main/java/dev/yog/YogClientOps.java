@@ -1,5 +1,9 @@
 package dev.yog;
 
+import net.minecraft.world.phys.HitResult;
+
+import net.minecraft.world.level.ClipContext;
+
 import dev.yog.bus.YogTypes;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -83,7 +87,27 @@ public final class YogClientOps {
         if (p == null || w == null) return null;
         return new YogTypes.LocalState(YogQueries.point(p.position()), p.getYRot(), p.getXRot(), YogQueries.point(p.getDeltaMovement()),
                 p.onGround(), p.isInWater(), p.getEyeHeight(), p.getHealth(), p.getFoodData().getFoodLevel(),
-                w.dimension().location().toString(), p.getInventory().selected, p.getAttackStrengthScale(HALF_TICK));
+                w.dimension().location().toString(), p.getInventory().selected, p.getAttackStrengthScale(HALF_TICK), p.isCrouching());
+    }
+
+    @YogServiceHost
+    public static YogTypes.BlockHit raycast(double fx, double fy, double fz, double tx, double ty, double tz) {
+        LocalPlayer p = mc().player;
+        ClientLevel w = mc().level;
+        if (p == null || w == null) return null;
+        BlockHitResult hit = w.clip(new ClipContext(new Vec3(fx, fy, fz), new Vec3(tx, ty, tz),
+                ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, p));
+        return blockHit(hit);
+    }
+
+    @YogServiceHost
+    public static YogTypes.BlockHit target() {
+        return mc().hitResult instanceof BlockHitResult hit ? blockHit(hit) : null;
+    }
+
+    private static YogTypes.BlockHit blockHit(BlockHitResult hit) {
+        if (hit == null || hit.getType() != HitResult.Type.BLOCK) return null;
+        return new YogTypes.BlockHit(YogQueries.blockPos(hit.getBlockPos()), hit.getDirection().getName(), YogQueries.point(hit.getLocation()));
     }
 
     @YogServiceHost
