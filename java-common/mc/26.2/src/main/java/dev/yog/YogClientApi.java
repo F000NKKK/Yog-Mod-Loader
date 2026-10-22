@@ -66,6 +66,16 @@ public final class YogClientApi {
         return YogQueries.stack(st);
     }
 
+    /** The key {@code binding} is bound to, as the controls show it; null when there's no such binding. */
+    @YogServiceHost
+    public static String keyName(String binding) {
+        String name = dev.yog.util.YogKeyBindings.nameOf(binding);
+        for (net.minecraft.client.KeyMapping k : Minecraft.getInstance().options.keyMappings) {
+            if (k.getName().equals(name)) return k.getTranslatedKeyMessage().getString();
+        }
+        return null;
+    }
+
     @YogServiceHost
     public static boolean keyDown(int key) {
         return InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), key);

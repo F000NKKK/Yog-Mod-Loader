@@ -221,6 +221,7 @@ names! {
         HELD_ITEM = crate::concatcp!(DOMAIN, "held_item"),
         SET_BLOCK_TINT = crate::concatcp!(DOMAIN, "set_block_tint"),
         KEY_DOWN = crate::concatcp!(DOMAIN, "key_down"),
+        KEY_NAME = crate::concatcp!(DOMAIN, "key_name"),
         ATTRIBUTE_VALUE = crate::concatcp!(DOMAIN, crate::bus_word::ATTRIBUTE_VALUE),
         ADVANCEMENT_DONE = crate::concatcp!(DOMAIN, "advancement_done"),
         BODY_TRACK = crate::concatcp!(DOMAIN, "body_track"),

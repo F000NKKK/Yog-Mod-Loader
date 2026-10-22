@@ -58,6 +58,22 @@ public final class YogKeyBindings {
         return out;
     }
 
+    /** What the game's own bindings' names start with: {@code key.sprint}. */
+    private static final String GAME_BINDING_PREFIX = "key.";
+
+    /**
+     * The game's name of a binding: a mod's by its id ({@code mymod:xray},
+     * the name it declared), the game's by its own ({@code sprint} →
+     * {@code key.sprint}).
+     */
+    public static String nameOf(String binding) {
+        if (!binding.contains(dev.yog.YogNames.Sep.NAMESPACE)) return GAME_BINDING_PREFIX + binding;
+        for (Binding b : DECLARED) {
+            if (b.id().equals(binding)) return b.name();
+        }
+        return binding;
+    }
+
     /** The game's key for binding {@code id}: {@code clicked} answers one press since the last (and takes it). */
     public static void track(String id, BooleanSupplier clicked) {
         KEYS.add(Map.entry(id, clicked));

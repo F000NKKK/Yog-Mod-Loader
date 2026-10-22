@@ -16,6 +16,9 @@ actions! {
     ScreenSlots {  } -> Vec<ScreenSlot> = ids::service_client::SCREEN_SLOTS, "YogQueries.screenSlots";
     /// Whether GLFW key `key` is held down.
     KeyDown { key: i32 } -> bool = ids::service_client::KEY_DOWN, "YogClientApi.keyDown";
+    /// The key `binding` is bound to, as the controls show it: a game's
+    /// binding by its name (`sprint`), a mod's by its id (`mymod:xray`).
+    KeyName { binding: String } -> Option<String> = ids::service_client::KEY_NAME, "YogClientApi.keyName";
     /// An attribute's value on this client's player.
     AttributeValue { attribute: String } -> Option<f64> = ids::service_client::ATTRIBUTE_VALUE, "YogClientApi.attributeValue";
     /// Whether this client's player has advancement `id`.

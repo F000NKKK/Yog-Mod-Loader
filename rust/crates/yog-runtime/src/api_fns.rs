@@ -7,7 +7,7 @@ use yog_ids::dimension_field;
 use yog_registry::{BlockDef, ItemDef};
 
 use crate::handlers::RuntimeHandlers;
-use crate::machine_api::{mod_loaded, translate};
+use crate::machine_api::{key_name, mod_loaded, translate};
 
 // ── YogApi registration functions ─────────────────────────────────────────────
 //
@@ -153,6 +153,7 @@ fn register_book(h: &mut RuntimeHandlers, kind: &str, id: String, value: &yog_da
     book.entries
         .retain(|e| e.requires.iter().all(|m| mod_loaded(m)));
     h.books.insert(id.clone());
+    yog_book::markup::set_key_namer(key_name);
     let mut renderer = yog_book::BookRenderer::new(book);
     renderer.set_translator(translate);
     // Recipes may register before the book — replay them into the renderer.

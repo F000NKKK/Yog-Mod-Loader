@@ -161,6 +161,19 @@ pub(super) fn mod_loaded(id: &str) -> bool {
         || unsafe { bridge!("isModLoaded", [S(YogStr::from_str(id))]) }.unwrap_or(false)
 }
 
+/// The key `binding` is bound to, as the game's controls show it — `None`
+/// when there's no such binding (or no client).
+pub(super) fn key_name(binding: &str) -> Option<String> {
+    // SAFETY: a host call with a string argument, on the calling thread.
+    unsafe {
+        host!(
+            "dev/yog/YogClientApi",
+            "keyName",
+            [S(YogStr::from_str(binding))]
+        )
+    }
+}
+
 /// The game's text for translation `key` in the current language — `None`
 /// when no lang file has it (or there's no JVM).
 pub(super) fn translate(key: &str) -> Option<String> {
