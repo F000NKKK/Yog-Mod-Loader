@@ -45,6 +45,10 @@ public final class YogMappings {
     }
 
     private static void read(YogTypes.Mappings table) {
+        if (mojangAlready(table)) {
+            YogLog.info("nanites: the game runs on Mojang's names here (a dev run): no mapping table");
+            return;
+        }
         for (YogTypes.ClassMap c : table.classes()) {
             CLASSES.put(c.named(), c.runtime());
             NAMED.put(c.runtime(), c.named());
@@ -53,6 +57,20 @@ public final class YogMappings {
                 METHODS.put(c.named() + SEP + m.named() + SEP + m.desc(), m.runtime());
             }
         }
+    }
+
+    /**
+     * Whether the game's classes carry Mojang's names already (a dev run:
+     * Loom and ForgeGradle remap the game for development) — a class the
+     * table renames is there by its Mojang name.
+     */
+    private static boolean mojangAlready(YogTypes.Mappings table) {
+        for (YogTypes.ClassMap c : table.classes()) {
+            if (c.named().equals(c.runtime())) continue;
+            ClassLoader loader = YogMappings.class.getClassLoader();
+            return loader != null && loader.getResource(c.named() + ".class") != null;
+        }
+        return false;
     }
 
     private static void ensure() {

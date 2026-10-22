@@ -8,6 +8,10 @@ public final class YogLog {
         System.err.println(message + ": " + t);
     }
 
+    public static void info(String message) {
+        System.err.println(message);
+    }
+
     public static void warn(String message) {
         System.err.println(message);
     }
