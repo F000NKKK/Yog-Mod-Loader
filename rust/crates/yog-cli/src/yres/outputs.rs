@@ -112,7 +112,7 @@ pub fn write_sources(root: &Path, compiled: &Compiled) -> Result<(), String> {
                 .strip_suffix(SOURCE_EXT)
                 .is_some_and(|set| !compiled.sources.contains_key(set))
             {
-                let _ = std::fs::remove_file(entry.path());
+                crate::files::remove(&entry.path());
             }
         }
     }

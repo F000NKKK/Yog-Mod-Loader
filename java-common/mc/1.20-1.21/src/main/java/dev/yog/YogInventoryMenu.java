@@ -152,12 +152,9 @@ public class YogInventoryMenu extends AbstractContainerMenu {
     /** Makes the machine's recipe: the mods take their share, then one of each ingredient goes. */
     private void craftMachine(Player player) {
         if (machine == null || machineRecipe == null) return;
-        try {
-            NativeBridge.nativeMachineCraft(defId, machineRecipe, machine.getLevel().dimension().location().toString(),
-                    machine.getBlockPos().getX(), machine.getBlockPos().getY(), machine.getBlockPos().getZ(),
-                    machineItems(), player.getName().getString());
-        } catch (UnsatisfiedLinkError ignored) {
-        }
+        NativeBridge.nativeMachineCraft(defId, machineRecipe, machine.getLevel().dimension().location().toString(),
+                machine.getBlockPos().getX(), machine.getBlockPos().getY(), machine.getBlockPos().getZ(),
+                machineItems(), player.getName().getString());
         YogInventoryDef def = YogContentRegistry.INVENTORY_DEFS.get(defId);
         for (int p : def.machinePlaces()) {
             if (p >= inventory.getContainerSize() || inventory.getItem(p).isEmpty()) continue;

@@ -200,7 +200,24 @@ pub enum GridLength {
 impl GridLength {
     /// `*`.
     pub const STAR: Self = Self::Star(1.0);
+
+    /// A size as `.yui` writes it: `Auto` (any case), `*`, `2*`, `26`.
+    pub fn parse(text: &str) -> Option<GridLength> {
+        let text = text.trim();
+        if text.eq_ignore_ascii_case(AUTO) {
+            return Some(GridLength::Auto);
+        }
+        if let Some(weight) = text.strip_suffix(STAR) {
+            let weight = weight.trim();
+            return if weight.is_empty() { Some(GridLength::STAR) } else { weight.parse().ok().map(GridLength::Star) };
+        }
+        text.parse().ok().map(GridLength::Px)
+    }
 }
+
+/// How `.yui` writes [`GridLength::Auto`] and a share ([`GridLength::Star`]).
+const AUTO: &str = "auto";
+const STAR: char = '*';
 
 /// One row or column of a [`GridSpec`]: its size and the limits on it.
 #[derive(Debug, Clone, Copy, PartialEq)]

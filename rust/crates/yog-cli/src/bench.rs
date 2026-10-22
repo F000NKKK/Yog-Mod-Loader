@@ -167,7 +167,7 @@ pub fn write_sources(root: &Path, files: &[BenchFile]) -> Result<(), String> {
                 .and_then(|s| s.to_str())
                 .is_none_or(|stem| !files.iter().any(|f| f.name == stem));
             if stale {
-                let _ = std::fs::remove_file(path);
+                crate::files::remove(&path);
             }
         }
     }

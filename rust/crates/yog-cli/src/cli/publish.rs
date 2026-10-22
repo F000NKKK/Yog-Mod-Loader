@@ -43,7 +43,7 @@ fn write_crate(dir: &std::path::Path, c: &Crate, manifest: &YogToml) -> Result<(
     eprintln!("==> generating {} ({} export(s))", c.name, c.items.len());
     eprintln!("    system_uses: {system_uses:?}");
     eprintln!("    type_uses: {type_uses:?}");
-    let _ = std::fs::remove_dir_all(dir);
+    yog_cli::files::remove(dir);
     std::fs::create_dir_all(dir.join(yog_ids::project::SRC)).map_err(|e| e.to_string())?;
     // Exports crates default to MIT OR Apache-2.0 regardless of the mod's own
     // license — an AGPL mod would otherwise force every consumer's dependency
@@ -104,7 +104,7 @@ pub(super) fn publish_exports(dry_run: bool) -> Result<(), String> {
     if !status.success() {
         return Err(format!("cargo publish exited with {status}"));
     }
-    let _ = std::fs::remove_dir_all(&dir);
+    yog_cli::files::remove(&dir);
     eprintln!("==> published {} v{}", c.name, c.version);
     Ok(())
 }

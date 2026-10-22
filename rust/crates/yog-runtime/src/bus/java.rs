@@ -17,7 +17,7 @@ const STATUS_LEN: usize = 1;
 /// Runs Java handler `handler`: through this thread's arena, or — a payload
 /// too big for it — as a `byte[]`.
 pub(super) fn run(handler: i32, payload: &[u8], reply: &YogReply) -> YogStatus {
-    let Some(mut env) = crate::jni_util::get_env() else {
+    let Some(mut env) = crate::jni_util::attached_env() else {
         return status::NO_HANDLER;
     };
     if let Some(st) = super::arena::run_java(&mut env, handler, payload, reply) {
@@ -59,11 +59,13 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeResolve<'l>(
     _class: JClass<'l>,
     address: JString<'l>,
 ) -> jint {
-    let name: String = env
-        .get_string(&address)
-        .map(String::from)
-        .unwrap_or_default();
-    ROUTER.resolve(&name) as jint
+    crate::jni_util::guarded("nativeResolve", 0, || {
+        let name: String = env
+            .get_string(&address)
+            .map(String::from)
+            .unwrap_or_default();
+        ROUTER.resolve(&name) as jint
+    })
 }
 
 /// `name`'s atom (`YogAtoms`): the process's table, shared with every mod.
@@ -73,8 +75,10 @@ pub extern "system" fn Java_dev_yog_YogAtoms_nativeAtom<'l>(
     _class: JClass<'l>,
     name: JString<'l>,
 ) -> jint {
-    let name: String = env.get_string(&name).map(String::from).unwrap_or_default();
-    yog_data::atom::local::intern(&name) as jint
+    crate::jni_util::guarded("nativeAtom", 0, || {
+        let name: String = env.get_string(&name).map(String::from).unwrap_or_default();
+        yog_data::atom::local::intern(&name) as jint
+    })
 }
 
 /// Atom `n`'s name; null when there's none.
@@ -84,11 +88,13 @@ pub extern "system" fn Java_dev_yog_YogAtoms_nativeAtomName<'l>(
     _class: JClass<'l>,
     n: jint,
 ) -> jobject {
-    let Some(name) = u32::try_from(n).ok().and_then(yog_data::atom::local::name) else {
-        return std::ptr::null_mut();
-    };
-    env.new_string(name)
-        .map_or(std::ptr::null_mut(), |s| s.into_raw())
+    crate::jni_util::guarded("nativeAtomName", std::ptr::null_mut(), || {
+        let Some(name) = u32::try_from(n).ok().and_then(yog_data::atom::local::name) else {
+            return std::ptr::null_mut();
+        };
+        env.new_string(name)
+            .map_or(std::ptr::null_mut(), |s| s.into_raw())
+    })
 }
 
 #[unsafe(no_mangle)]
@@ -98,7 +104,9 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeProvide<'l>(
     address: jint,
     handler: jint,
 ) -> jboolean {
-    ROUTER.provide(address as u32, Handler::Java(handler)) as jboolean
+    crate::jni_util::guarded("nativeProvide", 0, || {
+        ROUTER.provide(address as u32, Handler::Java(handler)) as jboolean
+    })
 }
 
 #[unsafe(no_mangle)]
@@ -109,7 +117,9 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeOn<'l>(
     priority: jint,
     handler: jint,
 ) {
-    ROUTER.on(event as u32, priority, Handler::Java(handler));
+    crate::jni_util::guard("nativeOn", || {
+        ROUTER.on(event as u32, priority, Handler::Java(handler));
+    });
 }
 
 #[unsafe(no_mangle)]
@@ -119,9 +129,11 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeCall<'l>(
     to: jint,
     payload: JByteArray<'l>,
 ) -> jbyteArray {
-    let payload = bytes(&mut env, &payload);
-    let (st, reply) = ROUTER.call_vec(to as u32, &payload, run);
-    java_reply(&mut env, st, &reply)
+    crate::jni_util::guarded("nativeCall", std::ptr::null_mut(), || {
+        let payload = bytes(&mut env, &payload);
+        let (st, reply) = ROUTER.call_vec(to as u32, &payload, run);
+        java_reply(&mut env, st, &reply)
+    })
 }
 
 #[unsafe(no_mangle)]
@@ -131,10 +143,12 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeEmit<'l>(
     event: jint,
     payload: JByteArray<'l>,
 ) -> jbyteArray {
-    let payload = bytes(&mut env, &payload);
-    let mut reply = Vec::new();
-    let st = ROUTER.emit(event as u32, &payload, &YogReply::to_vec(&mut reply), run);
-    java_reply(&mut env, st, &reply)
+    crate::jni_util::guarded("nativeEmit", std::ptr::null_mut(), || {
+        let payload = bytes(&mut env, &payload);
+        let mut reply = Vec::new();
+        let st = ROUTER.emit(event as u32, &payload, &YogReply::to_vec(&mut reply), run);
+        java_reply(&mut env, st, &reply)
+    })
 }
 
 #[unsafe(no_mangle)]
@@ -143,5 +157,5 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeHeard<'l>(
     _class: JClass<'l>,
     event: jint,
 ) -> jboolean {
-    ROUTER.heard(event as u32) as jboolean
+    crate::jni_util::guarded("nativeHeard", 0, || ROUTER.heard(event as u32) as jboolean)
 }

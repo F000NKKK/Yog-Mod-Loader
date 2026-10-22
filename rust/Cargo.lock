@@ -2149,6 +2149,7 @@ dependencies = [
  "yog-home",
  "yog-hot-reload",
  "yog-ids",
+ "yog-logging",
  "yog-media",
  "yog-registry",
  "yog-sync",

@@ -17,6 +17,15 @@
 mod cli;
 
 fn main() {
+    // The library's warnings go to stderr: stdout is some commands' output (`yog schema`'s JSON).
+    yog_logging::set_sink(|level, message| {
+        let said = match level {
+            yog_logging::Level::Info => "note",
+            yog_logging::Level::Warn => "warning",
+            yog_logging::Level::Error => "error",
+        };
+        eprintln!("{said}: {message}");
+    });
     let args: Vec<String> = std::env::args().collect();
     cli::main(&args);
 }

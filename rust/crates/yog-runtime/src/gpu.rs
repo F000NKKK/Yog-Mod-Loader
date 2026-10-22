@@ -62,20 +62,20 @@ pub(super) unsafe fn compile_shader(
 // ── GPU buffers ───────────────────────────────────────────────────────────────
 
 pub(super) unsafe extern "C" fn gfx_buf_create() -> u32 {
-    unsafe {
+    crate::jni_util::guarded("gfx_buf_create", 0, || unsafe {
         let Some(g) = GL.get() else { return 0 };
         g.0.create_buffer().map(|b| b.0.get()).unwrap_or(0)
-    }
+    })
 }
 
 pub(super) unsafe extern "C" fn gfx_buf_delete(handle: u32) {
-    unsafe {
+    crate::jni_util::guard("gfx_buf_delete", || unsafe {
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new(handle) else {
             return;
         };
         g.0.delete_buffer(glow::NativeBuffer(n));
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_buf_data(
@@ -84,7 +84,7 @@ pub(super) unsafe extern "C" fn gfx_buf_data(
     len: u32,
     dynamic: bool,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_buf_data", || unsafe {
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new(handle) else {
             return;
@@ -99,7 +99,7 @@ pub(super) unsafe extern "C" fn gfx_buf_data(
         gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(n)));
         gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, data, usage);
         gl.bind_buffer(glow::ARRAY_BUFFER, None);
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_buf_subdata(
@@ -108,7 +108,7 @@ pub(super) unsafe extern "C" fn gfx_buf_subdata(
     bytes: *const u8,
     len: u32,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_buf_subdata", || unsafe {
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new(handle) else {
             return;
@@ -118,26 +118,26 @@ pub(super) unsafe extern "C" fn gfx_buf_subdata(
         gl.bind_buffer(glow::ARRAY_BUFFER, Some(glow::NativeBuffer(n)));
         gl.buffer_sub_data_u8_slice(glow::ARRAY_BUFFER, offset as i32, data);
         gl.bind_buffer(glow::ARRAY_BUFFER, None);
-    }
+    });
 }
 
 // ── Vertex arrays ─────────────────────────────────────────────────────────────
 
 pub(super) unsafe extern "C" fn gfx_vao_create() -> u32 {
-    unsafe {
+    crate::jni_util::guarded("gfx_vao_create", 0, || unsafe {
         let Some(g) = GL.get() else { return 0 };
         g.0.create_vertex_array().map(|v| v.0.get()).unwrap_or(0)
-    }
+    })
 }
 
 pub(super) unsafe extern "C" fn gfx_vao_delete(handle: u32) {
-    unsafe {
+    crate::jni_util::guard("gfx_vao_delete", || unsafe {
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new(handle) else {
             return;
         };
         g.0.delete_vertex_array(glow::NativeVertexArray(n));
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_vao_attrib(
@@ -150,7 +150,7 @@ pub(super) unsafe extern "C" fn gfx_vao_attrib(
     stride: u32,
     offset: u32,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_vao_attrib", || unsafe {
         let Some(g) = GL.get() else { return };
         let (Some(vn), Some(bn)) = (NonZeroU32::new(vao), NonZeroU32::new(vbo)) else {
             return;
@@ -179,11 +179,11 @@ pub(super) unsafe extern "C" fn gfx_vao_attrib(
         }
         gl.enable_vertex_attrib_array(index);
         gl.bind_vertex_array(None);
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_vao_set_ebo(vao: u32, ebo: u32) {
-    unsafe {
+    crate::jni_util::guard("gfx_vao_set_ebo", || unsafe {
         let Some(g) = GL.get() else { return };
         let (Some(vn), Some(en)) = (NonZeroU32::new(vao), NonZeroU32::new(ebo)) else {
             return;
@@ -192,7 +192,7 @@ pub(super) unsafe extern "C" fn gfx_vao_set_ebo(vao: u32, ebo: u32) {
         gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
         gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(glow::NativeBuffer(en)));
         gl.bind_vertex_array(None);
-    }
+    });
 }
 
 // ── Shader programs ───────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ pub(super) unsafe fn load_shader_binary(
 }
 
 /// Read the compiled binary of a linked program.  Returns empty `Vec` if unsupported.
-pub(super) unsafe fn get_shader_binary(prog: glow::NativeProgram) -> (Vec<u8>, u32) {
+pub(super) unsafe fn program_binary(prog: glow::NativeProgram) -> (Vec<u8>, u32) {
     unsafe {
         type GetProgramivFn = unsafe extern "system" fn(u32, u32, *mut i32);
         type GetProgramBinaryFn =
@@ -291,82 +291,91 @@ pub(super) unsafe fn get_shader_binary(prog: glow::NativeProgram) -> (Vec<u8>, u
 }
 
 pub(super) unsafe extern "C" fn gfx_prog_create(vert: YogStr, frag: YogStr, out: *mut u32) -> bool {
-    unsafe {
-        let Some(g) = GL.get() else { return false };
-        let gl = &g.0;
-        let vert_s = vert.as_str();
-        let frag_s = frag.as_str();
+    crate::jni_util::guarded("gfx_prog_create", false, || {
+        unsafe {
+            let Some(g) = GL.get() else { return false };
+            let gl = &g.0;
+            let vert_s = vert.as_str();
+            let frag_s = frag.as_str();
 
-        // Fast path: binary shader cache — avoids GLSL re-compilation on subsequent launches.
-        let cache_path = shader_cache_path(vert_s, frag_s);
-        if let Some(ref path) = cache_path
-            && let Ok(data) = std::fs::read(path)
-        {
-            if let Some(prog) = load_shader_binary(gl, &data) {
-                *out = prog.0.get();
-                return true;
+            // Fast path: binary shader cache — avoids GLSL re-compilation on subsequent launches.
+            let cache_path = shader_cache_path(vert_s, frag_s);
+            if let Some(ref path) = cache_path
+                && let Ok(data) = std::fs::read(path)
+            {
+                if let Some(prog) = load_shader_binary(gl, &data) {
+                    *out = prog.0.get();
+                    return true;
+                }
+                // Cache stale (driver updated?); remove and fall through to GLSL compile.
+                if let Err(e) = std::fs::remove_file(path) {
+                    yog_logging::warn!("shader cache {}: {e}", path.display());
+                }
             }
-            // Cache stale (driver updated?); remove and fall through to GLSL compile.
-            let _ = std::fs::remove_file(path);
-        }
 
-        // GLSL compile path.
-        let vs = match compile_shader(gl, glow::VERTEX_SHADER, vert_s) {
-            Some(s) => s,
-            None => return false,
-        };
-        let fs = match compile_shader(gl, glow::FRAGMENT_SHADER, frag_s) {
-            Some(s) => s,
-            None => {
-                gl.delete_shader(vs);
+            // GLSL compile path.
+            let vs = match compile_shader(gl, glow::VERTEX_SHADER, vert_s) {
+                Some(s) => s,
+                None => return false,
+            };
+            let fs = match compile_shader(gl, glow::FRAGMENT_SHADER, frag_s) {
+                Some(s) => s,
+                None => {
+                    gl.delete_shader(vs);
+                    return false;
+                }
+            };
+            let prog = match gl.create_program() {
+                Ok(p) => p,
+                Err(e) => {
+                    yog_logging::error!("yog-gfx: create_program: {}", e);
+                    gl.delete_shader(vs);
+                    gl.delete_shader(fs);
+                    return false;
+                }
+            };
+            gl.attach_shader(prog, vs);
+            gl.attach_shader(prog, fs);
+            gl.link_program(prog);
+            gl.detach_shader(prog, vs);
+            gl.detach_shader(prog, fs);
+            gl.delete_shader(vs);
+            gl.delete_shader(fs);
+            if !gl.get_program_link_status(prog) {
+                yog_logging::error!("yog-gfx: shader link: {}", gl.get_program_info_log(prog));
+                gl.delete_program(prog);
                 return false;
             }
-        };
-        let prog = match gl.create_program() {
-            Ok(p) => p,
-            Err(e) => {
-                yog_logging::error!("yog-gfx: create_program: {}", e);
-                gl.delete_shader(vs);
-                gl.delete_shader(fs);
-                return false;
-            }
-        };
-        gl.attach_shader(prog, vs);
-        gl.attach_shader(prog, fs);
-        gl.link_program(prog);
-        gl.detach_shader(prog, vs);
-        gl.detach_shader(prog, fs);
-        gl.delete_shader(vs);
-        gl.delete_shader(fs);
-        if !gl.get_program_link_status(prog) {
-            yog_logging::error!("yog-gfx: shader link: {}", gl.get_program_info_log(prog));
-            gl.delete_program(prog);
-            return false;
-        }
 
-        // Persist binary so the next launch skips GLSL compilation entirely.
-        if let Some(ref path) = cache_path {
-            let (binary, fmt) = get_shader_binary(prog);
-            if !binary.is_empty() {
-                let mut blob = fmt.to_le_bytes().to_vec();
-                blob.extend_from_slice(&binary);
-                let _ = std::fs::write(path, &blob);
+            // Persist binary so the next launch skips GLSL compilation entirely.
+            if let Some(ref path) = cache_path {
+                let (binary, fmt) = program_binary(prog);
+                if !binary.is_empty() {
+                    let mut blob = fmt.to_le_bytes().to_vec();
+                    blob.extend_from_slice(&binary);
+                    if let Err(e) = std::fs::write(path, &blob) {
+                        yog_logging::warn!(
+                            "shader cache {}: {e} (compiled again next launch)",
+                            path.display()
+                        );
+                    }
+                }
             }
-        }
 
-        *out = prog.0.get();
-        true
-    }
+            *out = prog.0.get();
+            true
+        }
+    })
 }
 
 pub(super) unsafe extern "C" fn gfx_prog_delete(handle: u32) {
-    unsafe {
+    crate::jni_util::guard("gfx_prog_delete", || unsafe {
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new(handle) else {
             return;
         };
         g.0.delete_program(glow::NativeProgram(n));
-    }
+    });
 }
 
 macro_rules! with_prog {
@@ -384,23 +393,23 @@ macro_rules! with_prog {
 }
 
 pub(super) unsafe extern "C" fn gfx_prog_uniform_1i(prog: u32, name: YogStr, v: i32) {
-    unsafe {
+    crate::jni_util::guard("gfx_prog_uniform_1i", || unsafe {
         with_prog!(prog, |gl, _p, loc(name)| gl.uniform_1_i32(loc.as_ref(), v));
-    }
+    });
 }
 pub(super) unsafe extern "C" fn gfx_prog_uniform_1f(prog: u32, name: YogStr, v: f32) {
-    unsafe {
+    crate::jni_util::guard("gfx_prog_uniform_1f", || unsafe {
         with_prog!(prog, |gl, _p, loc(name)| gl.uniform_1_f32(loc.as_ref(), v));
-    }
+    });
 }
 pub(super) unsafe extern "C" fn gfx_prog_uniform_2f(prog: u32, name: YogStr, x: f32, y: f32) {
-    unsafe {
+    crate::jni_util::guard("gfx_prog_uniform_2f", || unsafe {
         with_prog!(prog, |gl, _p, loc(name)| gl.uniform_2_f32(
             loc.as_ref(),
             x,
             y
         ));
-    }
+    });
 }
 pub(super) unsafe extern "C" fn gfx_prog_uniform_3f(
     prog: u32,
@@ -409,14 +418,14 @@ pub(super) unsafe extern "C" fn gfx_prog_uniform_3f(
     y: f32,
     z: f32,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_prog_uniform_3f", || unsafe {
         with_prog!(prog, |gl, _p, loc(name)| gl.uniform_3_f32(
             loc.as_ref(),
             x,
             y,
             z
         ));
-    }
+    });
 }
 pub(super) unsafe extern "C" fn gfx_prog_uniform_4f(
     prog: u32,
@@ -426,7 +435,7 @@ pub(super) unsafe extern "C" fn gfx_prog_uniform_4f(
     z: f32,
     w: f32,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_prog_uniform_4f", || unsafe {
         with_prog!(prog, |gl, _p, loc(name)| gl.uniform_4_f32(
             loc.as_ref(),
             x,
@@ -434,19 +443,19 @@ pub(super) unsafe extern "C" fn gfx_prog_uniform_4f(
             z,
             w
         ));
-    }
+    });
 }
 pub(super) unsafe extern "C" fn gfx_prog_uniform_mat4(
     prog: u32,
     name: YogStr,
     col_major: *const f32,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_prog_uniform_mat4", || unsafe {
         with_prog!(prog, |gl, _p, loc(name)| {
             let data = std::slice::from_raw_parts(col_major, 16);
             gl.uniform_matrix_4_f32_slice(loc.as_ref(), false, data);
         });
-    }
+    });
 }
 
 // ── Textures ──────────────────────────────────────────────────────────────────
@@ -457,45 +466,47 @@ pub(super) unsafe extern "C" fn gfx_tex_create(
     rgba: *const u8,
     linear: bool,
 ) -> u32 {
-    unsafe {
-        let Some(g) = GL.get() else { return 0 };
-        let gl = &g.0;
-        let tex = match gl.create_texture() {
-            Ok(t) => t,
-            Err(_) => return 0,
-        };
-        gl.bind_texture(glow::TEXTURE_2D, Some(tex));
-        let filter = if linear { glow::LINEAR } else { glow::NEAREST };
-        gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MIN_FILTER, filter as i32);
-        gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MAG_FILTER, filter as i32);
-        gl.tex_parameter_i32(
-            glow::TEXTURE_2D,
-            glow::TEXTURE_WRAP_S,
-            glow::CLAMP_TO_EDGE as i32,
-        );
-        gl.tex_parameter_i32(
-            glow::TEXTURE_2D,
-            glow::TEXTURE_WRAP_T,
-            glow::CLAMP_TO_EDGE as i32,
-        );
-        let pixels = std::slice::from_raw_parts(rgba, (w * h * 4) as usize);
-        // The game leaves its own unpacking (row length, skips) set from its
-        // atlas uploads: read with those, a tight buffer is overrun.
-        unpack_tightly(gl);
-        gl.tex_image_2d(
-            glow::TEXTURE_2D,
-            0,
-            glow::RGBA8 as i32,
-            w as i32,
-            h as i32,
-            0,
-            glow::RGBA,
-            glow::UNSIGNED_BYTE,
-            glow::PixelUnpackData::Slice(Some(pixels)),
-        );
-        gl.bind_texture(glow::TEXTURE_2D, None);
-        tex.0.get()
-    }
+    crate::jni_util::guarded("gfx_tex_create", 0, || {
+        unsafe {
+            let Some(g) = GL.get() else { return 0 };
+            let gl = &g.0;
+            let tex = match gl.create_texture() {
+                Ok(t) => t,
+                Err(_) => return 0,
+            };
+            gl.bind_texture(glow::TEXTURE_2D, Some(tex));
+            let filter = if linear { glow::LINEAR } else { glow::NEAREST };
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MIN_FILTER, filter as i32);
+            gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_MAG_FILTER, filter as i32);
+            gl.tex_parameter_i32(
+                glow::TEXTURE_2D,
+                glow::TEXTURE_WRAP_S,
+                glow::CLAMP_TO_EDGE as i32,
+            );
+            gl.tex_parameter_i32(
+                glow::TEXTURE_2D,
+                glow::TEXTURE_WRAP_T,
+                glow::CLAMP_TO_EDGE as i32,
+            );
+            let pixels = std::slice::from_raw_parts(rgba, (w * h * 4) as usize);
+            // The game leaves its own unpacking (row length, skips) set from its
+            // atlas uploads: read with those, a tight buffer is overrun.
+            unpack_tightly(gl);
+            gl.tex_image_2d(
+                glow::TEXTURE_2D,
+                0,
+                glow::RGBA8 as i32,
+                w as i32,
+                h as i32,
+                0,
+                glow::RGBA,
+                glow::UNSIGNED_BYTE,
+                glow::PixelUnpackData::Slice(Some(pixels)),
+            );
+            gl.bind_texture(glow::TEXTURE_2D, None);
+            tex.0.get()
+        }
+    })
 }
 
 /// Pixel unpacking as a tightly packed client buffer needs it.
@@ -510,17 +521,17 @@ pub(super) unsafe fn unpack_tightly(gl: &glow::Context) {
 }
 
 pub(super) unsafe extern "C" fn gfx_tex_delete(handle: u32) {
-    unsafe {
+    crate::jni_util::guard("gfx_tex_delete", || unsafe {
         let Some(g) = GL.get() else { return };
         let Some(n) = NonZeroU32::new(handle) else {
             return;
         };
         g.0.delete_texture(glow::NativeTexture(n));
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_tex_bind(unit: u32, handle: u32) {
-    unsafe {
+    crate::jni_util::guard("gfx_tex_bind", || unsafe {
         let Some(g) = GL.get() else { return };
         let gl = &g.0;
         gl.active_texture(glow::TEXTURE0 + unit);
@@ -528,11 +539,13 @@ pub(super) unsafe extern "C" fn gfx_tex_bind(unit: u32, handle: u32) {
             Some(n) => gl.bind_texture(glow::TEXTURE_2D, Some(glow::NativeTexture(n))),
             None => gl.bind_texture(glow::TEXTURE_2D, None),
         }
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_tex_from_mc(id: YogStr) -> u32 {
-    unsafe { host!("dev/yog/NativeDraw", "getMcTextureId", [S(id)]).map_or(0, |id: i32| id as u32) }
+    crate::jni_util::guarded("gfx_tex_from_mc", 0, || unsafe {
+        host!("dev/yog/NativeDraw", "getMcTextureId", [S(id)]).map_or(0, |id: i32| id as u32)
+    })
 }
 
 // ── Draw calls ────────────────────────────────────────────────────────────────
@@ -544,7 +557,7 @@ pub(super) unsafe extern "C" fn gfx_draw_arrays(
     first: u32,
     count: u32,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_draw_arrays", || unsafe {
         let Some(g) = GL.get() else { return };
         let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else {
             return;
@@ -554,7 +567,7 @@ pub(super) unsafe extern "C" fn gfx_draw_arrays(
         gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
         gl.draw_arrays(gl_draw_mode(mode), first as i32, count as i32);
         gl.bind_vertex_array(None);
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_draw_elements(
@@ -565,30 +578,32 @@ pub(super) unsafe extern "C" fn gfx_draw_elements(
     count: u32,
     u32_idx: bool,
 ) {
-    unsafe {
-        let Some(g) = GL.get() else { return };
-        let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else {
-            return;
-        };
-        let gl = &g.0;
-        gl.use_program(Some(glow::NativeProgram(pn)));
-        gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
-        // EBO is stored in the VAO; ebo param is informational for safety but not re-bound here.
-        let _ = ebo;
-        let idx_type = if u32_idx {
-            glow::UNSIGNED_INT
-        } else {
-            glow::UNSIGNED_SHORT
-        };
-        gl.draw_elements(gl_draw_mode(mode), count as i32, idx_type, 0);
-        gl.bind_vertex_array(None);
-    }
+    crate::jni_util::guard("gfx_draw_elements", || {
+        unsafe {
+            let Some(g) = GL.get() else { return };
+            let (Some(vn), Some(pn)) = (NonZeroU32::new(vao), NonZeroU32::new(prog)) else {
+                return;
+            };
+            let gl = &g.0;
+            gl.use_program(Some(glow::NativeProgram(pn)));
+            gl.bind_vertex_array(Some(glow::NativeVertexArray(vn)));
+            // EBO is stored in the VAO; ebo param is informational for safety but not re-bound here.
+            let _ = ebo;
+            let idx_type = if u32_idx {
+                glow::UNSIGNED_INT
+            } else {
+                glow::UNSIGNED_SHORT
+            };
+            gl.draw_elements(gl_draw_mode(mode), count as i32, idx_type, 0);
+            gl.bind_vertex_array(None);
+        }
+    });
 }
 
 // ── Render state ──────────────────────────────────────────────────────────────
 
 pub(super) unsafe extern "C" fn gfx_set_blend(enabled: bool, src: u32, dst: u32) {
-    unsafe {
+    crate::jni_util::guard("gfx_set_blend", || unsafe {
         let Some(g) = GL.get() else { return };
         let gl = &g.0;
         if enabled {
@@ -597,45 +612,47 @@ pub(super) unsafe extern "C" fn gfx_set_blend(enabled: bool, src: u32, dst: u32)
         } else {
             gl.disable(glow::BLEND);
         }
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_set_depth(test: bool, write: bool) {
-    unsafe {
-        let Some(g) = GL.get() else { return };
-        let gl = &g.0;
-        if test {
-            gl.enable(glow::DEPTH_TEST);
-        } else {
-            gl.disable(glow::DEPTH_TEST);
+    crate::jni_util::guard("gfx_set_depth", || {
+        unsafe {
+            let Some(g) = GL.get() else { return };
+            let gl = &g.0;
+            if test {
+                gl.enable(glow::DEPTH_TEST);
+            } else {
+                gl.disable(glow::DEPTH_TEST);
+            }
+            gl.depth_mask(write);
+            // Disable face culling: our 2D quads use CW winding (back-face) due to y-flip.
+            if !test {
+                gl.disable(glow::CULL_FACE);
+            }
         }
-        gl.depth_mask(write);
-        // Disable face culling: our 2D quads use CW winding (back-face) due to y-flip.
-        if !test {
-            gl.disable(glow::CULL_FACE);
-        }
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_set_scissor(x: i32, y: i32, w: i32, h: i32) {
-    unsafe {
+    crate::jni_util::guard("gfx_set_scissor", || unsafe {
         let Some(g) = GL.get() else { return };
         let gl = &g.0;
         gl.enable(glow::SCISSOR_TEST);
         gl.scissor(x, y, w, h);
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_clear_scissor() {
-    unsafe {
+    crate::jni_util::guard("gfx_clear_scissor", || unsafe {
         let Some(g) = GL.get() else { return };
         g.0.disable(glow::SCISSOR_TEST);
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_set_viewport(x: i32, y: i32, w: i32, h: i32) {
-    unsafe {
+    crate::jni_util::guard("gfx_set_viewport", || unsafe {
         let Some(g) = GL.get() else { return };
         g.0.viewport(x, y, w, h);
-    }
+    });
 }

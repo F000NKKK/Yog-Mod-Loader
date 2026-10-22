@@ -1,5 +1,6 @@
 package dev.yog;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 
@@ -151,7 +152,9 @@ public final class NativeBridge {
                     stack.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
                             net.minecraft.world.item.component.CustomData.of(nbt));
                 }
-            } catch (Exception ignored) {}
+            } catch (CommandSyntaxException e) {
+                YogLog.warn("item " + itemId + ": its data isn't SNBT (" + e.getMessage() + "): " + snbt);
+            }
         }
         return stack;
     }

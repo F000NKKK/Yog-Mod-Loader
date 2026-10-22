@@ -3,12 +3,20 @@ use crate::globals::JAVA_VM;
 
 // ── JNI helpers ──────────────────────────────────────────────────────────────
 
+/// Runs `f`, a panic in it caught and logged: one never crosses into Java
+/// (it would take the game down).
 pub(super) fn guard(label: &str, f: impl FnOnce()) {
-    if std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err() {
-        yog_logging::error!("a mod panicked handling `{}` (ignored)", label);
-    }
+    guarded(label, (), f);
 }
 
-pub(super) fn get_env() -> Option<jni::AttachGuard<'static>> {
+/// [`guard`] for what answers Java: `fallback` when `f` panicked.
+pub(super) fn guarded<T>(label: &str, fallback: T, f: impl FnOnce() -> T) -> T {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or_else(|_| {
+        yog_logging::error!("a panic handling `{label}` (answered as nothing happened)");
+        fallback
+    })
+}
+
+pub(super) fn attached_env() -> Option<jni::AttachGuard<'static>> {
     JAVA_VM.get()?.attach_current_thread().ok()
 }

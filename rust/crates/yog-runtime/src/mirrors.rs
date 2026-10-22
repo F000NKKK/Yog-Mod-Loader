@@ -208,13 +208,15 @@ pub extern "system" fn Java_dev_yog_mirror_YogMirrorMemory_nativeBuffer<'l>(
     address: jni::sys::jlong,
     length: jni::sys::jlong,
 ) -> jni::sys::jobject {
-    let (Ok(length), false) = (usize::try_from(length), address == 0) else {
-        return std::ptr::null_mut();
-    };
-    // SAFETY: the runtime's own memory, alive while its column is.
-    let buffer = unsafe { env.new_direct_byte_buffer(address as *mut u8, length) };
-    buffer.map_or(std::ptr::null_mut(), |b| {
-        jni::objects::JObject::from(b).into_raw()
+    crate::jni_util::guarded("nativeBuffer", std::ptr::null_mut(), || {
+        let (Ok(length), false) = (usize::try_from(length), address == 0) else {
+            return std::ptr::null_mut();
+        };
+        // SAFETY: the runtime's own memory, alive while its column is.
+        let buffer = unsafe { env.new_direct_byte_buffer(address as *mut u8, length) };
+        buffer.map_or(std::ptr::null_mut(), |b| {
+            jni::objects::JObject::from(b).into_raw()
+        })
     })
 }
 

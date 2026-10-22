@@ -222,6 +222,7 @@ impl<'a> Build<'a> {
     /// declared ids. A model or clips of this mod an entity names must be
     /// among its `.ymodel`/`.yanim`.
     fn known(&mut self) -> refs::Known {
+        // A manifest that doesn't read was reported when the build prepared.
         let manifest =
             crate::manifest::YogToml::read(&self.shared.root.join(yog_ids::file::MANIFEST)).ok();
         let externals = manifest

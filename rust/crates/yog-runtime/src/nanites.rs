@@ -26,7 +26,9 @@ fn of_mod(yog: &Path) -> Nanites {
     };
     let declared = ask(&lib_path).unwrap_or_default();
     // The extraction was only for asking: the game extracts its own.
-    let _ = std::fs::remove_file(&lib_path);
+    if let Err(e) = std::fs::remove_file(&lib_path) {
+        yog_logging::warn!("nanites: {}: {e}", lib_path.display());
+    }
     declared
 }
 
@@ -73,19 +75,21 @@ pub extern "system" fn Java_dev_yog_nanite_YogNanites_nativeDeclarations<'l>(
     _class: JClass<'l>,
     mods_dir: JString<'l>,
 ) -> jbyteArray {
-    let dir: String = env
-        .get_string(&mods_dir)
-        .map(Into::into)
-        .unwrap_or_default();
-    let mut asked = ASKED.lock();
-    let bytes = match asked.as_ref() {
-        Some((d, bytes)) if *d == dir => bytes.clone(),
-        _ => {
-            let bytes = yog_data::to_bytes(&declared(Path::new(&dir)));
-            *asked = Some((dir, bytes.clone()));
-            bytes
-        }
-    };
-    env.byte_array_from_slice(&bytes)
-        .map_or(std::ptr::null_mut(), |a| a.into_raw())
+    crate::jni_util::guarded("nativeDeclarations", std::ptr::null_mut(), || {
+        let dir: String = env
+            .get_string(&mods_dir)
+            .map(Into::into)
+            .unwrap_or_default();
+        let mut asked = ASKED.lock();
+        let bytes = match asked.as_ref() {
+            Some((d, bytes)) if *d == dir => bytes.clone(),
+            _ => {
+                let bytes = yog_data::to_bytes(&declared(Path::new(&dir)));
+                *asked = Some((dir, bytes.clone()));
+                bytes
+            }
+        };
+        env.byte_array_from_slice(&bytes)
+            .map_or(std::ptr::null_mut(), |a| a.into_raw())
+    })
 }

@@ -94,14 +94,16 @@ pub fn draw(env: &mut JNIEnv, data: &str, [x, y, w, h]: [f32; 4], tint: u32) {
 
 /// `draw2d_svg` — see `YogGfxApi::draw2d_svg`.
 pub(crate) unsafe extern "C" fn gfx_draw2d_svg(data: YogStr, x: f32, y: f32, w: f32, h: f32) {
-    if let Some(mut env) = crate::jni_util::get_env() {
-        draw(
-            &mut env,
-            unsafe { data.as_str() },
-            [x, y, w, h],
-            yog_gfx::Color::WHITE.0,
-        );
-    }
+    crate::jni_util::guard("gfx_draw2d_svg", || {
+        if let Some(mut env) = crate::jni_util::attached_env() {
+            draw(
+                &mut env,
+                unsafe { data.as_str() },
+                [x, y, w, h],
+                yog_gfx::Color::WHITE.0,
+            );
+        }
+    });
 }
 
 /// `draw2d_entity` — see `YogGfxApi::draw2d_entity`.
@@ -114,17 +116,19 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_entity(
     yaw: f32,
     pitch: f32,
 ) {
-    if w <= 0.0 || h <= 0.0 {
-        return;
-    }
-    if let Some(mut env) = crate::jni_util::get_env() {
-        let _: Option<()> = unsafe {
-            jcall!(
-                &mut env,
-                "dev/yog/NativeDraw",
-                "drawEntity",
-                [S(entity), F(x), F(y), F(w), F(h), F(yaw), F(pitch)]
-            )
-        };
-    }
+    crate::jni_util::guard("gfx_draw2d_entity", || {
+        if w <= 0.0 || h <= 0.0 {
+            return;
+        }
+        if let Some(mut env) = crate::jni_util::attached_env() {
+            let _: Option<()> = unsafe {
+                jcall!(
+                    &mut env,
+                    "dev/yog/NativeDraw",
+                    "drawEntity",
+                    [S(entity), F(x), F(y), F(w), F(h), F(yaw), F(pitch)]
+                )
+            };
+        }
+    });
 }

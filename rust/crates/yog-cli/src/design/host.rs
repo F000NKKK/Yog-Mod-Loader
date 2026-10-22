@@ -298,12 +298,12 @@ mod tests {
             lib: None,
             mod_root: None,
         };
-        let loaded = host.handle(HostRequest::Load {
+        host.handle(HostRequest::Load {
             lib: lib.into(),
             mod_root: None,
-        });
-        eprintln!("{loaded:?}");
-        let l = host.loaded().unwrap();
+        })
+        .expect("the designer library loads");
+        let l = host.loaded().expect("the designer library is loaded");
         let (w, h, ops) = l
             .render(&RenderReq {
                 name: name.clone(),
@@ -314,7 +314,6 @@ mod tests {
                 avail_h: 300.0,
             })
             .unwrap();
-        eprintln!("{w}x{h}: {ops:?}");
         assert!(w > 0.0 && h > 0.0 && !ops.is_empty());
         if let Ok(out) = std::env::var(yog_ids::env::DESIGNER_PNG) {
             let res = super::super::assets::Resources::for_mod(None);

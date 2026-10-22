@@ -83,6 +83,8 @@ fn allow_to_trace(pid: u32) -> bool {
     false
 }
 
+/// `event` to the tool connected; one gone is noticed by the reading loop,
+/// which ends the connection.
 fn send(stream: &mut TcpStream, event: &Event) {
     let _ = control::send(stream, event);
 }

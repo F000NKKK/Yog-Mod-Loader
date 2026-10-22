@@ -182,16 +182,8 @@ public final class YogPlayerActions {
             inv.setItem(slot, net.minecraft.world.item.ItemStack.EMPTY);
             return true;
         }
-        Identifier id = Identifier.tryParse(itemId);
-        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return false;
-        net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(BuiltInRegistries.ITEM.getValue(id), count);
-        if (snbt != null && !snbt.isEmpty()) {
-            try {
-                CompoundTag nbt = TagParser.parseCompoundFully(snbt);
-                stack.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
-                        net.minecraft.world.item.component.CustomData.of(nbt));
-            } catch (Exception ignored) {}
-        }
+        net.minecraft.world.item.ItemStack stack = NativeBridge.buildStack(itemId, count, snbt);
+        if (stack == null) return false;
         inv.setItem(slot, stack);
         return true;
     }

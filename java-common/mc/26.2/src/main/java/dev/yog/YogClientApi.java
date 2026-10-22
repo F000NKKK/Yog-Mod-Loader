@@ -31,64 +31,44 @@ public final class YogClientApi {
     /** Flags: 1 = modal, 2 = pause, 4 = no background. */
     @YogServiceHost
     public static void openUI(String uiId, int flags) {
-        try {
-            Minecraft mc = Minecraft.getInstance();
-            mc.execute(() -> YogUIScreen.openFlags(uiId, flags));
-        } catch (Throwable t) {
-            // dedicated server
-        }
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> YogUIScreen.openFlags(uiId, flags));
     }
 
     @YogServiceHost
     public static int playSound(String id, float volume, float pitch, boolean looping) {
-        try {
-            Minecraft mc = Minecraft.getInstance();
-            Identifier rl = Identifier.tryParse(id);
-            if (rl == null) return 0;
-            SoundInstance s = new SimpleSoundInstance(rl, SoundSource.PLAYERS, volume, pitch,
-                SoundInstance.createUnseededRandom(), looping, 0, SoundInstance.Attenuation.NONE,
-                0.0, 0.0, 0.0, true);
-            int h = NEXT.getAndIncrement();
-            if (looping) SOUNDS.put(h, s);
-            mc.execute(() -> mc.getSoundManager().play(s));
-            return h;
-        } catch (Throwable t) {
-            return 0;
-        }
+        Minecraft mc = Minecraft.getInstance();
+        Identifier rl = Identifier.tryParse(id);
+        if (rl == null) return 0;
+        SoundInstance s = new SimpleSoundInstance(rl, SoundSource.PLAYERS, volume, pitch,
+            SoundInstance.createUnseededRandom(), looping, 0, SoundInstance.Attenuation.NONE,
+            0.0, 0.0, 0.0, true);
+        int h = NEXT.getAndIncrement();
+        if (looping) SOUNDS.put(h, s);
+        mc.execute(() -> mc.getSoundManager().play(s));
+        return h;
     }
 
     @YogServiceHost
     public static void stopSound(int handle) {
         SoundInstance s = SOUNDS.remove(handle);
         if (s == null) return;
-        try {
-            Minecraft mc = Minecraft.getInstance();
-            mc.execute(() -> mc.getSoundManager().stop(s));
-        } catch (Throwable t) {
-            // dedicated server
-        }
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> mc.getSoundManager().stop(s));
     }
 
     @YogServiceHost
     public static YogTypes.Stack heldItem(boolean offHand) {
-        try {
-            LocalPlayer p = Minecraft.getInstance().player;
-            if (p == null) return null;
-            ItemStack st = p.getItemInHand(offHand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
-            if (st.isEmpty()) return null;
-            return YogQueries.stack(st);
-        } catch (Throwable t) {
-            return null;
-        }
+        LocalPlayer p = Minecraft.getInstance().player;
+        if (p == null) return null;
+        ItemStack st = p.getItemInHand(offHand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
+        if (st.isEmpty()) return null;
+        return YogQueries.stack(st);
     }
 
     @YogServiceHost
     public static boolean keyDown(int key) {
-        try {
-            return InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), key);
-        } catch (Throwable t) {
-            return false;
-        }
+        return InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), key);
     }
 
     // ── Block tints (client::set_block_tint) ──────────────────────────────────
@@ -101,16 +81,12 @@ public final class YogClientApi {
         long key = net.minecraft.core.BlockPos.asLong(x, y, z);
         Map<Long, Integer> here = TINTS.computeIfAbsent(dim, d -> new ConcurrentHashMap<>());
         if (color < 0) here.remove(key); else here.put(key, color);
-        try {
-            Minecraft mc = Minecraft.getInstance();
-            mc.execute(() -> {
-                if (mc.level != null && mc.level.dimension().identifier().toString().equals(dim)) {
-                    mc.levelExtractor.setBlocksDirty(x, y, z, x, y, z);
-                }
-            });
-        } catch (Throwable t) {
-            // dedicated server
-        }
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> {
+            if (mc.level != null && mc.level.dimension().identifier().toString().equals(dim)) {
+                mc.levelExtractor.setBlocksDirty(x, y, z, x, y, z);
+            }
+        });
     }
 
     /** The tint at {@code pos} in the client's world, white if none. */
@@ -159,7 +135,8 @@ public final class YogClientApi {
             for (net.minecraft.world.entity.Entity e : w.entitiesForRendering()) {
                 if (e.getUUID().equals(id)) e.refreshDimensions();
             }
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException e) {
+            YogLog.warn("entity dimensions: " + uuid + " isn't a UUID");
         }
     }
 

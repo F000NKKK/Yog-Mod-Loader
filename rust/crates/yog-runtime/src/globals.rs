@@ -35,16 +35,12 @@ pub(super) static MOD_INFOS: Mutex<Vec<yog_formats::manifest::Built>> = Mutex::n
 /// Stable api table. Mods capture this pointer at registration (yog-api's
 /// `installed_mods()` calls through it later, e.g. from UI render) — so it
 /// must outlive `nativeInit`, not live on its stack. `ctx` inside points at
-/// `HANDLERS`' own `RwLock`, published *before* any mod registers (unlike
-/// the old design, where it pointed at a temporary pre-move `Box` that
-/// went stale the instant `nativeInit` finished) — so it stays valid for a
-/// hot-reload's later re-registration too.
+/// `HANDLERS`' own `RwLock`, published *before* any mod registers, so it
+/// stays valid for a hot-reload's later re-registration too.
 pub(super) static API_TABLE: LazyLock<YogApi> = LazyLock::new(build_api_table);
-/// All registered handlers + content. A `RwLock`, not a plain value: unlike
-/// the original one-shot-then-immutable design, a hot-reload needs to
-/// append fresh entries for a reloaded mod after this has long been
+/// All registered handlers + content. A `RwLock`, not a plain value: a
+/// hot-reload appends a reloaded mod's entries after this has long been
 /// published. Read sites (`handlers()`) take a read guard; registration
 /// (initial or reload) takes a write guard — both deref straight through to
-/// `RuntimeHandlers`, so existing `handlers().field` call sites are
-/// unaffected by this type change.
+/// `RuntimeHandlers`.
 pub(super) static HANDLERS: LazyLock<RwLock<RuntimeHandlers>> = LazyLock::new(Default::default);

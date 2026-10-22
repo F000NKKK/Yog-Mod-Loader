@@ -68,7 +68,7 @@ pub struct YogToml {
     /// `{name} = { package = "{name}-exports", ...spec }` — so mod code
     /// imports it under its own name (`use {name}::...`), same as a direct
     /// dependency, and two mod dependencies never collide under a shared
-    /// alias (unlike the old name-contains-hyphen heuristic this replaced).
+    /// alias.
     pub mod_dependencies: Vec<(String, String)>,
     /// `[dev-dependencies]` — crates only `yog bench` benchmarks use.
     pub dev_dependencies: Vec<(String, String)>,

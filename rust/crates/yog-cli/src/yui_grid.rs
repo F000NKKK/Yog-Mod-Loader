@@ -27,6 +27,7 @@
 
 use crate::yui::{Element, RAW_CALL, err};
 use yog_data::Diagnostic;
+use yog_ui::GridLength;
 use yog_ids::{yui, yui_attr as at};
 
 const ATTACHED: &[&str] = &[
@@ -43,21 +44,65 @@ fn num(v: &str) -> Option<f32> {
         .filter(|n| n.is_finite() && *n >= 0.0)
 }
 
+/// A grid's rows or its columns, and the names each is written with
+/// (`rows="Auto,*"`, `<Grid.RowDefinitions>`, a definition's `height`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Axis {
+    Row,
+    Column,
+}
+
+impl Axis {
+    pub(crate) const BOTH: [Axis; 2] = [Axis::Row, Axis::Column];
+
+    /// The grid's shorthand attribute: `rows`, `columns`.
+    pub(crate) fn shorthand(self) -> &'static str {
+        match self {
+            Axis::Row => at::ROWS,
+            Axis::Column => at::COLUMNS,
+        }
+    }
+
+    /// The grid's property element: `Grid.RowDefinitions`.
+    pub(crate) fn definitions(self) -> &'static str {
+        match self {
+            Axis::Row => yui::ROW_DEFINITIONS,
+            Axis::Column => yui::COLUMN_DEFINITIONS,
+        }
+    }
+
+    /// One definition inside it: `RowDefinition`.
+    fn definition(self) -> &'static str {
+        match self {
+            Axis::Row => yui::ROW_DEFINITION,
+            Axis::Column => yui::COLUMN_DEFINITION,
+        }
+    }
+
+    /// A definition's size, least and most: `height`, `min_height`, `max_height`.
+    pub(crate) fn sizes(self) -> [&'static str; 3] {
+        match self {
+            Axis::Row => [at::HEIGHT, at::MIN_HEIGHT, at::MAX_HEIGHT],
+            Axis::Column => [at::WIDTH, at::MIN_WIDTH, at::MAX_WIDTH],
+        }
+    }
+
+    /// What one of it is called in a message.
+    fn noun(self) -> &'static str {
+        match self {
+            Axis::Row => "row",
+            Axis::Column => "column",
+        }
+    }
+}
+
 /// One row/column size: `Auto`, `*`, `2*`, `26` → a `Track` expression.
 fn length(v: &str) -> Option<String> {
-    let v = v.trim();
-    if v.eq_ignore_ascii_case("auto") {
-        return Some("::yog_api::ui::Track::auto()".into());
-    }
-    if let Some(w) = v.strip_suffix('*') {
-        let w = if w.trim().is_empty() {
-            Some(1.0)
-        } else {
-            num(w)
-        }?;
-        return Some(format!("::yog_api::ui::Track::star({w:?})"));
-    }
-    num(v).map(|px| format!("::yog_api::ui::Track::px({px:?})"))
+    Some(match GridLength::parse(v)? {
+        GridLength::Auto => "::yog_api::ui::Track::auto()".into(),
+        GridLength::Star(w) => format!("::yog_api::ui::Track::star({w:?})"),
+        GridLength::Px(px) => format!("::yog_api::ui::Track::px({px:?})"),
+    })
 }
 
 /// `rows="Auto,*,26"` → track expressions.
@@ -79,22 +124,9 @@ fn compact(el: &Element, key: &str, value: &str, what: &str) -> Result<Vec<Strin
 }
 
 /// `<Grid.RowDefinitions>` → track expressions.
-fn elements(prop: &Element, row: bool) -> Result<Vec<String>, Diagnostic> {
-    let (def, size, min, max) = if row {
-        (
-            yui::ROW_DEFINITION,
-            at::HEIGHT,
-            at::MIN_HEIGHT,
-            at::MAX_HEIGHT,
-        )
-    } else {
-        (
-            yui::COLUMN_DEFINITION,
-            at::WIDTH,
-            at::MIN_WIDTH,
-            at::MAX_WIDTH,
-        )
-    };
+fn elements(prop: &Element, axis: Axis) -> Result<Vec<String>, Diagnostic> {
+    let def = axis.definition();
+    let [size, min, max] = axis.sizes();
     if !prop.attrs.is_empty() {
         return err(prop, "takes no attributes");
     }
@@ -183,8 +215,11 @@ struct Tracks {
 }
 
 impl Tracks {
-    fn slot(&mut self, row: bool) -> &mut Option<Vec<String>> {
-        if row { &mut self.rows } else { &mut self.cols }
+    fn slot(&mut self, axis: Axis) -> &mut Option<Vec<String>> {
+        match axis {
+            Axis::Row => &mut self.rows,
+            Axis::Column => &mut self.cols,
+        }
     }
 }
 
@@ -222,10 +257,10 @@ fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, Diagnostic> {
     let mut tracks = Tracks::default();
     let mut kept = Vec::with_capacity(el.children.len());
     for child in std::mem::take(&mut el.children) {
-        let row = match child.name.as_str() {
-            yui::ROW_DEFINITIONS => true,
-            yui::COLUMN_DEFINITIONS => false,
-            n if n.starts_with(GRID_MEMBER) => {
+        let axis = Axis::BOTH.into_iter().find(|a| a.definitions() == child.name);
+        let axis = match (axis, child.name.as_str()) {
+            (Some(axis), _) => axis,
+            (None, n) if n.starts_with(GRID_MEMBER) => {
                 return err(
                     &child,
                     "isn't a Grid property (expected <Grid.RowDefinitions> or <Grid.ColumnDefinitions>)",
@@ -242,10 +277,10 @@ fn definitions(el: &mut Element, is_grid: bool) -> Result<Tracks, Diagnostic> {
                 format_args!("only goes directly inside a <Grid>, not <{}>", el.name),
             );
         }
-        if tracks.slot(row).is_some() {
+        if tracks.slot(axis).is_some() {
             return err(&child, "is given twice");
         }
-        *tracks.slot(row) = Some(elements(&child, row)?);
+        *tracks.slot(axis) = Some(elements(&child, axis)?);
     }
     el.children = kept;
     Ok(tracks)
@@ -258,19 +293,15 @@ fn grid_calls(el: &mut Element, tracks: &mut Tracks) -> Result<Vec<String>, Diag
     for (k, v) in std::mem::take(&mut el.attrs) {
         match k.as_str() {
             at::ROWS | at::COLUMNS => {
-                let row = k == at::ROWS;
-                if tracks.slot(row).is_some() {
-                    let prop = if row {
-                        yui::ROW_DEFINITIONS
-                    } else {
-                        yui::COLUMN_DEFINITIONS
-                    };
+                let axis = if k == at::ROWS { Axis::Row } else { Axis::Column };
+                if tracks.slot(axis).is_some() {
+                    let prop = axis.definitions();
                     return err(
                         el,
                         format_args!("{k}=\"...\" and <{prop}> both define the {k} — keep one"),
                     );
                 }
-                *tracks.slot(row) = Some(compact(el, &k, &v, if row { "row" } else { "column" })?);
+                *tracks.slot(axis) = Some(compact(el, &k, &v, axis.noun())?);
             }
             at::ROW_SPACING | at::COLUMN_SPACING => {
                 let n = num(&v).ok_or_else(|| {
@@ -337,8 +368,8 @@ fn cell(child: &mut Element, grid: Option<(usize, usize)>, parent: &str) -> Resu
     };
     let [r, c, rs, cs] = cell;
     for (start, span, n, what, key) in [
-        (r, rs, n_rows, "row", at::GRID_ROW),
-        (c, cs, n_cols, "column", at::GRID_COLUMN),
+        (r, rs, n_rows, Axis::Row.noun(), at::GRID_ROW),
+        (c, cs, n_cols, Axis::Column.noun(), at::GRID_COLUMN),
     ] {
         let (start, span) = (start as usize, span as usize);
         if start >= n {

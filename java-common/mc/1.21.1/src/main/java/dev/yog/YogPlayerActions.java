@@ -203,14 +203,8 @@ public final class YogPlayerActions {
             inv.setItem(slot, ItemStack.EMPTY);
             return true;
         }
-        ResourceLocation id = ResourceLocation.tryParse(itemId);
-        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return false;
-        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(id), count);
-        if (snbt != null && !snbt.isEmpty()) {
-            try {
-                stack.set(DataComponents.CUSTOM_DATA, CustomData.of(TagParser.parseTag(snbt)));
-            } catch (Exception ignored) {}
-        }
+        ItemStack stack = NativeBridge.buildStack(itemId, count, snbt);
+        if (stack == null) return false;
         inv.setItem(slot, stack);
         return true;
     }

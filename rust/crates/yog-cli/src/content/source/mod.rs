@@ -276,8 +276,8 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
     let dir = out.parent().unwrap_or(root);
     let parts_dir = dir.join(GENERATED_PARTS_DIR);
     let Some(source) = &compiled.source else {
-        let _ = std::fs::remove_file(&out);
-        let _ = std::fs::remove_dir_all(&parts_dir);
+        crate::files::remove(&out);
+        crate::files::remove(&parts_dir);
         return Ok(());
     };
     std::fs::create_dir_all(&parts_dir).map_err(|e| format!("{}: {e}", parts_dir.display()))?;
@@ -295,7 +295,7 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
         .flatten()
     {
         if !wanted.contains(&entry.path()) {
-            let _ = std::fs::remove_file(entry.path());
+            crate::files::remove(&entry.path());
         }
     }
     crate::write_if_changed(&out, &source.root)?;

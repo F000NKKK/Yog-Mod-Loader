@@ -93,6 +93,16 @@ public class YogUIScreen extends Screen {
         super.removed();
     }
 
+    /** Opens Yog UI uiId on the render thread, from any thread ({@code YogUiActions}). */
+    public static void openLater(String uiId, boolean modal, boolean pause) {
+        Minecraft.getInstance().execute(() -> open(uiId, modal, pause));
+    }
+
+    /** Closes Yog UI uiId ("" = any) — queued, so the caller's handler finishes first. */
+    public static void closeLater(String uiId) {
+        Minecraft.getInstance().tell(() -> closeIfOpen(uiId));
+    }
+
     /** Closes the open screen if it's the Yog UI uiId ("" = any Yog UI). */
     public static void closeIfOpen(String uiId) {
         if (Minecraft.getInstance().screen instanceof YogUIScreen s

@@ -226,71 +226,75 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
     vh: f32,
     tint: u32,
 ) {
-    unsafe {
-        if w <= 0.0 || h <= 0.0 {
-            return;
-        }
-        let source = source.as_str();
-        let Some(mut env) = crate::jni_util::get_env() else {
-            return;
-        };
-        let dest = [x, y, w, h];
-        match ImageSource::parse(source) {
-            Some(ImageSource::Item(id)) => draw_item(&mut env, &id, false, dest),
-            Some(ImageSource::Block(id)) => draw_item(&mut env, &id, true, dest),
-            Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
-                Some(sp) => draw_sprite(&mut env, source, sp, dest, tint),
-                // A raw atlas id (`sprite:minecraft:widget/button`).
-                None if name.contains(':') && has_gui_sprite(&mut env, &name) => {
-                    draw_atlas_sprite(&mut env, &name, dest, tint);
-                }
-                None => warn_once(source, "unknown sprite name (see yog_gfx::image::SPRITES)"),
-            },
-            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => {
-                match crate::svg::file(&mut env, &id) {
-                    Some(doc) => crate::svg::draw(&mut env, &doc, dest, tint),
-                    None => warn_once(source, &format!("SVG {id} not found")),
-                }
+    crate::jni_util::guard("gfx_draw2d_image", || {
+        unsafe {
+            if w <= 0.0 || h <= 0.0 {
+                return;
             }
-            Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
-                Some(size) => {
-                    let uv = if uw > 0.0 && vh > 0.0 {
-                        [u, v, uw, vh]
-                    } else {
-                        [0.0, 0.0, size.0, size.1]
-                    };
-                    draw_texture(&mut env, &id, dest, Region { uv, texture: size }, tint);
+            let source = source.as_str();
+            let Some(mut env) = crate::jni_util::attached_env() else {
+                return;
+            };
+            let dest = [x, y, w, h];
+            match ImageSource::parse(source) {
+                Some(ImageSource::Item(id)) => draw_item(&mut env, &id, false, dest),
+                Some(ImageSource::Block(id)) => draw_item(&mut env, &id, true, dest),
+                Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
+                    Some(sp) => draw_sprite(&mut env, source, sp, dest, tint),
+                    // A raw atlas id (`sprite:minecraft:widget/button`).
+                    None if name.contains(':') && has_gui_sprite(&mut env, &name) => {
+                        draw_atlas_sprite(&mut env, &name, dest, tint);
+                    }
+                    None => warn_once(source, "unknown sprite name (see yog_gfx::image::SPRITES)"),
+                },
+                Some(ImageSource::Texture(id)) if id.ends_with(".svg") => {
+                    match crate::svg::file(&mut env, &id) {
+                        Some(doc) => crate::svg::draw(&mut env, &doc, dest, tint),
+                        None => warn_once(source, &format!("SVG {id} not found")),
+                    }
                 }
-                None => warn_once(source, &format!("texture {id} not found")),
-            },
-            Some(ImageSource::ModPath(_)) => warn_once(
-                source,
-                "`mod:` is resolved by `yog build` in .yui files — in Rust write `<mod id>:<path>`",
-            ),
-            None => warn_once(
-                source,
-                "not an image source (item:, block:, sprite:, <ns>:<path>)",
-            ),
+                Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
+                    Some(size) => {
+                        let uv = if uw > 0.0 && vh > 0.0 {
+                            [u, v, uw, vh]
+                        } else {
+                            [0.0, 0.0, size.0, size.1]
+                        };
+                        draw_texture(&mut env, &id, dest, Region { uv, texture: size }, tint);
+                    }
+                    None => warn_once(source, &format!("texture {id} not found")),
+                },
+                Some(ImageSource::ModPath(_)) => warn_once(
+                    source,
+                    "`mod:` is resolved by `yog build` in .yui files — in Rust write `<mod id>:<path>`",
+                ),
+                None => warn_once(
+                    source,
+                    "not an image source (item:, block:, sprite:, <ns>:<path>)",
+                ),
+            }
         }
-    }
+    });
 }
 
 /// `image_size` — see `YogGfxApi::image_size`.
 pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *mut f32) -> bool {
-    unsafe {
+    crate::jni_util::guarded("gfx_image_size", false, || unsafe {
         let source = source.as_str();
         let size = match ImageSource::parse(source) {
             Some(ImageSource::Item(_) | ImageSource::Block(_)) => Some((ICON_SIZE, ICON_SIZE)),
             Some(ImageSource::Sprite(name)) => match image::sprite(&name) {
-                Some(sp) => crate::jni_util::get_env()
+                Some(sp) => crate::jni_util::attached_env()
                     .map(|mut env| natural_size(sp, resolve(&mut env, sp).as_ref())),
                 None => None,
             },
-            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => crate::jni_util::get_env()
-                .and_then(|mut env| crate::svg::file(&mut env, &id))
-                .and_then(|doc| yog_media::svg::size(&doc)),
+            Some(ImageSource::Texture(id)) if id.ends_with(".svg") => {
+                crate::jni_util::attached_env()
+                    .and_then(|mut env| crate::svg::file(&mut env, &id))
+                    .and_then(|doc| yog_media::svg::size(&doc))
+            }
             Some(ImageSource::Texture(id)) => {
-                crate::jni_util::get_env().and_then(|mut env| texture_size(&mut env, &id))
+                crate::jni_util::attached_env().and_then(|mut env| texture_size(&mut env, &id))
             }
             Some(ImageSource::ModPath(_)) | None => None,
         };
@@ -302,5 +306,5 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
             }
             _ => false,
         }
-    }
+    })
 }

@@ -199,22 +199,24 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataFor<'l>(
     _class: JClass<'l>,
     uuid: JString<'l>,
 ) -> jbyteArray {
-    let uuid = jstr!(env, uuid, std::ptr::null_mut());
-    let mut changes = Vec::new();
-    if let Some(values) = SERVER.lock().get(&uuid) {
-        changes.push(Change::new(Op::Clear, &uuid, "", &[]));
-        changes.extend(
-            values
-                .iter()
-                .map(|(k, v)| Change::new(Op::Set, &uuid, k, &v.bytes)),
-        );
-    }
-    let Some(b) = encode(&changes) else {
-        return std::ptr::null_mut();
-    };
-    env.byte_array_from_slice(&b)
-        .map(|a| a.into_raw())
-        .unwrap_or(std::ptr::null_mut())
+    crate::jni_util::guarded("nativeEntityDataFor", std::ptr::null_mut(), || {
+        let uuid = jstr!(env, uuid, std::ptr::null_mut());
+        let mut changes = Vec::new();
+        if let Some(values) = SERVER.lock().get(&uuid) {
+            changes.push(Change::new(Op::Clear, &uuid, "", &[]));
+            changes.extend(
+                values
+                    .iter()
+                    .map(|(k, v)| Change::new(Op::Set, &uuid, k, &v.bytes)),
+            );
+        }
+        let Some(b) = encode(&changes) else {
+            return std::ptr::null_mut();
+        };
+        env.byte_array_from_slice(&b)
+            .map(|a| a.into_raw())
+            .unwrap_or(std::ptr::null_mut())
+    })
 }
 
 /// `byte[] nativeEntityDataSave(String uuid)`: the values kept with the
@@ -225,20 +227,22 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataSave<'l>(
     _class: JClass<'l>,
     uuid: JString<'l>,
 ) -> jbyteArray {
-    let uuid = jstr!(env, uuid, std::ptr::null_mut());
-    let changes: Vec<Change> = SERVER
-        .lock()
-        .get(&uuid)
-        .into_iter()
-        .flat_map(|values| values.iter().filter(|(_, v)| v.persist))
-        .map(|(k, v)| Change::new(Op::Set, "", k, &v.bytes))
-        .collect();
-    let Some(b) = encode(&changes) else {
-        return std::ptr::null_mut();
-    };
-    env.byte_array_from_slice(&b)
-        .map(|a| a.into_raw())
-        .unwrap_or(std::ptr::null_mut())
+    crate::jni_util::guarded("nativeEntityDataSave", std::ptr::null_mut(), || {
+        let uuid = jstr!(env, uuid, std::ptr::null_mut());
+        let changes: Vec<Change> = SERVER
+            .lock()
+            .get(&uuid)
+            .into_iter()
+            .flat_map(|values| values.iter().filter(|(_, v)| v.persist))
+            .map(|(k, v)| Change::new(Op::Set, "", k, &v.bytes))
+            .collect();
+        let Some(b) = encode(&changes) else {
+            return std::ptr::null_mut();
+        };
+        env.byte_array_from_slice(&b)
+            .map(|a| a.into_raw())
+            .unwrap_or(std::ptr::null_mut())
+    })
 }
 
 /// `nativeEntityDataLoad(String uuid, byte[] saved)`: the saved values back,
@@ -250,23 +254,25 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataLoad<'l>(
     uuid: JString<'l>,
     saved: JByteArray<'l>,
 ) {
-    let uuid = jstr!(env, uuid);
-    let Ok(saved) = env.convert_byte_array(&saved) else {
-        return;
-    };
-    let mut store = SERVER.lock();
-    let values = store.entry(uuid).or_default();
-    for r in decode(&saved) {
-        if r.op == Op::Set {
-            values.insert(
-                r.key,
-                Value {
-                    bytes: r.value,
-                    persist: true,
-                },
-            );
+    crate::jni_util::guard("nativeEntityDataLoad", || {
+        let uuid = jstr!(env, uuid);
+        let Ok(saved) = env.convert_byte_array(&saved) else {
+            return;
+        };
+        let mut store = SERVER.lock();
+        let values = store.entry(uuid).or_default();
+        for r in decode(&saved) {
+            if r.op == Op::Set {
+                values.insert(
+                    r.key,
+                    Value {
+                        bytes: r.value,
+                        persist: true,
+                    },
+                );
+            }
         }
-    }
+    });
 }
 
 /// `nativeEntityDataSet(String uuid, String key, byte[] value)`: the host's
@@ -280,16 +286,18 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataSet<'l>(
     key: JString<'l>,
     value: JByteArray<'l>,
 ) {
-    let uuid = jstr!(env, uuid);
-    let key = jstr!(env, key);
-    let value = if value.is_null() {
-        None
-    } else {
-        env.convert_byte_array(&value).ok()
-    };
-    if !uuid.is_empty() && !key.is_empty() {
-        set(&uuid, &key, value.as_deref(), false);
-    }
+    crate::jni_util::guard("nativeEntityDataSet", || {
+        let uuid = jstr!(env, uuid);
+        let key = jstr!(env, key);
+        let value = if value.is_null() {
+            None
+        } else {
+            env.convert_byte_array(&value).ok()
+        };
+        if !uuid.is_empty() && !key.is_empty() {
+            set(&uuid, &key, value.as_deref(), false);
+        }
+    });
 }
 
 /// `nativeEntityDataForget(String uuid)`: the entity left the server's
@@ -300,8 +308,10 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataForget<'l>(
     _class: JClass<'l>,
     uuid: JString<'l>,
 ) {
-    let uuid = jstr!(env, uuid);
-    SERVER.lock().remove(&uuid);
+    crate::jni_util::guard("nativeEntityDataForget", || {
+        let uuid = jstr!(env, uuid);
+        SERVER.lock().remove(&uuid);
+    });
 }
 
 /// The server stops: nothing carries over.
@@ -378,7 +388,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeEntityDataClientReset<'l>
     _env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) {
-    CLIENT.lock().clear();
+    crate::jni_util::guard("nativeEntityDataClientReset", || {
+        CLIENT.lock().clear();
+    });
 }
 
 /// What this client was told entity `uuid` keeps under `key`.

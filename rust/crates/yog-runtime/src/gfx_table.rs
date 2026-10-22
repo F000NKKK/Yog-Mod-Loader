@@ -36,13 +36,13 @@ use yog_abi::YogStr;
 // ── 2D convenience (JNI — uses MC's DrawContext / text renderer) ──────────────
 
 pub(super) unsafe extern "C" fn gfx_draw2d_rect(x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
-    unsafe {
+    crate::jni_util::guard("gfx_draw2d_rect", || unsafe {
         let _: Option<()> = host!(
             "dev/yog/NativeDraw",
             "drawRect",
             [F(x1), F(y1), F(x2), F(y2), I(color as i32)]
         );
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_draw2d_gradient(
@@ -53,13 +53,13 @@ pub(super) unsafe extern "C" fn gfx_draw2d_gradient(
     top: u32,
     bottom: u32,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_draw2d_gradient", || unsafe {
         let _: Option<()> = host!(
             "dev/yog/NativeDraw",
             "drawGradientRect",
             [F(x1), F(y1), F(x2), F(y2), I(top as i32), I(bottom as i32)]
         );
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_draw2d_text(
@@ -69,13 +69,13 @@ pub(super) unsafe extern "C" fn gfx_draw2d_text(
     color: u32,
     shadow: bool,
 ) {
-    unsafe {
+    crate::jni_util::guard("gfx_draw2d_text", || unsafe {
         let _: Option<()> = host!(
             "dev/yog/NativeDraw",
             "drawText",
             [S(text), F(x), F(y), I(color as i32), Z(shadow)]
         );
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_draw2d_text_font(
@@ -86,26 +86,28 @@ pub(super) unsafe extern "C" fn gfx_draw2d_text_font(
     color: u32,
     shadow: bool,
 ) {
-    let id = unsafe { font.as_str() };
-    match crate::fonts::named(id) {
-        Named::Yog(f) => {
-            crate::fonts::draw(id, &f, unsafe { text.as_str() }, [x, y, 1.0], color, shadow)
+    crate::jni_util::guard("gfx_draw2d_text_font", || {
+        let id = unsafe { font.as_str() };
+        match crate::fonts::named(id) {
+            Named::Yog(f) => {
+                crate::fonts::draw(id, &f, unsafe { text.as_str() }, [x, y, 1.0], color, shadow)
+            }
+            Named::Game(game) => unsafe {
+                let _: Option<()> = host!(
+                    "dev/yog/NativeDraw",
+                    "drawTextFont",
+                    [
+                        S(text),
+                        S(YogStr::from_str(&game)),
+                        F(x),
+                        F(y),
+                        I(color as i32),
+                        Z(shadow)
+                    ]
+                );
+            },
         }
-        Named::Game(game) => unsafe {
-            let _: Option<()> = host!(
-                "dev/yog/NativeDraw",
-                "drawTextFont",
-                [
-                    S(text),
-                    S(YogStr::from_str(&game)),
-                    F(x),
-                    F(y),
-                    I(color as i32),
-                    Z(shadow)
-                ]
-            );
-        },
-    }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_draw2d_text_scaled(
@@ -117,32 +119,34 @@ pub(super) unsafe extern "C" fn gfx_draw2d_text_scaled(
     color: u32,
     shadow: bool,
 ) {
-    let id = unsafe { font.as_str() };
-    match crate::fonts::named(id) {
-        Named::Yog(f) => crate::fonts::draw(
-            id,
-            &f,
-            unsafe { text.as_str() },
-            [x, y, scale],
-            color,
-            shadow,
-        ),
-        Named::Game(game) => unsafe {
-            let _: Option<()> = host!(
-                "dev/yog/NativeDraw",
-                "drawTextScaled",
-                [
-                    S(text),
-                    S(YogStr::from_str(&game)),
-                    F(x),
-                    F(y),
-                    F(scale),
-                    I(color as i32),
-                    Z(shadow)
-                ]
-            );
-        },
-    }
+    crate::jni_util::guard("gfx_draw2d_text_scaled", || {
+        let id = unsafe { font.as_str() };
+        match crate::fonts::named(id) {
+            Named::Yog(f) => crate::fonts::draw(
+                id,
+                &f,
+                unsafe { text.as_str() },
+                [x, y, scale],
+                color,
+                shadow,
+            ),
+            Named::Game(game) => unsafe {
+                let _: Option<()> = host!(
+                    "dev/yog/NativeDraw",
+                    "drawTextScaled",
+                    [
+                        S(text),
+                        S(YogStr::from_str(&game)),
+                        F(x),
+                        F(y),
+                        F(scale),
+                        I(color as i32),
+                        Z(shadow)
+                    ]
+                );
+            },
+        }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_draw2d_blocks(
@@ -154,40 +158,44 @@ pub(super) unsafe extern "C" fn gfx_draw2d_blocks(
     yaw: f32,
     pitch: f32,
 ) {
-    if w <= 0.0 || h <= 0.0 {
-        return;
-    }
-    unsafe {
-        let _: Option<()> = host!(
-            "dev/yog/NativeDraw",
-            "drawBlocks",
-            [S(blocks), F(x), F(y), F(w), F(h), F(yaw), F(pitch)]
-        );
-    }
+    crate::jni_util::guard("gfx_draw2d_blocks", || {
+        if w <= 0.0 || h <= 0.0 {
+            return;
+        }
+        unsafe {
+            let _: Option<()> = host!(
+                "dev/yog/NativeDraw",
+                "drawBlocks",
+                [S(blocks), F(x), F(y), F(w), F(h), F(yaw), F(pitch)]
+            );
+        }
+    });
 }
 
 pub(super) unsafe extern "C" fn gfx_text_width(text: YogStr, font: YogStr) -> f32 {
-    match crate::fonts::named(unsafe { font.as_str() }) {
-        Named::Yog(f) => crate::fonts::width(&f, unsafe { text.as_str() }, 1.0),
-        Named::Game(game) => unsafe {
-            host!(
-                "dev/yog/NativeDraw",
-                "textWidth",
-                [S(text), S(YogStr::from_str(&game))]
-            )
-            .unwrap_or(0.0)
-        },
-    }
+    crate::jni_util::guarded("gfx_text_width", 0.0, || {
+        match crate::fonts::named(unsafe { font.as_str() }) {
+            Named::Yog(f) => crate::fonts::width(&f, unsafe { text.as_str() }, 1.0),
+            Named::Game(game) => unsafe {
+                host!(
+                    "dev/yog/NativeDraw",
+                    "textWidth",
+                    [S(text), S(YogStr::from_str(&game))]
+                )
+                .unwrap_or(0.0)
+            },
+        }
+    })
 }
 
 pub(super) unsafe extern "C" fn gfx_draw2d_item(id: YogStr, x: f32, y: f32, size: f32) {
-    unsafe {
+    crate::jni_util::guard("gfx_draw2d_item", || unsafe {
         let _: Option<()> = host!(
             "dev/yog/NativeDraw",
             "drawItem",
             [S(id), F(x), F(y), F(size)]
         );
-    }
+    });
 }
 
 // ── Static GFX function table (function pointers only — per-frame data filled at call time) ──

@@ -67,3 +67,14 @@ pub fn write_source(path: &Path, text: &str) -> Result<(), String> {
     let bytes = yog_data::source::binary(text).map_err(|e| format!("{}: {e}", path.display()))?;
     std::fs::write(path, bytes).map_err(|e| format!("{}: {e}", path.display()))
 }
+
+/// Removes `path` (a file, or a folder and all in it) that's no longer
+/// wanted: already gone is fine; anything else is said, as the files stay.
+pub fn remove(path: &Path) {
+    let removed = if path.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) };
+    if let Err(e) = removed
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        yog_logging::warn!("couldn't remove {}: {e}", path.display());
+    }
+}

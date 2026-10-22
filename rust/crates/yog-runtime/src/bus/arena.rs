@@ -216,8 +216,10 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeArena<'l>(
     mut env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) -> jobject {
-    let buffer = unsafe { env.new_direct_byte_buffer(base(), BYTES) };
-    buffer.map_or(std::ptr::null_mut(), |b| JObject::from(b).into_raw())
+    crate::jni_util::guarded("nativeArena", std::ptr::null_mut(), || {
+        let buffer = unsafe { env.new_direct_byte_buffer(base(), BYTES) };
+        buffer.map_or(std::ptr::null_mut(), |b| JObject::from(b).into_raw())
+    })
 }
 
 #[unsafe(no_mangle)]
@@ -228,8 +230,10 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeCallAt<'l>(
     at: jint,
     len: jint,
 ) -> jlong {
-    from_java(at, len, |payload, reply| {
-        ROUTER.call(to as u32, payload, reply, super::java::run)
+    crate::jni_util::guarded("nativeCallAt", 0, || {
+        from_java(at, len, |payload, reply| {
+            ROUTER.call(to as u32, payload, reply, super::java::run)
+        })
     })
 }
 
@@ -241,8 +245,10 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeEmitAt<'l>(
     at: jint,
     len: jint,
 ) -> jlong {
-    from_java(at, len, |payload, reply| {
-        ROUTER.emit(event as u32, payload, reply, super::java::run)
+    crate::jni_util::guarded("nativeEmitAt", 0, || {
+        from_java(at, len, |payload, reply| {
+            ROUTER.emit(event as u32, payload, reply, super::java::run)
+        })
     })
 }
 
@@ -251,9 +257,11 @@ pub extern "system" fn Java_dev_yog_YogBus_nativeTakeReply<'l>(
     env: JNIEnv<'l>,
     _class: JClass<'l>,
 ) -> jbyteArray {
-    let reply = SPILL.with(|s| std::mem::take(&mut *s.borrow_mut()));
-    env.byte_array_from_slice(&reply)
-        .map_or(std::ptr::null_mut(), |a| a.into_raw())
+    crate::jni_util::guarded("nativeTakeReply", std::ptr::null_mut(), || {
+        let reply = SPILL.with(|s| std::mem::take(&mut *s.borrow_mut()));
+        env.byte_array_from_slice(&reply)
+            .map_or(std::ptr::null_mut(), |a| a.into_raw())
+    })
 }
 
 #[cfg(test)]

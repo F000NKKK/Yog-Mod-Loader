@@ -265,7 +265,7 @@ pub(crate) fn draw(
     color: u32,
     with_shadow: bool,
 ) {
-    let Some(mut env) = crate::jni_util::get_env() else {
+    let Some(mut env) = crate::jni_util::attached_env() else {
         return;
     };
     let sf = crate::gfx_frame::scale_factor();

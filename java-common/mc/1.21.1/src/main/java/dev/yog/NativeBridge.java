@@ -1,5 +1,6 @@
 package dev.yog;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.yog.bus.YogTypes;
 import dev.yog.util.YogEntityFlags;
 import dev.yog.util.YogNativeRuntime;
@@ -137,7 +138,9 @@ public final class NativeBridge {
             try {
                 CompoundTag nbt = TagParser.parseTag(snbt);
                 if (!nbt.isEmpty()) stack.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
-            } catch (Exception ignored) {}
+            } catch (CommandSyntaxException e) {
+                YogLog.warn("item " + itemId + ": its data isn't SNBT (" + e.getMessage() + "): " + snbt);
+            }
         }
         return stack;
     }

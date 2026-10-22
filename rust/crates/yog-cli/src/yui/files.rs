@@ -143,7 +143,7 @@ pub fn generate_all(root: &Path) -> Result<Generated, Diagnostic> {
             && !stale.starts_with(&content_parts)
             && !stale.starts_with(&res_dir)
         {
-            let _ = std::fs::remove_file(&stale);
+            crate::files::remove(&stale);
         }
     }
     Ok(Generated {

@@ -1,5 +1,6 @@
 package dev.yog;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.UUID;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.entity.Entity;
@@ -44,8 +45,8 @@ public final class YogWorldActions {
                         BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK.asLookup(), blockId, true);
                 return new BlockInput(r.blockState(), r.properties().keySet(), r.nbt())
                         .place(w, new BlockPos(x, y, z), 3);
-            } catch (Throwable ignored) {
-                // fall back to the plain id lookup below
+            } catch (CommandSyntaxException e) {
+                YogLog.warn("set block " + blockId + ": " + e.getMessage() + " — placed by its id alone");
             }
         }
         ResourceLocation id = ResourceLocation.tryParse(blockId);

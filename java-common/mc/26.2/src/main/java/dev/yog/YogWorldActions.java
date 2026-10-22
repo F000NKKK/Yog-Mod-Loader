@@ -1,5 +1,6 @@
 package dev.yog;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.commands.arguments.blocks.BlockInput;
@@ -52,8 +53,8 @@ public final class YogWorldActions {
                         BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK, blockId, true);
                 return new BlockInput(r.blockState(), r.properties().keySet(), r.nbt())
                         .place(w, new BlockPos(x, y, z), 3);
-            } catch (Throwable ignored) {
-                // fall back to the plain id lookup below
+            } catch (CommandSyntaxException e) {
+                YogLog.warn("set block " + blockId + ": " + e.getMessage() + " — placed by its id alone");
             }
         }
         Identifier id = Identifier.tryParse(blockId);

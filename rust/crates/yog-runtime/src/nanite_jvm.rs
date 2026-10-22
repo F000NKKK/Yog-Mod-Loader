@@ -129,6 +129,8 @@ fn nanites_reflect_and_inject() {
         "nanite/YogEarly.java",
         "util/YogNativeRuntime.java",
         "nanite/YogInjections.java",
+        "api/YogBus.java",
+        "api/YogRecordFrames.java",
     ]
     .map(|f| common.join(f))
     .into_iter()

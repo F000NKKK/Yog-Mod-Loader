@@ -15,6 +15,8 @@ path = "src/main.rs"
 
 [dependencies]
 yog-sync = { workspace = true }
+# The library's warnings; the program says where they go (stderr).
+yog-logging = { workspace = true }
 yog-ids = { workspace = true }
 # `yog control`: the running game's control channel.
 yog-hot-reload = { workspace = true }

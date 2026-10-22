@@ -19,7 +19,7 @@ pub(crate) fn drawing<R>(gfx: &YogGfxApi, f: impl FnOnce() -> R) -> R {
 
 /// `YogApi::gfx`.
 pub(crate) unsafe extern "C" fn api_gfx() -> *const YogGfxApi {
-    FRAME.with(Cell::get)
+    crate::jni_util::guarded("api_gfx", std::ptr::null(), || FRAME.with(Cell::get))
 }
 
 /// Physical pixels per GUI pixel in the frame being drawn (1 outside one).

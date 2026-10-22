@@ -18,7 +18,7 @@ macro_rules! jstr {
 /// [`jcall!`]; `None` without a JVM too.
 macro_rules! host {
     ($class:literal, $name:literal, [$($kind:ident($arg:expr_2021)),* $(,)?]) => {
-        match $crate::jni_util::get_env() {
+        match $crate::jni_util::attached_env() {
             Some(mut env) => $crate::jcall::jcall!(&mut env, $class, $name, [$($kind($arg)),*]),
             None => None,
         }

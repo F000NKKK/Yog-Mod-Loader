@@ -12,6 +12,7 @@ use yog_ui::widget::{self, Widget};
 use yog_ui::{FlexDir, Track, Units};
 
 use crate::yui::Anchor;
+use crate::yui_grid::Axis;
 
 /// One element of the designer's document (`YuiNode` in `yui.ts`).
 #[derive(Debug, Clone, yog_data::Schema)]
@@ -54,43 +55,16 @@ pub fn widget_children(node: &YuiNode) -> impl Iterator<Item = &YuiNode> {
     node.children.iter().filter(|c| !is_property_element(c))
 }
 
-/// One row/column size: `Auto`, `*`, `2*`, `26` (yog-cli's `yui_grid`).
+/// One row/column size: `Auto`, `*`, `2*`, `26`.
 fn track(v: &str) -> Option<Track> {
-    let v = v.trim();
-    if v.eq_ignore_ascii_case("auto") {
-        return Some(Track::auto());
-    }
-    if let Some(w) = v.strip_suffix('*') {
-        let w = if w.trim().is_empty() {
-            1.0
-        } else {
-            w.trim().parse().ok()?
-        };
-        return Some(Track::star(w));
-    }
-    v.parse().ok().map(Track::px)
+    yog_ui::GridLength::parse(v).map(Track::from)
 }
 
-/// A grid's rows (`row`) or columns: `rows="Auto,*"` or `<Grid.RowDefinitions>`.
+/// A grid's rows or columns: `rows="Auto,*"` or `<Grid.RowDefinitions>`.
 /// Sizes it can't read count as `*`, so the canvas still draws while typing.
-fn tracks(node: &YuiNode, row: bool) -> Option<Vec<Track>> {
-    let (attr, prop, size, min, max) = if row {
-        (
-            "rows",
-            "Grid.RowDefinitions",
-            "height",
-            "min_height",
-            "max_height",
-        )
-    } else {
-        (
-            "columns",
-            "Grid.ColumnDefinitions",
-            "width",
-            "min_width",
-            "max_width",
-        )
-    };
+fn tracks(node: &YuiNode, axis: Axis) -> Option<Vec<Track>> {
+    let (attr, prop) = (axis.shorthand(), axis.definitions());
+    let [size, min, max] = axis.sizes();
     if let Some(v) = node.attr(attr) {
         return Some(
             v.split(',')
@@ -341,10 +315,10 @@ fn grid_and_cell(mut w: Widget, node: &YuiNode) -> Widget {
         }
     }
     if node.kind == yog_ids::yui::GRID {
-        if let Some(rows) = tracks(node, true) {
+        if let Some(rows) = tracks(node, Axis::Row) {
             w = w.rows(rows);
         }
-        if let Some(cols) = tracks(node, false) {
+        if let Some(cols) = tracks(node, Axis::Column) {
             w = w.cols(cols);
         }
         if let Some(n) = num(a(yog_ids::yui_attr::ROW_SPACING)) {

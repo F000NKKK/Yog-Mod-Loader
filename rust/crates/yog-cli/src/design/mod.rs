@@ -706,6 +706,5 @@ mod visual {
                 .unwrap(),
         )
         .unwrap();
-        eprintln!("assets: {:?}, real font: {}", r.assets, r.real_font);
     }
 }

@@ -232,7 +232,7 @@ impl Drop for HostProc {
     fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
-        let _ = std::fs::remove_file(&self.lib_copy);
+        crate::files::remove(&self.lib_copy);
     }
 }
 
@@ -354,6 +354,7 @@ fn sources(root: &Path) -> Vec<PathBuf> {
 }
 
 fn mod_name(root: &Path) -> String {
+    // Only a name to show: a manifest that doesn't read shows the folder's.
     let manifest = crate::manifest::YogToml::read(&project::path(root)).ok();
     // `@Strings.x` names a resource text — the id reads better than the reference.
     manifest
@@ -432,7 +433,7 @@ fn rebuild(root: &Path, shared: &Shared, fp: u64) {
             .map_err(|e| e.to_string())?;
         std::fs::copy(&lib, &copy).map_err(|e| format!("copying {}: {e}", lib.display()))?;
         HostProc::spawn(&copy, root).inspect_err(|_| {
-            let _ = std::fs::remove_file(&copy);
+            crate::files::remove(&copy);
         })
     });
     let mut s = shared.lock();

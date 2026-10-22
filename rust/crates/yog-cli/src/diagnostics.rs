@@ -35,8 +35,8 @@ pub fn report(d: &Diagnostic) {
     };
     if let Err(e) = append(Path::new(&path), d) {
         // The text still says it; only the tool misses it.
-        eprintln!(
-            "warning: couldn't report a diagnostic to {}: {e}",
+        yog_logging::warn!(
+            "couldn't report a diagnostic to {}: {e}",
             Path::new(&path).display()
         );
     }
@@ -86,7 +86,7 @@ pub fn collected(
     let output = command.env(yog_ids::env::DIAGNOSTICS, &file).output();
     let found = read_all(&file);
     // Gone with the run; never written when nothing was found.
-    let _ = std::fs::remove_file(&file);
+    crate::files::remove(&file);
     Ok((output?, found))
 }
 

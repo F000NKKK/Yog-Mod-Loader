@@ -674,6 +674,5 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
-        eprintln!("assets: {:?}", r.assets);
     }
 }

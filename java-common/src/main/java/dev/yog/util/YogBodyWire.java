@@ -30,7 +30,8 @@ public final class YogBodyWire {
         try {
             UUID id = UUID.fromString(uuid);
             if (on) TRACKED.add(id); else TRACKED.remove(id);
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException e) {
+            dev.yog.YogLog.warn("body tracking: " + uuid + " isn't a UUID");
         }
     }
 

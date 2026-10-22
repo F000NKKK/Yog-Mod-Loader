@@ -111,19 +111,22 @@ fn settle_lock(root: &Path, build_dir: &Path) -> Result<(), String> {
         std::fs::copy(&yog_lock, &cargo_lock).map_err(|e| e.to_string())?;
     }
     update_old_deps(build_dir, &cargo_lock);
-    if !cargo_lock.exists() {
-        let _ = Command::new("cargo")
-            .args(["generate-lockfile", "-q"])
-            .current_dir(build_dir)
-            .status();
+    // The lock as cargo will build with it: made, or — a dependency the
+    // manifest changed (yog-api pinned up, a patch) — moved, what's left
+    // over gone. When it can't, the build says why (cargo's own error).
+    let args: &[&str] = if cargo_lock.exists() {
+        &["metadata", "-q", "--format-version", "1"]
     } else {
-        // The lock as cargo will build with it: a dependency the manifest
-        // changed (yog-api pinned up, a patch) moves, what's left over goes.
-        let _ = Command::new("cargo")
-            .args(["metadata", "-q", "--format-version", "1"])
-            .current_dir(build_dir)
-            .stdout(std::process::Stdio::null())
-            .status();
+        &["generate-lockfile", "-q"]
+    };
+    let locked = Command::new("cargo")
+        .args(args)
+        .current_dir(build_dir)
+        .stdout(std::process::Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success());
+    if !locked {
+        eprintln!("warning: `cargo {}` failed — the build will say why", args[0]);
     }
     one_loader_version(&cargo_lock)
 }

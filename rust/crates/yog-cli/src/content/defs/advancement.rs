@@ -69,14 +69,14 @@ pub(super) fn advancement(
     }
     let shown = shown(cx, lang, a, id)?;
     let file = datapack::data_file(yog_ids::kind::ADVANCEMENT, id);
-    let mut out = vec![(file.clone(), pretty(&written(a, &shown, false)?))];
+    let mut out = vec![(file.clone(), pretty(&written(a, &shown, Era::Components)?))];
     for version in refs::versions()
         .iter()
         .filter(|v| old_advancement_format(v))
     {
         out.push((
             datapack::for_version(version, &file),
-            pretty(&written(a, &shown, true)?),
+            pretty(&written(a, &shown, Era::Legacy)?),
         ));
     }
     Ok(out)
@@ -113,15 +113,24 @@ fn shown(cx: &mut Ctx, lang: &mut Lang, a: &AdvancementDef, id: &str) -> Result<
     })
 }
 
-/// The advancement's JSON, in the old format or the new.
-fn written(a: &AdvancementDef, shown: &Shown, old: bool) -> Result<Value, Diagnostic> {
+/// Which of the game's advancement formats: items as `{"item": …}` (before
+/// 1.20.5's item components) or as `{"id": …}`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Era {
+    Legacy,
+    Components,
+}
+
+/// The advancement's JSON, in `era`'s format.
+fn written(a: &AdvancementDef, shown: &Shown, era: Era) -> Result<Value, Diagnostic> {
+    let old = era == Era::Legacy;
     let mut criteria = Map::new();
     let mut requirements = Vec::new();
     for (i, c) in a.criteria.iter().enumerate() {
         let name = format!("c{i}");
         criteria.insert(
             name.clone(),
-            criterion(c, old)
+            criterion(c, era)
                 .ok_or_else(|| problem(CRITERIA, Some(i), "one of granted, has_item, used_item"))?,
         );
         requirements.push(json!([name]));
@@ -146,7 +155,8 @@ fn written(a: &AdvancementDef, shown: &Shown, old: bool) -> Result<Value, Diagno
 }
 
 /// One way to earn it, as the game's criterion; none unless it's exactly one way.
-fn criterion(c: &CriterionDef, old: bool) -> Option<Value> {
+fn criterion(c: &CriterionDef, era: Era) -> Option<Value> {
+    let old = era == Era::Legacy;
     let ways =
         u8::from(c.granted) + u8::from(c.has_item.is_some()) + u8::from(c.used_item.is_some());
     if ways != 1 {
