@@ -323,16 +323,16 @@ pub struct OutputSet {
 }
 
 impl OutputSet {
-    pub fn get(&self, path: &str) -> Option<&[u8]> {
+    pub(crate) fn get(&self, path: &str) -> Option<&[u8]> {
         let i = *self.at.get(path)?;
         self.items[i].as_ref().map(|(_, b)| b.as_slice())
     }
 
-    pub fn contains(&self, path: &str) -> bool {
+    pub(crate) fn contains(&self, path: &str) -> bool {
         self.at.contains_key(path)
     }
 
-    pub fn paths(&self) -> impl Iterator<Item = &String> {
+    pub(crate) fn paths(&self) -> impl Iterator<Item = &String> {
         self.at.keys()
     }
 
@@ -344,6 +344,7 @@ impl OutputSet {
         self.items.push(Some((path, bytes)));
     }
 
+    /// The outputs, each path once (a later one in an earlier one's place).
     pub fn into_vec(self) -> Vec<Output> {
         self.items.into_iter().flatten().collect()
     }

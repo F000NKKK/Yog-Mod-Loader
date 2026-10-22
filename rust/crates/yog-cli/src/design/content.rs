@@ -15,17 +15,12 @@ mod choices;
 mod looks;
 mod texture;
 
-pub use choices::{
-    TextureChoice, armor_materials, sound_groups, strings, tags, textures, tool_materials,
-};
-pub use looks::{
+pub(crate) use choices::{armor_materials, sound_groups, strings, tags, textures, tool_materials};
+pub(crate) use looks::{
     content_block_faces, content_block_model, content_icon, content_item_appearance,
     item_potion_color,
 };
-pub use texture::{
-    Animation, AnimationFrame, Texture, body_texture, own_texture, texture, write_animation,
-    write_texture,
-};
+pub(crate) use texture::{Animation, texture, write_animation, write_texture};
 
 const ICON_SLOTS: [&str; 4] = [
     yog_ids::texture_slot::ALL,
@@ -191,7 +186,7 @@ fn texture_refs(textures: &Value) -> Value {
 
 /// A model by id, parents flattened: `{textures, elements?, display, parent?}`
 /// where `parent` is the vanilla sprite/builtin root it ends at, if any.
-pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
+pub(crate) fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
     let resources = Resources::for_mod(mod_root(file).as_deref());
     let mut textures = Map::new();
     let mut display = Map::new();
@@ -256,7 +251,7 @@ pub fn parent_model(file: &Path, id: &str) -> Result<Value, String> {
 /// `yog import <kind> <source> [--model <id>] [--force]` (`kind`: `resourcepack`,
 /// `bbmodel`, or `bbmodel-item`) in the mod of
 /// `file` (a content file or the mod folder) → what it printed.
-pub fn import(
+pub(crate) fn import(
     file: &Path,
     kind: &str,
     source: &str,
@@ -297,6 +292,7 @@ pub fn import(
 
 #[cfg(test)]
 mod tests {
+    use super::texture::{AnimationFrame, own_texture};
     #[test]
     fn animation_reads_the_games_mcmeta() {
         let meta = r#"{"animation":{"frametime":3,"frames":[0,{"index":2,"time":10},7]}}"#;

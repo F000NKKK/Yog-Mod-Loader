@@ -21,7 +21,7 @@ use yog_abi::{YogBytes, YogGfxApi};
 use yog_data::Schema;
 use yog_ui::component::designer::{self as protocol, Answer};
 
-pub use yog_ui::component::designer::{ComponentInfo, PropInfo, Render as RenderReq};
+pub(crate) use yog_ui::component::designer::{ComponentInfo, PropInfo, Render as RenderReq};
 
 use super::raster::DrawOp;
 use super::{gfx, images, raster};
@@ -30,7 +30,7 @@ use super::{gfx, images, raster};
 pub const MARK: &[u8] = b"\x01yog-designer\x01";
 
 /// The designer protocol version this host speaks.
-pub const DESIGNER_ABI: u32 = protocol::ABI;
+pub(crate) const DESIGNER_ABI: u32 = protocol::ABI;
 
 /// How finely `Png` rasterizes when not told, and the finest it may.
 const PNG_SCALE: u32 = 4;
@@ -40,7 +40,7 @@ type DesignerFn =
     unsafe extern "C" fn(YogBytes, *const YogGfxApi, *mut c_void, protocol::WriteFn) -> bool;
 
 /// A loaded mod library.
-pub struct Loaded {
+pub(crate) struct Loaded {
     _lib: libloading::Library,
     call: DesignerFn,
 }
@@ -52,7 +52,7 @@ unsafe extern "C" fn sink(user_data: *mut c_void, reply: YogBytes) {
 
 impl Loaded {
     /// Loads `lib`, checking it speaks this IDE's gfx ABI and designer protocol.
-    pub fn open(lib: &Path) -> Result<Self, String> {
+    pub(crate) fn open(lib: &Path) -> Result<Self, String> {
         // SAFETY: loading runs the library's constructors — the mod's own
         // code, which is exactly what this (disposable) process is for.
         let lib = unsafe { libloading::Library::new(lib) }
@@ -108,7 +108,7 @@ impl Loaded {
             .map_err(|e| format!("a mod's answer that isn't one: {e:?}"))?
     }
 
-    pub fn describe(&self) -> Result<Vec<ComponentInfo>, String> {
+    pub(crate) fn describe(&self) -> Result<Vec<ComponentInfo>, String> {
         match self.ask(&protocol::Request::Describe, std::ptr::null())? {
             Answer::Described { components } => Ok(components),
             other => Err(format!("asked to describe, the mod answered {other:?}")),
@@ -116,7 +116,7 @@ impl Loaded {
     }
 
     /// Draws `req.name` at the origin; returns its size and what it drew.
-    pub fn render(&self, req: &RenderReq) -> Result<(f32, f32, Vec<DrawOp>), String> {
+    pub(crate) fn render(&self, req: &RenderReq) -> Result<(f32, f32, Vec<DrawOp>), String> {
         let (aw, ah) = (req.avail_w.max(1.0) as i32, req.avail_h.max(1.0) as i32);
         let mut answer = Err(String::new());
         // The same recording functions as `record`'s own table, so they record into its list.
@@ -133,7 +133,7 @@ impl Loaded {
 /// What the IDE's side asks the host.
 #[derive(Debug, Clone, Schema)]
 #[data(tag = "cmd")]
-pub enum HostRequest {
+pub(crate) enum HostRequest {
     Load {
         lib: PathBuf,
         mod_root: Option<PathBuf>,
@@ -149,18 +149,18 @@ pub enum HostRequest {
 /// What the host answers.
 #[derive(Debug, Clone, Schema)]
 #[data(tag = "answer")]
-pub enum HostAnswer {
+pub(crate) enum HostAnswer {
     Loaded { components: Vec<ComponentInfo> },
     Drawn { w: f32, h: f32, ops: Vec<DrawOp> },
     Written { w: f32, h: f32, out: PathBuf },
 }
 
 /// The answer, or what went wrong.
-pub type HostReply = Result<HostAnswer, String>;
+pub(crate) type HostReply = Result<HostAnswer, String>;
 
 /// The next answer on the host's stdout: what the mod printed skipped up to
 /// [`MARK`], then the frame; `None` once the host has gone.
-pub fn next_answer(out: &mut impl BufRead) -> io::Result<Option<HostReply>> {
+pub(crate) fn next_answer(out: &mut impl BufRead) -> io::Result<Option<HostReply>> {
     let mut seen = Vec::new();
     let last = MARK[MARK.len() - 1];
     loop {

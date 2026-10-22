@@ -8,10 +8,10 @@ use yog_ids::mapping_ns;
 /// Obfuscated → run-time: classes, fields by (class, name), methods by
 /// (class, name, descriptor), all obfuscated.
 #[derive(Debug, Default)]
-pub struct Runtime {
-    pub classes: HashMap<String, String>,
-    pub fields: HashMap<(String, String), String>,
-    pub methods: HashMap<(String, String, String), String>,
+pub(crate) struct Runtime {
+    pub(crate) classes: HashMap<String, String>,
+    pub(crate) fields: HashMap<(String, String), String>,
+    pub(crate) methods: HashMap<(String, String, String), String>,
 }
 
 /// What separates a line's columns: tiny's tabs, tsrg's spaces.
@@ -25,7 +25,7 @@ const TINY_METHOD: &str = "m";
 const TINY_HEADER: usize = 3;
 
 /// Fabric's intermediary (tiny v2: `official` → `intermediary`).
-pub fn tiny(text: &str) -> Result<Runtime, String> {
+pub(crate) fn tiny(text: &str) -> Result<Runtime, String> {
     let mut lines = text.lines();
     let header: Vec<&str> = lines.next().unwrap_or_default().split(TAB).collect();
     let column = |ns: &str| {
@@ -75,7 +75,7 @@ pub fn tiny(text: &str) -> Result<Runtime, String> {
 const DESC_START: char = '(';
 
 /// Forge's SRG (tsrg2: `obf srg id`).
-pub fn tsrg(text: &str) -> Runtime {
+pub(crate) fn tsrg(text: &str) -> Runtime {
     let mut out = Runtime::default();
     let mut class = String::new();
     for line in text.lines().skip(1) {

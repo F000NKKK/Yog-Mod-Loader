@@ -71,7 +71,7 @@ fn read_root(root: &Element) -> Result<Root, Diagnostic> {
 }
 
 /// Generates a view-model screen's `.g.rs` (see the module docs).
-pub fn generate(
+pub(crate) fn generate(
     root: &Element,
     name: &str,
     mod_id: Option<&str>,

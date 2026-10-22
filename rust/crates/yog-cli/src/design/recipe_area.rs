@@ -35,7 +35,7 @@ fn max_slot(n: &YuiNode) -> Option<usize> {
 
 /// Expands the `<RecipeArea>`s in `root` with the layouts of the mod at
 /// `mod_root`; one whose kind has none stays an empty box of its own size.
-pub fn expand(root: &mut YuiNode, mod_root: Option<&Path>) {
+pub(crate) fn expand(root: &mut YuiNode, mod_root: Option<&Path>) {
     if !has_area(root) {
         return;
     }

@@ -12,7 +12,7 @@ use super::blocks3d::Faces;
 use yog_registry::ItemLooks;
 
 /// How an item looks in a slot.
-pub enum Look {
+pub(crate) enum Look {
     /// A flat picture: its model's layers.
     Flat(Arc<Image>),
     /// A mob's head (skulls): a cube with these faces.
@@ -21,7 +21,7 @@ pub enum Look {
 
 /// `id`'s look from its item model; `None` when it has no model this
 /// understands (callers then guess its texture by name).
-pub fn look(res: &Resources, id: &str) -> Option<Look> {
+pub(crate) fn look(res: &Resources, id: &str) -> Option<Look> {
     let looks = ItemLooks::game();
     let id = yog_ids::qualify(id);
     let (ns, path) = yog_ids::split(&id);

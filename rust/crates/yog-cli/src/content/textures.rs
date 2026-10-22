@@ -22,10 +22,10 @@ use crate::yres::{RESOURCES_DIR, Refs};
 /// The mod's textures: their ids, the files they become, and the pictures
 /// an atlas took in (their own files left out of the build).
 #[derive(Default)]
-pub struct Textures {
-    pub ids: BTreeSet<String>,
-    pub outputs: Vec<Output>,
-    pub packed: BTreeSet<String>,
+pub(crate) struct Textures {
+    pub(crate) ids: BTreeSet<String>,
+    pub(crate) outputs: Vec<Output>,
+    pub(crate) packed: BTreeSet<String>,
 }
 
 /// Where an atlas's packed picture goes under the mod's textures: `atlas/blocks`.

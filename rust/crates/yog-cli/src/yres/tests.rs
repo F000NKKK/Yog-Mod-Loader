@@ -1,3 +1,4 @@
+use super::names::{valid_locale, valid_name};
 use super::placeholders::{Segment, lang_text, params, segments};
 use super::*;
 

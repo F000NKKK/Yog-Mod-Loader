@@ -15,22 +15,22 @@ use serde_json::Value;
 use super::assets::{Image, Resources, decode_png};
 
 /// One glyph's metrics and (unless it's blank) its bitmap.
-pub struct Glyph {
+pub(crate) struct Glyph {
     /// Pen advance in GUI pixels.
-    pub advance: f32,
-    pub shadow_offset: f32,
-    pub bold_offset: f32,
-    pub bitmap: Option<GlyphBitmap>,
+    pub(crate) advance: f32,
+    pub(crate) shadow_offset: f32,
+    pub(crate) bold_offset: f32,
+    pub(crate) bitmap: Option<GlyphBitmap>,
 }
 
 /// RGBA texels; drawn `w / oversample` × `h / oversample` GUI pixels big,
 /// `top` GUI pixels below the text's y.
-pub struct GlyphBitmap {
-    pub w: u32,
-    pub h: u32,
-    pub rgba: Vec<u8>,
-    pub oversample: f32,
-    pub top: f32,
+pub(crate) struct GlyphBitmap {
+    pub(crate) w: u32,
+    pub(crate) h: u32,
+    pub(crate) rgba: Vec<u8>,
+    pub(crate) oversample: f32,
+    pub(crate) top: f32,
 }
 
 struct BitmapProvider {
@@ -67,7 +67,7 @@ enum Provider {
     Yog(Arc<super::font_yog::YogProvider>),
 }
 
-pub struct Font {
+pub(crate) struct Font {
     providers: Vec<Provider>,
     cache: Mutex<HashMap<char, Arc<Glyph>>>,
 }
@@ -494,7 +494,7 @@ fn missing_glyph() -> Glyph {
 impl Font {
     /// `font_id` like `yog:font/uniform` (Yog's alias of a game font) or
     /// one of the mod's own (`mymod:font/fancy`); `""` is the default font.
-    pub fn load(res: &Resources, font_id: &str) -> Arc<Font> {
+    pub(crate) fn load(res: &Resources, font_id: &str) -> Arc<Font> {
         // A mod's own font is read again once its file changes.
         type Cache = Mutex<
             HashMap<
@@ -543,7 +543,7 @@ impl Font {
 
     /// The characters its providers draw, in order; Unifont's (tens of
     /// thousands) only when `unihex`.
-    pub fn chars(&self, unihex: bool) -> Vec<char> {
+    pub(crate) fn chars(&self, unihex: bool) -> Vec<char> {
         let mut out: Vec<char> = self
             .providers
             .iter()
@@ -572,14 +572,14 @@ impl Font {
     }
 
     /// The text's baseline, in GUI pixels below its top.
-    pub const BASELINE: f32 = BASELINE;
+    pub(crate) const BASELINE: f32 = BASELINE;
 
     /// Whether any glyph source was found (else everything is the missing box).
-    pub fn is_real(&self) -> bool {
+    pub(crate) fn is_real(&self) -> bool {
         !self.providers.is_empty()
     }
 
-    pub fn glyph(&self, ch: char) -> Arc<Glyph> {
+    pub(crate) fn glyph(&self, ch: char) -> Arc<Glyph> {
         if let Some(g) = self.cache.lock().get(&ch).cloned() {
             return g;
         }
@@ -606,7 +606,7 @@ impl Font {
     }
 
     /// Width in GUI pixels, as the game's `Font.width` measures it (`§` codes skipped, bold +offset).
-    pub fn width(&self, text: &str) -> f32 {
+    pub(crate) fn width(&self, text: &str) -> f32 {
         self.layout(&styled(text, yog_gfx::Color::WHITE.0))
             .iter()
             .map(|(g, s)| g.advance + if s.bold { g.bold_offset } else { 0.0 })
@@ -616,7 +616,7 @@ impl Font {
     /// What draws `chars`, in order: a glyph a character — or, in a mod's
     /// own font, each run of one style shaped and drawn whole (ligatures,
     /// kerning and joined glyphs are the run's, not a character's).
-    pub fn layout(&self, chars: &[Styled]) -> Vec<(Arc<Glyph>, Styled)> {
+    pub(crate) fn layout(&self, chars: &[Styled]) -> Vec<(Arc<Glyph>, Styled)> {
         let [Provider::Yog(own)] = self.providers.as_slice() else {
             return chars.iter().map(|s| (self.glyph(s.ch), *s)).collect();
         };
@@ -632,12 +632,12 @@ impl Font {
 
 /// One character of a string after `§` formatting codes.
 #[derive(Clone, Copy)]
-pub struct Styled {
-    pub ch: char,
-    pub color: u32,
-    pub bold: bool,
-    pub underline: bool,
-    pub strike: bool,
+pub(crate) struct Styled {
+    pub(crate) ch: char,
+    pub(crate) color: u32,
+    pub(crate) bold: bool,
+    pub(crate) underline: bool,
+    pub(crate) strike: bool,
 }
 
 impl Styled {
@@ -649,7 +649,7 @@ impl Styled {
 }
 
 /// A legacy chat color's code: `5` dark purple, `a` green.
-pub fn chat_color(code: char) -> Option<u32> {
+pub(crate) fn chat_color(code: char) -> Option<u32> {
     code.to_digit(CODE_RADIX)
         .map(|i| yog_gfx::Color::rgb(CODES[i as usize]).0)
 }
@@ -672,7 +672,7 @@ fn with_alpha_of(color: u32, rgb: u32) -> u32 {
         .0
 }
 
-pub fn styled(text: &str, color: u32) -> Vec<Styled> {
+pub(crate) fn styled(text: &str, color: u32) -> Vec<Styled> {
     // Yog rich text spans first (`{b|…}`, `{#rrggbb|…}`), then the game's
     // own `§` codes inside each run.
     let mut out = Vec::new();

@@ -20,24 +20,24 @@ use super::{gfx, images, raster};
 
 #[derive(Debug, Clone, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct BookArgs {
-    pub path: String,
+pub(crate) struct BookArgs {
+    pub(crate) path: String,
     /// The `.ybook` as it is in the editor.
-    pub text: String,
-    pub screen_w: u32,
-    pub screen_h: u32,
-    pub scale: u32,
+    pub(crate) text: String,
+    pub(crate) screen_w: u32,
+    pub(crate) screen_h: u32,
+    pub(crate) scale: u32,
     #[data(default)]
-    pub action: Option<BookAction>,
+    pub(crate) action: Option<BookAction>,
     /// The language to read it in (`ru_ru`, …; none: the neutral texts).
     #[data(default)]
-    pub locale: Option<String>,
+    pub(crate) locale: Option<String>,
 }
 
 /// What the reader does before the book is drawn.
 #[derive(Debug, Clone, yog_data::Schema)]
 #[data(tag = "kind", rename_all = "camelCase")]
-pub enum BookAction {
+pub(crate) enum BookAction {
     /// A click at GUI pixels `x, y`.
     Click { x: f32, y: f32 },
     /// Go to an entry's page (the document's selection).
@@ -48,20 +48,20 @@ pub enum BookAction {
 
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct BookRendered {
+pub(crate) struct BookRendered {
     /// `data:image/png;base64,…` — `scale` physical px per GUI px; `None`
     /// when the book doesn't parse.
-    pub image: Option<String>,
-    pub scale: u32,
+    pub(crate) image: Option<String>,
+    pub(crate) scale: u32,
     /// The entry and page shown (`None`: the landing or a list page).
-    pub shown: Option<(String, usize)>,
+    pub(crate) shown: Option<(String, usize)>,
     /// What a click did (`"next_page"`, `"entry:2"`, …).
-    pub action: Option<String>,
+    pub(crate) action: Option<String>,
     /// The page moves by itself (an entity, a structure): draw it again.
-    pub animated: bool,
+    pub(crate) animated: bool,
     /// The languages the mod's texts are in (besides the neutral one).
-    pub locales: Vec<String>,
-    pub error: Option<String>,
+    pub(crate) locales: Vec<String>,
+    pub(crate) error: Option<String>,
 }
 
 struct Session {
@@ -367,7 +367,7 @@ fn repair(v: &mut yog_data::Value, path: &yog_data::Path, message: &str) -> bool
 
 /// The `.ybook` text → the book a player would see, and the first problem
 /// in it (what's wrong is left out of the drawing).
-pub fn parse(
+pub(crate) fn parse(
     text: &str,
     mod_root: Option<&Path>,
     locale: Option<&str>,
@@ -436,7 +436,7 @@ pub fn parse(
     Ok((book, first))
 }
 
-pub fn render(args: &BookArgs) -> BookRendered {
+pub(crate) fn render(args: &BookArgs) -> BookRendered {
     let root = mod_root(Path::new(&args.path));
     let locales = locales(root.as_deref());
     let locale = args.locale.as_deref().filter(|l| !l.is_empty());
@@ -573,7 +573,7 @@ fn sample(p: &yog_formats::book::page_type::PageProperty) -> yog_data::Value {
 /// A `.yui` book page (`<Component book_page="…">`) drawn as the book shows
 /// it: one entry of one page of the kind, its fields defaults or samples,
 /// the kind as it is in the editor (not as saved).
-pub fn page_preview(args: &BookArgs) -> BookRendered {
+pub(crate) fn page_preview(args: &BookArgs) -> BookRendered {
     let root = mod_root(Path::new(&args.path));
     let locales = locales(root.as_deref());
     let fail = |error: String| BookRendered {
@@ -647,7 +647,7 @@ pub fn page_preview(args: &BookArgs) -> BookRendered {
 }
 
 /// Forgets a closed `.ybook`'s reader.
-pub fn close(path: &str) {
+pub(crate) fn close(path: &str) {
     SESSIONS.lock().remove(path);
 }
 

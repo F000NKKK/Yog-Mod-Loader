@@ -15,10 +15,10 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use yog_sync::{Arc, Mutex, OnceLock};
 
-pub use yog_graphics::Image;
+pub(crate) use yog_graphics::Image;
 
 /// Minecraft's missing texture: 16×16, magenta/black quarters.
-pub fn missing_image() -> Image {
+pub(crate) fn missing_image() -> Image {
     let mut image = Image::new(16, 16);
     for y in 0..16 {
         for x in 0..16 {
@@ -37,14 +37,14 @@ pub fn missing_image() -> Image {
 }
 
 /// A picture in any format the build reads (`yog_media`), as RGBA.
-pub fn decode_png(bytes: &[u8]) -> Option<Image> {
+pub(crate) fn decode_png(bytes: &[u8]) -> Option<Image> {
     yog_media::image::decode(bytes).ok()
 }
 
 /// Where the vanilla resources come from.
-pub struct Vanilla {
-    pub jar: PathBuf,
-    pub version: String,
+pub(crate) struct Vanilla {
+    pub(crate) jar: PathBuf,
+    pub(crate) version: String,
     zip: Mutex<zip::ZipArchive<File>>,
     /// Asset objects dir + `key → hash` from the version's index.
     objects: Option<(PathBuf, HashMap<String, String>)>,
@@ -53,7 +53,7 @@ pub struct Vanilla {
 impl Vanilla {
     /// A client jar at `jar` (tests stand one in for the game's).
     #[cfg(test)]
-    pub fn from_jar(jar: PathBuf, version: &str) -> Option<Vanilla> {
+    pub(crate) fn from_jar(jar: PathBuf, version: &str) -> Option<Vanilla> {
         let zip = zip::ZipArchive::new(File::open(&jar).ok()?).ok()?;
         Some(Vanilla {
             jar,
@@ -66,7 +66,7 @@ impl Vanilla {
     /// `key` from the jar and from the asset objects — both, for files the
     /// download overrides (the jar's `font/include/unifont.json` is an
     /// empty stub; the real one is an asset object).
-    pub fn read_all(&self, key: &str) -> Vec<Vec<u8>> {
+    pub(crate) fn read_all(&self, key: &str) -> Vec<Vec<u8>> {
         let mut out = Vec::new();
         let mut zip = self.zip.lock();
         if let Ok(mut entry) = zip.by_name(&format!("assets/{key}")) {
@@ -86,7 +86,7 @@ impl Vanilla {
     }
 
     /// `data/<key>` from the jar (tags, recipes, …), if there.
-    pub fn read_data(&self, key: &str) -> Option<Vec<u8>> {
+    pub(crate) fn read_data(&self, key: &str) -> Option<Vec<u8>> {
         let mut zip = self.zip.lock();
         let mut entry = zip.by_name(&format!("data/{key}")).ok()?;
         let mut bytes = Vec::new();
@@ -95,7 +95,7 @@ impl Vanilla {
     }
 
     /// The jar's file names under `prefix` (`data/minecraft/loot_tables/`), the prefix cut.
-    pub fn names_under(&self, prefix: &str) -> Vec<String> {
+    pub(crate) fn names_under(&self, prefix: &str) -> Vec<String> {
         let zip = self.zip.lock();
         zip.file_names()
             .filter_map(|n| Some(n.ok()?.strip_prefix(prefix)?.to_string()))
@@ -105,7 +105,7 @@ impl Vanilla {
 
     /// The game's item and block texture names (`apple`, `stone`, ...),
     /// sorted — what `item:` / `block:` sources can show in the designer.
-    pub fn texture_names(&self) -> (Vec<String>, Vec<String>) {
+    pub(crate) fn texture_names(&self) -> (Vec<String>, Vec<String>) {
         let (mut items, mut blocks) = (Vec::new(), Vec::new());
         let zip = self.zip.lock();
         for name in zip.file_names() {
@@ -272,7 +272,7 @@ fn asset_objects(version: &str) -> Option<(PathBuf, HashMap<String, String>)> {
 static VANILLA: OnceLock<Mutex<Option<Arc<Vanilla>>>> = OnceLock::new();
 
 /// The newest client jar found (cached after the first successful lookup).
-pub fn vanilla(extra_roots: &[PathBuf]) -> Option<Arc<Vanilla>> {
+pub(crate) fn vanilla(extra_roots: &[PathBuf]) -> Option<Arc<Vanilla>> {
     let cell = VANILLA.get_or_init(|| Mutex::new(None));
     let mut slot = cell.lock();
     if let Some(v) = slot.as_ref() {
@@ -301,7 +301,7 @@ static ALL_VANILLA: OnceLock<Vec<Arc<Vanilla>>> = OnceLock::new();
 
 /// Every Minecraft version found, newest first — for what one version has
 /// and another hasn't (a tag removed in 1.21).
-pub fn vanilla_versions(extra_roots: &[PathBuf]) -> &'static [Arc<Vanilla>] {
+pub(crate) fn vanilla_versions(extra_roots: &[PathBuf]) -> &'static [Arc<Vanilla>] {
     ALL_VANILLA.get_or_init(|| {
         let mut jars = client_jars(extra_roots);
         jars.sort_by_key(|(v, _)| std::cmp::Reverse(version_key(v)));
@@ -322,13 +322,13 @@ pub fn vanilla_versions(extra_roots: &[PathBuf]) -> &'static [Arc<Vanilla>] {
 
 /// Resolves `namespace:path` resources for one mod: its `.yres` images, then the game's.
 #[derive(Clone)]
-pub struct Resources {
-    pub mod_root: Option<PathBuf>,
-    pub vanilla: Option<Arc<Vanilla>>,
+pub(crate) struct Resources {
+    pub(crate) mod_root: Option<PathBuf>,
+    pub(crate) vanilla: Option<Arc<Vanilla>>,
 }
 
 impl Resources {
-    pub fn for_mod(mod_root: Option<&Path>) -> Resources {
+    pub(crate) fn for_mod(mod_root: Option<&Path>) -> Resources {
         let roots: Vec<PathBuf> = mod_root.into_iter().map(Path::to_path_buf).collect();
         let parents: Vec<PathBuf> = roots
             .iter()
@@ -342,7 +342,7 @@ impl Resources {
 
     /// The bytes of resource `<ns>:<path>` (`textures/gui/x.png`): the mod's
     /// own are its `.yres` images (a mod has no `assets/`), the rest the game's.
-    pub fn read(&self, ns: &str, path: &str) -> Option<Vec<u8>> {
+    pub(crate) fn read(&self, ns: &str, path: &str) -> Option<Vec<u8>> {
         if let Some(bytes) = self
             .mod_root
             .as_deref()
@@ -360,7 +360,7 @@ impl Resources {
     }
 
     /// A texture by full resource id (`minecraft:textures/item/apple.png`).
-    pub fn texture(&self, id: &str) -> Option<Arc<Image>> {
+    pub(crate) fn texture(&self, id: &str) -> Option<Arc<Image>> {
         type Cache = Mutex<HashMap<(Option<PathBuf>, String), Option<Arc<Image>>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(Default::default);

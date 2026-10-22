@@ -5,7 +5,7 @@
 use yog_ids::pack::{ANY_LOADER, DATA, OVERLAYS, TAGS};
 
 /// `file` in overlay `when` (`fabric/1.20`); `file` itself when `when` is empty.
-pub fn overlay(when: &str, file: &str) -> String {
+pub(crate) fn overlay(when: &str, file: &str) -> String {
     if when.is_empty() {
         file.to_string()
     } else {
@@ -14,13 +14,13 @@ pub fn overlay(when: &str, file: &str) -> String {
 }
 
 /// `file` in the overlay of every loader on `version`.
-pub fn for_version(version: &str, file: &str) -> String {
+pub(crate) fn for_version(version: &str, file: &str) -> String {
     overlay(&format!("{ANY_LOADER}/{version}"), file)
 }
 
 /// The file of tag `tag` (`minecraft:needs_iron_tool`) of the content `kind`
 /// (`block`, `item`, …).
-pub fn tag_file(kind: &str, tag: &str) -> String {
+pub(crate) fn tag_file(kind: &str, tag: &str) -> String {
     data_in(
         &[TAGS, yog_ids::registry_of(kind)].join(yog_ids::sep::PATH),
         tag,
@@ -28,19 +28,19 @@ pub fn tag_file(kind: &str, tag: &str) -> String {
 }
 
 /// Data `id`'s file in folder `dir` of its namespace's data (`worldgen/placed_feature`).
-pub fn data_in(dir: &str, id: &str) -> String {
+pub(crate) fn data_in(dir: &str, id: &str) -> String {
     let (ns, path) = yog_ids::split(id);
     format!("{DATA}/{ns}/{dir}/{path}{}", yog_ids::res::JSON)
 }
 
 /// The file data `id` of content `kind` is written to: the current folder's.
-pub fn data_file(kind: &str, id: &str) -> String {
+pub(crate) fn data_file(kind: &str, id: &str) -> String {
     data_in(yog_ids::registry_of(kind), id)
 }
 
 /// The files data `id` of content `kind` may be in: the current folder's
 /// first, then 1.20's plural one (`loot_table`, `loot_tables`).
-pub fn data_files(kind: &str, id: &str) -> Vec<String> {
+pub(crate) fn data_files(kind: &str, id: &str) -> Vec<String> {
     yog_ids::registry_dirs(kind)
         .iter()
         .map(|dir| data_in(dir, id))

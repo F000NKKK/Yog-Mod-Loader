@@ -129,27 +129,27 @@ const GAME_TAG_KINDS: [&str; 6] = [
 
 /// One of the mod's own: its id and the file that defines it.
 #[derive(Debug, Clone, PartialEq, yog_data::Schema)]
-pub struct OwnRef {
-    pub id: String,
-    pub file: String,
+pub(crate) struct OwnRef {
+    pub(crate) id: String,
+    pub(crate) file: String,
 }
 
 /// What a reference of one kind may name, ids with their namespace.
 #[derive(Debug, Default, yog_data::Schema)]
-pub struct RefChoices {
-    pub own: Vec<OwnRef>,
+pub(crate) struct RefChoices {
+    pub(crate) own: Vec<OwnRef>,
     /// Declared in `yog.toml`, another mod's.
-    pub external: Vec<String>,
+    pub(crate) external: Vec<String>,
     /// The game's (`minecraft:…`); empty without a client jar.
-    pub game: Vec<String>,
+    pub(crate) game: Vec<String>,
 }
 
 /// One of the mod's `.ydef`s: its id, its file and what it says.
 #[derive(Debug, yog_data::Schema)]
-pub struct OwnDef {
-    pub id: String,
-    pub file: String,
-    pub value: Value,
+pub(crate) struct OwnDef {
+    pub(crate) id: String,
+    pub(crate) file: String,
+    pub(crate) value: Value,
 }
 
 fn files(root: &Path, format: Format) -> Vec<PathBuf> {
@@ -166,7 +166,7 @@ fn read(file: &Path) -> Option<Value> {
 /// The choices for `@<kind>:` in the file at `file` (`kind` may also be a
 /// body format, `ymodel`/`yanim`, or `tag:<kind>` — the tags of a kind:
 /// the mod's own `.ydef` tags of it, the game's).
-pub fn refs(file: &Path, kind: &str) -> RefChoices {
+pub(crate) fn refs(file: &Path, kind: &str) -> RefChoices {
     let mut out = RefChoices::default();
     if let Some(root) = mod_root(file) {
         out.own = own(&root, kind);
@@ -285,7 +285,7 @@ fn defs(root: &Path, kind: &str) -> Vec<OwnDef> {
 }
 
 /// The mod's `.ydef`s of `kind` beside the file at `file`.
-pub fn own_defs(file: &Path, kind: &str) -> Vec<OwnDef> {
+pub(crate) fn own_defs(file: &Path, kind: &str) -> Vec<OwnDef> {
     mod_root(file).map(|r| defs(&r, kind)).unwrap_or_default()
 }
 
@@ -424,7 +424,7 @@ fn lang_ids(vanilla: &Vanilla, kind: &str, prefixes: Vec<String>, dotted: bool) 
 /// The game's kinds of block (`kind: "stairs"` on a `.yblock`): their
 /// names, texture slots, the `block` fields they take and their defaults —
 /// as `yog-formats` has them.
-pub fn block_kinds() -> Value {
+pub(crate) fn block_kinds() -> Value {
     use yog_data::Schema;
     Value::List(
         yog_formats::content::BlockKind::built_ins()

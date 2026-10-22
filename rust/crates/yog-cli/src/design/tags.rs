@@ -197,7 +197,7 @@ impl Gather<'_> {
 
 /// The items of tag `tag` (`minecraft:planks`, no `#`), for the mod the
 /// file at `path` belongs to; empty if the tag is unknown.
-pub fn item_tag(path: &Path, tag: &str) -> Vec<String> {
+pub(crate) fn item_tag(path: &Path, tag: &str) -> Vec<String> {
     let root = super::mod_root(path);
     let roots: Vec<PathBuf> = root
         .iter()

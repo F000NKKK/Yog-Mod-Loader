@@ -9,14 +9,14 @@ use crate::design::project::mod_root;
 use crate::serve::ServiceError;
 
 #[derive(yog_data::Schema)]
-pub struct Texture {
+pub(crate) struct Texture {
     /// `data:image/png;base64,...`
-    pub url: String,
+    pub(crate) url: String,
     /// Its `.png.mcmeta` animation, if it has one.
-    pub animation: Option<Animation>,
+    pub(crate) animation: Option<Animation>,
     /// The texture is the mod's own file — the editor can paint it in place
     /// (otherwise painting copies it into the mod first).
-    pub writable: bool,
+    pub(crate) writable: bool,
 }
 
 /// A texture's animation (`.png.mcmeta`), as the game plays it: frames
@@ -24,31 +24,31 @@ pub struct Texture {
 /// `frames` order, each for its `time` in ticks.
 #[derive(Clone, Debug, PartialEq, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct Animation {
-    pub frame_width: u32,
-    pub frame_height: u32,
-    pub frames: Vec<AnimationFrame>,
+pub(crate) struct Animation {
+    pub(crate) frame_width: u32,
+    pub(crate) frame_height: u32,
+    pub(crate) frames: Vec<AnimationFrame>,
     /// Blends each frame into the next (the game's `interpolate`).
-    pub interpolate: bool,
+    pub(crate) interpolate: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, yog_data::Schema)]
-pub struct AnimationFrame {
-    pub index: u32,
+pub(crate) struct AnimationFrame {
+    pub(crate) index: u32,
     /// Ticks (1/20 s).
-    pub time: u32,
+    pub(crate) time: u32,
 }
 
 impl Animation {
     /// The animation of a `size` image from its `.mcmeta` text; `None` when it has none.
-    pub fn read(meta: &str, size: (u32, u32)) -> Option<Animation> {
+    pub(crate) fn read(meta: &str, size: (u32, u32)) -> Option<Animation> {
         let doc: Value = serde_json::from_str(meta).ok()?;
         Self::of(&yog_formats::texture::Animation::from_mcmeta(&doc)?, size)
     }
 
     /// `a` of a `size` image, every frame resolved: its size (the game's
     /// default a square of the image's smaller side) and each frame's time.
-    pub fn of(a: &yog_formats::texture::Animation, (w, h): (u32, u32)) -> Option<Animation> {
+    pub(crate) fn of(a: &yog_formats::texture::Animation, (w, h): (u32, u32)) -> Option<Animation> {
         let side = w.min(h);
         let fw = a.width.unwrap_or(side).max(1);
         let fh = a.height.unwrap_or(side).max(1);
@@ -83,7 +83,7 @@ impl Animation {
     }
 
     /// It as a `.ytexture` keeps it, for a `size` image: every frame listed with its time.
-    pub fn to_format(&self, (w, h): (u32, u32)) -> yog_formats::texture::Animation {
+    pub(crate) fn to_format(&self, (w, h): (u32, u32)) -> yog_formats::texture::Animation {
         let side = w.min(h);
         yog_formats::texture::Animation {
             frame_time: None,
@@ -104,7 +104,7 @@ impl Animation {
 
 /// Sets the animation of texture `texture` of the mod (`None`: still) in
 /// its `.ytexture`; the file written.
-pub fn write_animation(
+pub(crate) fn write_animation(
     file: &Path,
     texture: &str,
     animation: Option<&Animation>,
@@ -122,12 +122,7 @@ pub fn write_animation(
     crate::media::save_texture_animation(&root, &id, animation)
 }
 
-/// A body model's texture (`.ymodel`): `@texture:<ns>:<path>`, as a content file's.
-pub fn body_texture(file: &Path, texture: &str) -> Result<Texture, ServiceError> {
-    self::texture(file, texture)
-}
-
-pub fn texture(file: &Path, texture: &str) -> Result<Texture, ServiceError> {
+pub(crate) fn texture(file: &Path, texture: &str) -> Result<Texture, ServiceError> {
     let bytes = texture_bytes(file, texture)?;
     let animation = image_size(&bytes).and_then(|size| {
         let meta = texture_file(file, texture, "png.mcmeta").ok()?;
@@ -143,7 +138,7 @@ pub fn texture(file: &Path, texture: &str) -> Result<Texture, ServiceError> {
 /// The mod and the id of texture `texture` when it's the mod's own (it
 /// can be painted in place, or added); `None` for the game's, another
 /// mod's, a `#slot`.
-pub fn own_texture(file: &Path, texture: &str) -> Option<(PathBuf, String)> {
+pub(crate) fn own_texture(file: &Path, texture: &str) -> Option<(PathBuf, String)> {
     if texture.starts_with(yog_formats::content::SLOT_MARK) {
         return None;
     }
@@ -153,7 +148,7 @@ pub fn own_texture(file: &Path, texture: &str) -> Option<(PathBuf, String)> {
 }
 
 /// Writes `png` as the picture of the mod's texture `texture`; the `.yres` written.
-pub fn write_texture(file: &Path, texture: &str, png: Vec<u8>) -> Result<PathBuf, String> {
+pub(crate) fn write_texture(file: &Path, texture: &str, png: Vec<u8>) -> Result<PathBuf, String> {
     if image_size(&png).is_none() {
         return Err("not a PNG image".into());
     }

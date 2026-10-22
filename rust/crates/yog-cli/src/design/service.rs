@@ -91,7 +91,7 @@ impl Call<'_> {
 }
 
 /// What design method `method` does with `params`; `None`: no such method.
-pub fn dispatch(method: &str, params: &Value) -> Option<Reply> {
+pub(crate) fn dispatch(method: &str, params: &Value) -> Option<Reply> {
     let c = Call { params };
     content_method(method, &c).or_else(|| designer_method(method, &c))
 }

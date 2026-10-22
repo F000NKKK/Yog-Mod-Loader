@@ -22,17 +22,17 @@ use super::markup::YuiNode;
 
 /// One component of the mod.
 #[derive(Debug, Clone)]
-pub struct Def {
+pub(crate) struct Def {
     /// Name, doc, properties and the `.yui` it's declared in.
-    pub info: ComponentInfo,
+    pub(crate) info: ComponentInfo,
     /// The body element (`None`: none yet — drawn empty).
-    pub body: Option<YuiNode>,
+    pub(crate) body: Option<YuiNode>,
     /// Some binding calls code — only the mod's library can draw it.
-    pub compiled: bool,
+    pub(crate) compiled: bool,
 }
 
 impl Def {
-    pub fn find<'a>(defs: &'a [Def], name: &str) -> Option<&'a Def> {
+    pub(crate) fn find<'a>(defs: &'a [Def], name: &str) -> Option<&'a Def> {
         defs.iter().find(|d| d.info.name == name)
     }
 }
@@ -42,7 +42,7 @@ const DECLARATIONS: &[&str] = &[yog_ids::yui::PROPERTY, yog_ids::yui::EVENT];
 /// Joins an expanded instance's uid and its inner element's path: never in
 /// a document's own uids, so the designer can tell the inside of an
 /// instance apart (and select the instance instead).
-pub const INNER: char = '/';
+pub(crate) const INNER: char = '/';
 
 // ── Parsing ────────────────────────────────────────────────────────────────────
 
@@ -65,7 +65,7 @@ fn element(e: &BytesStart, uid: String) -> Result<YuiNode, String> {
 }
 
 /// A `.yui` document's element tree, uids `c0`, `c0/1`, ...
-pub fn parse_tree(text: &str) -> Result<YuiNode, String> {
+pub(crate) fn parse_tree(text: &str) -> Result<YuiNode, String> {
     let mut reader = Reader::from_str(text);
     let mut stack: Vec<YuiNode> = Vec::new();
     let mut root = None;
@@ -117,7 +117,7 @@ fn pascal(stem: &str) -> String {
 
 /// The component a `<Component>` tree declares (`None`: not a component —
 /// a book's kind of page or a recipe layout isn't one to place on screens).
-pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
+pub(crate) fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
     if root.kind != yog_ids::yui::COMPONENT
         || root.attr("book_page").is_some()
         || root.attr(yog_ids::yui_attr::RECIPE_LAYOUT).is_some()
@@ -196,7 +196,7 @@ pub fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
 // ── Bindings ───────────────────────────────────────────────────────────────────
 
 /// The expression of a `{x:Bind expr[, options]}` value.
-pub fn binding(value: &str) -> Option<&str> {
+pub(crate) fn binding(value: &str) -> Option<&str> {
     let inner = value.trim().strip_prefix("{x:Bind")?.strip_suffix('}')?;
     let mut depth = 0i32;
     let mut quote = false;
@@ -223,7 +223,7 @@ fn calls_code(node: &YuiNode, props: &[&str]) -> bool {
 /// `node` and its subtree with every binding to a property replaced by its
 /// value in `values`, and design-time `d:attr` values applied. A binding
 /// that calls code shows as `{expr}` in a text, and is dropped elsewhere.
-pub fn bind_values(node: &YuiNode, values: &HashMap<String, String>) -> YuiNode {
+pub(crate) fn bind_values(node: &YuiNode, values: &HashMap<String, String>) -> YuiNode {
     let mut attrs = HashMap::new();
     for (k, v) in &node.attrs {
         if k.starts_with("d:") {
@@ -279,7 +279,7 @@ fn with_uids(node: &mut YuiNode, uid: &str) {
 /// (position, size, style — as `yog build` applies them to the built
 /// widget) over the body root's, the instance's uid on the root and
 /// `uid/i/j` inside.
-pub fn expand(def: &Def, instance: &YuiNode) -> YuiNode {
+pub(crate) fn expand(def: &Def, instance: &YuiNode) -> YuiNode {
     let mut values = defaults(def);
     let mut own = HashMap::new();
     for (k, v) in &instance.attrs {
@@ -308,7 +308,7 @@ const COMPONENT_FILE: &str = "component";
 
 /// A `<Component>` document as the designer draws it: a screen of its
 /// design size holding the body, bound to the properties' defaults.
-pub fn design_root(root: &YuiNode) -> YuiNode {
+pub(crate) fn design_root(root: &YuiNode) -> YuiNode {
     let def = definition(root, Path::new(&Format::Ui.file(COMPONENT_FILE)));
     let values = def.as_ref().map(defaults).unwrap_or_default();
     // A recipe layout is its own size; a component's design size is a preview's.
@@ -357,12 +357,12 @@ fn yui_files(mod_root: &Path) -> Vec<PathBuf> {
 type Scanned = (u64, Arc<Vec<Def>>);
 
 /// The mod's components, re-read when its `.yui` files change.
-pub fn scan(mod_root: &Path) -> Arc<Vec<Def>> {
+pub(crate) fn scan(mod_root: &Path) -> Arc<Vec<Def>> {
     scan_with_revision(mod_root).1
 }
 
 /// [`scan`] and a fingerprint of the `.yui` files it read.
-pub fn scan_with_revision(mod_root: &Path) -> (u64, Arc<Vec<Def>>) {
+pub(crate) fn scan_with_revision(mod_root: &Path) -> (u64, Arc<Vec<Def>>) {
     static CACHE: OnceLock<Mutex<HashMap<PathBuf, Scanned>>> = OnceLock::new();
     let files = yui_files(mod_root);
     let fp = crate::files::fingerprint(&files);

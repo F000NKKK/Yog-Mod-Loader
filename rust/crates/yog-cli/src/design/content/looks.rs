@@ -11,7 +11,7 @@ use crate::design::project::mod_root;
 /// The textures of the mod's block `id` (its `.yblock` model's), per face:
 /// up, down, north, south, west, east — as png bytes. `None`: not a block
 /// of the mod.
-pub fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]> {
+pub(crate) fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]> {
     let (file, doc) = content_file(root, id, &[Format::Block])?;
     let textures = model_textures(root, &doc, yog_ids::content_field::MODEL);
     let pick = |keys: &[&str]| {
@@ -24,12 +24,12 @@ pub fn content_block_faces(root: &Path, id: &str) -> Option<[Option<Vec<u8>>; 6]
 }
 
 /// A block's model: its elements, and its textures by variable (png bytes).
-pub type BlockModel = (Vec<Value>, std::collections::HashMap<String, Vec<u8>>);
+pub(crate) type BlockModel = (Vec<Value>, std::collections::HashMap<String, Vec<u8>>);
 
 /// The model of the mod's block `id` as its `.yblock` gives it: its
 /// `elements` and its textures by variable (png bytes). `None`: not a
 /// block of the mod, or its model has no elements of its own.
-pub fn content_block_model(root: &Path, id: &str) -> Option<BlockModel> {
+pub(crate) fn content_block_model(root: &Path, id: &str) -> Option<BlockModel> {
     let (file, doc) = content_file(root, id, &[Format::Block])?;
     let elements = match crate::design::data::at(
         &doc,
@@ -81,7 +81,7 @@ fn stair_element(from: [u8; 3], to: [u8; 3]) -> Value {
 }
 
 /// A mod item's definition and, for potions, its effect-derived color.
-pub fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u32>)> {
+pub(crate) fn content_item_appearance(root: &Path, id: &str) -> Option<(Value, Option<u32>)> {
     let ns = crate::design::project::mod_id(root)?;
     let (want_ns, want) = yog_ids::split(id);
     let want = if want_ns == yog_ids::ns::YOG {
@@ -150,7 +150,7 @@ fn potion_effect_color(root: &Path, item: &Value) -> Option<u32> {
 }
 
 /// The color of the potion effect(s) defined by this `.yitem`.
-pub fn item_potion_color(file: &Path) -> Option<u32> {
+pub(crate) fn item_potion_color(file: &Path) -> Option<u32> {
     let root = mod_root(file)?;
     let text = crate::files::read_source(file).ok()?;
     let item = crate::design::data::read_object(&text)?;
@@ -190,7 +190,7 @@ fn content_effect_color(root: &Path, reference: &str) -> Option<u32> {
 
 /// The icon of the mod's item or block `id` as its `content/` file draws
 /// it: the model's `layer0` (else its first texture), as png bytes.
-pub fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
+pub(crate) fn content_icon(root: &Path, id: &str) -> Option<Vec<u8>> {
     let ns = crate::design::project::mod_id(root)?;
     let (want_ns, want) = yog_ids::split(id);
     if want_ns != ns {

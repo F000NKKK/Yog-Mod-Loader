@@ -23,7 +23,7 @@ const MIN_COLS: usize = 4;
 pub(super) const BUILDING: &str = "Building";
 
 /// The box shown for a component that can't be drawn: its name and why.
-pub fn placeholder(name: &str, message: &str, w: f32, h: f32) -> Vec<DrawOp> {
+pub(crate) fn placeholder(name: &str, message: &str, w: f32, h: f32) -> Vec<DrawOp> {
     let building = message.starts_with(BUILDING);
     let border = if building {
         BUILDING_BORDER

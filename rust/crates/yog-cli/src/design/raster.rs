@@ -19,7 +19,7 @@ use super::font::{Font, Glyph, styled};
 /// One `draw2d_*` call (GUI pixels, colors `0xAARRGGBB`).
 #[derive(Debug, Clone, yog_data::Schema)]
 #[data(tag = "op")]
-pub enum DrawOp {
+pub(crate) enum DrawOp {
     Rect {
         x1: f32,
         y1: f32,
@@ -109,7 +109,7 @@ pub enum DrawOp {
 impl DrawOp {
     /// The op `dx, dy` further. A scissor drops out (an empty rect): yog-ui
     /// clips in software, and a component's own scissor would undo its slot's.
-    pub fn moved(mut self, dx: f32, dy: f32) -> DrawOp {
+    pub(crate) fn moved(mut self, dx: f32, dy: f32) -> DrawOp {
         match &mut self {
             DrawOp::Rect { x1, y1, x2, y2, .. } | DrawOp::Gradient { x1, y1, x2, y2, .. } => {
                 (*x1, *x2, *y1, *y2) = (*x1 + dx, *x2 + dx, *y1 + dy, *y2 + dy);
@@ -136,10 +136,10 @@ impl DrawOp {
 }
 
 /// An RGBA canvas `w × h` physical pixels.
-pub struct Canvas<'r> {
-    pub w: u32,
-    pub h: u32,
-    pub rgba: Vec<u8>,
+pub(crate) struct Canvas<'r> {
+    pub(crate) w: u32,
+    pub(crate) h: u32,
+    pub(crate) rgba: Vec<u8>,
     scale: f32,
     clip: Option<(i32, i32, i32, i32)>,
     res: &'r Resources,
@@ -195,7 +195,7 @@ const UNDERLINE: (f32, f32) = (LINE_H, LINE_H - 1.0);
 const STRIKE: (f32, f32) = (LINE_H / 2.0, LINE_H / 2.0 - 1.0);
 
 impl<'r> Canvas<'r> {
-    pub fn new(gui_w: u32, gui_h: u32, scale: u32, res: &'r Resources) -> Self {
+    pub(crate) fn new(gui_w: u32, gui_h: u32, scale: u32, res: &'r Resources) -> Self {
         let (w, h) = (gui_w * scale, gui_h * scale);
         Canvas {
             w,
@@ -208,7 +208,7 @@ impl<'r> Canvas<'r> {
         }
     }
 
-    pub fn font(&mut self, id: &str) -> Arc<Font> {
+    pub(crate) fn font(&mut self, id: &str) -> Arc<Font> {
         let res = self.res;
         self.fonts
             .entry(id.to_string())
@@ -285,7 +285,7 @@ impl<'r> Canvas<'r> {
 
     /// Fills `area` (GUI pixels, its edges at whole pixels as the game
     /// takes them), `top`'s colour fading to `bottom`'s.
-    pub fn fill(&mut self, area: Rect, top: Color, bottom: Color) {
+    pub(crate) fn fill(&mut self, area: Rect, top: Color, bottom: Color) {
         let whole = |v: f32| (v as i32) as f32;
         let (x1, x2) = (whole(area.x), whole(area.right()));
         let (y1, y2) = (whole(area.y), whole(area.bottom()));
@@ -349,7 +349,7 @@ impl<'r> Canvas<'r> {
     /// `Font.drawInBatch`: the shadow pass (offset, color / 4), then the
     /// text, at whole pixels (`at`'s rounded down) — scaled, the host scales
     /// the pose: no rounding.
-    pub fn text(&mut self, text: &str, at: [f32; 2], style: &TextStyle) {
+    pub(crate) fn text(&mut self, text: &str, at: [f32; 2], style: &TextStyle) {
         let k = style.scale;
         let [x, y] = if k == 1.0 {
             at.map(|v| (v as i32) as f32)
@@ -394,7 +394,7 @@ impl<'r> Canvas<'r> {
         }
     }
 
-    pub fn draw(&mut self, op: &DrawOp) {
+    pub(crate) fn draw(&mut self, op: &DrawOp) {
         match op {
             DrawOp::Rect {
                 x1,
@@ -498,7 +498,7 @@ impl<'r> Canvas<'r> {
         }
     }
 
-    pub fn png(&self) -> Result<Vec<u8>, String> {
+    pub(crate) fn png(&self) -> Result<Vec<u8>, String> {
         let mut out = Vec::new();
         let mut enc = png::Encoder::new(&mut out, self.w, self.h);
         enc.set_color(png::ColorType::Rgba);
@@ -513,7 +513,7 @@ impl<'r> Canvas<'r> {
     }
 
     /// The canvas as a PNG `data:` URL (none if it doesn't encode).
-    pub fn png_url(&self) -> Option<String> {
+    pub(crate) fn png_url(&self) -> Option<String> {
         self.png().ok().map(|png| png_url(&png))
     }
 }
@@ -522,7 +522,7 @@ impl<'r> Canvas<'r> {
 pub const PNG_URL_PREFIX: &str = "data:image/png;base64,";
 
 /// PNG bytes as a `data:` URL, as the editors show pictures.
-pub fn png_url(png: &[u8]) -> String {
+pub(crate) fn png_url(png: &[u8]) -> String {
     use base64::Engine as _;
     format!(
         "{PNG_URL_PREFIX}{}",
@@ -534,7 +534,7 @@ pub fn png_url(png: &[u8]) -> String {
 const MAX_PIXELS: u64 = 1 << 26;
 
 /// `scale` clamped to 1..=8, lowered until a `gui_w`×`gui_h` canvas fits [`MAX_PIXELS`].
-pub fn fit_scale(gui_w: u32, gui_h: u32, scale: u32) -> u32 {
+pub(crate) fn fit_scale(gui_w: u32, gui_h: u32, scale: u32) -> u32 {
     let gui = u64::from(gui_w) * u64::from(gui_h);
     let mut scale = scale.clamp(1, 8);
     while scale > 1 && gui.saturating_mul(u64::from(scale * scale)) > MAX_PIXELS {
@@ -544,7 +544,7 @@ pub fn fit_scale(gui_w: u32, gui_h: u32, scale: u32) -> u32 {
 }
 
 /// Rasterizes a display list.
-pub fn rasterize<'r>(
+pub(crate) fn rasterize<'r>(
     ops: &[DrawOp],
     gui_w: u32,
     gui_h: u32,

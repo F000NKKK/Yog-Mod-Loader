@@ -14,17 +14,17 @@ const MAX_PIXELS: u64 = 1 << 22;
 /// The view's contents over every scroll, and the window to lay over them.
 #[derive(Debug, Clone, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct Layer {
-    pub image: String,
+pub(crate) struct Layer {
+    pub(crate) image: String,
     /// The window and its title alone, the screen's size: its edge lies
     /// over the view's.
-    pub window: String,
-    pub size: [f32; 2],
+    pub(crate) window: String,
+    pub(crate) size: [f32; 2],
     /// Where its top left is from the view's, at the drag drawn.
-    pub at: [f32; 2],
+    pub(crate) at: [f32; 2],
     /// The drags the tab takes, per axis: the least and the most.
-    pub drag_min: [f32; 2],
-    pub drag_max: [f32; 2],
+    pub(crate) drag_min: [f32; 2],
+    pub(crate) drag_max: [f32; 2],
 }
 
 /// `tab`'s contents over every scroll it takes, placed for `drag`.

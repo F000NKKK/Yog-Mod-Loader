@@ -189,7 +189,7 @@ fn pascal(s: &str) -> String {
 
 /// A table, checked: what its enum is made of.
 #[derive(Debug, Clone)]
-pub struct Table {
+pub(crate) struct Table {
     file: String,
     name: String,
     columns: Vec<(String, Column)>,
@@ -215,7 +215,7 @@ const ROWS: &str = yog_data::field!(TableDef, rows);
 type Row = (String, String, Vec<String>);
 
 /// Checks a table; its problems, each at its path.
-pub fn check(
+pub(crate) fn check(
     file: &str,
     t: TableDef,
     refs: &yres::Refs,
@@ -359,7 +359,7 @@ fn map_key(k: &Scalar, key: &str) -> Value {
 }
 
 /// The enum a table makes.
-pub fn rust(t: &Table) -> String {
+pub(crate) fn rust(t: &Table) -> String {
     let mut code = String::new();
     let n = &t.name;
     // Read and written as Yog Data (a mod's stores, packets): by its rows' ids.

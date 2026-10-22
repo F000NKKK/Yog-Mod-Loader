@@ -35,7 +35,11 @@ fn max_slot(root: &Element) -> Option<usize> {
 
 /// Expands every `<RecipeArea>` in `root`; `layouts`: the mod's, `ns` its
 /// namespace (for a kind written without one).
-pub fn expand(root: &mut Element, layouts: &[RecipeLayout], ns: &str) -> Result<(), Diagnostic> {
+pub(crate) fn expand(
+    root: &mut Element,
+    layouts: &[RecipeLayout],
+    ns: &str,
+) -> Result<(), Diagnostic> {
     let mut next = max_slot(root).map_or(0, |m| m + 1);
     walk(root, layouts, ns, &mut next)
 }

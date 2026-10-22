@@ -46,7 +46,7 @@ pub use compile::compile;
 pub use import::{Imported, import_command};
 pub use outputs::{OutputSet, TAGS_FILE, TagLists, merge_outputs, read_tags};
 pub use source::{GENERATED_PARTS_DIR, Source, write_source};
-pub use vocab::TEMPLATES;
+pub(crate) use vocab::TEMPLATES;
 
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -59,7 +59,7 @@ pub const CONTENT_DIR: &str = yog_ids::project::CONTENT;
 pub const GENERATED_FILE: &str = ".yog-build/generated/yog-content.g.rs";
 
 /// A generated file: path inside the `.yog` and its bytes.
-pub type Output = (String, Vec<u8>);
+pub(crate) type Output = (String, Vec<u8>);
 
 /// The formats a content file under `content/` is written in.
 const CONTENT: [Format; 9] = [
@@ -103,16 +103,20 @@ pub struct Compiled {
     pub registrations: String,
     /// The pictures (`.yres` images' files) an atlas took in: left out of the build.
     pub packed: BTreeSet<String>,
+    /// How many blocks, items, recipes and books it compiled.
     pub blocks: usize,
+    /// See [`Compiled::blocks`].
     pub items: usize,
+    /// See [`Compiled::blocks`].
     pub recipes: usize,
+    /// See [`Compiled::blocks`].
     pub books: usize,
 }
 
-pub use yog_ids::{valid_id, valid_namespace, valid_path};
+pub(crate) use yog_ids::{valid_id, valid_namespace, valid_path};
 
 /// Every content file (`CONTENT`) under `content/` of the mod at `root`, sorted.
-pub fn find(root: &Path) -> Vec<PathBuf> {
+pub(crate) fn find(root: &Path) -> Vec<PathBuf> {
     crate::files::under(&root.join(CONTENT_DIR), &|p| content_format(p).is_some())
 }
 
@@ -132,7 +136,7 @@ mod tests;
 const WHOLE_BELOW: f64 = 1e15;
 
 /// A number in the game's JSON: integral values without a fraction (`16`, not `16.0`).
-pub fn num_value(n: f64) -> serde_json::Value {
+pub(crate) fn num_value(n: f64) -> serde_json::Value {
     if n.fract() == 0.0 && n.abs() < WHOLE_BELOW {
         serde_json::Value::from(n as i64)
     } else {

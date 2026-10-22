@@ -58,7 +58,9 @@ fn positional(args: &[String]) -> Vec<&str> {
 
 /// What an import wrote, and what to warn of.
 pub struct Imported {
+    /// The files it wrote, under the mod's root.
     pub written: Vec<String>,
+    /// What it left out or changed, to tell.
     pub warnings: Vec<String>,
 }
 

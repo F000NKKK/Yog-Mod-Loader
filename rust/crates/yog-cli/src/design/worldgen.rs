@@ -5,7 +5,7 @@
 use yog_worldgen::{Generator, Terrain, preview};
 
 #[derive(yog_data::Schema)]
-pub struct Preview {
+pub(crate) struct Preview {
     /// `size`×`size` blocks from above, `data:image/png;base64,…`.
     top: String,
     /// A slice down along x through the middle, `size` wide.
@@ -32,7 +32,7 @@ fn png(pixels: &[u32], w: u32, h: u32) -> Result<String, String> {
 }
 
 /// The terrain of `text` (a `.ydef` of kind `dimension`) around 0, 0: `size` blocks across.
-pub fn render(text: &str, size: u32) -> Result<Preview, String> {
+pub(crate) fn render(text: &str, size: u32) -> Result<Preview, String> {
     let size = size.clamp(16, 1024);
     let def = yog_data::text::parse_value(text)
         .map_err(|e| format!("{}:{}: {}", e.at.line, e.at.col, e.message))?;

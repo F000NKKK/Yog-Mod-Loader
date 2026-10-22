@@ -515,7 +515,7 @@ fn prop_code(p: &Prop) -> (String, String, String) {
 
 /// The `.g.rs` source of a `<Component>` `.yui` (`name`: its path under
 /// `src/` without the extension, as for screens).
-pub fn generate(
+pub(crate) fn generate(
     root: &Element,
     name: &str,
     mod_id: Option<&str>,

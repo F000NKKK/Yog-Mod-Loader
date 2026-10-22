@@ -220,7 +220,7 @@ unsafe extern "C" fn set_depth(_: bool, _: bool) {}
 unsafe extern "C" fn set_viewport(_: i32, _: i32, _: i32, _: i32) {}
 
 /// The recording table for a `screen_w × screen_h` GUI.
-pub fn api(screen_w: i32, screen_h: i32, scale: f32) -> YogGfxApi {
+pub(crate) fn api(screen_w: i32, screen_h: i32, scale: f32) -> YogGfxApi {
     YogGfxApi {
         screen_w,
         screen_h,
@@ -273,7 +273,7 @@ pub fn api(screen_w: i32, screen_h: i32, scale: f32) -> YogGfxApi {
 }
 
 /// Runs `draw` against a recording context and returns what it drew.
-pub fn record(screen_w: i32, screen_h: i32, draw: impl FnOnce(&GfxContext)) -> Vec<DrawOp> {
+pub(crate) fn record(screen_w: i32, screen_h: i32, draw: impl FnOnce(&GfxContext)) -> Vec<DrawOp> {
     let table = api(screen_w, screen_h, 1.0);
     // SAFETY: `table` outlives `ctx`, and every function in it is sound to call.
     let ctx = unsafe { GfxContext::from_raw(&table) };

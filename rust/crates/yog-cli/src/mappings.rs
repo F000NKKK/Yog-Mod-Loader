@@ -15,7 +15,7 @@ use yog_ids::mapping_ns;
 /// Mojang's classes joined with `rt`: each class and member by Mojang's
 /// name, renamed as `rt` names it (`keep_classes`: Forge keeps Mojang's
 /// class names at run time, renaming members only).
-pub fn join(
+pub(crate) fn join(
     mojang: &[proguard::Class],
     rt: &runtime::Runtime,
     runtime_ns: &str,

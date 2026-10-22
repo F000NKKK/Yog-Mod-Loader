@@ -30,11 +30,11 @@ mod screen;
 mod values;
 mod widget;
 
-pub use files::{
-    GENERATED_DIR, Generated, find_yui_files, generate_all, generate_file, generated_path,
-    include_name, is_book_page_file, project_root,
-};
-pub use screen::{generate_for, generate_with};
+pub(crate) use files::include_name;
+pub use files::{GENERATED_DIR, Generated, generate_all};
+pub use files::{find_yui_files, generate_file, project_root};
+pub use screen::generate_for;
+pub(crate) use screen::generate_with;
 pub use values::{HEX_MARK, color, const_name, pascal, set_resource_refs, text_expr};
 pub use yog_formats::yui::{Element, parse as parse_xml};
 
@@ -47,7 +47,7 @@ pub(crate) use values::{
 pub(crate) use widget::static_widget;
 
 #[cfg(test)]
-pub use screen::generate;
+pub(crate) use screen::generate;
 
 /// The import generated widget-building code starts with.
 pub(crate) const UI_USE: &str =

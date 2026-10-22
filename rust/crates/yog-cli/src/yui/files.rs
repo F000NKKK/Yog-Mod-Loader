@@ -103,7 +103,9 @@ pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
 
 /// What [`generate_all`] did: how many screens it read, what to warn of.
 pub struct Generated {
+    /// How many screens it read.
     pub screens: usize,
+    /// What to warn of.
     pub warnings: Vec<Diagnostic>,
 }
 

@@ -10,15 +10,15 @@ use crate::design::assets::Resources;
 use crate::design::project::mod_root;
 
 #[derive(yog_data::Schema)]
-pub struct TextureChoice {
+pub(crate) struct TextureChoice {
     /// What goes in the content file.
-    pub value: String,
+    pub(crate) value: String,
     /// "Resources", "Resource sets", "Mod assets", "Minecraft blocks", "Minecraft items".
-    pub group: Cow<'static, str>,
+    pub(crate) group: Cow<'static, str>,
 }
 
 /// The `@<Set>.<name>` texts of the mod's `.yres` files — the name/tooltip picker's choices.
-pub fn strings(file: &Path) -> Vec<String> {
+pub(crate) fn strings(file: &Path) -> Vec<String> {
     let mut out = Vec::new();
     let Some(root) = mod_root(file) else {
         return out;
@@ -99,7 +99,7 @@ fn definitions(
 }
 
 /// What a block's `sound` offers: the game's sound groups, then the mod's.
-pub fn sound_groups(file: &Path) -> Vec<String> {
+pub(crate) fn sound_groups(file: &Path) -> Vec<String> {
     definitions(
         file,
         "sound_group",
@@ -110,7 +110,7 @@ pub fn sound_groups(file: &Path) -> Vec<String> {
 }
 
 /// What a tool's `material` offers: the game's, then the mod's.
-pub fn tool_materials(file: &Path) -> Vec<String> {
+pub(crate) fn tool_materials(file: &Path) -> Vec<String> {
     definitions(
         file,
         "tool_material",
@@ -121,7 +121,7 @@ pub fn tool_materials(file: &Path) -> Vec<String> {
 }
 
 /// What an armor piece's `material` offers: the game's, then the mod's.
-pub fn armor_materials(file: &Path) -> Vec<String> {
+pub(crate) fn armor_materials(file: &Path) -> Vec<String> {
     definitions(
         file,
         "armor_material",
@@ -134,7 +134,7 @@ pub fn armor_materials(file: &Path) -> Vec<String> {
 /// What a `tags` list of content in `registry` (`item`, `block`) offers:
 /// the mod's own tags by bare name (as the build last listed them), then
 /// Yog's common tags.
-pub fn tags(file: &Path, registry: &str) -> Vec<String> {
+pub(crate) fn tags(file: &Path, registry: &str) -> Vec<String> {
     let mut out = Vec::new();
     if let Some(root) = mod_root(file) {
         let ns = crate::design::project::mod_id(&root).unwrap_or_default();
@@ -156,7 +156,7 @@ pub fn tags(file: &Path, registry: &str) -> Vec<String> {
 }
 
 /// Everything the texture picker offers.
-pub fn textures(file: &Path) -> Vec<TextureChoice> {
+pub(crate) fn textures(file: &Path) -> Vec<TextureChoice> {
     let mut out = Vec::new();
     let root = mod_root(file);
     if let Some(root) = &root {

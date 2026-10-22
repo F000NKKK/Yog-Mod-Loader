@@ -12,17 +12,17 @@ use crate::yres::problem;
 
 /// One `.yres` file.
 #[derive(Debug, Clone)]
-pub struct ResFile {
-    pub path: PathBuf,
-    pub entries: Vec<Entry>,
+pub(crate) struct ResFile {
+    pub(crate) path: PathBuf,
+    pub(crate) entries: Vec<Entry>,
 }
 
 /// A resource set: its neutral file and culture variants.
 #[derive(Debug, Clone)]
-pub struct Set {
-    pub name: String,
-    pub neutral: ResFile,
-    pub cultures: BTreeMap<String, ResFile>,
+pub(crate) struct Set {
+    pub(crate) name: String,
+    pub(crate) neutral: ResFile,
+    pub(crate) cultures: BTreeMap<String, ResFile>,
 }
 
 /// A `.yres` read: its set, its locale (none for the neutral file), the file.

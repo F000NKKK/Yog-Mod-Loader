@@ -13,20 +13,20 @@ mod data;
 mod error;
 mod media;
 
-pub use error::ServiceError;
+pub(crate) use error::ServiceError;
 
 use yog_data::Schema;
 
 /// What a tool asks: a method, and its parameters.
 #[derive(Debug, Clone, Schema)]
-pub struct Request {
-    pub method: String,
+pub(crate) struct Request {
+    pub(crate) method: String,
     #[data(default)]
-    pub params: yog_data::Value,
+    pub(crate) params: yog_data::Value,
 }
 
 /// The answer: the method's result, or what went wrong.
-pub type Reply = Result<yog_data::Value, ServiceError>;
+pub(crate) type Reply = Result<yog_data::Value, ServiceError>;
 
 /// Serves requests until stdin ends.
 pub fn run() -> Result<(), String> {
@@ -46,7 +46,7 @@ pub fn run() -> Result<(), String> {
 }
 
 /// `request` answered, in plain values.
-pub fn answer(request: &Request) -> Reply {
+pub(crate) fn answer(request: &Request) -> Reply {
     let (method, params) = (request.method.as_str(), &request.params);
     let reply = data::method(method, params)
         .or_else(|| media::method(method, params))

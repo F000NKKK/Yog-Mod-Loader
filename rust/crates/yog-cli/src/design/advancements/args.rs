@@ -12,34 +12,34 @@ use super::{Args, Node};
 
 /// One advancement as the editor hands it: its file's values as written.
 #[derive(Debug, Clone, yog_data::Schema)]
-pub struct NodeArgs {
+pub(crate) struct NodeArgs {
     /// Its id, namespaced.
-    pub id: String,
-    pub parent: Option<yog_data::Id<yog_data::kinds::Advancement>>,
+    pub(crate) id: String,
+    pub(crate) parent: Option<yog_data::Id<yog_data::kinds::Advancement>>,
     /// An item's or a block's (`@item:…`).
     #[data(with = "Opt<RefTo<(Item, Block)>>")]
-    pub icon: Option<String>,
+    pub(crate) icon: Option<String>,
     /// `task`, `goal` or `challenge` (none, or another: `task`).
-    pub frame: Option<String>,
-    pub title: Option<Text>,
-    pub description: Option<Text>,
+    pub(crate) frame: Option<String>,
+    pub(crate) title: Option<Text>,
+    pub(crate) description: Option<Text>,
     /// A root's background texture (`minecraft:textures/block/calcite.png`).
-    pub background: Option<String>,
+    pub(crate) background: Option<String>,
 }
 
 /// What to draw, as the editor hands it: every advancement of the mod
 /// (the one being edited as it's edited) — the tab drawn is `selected`'s.
 #[derive(Debug, Clone, yog_data::Schema)]
-pub struct AdvancementArgs {
-    pub path: String,
+pub(crate) struct AdvancementArgs {
+    pub(crate) path: String,
     /// The one being edited: its tab is drawn, it drawn as had.
-    pub selected: String,
-    pub nodes: Vec<NodeArgs>,
+    pub(crate) selected: String,
+    pub(crate) nodes: Vec<NodeArgs>,
     /// How far the reader dragged the tree, GUI pixels.
     #[data(default)]
-    pub drag: [f32; 2],
+    pub(crate) drag: [f32; 2],
     /// The advancement under the pointer.
-    pub hover: Option<String>,
+    pub(crate) hover: Option<String>,
 }
 
 /// The frames an advancement may have; the first is a missing or unknown one's.
@@ -47,7 +47,7 @@ const FRAMES: [&str; 3] = ["task", "goal", "challenge"];
 
 impl AdvancementArgs {
     /// `selected`'s tab, its texts as a reader of the mod sees them (the neutral locale).
-    pub fn resolved(&self) -> Args {
+    pub(crate) fn resolved(&self) -> Args {
         let root = super::super::mod_root(Path::new(&self.path));
         let res = Resources::for_mod(root.as_deref());
         let texts = super::super::book::texts(root.as_deref(), &res, None);

@@ -19,18 +19,18 @@ use super::raster::Canvas;
 use yog_gfx::Rect;
 
 /// A cube's textures per face: up, down, north, south, west, east.
-pub type Faces = [Option<Arc<Image>>; 6];
+pub(crate) type Faces = [Option<Arc<Image>>; 6];
 
 /// One box of a model, in sixteenths of a block: per face (up, down,
 /// north, south, west, east) its texture, already cut to the face's uv
 /// (`None`: the box has no such face), and the turns it's drawn with, in
 /// order (its element's, then its variant's).
 #[derive(Clone)]
-pub struct Cuboid {
-    pub from: [f32; 3],
-    pub to: [f32; 3],
-    pub faces: Faces,
-    pub turns: Vec<Turn>,
+pub(crate) struct Cuboid {
+    pub(crate) from: [f32; 3],
+    pub(crate) to: [f32; 3],
+    pub(crate) faces: Faces,
+    pub(crate) turns: Vec<Turn>,
 }
 
 /// A turn of a box about `axis` (0 x, 1 y, 2 z) through `origin`
@@ -38,11 +38,11 @@ pub struct Cuboid {
 /// axis; `rescale` stretches the turned box's other axes back to the block
 /// (an element's `rescale`).
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Turn {
-    pub origin: [f32; 3],
-    pub axis: usize,
-    pub degrees: f32,
-    pub rescale: bool,
+pub(crate) struct Turn {
+    pub(crate) origin: [f32; 3],
+    pub(crate) axis: usize,
+    pub(crate) degrees: f32,
+    pub(crate) rescale: bool,
 }
 
 /// A block's centre, in sixteenths: what a variant turns about.
@@ -83,13 +83,13 @@ impl Turn {
 }
 
 /// A block as drawn: its model's boxes.
-pub type Shape = Vec<Cuboid>;
+pub(crate) type Shape = Vec<Cuboid>;
 
 /// A whole-block cube with `faces` (a missing one: the missing texture).
 /// A unit cube's face: normal, corner offset, edges a and b, texture slot, shade.
 type CubeFace = ([i32; 3], [f32; 3], [f32; 3], [f32; 3], usize, f32);
 
-pub fn cube(faces: Faces) -> Shape {
+pub(crate) fn cube(faces: Faces) -> Shape {
     let faces = faces.map(|f| Some(f.unwrap_or_else(|| Arc::new(missing_image()))));
     vec![Cuboid {
         from: [0.0; 3],
@@ -104,7 +104,7 @@ const FACE_NAMES: [&str; 6] = [UP, DOWN, NORTH, SOUTH, WEST, EAST];
 /// The texture variables the game's block models draw each face with (in
 /// [`FACE_NAMES`] order), most particular first: a cube's `up`, a
 /// column's `end`, a `cube_all`'s `all`, a one-texture model's `texture`.
-pub const FACE_TEXTURES: [&[&str]; 6] = [
+pub(crate) const FACE_TEXTURES: [&[&str]; 6] = [
     &[UP, TOP, END, ALL, TEXTURE],
     &[DOWN, BOTTOM, END, ALL, TEXTURE],
     &[NORTH, FRONT, SIDE, ALL, TEXTURE],
@@ -170,7 +170,10 @@ fn cut(img: &Image, [u0, v0, u1, v1]: [f32; 4]) -> Image {
 }
 
 /// A model's `elements` as boxes; `texture("#var" or "var")` gives a face's texture.
-pub fn shape_of(elements: &[Value], texture: &mut dyn FnMut(&str) -> Option<Arc<Image>>) -> Shape {
+pub(crate) fn shape_of(
+    elements: &[Value],
+    texture: &mut dyn FnMut(&str) -> Option<Arc<Image>>,
+) -> Shape {
     let triple = |v: Option<&Value>| -> Option<[f32; 3]> {
         let a = v?.as_list()?;
         Some([
@@ -388,7 +391,7 @@ fn block_models(res: &Resources, state: &str) -> Vec<(String, Vec<Turn>)> {
 }
 
 /// Whether `id` is a block (the game's, or the mod's `.yblock`).
-pub fn is_block(res: &Resources, id: &str) -> bool {
+pub(crate) fn is_block(res: &Resources, id: &str) -> bool {
     let id = split_state(id).0;
     let (ns, path) = yog_ids::split(id);
     res.read(ns, &yog_ids::blockstate_file(path)).is_some()
@@ -491,7 +494,7 @@ fn parse(list: &str) -> Vec<([i32; 3], String)> {
         .collect()
 }
 
-pub fn draw(c: &mut Canvas, list: &str, rect: Rect, yaw: f32, pitch: f32) {
+pub(crate) fn draw(c: &mut Canvas, list: &str, rect: Rect, yaw: f32, pitch: f32) {
     let mut cache = HashMap::new();
     draw_with(c, &parse(list), rect, (yaw, pitch), |res, id| {
         shape(res, id, &mut cache)
@@ -499,7 +502,7 @@ pub fn draw(c: &mut Canvas, list: &str, rect: Rect, yaw: f32, pitch: f32) {
 }
 
 /// One cube with its own `faces` (a mob's head, say), as [`draw`] draws a block.
-pub fn draw_cube(c: &mut Canvas, faces: Faces, rect: Rect, yaw: f32, pitch: f32) {
+pub(crate) fn draw_cube(c: &mut Canvas, faces: Faces, rect: Rect, yaw: f32, pitch: f32) {
     draw_with(
         c,
         &[([0, 0, 0], String::new())],

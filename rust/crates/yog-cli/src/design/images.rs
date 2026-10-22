@@ -35,7 +35,7 @@ thread_local! {
 /// `[mod] id` from `<root>/yog.toml`.
 /// The `.yui` being laid out and drawn: its mod's resources (images, fonts)
 /// and id (for `mod:` sources). Set before every layout.
-pub fn set_document(mod_root: Option<&Path>) {
+pub(crate) fn set_document(mod_root: Option<&Path>) {
     let doc = Doc {
         res: Resources::for_mod(mod_root),
         mod_id: mod_root.and_then(crate::design::project::mod_id),
@@ -44,7 +44,7 @@ pub fn set_document(mod_root: Option<&Path>) {
 }
 
 /// The current document's resources (vanilla only without one).
-pub fn resources() -> Resources {
+pub(crate) fn resources() -> Resources {
     DOC.with(|d| d.borrow().as_ref().map(|d| d.res.clone()))
         .unwrap_or_else(|| Resources::for_mod(None))
 }
@@ -55,7 +55,7 @@ fn with_doc<R>(f: impl FnOnce(Option<&Doc>) -> R) -> R {
 
 /// `mod:<path>` → `<mod id>:<path>` (what `yog build` writes into the
 /// generated code); other sources unchanged.
-pub fn resolve_mod(source: &str) -> String {
+pub(crate) fn resolve_mod(source: &str) -> String {
     let source = source.trim();
     match source.strip_prefix("mod:") {
         Some(path) => match with_doc(|d| d.and_then(|d| d.mod_id.clone())) {
@@ -67,7 +67,7 @@ pub fn resolve_mod(source: &str) -> String {
 }
 
 /// `stretch` attribute → [`Stretch`] (case-insensitive, like `yog build`).
-pub fn stretch(v: &str) -> Stretch {
+pub(crate) fn stretch(v: &str) -> Stretch {
     Stretch::parse(v).unwrap_or_default()
 }
 
@@ -84,7 +84,7 @@ fn uv(v: &str) -> Option<Rect> {
 
 /// The widget for an `<Image>` — what the generated code builds: `source`,
 /// `stretch`, `uv`, `tint`.
-pub fn widget(node: &YuiNode) -> Widget {
+pub(crate) fn widget(node: &YuiNode) -> Widget {
     let a = |k: &str| node.attr(k);
     let source = a(yog_ids::yui_attr::SOURCE).unwrap_or_default();
     let mut w = widget::image(resolve_mod(source));
@@ -222,7 +222,7 @@ const HEAD_MARGIN: f32 = 0.1;
 
 /// Natural size of `source` in GUI pixels (`image_size`); `None` when it
 /// can't be resolved.
-pub fn source_size(source: &str) -> Option<Vec2> {
+pub(crate) fn source_size(source: &str) -> Option<Vec2> {
     match ImageSource::parse(source)? {
         ImageSource::Item(_) | ImageSource::Block(_) => {
             Some(Vec2::new(yog_ui::ICON_SIZE, yog_ui::ICON_SIZE))
@@ -351,7 +351,7 @@ fn svg_document(id: &str) -> Option<String> {
 }
 
 /// `draw2d_svg`: `data` into `dest`.
-pub fn draw_svg(c: &mut Canvas, data: &str, dest: Rect, t: Color) {
+pub(crate) fn draw_svg(c: &mut Canvas, data: &str, dest: Rect, t: Color) {
     if dest.w <= 0.0 || dest.h <= 0.0 {
         return;
     }
@@ -367,7 +367,7 @@ const ENTITY_EGG_MAX: f32 = 2.0 * yog_ui::ICON_SIZE;
 
 /// `draw2d_entity`: the designer has no entity models — the entity's spawn
 /// egg, in the middle of its box.
-pub fn draw_entity(c: &mut Canvas, entity: &str, area: Rect) {
+pub(crate) fn draw_entity(c: &mut Canvas, entity: &str, area: Rect) {
     let (ns, path) = yog_ids::split(entity);
     let side = area.w.min(area.h).min(ENTITY_EGG_MAX);
     let dest = Rect::new(
@@ -388,7 +388,7 @@ pub fn draw_entity(c: &mut Canvas, entity: &str, area: Rect) {
 
 /// `draw2d_image`: `source` into `dest` (`x y w h`, already fitted by
 /// yog-ui); `region` `u v w h` in image pixels (`w <= 0`: whole image).
-pub fn draw(c: &mut Canvas, source: &str, dest: Rect, region: Rect, t: Color) {
+pub(crate) fn draw(c: &mut Canvas, source: &str, dest: Rect, region: Rect, t: Color) {
     if dest.w <= 0.0 || dest.h <= 0.0 {
         return;
     }
@@ -446,17 +446,17 @@ pub fn draw(c: &mut Canvas, source: &str, dest: Rect, region: Rect, t: Color) {
 
 /// An alias the Properties picker offers.
 #[derive(Debug, Clone, yog_data::Schema)]
-pub struct Candidate {
+pub(crate) struct Candidate {
     /// The source to write (`item:apple`, `sprite:button`, `mod:gui/logo`).
-    pub source: String,
+    pub(crate) source: String,
     /// `item`, `block`, `sprite` or `mod`.
-    pub group: String,
-    pub detail: String,
+    pub(crate) group: String,
+    pub(crate) detail: String,
 }
 
 /// Everything the `source` picker offers for the `.yui` at `path`: the
 /// mod's own textures, the sprite table, then the game's items and blocks.
-pub fn candidates(path: &Path) -> Vec<Candidate> {
+pub(crate) fn candidates(path: &Path) -> Vec<Candidate> {
     let root = super::mod_root(path);
     let mut out = Vec::new();
     if let Some(root) = &root {
@@ -493,12 +493,12 @@ pub fn candidates(path: &Path) -> Vec<Candidate> {
 /// drawn) and, for a raw resource path (`minecraft:textures/item/apple.png`),
 /// the alias to write instead (`item:apple`) — which is also what's drawn.
 #[derive(yog_data::Schema)]
-pub struct Preview {
-    pub url: Option<String>,
-    pub alias: Option<String>,
+pub(crate) struct Preview {
+    pub(crate) url: Option<String>,
+    pub(crate) alias: Option<String>,
 }
 
-pub fn preview(path: &Path, source: &str, size: u32) -> Preview {
+pub(crate) fn preview(path: &Path, source: &str, size: u32) -> Preview {
     let alias = yog_gfx::image::suggest_alias(source);
     let url = draw_preview(path, alias.as_deref().unwrap_or(source), size);
     Preview { url, alias }

@@ -5,19 +5,19 @@ use std::collections::HashMap;
 
 /// A member by Mojang's names: its name and, for a method, descriptor.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Named {
-    pub name: String,
+pub(crate) struct Named {
+    pub(crate) name: String,
     /// A method's descriptor in Mojang's names; empty for a field.
-    pub desc: String,
+    pub(crate) desc: String,
 }
 
 /// A class: its obfuscated name and its members' (internal names).
 #[derive(Debug, Default)]
-pub struct Class {
-    pub named: String,
-    pub obf: String,
-    pub fields: Vec<(Named, String)>,
-    pub methods: Vec<(Named, String)>,
+pub(crate) struct Class {
+    pub(crate) named: String,
+    pub(crate) obf: String,
+    pub(crate) fields: Vec<(Named, String)>,
+    pub(crate) methods: Vec<(Named, String)>,
 }
 
 /// What separates a name from its obfuscated one.
@@ -28,12 +28,12 @@ const CLASS_END: char = ':';
 const COMMENT: char = '#';
 
 /// `java.lang.String` → `java/lang/String`.
-pub fn internal(dotted: &str) -> String {
+pub(crate) fn internal(dotted: &str) -> String {
     dotted.replace('.', "/")
 }
 
 /// A Java type as written (`int[]`, `net.minecraft.Foo`) → its descriptor.
-pub fn type_desc(ty: &str) -> String {
+pub(crate) fn type_desc(ty: &str) -> String {
     let (base, dims) = match ty.find('[') {
         Some(at) => (&ty[..at], (ty.len() - at) / 2),
         None => (ty, 0),
@@ -72,7 +72,7 @@ fn method(sig: &str) -> Option<Named> {
 }
 
 /// Every class of `text`.
-pub fn parse(text: &str) -> Vec<Class> {
+pub(crate) fn parse(text: &str) -> Vec<Class> {
     let mut out: Vec<Class> = Vec::new();
     for line in text.lines() {
         if line.starts_with(COMMENT) || line.trim().is_empty() {
@@ -109,7 +109,7 @@ pub fn parse(text: &str) -> Vec<Class> {
 }
 
 /// Named class → obfuscated, for descriptors.
-pub fn class_map(classes: &[Class]) -> HashMap<&str, &str> {
+pub(crate) fn class_map(classes: &[Class]) -> HashMap<&str, &str> {
     classes
         .iter()
         .map(|c| (c.named.as_str(), c.obf.as_str()))
@@ -117,7 +117,7 @@ pub fn class_map(classes: &[Class]) -> HashMap<&str, &str> {
 }
 
 /// `desc` (Mojang's names) with its classes renamed by `map`.
-pub fn remap_desc(desc: &str, map: &HashMap<&str, &str>) -> String {
+pub(crate) fn remap_desc(desc: &str, map: &HashMap<&str, &str>) -> String {
     let mut out = String::with_capacity(desc.len());
     let mut rest = desc;
     while let Some(at) = rest.find('L') {

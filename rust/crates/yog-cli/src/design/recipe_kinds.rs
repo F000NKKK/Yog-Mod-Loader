@@ -24,33 +24,33 @@ const SCALE: u32 = 3;
 
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct Slot {
-    pub name: String,
+pub(crate) struct Slot {
+    pub(crate) name: String,
     /// What editors call it; `name` if none.
-    pub label: Option<String>,
-    pub description: Option<String>,
-    pub max: u32,
-    pub required: bool,
+    pub(crate) label: Option<String>,
+    pub(crate) description: Option<String>,
+    pub(crate) max: u32,
+    pub(crate) required: bool,
     /// The game's kinds: the `.yrecipe` field it's written in.
-    pub field: Option<String>,
+    pub(crate) field: Option<String>,
     /// Its places are a crafting grid's (`pattern` and `key`).
-    pub grid: bool,
+    pub(crate) grid: bool,
 }
 
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct ValueSpec {
-    pub name: String,
+pub(crate) struct ValueSpec {
+    pub(crate) name: String,
     /// `number`, `text` or `bool` — the format's word for its type.
-    pub kind: String,
+    pub(crate) kind: String,
     /// What it is when a recipe doesn't say.
-    pub default: Option<f64>,
+    pub(crate) default: Option<f64>,
 }
 
 /// Something the editor puts on the picture, in GUI pixels.
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase", tag = "type")]
-pub enum Spot {
+pub(crate) enum Spot {
     /// The `index`-th ingredient of `slot`.
     Slot {
         slot: String,
@@ -72,27 +72,27 @@ pub enum Spot {
 
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct Layout {
+pub(crate) struct Layout {
     /// The `.yui` it's laid out in; empty for a built-in layout.
-    pub file: String,
-    pub size: [f32; 2],
+    pub(crate) file: String,
+    pub(crate) size: [f32; 2],
     /// The picture, `SCALE`× GUI pixels, `data:image/png;base64,…`.
-    pub image: Option<String>,
-    pub scale: u32,
-    pub spots: Vec<Spot>,
+    pub(crate) image: Option<String>,
+    pub(crate) scale: u32,
+    pub(crate) spots: Vec<Spot>,
 }
 
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct Kind {
-    pub id: String,
+pub(crate) struct Kind {
+    pub(crate) id: String,
     /// What editors call it; the id's path if none.
-    pub label: Option<String>,
+    pub(crate) label: Option<String>,
     /// The `.ydef` that declares it; empty for the game's.
-    pub file: String,
-    pub slots: Vec<Slot>,
-    pub values: Vec<ValueSpec>,
-    pub layout: Option<Layout>,
+    pub(crate) file: String,
+    pub(crate) slots: Vec<Slot>,
+    pub(crate) values: Vec<ValueSpec>,
+    pub(crate) layout: Option<Layout>,
 }
 
 /// The fields every `.yrecipe` has, by the names the format gives them
@@ -100,27 +100,27 @@ pub struct Kind {
 /// recipes with these.
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct Fields {
+pub(crate) struct Fields {
     #[data(rename = "type")]
-    pub kind: Cow<'static, str>,
-    pub result: Cow<'static, str>,
-    pub count: Cow<'static, str>,
-    pub slots: Cow<'static, str>,
-    pub values: Cow<'static, str>,
-    pub pattern: Cow<'static, str>,
-    pub key: Cow<'static, str>,
-    pub grid_side: usize,
+    pub(crate) kind: Cow<'static, str>,
+    pub(crate) result: Cow<'static, str>,
+    pub(crate) count: Cow<'static, str>,
+    pub(crate) slots: Cow<'static, str>,
+    pub(crate) values: Cow<'static, str>,
+    pub(crate) pattern: Cow<'static, str>,
+    pub(crate) key: Cow<'static, str>,
+    pub(crate) grid_side: usize,
 }
 
 /// Every kind the editor knows for the mod at `root`, and the fields.
 #[derive(Debug, yog_data::Schema)]
-pub struct Kinds {
-    pub game: Vec<Kind>,
-    pub own: Vec<Kind>,
-    pub fields: Fields,
+pub(crate) struct Kinds {
+    pub(crate) game: Vec<Kind>,
+    pub(crate) own: Vec<Kind>,
+    pub(crate) fields: Fields,
 }
 
-pub const FIELDS: Fields = Fields {
+pub(crate) const FIELDS: Fields = Fields {
     kind: Cow::Borrowed(fields::TYPE),
     result: Cow::Borrowed(fields::RESULT),
     count: Cow::Borrowed(fields::COUNT),
@@ -132,7 +132,7 @@ pub const FIELDS: Fields = Fields {
 };
 
 /// The kinds for the mod at `root` (none of the mod's without one).
-pub fn all(root: Option<&Path>) -> Kinds {
+pub(crate) fn all(root: Option<&Path>) -> Kinds {
     Kinds {
         game: root.map(game_kinds).unwrap_or_default(),
         own: root.map(kinds).unwrap_or_default(),
@@ -142,7 +142,7 @@ pub fn all(root: Option<&Path>) -> Kinds {
 
 /// The game's kinds, as books show them: their built-in layouts, or the
 /// mod's own `recipe_layout` for one.
-pub fn game_kinds(root: &Path) -> Vec<Kind> {
+pub(crate) fn game_kinds(root: &Path) -> Vec<Kind> {
     let layouts = crate::design::mod_ui::recipe_layouts(root);
     recipe_kinds::GAME
         .iter()
@@ -151,7 +151,7 @@ pub fn game_kinds(root: &Path) -> Vec<Kind> {
 }
 
 /// The kinds the mod at `root` declares, by id.
-pub fn kinds(root: &Path) -> Vec<Kind> {
+pub(crate) fn kinds(root: &Path) -> Vec<Kind> {
     let ns = crate::design::project::mod_id(root).unwrap_or_default();
     let files = crate::files::of(&root.join(yog_ids::project::CONTENT), Format::Def);
     let layouts = crate::design::mod_ui::recipe_layouts(root);
@@ -286,7 +286,7 @@ const LAYOUT_SUFFIX: &str = "_layout";
 /// Makes a new kind of recipe in the mod of `file` — `content/<name>.ydef`
 /// (its slots and values) and `src/ui/<name>_layout.yui` (how it's shown);
 /// the layout's path, to open in the designer.
-pub fn create(file: &Path, name: &str) -> Result<PathBuf, String> {
+pub(crate) fn create(file: &Path, name: &str) -> Result<PathBuf, String> {
     let root = super::mod_root(file).ok_or("not inside a mod")?;
     let name = name.trim();
     if !yog_ids::valid_name(name) {
@@ -316,7 +316,7 @@ pub fn create(file: &Path, name: &str) -> Result<PathBuf, String> {
 }
 
 /// A new kind's `.ydef`: two slots and a value to start from.
-pub fn template(id: &str) -> String {
+pub(crate) fn template(id: &str) -> String {
     format!(
         r#"{{
   kind: "recipe_kind",
@@ -335,7 +335,7 @@ pub fn template(id: &str) -> String {
 
 /// A new kind's layout (`src/ui/<id>_layout.yui`), for the screen designer:
 /// the template's slots framed, the result, its time.
-pub fn layout_template(id: &str) -> String {
+pub(crate) fn layout_template(id: &str) -> String {
     // What the designer shows in them: the game's ore and its ingot.
     let (input, result) = (yog_ids::qualify("iron_ore"), yog_ids::qualify("iron_ingot"));
     format!(

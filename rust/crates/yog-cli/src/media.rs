@@ -15,41 +15,41 @@ use yog_ids::Format;
 
 /// One picture of a `.yres` set.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Picture {
+pub(crate) struct Picture {
     /// Its set (`Images` for `Images.yres`) and name: `@Images.gui.logo`.
-    pub set: String,
-    pub name: String,
+    pub(crate) set: String,
+    pub(crate) name: String,
     /// The `.yres` file it's in.
-    pub file: PathBuf,
+    pub(crate) file: PathBuf,
     /// The picture, as stored.
-    pub bytes: Arc<Vec<u8>>,
+    pub(crate) bytes: Arc<Vec<u8>>,
 }
 
 impl Picture {
     /// Its path under the mod's textures, as the build writes it: `gui.logo` → `gui/logo`.
-    pub fn path(&self) -> String {
+    pub(crate) fn path(&self) -> String {
         self.name.replace('.', yog_ids::sep::PATH)
     }
 }
 
 /// One of the mod's textures.
 #[derive(Debug, Clone)]
-pub struct Texture {
-    pub id: String,
+pub(crate) struct Texture {
+    pub(crate) id: String,
     /// Its `.ytexture`.
-    pub file: PathBuf,
-    pub texture: TextureFile,
+    pub(crate) file: PathBuf,
+    pub(crate) texture: TextureFile,
 }
 
 impl Texture {
     /// Its picture, when its `.yres` has it.
-    pub fn picture(&self, root: &Path) -> Option<Picture> {
+    pub(crate) fn picture(&self, root: &Path) -> Option<Picture> {
         picture(root, &self.texture.image.set, &self.texture.image.key)
     }
 }
 
 /// The id of the mod at `root` (its manifest's).
-pub fn mod_id(root: &Path) -> Option<String> {
+pub(crate) fn mod_id(root: &Path) -> Option<String> {
     crate::manifest::YogToml::read(&root.join(yog_ids::file::MANIFEST))
         .ok()
         .map(|m| m.id)
@@ -93,7 +93,7 @@ fn pictures_of(file: &Path, set: &str) -> Arc<Vec<Picture>> {
 }
 
 /// Every picture of the mod at `root`.
-pub fn pictures(root: &Path) -> Vec<Picture> {
+pub(crate) fn pictures(root: &Path) -> Vec<Picture> {
     let mut out = Vec::new();
     for file in crate::files::with_ext(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
         // A culture variant (`Images.ru_ru.yres`) has no pictures of its own.
@@ -110,7 +110,7 @@ pub fn pictures(root: &Path) -> Vec<Picture> {
 }
 
 /// Picture `@<set>.<name>` of the mod at `root`.
-pub fn picture(root: &Path, set: &str, name: &str) -> Option<Picture> {
+pub(crate) fn picture(root: &Path, set: &str, name: &str) -> Option<Picture> {
     let file = root
         .join(yog_ids::project::RESOURCES)
         .join(Format::Res.file(set));
@@ -122,7 +122,12 @@ pub fn picture(root: &Path, set: &str, name: &str) -> Option<Picture> {
 
 /// Writes `bytes` as picture `@<set>.<name>` of the mod at `root` (the
 /// set's file made when there's none); the file written.
-pub fn save_picture(root: &Path, set: &str, name: &str, bytes: Vec<u8>) -> Result<PathBuf, String> {
+pub(crate) fn save_picture(
+    root: &Path,
+    set: &str,
+    name: &str,
+    bytes: Vec<u8>,
+) -> Result<PathBuf, String> {
     let file = root
         .join(yog_ids::project::RESOURCES)
         .join(Format::Res.file(set));
@@ -153,7 +158,7 @@ fn texture_file(root: &Path, id: &str) -> Option<PathBuf> {
 }
 
 /// Texture `id` of the mod at `root`, when it has a `.ytexture`.
-pub fn texture(root: &Path, id: &str) -> Option<Texture> {
+pub(crate) fn texture(root: &Path, id: &str) -> Option<Texture> {
     let file = texture_file(root, id)?;
     let texture = yog_data::from_text::<TextureFile>(&crate::files::read_source(&file).ok()?)
         .ok()?
@@ -166,7 +171,7 @@ pub fn texture(root: &Path, id: &str) -> Option<Texture> {
 }
 
 /// Every texture of the mod at `root`.
-pub fn textures(root: &Path) -> Vec<Texture> {
+pub(crate) fn textures(root: &Path) -> Vec<Texture> {
     let Some(ns) = mod_id(root) else {
         return Vec::new();
     };
@@ -185,14 +190,14 @@ pub fn textures(root: &Path) -> Vec<Texture> {
 }
 
 /// Whether texture `id` is the mod's own (it can be painted in place, or added).
-pub fn is_own_texture(root: &Path, id: &str) -> bool {
+pub(crate) fn is_own_texture(root: &Path, id: &str) -> bool {
     texture_file(root, id).is_some()
 }
 
 /// Writes `png` as texture `id`'s picture: into the `.yres` picture its
 /// `.ytexture` names, or — a new texture — into the set its folder's
 /// pictures go in, with a `.ytexture` naming it. The `.yres` written.
-pub fn save_texture_picture(root: &Path, id: &str, png: Vec<u8>) -> Result<PathBuf, String> {
+pub(crate) fn save_texture_picture(root: &Path, id: &str, png: Vec<u8>) -> Result<PathBuf, String> {
     let file = texture_file(root, id).ok_or_else(|| format!("{id} isn't a texture of this mod"))?;
     if let Some(own) = texture(root, id) {
         return save_picture(root, &own.texture.image.set, &own.texture.image.key, png);
@@ -215,7 +220,7 @@ pub fn save_texture_picture(root: &Path, id: &str, png: Vec<u8>) -> Result<PathB
 }
 
 /// Sets texture `id`'s animation (`None`: still); the `.ytexture` written.
-pub fn save_texture_animation(
+pub(crate) fn save_texture_animation(
     root: &Path,
     id: &str,
     animation: Option<Animation>,
@@ -239,7 +244,7 @@ fn write_texture(file: &Path, texture: &TextureFile) -> Result<(), String> {
 /// — a texture's PNG or `.png.mcmeta` (a `.ytexture`'s picture and
 /// animation, else a `.yres` picture of that path) — `None` when the build
 /// makes none there.
-pub fn built_asset(root: &Path, ns: &str, path: &str) -> Option<Vec<u8>> {
+pub(crate) fn built_asset(root: &Path, ns: &str, path: &str) -> Option<Vec<u8>> {
     if mod_id(root)? != ns {
         return None;
     }

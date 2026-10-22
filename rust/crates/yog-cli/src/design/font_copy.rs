@@ -10,14 +10,14 @@ use super::project;
 
 /// The mod's copy of a game font: its id, and its file.
 #[derive(yog_data::Schema)]
-pub struct Copy {
-    pub id: String,
-    pub file: PathBuf,
+pub(crate) struct Copy {
+    pub(crate) id: String,
+    pub(crate) file: PathBuf,
 }
 
 /// The mod (of `file`)'s copy of the game font `alias` names, made first
 /// if it has none.
-pub fn copy(file: &Path, alias: &str) -> Result<Copy, String> {
+pub(crate) fn copy(file: &Path, alias: &str) -> Result<Copy, String> {
     let root = project::mod_root(file).ok_or("not in a mod (no yog.toml)")?;
     let mod_id = project::mod_id(&root).ok_or("the mod has no id")?;
     let game = yog_ids::game_font_of(alias)

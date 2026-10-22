@@ -86,7 +86,7 @@ pub(crate) fn apply_theme(el: &mut Element, theme: &yog_ui::theme::Theme) {
 /// path under `src/` without the extension (`mod_list`, `screens/options`):
 /// what the code-behind passes to `ui_include!`.
 #[cfg(test)]
-pub fn generate(src: &str, name: &str) -> Result<String, Diagnostic> {
+pub(crate) fn generate(src: &str, name: &str) -> Result<String, Diagnostic> {
     generate_for(src, name, None).map(|(code, _)| code)
 }
 
@@ -102,7 +102,7 @@ pub fn generate_for(
 
 /// [`generate_for`] with the mod's recipe layouts, for `<RecipeArea>`s:
 /// a component's code, a view-model screen's, or a plain screen's.
-pub fn generate_with(
+pub(crate) fn generate_with(
     src: &str,
     name: &str,
     mod_id: Option<&str>,

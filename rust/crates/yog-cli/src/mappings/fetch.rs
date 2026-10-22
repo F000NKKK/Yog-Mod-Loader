@@ -75,7 +75,7 @@ fn json(url: &str) -> Result<Value, String> {
 }
 
 /// Mojang's mappings of `mc`'s client (ProGuard's text).
-pub fn mojang(mc: &str) -> Result<String, String> {
+pub(crate) fn mojang(mc: &str) -> Result<String, String> {
     cached(&format!("{mc}.mojang.txt"), || {
         let manifest = json(MOJANG_MANIFEST)?;
         let version = manifest
@@ -103,7 +103,7 @@ pub fn mojang(mc: &str) -> Result<String, String> {
 }
 
 /// Fabric's intermediary of `mc` (tiny v2).
-pub fn intermediary(mc: &str) -> Result<String, String> {
+pub(crate) fn intermediary(mc: &str) -> Result<String, String> {
     cached(&format!("{mc}.intermediary.tiny"), || {
         zip_entry(
             &format!("{INTERMEDIARY_BASE}/{mc}/intermediary-{mc}-v2.jar"),
@@ -113,7 +113,7 @@ pub fn intermediary(mc: &str) -> Result<String, String> {
 }
 
 /// Forge's SRG of `mc` (tsrg2), from MCPConfig's latest build for it.
-pub fn srg(mc: &str) -> Result<String, String> {
+pub(crate) fn srg(mc: &str) -> Result<String, String> {
     cached(&format!("{mc}.srg.tsrg"), || {
         let metadata = text(&format!("{MCP_BASE}/{MCP_METADATA}"))?;
         let prefix = format!("{mc}-");

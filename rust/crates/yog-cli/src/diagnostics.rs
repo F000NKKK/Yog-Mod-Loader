@@ -56,7 +56,7 @@ pub fn reported(d: Diagnostic) -> String {
 }
 
 /// Reports every one of `ds`.
-pub fn report_all<'d>(ds: impl IntoIterator<Item = &'d Diagnostic>) {
+pub(crate) fn report_all<'d>(ds: impl IntoIterator<Item = &'d Diagnostic>) {
     for d in ds {
         report(d);
     }
@@ -77,7 +77,7 @@ fn append(path: &Path, d: &Diagnostic) -> std::io::Result<()> {
 
 /// Runs `command` (a `yog` one) with its diagnostics written to a file of
 /// its own: how it went, and what it reported.
-pub fn collected(
+pub(crate) fn collected(
     command: &mut std::process::Command,
 ) -> std::io::Result<(std::process::Output, Vec<Diagnostic>)> {
     static RUNS: AtomicUsize = AtomicUsize::new(0);
@@ -94,7 +94,7 @@ pub fn collected(
 const FEED_PREFIX: &str = "yog-diagnostics-";
 
 /// Every record in the file at `path` (none when there's no file).
-pub fn read_all(path: &Path) -> Vec<Diagnostic> {
+pub(crate) fn read_all(path: &Path) -> Vec<Diagnostic> {
     let Ok(bytes) = std::fs::read(path) else {
         return Vec::new();
     };
@@ -107,7 +107,7 @@ pub fn read_all(path: &Path) -> Vec<Diagnostic> {
 }
 
 /// `ds` as the text says them, one a line, indented under a heading.
-pub fn listed(ds: &[Diagnostic]) -> String {
+pub(crate) fn listed(ds: &[Diagnostic]) -> String {
     let lines: Vec<String> = ds.iter().map(ToString::to_string).collect();
     lines.join(LIST_SEP)
 }

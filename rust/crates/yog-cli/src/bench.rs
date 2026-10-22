@@ -42,7 +42,7 @@ const ATTRIBUTE: &str = "#[yog_api::bench]";
 
 /// What a benchmark function takes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Takes {
+pub(crate) enum Takes {
     /// `&mut Bencher` — one benchmark, `b.iter(...)`.
     Bencher,
     /// `&mut Criterion` — the function registers its own.
@@ -52,8 +52,8 @@ pub enum Takes {
 /// One `benches/<name>.rs` file and its `#[yog_api::bench]` functions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchFile {
-    pub name: String,
-    pub functions: Vec<(String, Takes)>,
+    pub(crate) name: String,
+    pub(crate) functions: Vec<(String, Takes)>,
 }
 
 /// A problem with a benchmark file.
@@ -91,7 +91,7 @@ pub fn discover(root: &Path) -> Result<Vec<BenchFile>, Diagnostic> {
 }
 
 /// The `#[yog_api::bench]` functions of a benchmark file, in source order.
-pub fn functions(source: &str) -> Result<Vec<(String, Takes)>, Diagnostic> {
+pub(crate) fn functions(source: &str) -> Result<Vec<(String, Takes)>, Diagnostic> {
     let mut out = Vec::new();
     let mut rest = source;
     while let Some(at) = rest.find(ATTRIBUTE) {
@@ -130,7 +130,7 @@ pub fn functions(source: &str) -> Result<Vec<(String, Takes)>, Diagnostic> {
 }
 
 /// The generated `main` of one benchmark file.
-pub fn main_source(file: &BenchFile) -> String {
+pub(crate) fn main_source(file: &BenchFile) -> String {
     let mut calls = String::new();
     for (function, takes) in &file.functions {
         calls.push_str(&match takes {
@@ -179,7 +179,7 @@ pub fn write_sources(root: &Path, files: &[BenchFile]) -> Result<(), String> {
 
 /// The generated Cargo.toml's `[dev-dependencies]` — `test_deps` (the
 /// mod's tests' own), and with benchmarks theirs — and `[[bench]]` targets.
-pub fn cargo_sections(meta: &YogToml, files: &[BenchFile], test_deps: &[String]) -> String {
+pub(crate) fn cargo_sections(meta: &YogToml, files: &[BenchFile], test_deps: &[String]) -> String {
     if files.is_empty() && test_deps.is_empty() {
         return String::new();
     }

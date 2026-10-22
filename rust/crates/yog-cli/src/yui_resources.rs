@@ -10,10 +10,10 @@ use yog_ids::sep::TYPED;
 use yog_ids::{yui, yui_attr};
 
 /// One element of the resources: its kind, line and attributes.
-pub struct Entry<'a> {
-    pub kind: &'a str,
-    pub line: usize,
-    pub attrs: Vec<(&'a str, &'a str)>,
+pub(crate) struct Entry<'a> {
+    pub(crate) kind: &'a str,
+    pub(crate) line: usize,
+    pub(crate) attrs: Vec<(&'a str, &'a str)>,
 }
 
 impl Entry<'_> {
@@ -24,10 +24,10 @@ impl Entry<'_> {
 
 /// A screen's values and styles; the problems reading them.
 #[derive(Default)]
-pub struct Resources {
-    pub values: HashMap<String, String>,
-    pub styles: HashMap<String, Vec<(String, String)>>,
-    pub problems: Vec<Diagnostic>,
+pub(crate) struct Resources {
+    pub(crate) values: HashMap<String, String>,
+    pub(crate) styles: HashMap<String, Vec<(String, String)>>,
+    pub(crate) problems: Vec<Diagnostic>,
 }
 
 /// A problem with the resources at `line`.
@@ -37,7 +37,7 @@ fn problem(line: usize, message: impl std::fmt::Display) -> Diagnostic {
 
 /// The resource `v` names (`@Accent` → `Accent`); none for anything else
 /// (`@@x`, `@Set.key`, words).
-pub fn local_name(v: &str) -> Option<&str> {
+pub(crate) fn local_name(v: &str) -> Option<&str> {
     v.strip_prefix(TYPED)
         .filter(|n| !n.is_empty() && !n.starts_with(TYPED) && !n.contains('.'))
 }
@@ -48,7 +48,7 @@ const STYLE_ONLY: [&str; 3] = [yui_attr::X_KEY, yui_attr::TARGET, yui_attr::BASE
 impl Resources {
     /// The resources of `entries`: values first, then styles, their
     /// `based_on` chains in any order.
-    pub fn read(entries: &[Entry]) -> Resources {
+    pub(crate) fn read(entries: &[Entry]) -> Resources {
         let mut out = Resources::default();
         let mut pending: Vec<&Entry> = Vec::new();
         for r in entries {

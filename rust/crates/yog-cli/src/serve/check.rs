@@ -6,13 +6,13 @@ use yog_data::{Diagnostic, Schema};
 
 /// What [`check`] found.
 #[derive(Debug, Default, Schema)]
-pub struct Checked {
-    pub problems: Vec<Diagnostic>,
+pub(crate) struct Checked {
+    pub(crate) problems: Vec<Diagnostic>,
 }
 
 /// The text of the file at `path` (unsaved, as edited), checked: a syntax
 /// error, or what its format finds (none for a format it doesn't know).
-pub fn check(path: &str, text: &str) -> Checked {
+pub(crate) fn check(path: &str, text: &str) -> Checked {
     let doc = match yog_data::text::parse(text) {
         Ok(doc) => doc,
         Err(e) => {

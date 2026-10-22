@@ -14,18 +14,18 @@ use crate::yui::const_name;
 /// Where the editor should go.
 #[derive(Debug, PartialEq, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct HandlerLocation {
-    pub path: String,
+pub(crate) struct HandlerLocation {
+    pub(crate) path: String,
     /// 1-based.
-    pub line: usize,
+    pub(crate) line: usize,
     /// 1-based.
-    pub column: usize,
+    pub(crate) column: usize,
     /// The file was written (created or a handler added).
-    pub changed: bool,
+    pub(crate) changed: bool,
 }
 
 /// A Rust fn name for an event: `play`, `mymod:btn-play` → `mymod_btn_play`.
-pub fn handler_name(event: &str) -> String {
+pub(crate) fn handler_name(event: &str) -> String {
     let name = const_name(event).to_lowercase();
     let name = name.trim_start_matches('_');
     if name.is_empty() {
@@ -36,7 +36,7 @@ pub fn handler_name(event: &str) -> String {
 }
 
 /// `foo.yui` → `foo.rs` beside it.
-pub fn code_behind_path(yui: &Path) -> PathBuf {
+pub(crate) fn code_behind_path(yui: &Path) -> PathBuf {
     yui.with_extension("rs")
 }
 
@@ -210,7 +210,7 @@ fn line_start(src: &str, line: usize) -> usize {
 /// Adds (or finds) the handler for `event` in `src`; `None` when there's no
 /// event `match` to add an arm to. Returns the new text and the 1-based
 /// line/column of the handler's body (or the existing arm).
-pub fn add_handler(src: &str, event: &str) -> Result<(String, usize, usize, bool), String> {
+pub(crate) fn add_handler(src: &str, event: &str) -> Result<(String, usize, usize, bool), String> {
     let constant = const_name(event);
     let arm_ref = format!("events::{constant}");
     let handler = handler_name(event);
@@ -269,7 +269,7 @@ pub fn add_handler(src: &str, event: &str) -> Result<(String, usize, usize, bool
 
 /// Makes sure `yui`'s code-behind handles `event`, writing the file when
 /// needed; where to put the caret.
-pub fn ensure_handler(yui: &Path, event: &str) -> Result<HandlerLocation, String> {
+pub(crate) fn ensure_handler(yui: &Path, event: &str) -> Result<HandlerLocation, String> {
     let rs = code_behind_path(yui);
     let path = rs.to_string_lossy().into_owned();
     if !rs.exists() {

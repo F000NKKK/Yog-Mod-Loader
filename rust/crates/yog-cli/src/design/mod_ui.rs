@@ -26,12 +26,12 @@ fn trees(root: &Path) -> Vec<(PathBuf, Element)> {
     out
 }
 
-pub fn ns(root: &Path) -> String {
+pub(crate) fn ns(root: &Path) -> String {
     crate::design::project::mod_id(root).unwrap_or_else(|| yog_ids::ns::MINECRAFT.into())
 }
 
 /// The mod's recipe layouts and the files they're in.
-pub fn recipe_layouts(root: &Path) -> Vec<(PathBuf, RecipeLayout)> {
+pub(crate) fn recipe_layouts(root: &Path) -> Vec<(PathBuf, RecipeLayout)> {
     let ns = ns(root);
     trees(root)
         .into_iter()
@@ -41,7 +41,7 @@ pub fn recipe_layouts(root: &Path) -> Vec<(PathBuf, RecipeLayout)> {
 }
 
 /// The mod's kinds of book page.
-pub fn page_types(root: &Path) -> Vec<PageType> {
+pub(crate) fn page_types(root: &Path) -> Vec<PageType> {
     let ns = ns(root);
     trees(root)
         .into_iter()

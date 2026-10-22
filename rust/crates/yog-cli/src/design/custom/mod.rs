@@ -92,7 +92,7 @@ const ANSWER_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long the host may take to load a library and describe it.
 const LOAD_TIMEOUT: Duration = Duration::from_secs(30);
 
-pub fn is_component(kind: &str) -> bool {
+pub(crate) fn is_component(kind: &str) -> bool {
     !BUILT_IN.contains(&kind)
         && kind.chars().next().is_some_and(|c| c.is_ascii_uppercase())
         && kind.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
@@ -101,7 +101,7 @@ pub fn is_component(kind: &str) -> bool {
 /// The designer library's state, as the toolbox shows it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub enum Status {
+pub(crate) enum Status {
     /// The mod has no compiled components (nothing to build).
     None,
     /// Building the library / starting the host.
@@ -112,18 +112,18 @@ pub enum Status {
 
 #[derive(Debug, Clone, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct Snapshot {
-    pub status: Status,
-    pub error: Option<String>,
+pub(crate) struct Snapshot {
+    pub(crate) status: Status,
+    pub(crate) error: Option<String>,
     /// Every component of the mod, from its `.yui` files.
-    pub components: Vec<ComponentInfo>,
+    pub(crate) components: Vec<ComponentInfo>,
     /// The ones that need the mod's library (the rest are drawn from markup).
-    pub compiled: Vec<String>,
+    pub(crate) compiled: Vec<String>,
     /// Changes whenever the drawing of an instance may: a component `.yui`
     /// edited, the library rebuilt.
-    pub revision: String,
+    pub(crate) revision: String,
     /// The mod's display name (`yog.toml` `name`, else its id) for the toolbox category.
-    pub mod_name: String,
+    pub(crate) mod_name: String,
 }
 
 struct HostProc {
@@ -372,7 +372,7 @@ fn mod_name(root: &Path) -> String {
 /// The mod's components and the library's state; starts a rebuild (and
 /// host restart) when the sources changed and have been quiet a moment —
 /// only if some component is compiled. Cheap enough to poll.
-pub fn status(root: &Path) -> Snapshot {
+pub(crate) fn status(root: &Path) -> Snapshot {
     let defs = components::scan_with_revision(root);
     let shared = state(root);
     let files = sources(root);
@@ -520,5 +520,4 @@ mod placeholder;
 #[cfg(test)]
 mod tests;
 
-pub use fit::{Prepared, prepare, splice};
-pub use placeholder::placeholder;
+pub(crate) use fit::{prepare, splice};

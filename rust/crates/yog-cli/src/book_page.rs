@@ -20,17 +20,17 @@ use crate::yui::{self, Element};
 
 /// Whether `root` is a book's own UI — a kind of page (`book_page`) or a
 /// recipe layout (`recipe_layout`) — not a screen or a component.
-pub fn is_book_ui(root: &Element) -> bool {
+pub(crate) fn is_book_ui(root: &Element) -> bool {
     is_book_page(root) || yog_formats::book::layout::is_recipe_layout(root)
 }
 
 /// The mod's page types: every `book_page` component under `src/`.
-pub fn find(root: &Path, ns: &str, errors: &mut Vec<Diagnostic>) -> Vec<PageType> {
+pub(crate) fn find(root: &Path, ns: &str, errors: &mut Vec<Diagnostic>) -> Vec<PageType> {
     components(root, errors, is_book_page, |el, _| compile(el, ns))
 }
 
 /// The mod's recipe layouts: every `recipe_layout` component under `src/`.
-pub fn find_layouts(
+pub(crate) fn find_layouts(
     root: &Path,
     ns: &str,
     errors: &mut Vec<Diagnostic>,

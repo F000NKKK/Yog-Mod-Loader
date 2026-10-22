@@ -14,7 +14,7 @@ use super::assets::Resources;
 mod args;
 mod layer;
 
-pub use args::{AdvancementArgs, NodeArgs};
+pub(crate) use args::AdvancementArgs;
 
 use super::{gfx, images, raster};
 
@@ -74,52 +74,52 @@ const SCALE: u32 = 1;
 
 /// One advancement of the tab, its texts as shown.
 #[derive(Debug, Clone)]
-pub struct Node {
-    pub id: String,
-    pub parent: Option<String>,
-    pub icon: Option<String>,
+pub(crate) struct Node {
+    pub(crate) id: String,
+    pub(crate) parent: Option<String>,
+    pub(crate) icon: Option<String>,
     /// `task`, `goal` or `challenge`.
-    pub frame: String,
-    pub title: String,
-    pub description: String,
+    pub(crate) frame: String,
+    pub(crate) title: String,
+    pub(crate) description: String,
     /// Drawn as had (the one being edited).
-    pub obtained: bool,
+    pub(crate) obtained: bool,
 }
 
 /// What to draw, its texts as shown.
 #[derive(Debug, Clone)]
-pub struct Args {
-    pub path: String,
-    pub title: String,
+pub(crate) struct Args {
+    pub(crate) path: String,
+    pub(crate) title: String,
     /// The root's background texture (`minecraft:textures/block/calcite.png` or `minecraft:block/calcite`).
-    pub background: Option<String>,
-    pub nodes: Vec<Node>,
+    pub(crate) background: Option<String>,
+    pub(crate) nodes: Vec<Node>,
     /// How far the reader dragged the tree, GUI pixels.
-    pub drag: [f32; 2],
+    pub(crate) drag: [f32; 2],
     /// The advancement under the pointer.
-    pub hover: Option<String>,
+    pub(crate) hover: Option<String>,
 }
 
 /// Where an advancement can be pointed at, in screen GUI pixels.
 #[derive(Debug, Clone, PartialEq, yog_data::Schema)]
-pub struct Spot {
-    pub id: String,
-    pub rect: [f32; 4],
+pub(crate) struct Spot {
+    pub(crate) id: String,
+    pub(crate) rect: [f32; 4],
 }
 
 /// The drawn screen.
 #[derive(Debug, Clone, yog_data::Schema)]
-pub struct Rendered {
-    pub image: Option<String>,
-    pub size: [f32; 2],
+pub(crate) struct Rendered {
+    pub(crate) image: Option<String>,
+    pub(crate) size: [f32; 2],
     /// The view (where dragging scrolls), and each advancement's spot.
-    pub view: [f32; 4],
-    pub spots: Vec<Spot>,
+    pub(crate) view: [f32; 4],
+    pub(crate) spots: Vec<Spot>,
     /// The drag the tab accepts (clamped as the game clamps its scroll).
-    pub drag: [f32; 2],
+    pub(crate) drag: [f32; 2],
     /// The view's contents at every scroll, for a tool to slide while the
     /// tree is dragged (none while one is hovered: no drag starts on one).
-    pub layer: Option<layer::Layer>,
+    pub(crate) layer: Option<layer::Layer>,
 }
 
 /// The tab laid out: each shown advancement (its node's index, spot, its
@@ -141,7 +141,7 @@ impl Tab {
 }
 
 /// Draws the tab.
-pub fn render(args: &Args) -> Rendered {
+pub(crate) fn render(args: &Args) -> Rendered {
     let root = super::mod_root(Path::new(&args.path));
     images::set_document(root.as_deref());
     let res = Resources::for_mod(root.as_deref());
@@ -522,7 +522,7 @@ fn split_lines(text: &str, max: f32, width: &impl Fn(&str) -> f32) -> Vec<String
 /// Each advancement's place: `(column, row)` — the game's `TreeNodePosition`
 /// (Walker's tidy tree), children in the order given; each root's tree
 /// under the one before.
-pub fn layout(nodes: &[Node]) -> Vec<(String, (f32, f32))> {
+pub(crate) fn layout(nodes: &[Node]) -> Vec<(String, (f32, f32))> {
     let ids: Vec<&str> = nodes.iter().map(|n| n.id.as_str()).collect();
     let mut tree = Tree::default();
     let mut out = Vec::new();

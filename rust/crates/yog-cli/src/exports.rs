@@ -17,16 +17,20 @@ const EXPORTS_SUFFIX: &str = "_exports";
 /// What a `#[yog_export]` item is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExportKind {
+    /// `pub struct`: shared as a type.
     Struct,
+    /// `pub enum`: shared as a type.
     Enum,
+    /// `pub fn`: called through the bus.
     Fn,
 }
 
 /// Item found by the export scanner.
 #[derive(Debug)]
 pub struct ExportItem {
+    /// What it is.
     pub kind: ExportKind,
-    pub name: String,
+    pub(crate) name: String,
     /// Full Rust source of the item (without `#[yog_export]`).
     pub source: String,
 }
@@ -364,7 +368,7 @@ fn grouped(prefix: &str, names: BTreeSet<String>) -> String {
 
 /// Strip `#[derive(...)]` lines from a Rust source item to avoid duplicates
 /// when the generator adds its own derives.
-pub fn strip_derive_attrs(source: &str) -> String {
+pub(crate) fn strip_derive_attrs(source: &str) -> String {
     source
         .lines()
         .filter(|line| !line.trim().starts_with("#[derive("))
@@ -404,13 +408,19 @@ pub fn collect_rs_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
 
 /// What the exports crate's `Cargo.toml` says.
 pub struct CrateMeta<'a> {
+    /// The crate's name (`<mod>-exports`), version and Rust edition.
     pub name: &'a str,
+    /// See [`CrateMeta::name`].
     pub version: &'a str,
+    /// See [`CrateMeta::name`].
     pub edition: &'a str,
     /// The mod's authors, joined with `", "`.
     pub authors: &'a str,
+    /// Its license.
     pub license: &'a str,
+    /// The mod it calls into.
     pub mod_id: &'a str,
+    /// The `yog-api` version it builds with.
     pub yog_api: &'a str,
 }
 

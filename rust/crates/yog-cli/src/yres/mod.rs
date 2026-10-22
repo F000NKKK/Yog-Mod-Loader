@@ -23,10 +23,7 @@ mod outputs;
 mod placeholders;
 
 pub use compile::compile;
-pub use load::{ResFile, Set};
-pub use names::{
-    accessor_name, default_key, name_problem, valid_locale, valid_name, valid_set_name,
-};
+pub(crate) use names::{accessor_name, default_key, name_problem};
 pub use outputs::write_sources;
 
 use crate::diagnostics::Diagnostic;
@@ -36,7 +33,7 @@ use std::path::{Path, PathBuf};
 /// The locale of the neutral `<Set>.yres` files.
 pub const NEUTRAL_LOCALE: &str = "en_us";
 /// Where resource files live, under the mod root.
-pub const RESOURCES_DIR: &str = yog_ids::project::RESOURCES;
+pub(crate) const RESOURCES_DIR: &str = yog_ids::project::RESOURCES;
 /// Where the generated accessors go, under the mod root.
 /// The file `yog_api::resources!()` includes; it includes one
 /// `resources/<Set>.g.rs` per set (shown under its `.yres` in Yog-IDLE).
@@ -45,26 +42,26 @@ pub const GENERATED_FILE: &str = ".yog-build/generated/resources.g.rs";
 pub const GENERATED_DIR: &str = ".yog-build/generated/resources";
 
 /// A generated file: path inside the `.yog` and its bytes.
-pub type Output = (String, Vec<u8>);
+pub(crate) type Output = (String, Vec<u8>);
 
-pub use yog_formats::yres::{Entry, EntryObject, Kind, Value, parse, write};
+pub use yog_formats::yres::{Entry, Kind, Value, parse, write};
 
 /// What `.yui` screens and `yog.toml` can refer to as `@<Set>.<name>`.
 #[derive(Debug, Clone, Default)]
 pub struct Refs {
     /// `Set.name` → (translation key, neutral text).
-    pub texts: HashMap<String, (String, String)>,
+    pub(crate) texts: HashMap<String, (String, String)>,
     /// `Set.name` → image source (`<mod id>:<texture>`).
-    pub images: HashMap<String, String>,
+    pub(crate) images: HashMap<String, String>,
     /// `Set.name` → color (`0xAARRGGBB`).
-    pub colors: HashMap<String, u32>,
+    pub(crate) colors: HashMap<String, u32>,
     /// `Set.name` → an image's picture, as the build writes it.
-    pub pictures: HashMap<String, Picture>,
+    pub(crate) pictures: HashMap<String, Picture>,
 }
 
 impl Refs {
     /// Text `r`: its translation key and neutral words.
-    pub fn text(&self, r: &yog_data::Res) -> Result<&(String, String), String> {
+    pub(crate) fn text(&self, r: &yog_data::Res) -> Result<&(String, String), String> {
         self.texts
             .get(&r.name())
             .ok_or_else(|| format!("`{r}`: no text `{}` in resources/*.yres", r.name()))
@@ -78,17 +75,9 @@ impl Refs {
             .ok_or_else(|| format!("`{r}`: no color `{}` in resources/*.yres", r.name()))
     }
 
-    /// Image `r`'s source.
-    pub fn image(&self, r: &yog_data::Res) -> Result<&str, String> {
-        self.images
-            .get(&r.name())
-            .map(String::as_str)
-            .ok_or_else(|| format!("`{r}`: no image `{}` in resources/*.yres", r.name()))
-    }
-
     /// The translation key text `t` names — `@lang:key`, a thing's name, a
     /// `.yres` text; none for words, which aren't one.
-    pub fn key_of(&self, t: &yog_data::Text) -> Result<Option<String>, String> {
+    pub(crate) fn key_of(&self, t: &yog_data::Text) -> Result<Option<String>, String> {
         use yog_data::Text;
         Ok(match t {
             Text::Literal(_) => None,
@@ -105,9 +94,9 @@ impl Refs {
 /// An image's picture: its PNG and the file the build writes it to — which
 /// a texture packed into an atlas takes the place of.
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct Picture {
-    pub png: Vec<u8>,
-    pub output: String,
+pub(crate) struct Picture {
+    pub(crate) png: Vec<u8>,
+    pub(crate) output: String,
 }
 
 /// Everything `yog build` makes of a mod's resources.
@@ -115,23 +104,26 @@ pub struct Picture {
 pub struct Compiled {
     /// Files to add to the `.yog` (lang JSON, images, sounds, sounds.json) —
     /// they replace a hand-written asset at the same path (merged into them).
+    /// The files it made: `(path in the .yog, bytes)`.
     pub outputs: Vec<Output>,
     /// `<Set>` → generated Rust source.
     pub sources: BTreeMap<String, String>,
+    /// What screens and `yog.toml` can refer to (`@<Set>.<name>`).
     pub refs: Refs,
+    /// What to warn of.
     pub warnings: Vec<Diagnostic>,
     /// Number of `.yres` files read.
     pub files: usize,
 }
 
 /// Every `resources/**/*.yres` of the mod at `root`, sorted.
-pub fn find(root: &Path) -> Vec<PathBuf> {
+pub(crate) fn find(root: &Path) -> Vec<PathBuf> {
     crate::files::under(&root.join(RESOURCES_DIR), &|p| yog_ids::Format::Res.is(p))
 }
 
 /// What's wrong with `e`'s value for its type, if anything — the build's
 /// rule, which editors show too.
-pub fn value_problem(e: &Entry) -> Option<String> {
+pub(crate) fn value_problem(e: &Entry) -> Option<String> {
     let media = |what: &str| format!("{:?}: {what} are bytes (`@bytes:…`)", e.name);
     match (e.kind, &e.value) {
         (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_))
@@ -166,7 +158,7 @@ pub fn value_problem(e: &Entry) -> Option<String> {
 }
 
 /// A color entry's value as ARGB, when it is one.
-pub fn color_of(e: &Entry) -> Option<u32> {
+pub(crate) fn color_of(e: &Entry) -> Option<u32> {
     (e.kind == Kind::Color)
         .then(|| parse_color(e.text()))
         .flatten()

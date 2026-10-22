@@ -5,8 +5,11 @@
 //! Not for external use — a library only so the `yog` binary, its tests and
 //! its benches share the code. No API stability, not published separately.
 
+// What the binary, tests and benches reach is documented (the rest is `pub(crate)`).
+#![warn(missing_docs)]
+
 pub mod bench;
-pub mod book_page;
+pub(crate) mod book_page;
 pub mod cargo_toml;
 mod consts;
 pub mod content;
@@ -16,16 +19,16 @@ pub mod exports;
 pub mod files;
 pub mod manifest;
 pub mod mappings;
-pub mod media;
-pub mod recipe_area;
+pub(crate) mod media;
+pub(crate) mod recipe_area;
 pub(crate) mod rust_code;
 pub mod serve;
 pub mod yres;
 pub mod yui;
 pub mod yui_component;
 pub mod yui_grid;
-pub mod yui_resources;
-pub mod yui_vm;
+pub(crate) mod yui_resources;
+pub(crate) mod yui_vm;
 
 /// `path` with `/` between its parts, whatever the system's separator.
 pub fn slash_path(path: &std::path::Path) -> String {

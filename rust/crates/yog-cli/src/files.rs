@@ -29,12 +29,12 @@ pub(crate) fn under(dir: &Path, wanted: &dyn Fn(&Path) -> bool) -> Vec<PathBuf> 
 }
 
 /// Every file under `dir` whose extension is `ext`, sorted.
-pub fn with_ext(dir: &Path, ext: &str) -> Vec<PathBuf> {
+pub(crate) fn with_ext(dir: &Path, ext: &str) -> Vec<PathBuf> {
     under(dir, &|p| p.extension().is_some_and(|e| e == ext))
 }
 
 /// Every file of `format` under `dir`, sorted.
-pub fn of(dir: &Path, format: Format) -> Vec<PathBuf> {
+pub(crate) fn of(dir: &Path, format: Format) -> Vec<PathBuf> {
     with_ext(dir, format.ext())
 }
 

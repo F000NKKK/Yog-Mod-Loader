@@ -136,7 +136,7 @@ fn with_feature(spec: &str, feature: &str) -> String {
 }
 
 /// The `yog-*` crates a yog-api `Cargo.toml` depends on, in order.
-pub fn yog_dependencies(cargo_toml: &str) -> Vec<String> {
+pub(crate) fn yog_dependencies(cargo_toml: &str) -> Vec<String> {
     let mut in_deps = false;
     let mut out = Vec::new();
     for line in cargo_toml.lines() {
@@ -164,7 +164,7 @@ pub fn yog_dependencies(cargo_toml: &str) -> Vec<String> {
 /// at `api_path`'s sibling crate directory (always including yog-interop,
 /// whose proc-macros generated code must match).
 /// `extra` adds the mod's own yog-* dependencies.
-pub fn local_api_patch(api_path: &Path, extra: &[&str]) -> String {
+pub(crate) fn local_api_patch(api_path: &Path, extra: &[&str]) -> String {
     let crates_dir = api_path
         .parent()
         .map(Path::to_path_buf)

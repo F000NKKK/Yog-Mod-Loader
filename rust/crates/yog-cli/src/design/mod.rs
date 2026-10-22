@@ -4,42 +4,42 @@
 //! files; a preview mode driving the same tree with real UI events
 //! (`click:X:Y`, `scroll:DY`, scrollbar drags); and code-behind handlers.
 
-pub mod advancements;
-pub mod content;
-pub mod data;
-pub mod mod_ui;
-pub mod project;
-pub mod recipe_kinds;
-pub mod refs;
-pub mod service;
-pub mod worldgen;
-pub mod yui_codegen;
+pub(crate) mod advancements;
+pub(crate) mod content;
+pub(crate) mod data;
+pub(crate) mod mod_ui;
+pub(crate) mod project;
+pub(crate) mod recipe_kinds;
+pub(crate) mod refs;
+pub(crate) mod service;
+pub(crate) mod worldgen;
+pub(crate) mod yui_codegen;
 
 /// This CLI as a command, for a design call that runs one of its
 /// subcommands: the running binary when it's `yog`, else the `yog` on `PATH`.
-pub fn this_cli() -> std::process::Command {
+pub(crate) fn this_cli() -> std::process::Command {
     let exe = std::env::current_exe()
         .ok()
         .filter(|e| e.file_stem().is_some_and(|s| s == yog_ids::program::CLI));
     std::process::Command::new(exe.unwrap_or_else(|| yog_ids::program::CLI.into()))
 }
-pub mod assets;
-pub mod blocks3d;
-pub mod book;
-pub mod codebehind;
-pub mod components;
-pub mod custom;
-pub mod font;
-pub mod font_copy;
+pub(crate) mod assets;
+pub(crate) mod blocks3d;
+pub(crate) mod book;
+pub(crate) mod codebehind;
+pub(crate) mod components;
+pub(crate) mod custom;
+pub(crate) mod font;
+pub(crate) mod font_copy;
 mod font_yog;
-pub mod gfx;
+pub(crate) mod gfx;
 pub mod host;
-pub mod images;
-pub mod item_models;
-pub mod markup;
-pub mod raster;
-pub mod recipe_area;
-pub mod tags;
+pub(crate) mod images;
+pub(crate) mod item_models;
+pub(crate) mod markup;
+pub(crate) mod raster;
+pub(crate) mod recipe_area;
+pub(crate) mod tags;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -55,43 +55,44 @@ use self::markup::YuiNode;
 
 /// A laid-out widget: its border box and its content box (inside padding), GUI px.
 #[derive(Debug, Clone, yog_data::Schema)]
-pub struct NodeRect {
-    pub uid: String,
-    pub rect: [f32; 4],
-    pub content: [f32; 4],
+pub(crate) struct NodeRect {
+    pub(crate) uid: String,
+    pub(crate) rect: [f32; 4],
+    pub(crate) content: [f32; 4],
     /// A grid's rows and columns, `[start, size]` in GUI px (for its adorners).
-    pub grid: Option<GridRects>,
+    pub(crate) grid: Option<GridRects>,
 }
 
 #[derive(Debug, Clone, yog_data::Schema)]
-pub struct GridRects {
-    pub rows: Vec<[f32; 2]>,
-    pub cols: Vec<[f32; 2]>,
+pub(crate) struct GridRects {
+    pub(crate) rows: Vec<[f32; 2]>,
+    pub(crate) cols: Vec<[f32; 2]>,
 }
 
 /// Where the game resources came from (`None`: no client jar found).
 #[derive(Debug, Clone, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct AssetsInfo {
-    pub version: String,
-    pub jar: String,
+pub(crate) struct AssetsInfo {
+    pub(crate) version: String,
+    pub(crate) jar: String,
 }
 
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
+/// A screen drawn by [`render`]: its picture and where each element went.
 pub struct Rendered {
     /// `data:image/png;base64,…` — `scale` physical px per GUI px.
-    pub image: String,
-    pub scale: u32,
-    pub rects: Vec<NodeRect>,
-    pub assets: Option<AssetsInfo>,
+    pub(crate) image: String,
+    pub(crate) scale: u32,
+    pub(crate) rects: Vec<NodeRect>,
+    pub(crate) assets: Option<AssetsInfo>,
     /// Text uses the game's font (else a stand-in glyph box).
-    pub real_font: bool,
+    pub(crate) real_font: bool,
 }
 
 /// The mod a file belongs to: the folder with its `yog.toml` (else the
 /// folder holding the `src/` it's in).
-pub fn mod_root(file: &Path) -> Option<PathBuf> {
+pub(crate) fn mod_root(file: &Path) -> Option<PathBuf> {
     project::mod_root(file).or_else(|| {
         file.ancestors()
             .find(|p| p.file_name().is_some_and(|n| n == "src"))
@@ -202,16 +203,18 @@ fn offsets(path: &str, preview: bool) -> HashMap<String, f32> {
 
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
+/// What [`render`] draws: a `.yui` screen's tree at a screen size and scale.
 pub struct RenderArgs {
-    pub path: String,
-    pub root: YuiNode,
-    pub screen_w: u32,
-    pub screen_h: u32,
-    pub scale: u32,
+    pub(crate) path: String,
+    pub(crate) root: YuiNode,
+    pub(crate) screen_w: u32,
+    pub(crate) screen_h: u32,
+    pub(crate) scale: u32,
     #[data(default)]
-    pub preview: bool,
+    pub(crate) preview: bool,
 }
 
+/// Draws a screen as the game would: its picture and its elements' boxes.
 pub fn render(args: &RenderArgs) -> Result<Rendered, String> {
     let (sw, sh) = (args.screen_w.clamp(1, 4096), args.screen_h.clamp(1, 4096));
     let scroll = offsets(&args.path, args.preview);
@@ -261,29 +264,29 @@ fn canvas_font_real(res: &Resources) -> bool {
 
 #[derive(Debug, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct EventArgs {
-    pub path: String,
-    pub root: YuiNode,
-    pub screen_w: u32,
-    pub screen_h: u32,
+pub(crate) struct EventArgs {
+    pub(crate) path: String,
+    pub(crate) root: YuiNode,
+    pub(crate) screen_w: u32,
+    pub(crate) screen_h: u32,
     /// A Yog UI event: `click:X:Y`, `drag:X:Y`, `release:X:Y`, `scroll:DY`, `move:X:Y` (hover only).
-    pub event: String,
+    pub(crate) event: String,
     /// The cursor, for the wheel (which carries no position).
     #[data(default)]
-    pub x: f32,
+    pub(crate) x: f32,
     #[data(default)]
-    pub y: f32,
+    pub(crate) y: f32,
 }
 
 #[derive(Debug, Default, yog_data::Schema)]
 #[data(rename_all = "camelCase")]
-pub struct EventResult {
+pub(crate) struct EventResult {
     /// A scroll view used the event (wheel, scrollbar).
-    pub scrolled: bool,
+    pub(crate) scrolled: bool,
     /// The clickable element under the cursor (`hit_test`: deepest enabled with `on_click`).
-    pub hit: Option<String>,
+    pub(crate) hit: Option<String>,
     /// Its `on_click`, for a click.
-    pub clicked: Option<String>,
+    pub(crate) clicked: Option<String>,
 }
 
 /// `hit_test` (yog-ui `layout::hit_test`), answering with the `.yui` uid.
@@ -308,7 +311,7 @@ fn xy(rest: &str) -> Option<(f32, f32)> {
     Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
 }
 
-pub fn event(args: &EventArgs) -> EventResult {
+pub(crate) fn event(args: &EventArgs) -> EventResult {
     let (sw, sh) = (
         args.screen_w.clamp(1, 4096) as f32,
         args.screen_h.clamp(1, 4096) as f32,
@@ -374,7 +377,7 @@ pub fn event(args: &EventArgs) -> EventResult {
 }
 
 /// Forgets a file's preview state (scroll positions).
-pub fn reset(path: &str) {
+pub(crate) fn reset(path: &str) {
     previews().lock().remove(path);
 }
 

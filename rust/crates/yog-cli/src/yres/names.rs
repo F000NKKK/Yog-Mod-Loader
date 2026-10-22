@@ -7,19 +7,19 @@ use yog_ids::kind;
 use crate::rust_code::{is_ident, is_keyword};
 
 /// An entry name: identifiers joined by `.` (`title`, `screen.title`).
-pub fn valid_name(name: &str) -> bool {
+pub(crate) fn valid_name(name: &str) -> bool {
     yog_data::typed::is_res_key(name)
 }
 
 /// What's wrong with entry name `name`, if anything.
-pub fn name_problem(name: &str) -> Option<String> {
+pub(crate) fn name_problem(name: &str) -> Option<String> {
     (!valid_name(name)).then(|| {
         format!("{name:?} isn't a valid name — identifiers joined by `.`, like screen.title")
     })
 }
 
 /// A resource set name: one identifier (`Strings`, `Icons`).
-pub fn valid_set_name(name: &str) -> bool {
+pub(crate) fn valid_set_name(name: &str) -> bool {
     is_ident(name) && !is_keyword(name)
 }
 
@@ -30,7 +30,7 @@ const REGION_LEN: std::ops::RangeInclusive<usize> = 2..=4;
 const LOCALE_SEP: char = '_';
 
 /// Minecraft's locale codes: lower case, `en_us`, `pt_br`, `lol_us`, ...
-pub fn valid_locale(locale: &str) -> bool {
+pub(crate) fn valid_locale(locale: &str) -> bool {
     let Some((lang, region)) = locale.split_once(LOCALE_SEP) else {
         return false;
     };
@@ -44,7 +44,7 @@ pub fn valid_locale(locale: &str) -> bool {
 
 /// The accessor for entry `name`: `screen.title` → `screen_title`,
 /// `ModName` → `mod_name`.
-pub fn accessor_name(name: &str) -> String {
+pub(crate) fn accessor_name(name: &str) -> String {
     let mut out = String::new();
     for (n, part) in name.split(yog_ids::sep::EXT).enumerate() {
         if n > 0 {
@@ -71,7 +71,7 @@ const NAME_SETS: [(&str, &str); 3] = [
 
 /// The default translation key of text `name` in set `set`: a content
 /// name set's the game's key of that content, any other `<mod>.<name>`.
-pub fn default_key(set: &str, mod_id: &str, name: &str) -> String {
+pub(crate) fn default_key(set: &str, mod_id: &str, name: &str) -> String {
     match NAME_SETS.iter().find(|(s, _)| *s == set) {
         Some((_, kind)) => yog_ids::lang_key(kind, &yog_ids::join(mod_id, name)),
         None => [mod_id, name].join(yog_ids::sep::EXT),

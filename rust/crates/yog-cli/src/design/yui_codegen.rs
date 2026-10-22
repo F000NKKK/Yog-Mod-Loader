@@ -12,7 +12,7 @@ use yog_ids::Format;
 /// project from the `yog.toml` above the file). The result carries what
 /// `yog` found either way — its errors and warnings go to the Error List;
 /// `Err` only when `yog` couldn't run at all.
-pub fn codegen(path: &str) -> Result<Codegen, String> {
+pub(crate) fn codegen(path: &str) -> Result<Codegen, String> {
     let file = PathBuf::from(path);
     let args: &[&str] = match Format::of_path(&file) {
         Some(Format::Ui) => &["ui", "gen"],
@@ -64,8 +64,8 @@ pub fn codegen(path: &str) -> Result<Codegen, String> {
 /// One regeneration: the failure's message, and what `yog` found — each
 /// record's file relative to `root`, the project's folder.
 #[derive(yog_data::Schema)]
-pub struct Codegen {
-    pub error: Option<String>,
-    pub problems: Vec<yog_data::Diagnostic>,
-    pub root: String,
+pub(crate) struct Codegen {
+    pub(crate) error: Option<String>,
+    pub(crate) problems: Vec<yog_data::Diagnostic>,
+    pub(crate) root: String,
 }

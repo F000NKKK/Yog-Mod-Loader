@@ -170,14 +170,14 @@ fn id_consts<'a>(doc: &str, name: &str, ids: impl Iterator<Item = &'a str>) -> S
 
 /// What the generated code is made of: every kind of content the build read.
 pub(super) struct Content<'a> {
-    pub entries: &'a [Entry],
-    pub recipes: &'a [Recipe],
-    pub books: &'a [BookFile],
-    pub bodies: &'a [BodyFile],
-    pub entities: &'a [EntityFile],
-    pub fonts: &'a [FontFile],
-    pub defs: &'a Defs,
-    pub textures: &'a std::collections::BTreeSet<String>,
+    pub(crate) entries: &'a [Entry],
+    pub(crate) recipes: &'a [Recipe],
+    pub(crate) books: &'a [BookFile],
+    pub(crate) bodies: &'a [BodyFile],
+    pub(crate) entities: &'a [EntityFile],
+    pub(crate) fonts: &'a [FontFile],
+    pub(crate) defs: &'a Defs,
+    pub(crate) textures: &'a std::collections::BTreeSet<String>,
 }
 
 impl Content<'_> {
@@ -323,14 +323,16 @@ pub const GENERATED_PARTS_DIR: &str = "content";
 /// includes the parts, and the parts — (name, code) each.
 #[derive(Debug, Clone, Default)]
 pub struct Source {
+    /// The root file's code.
     pub root: String,
+    /// Each part: its file's name and its code.
     pub parts: Vec<(String, String)>,
 }
 
 impl Source {
     /// Part `name`'s code (`"items"`).
     #[cfg(test)]
-    pub fn part(&self, name: &str) -> &str {
+    pub(crate) fn part(&self, name: &str) -> &str {
         self.parts
             .iter()
             .find(|(n, _)| n == name)
@@ -339,7 +341,7 @@ impl Source {
 
     /// Every part's code, for tests that look for a line wherever it is.
     #[cfg(test)]
-    pub fn all(&self) -> String {
+    pub(crate) fn all(&self) -> String {
         self.parts.iter().map(|(_, c)| c.as_str()).collect()
     }
 }

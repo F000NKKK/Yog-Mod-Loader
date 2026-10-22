@@ -34,17 +34,24 @@ pub fn project_root() -> Result<PathBuf, String> {
 /// Parsed content of a `yog.toml` project file.
 #[derive(Debug)]
 pub struct YogToml {
+    /// The mod's id (its namespace), name, version and description.
     pub id: String,
+    /// See [`YogToml::id`].
     pub name: String,
+    /// See [`YogToml::id`].
     pub version: String,
+    /// See [`YogToml::id`].
     pub description: String,
     /// Translation keys of `name`/`description` when yog.toml gives them
     /// as `@<Set>.<name>` resources (see `resolve_metadata`).
     pub name_key: Option<String>,
+    /// See [`YogToml::name_key`].
     pub description_key: Option<String>,
     /// The mod's icon, an image source (`icon = "@Icons.logo"` resolved).
     pub icon: Option<String>,
+    /// Who made it.
     pub authors: Vec<String>,
+    /// The mod's own license.
     pub license: String,
     /// License for the generated `yog publish exports` bindings crate.
     /// Defaults to "MIT OR Apache-2.0" regardless of the mod's own license
@@ -53,7 +60,8 @@ pub struct YogToml {
     /// to opt into matching the mod's own license instead.
     pub exports_license: Option<String>,
     /// The Minecraft version whose vanilla content it names (`[mod] datapack`).
-    pub datapack: Option<String>,
+    pub(crate) datapack: Option<String>,
+    /// The Rust edition its code is in (the default: the toolchain's).
     pub edition: Option<String>,
     /// Optional: path to yog-api for local/monorepo development.
     /// Set via [dev] yog_api_path = "..."  or YOG_API_PATH env var.
@@ -62,7 +70,7 @@ pub struct YogToml {
     pub yog_api_version: Option<String>,
     /// User-declared dependencies from [dependencies] section — plain
     /// crates.io crates, used exactly as written.
-    pub dependencies: Vec<(String, String)>,
+    pub(crate) dependencies: Vec<(String, String)>,
     /// Other Yog mods this mod depends on, from `[dependencies.exports]`.
     /// Each entry `name = spec` maps to that mod's generated exports crate:
     /// `{name} = { package = "{name}-exports", ...spec }` — so mod code
@@ -71,22 +79,23 @@ pub struct YogToml {
     /// alias.
     pub mod_dependencies: Vec<(String, String)>,
     /// `[dev-dependencies]` — crates only `yog bench` benchmarks use.
-    pub dev_dependencies: Vec<(String, String)>,
+    pub(crate) dev_dependencies: Vec<(String, String)>,
     /// Content of other mods (original Java mods, or Yog mods) this mod
     /// names, declared up front: `[external.<namespace>]` with `items`,
     /// `blocks`, `entities`, `recipes` (paths: `["cutting_board"]`).
-    pub externals: Vec<External>,
+    pub(crate) externals: Vec<External>,
 }
 
 /// One `[external.<namespace>]` section.
 #[derive(Debug, Default, Clone)]
-pub struct External {
-    pub namespace: String,
+pub(crate) struct External {
+    pub(crate) namespace: String,
     /// The ids of each kind it lists.
-    pub ids: Vec<(RefKind, Vec<String>)>,
+    pub(crate) ids: Vec<(RefKind, Vec<String>)>,
 }
 
 impl YogToml {
+    /// The manifest at `path`; what's wrong with it, said.
     pub fn read(path: &Path) -> Result<Self, String> {
         let text = std::fs::read_to_string(path)
             .map_err(|e| format!("reading {}: {e}", path.display()))?;
@@ -99,7 +108,7 @@ impl YogToml {
     ///   3. yog_api_version in [dependencies] (e.g. "0.5")
     ///   4. YOG_API_VERSION env var
     ///   5. latest from crates.io
-    pub fn api_dep(&self) -> String {
+    pub(crate) fn api_dep(&self) -> String {
         if let Ok(p) = std::env::var(yog_ids::env::API_PATH) {
             // Resolve to absolute so it works from any subdirectory
             let abs = PathBuf::from(&p)
@@ -174,7 +183,7 @@ fn text_form(t: Text) -> Result<String, String> {
 }
 
 /// Reads `yog.toml` (TOML, through Yog Data's schema: every problem with its line).
-pub fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
+pub(crate) fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
     let f = yog_data::schema::from_toml::<ManifestFile>(text)
         .map_err(|e| toml_problems(&e))?
         .value;

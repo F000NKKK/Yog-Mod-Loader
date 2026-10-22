@@ -6,7 +6,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-pub use yog_formats::tags::{describe_hosts, hosts, tag_hosts, tags_known, yog_tag_for};
+pub(crate) use yog_formats::tags::{describe_hosts, hosts, tag_hosts, tags_known, yog_tag_for};
 use yog_sync::LazyLock;
 
 use yog_formats::book::refs::bare;
@@ -15,7 +15,7 @@ use crate::manifest::External;
 
 /// What a reference names that the build can check.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RefKind {
+pub(crate) enum RefKind {
     Item,
     Block,
     Entity,
@@ -24,7 +24,7 @@ pub enum RefKind {
 }
 
 impl RefKind {
-    pub const ALL: [RefKind; 5] = [
+    pub(crate) const ALL: [RefKind; 5] = [
         RefKind::Item,
         RefKind::Block,
         RefKind::Entity,
@@ -33,7 +33,7 @@ impl RefKind {
     ];
 
     /// Its prefix: `item` for `@item:`.
-    pub fn word(self) -> &'static str {
+    pub(crate) fn word(self) -> &'static str {
         match self {
             RefKind::Item => yog_ids::kind::ITEM,
             RefKind::Block => yog_ids::kind::BLOCK,
@@ -43,7 +43,7 @@ impl RefKind {
         }
     }
 
-    pub fn from_word(word: &str) -> Option<RefKind> {
+    pub(crate) fn from_word(word: &str) -> Option<RefKind> {
         RefKind::ALL.into_iter().find(|k| k.word() == word)
     }
 }
@@ -105,7 +105,7 @@ static VANILLA: LazyLock<Vanilla> = LazyLock::new(|| {
 });
 
 /// The Minecraft versions Yog supports, oldest first.
-pub fn versions() -> &'static [String] {
+pub(crate) fn versions() -> &'static [String] {
     &VANILLA.versions
 }
 
@@ -118,7 +118,7 @@ fn in_version(kind: RefKind, path: &str, version: &str) -> bool {
 }
 
 /// Whether `id` is an item or block of some Minecraft version Yog knows.
-pub fn is_vanilla(id: &str) -> bool {
+pub(crate) fn is_vanilla(id: &str) -> bool {
     let Some(path) = yog_ids::game_path(id) else {
         return false;
     };
@@ -133,12 +133,12 @@ fn potion_of(id: &str) -> Option<&str> {
 }
 
 /// Whether `id` is one of Yog's stable aliases for a vanilla potion item.
-pub fn is_vanilla_potion(id: &str) -> bool {
+pub(crate) fn is_vanilla_potion(id: &str) -> bool {
     potion_of(id).is_some_and(|p| VANILLA.potion_aliases.contains_key(p))
 }
 
 /// Whether a stable Yog alias names a potion registered by this Minecraft version.
-pub fn is_vanilla_potion_in(id: &str, version: &str) -> bool {
+pub(crate) fn is_vanilla_potion_in(id: &str, version: &str) -> bool {
     potion_of(id)
         .and_then(|p| VANILLA.potion_aliases.get(p))
         .is_some_and(|versions| {
@@ -151,7 +151,7 @@ pub fn is_vanilla_potion_in(id: &str, version: &str) -> bool {
 /// What vanilla `id` (`minecraft:short_grass`) is on Minecraft `version`:
 /// itself, what it's called there (`minecraft:grass` on 1.20.1), or `None`
 /// when that version doesn't have it.
-pub fn equivalent(kind: RefKind, id: &str, version: &str) -> Option<String> {
+pub(crate) fn equivalent(kind: RefKind, id: &str, version: &str) -> Option<String> {
     let path = yog_ids::game_path(id)?;
     // An item may be a block's item.
     let kinds: &[RefKind] = if kind == RefKind::Item {
@@ -170,21 +170,21 @@ pub fn equivalent(kind: RefKind, id: &str, version: &str) -> Option<String> {
 
 /// The ids a mod's references may name.
 #[derive(Default)]
-pub struct Known {
+pub(crate) struct Known {
     /// The mod's namespace.
-    pub ns: String,
+    pub(crate) ns: String,
     /// The Minecraft version whose content the mod names (its datapack).
-    pub datapack: String,
+    pub(crate) datapack: String,
     /// Its own content, by kind (full ids).
-    pub own: HashMap<RefKind, HashSet<String>>,
+    pub(crate) own: HashMap<RefKind, HashSet<String>>,
     /// Other mods' ids it declared, by kind (full ids), and their namespaces.
-    pub external: HashMap<RefKind, HashSet<String>>,
-    pub external_ns: HashSet<String>,
+    pub(crate) external: HashMap<RefKind, HashSet<String>>,
+    pub(crate) external_ns: HashSet<String>,
 }
 
 impl Known {
     /// `datapack`: the version the mod names vanilla content by (`None`: the newest).
-    pub fn new(ns: &str, externals: &[External], datapack: Option<&str>) -> Known {
+    pub(crate) fn new(ns: &str, externals: &[External], datapack: Option<&str>) -> Known {
         let datapack = datapack
             .map(str::to_string)
             .unwrap_or_else(|| VANILLA.versions.last().cloned().unwrap_or_default());
@@ -209,7 +209,7 @@ impl Known {
         k
     }
 
-    pub fn add(&mut self, kind: RefKind, id: impl Into<String>) {
+    pub(crate) fn add(&mut self, kind: RefKind, id: impl Into<String>) {
         self.own.entry(kind).or_default().insert(id.into());
     }
 
@@ -217,7 +217,7 @@ impl Known {
     /// loaders' and Yog's common tags are checked; others are the mod's or
     /// another mod's. Where it's only on some versions or loaders, what uses
     /// it is left out of the others (see [`tag_hosts`]).
-    pub fn check_tag(&self, kind: &str, id: &str) -> Result<(), String> {
+    pub(crate) fn check_tag(&self, kind: &str, id: &str) -> Result<(), String> {
         let Some((ns, _)) = id.split_once(':') else {
             return Err(format!(
                 "`{id}`: write the tag's namespace (`yog:{id}`, `{}:{id}`)",
@@ -237,7 +237,7 @@ impl Known {
     /// Whether `id` (a reference of `kind`) names something that exists —
     /// for vanilla, in the mod's datapack version (other versions get what
     /// it's called there, see [`equivalent`]); why not, if it doesn't.
-    pub fn check(&self, kind: RefKind, id: &str) -> Result<(), String> {
+    pub(crate) fn check(&self, kind: RefKind, id: &str) -> Result<(), String> {
         let id = bare(id);
         let Some((ns, path)) = id.split_once(':') else {
             return Err(format!(

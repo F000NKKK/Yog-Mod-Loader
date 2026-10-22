@@ -22,14 +22,14 @@ pub(super) struct Slot {
 }
 
 /// The document with custom elements replaced by marked spacers.
-pub struct Prepared {
-    pub root: YuiNode,
+pub(crate) struct Prepared {
+    pub(crate) root: YuiNode,
     pub(super) slots: Vec<Slot>,
     mod_root: Option<PathBuf>,
 }
 
 impl Prepared {
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.slots.is_empty()
     }
 }
@@ -57,7 +57,12 @@ fn px(v: Option<&str>) -> Option<f32> {
 /// each compiled one (or unknown) measured through the host (its natural
 /// size, when the element doesn't size it in px) and swapped for a marked
 /// spacer.
-pub fn prepare(root: &YuiNode, mod_root: Option<&Path>, screen_w: f32, screen_h: f32) -> Prepared {
+pub(crate) fn prepare(
+    root: &YuiNode,
+    mod_root: Option<&Path>,
+    screen_w: f32,
+    screen_h: f32,
+) -> Prepared {
     let root = if root.kind == yog_ids::yui::COMPONENT {
         components::design_root(root)
     } else {
@@ -223,7 +228,11 @@ fn has_custom(node: &YuiNode) -> bool {
 /// Replaces each marker fill in `ops` with the component drawn at its
 /// element's laid-out rect (`rects`: uid → `x y w h`), clipped to the part
 /// that was visible (the marker fill, already cut to scroll views).
-pub fn splice(ops: &mut Vec<DrawOp>, prepared: &Prepared, rects: &HashMap<String, [f32; 4]>) {
+pub(crate) fn splice(
+    ops: &mut Vec<DrawOp>,
+    prepared: &Prepared,
+    rects: &HashMap<String, [f32; 4]>,
+) {
     if prepared.slots.is_empty() {
         return;
     }

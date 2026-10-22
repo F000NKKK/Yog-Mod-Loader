@@ -16,18 +16,18 @@ use crate::yui_grid::Axis;
 
 /// One element of the designer's document (`YuiNode` in `yui.ts`).
 #[derive(Debug, Clone, yog_data::Schema)]
-pub struct YuiNode {
-    pub uid: String,
-    pub kind: String,
+pub(crate) struct YuiNode {
+    pub(crate) uid: String,
+    pub(crate) kind: String,
     /// Its attributes as the markup spells them (`@Strings.title` too).
     #[data(with = "yog_data::with::Values<yog_data::with::Spelled>", default)]
-    pub attrs: HashMap<String, String>,
+    pub(crate) attrs: HashMap<String, String>,
     #[data(default)]
-    pub children: Vec<YuiNode>,
+    pub(crate) children: Vec<YuiNode>,
 }
 
 impl YuiNode {
-    pub fn attr(&self, key: &str) -> Option<&str> {
+    pub(crate) fn attr(&self, key: &str) -> Option<&str> {
         self.attrs.get(key).map(String::as_str)
     }
 }
@@ -41,17 +41,17 @@ const CONTAINERS: &[&str] = &[
     yog_ids::yui::GRID,
 ];
 
-pub fn is_container(kind: &str) -> bool {
+pub(crate) fn is_container(kind: &str) -> bool {
     CONTAINERS.contains(&kind)
 }
 
 /// A property element (`<Grid.RowDefinitions>`) — part of its parent, not a widget.
-pub fn is_property_element(node: &YuiNode) -> bool {
+pub(crate) fn is_property_element(node: &YuiNode) -> bool {
     node.kind.contains('.')
 }
 
 /// The children that are widgets (property elements skipped).
-pub fn widget_children(node: &YuiNode) -> impl Iterator<Item = &YuiNode> {
+pub(crate) fn widget_children(node: &YuiNode) -> impl Iterator<Item = &YuiNode> {
     node.children.iter().filter(|c| !is_property_element(c))
 }
 
@@ -99,14 +99,14 @@ fn num(v: Option<&str>) -> Option<f32> {
 }
 
 /// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB`: the `.yui` compiler's rule.
-pub use crate::yui::color;
+pub(crate) use crate::yui::color;
 
 /// A translation key's mark in a text: `@lang:key`.
 const LANG: &str = yog_ids::concatcp!(yog_ids::typed::LANG, yog_ids::sep::NAMESPACE);
 
 /// What a text attribute shows: `@lang:key` is a translation key (shown as
 /// the key — the designer has no game language), `@@x` the literal `@x`.
-pub fn text(value: Option<&str>) -> String {
+pub(crate) fn text(value: Option<&str>) -> String {
     let v = value.unwrap_or_default();
     match v.strip_prefix('@') {
         Some(rest) if rest.starts_with('@') => rest.to_string(),
@@ -122,7 +122,7 @@ pub fn text(value: Option<&str>) -> String {
 /// elements as the widgets they become (`ToggleButton` → `Button`,
 /// `ListView` → `ScrollView`, `ItemsControl`/`ContentPresenter` → a column
 /// or row). Unknown names are left as they are (`yog check` reports them).
-pub fn apply_resources(root: &mut YuiNode) {
+pub(crate) fn apply_resources(root: &mut YuiNode) {
     let read = match root
         .children
         .iter()
@@ -212,7 +212,7 @@ const HORIZONTAL: &str = "horizontal";
 
 /// `<Screen theme>`'s defaults on every node that doesn't set the attribute
 /// itself — as `yog build` applies them.
-pub fn apply_theme(root: &mut YuiNode) {
+pub(crate) fn apply_theme(root: &mut YuiNode) {
     let Some(theme) = root
         .attr(yog_ids::yui_attr::THEME)
         .and_then(yog_ui::theme::Theme::builtin)
@@ -232,7 +232,7 @@ pub fn apply_theme(root: &mut YuiNode) {
 
 /// Builds the widget for `node`. `in_canvas`: the parent places children
 /// absolutely. `scroll`: preview scroll offsets by uid.
-pub fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) -> Widget {
+pub(crate) fn widget(node: &YuiNode, in_canvas: bool, scroll: &HashMap<String, f32>) -> Widget {
     let a = |k: &str| node.attr(k);
     let mut w = grid_and_cell(of_kind(node), node);
     let (x, y) = (num(a(yog_ids::yui_attr::X)), num(a(yog_ids::yui_attr::Y)));
@@ -370,7 +370,7 @@ fn attribute(w: Widget, node: &YuiNode, key: &str) -> Widget {
 /// All of the window, as a percentage.
 const WHOLE: f32 = 100.0;
 
-pub fn screen(
+pub(crate) fn screen(
     root: &YuiNode,
     screen_w: f32,
     screen_h: f32,
