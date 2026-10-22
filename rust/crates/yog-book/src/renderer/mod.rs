@@ -29,7 +29,7 @@ pub use yog_ids::yog::{BOOK_SHEET, CRAFTING_SHEET};
 use crate::state::BookViewState;
 use crate::theme::BookTheme;
 use flow::{flow_traced, styled};
-use geometry::{BK_H, BK_W, MIN_SCALE, SCREEN_MARGIN};
+use geometry::{BK_H, BK_W, MIN_SCALE, SCREEN_FILL, SCREEN_MARGIN};
 use overlay::{BgSprite, OverlayCmd};
 use recipe::{RecipeVis, parse_recipe};
 use spread::Spread;
@@ -151,12 +151,13 @@ impl BookRenderer {
     }
 
     /// Lays the book out for a `sw`×`sh` screen (when something changed);
-    /// the book's rect. It's drawn at its own size (272×180 GUI pixels),
-    /// smaller on a smaller screen, never bigger (the game's font is made for 1×).
+    /// the book's rect: about [`SCREEN_FILL`] of the screen whatever the
+    /// GUI scale, at whole multiples of its size (272×180 GUI pixels) so
+    /// the game's font stays sharp; smaller only on a screen it doesn't fit.
     fn prepare(&mut self, sw: f32, sh: f32) -> Rect {
-        let scale = ((sw - SCREEN_MARGIN) / BK_W)
-            .min((sh - SCREEN_MARGIN) / BK_H)
-            .clamp(MIN_SCALE, 1.0);
+        let room = ((sw - SCREEN_MARGIN) / BK_W).min((sh - SCREEN_MARGIN) / BK_H);
+        let wanted = (sh * SCREEN_FILL / BK_H).round().max(1.0);
+        let scale = if room >= 1.0 { wanted.min(room.floor()) } else { room.max(MIN_SCALE) };
         let (bw, bh) = (BK_W * scale, BK_H * scale);
         let book_rect = Rect::new((sw - bw) / 2.0, (sh - bh) / 2.0, bw, bh);
         self.localize();

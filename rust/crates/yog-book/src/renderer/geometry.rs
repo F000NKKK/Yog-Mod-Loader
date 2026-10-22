@@ -21,6 +21,9 @@ pub const SEP_H: f32 = 3.0;
 /// the smallest it scales to.
 pub const SCREEN_MARGIN: f32 = 16.0;
 pub const MIN_SCALE: f32 = 0.4;
+/// How much of the screen's height the book takes (as at GUI scale 4 on a
+/// 1080p screen), whatever the GUI scale.
+pub const SCREEN_FILL: f32 = 0.67;
 
 /// A page's header: its title's height, the separator under it, the body under that.
 pub const TITLE_H: f32 = 9.0;
