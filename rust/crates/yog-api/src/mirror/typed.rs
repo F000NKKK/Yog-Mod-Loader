@@ -8,7 +8,7 @@ use yog_data::{Diagnostic, Schema};
 use yog_ids::{sep, service_mirror};
 use yog_sync::Arc;
 
-use super::{Cell, Declared, FieldSpec, MirrorSpec, Rate, Writer};
+use super::{Cell, Clock, Declared, FieldSpec, MirrorSpec, Rate, Writer};
 use crate::registry::Registry;
 
 /// A mirror's row type (`#[yog_mirror]` implements it).
@@ -23,6 +23,8 @@ pub trait Mirror: Sized + 'static {
     const ALL: u64;
     /// Its key space is a family (a member each parameter, `declare_in`).
     const FAMILY: bool = false;
+    /// Whose ticks it's written after (the server's, unless it's a client's view).
+    const CLOCK: Clock = Clock::Server;
     /// A row read.
     type View<'a>: From<Row<'a, Self>>;
     /// A row written.
@@ -53,6 +55,7 @@ pub trait Mirror: Sized + 'static {
             name: Self::address(),
             space: Self::SPACE.to_owned(),
             fields: Self::fields(),
+            clock: Self::CLOCK,
         }
     }
 
@@ -60,6 +63,16 @@ pub trait Mirror: Sized + 'static {
     fn declare(fields: u64, rate: Rate) -> Result<Mirrored<Self>, Diagnostic> {
         Ok(Mirrored {
             declared: Declared::new(&Self::spec(), fields, rate)?,
+            _mirror: PhantomData,
+        })
+    }
+
+    /// [`Mirror::declare`] covering `scope` (its scope type: a
+    /// `BlockScope`…) — a mirror that isn't a family's.
+    fn declare_scoped<S: Schema>(scope: &S, fields: u64, rate: Rate) -> Result<Mirrored<Self>, Diagnostic> {
+        let scope = Some(yog_data::frame::to_frame(scope));
+        Ok(Mirrored {
+            declared: Declared::scoped(&Self::spec(), fields, rate, scope)?,
             _mirror: PhantomData,
         })
     }

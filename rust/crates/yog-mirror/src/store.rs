@@ -15,7 +15,7 @@ use yog_sync::Arc;
 
 use crate::buffer::Buffer;
 use crate::keys::{KeySpace, bit_words, set_bit};
-use crate::spec::{Declared, Due, DueList, Linked, MirrorSpec, Rate};
+use crate::spec::{Clock, Declared, Due, DueList, Linked, MirrorSpec, Rate};
 
 mod families;
 mod links;
@@ -51,6 +51,8 @@ struct Column {
 #[derive(Copy, Clone)]
 struct Provider {
     writer: u32,
+    /// Whose ticks it's written after.
+    clock: Clock,
     /// The host's writers come first.
     host: bool,
     /// Then whoever provided first.
@@ -125,7 +127,8 @@ fn problem(code: &str, message: impl std::fmt::Display) -> Diagnostic {
 
 /// The key space a `yog:fact/<space>/…` fact is of; `None` for a mod's own.
 fn fact_space(fact: &str) -> Option<String> {
-    let (space, _) = fact.strip_prefix(fact::PREFIX)?.split_once(sep::PATH)?;
+    // The last segment is the fact; what's before it, its space (`client/entity`).
+    let (space, _) = fact.strip_prefix(fact::PREFIX)?.rsplit_once(sep::PATH)?;
     Some(format!("{}{space}", key_space::PREFIX))
 }
 
@@ -308,6 +311,7 @@ impl Store {
         }
         m.provider = Some(Provider {
             writer,
+            clock: spec.clock,
             host,
             order,
         });
@@ -346,12 +350,12 @@ impl Store {
         Some(self.mirrors.get(name)?.rows.raw())
     }
 
-    /// What's due at `tick` into `out` (emptied first): each provider with
-    /// the fields it writes and someone wants now.
-    pub fn due(&mut self, tick: u64, out: &mut DueList) {
+    /// What's due at `clock`'s `tick` into `out` (emptied first): each of
+    /// its providers with the fields it writes and someone wants now.
+    pub fn due(&mut self, clock: Clock, tick: u64, out: &mut DueList) {
         out.clear();
         for m in self.mirrors.values_mut() {
-            let Some(p) = m.provider else { continue };
+            let Some(p) = m.provider.filter(|p| p.clock == clock) else { continue };
             let touched = std::mem::take(&mut m.touched);
             let (first, mut fields) = (out.next_column(), 0);
             for w in &mut m.writes {

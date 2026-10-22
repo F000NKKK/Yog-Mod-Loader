@@ -46,9 +46,7 @@ public class YogUIScreen extends Screen {
             lastMy = my;
             NativeBridge.nativeUIMove(uiId, mx, my);
         }
-        NativeDraw.hudDrawContext = ctx;
-        NativeBridge.nativeUIRender(uiId, this.width, this.height);
-        NativeDraw.hudDrawContext = null;
+        NativeDraw.ui(ctx, uiId, this.width, this.height);
         super.extractRenderState(ctx, mx, my, delta);
     }
 

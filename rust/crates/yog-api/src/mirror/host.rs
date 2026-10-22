@@ -41,3 +41,36 @@ pub struct Blocks {
     /// Its state: `minecraft:oak_stairs[facing=north,…]`.
     pub state: Option<Atom>,
 }
+
+/// The entities this client sees, by network id: written after its ticks,
+/// on any server.
+#[yog_mirror(host = yog_mirror::host::CLIENT_ENTITY)]
+pub struct ClientEntities {
+    pub pos: Point,
+    /// Blocks a tick.
+    pub velocity: Point,
+    /// Yaw, pitch (degrees).
+    pub rotation: [f32; 2],
+    /// Its type.
+    pub kind: Option<Atom>,
+    /// Living ones'; others 0.
+    pub health: f32,
+    /// `[high, low]`.
+    pub uuid: [u64; 2],
+}
+
+/// The blocks of the area asked for in this client's world, by packed
+/// position (`ClientBlocks::declare_scoped(&BlockScope { min, max }, …)`):
+/// each one's state and what a body meets there.
+#[yog_mirror(host = yog_mirror::host::CLIENT_BLOCK)]
+pub struct ClientBlocks {
+    pub state: Option<Atom>,
+    /// Can be stood on and can't be walked through.
+    pub solid: u8,
+    /// Water, lava…
+    pub liquid: u8,
+    /// Ladders, vines.
+    pub climbable: u8,
+    /// Hurts to touch (fire, lava, cactus…).
+    pub harmful: u8,
+}

@@ -11,6 +11,14 @@ names! {
         VELOCITY = "velocity",
         HEALTH = "health",
         UUID = "uuid",
+        /// A block's: can be stood on and can't be walked through.
+        SOLID = "solid",
+        /// A block's: water, lava…
+        LIQUID = "liquid",
+        /// A block's: ladders, vines.
+        CLIMBABLE = "climbable",
+        /// A block's: hurts to touch (fire, lava, cactus…).
+        HARMFUL = "harmful",
     }
 
     /// `yog:mirror/…`: declaring a mirror, providing one, and the mirrors
@@ -40,6 +48,13 @@ names! {
         /// The blocks of the areas asked for, a dimension each
         /// (`…/block/<dimension>`).
         BLOCK = crate::concatcp!(PREFIX, crate::word::BLOCK),
+        /// What a client sees (`…/client/…`): written after its ticks, on
+        /// any server.
+        CLIENT = crate::concatcp!(PREFIX, crate::bus_word::CLIENT, crate::sep::PATH),
+        /// The entities the client sees.
+        CLIENT_ENTITY = crate::concatcp!(CLIENT, crate::kind::ENTITY),
+        /// The blocks of the areas asked for, in the client's world.
+        CLIENT_BLOCK = crate::concatcp!(CLIENT, crate::word::BLOCK),
     }
 
     /// The key spaces columns are kept by: `yog:keys/<space>`.
@@ -53,6 +68,12 @@ names! {
         /// space a dimension (`yog:keys/block/<dimension>`) — the packed
         /// position fills the key.
         BLOCK = crate::concatcp!(PREFIX, crate::word::BLOCK),
+        /// What a client sees: its own spaces (one world at a time).
+        CLIENT = crate::concatcp!(PREFIX, crate::bus_word::CLIENT, crate::sep::PATH),
+        /// The entities the client sees, by network id.
+        CLIENT_ENTITY = crate::concatcp!(CLIENT, crate::kind::ENTITY),
+        /// The client world's blocks, by packed position.
+        CLIENT_BLOCK = crate::concatcp!(CLIENT, crate::word::BLOCK),
     }
 
     /// Facts: one thing known about a key (`yog:fact/<space>/<what>`). A
@@ -81,6 +102,19 @@ names! {
         BLOCK = crate::concatcp!(PREFIX, crate::word::BLOCK, crate::sep::PATH),
         /// Its state (an atom: `minecraft:stone`, properties included).
         BLOCK_STATE = crate::concatcp!(BLOCK, crate::word::STATE),
+        CLIENT_ENTITY = crate::concatcp!(PREFIX, crate::bus_word::CLIENT, crate::sep::PATH, crate::kind::ENTITY, crate::sep::PATH),
+        CLIENT_ENTITY_POS = crate::concatcp!(CLIENT_ENTITY, crate::mirror_word::POS),
+        CLIENT_ENTITY_VELOCITY = crate::concatcp!(CLIENT_ENTITY, crate::mirror_word::VELOCITY),
+        CLIENT_ENTITY_ROTATION = crate::concatcp!(CLIENT_ENTITY, crate::model::ROTATION),
+        CLIENT_ENTITY_KIND = crate::concatcp!(CLIENT_ENTITY, crate::word::KIND),
+        CLIENT_ENTITY_HEALTH = crate::concatcp!(CLIENT_ENTITY, crate::mirror_word::HEALTH),
+        CLIENT_ENTITY_UUID = crate::concatcp!(CLIENT_ENTITY, crate::mirror_word::UUID),
+        CLIENT_BLOCK = crate::concatcp!(PREFIX, crate::bus_word::CLIENT, crate::sep::PATH, crate::word::BLOCK, crate::sep::PATH),
+        CLIENT_BLOCK_STATE = crate::concatcp!(CLIENT_BLOCK, crate::word::STATE),
+        CLIENT_BLOCK_SOLID = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::SOLID),
+        CLIENT_BLOCK_LIQUID = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::LIQUID),
+        CLIENT_BLOCK_CLIMBABLE = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::CLIMBABLE),
+        CLIENT_BLOCK_HARMFUL = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::HARMFUL),
     }
 
     /// What's wrong with a mirror's declaration or provider (`YM…`).

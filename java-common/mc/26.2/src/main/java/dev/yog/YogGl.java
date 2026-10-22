@@ -43,6 +43,8 @@ final class YogGl {
         GL33C.glBindFramebuffer(GL33C.GL_FRAMEBUFFER, fbo(color.glId(), depth.glId()));
         GL33C.glViewport(0, 0, target.width, target.height);
         GL33C.glDisable(GL33C.GL_SCISSOR_TEST);
+        // The last pass may have left color writes masked off.
+        GL33C.glColorMask(true, true, true, true);
         active = true;
         return true;
     }

@@ -28,6 +28,7 @@ fn spec() -> MirrorSpec {
             kind: Kind::F32.code(),
             count: 1,
         }],
+        clock: yog_mirror::Clock::Server,
     }
 }
 
@@ -83,14 +84,14 @@ fn a_declared_mirror_is_written_and_read_in_place() {
     })
     .unwrap();
     let d = declared.declaration.unwrap();
-    super::after_tick();
+    super::after_tick(yog_mirror::Clock::Server);
     assert_eq!(TURNS.load(Ordering::Relaxed), 1);
     let level = unsafe { ColumnRef::new(d.fields[0].unwrap().column as *const _) }.unwrap();
     let mirror_rows = unsafe { ColumnRef::new(d.rows as *const _) }.unwrap();
     assert_eq!(level.get::<f32>(rows[0]), Some(LEVEL));
     assert!(mirror_rows.bit(rows[0]));
     call(&Release { id: d.id });
-    super::after_tick();
+    super::after_tick(yog_mirror::Clock::Server);
     assert_eq!(
         TURNS.load(Ordering::Relaxed),
         1,

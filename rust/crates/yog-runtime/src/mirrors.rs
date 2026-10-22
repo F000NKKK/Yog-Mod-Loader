@@ -1,6 +1,6 @@
 //! Mirrors (`docs/design/bus.md`, "Mirrors"): the runtime keeps the column
-//! store, answers `yog:mirror/…`, and after each server tick calls every
-//! provider whose fields are due. What a mod declared or provides goes
+//! store, answers `yog:mirror/…`, and after each tick — the server's, a
+//! client's — calls every provider of that side whose fields are due. What a mod declared or provides goes
 //! when the mod does.
 
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ use yog_event::mirror::{
 };
 use yog_hot_reload::ModuleGeneration;
 use yog_ids::key_space;
-use yog_mirror::{DueList, MirrorSpec, Store};
+use yog_mirror::{Clock, DueList, MirrorSpec, Store};
 use yog_sync::{LazyLock, Mutex};
 
 struct Mirrors {
@@ -20,7 +20,8 @@ struct Mirrors {
     declared_by: HashMap<u32, ModuleGeneration>,
     /// Whose each writer (a mirror's address) is.
     written_by: HashMap<u32, ModuleGeneration>,
-    tick: u64,
+    /// Each side's ticks counted (`Clock::Server`, `Clock::Client`).
+    ticks: [u64; CLOCKS],
     /// What's due this tick (kept: no list made a tick).
     due: DueList,
 }
@@ -32,7 +33,19 @@ const SPACES: &[(&str, Option<&str>)] = &[
     (key_space::ENTITY, None),
     (key_space::PLAYER, Some(key_space::ENTITY)),
     (key_space::BLOCK, None),
+    (key_space::CLIENT_ENTITY, None),
+    (key_space::CLIENT_BLOCK, None),
 ];
+
+/// The sides mirrors are written after the ticks of.
+const CLOCKS: usize = 2;
+
+fn clock_index(clock: Clock) -> usize {
+    match clock {
+        Clock::Server => 0,
+        Clock::Client => 1,
+    }
+}
 
 impl Mirrors {
     fn new() -> Mirrors {
@@ -56,7 +69,7 @@ impl Mirrors {
             store,
             declared_by: HashMap::new(),
             written_by: HashMap::new(),
-            tick: 0,
+            ticks: [0; CLOCKS],
             due: DueList::default(),
         }
     }
@@ -145,14 +158,15 @@ fn keys(k: &Keys) -> Vec<u32> {
         .collect()
 }
 
-/// After a server tick: every provider with fields due is told which.
-pub(crate) fn after_tick() {
+/// After a tick of `clock`'s side: every provider of it with fields due
+/// is told which.
+pub(crate) fn after_tick(clock: Clock) {
     let due = {
         let mut m = MIRRORS.lock();
-        let tick = m.tick;
-        m.tick += 1;
+        let tick = m.ticks[clock_index(clock)];
+        m.ticks[clock_index(clock)] += 1;
         let mut due = std::mem::take(&mut m.due);
-        m.store.due(tick, &mut due);
+        m.store.due(clock, tick, &mut due);
         due
     };
     // Unlocked: a writer may put keys or touch its mirror meanwhile.

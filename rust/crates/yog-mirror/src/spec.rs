@@ -37,6 +37,19 @@ pub struct MirrorSpec {
     /// Its key space (`yog_ids::key_space::*`).
     pub space: String,
     pub fields: Vec<FieldSpec>,
+    /// Whose ticks write it.
+    #[data(default)]
+    pub clock: Clock,
+}
+
+/// Whose ticks a mirror is written after: the server's (the world as it
+/// is), or a client's (the world as that player sees it — what a client
+/// mod reads on any server).
+#[derive(Schema, Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub enum Clock {
+    #[default]
+    Server,
+    Client,
 }
 
 /// How often a declaration wants its fields written.

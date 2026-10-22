@@ -109,6 +109,7 @@ impl Store {
             name: format!("{}{}{param}", t.spec.name, sep::PATH),
             space: member.to_owned(),
             fields: t.spec.fields.clone(),
+            clock: t.spec.clock,
         };
         self.provide(&spec, t.writer, t.host)
     }

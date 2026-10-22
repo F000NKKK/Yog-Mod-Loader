@@ -6,7 +6,7 @@
 use yog_ids::{fact, host_mirror, key_space, mirror_word, word};
 
 use crate::cell::Kind;
-use crate::spec::{FieldSpec, MirrorSpec};
+use crate::spec::{Clock, FieldSpec, MirrorSpec};
 
 /// A host mirror field: its name, fact and shape.
 pub struct HostField {
@@ -22,6 +22,8 @@ pub struct HostMirror {
     pub address: &'static str,
     pub space: &'static str,
     pub fields: &'static [HostField],
+    /// Whose ticks it's written after.
+    pub clock: Clock,
 }
 
 /// Numbers in a position, a velocity.
@@ -58,6 +60,7 @@ pub const ENTITY: HostMirror = HostMirror {
         field(mirror_word::HEALTH, fact::ENTITY_HEALTH, Kind::F32, 1),
         field(mirror_word::UUID, fact::ENTITY_UUID, Kind::U64, UUID_HALVES),
     ],
+    clock: Clock::Server,
 };
 
 /// Every player, by its entity's network id (part of [`ENTITY`]).
@@ -65,6 +68,7 @@ pub const PLAYER: HostMirror = HostMirror {
     address: host_mirror::PLAYER,
     space: key_space::PLAYER,
     fields: &[field(word::NAME, fact::PLAYER_NAME, Kind::U32, 1)],
+    clock: Clock::Server,
 };
 
 /// The blocks of the areas asked for (`yog_event::mirror::BlockScope`),
@@ -73,10 +77,42 @@ pub const BLOCK: HostMirror = HostMirror {
     address: host_mirror::BLOCK,
     space: key_space::BLOCK,
     fields: &[field(word::STATE, fact::BLOCK_STATE, Kind::U32, 1)],
+    clock: Clock::Server,
+};
+
+/// The entities a client sees, by network id: written after its ticks
+/// (on any server — what a client mod reads). Its fields, in order.
+pub const CLIENT_ENTITY: HostMirror = HostMirror {
+    address: host_mirror::CLIENT_ENTITY,
+    space: key_space::CLIENT_ENTITY,
+    fields: &[
+        field(mirror_word::POS, fact::CLIENT_ENTITY_POS, Kind::F64, XYZ),
+        field(mirror_word::VELOCITY, fact::CLIENT_ENTITY_VELOCITY, Kind::F64, XYZ),
+        field(yog_ids::model::ROTATION, fact::CLIENT_ENTITY_ROTATION, Kind::F32, YAW_PITCH),
+        field(word::KIND, fact::CLIENT_ENTITY_KIND, Kind::U32, 1),
+        field(mirror_word::HEALTH, fact::CLIENT_ENTITY_HEALTH, Kind::F32, 1),
+        field(mirror_word::UUID, fact::CLIENT_ENTITY_UUID, Kind::U64, UUID_HALVES),
+    ],
+    clock: Clock::Client,
+};
+
+/// The blocks of the areas asked for in the client's world, by packed
+/// position: their state and what a body meets there (`0`/`1` each).
+pub const CLIENT_BLOCK: HostMirror = HostMirror {
+    address: host_mirror::CLIENT_BLOCK,
+    space: key_space::CLIENT_BLOCK,
+    fields: &[
+        field(word::STATE, fact::CLIENT_BLOCK_STATE, Kind::U32, 1),
+        field(mirror_word::SOLID, fact::CLIENT_BLOCK_SOLID, Kind::U8, 1),
+        field(mirror_word::LIQUID, fact::CLIENT_BLOCK_LIQUID, Kind::U8, 1),
+        field(mirror_word::CLIMBABLE, fact::CLIENT_BLOCK_CLIMBABLE, Kind::U8, 1),
+        field(mirror_word::HARMFUL, fact::CLIENT_BLOCK_HARMFUL, Kind::U8, 1),
+    ],
+    clock: Clock::Client,
 };
 
 /// Every host mirror.
-pub const ALL: &[&HostMirror] = &[&ENTITY, &PLAYER, &BLOCK];
+pub const ALL: &[&HostMirror] = &[&ENTITY, &PLAYER, &BLOCK, &CLIENT_ENTITY, &CLIENT_BLOCK];
 
 /// The key spaces that are families (a member a dimension).
 pub const FAMILIES: &[&str] = &[key_space::BLOCK];
@@ -87,6 +123,7 @@ impl HostMirror {
             name: self.address.to_owned(),
             space: self.space.to_owned(),
             fields: self.fields().collect(),
+            clock: self.clock,
         }
     }
 

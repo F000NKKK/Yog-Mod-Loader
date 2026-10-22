@@ -13,13 +13,13 @@ use yog_event::mirror::{Declare, Key, Keys, Provide, Release, Write};
 use yog_mirror::{Bits, ColumnRef, ColumnWriter, KeySpaceRef};
 use yog_sync::Arc;
 
-pub use yog_mirror::{Cell, FieldSpec, Kind, MirrorSpec, Rate};
+pub use yog_mirror::{Cell, Clock, FieldSpec, Kind, MirrorSpec, Rate};
 
 use crate::registry::{Registry, guard};
 
 mod host;
 mod typed;
-pub use host::{Blocks, Entities, Players};
+pub use host::{Blocks, ClientBlocks, ClientEntities, Entities, Players};
 pub use typed::{Mirror, MirrorWriter, Mirrored, Row, RowWriter};
 pub use yog_event::mirror::BlockScope;
 pub use yog_mirror::host as host_tables;

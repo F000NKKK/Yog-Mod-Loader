@@ -120,8 +120,10 @@ pub(crate) fn register() {
     });
     after::<server::game::Tick>(LAST, |_| {
         crate::ticks::after_tick();
-        crate::mirrors::after_tick();
+        crate::mirrors::after_tick(yog_mirror::Clock::Server);
     });
+    // What a client sees is written after its own ticks (on any server).
+    after::<client::game::Tick>(LAST, |_| crate::mirrors::after_tick(yog_mirror::Clock::Client));
     after::<server::life::Stopping>(LAST, |_| crate::entity_data::server_stopped());
     super::declared::register();
     super::describe::register();

@@ -27,6 +27,18 @@ public final class NativeDraw {
     /** The DrawContext for the current HUD render frame. Render-thread only. */
     static GuiGraphicsExtractor hudDrawContext;
 
+    /**
+     * Draws Yog UI {@code uiId} ({@code w}×{@code h}) into {@code ctx}: its
+     * 2-D draws recorded there, its surfaces' raw GL onto the main target.
+     */
+    static void ui(GuiGraphicsExtractor ctx, String uiId, int w, int h) {
+        hudDrawContext = ctx;
+        boolean gl = YogGl.begin();
+        NativeBridge.nativeUIRender(uiId, w, h);
+        if (gl) YogGl.end();
+        hudDrawContext = null;
+    }
+
     // ── 2-D primitives ───────────────────────────────────────────────────────
 
     public static void drawText(String text, float x, float y, int color, boolean shadow) {

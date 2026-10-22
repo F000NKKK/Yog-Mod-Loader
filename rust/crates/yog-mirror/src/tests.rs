@@ -24,6 +24,7 @@ fn threat(space: &str) -> MirrorSpec {
             field("pos", Some(fact::ENTITY_POS), Kind::F64, POS),
             field("level", None, Kind::F32, 1),
         ],
+        clock: Clock::Server,
     }
 }
 
@@ -33,6 +34,7 @@ fn host_entities() -> MirrorSpec {
         name: "yog:mirror/entity".into(),
         space: key_space::ENTITY.into(),
         fields: vec![field("pos", Some(fact::ENTITY_POS), Kind::F64, POS)],
+        clock: Clock::Server,
     }
 }
 
@@ -46,7 +48,7 @@ fn store() -> Store {
 /// Who's due at `tick`: (writer, mirror, fields).
 fn due(s: &mut Store, tick: u64) -> Vec<(u32, String, u64)> {
     let mut out = DueList::default();
-    s.due(tick, &mut out);
+    s.due(Clock::Server, tick, &mut out);
     out.turns
         .iter()
         .map(|d| (d.writer, d.mirror.to_string(), d.fields))
@@ -298,6 +300,7 @@ fn the_host_keeps_keys_while_anyone_reads_its_space() {
         name: "test:mirror/seen".into(),
         space: key_space::PLAYER.into(),
         fields: vec![field("pos", Some(fact::ENTITY_POS), Kind::F64, POS)],
+        clock: Clock::Server,
     };
     let d = s.declare(&players, 0, Rate::Every(1), None).unwrap();
     assert_eq!(
@@ -319,6 +322,7 @@ fn a_family_member_is_made_when_named_with_its_templates() {
         name: format!("{name}/minecraft:overworld"),
         space: overworld.clone(),
         fields: vec![field("state", Some(fact::BLOCK_STATE), Kind::U32, 1)],
+        clock: Clock::Server,
     };
     let scope = vec![1u8, 2, 3];
     let host_view = s
@@ -338,7 +342,7 @@ fn a_family_member_is_made_when_named_with_its_templates() {
         "a family's fact is one column in its member"
     );
     let mut out = DueList::default();
-    s.due(0, &mut out);
+    s.due(Clock::Server, 0, &mut out);
     let [turn] = &out.turns[..] else {
         panic!("one turn: {:?}", out.turns);
     };
@@ -357,8 +361,9 @@ fn a_family_member_is_made_when_named_with_its_templates() {
         name: "test:mirror/far".into(),
         space: format!("{}/minecraft:the_nether", key_space::BLOCK),
         fields: Vec::new(),
+        clock: Clock::Server,
     };
     s.declare(&nether, 0, Rate::Every(1), None).unwrap();
-    s.due(1, &mut out);
+    s.due(Clock::Server, 1, &mut out);
     assert_eq!(out.turns.len(), 2, "the new member got its host mirror too");
 }

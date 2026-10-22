@@ -53,9 +53,7 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
     /** The screen's markup is the background; the game draws the real slots' items over it. */
     @Override public void extractBackground(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
         super.extractBackground(ctx, mx, my, delta);
-        NativeDraw.hudDrawContext = ctx;
-        NativeBridge.nativeUIRender(uiId, this.width, this.height);
-        NativeDraw.hudDrawContext = null;
+        NativeDraw.ui(ctx, uiId, this.width, this.height);
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
@@ -68,9 +66,7 @@ public class YogInventoryScreen extends net.minecraft.client.gui.screens.invento
         super.extractRenderState(ctx, mx, my, delta);
         // What the screen draws over the game's items (its own tooltips), a layer above them.
         ctx.nextStratum();
-        NativeDraw.hudDrawContext = ctx;
-        NativeBridge.nativeUIRender(uiId + "#overlay", this.width, this.height);
-        NativeDraw.hudDrawContext = null;
+        NativeDraw.ui(ctx, uiId + "#overlay", this.width, this.height);
     }
 
     @Override protected void extractLabels(GuiGraphicsExtractor ctx, int mx, int my) {}

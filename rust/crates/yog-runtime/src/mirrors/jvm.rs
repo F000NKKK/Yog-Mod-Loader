@@ -60,6 +60,7 @@ fn java_writes_a_column_rust_reads() {
             kind: Kind::F64.code(),
             count: 3,
         }],
+        clock: yog_mirror::Clock::Server,
     };
     let d = store.declare(&spec, 1, Rate::Every(1), None).unwrap();
     let column = d.fields[0].unwrap().column;

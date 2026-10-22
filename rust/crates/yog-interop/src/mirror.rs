@@ -232,6 +232,7 @@ fn source(it: &Item, args: &Args) -> TokenStream {
             quote! {
                 const OWNER: Option<&'static str> = None;
                 const SPACE: &'static str = (#host).space;
+                const CLOCK: #m::Clock = (#host).clock;
 
                 fn address() -> String {
                     (#host).address.to_owned()
