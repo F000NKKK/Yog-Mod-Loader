@@ -55,6 +55,11 @@ public final class YogQueries {
 
     // ── entities ─────────────────────────────────────────────────────────────
 
+    /** The id of the dimension {@code e} is in. */
+    static String dimensionId(Entity e) {
+        return e.level().dimension().location().toString();
+    }
+
     @YogServiceHost
     public static YogTypes.Point entityPosition(String uuid) {
         Entity e = NativeBridge.entityByUuid(uuid);
@@ -79,7 +84,7 @@ public final class YogQueries {
         if (e == null) return null;
         return new YogTypes.EntityInfo(
                 BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString(),
-                e.level().dimension().location().toString(),
+                dimensionId(e),
                 point(e.position()), e.getEyeHeight(), e.getBbWidth(), e.getBbHeight(),
                 NativeBridge.entityFlags(e), e.getName().getString());
     }

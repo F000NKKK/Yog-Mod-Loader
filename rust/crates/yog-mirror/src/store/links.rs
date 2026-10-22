@@ -170,6 +170,20 @@ impl Store {
                 .min_by_key(|p| (!p.host, p.order))
                 .map(|p| p.writer);
         }
+        self.in_use = vec![false; self.spaces.len()];
+        let read: Vec<_> = self
+            .mirrors
+            .values()
+            .filter(|m| m.declarations > 0)
+            .map(|m| m.space)
+            .collect();
+        for space in read {
+            let mut at = Some(space);
+            while let Some(s) = at {
+                self.in_use[s.0 as usize] = true;
+                at = self.space_of(s).parent;
+            }
+        }
         for m in self.mirrors.values_mut() {
             let writer = m.provider.map(|p| p.writer);
             let writes = m

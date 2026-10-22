@@ -108,3 +108,26 @@ where
         std::array::from_fn(|i| T::take(&bytes[i * T::WIDTH..]))
     }
 }
+
+/// A cell holding no atom.
+pub const NO_ATOM: u32 = u32::MAX;
+
+/// An atom (a name kept once a process: an entity type, a dimension) as
+/// its number; [`NO_ATOM`] for none.
+impl Cell for Option<yog_data::Atom> {
+    const KIND: Kind = Kind::U32;
+    const COUNT: u32 = 1;
+
+    #[inline]
+    fn put(&self, out: &mut [u8]) {
+        self.map_or(NO_ATOM, yog_data::Atom::number).put(out);
+    }
+
+    #[inline]
+    fn take(bytes: &[u8]) -> Self {
+        match u32::take(bytes) {
+            NO_ATOM => None,
+            n => yog_data::Atom::from_number(n),
+        }
+    }
+}

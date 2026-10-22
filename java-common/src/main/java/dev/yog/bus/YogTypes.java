@@ -4549,6 +4549,128 @@ public final class YogTypes {
         }
     }
 
+    /** A provider's turn (sent to its mirror's address): the fields due, a bit each in its field order, and where they go. */
+    public record Write(long fields, long space, long rows, long[] columns) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("fields", fields);
+            m.put("space", space);
+            m.put("rows", rows);
+            m.put("columns", YogData.listOf(columns));
+            return m;
+        }
+
+        public static Write fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Write(YogData.integer(m.get("fields"), 0), YogData.integer(m.get("space"), 0), YogData.integer(m.get("rows"), 0), YogData.longs(m.get("columns")));
+        }
+
+        public static Write fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putI(this.fields);
+            p.putI(this.space);
+            p.putI(this.rows);
+            p.putLongs(this.columns, false);
+            p.end(at);
+        }
+
+        public static Write unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            long f_fields = u.more(end) ? u.getI() : 0L;
+            long f_space = u.more(end) ? u.getI() : 0L;
+            long f_rows = u.more(end) ? u.getI() : 0L;
+            long[] f_columns = u.more(end) ? u.getLongs(false) : new long[0];
+            u.leave(end);
+            return new Write(f_fields, f_space, f_rows, f_columns);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Write fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Write fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Write readFrame(YogFrame.Unpacker u) {
+            Write v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Write} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int h3, n3, b3;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { h3 = u.position(); n3 = (int) u.getU(); b3 = u.getByte(); o3 = u.position(); u.skip(YogFrame.packedBytes(n3, b3)); } else { h3 = n3 = b3 = 0; o3 = -1; }
+                u.leave(end);
+            }
+
+            public long fields() {
+                if (o0 < 0) return 0L;
+                u.seek(o0);
+                return u.getI();
+            }
+
+            public long space() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public long rows() {
+                if (o2 < 0) return 0L;
+                u.seek(o2);
+                return u.getI();
+            }
+
+            public long[] columns() {
+                if (o3 < 0) return new long[0];
+                u.seek(h3);
+                return u.getLongs(false);
+            }
+
+            public int columnsLength() {
+                return n3;
+            }
+
+            /** Item {@code i}, read in place. */
+            public long columns(int i) {
+                long v = u.packedAt(o3, n3, b3, i);
+                return (long) v;
+            }
+        }
+    }
+
     /** The posed geometry of an entity (entity space, see the design doc). */
     public record BodyCapture(String source, java.util.List<YogTypes.BodyMesh> meshes) {
         public java.util.Map<String, Object> toData() {

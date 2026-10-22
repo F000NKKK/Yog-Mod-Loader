@@ -18,33 +18,44 @@ const FACT: &str = "fact";
 /// The mirror attribute's keys.
 const SPACE: &str = "space";
 const OWNER: &str = "owner";
+const HOST: &str = "host";
 
-/// What `#[yog_mirror(…)]` says.
-struct Args {
-    space: syn::Expr,
-    owner: Option<syn::LitStr>,
+/// What `#[yog_mirror(…)]` says: a mod's own mirror, or the host's
+/// (`host = yog_mirror::host::ENTITY`: its table is the source of its
+/// shape, the struct's fields checked against it).
+enum Args {
+    Own {
+        space: syn::Expr,
+        owner: Option<syn::LitStr>,
+    },
+    Host(syn::Expr),
 }
 
 fn args_of(attr: TokenStream) -> syn::Result<Args> {
-    let (mut space, mut owner) = (None, None);
+    let (mut space, mut owner, mut host) = (None, None, None);
     let parser = syn::meta::parser(|m| {
         if m.path.is_ident(SPACE) {
             space = Some(m.value()?.parse::<syn::Expr>()?);
         } else if m.path.is_ident(OWNER) {
             owner = Some(m.value()?.parse::<syn::LitStr>()?);
+        } else if m.path.is_ident(HOST) {
+            host = Some(m.value()?.parse::<syn::Expr>()?);
         } else {
-            return Err(m.error(format!("expected `{SPACE} = …` or `{OWNER} = \"…\"`")));
+            return Err(m.error(format!(
+                "expected `{SPACE} = …`, `{OWNER} = \"…\"` or `{HOST} = …`"
+            )));
         }
         Ok(())
     });
     syn::parse::Parser::parse2(parser, attr)?;
-    let space = space.ok_or_else(|| {
-        syn::Error::new(
+    match (host, space) {
+        (Some(host), None) => Ok(Args::Host(host)),
+        (None, Some(space)) => Ok(Args::Own { space, owner }),
+        _ => Err(syn::Error::new(
             proc_macro2::Span::call_site(),
-            format!("`{SPACE} = …` is required"),
-        )
-    })?;
-    Ok(Args { space, owner })
+            format!("either `{SPACE} = …` or `{HOST} = …`"),
+        )),
+    }
 }
 
 /// `PipeFlow` → `pipe_flow`.
@@ -139,42 +150,21 @@ fn mirror_impl(it: &Item, args: &Args) -> TokenStream {
     let (m, ident) = (api(), it.ident);
     let name = snake(&ident.to_string());
     let (view, writer) = (format_ident!("{ident}View"), format_ident!("{ident}Writer"));
-    let space = &args.space;
-    let owner = match &args.owner {
-        Some(o) => quote! { Some(#o) },
-        None => quote! { None },
-    };
+    let source = source(it, args);
     let all = match it.fields.len() {
         0 => 0,
         n => u64::MAX >> (u64::BITS as usize - n),
     };
-    let specs = it.fields.iter().map(|f| {
-        let (n, ty) = (f.ident.to_string(), &f.ty);
-        let fact = match &f.fact {
-            Some(e) => quote! { Some((#e).to_owned()) },
-            None => quote! { None },
-        };
-        quote! { #m::FieldSpec {
-            name: #n.to_owned(),
-            fact: #fact,
-            kind: <#ty as #m::Cell>::KIND.code(),
-            count: <#ty as #m::Cell>::COUNT,
-        } }
-    });
     let names: Vec<&syn::Ident> = it.fields.iter().map(|f| &f.ident).collect();
     let indices: Vec<usize> = (0..it.fields.len()).collect();
     quote! {
         impl #m::Mirror for #ident {
             const NAME: &'static str = #name;
-            const OWNER: Option<&'static str> = #owner;
-            const SPACE: &'static str = #space;
             const ALL: u64 = #all;
             type View<'a> = #view<'a>;
             type Writer<'w> = #writer<'w>;
 
-            fn fields() -> Vec<#m::FieldSpec> {
-                vec![#(#specs),*]
-            }
+            #source
 
             fn read(row: &#m::Row<'_, Self>) -> Self {
                 #ident { #(#names: row.field(#indices)),* }
@@ -182,6 +172,64 @@ fn mirror_impl(it: &Item, args: &Args) -> TokenStream {
 
             fn write(&self, row: &mut #m::RowWriter<'_, Self>) {
                 #(row.set(#indices, || self.#names);)*
+            }
+        }
+    }
+}
+
+/// Where a mirror's name, space and fields come from: its own attribute
+/// and fields, or the host's table (each field checked against it).
+fn source(it: &Item, args: &Args) -> TokenStream {
+    let m = api();
+    match args {
+        Args::Own { space, owner } => {
+            let owner = match owner {
+                Some(o) => quote! { Some(#o) },
+                None => quote! { None },
+            };
+            let specs = it.fields.iter().map(|f| {
+                let (n, ty) = (f.ident.to_string(), &f.ty);
+                let fact = match &f.fact {
+                    Some(e) => quote! { Some((#e).to_owned()) },
+                    None => quote! { None },
+                };
+                quote! { #m::FieldSpec {
+                    name: #n.to_owned(),
+                    fact: #fact,
+                    kind: <#ty as #m::Cell>::KIND.code(),
+                    count: <#ty as #m::Cell>::COUNT,
+                } }
+            });
+            quote! {
+                const OWNER: Option<&'static str> = #owner;
+                const SPACE: &'static str = #space;
+
+                fn fields() -> Vec<#m::FieldSpec> {
+                    vec![#(#specs),*]
+                }
+            }
+        }
+        Args::Host(host) => {
+            let n = it.fields.len();
+            let checks = it.fields.iter().enumerate().map(|(i, f)| {
+                let (ty, msg) = (&f.ty, format!("field `{}` isn't shaped as the host's", f.ident));
+                quote! { assert!((#host).shaped(#i, <#ty as #m::Cell>::KIND, <#ty as #m::Cell>::COUNT), #msg); }
+            });
+            quote! {
+                const OWNER: Option<&'static str> = None;
+                const SPACE: &'static str = (#host).space;
+
+                fn address() -> String {
+                    (#host).address.to_owned()
+                }
+
+                fn fields() -> Vec<#m::FieldSpec> {
+                    const _: () = {
+                        assert!((#host).fields.len() == #n, "the host's mirror has another number of fields");
+                        #(#checks)*
+                    };
+                    (#host).fields().collect()
+                }
             }
         }
     }

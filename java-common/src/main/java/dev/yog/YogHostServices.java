@@ -27,6 +27,7 @@ public final class YogHostServices {
         for (Map.Entry<String, YogBus.Handler> action : YogServices.HOSTED) {
             YogBus.provide(YogBus.resolve(action.getKey()), action.getValue());
         }
+        YogHostMirrors.provide();
     }
 
     /**

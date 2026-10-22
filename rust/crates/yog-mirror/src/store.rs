@@ -107,6 +107,9 @@ pub struct Store {
     by_fact: HashMap<(SpaceId, String), ColumnId>,
     mirrors: HashMap<String, Mirror>,
     declarations: HashMap<u32, Declaration>,
+    /// Whether anyone reads a space (its own mirrors or a part of it's):
+    /// its host provider then keeps its keys every tick.
+    in_use: Vec<bool>,
     next_declaration: u32,
     next_order: u64,
 }
@@ -348,7 +351,8 @@ impl Store {
                     out.push_column(w.column);
                 }
             }
-            if fields != 0 {
+            let keeps_keys = p.host && self.in_use.get(m.space.0 as usize) == Some(&true);
+            if fields != 0 || keeps_keys {
                 out.turns.push(Due {
                     writer: p.writer,
                     mirror: m.name.clone(),

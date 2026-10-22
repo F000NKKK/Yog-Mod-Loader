@@ -1020,9 +1020,10 @@ public final class YogNames {
         public static final String POS = "pos";
         public static final String VELOCITY = "velocity";
         public static final String HEALTH = "health";
+        public static final String UUID = "uuid";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MIRROR, FACT, KEYS, POS, VELOCITY, HEALTH);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MIRROR, FACT, KEYS, POS, VELOCITY, HEALTH, UUID);
     }
 
     public static final class ServiceMirror {
@@ -1037,6 +1038,17 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, DECLARE, RELEASE, PROVIDE, TOUCH, KEYS);
+    }
+
+    public static final class HostMirror {
+        private HostMirror() {}
+
+        public static final String PREFIX = "yog:mirror/yog/";
+        public static final String ENTITY = "yog:mirror/yog/entity";
+        public static final String PLAYER = "yog:mirror/yog/player";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, PLAYER);
     }
 
     public static final class KeySpace {
@@ -1062,13 +1074,14 @@ public final class YogNames {
         public static final String ENTITY_KIND = "yog:fact/entity/kind";
         public static final String ENTITY_DIMENSION = "yog:fact/entity/dimension";
         public static final String ENTITY_HEALTH = "yog:fact/entity/health";
+        public static final String ENTITY_UUID = "yog:fact/entity/uuid";
         public static final String PLAYER = "yog:fact/player/";
         public static final String PLAYER_NAME = "yog:fact/player/name";
         public static final String BLOCK = "yog:fact/block/";
         public static final String BLOCK_STATE = "yog:fact/block/state";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, ENTITY_POS, ENTITY_VELOCITY, ENTITY_ROTATION, ENTITY_KIND, ENTITY_DIMENSION, ENTITY_HEALTH, PLAYER, PLAYER_NAME, BLOCK, BLOCK_STATE);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, ENTITY_POS, ENTITY_VELOCITY, ENTITY_ROTATION, ENTITY_KIND, ENTITY_DIMENSION, ENTITY_HEALTH, ENTITY_UUID, PLAYER, PLAYER_NAME, BLOCK, BLOCK_STATE);
     }
 
     public static final class MirrorProblem {

@@ -5,6 +5,7 @@
 
 mod events;
 mod frames;
+mod mirrors;
 mod services;
 mod types;
 mod views;
@@ -345,10 +346,12 @@ const PAYLOADS: &[fn() -> Shape] = &[
     <crate::entity::Hanging as yog_data::Schema>::shape,
     // The content the runtime hands the hosts at registration (`content_blob`).
     <crate::content::Content as yog_data::Schema>::shape,
+    // A mirror provider's turn (sent to its mirror's own address).
+    <crate::mirror::Write as yog_data::Schema>::shape,
 ];
 
 /// Every generated class: its name and text.
-pub fn files(package: &str) -> [(&'static str, String); 3] {
+pub fn files(package: &str) -> [(&'static str, String); 4] {
     let (events, mut records) = events::events(package);
     let (services, more) = services::services(package);
     for r in more {
@@ -369,6 +372,7 @@ pub fn files(package: &str) -> [(&'static str, String); 3] {
         (events::CLASS, events),
         (services::CLASS, services),
         (TYPES, types_file(package, records)),
+        (mirrors::CLASS, mirrors::file(package)),
     ]
 }
 

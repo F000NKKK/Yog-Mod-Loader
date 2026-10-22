@@ -10,6 +10,7 @@ names! {
         POS = "pos",
         VELOCITY = "velocity",
         HEALTH = "health",
+        UUID = "uuid",
     }
 
     /// `yog:mirror/…`: declaring a mirror, providing one, and the mirrors
@@ -27,6 +28,15 @@ names! {
         TOUCH = crate::concatcp!(DOMAIN, "touch"),
         /// Keys coming into a key space and leaving it.
         KEYS = crate::concatcp!(DOMAIN, crate::mirror_word::KEYS),
+    }
+
+    /// The host's own mirrors: `yog:mirror/yog/<name>`.
+    host_mirror {
+        PREFIX = crate::concatcp!(crate::service_mirror::DOMAIN, crate::ns::YOG, crate::sep::PATH),
+        /// Every live entity.
+        ENTITY = crate::concatcp!(PREFIX, crate::kind::ENTITY),
+        /// Every player (part of the entities).
+        PLAYER = crate::concatcp!(PREFIX, crate::word::PLAYER),
     }
 
     /// The key spaces columns are kept by: `yog:keys/<space>`.
@@ -58,6 +68,8 @@ names! {
         ENTITY_DIMENSION = crate::concatcp!(ENTITY, crate::word::DIMENSION),
         /// Its health (living ones; others 0).
         ENTITY_HEALTH = crate::concatcp!(ENTITY, crate::mirror_word::HEALTH),
+        /// Its uuid (`[high, low]`): how mods know it elsewhere.
+        ENTITY_UUID = crate::concatcp!(ENTITY, crate::mirror_word::UUID),
         PLAYER = crate::concatcp!(PREFIX, crate::word::PLAYER, crate::sep::PATH),
         /// Its name (an atom).
         PLAYER_NAME = crate::concatcp!(PLAYER, crate::word::NAME),

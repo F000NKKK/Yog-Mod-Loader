@@ -1,5 +1,5 @@
 //! Writes the bus's messages for Java: `yog-event-export <dir> <package>` →
-//! `<dir>/YogEvents.java` and `<dir>/YogServices.java`.
+//! `<dir>/YogEvents.java`, `YogServices.java`, `YogTypes.java` and `YogMirrors.java`.
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();

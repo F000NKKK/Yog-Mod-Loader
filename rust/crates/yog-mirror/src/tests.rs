@@ -277,3 +277,23 @@ fn problems_are_coded() {
         Some(mirror_problem::TAKEN)
     );
 }
+
+#[test]
+fn the_host_keeps_keys_while_anyone_reads_its_space() {
+    let mut s = store();
+    s.provide(&host::ENTITY.spec(), 99, true).unwrap();
+    assert!(due(&mut s, 0).is_empty(), "no one reads entities");
+    let players = MirrorSpec {
+        name: "test:mirror/seen".into(),
+        space: key_space::PLAYER.into(),
+        fields: vec![field("pos", Some(fact::ENTITY_POS), Kind::F64, POS)],
+    };
+    let d = s.declare(&players, 0, Rate::Every(1)).unwrap();
+    assert_eq!(
+        due(&mut s, 1),
+        vec![(99, host::ENTITY.address.to_string(), 0)],
+        "a part of it is read"
+    );
+    s.release(d.id);
+    assert!(due(&mut s, 2).is_empty());
+}

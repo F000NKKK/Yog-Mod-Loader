@@ -17,8 +17,11 @@ pub use yog_mirror::{Cell, FieldSpec, Kind, MirrorSpec, Rate};
 
 use crate::registry::{Registry, guard};
 
+mod host;
 mod typed;
+pub use host::{Entities, Players};
 pub use typed::{Mirror, MirrorWriter, Mirrored, Row, RowWriter};
+pub use yog_mirror::host as host_tables;
 
 /// Bits a word of a row bitmap holds.
 const WORD_BITS: u32 = u64::BITS;

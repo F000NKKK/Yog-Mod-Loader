@@ -42,6 +42,13 @@ impl Mirrors {
                 yog_logging::warn!("mirrors: {e}");
             }
         }
+        // The game's own mirrors: the Java host answers their addresses.
+        for m in yog_mirror::host::ALL {
+            let writer = crate::bus::ROUTER.resolve(m.address);
+            if let Err(e) = store.provide(&m.spec(), writer, true) {
+                yog_logging::warn!("mirrors: {e}");
+            }
+        }
         Mirrors {
             store,
             declared_by: HashMap::new(),
@@ -159,6 +166,25 @@ fn owned(by: &HashMap<u32, ModuleGeneration>, generation: ModuleGeneration) -> V
         .collect()
 }
 
+/// A direct buffer over `length` bytes at `address`: a column's header or
+/// memory, as a `Write` handed it to the Java host.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_dev_yog_mirror_YogMirrorMemory_nativeBuffer<'l>(
+    mut env: jni::JNIEnv<'l>,
+    _class: jni::objects::JClass<'l>,
+    address: jni::sys::jlong,
+    length: jni::sys::jlong,
+) -> jni::sys::jobject {
+    let (Ok(length), false) = (usize::try_from(length), address == 0) else {
+        return std::ptr::null_mut();
+    };
+    // SAFETY: the runtime's own memory, alive while its column is.
+    let buffer = unsafe { env.new_direct_byte_buffer(address as *mut u8, length) };
+    buffer.map_or(std::ptr::null_mut(), |b| {
+        jni::objects::JObject::from(b).into_raw()
+    })
+}
+
 /// The mirror services; once, at start.
 pub(crate) fn register() {
     crate::bus::serve::<Declare>(declare);
@@ -171,5 +197,7 @@ pub(crate) fn register() {
     crate::bus::serve::<Keys>(keys);
 }
 
+#[cfg(test)]
+mod jvm;
 #[cfg(test)]
 mod tests;
