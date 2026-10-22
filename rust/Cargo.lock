@@ -1920,7 +1920,7 @@ version = "0.3.0"
 
 [[package]]
 name = "yog-core"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "yog-data",
  "yog-ids",
