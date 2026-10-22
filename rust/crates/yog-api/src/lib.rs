@@ -53,7 +53,7 @@ pub use yog_sync as sync;
 pub use java::mod_loaded;
 
 /// Inter-mod communication proc-macros.
-pub use yog_interop::{bench, import, nanite, yog_export, yog_mirror};
+pub use yog_interop::{bench, import, inject, nanite, yog_export, yog_mirror};
 
 /// Re-exported so `#[yog_export]`-generated code can emit `#[::yog_api::ctor::ctor(unsafe)]`
 /// without mods needing a direct `ctor` dependency. Constructors run when the
@@ -84,6 +84,15 @@ macro_rules! export_mod {
         #[unsafe(no_mangle)]
         pub extern "C" fn yog_abi_version() -> u32 {
             $crate::ABI_VERSION
+        }
+
+        /// This mod's injections (`#[inject]`), asked for before the game's
+        /// classes load: Yog Data (`yog_event::nanite::Nanites`) to `reply`.
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn yog_mod_nanites(reply: *const $crate::YogReply) {
+            let bytes = $crate::nanite::__yog_nanites();
+            // SAFETY: the runtime passes a live reply sink.
+            unsafe { $crate::YogReply::send(reply, &bytes) };
         }
 
         #[unsafe(no_mangle)]
@@ -132,6 +141,9 @@ macro_rules! export_mod {
                 for entry in $crate::__yog_export_registry().lock().iter() {
                     registry.provide_export(mod_id, entry);
                 }
+
+                // Its injections' handlers, on their points.
+                $crate::nanite::__subscribe(&mut registry);
 
                 // What it keeps, saved with the world (after the mod's own handlers).
                 $crate::storage::__save_with_world(&mut registry);

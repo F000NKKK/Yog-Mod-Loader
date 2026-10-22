@@ -46,6 +46,7 @@ mod machine;
 mod mirrors;
 #[cfg(test)]
 mod nanite_jvm;
+mod nanites;
 #[cfg(feature = "dev")]
 mod registrations;
 mod svg;
@@ -58,5 +59,7 @@ pub mod bench_support;
 #[cfg(any(test, feature = "bench"))]
 #[doc(hidden)]
 pub mod test_jvm;
+#[cfg(test)]
+mod test_jvm_shared;
 #[cfg(test)]
 mod tests;

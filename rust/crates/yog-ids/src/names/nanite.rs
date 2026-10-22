@@ -24,7 +24,7 @@ names! {
     /// `yog:nanite/…`: reflection — a member resolved once, then called,
     /// read or written by its handle.
     service_nanite {
-        DOMAIN = crate::concatcp!(crate::service::PREFIX, "nanite", crate::sep::PATH),
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::nanite_word::NANITE, crate::sep::PATH),
         RESOLVE = crate::concatcp!(DOMAIN, "resolve"),
         CALL = crate::concatcp!(DOMAIN, crate::bus_word::CALL),
         GET = crate::concatcp!(DOMAIN, crate::bus_word::GET),
@@ -36,5 +36,47 @@ names! {
     /// (`yog_data::Ref`'s kind; its id the object's number).
     nanite_ref {
         OBJECT = crate::concatcp!(crate::ns::YOG, crate::sep::NAMESPACE, "object"),
+    }
+
+    /// The words nanites' names are made of.
+    nanite_word {
+        NANITE = "nanite",
+    }
+
+    /// `yog:event/nanite/…`: what nanites' injections emit.
+    event_nanite {
+        PLANE = crate::concatcp!(crate::event::PREFIX, crate::nanite_word::NANITE, crate::sep::PATH),
+        /// An injection point reached; keyed by the point.
+        INJECT = crate::concatcp!(PLANE, "inject"),
+    }
+
+    /// Where in a method an injection goes: Mixin's `@At` values.
+    mixin_at {
+        HEAD = "HEAD",
+        RETURN = "RETURN",
+        TAIL = "TAIL",
+        INVOKE = "INVOKE",
+        INVOKE_ASSIGN = "INVOKE_ASSIGN",
+        FIELD = "FIELD",
+        NEW = "NEW",
+        CONSTANT = "CONSTANT",
+        LOAD = "LOAD",
+        STORE = "STORE",
+        JUMP = "JUMP",
+    }
+
+    /// Mixin's `@At(shift)`.
+    mixin_shift {
+        NONE = "NONE",
+        BEFORE = "BEFORE",
+        AFTER = "AFTER",
+    }
+
+    /// What joins an injection point's parts in its key
+    /// (`<class>#<method><desc>@<at>`).
+    nanite_point {
+        MEMBER = crate::sep::TAG,
+        AT = crate::sep::TYPED,
+        TARGET = crate::sep::NAMESPACE,
     }
 }

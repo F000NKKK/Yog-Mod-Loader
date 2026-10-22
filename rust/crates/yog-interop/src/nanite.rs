@@ -136,16 +136,30 @@ fn member(owner: &syn::Type, f: &syn::ForeignItemFn) -> syn::Result<(TokenStream
         owner_name,
         name.to_string().to_uppercase()
     );
-    let tys: Vec<&syn::Type> = sig.params.iter().map(|(t, _)| t).collect();
-    let args: Vec<&TokenStream> = sig.params.iter().map(|(_, a)| a).collect();
-    let ret = &sig.ret;
-    let target = if sig.receiver {
-        quote! { #n::Nanite::handle(self).to_value() }
-    } else {
-        quote! { ::yog_api::yog_data::Value::Null }
+    let (java_name, desc) = java_name_and_desc(f, &sig);
+    let static_def = quote! {
+        #[doc(hidden)]
+        static #stat: #n::Member = #n::Member::new(<#owner as #n::Nanite>::CLASS, #java_name, || #desc);
     };
-    let java_name = syn::LitStr::new(&name.to_string(), Span::call_site());
-    let (java_name, desc) = if has(f, FIELD) {
+    let body = body(f, &sig, &stat);
+    let (vis, handle) = (&f.vis, format_ident!("{}", name.to_string().to_uppercase()));
+    let doc = format!("Member `{name}`, resolved once (what `#[inject]` names).");
+    let body = quote! {
+        #[doc = #doc]
+        #vis const #handle: &'static #n::Member = &#stat;
+
+        #body
+    };
+    Ok((body, static_def))
+}
+
+/// The member's Java name and the expression making its descriptor.
+fn java_name_and_desc(f: &syn::ForeignItemFn, sig: &Sig) -> (TokenStream, TokenStream) {
+    let n = api();
+    let tys: Vec<&syn::Type> = sig.params.iter().map(|(t, _)| t).collect();
+    let ret = &sig.ret;
+    let java_name = syn::LitStr::new(&f.sig.ident.to_string(), Span::call_site());
+    if has(f, FIELD) {
         (quote! { #java_name }, quote! { <#ret as #n::Java>::desc() })
     } else if has(f, NEW) {
         let void = quote! { <() as #n::Reply>::desc() };
@@ -158,43 +172,48 @@ fn member(owner: &syn::Type, f: &syn::ForeignItemFn) -> syn::Result<(TokenStream
             quote! { #java_name },
             quote! { #n::method_desc(&[#(<#tys as #n::Java>::desc()),*], &<#ret as #n::Reply>::desc()) },
         )
+    }
+}
+
+/// The function(s): a call by the member's handle, or a field's getter and setter.
+fn body(f: &syn::ForeignItemFn, sig: &Sig, stat: &syn::Ident) -> TokenStream {
+    let n = api();
+    let args: Vec<&TokenStream> = sig.params.iter().map(|(_, a)| a).collect();
+    let ret = &sig.ret;
+    let target = if sig.receiver {
+        quote! { #n::Nanite::handle(self).to_value() }
+    } else {
+        quote! { ::yog_api::yog_data::Value::Null }
     };
-    let static_def = quote! {
-        #[doc(hidden)]
-        static #stat: #n::Member = #n::Member::new(<#owner as #n::Nanite>::CLASS, #java_name, || #desc);
-    };
-    let vis = &f.vis;
+    let (vis, fsig) = (&f.vis, &f.sig);
     let attrs: Vec<&syn::Attribute> = f
         .attrs
         .iter()
         .filter(|a| !a.path().is_ident(FIELD) && !a.path().is_ident(NEW))
         .collect();
-    let fsig = &f.sig;
-    let body = if has(f, FIELD) {
-        let setter = format_ident!("set_{}", name);
-        let me = if sig.receiver {
-            quote! { &self, }
-        } else {
-            quote! {}
-        };
-        quote! {
-            #(#attrs)*
-            #vis #fsig {
-                <#ret as #n::Reply>::from_reply(#stat.get(#target))
-            }
-
-            /// Sets the field; whether it was.
-            #vis fn #setter(#me value: #ret) -> bool {
-                #stat.set(#target, #n::Java::to_value(&value))
-            }
-        }
-    } else {
-        quote! {
+    if !has(f, FIELD) {
+        return quote! {
             #(#attrs)*
             #vis #fsig {
                 <#ret as #n::Reply>::from_reply(#stat.call(#target, vec![#(#n::Java::to_value(#args)),*]))
             }
-        }
+        };
+    }
+    let setter = format_ident!("set_{}", f.sig.ident);
+    let me = if sig.receiver {
+        quote! { &self, }
+    } else {
+        quote! {}
     };
-    Ok((body, static_def))
+    quote! {
+        #(#attrs)*
+        #vis #fsig {
+            <#ret as #n::Reply>::from_reply(#stat.get(#target))
+        }
+
+        /// Sets the field; whether it was.
+        #vis fn #setter(#me value: #ret) -> bool {
+            #stat.set(#target, #n::Java::to_value(&value))
+        }
+    }
 }

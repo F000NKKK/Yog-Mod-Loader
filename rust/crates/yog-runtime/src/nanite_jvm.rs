@@ -1,20 +1,64 @@
-//! Reflection for nanites with a real JVM (`dev.yog.nanite.YogReflect`):
-//! a constructor, a private method and field by name, a missing member,
-//! a held object let go. Needs a JDK: `cargo test -p yog-runtime nanite_jvm -- --ignored`.
+//! Nanites with a real JVM, in order (the mapping table is read once a
+//! process): reflection (`YogReflect`: a constructor, a private method and
+//! field by name, a missing member, a held object let go; the same by a
+//! table's names), then injections (a mixin made by `YogNaniteGen`, one
+//! fired through `YogInjections` over the bus to a handler here, which
+//! cancels it with a value). Needs a JDK, and for the injections Mixin's
+//! and ASM's jars (Gradle's cache, or `YOG_MIXIN_CP`):
+//! `cargo test -p yog-runtime nanite_jvm -- --ignored`.
 
 use std::path::{Path, PathBuf};
 
+use std::os::raw::c_void;
+
+use jni::JNIEnv;
 use jni::objects::JString;
+use yog_abi::{YogBytes, YogReply, YogStatus, status};
+use yog_data::Value;
+use yog_event::Message;
+use yog_event::nanite::Injected;
+
+use crate::bus::{Handler, ROUTER};
 use yog_event::nanite::{ClassMap, Mappings, MemberMap};
+
+const PROBE: &str = "dev/yog/nanite/InjectProbe";
+const POINT: &str = "test:point";
+const ANSWER: i64 = 99;
+
+/// The handler: the second argument seen, the method cancelled with `ANSWER`.
+unsafe extern "C" fn answer(
+    _: *mut c_void,
+    payload: YogBytes,
+    reply: *const YogReply,
+) -> YogStatus {
+    let Some(mut e) = Injected::from_bytes(unsafe { payload.as_slice() }) else {
+        return status::BAD_PAYLOAD;
+    };
+    assert_eq!(e.args, vec![Value::Str("x".into()), Value::Int(3)]);
+    e.value = Value::Int(ANSWER);
+    e.cancelled = true;
+    e.returned = true;
+    unsafe { YogReply::send(reply, &e.to_bytes()) };
+    status::OK
+}
+
+fn string(env: &mut JNIEnv, method: &str) -> String {
+    let out = env
+        .call_static_method(PROBE, method, "()Ljava/lang/String;", &[])
+        .and_then(|v| v.l());
+    if env.exception_check().unwrap_or(false) {
+        env.exception_describe().ok();
+    }
+    env.get_string(&JString::from(out.unwrap())).unwrap().into()
+}
 
 #[test]
 #[ignore = "needs a JDK; run with --ignored"]
-fn a_nanite_reflects_on_private_members() {
-    let Some(jdk) = crate::test_jvm::jdk() else {
+fn nanites_reflect_and_inject() {
+    let Some(jvm) = crate::test_jvm_shared::shared() else {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let classes = std::env::temp_dir().join(format!("yog-nanite-jvm-{}", std::process::id()));
     let common = root.join("../../../java-common/src/main/java/dev/yog");
     let sources: Vec<PathBuf> = [
         "nanite/YogReflect.java",
@@ -28,20 +72,21 @@ fn a_nanite_reflects_on_private_members() {
         "YogMessage.java",
         "YogAtoms.java",
         "bus/YogTypes.java",
+        "bus/YogEvents.java",
+        "nanite/YogNaniteGen.java",
+        "nanite/YogInjections.java",
     ]
     .map(|f| common.join(f))
     .into_iter()
     .chain([
         root.join("tests/java/dev/yog/YogLog.java"),
         root.join("tests/java/dev/yog/nanite/ReflectProbe.java"),
+        root.join("tests/java/dev/yog/nanite/InjectProbe.java"),
     ])
     .collect();
-    assert!(
-        crate::test_jvm::javac(&jdk, &classes, &sources),
-        "javac failed"
-    );
-    write_table(&classes);
-    let vm = crate::test_jvm::start(&jdk, &classes);
+    assert!(jvm.compile(&sources), "javac failed");
+    write_table(&jvm.classes);
+    let vm = &jvm.vm;
     let mut env = vm.attach_current_thread().unwrap();
     let out = env
         .call_static_method(
@@ -70,6 +115,31 @@ fn a_nanite_reflects_on_private_members() {
         mapped, "xx,7",
         "named members found by their run-time names"
     );
+    if jvm.mixin.is_none() {
+        return;
+    }
+    let _ = crate::globals::JAVA_VM
+        .set(unsafe { jni::JavaVM::from_raw(jvm.vm.get_java_vm_pointer()) }.unwrap());
+    crate::bus::jvm_support::register_natives(&mut env).unwrap();
+    let made = string(&mut env, "generate");
+    assert_eq!(
+        made,
+        "dev/yog/nanite/gen/Nanite0|Lorg/spongepowered/asm/mixin/Mixin;|[targets, [dev.yog.nanite.InjectProbe], remap, false]\
+         |yog$inject$0|(Ljava/lang/String;ILorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;)V\
+         |Lorg/spongepowered/asm/mixin/injection/Inject;|[counted(Ljava/lang/String;I)I]"
+    );
+
+    let at = ROUTER.resolve(&yog_event::keyed(yog_ids::event_nanite::INJECT, POINT));
+    ROUTER.on(
+        at,
+        0,
+        Handler::Native {
+            owner: None,
+            ud: 0,
+            f: answer,
+        },
+    );
+    assert_eq!(string(&mut env, "fire"), format!("true,{ANSWER}"));
 }
 
 /// A table renaming the probe: `NamedProbe` is `ReflectProbe` at run time,

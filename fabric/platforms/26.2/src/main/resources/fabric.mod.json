@@ -17,7 +17,8 @@
     ]
   },
   "mixins": [
-    "yog.mixins.json"
+    "yog.mixins.json",
+    "yog-nanites.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.0",

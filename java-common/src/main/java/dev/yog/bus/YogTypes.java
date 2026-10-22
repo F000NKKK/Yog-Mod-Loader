@@ -4992,6 +4992,100 @@ public final class YogTypes {
         }
     }
 
+    /** Every injection a mod declares (`yog_mod_nanites`). */
+    public record Nanites(java.util.List<YogTypes.Inject> injects) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("injects", injects.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static Nanites fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Nanites(YogData.list(m.get("injects")).stream().map(e0 -> YogTypes.Inject.fromData(e0)).toList());
+        }
+
+        public static Nanites fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            { int l0 = p.beginList(this.injects.size()); for (var e0 : this.injects) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static Nanites unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            java.util.List<YogTypes.Inject> f_injects = u.more(end) ? YogFrame.list(u, () -> YogTypes.Inject.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new Nanites(f_injects);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Nanites fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Nanites fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Nanites readFrame(YogFrame.Unpacker u) {
+            Nanites v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Nanites} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int h0, n0, b0;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { h0 = u.position(); n0 = u.count(); int e0 = u.listEnd(); b0 = 0; o0 = u.position(); u.skipTo(e0); } else { h0 = n0 = b0 = 0; o0 = -1; }
+                u.leave(end);
+            }
+
+            public java.util.List<YogTypes.Inject> injects() {
+                if (o0 < 0) return java.util.List.of();
+                u.seek(h0);
+                return YogFrame.list(u, () -> YogTypes.Inject.unpack(u));
+            }
+
+            public int injectsLength() {
+                return n0;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachInjects(java.util.function.Consumer<YogTypes.Inject.View> each) {
+                int at = o0;
+                for (int j = 0; j < n0; j++) {
+                    u.seek(at);
+                    YogTypes.Inject.View v = new YogTypes.Inject.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
     /** The posed geometry of an entity (entity space, see the design doc). */
     public record BodyCapture(String source, java.util.List<YogTypes.BodyMesh> meshes) {
         public java.util.Map<String, Object> toData() {
@@ -7786,6 +7880,172 @@ public final class YogTypes {
                     at = u.position();
                     each.accept(v);
                 }
+            }
+        }
+    }
+
+    /** An injection a mod declares (`#[inject]`): where, by Mojang's names — what the host turns into a Mixin `@Inject` before the class loads. Mods injecting at one point share it: its [`Inject::point`] is the event's key, their handlers ordered by the bus's priorities. */
+    public record Inject(String point, String class_, String method, String desc, String at, String target, int ordinal, String shift, boolean cancellable) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("point", point);
+            m.put("class", class_);
+            m.put("method", method);
+            m.put("desc", desc);
+            m.put("at", at);
+            m.put("target", target);
+            m.put("ordinal", ordinal);
+            m.put("shift", shift);
+            m.put("cancellable", cancellable);
+            return m;
+        }
+
+        public static Inject fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Inject(YogData.str(m.get("point"), ""), YogData.str(m.get("class"), ""), YogData.str(m.get("method"), ""), YogData.str(m.get("desc"), ""), YogData.str(m.get("at"), ""), YogData.str(m.get("target"), ""), (int) YogData.integer(m.get("ordinal"), 0), YogData.str(m.get("shift"), ""), YogData.bool(m.get("cancellable"), false));
+        }
+
+        public static Inject fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.point);
+            p.putStr(this.class_);
+            p.putStr(this.method);
+            p.putStr(this.desc);
+            p.putStr(this.at);
+            p.putStr(this.target);
+            p.putI(this.ordinal);
+            p.putStr(this.shift);
+            p.putBool(this.cancellable);
+            p.end(at);
+        }
+
+        public static Inject unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_point = u.more(end) ? u.getStr() : "";
+            String f_class_ = u.more(end) ? u.getStr() : "";
+            String f_method = u.more(end) ? u.getStr() : "";
+            String f_desc = u.more(end) ? u.getStr() : "";
+            String f_at = u.more(end) ? u.getStr() : "";
+            String f_target = u.more(end) ? u.getStr() : "";
+            int f_ordinal = u.more(end) ? (int) u.getI() : 0;
+            String f_shift = u.more(end) ? u.getStr() : "";
+            boolean f_cancellable = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new Inject(f_point, f_class_, f_method, f_desc, f_at, f_target, f_ordinal, f_shift, f_cancellable);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Inject fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Inject fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Inject readFrame(YogFrame.Unpacker u) {
+            Inject v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Inject} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+            private final int o6;
+            private final int o7;
+            private final int o8;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.getU(); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.getU(); } else { o5 = -1; }
+                if (u.more(end)) { o6 = u.position(); u.getU(); } else { o6 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.getU(); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.skip(1); } else { o8 = -1; }
+                u.leave(end);
+            }
+
+            public String point() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String class_() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
+            }
+
+            public String method() {
+                if (o2 < 0) return "";
+                u.seek(o2);
+                return u.getStr();
+            }
+
+            public String desc() {
+                if (o3 < 0) return "";
+                u.seek(o3);
+                return u.getStr();
+            }
+
+            public String at() {
+                if (o4 < 0) return "";
+                u.seek(o4);
+                return u.getStr();
+            }
+
+            public String target() {
+                if (o5 < 0) return "";
+                u.seek(o5);
+                return u.getStr();
+            }
+
+            public int ordinal() {
+                if (o6 < 0) return 0;
+                u.seek(o6);
+                return (int) u.getI();
+            }
+
+            public String shift() {
+                if (o7 < 0) return "";
+                u.seek(o7);
+                return u.getStr();
+            }
+
+            public boolean cancellable() {
+                if (o8 < 0) return false;
+                u.seek(o8);
+                return u.getBool();
             }
         }
     }

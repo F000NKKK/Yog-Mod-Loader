@@ -2,6 +2,8 @@ package dev.yog.nanite;
 
 import dev.yog.YogNames;
 import dev.yog.data.YogData;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -17,12 +19,33 @@ public final class YogObjects {
 
     private static final Map<Long, Object> HELD = new ConcurrentHashMap<>();
     private static final AtomicLong NEXT = new AtomicLong(1);
+    /** Objects held only while an injection's handlers run (see {@link #borrowing}). */
+    private static final ThreadLocal<List<Long>> BORROWED = new ThreadLocal<>();
 
     /** {@code o} held: its reference. */
     public static YogData.Ref hold(Object o) {
         long n = NEXT.getAndIncrement();
         HELD.put(n, o);
+        List<Long> borrowed = BORROWED.get();
+        if (borrowed != null) borrowed.add(n);
         return new YogData.Ref(YogNames.NaniteRef.OBJECT, Long.toString(n));
+    }
+
+    /**
+     * Runs {@code body} with what it holds lent, not kept: let go when it
+     * returns (an injection's object and arguments are the method's, valid
+     * while its handlers run).
+     */
+    public static <T> T borrowing(java.util.function.Supplier<T> body) {
+        List<Long> outer = BORROWED.get();
+        List<Long> mine = new ArrayList<>();
+        BORROWED.set(mine);
+        try {
+            return body.get();
+        } finally {
+            BORROWED.set(outer);
+            for (long n : mine) HELD.remove(n);
+        }
     }
 
     /** The object {@code ref} names, or null when it isn't one held. */

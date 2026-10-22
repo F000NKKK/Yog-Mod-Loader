@@ -23,13 +23,17 @@ public final class YogNativeRuntime {
     /** Jar resource root holding one runtime per {@code <os>-<arch>} platform tag. */
     private static final String NATIVES_ROOT = "/natives/";
     private static final String LIB_BASE_NAME = "yog_runtime";
+    /** Whether this process has it loaded. */
+    private static boolean loaded;
 
     /**
      * Extract the platform's runtime native from inside this jar and load it, so
      * players never deal with a loose .so/.dll. The jar bundles every supported
      * platform under {@code /natives/<os>-<arch>/}.
      */
-    public static void loadEmbedded() {
+    public static synchronized void loadEmbedded() {
+        // Once a process: nanites load it early, the host later.
+        if (loaded) return;
         String resource = NATIVES_ROOT + platformTag() + "/" + libName();
         cleanupStaleNativeExtractions(Path.of(System.getProperty("java.io.tmpdir")));
         try (InputStream in = YogNativeRuntime.class.getResourceAsStream(resource)) {
@@ -49,6 +53,7 @@ public final class YogNativeRuntime {
                 throw e;
             }
             tmp.toFile().deleteOnExit();
+            loaded = true;
         } catch (IOException e) {
             throw new RuntimeException("failed to load the Yog native runtime", e);
         }

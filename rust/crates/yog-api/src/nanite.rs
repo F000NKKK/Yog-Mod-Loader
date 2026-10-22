@@ -24,8 +24,13 @@ use yog_event::nanite::{Call, Get, Release, Resolve, Set};
 use yog_ids::{kind, nanite_ref};
 use yog_sync::{Arc, OnceLock};
 
+mod inject;
 mod java;
+pub use inject::{__yog_nanite_registry, __yog_nanites, Hook, InjectEntry};
 pub use java::{Java, Reply};
+
+#[doc(hidden)]
+pub use inject::subscribe as __subscribe;
 
 /// An object the host holds for this mod, or an entity (by uuid).
 #[derive(Clone, Debug)]
@@ -107,6 +112,11 @@ impl Member {
             desc,
             id: OnceLock::new(),
         }
+    }
+
+    /// Its class, Mojang's name.
+    pub fn class(&self) -> &'static str {
+        self.class
     }
 
     /// Its name and descriptor, as resolved.

@@ -14,7 +14,7 @@ use yog_hot_reload::LoadedModule;
 
 // ── Mod loading ───────────────────────────────────────────────────────────────
 
-pub(super) type AbiVersionFn = unsafe extern "C" fn() -> u32;
+pub(crate) type AbiVersionFn = unsafe extern "C" fn() -> u32;
 /// Second arg is a null-terminated C string: the mod's `id` from its manifest.
 pub(super) type RegisterFn = unsafe extern "C" fn(*const YogApi, *const std::os::raw::c_char);
 
@@ -207,7 +207,7 @@ pub(super) fn read_mod_info(path: &Path) -> Built {
     })
 }
 
-pub(super) fn extract_yog(path: &Path) -> Option<PathBuf> {
+pub(crate) fn extract_yog(path: &Path) -> Option<PathBuf> {
     let file = std::fs::File::open(path).ok()?;
     let mut archive = zip::ZipArchive::new(file).ok()?;
     let prefix = format!(

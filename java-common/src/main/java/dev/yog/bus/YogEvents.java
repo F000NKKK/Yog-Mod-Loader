@@ -4798,6 +4798,161 @@ Also used for `on_entity_spawn_pre` (cancellable): return `false` to discard the
         }
     }
 
+    /** `nanite`. */
+    public static final class Nanite {
+        private Nanite() {}
+
+        /** An injection point reached (keyed by its point): the object (null in a static method), the arguments, the return value at a `RETURN`. Handlers change it: `cancelled` stops the method (`returned`: with `value` its result). */
+        public record Injected(String point, Object this_, java.util.List<Object> args, Object value, boolean cancelled, boolean returned) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("point", point);
+                m.put("this", this_);
+                m.put("args", args);
+                m.put("value", value);
+                m.put("cancelled", cancelled);
+                m.put("returned", returned);
+                return m;
+            }
+
+            public static Injected fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Injected(YogData.str(m.get("point"), ""), m.get("this"), YogData.list(m.get("args")).stream().map(e0 -> e0).toList(), m.get("value"), YogData.bool(m.get("cancelled"), false), YogData.bool(m.get("returned"), false));
+            }
+
+            public static Injected fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.point);
+                p.putTagged(this.this_);
+                { int l0 = p.beginList(this.args.size()); for (var e0 : this.args) { p.putTagged(e0); } p.end(l0); }
+                p.putTagged(this.value);
+                p.putBool(this.cancelled);
+                p.putBool(this.returned);
+                p.end(at);
+            }
+
+            public static Injected unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_point = u.more(end) ? u.getStr() : "";
+                Object f_this_ = u.more(end) ? u.getTagged() : null;
+                java.util.List<Object> f_args = u.more(end) ? YogFrame.list(u, () -> u.getTagged()) : java.util.List.of();
+                Object f_value = u.more(end) ? u.getTagged() : null;
+                boolean f_cancelled = u.more(end) ? u.getBool() : false;
+                boolean f_returned = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new Injected(f_point, f_this_, f_args, f_value, f_cancelled, f_returned);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Injected fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Injected fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Injected readFrame(YogFrame.Unpacker u) {
+                Injected v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Injected} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+                private final int o5;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skipBytes(); } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.skipBytes(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.skip(1); } else { o4 = -1; }
+                    if (u.more(end)) { o5 = u.position(); u.skip(1); } else { o5 = -1; }
+                    u.leave(end);
+                }
+
+                public String point() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public Object this_() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return u.getTagged();
+                }
+
+                public java.util.List<Object> args() {
+                    if (o2 < 0) return java.util.List.of();
+                    u.seek(o2);
+                    return YogFrame.list(u, () -> u.getTagged());
+                }
+
+                public Object value() {
+                    if (o3 < 0) return null;
+                    u.seek(o3);
+                    return u.getTagged();
+                }
+
+                public boolean cancelled() {
+                    if (o4 < 0) return false;
+                    u.seek(o4);
+                    return u.getBool();
+                }
+
+                public boolean returned() {
+                    if (o5 < 0) return false;
+                    u.seek(o5);
+                    return u.getBool();
+                }
+            }
+
+            /** Emits it; the reply, read in place, is what the handlers changed it to (empty: none did). */
+            public YogMessage emit() {
+                return YogBus.emit(YogBus.keyed(YogNames.EventNanite.INJECT, point), packedFrame());
+            }
+
+            /** Emits it and reads back what the handlers made of it (itself when the reply isn't one). */
+            public Injected emitChanged() {
+                YogMessage r = emit();
+                // Nothing back: no handler changed it.
+                if (!r.ok() || r.isEmpty()) return this;
+                try {
+                    return fromFrame(r);
+                } catch (RuntimeException e) {
+                    return this;
+                }
+            }
+        }
+    }
+
     /** `client`. */
     public static final class Client {
         private Client() {}

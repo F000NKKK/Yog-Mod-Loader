@@ -1147,6 +1147,66 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(OBJECT);
     }
 
+    public static final class NaniteWord {
+        private NaniteWord() {}
+
+        public static final String NANITE = "nanite";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NANITE);
+    }
+
+    public static final class EventNanite {
+        private EventNanite() {}
+
+        public static final String PLANE = "yog:event/nanite/";
+        public static final String INJECT = "yog:event/nanite/inject";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PLANE, INJECT);
+    }
+
+    public static final class MixinAt {
+        private MixinAt() {}
+
+        public static final String HEAD = "HEAD";
+        public static final String RETURN = "RETURN";
+        public static final String TAIL = "TAIL";
+        public static final String INVOKE = "INVOKE";
+        public static final String INVOKE_ASSIGN = "INVOKE_ASSIGN";
+        public static final String FIELD = "FIELD";
+        public static final String NEW = "NEW";
+        public static final String CONSTANT = "CONSTANT";
+        public static final String LOAD = "LOAD";
+        public static final String STORE = "STORE";
+        public static final String JUMP = "JUMP";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(HEAD, RETURN, TAIL, INVOKE, INVOKE_ASSIGN, FIELD, NEW, CONSTANT, LOAD, STORE, JUMP);
+    }
+
+    public static final class MixinShift {
+        private MixinShift() {}
+
+        public static final String NONE = "NONE";
+        public static final String BEFORE = "BEFORE";
+        public static final String AFTER = "AFTER";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(NONE, BEFORE, AFTER);
+    }
+
+    public static final class NanitePoint {
+        private NanitePoint() {}
+
+        public static final String MEMBER = "#";
+        public static final String AT = "@";
+        public static final String TARGET = ":";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MEMBER, AT, TARGET);
+    }
+
     public static final class ResKind {
         private ResKind() {}
 

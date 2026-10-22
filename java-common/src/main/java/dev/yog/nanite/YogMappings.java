@@ -95,6 +95,18 @@ public final class YogMappings {
         return out.toString();
     }
 
+    /** Method {@code name desc} declared by class {@code owner} (Mojang's): its run-time name, no class loaded. */
+    public static String declaredMethod(String owner, String name, String desc) {
+        ensure();
+        return METHODS.getOrDefault(owner + SEP + name + SEP + desc, name);
+    }
+
+    /** Field {@code name} declared by class {@code owner} (Mojang's): its run-time name, no class loaded. */
+    public static String declaredField(String owner, String name) {
+        ensure();
+        return FIELDS.getOrDefault(owner + SEP + name, name);
+    }
+
     /** Field {@code name} of {@code owner} or a supertype: its run-time name. */
     public static String field(Class<?> owner, String name) {
         return member(owner, name, null, FIELDS);

@@ -8,6 +8,7 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 
+mod inject;
 mod mirror;
 mod nanite;
 
@@ -276,6 +277,15 @@ pub fn nanite(attr: TokenStream, item: TokenStream) -> TokenStream {
         nanite::class(attr.into(), item)
     };
     out.unwrap_or_else(syn::Error::into_compile_error).into()
+}
+
+/// An injection (see `inject.rs`): `#[inject(LivingEntity::HURT, at = HEAD,
+/// cancellable)]` on a `fn(&mut yog_api::nanite::Hook)`.
+#[proc_macro_attribute]
+pub fn inject(attr: TokenStream, item: TokenStream) -> TokenStream {
+    inject::expand(attr.into(), item.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }
 
 // ── #[bench] ─────────────────────────────────────────────────────────────

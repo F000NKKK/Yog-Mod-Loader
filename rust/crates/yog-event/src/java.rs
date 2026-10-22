@@ -352,6 +352,8 @@ const PAYLOADS: &[fn() -> Shape] = &[
     <crate::mirror::BlockScope as yog_data::Schema>::shape,
     // The host's mapping table (in its jar, read once).
     <crate::nanite::Mappings as yog_data::Schema>::shape,
+    // Mods' nanites, read by the host before the game's classes load.
+    <crate::nanite::Nanites as yog_data::Schema>::shape,
 ];
 
 /// Every generated class: its name and text.

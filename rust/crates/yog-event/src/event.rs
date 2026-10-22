@@ -5,7 +5,7 @@ use yog_ids as ids;
 
 use crate::message::{Message, branch, last_segment};
 
-use crate::{block, client, container, entity, log, player, server, world};
+use crate::{block, client, container, entity, log, nanite, player, server, world};
 
 /// An event the bus carries; its payload is `Self` in `yog-data`'s binary form.
 pub trait Event: Message {
@@ -118,6 +118,7 @@ events! {
     server::life::Saving => ids::event_server_life::SAVING, None;
     server::command::Run => ids::event_server_command::RUN, None, key = name;
     server::net::Packet => ids::event_server_net::PACKET, None, key = channel;
+    nanite::Injected => ids::event_nanite::INJECT, None, key = point;
     client::game::Tick => ids::event_client_game::TICK, None;
     client::game::Travel => ids::event_client_game::TRAVEL, None;
     client::input::Key => ids::event_client_input::KEY, Some(ids::event_client_input::KEY_PRE);

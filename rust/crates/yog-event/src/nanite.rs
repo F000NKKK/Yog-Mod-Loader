@@ -67,3 +67,57 @@ impl Mappings {
         self.classes.sort_by(|a, b| a.named.cmp(&b.named));
     }
 }
+
+/// An injection a mod declares (`#[inject]`): where, by Mojang's names —
+/// what the host turns into a Mixin `@Inject` before the class loads. Mods
+/// injecting at one point share it: its [`Inject::point`] is the event's key,
+/// their handlers ordered by the bus's priorities.
+#[derive(Schema, Debug, Clone, Default, PartialEq, Eq)]
+pub struct Inject {
+    /// The point's key ([`point`]).
+    pub point: String,
+    /// `net.minecraft.world.entity.LivingEntity`.
+    pub class: String,
+    pub method: String,
+    pub desc: String,
+    /// Mixin's `@At` value (`yog_ids::mixin_at`).
+    pub at: String,
+    /// What an `INVOKE` / `FIELD` / `NEW` at names (`Lowner;name(desc)`, Mojang's), else empty.
+    pub target: String,
+    /// Which occurrence (-1: every one).
+    pub ordinal: i32,
+    /// `yog_ids::mixin_shift`.
+    pub shift: String,
+    /// Whether handlers may cancel the method (or set its return value).
+    pub cancellable: bool,
+}
+
+/// An injection point's key: `<class>#<method><desc>@<at>[:<target>]`.
+pub fn point(class: &str, method: &str, desc: &str, at: &str, target: &str) -> String {
+    use ids::nanite_point::{AT, MEMBER, TARGET};
+    let mut key = format!("{class}{MEMBER}{method}{desc}{AT}{at}");
+    if !target.is_empty() {
+        key.push_str(TARGET);
+        key.push_str(target);
+    }
+    key
+}
+
+/// Every injection a mod declares (`yog_mod_nanites`).
+#[derive(Schema, Debug, Clone, Default, PartialEq, Eq)]
+pub struct Nanites {
+    pub injects: Vec<Inject>,
+}
+
+/// An injection point reached (keyed by its point): the object (null in a
+/// static method), the arguments, the return value at a `RETURN`. Handlers
+/// change it: `cancelled` stops the method (`returned`: with `value` its result).
+#[derive(Schema, Debug, Clone, Default, PartialEq)]
+pub struct Injected {
+    pub point: String,
+    pub this: Value,
+    pub args: Vec<Value>,
+    pub value: Value,
+    pub cancelled: bool,
+    pub returned: bool,
+}

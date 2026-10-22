@@ -28,22 +28,18 @@ fn write_pos(env: &mut JNIEnv, header: u64, row: u32, p: [f64; 3]) {
 #[test]
 #[ignore = "needs a JDK; run with --ignored"]
 fn java_writes_a_column_rust_reads() {
-    let Some(jdk) = crate::test_jvm::jdk() else {
+    let Some(jvm) = crate::test_jvm_shared::shared() else {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let classes = std::env::temp_dir().join(format!("yog-mirror-jvm-{}", std::process::id()));
     let mirror = root.join("../../../java-common/src/main/java/dev/yog/mirror");
     let sources: Vec<PathBuf> = ["YogColumn.java", "YogMirrorMemory.java"]
         .map(|f| mirror.join(f))
         .into_iter()
         .chain([root.join("tests/java/dev/yog/mirror/MirrorProbe.java")])
         .collect();
-    assert!(
-        crate::test_jvm::javac(&jdk, &classes, &sources),
-        "javac failed"
-    );
-    let vm = crate::test_jvm::start(&jdk, &classes);
+    assert!(jvm.compile(&sources), "javac failed");
+    let vm = &jvm.vm;
     let mut env = vm.attach_current_thread().unwrap();
     let buffer = NativeMethod {
         name: "nativeBuffer".into(),

@@ -117,11 +117,10 @@ fn reversed(p: &[u8]) -> Vec<u8> {
 #[test]
 #[ignore = "needs a JDK; run with --ignored"]
 fn calls_cross_the_arena_both_ways() {
-    let Some(jdk) = crate::test_jvm::jdk() else {
+    let Some(jvm) = crate::test_jvm_shared::shared() else {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let classes = std::env::temp_dir().join(format!("yog-arena-jvm-{}", std::process::id()));
     let java_common = root.join("../../../java-common/src/main/java/dev/yog");
     let sources: Vec<PathBuf> = [
         "YogBus.java",
@@ -135,11 +134,8 @@ fn calls_cross_the_arena_both_ways() {
     .into_iter()
     .chain(["YogLog.java", "ArenaProbe.java"].map(|f| root.join("tests/java/dev/yog").join(f)))
     .collect();
-    assert!(
-        crate::test_jvm::javac(&jdk, &classes, &sources),
-        "javac failed"
-    );
-    let vm = crate::test_jvm::start(&jdk, &classes);
+    assert!(jvm.compile(&sources), "javac failed");
+    let vm = &jvm.vm;
     let _ = crate::globals::JAVA_VM
         .set(unsafe { jni::JavaVM::from_raw(vm.get_java_vm_pointer()) }.unwrap());
     let mut env = vm.attach_current_thread().unwrap();
@@ -274,5 +270,4 @@ fn calls_cross_the_arena_both_ways() {
     );
     // Every frame was taken back.
     assert_eq!(arena::frames_top(), 0);
-    let _ = std::fs::remove_dir_all(&classes);
 }

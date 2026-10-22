@@ -80,13 +80,13 @@ minecraft {
             workingDirectory project.file('run')
             jvmArg '-Djava.library.path=' + file('run/natives').absolutePath
             // One player across dev launches (per-player data survives a restart).
-            args '--mixin.config', 'yog.mixins.json', '--username', 'Dev'
+            args '--mixin.config', 'yog.mixins.json', '--mixin.config', 'yog-nanites.mixins.json', '--username', 'Dev'
             mods { yog { source sourceSets.main } }
         }
         server {
             workingDirectory project.file('run')
             jvmArg '-Djava.library.path=' + file('run/natives').absolutePath
-            args '--nogui', '--mixin.config', 'yog.mixins.json'
+            args '--nogui', '--mixin.config', 'yog.mixins.json', '--mixin.config', 'yog-nanites.mixins.json'
             mods { yog { source sourceSets.main } }
         }
     }
@@ -114,6 +114,7 @@ java {
 mixin {
     add sourceSets.main, 'yog.refmap.json'
     config 'yog.mixins.json'
+    config 'yog-nanites.mixins.json'
 }
 
 dependencies {
@@ -136,7 +137,7 @@ processResources {
 
 jar {
     manifest {
-        attributes 'MixinConfigs': 'yog.mixins.json'
+        attributes 'MixinConfigs': 'yog.mixins.json,yog-nanites.mixins.json'
     }
 }
 

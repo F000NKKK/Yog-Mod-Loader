@@ -1,0 +1,8 @@
+{
+  "required": false,
+  "minVersion": "0.8.5",
+  "package": "dev.yog.nanite.gen",
+  "plugin": "dev.yog.nanite.YogNanitePlugin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": []
+}
