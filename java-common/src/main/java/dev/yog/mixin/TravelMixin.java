@@ -13,6 +13,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class TravelMixin {
     @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
     private void yog$travel(Vec3 input, CallbackInfo ci) {
-        if (YogBody.travel((LivingEntity) (Object) this)) ci.cancel();
+        LivingEntity self = (LivingEntity) (Object) this;
+        // YogBody is the client's: never reached (loaded) on a server.
+        if (self.level().isClientSide() && YogBody.travel(self)) ci.cancel();
     }
 }

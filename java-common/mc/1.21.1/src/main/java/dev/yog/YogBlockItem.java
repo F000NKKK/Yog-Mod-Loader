@@ -36,15 +36,7 @@ public class YogBlockItem extends BlockItem {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
         super.appendHoverText(stack, context, lines, flag);
-        String descKey = this.getDescriptionId() + ".desc";
-        String resolved = net.minecraft.client.resources.language.I18n.exists(descKey)
-                ? net.minecraft.client.resources.language.I18n.get(descKey)
-                : (tooltip != null && !tooltip.isEmpty() ? tooltip : null);
-        if (resolved != null) {
-            for (String line : resolved.split("\n")) {
-                lines.add(Component.literal(line));
-            }
-        }
+        YogTools.hover(this, tooltip, lines);
     }
 
     /** A Yog mod's picture under the tooltip, if it gives this stack one. */

@@ -31,6 +31,11 @@ public final class YogPlatform {
     /** The loader's name, as the pack stager and overlays call it. */
     public static final String LOADER = YogLoader.NAME;
 
+    /** Whether this game is a client (an integrated server's too), not a dedicated server. */
+    public static boolean isClient() {
+        return net.neoforged.fml.loading.FMLEnvironment.getDist() == net.neoforged.api.distmarker.Dist.CLIENT;
+    }
+
     public static Path gameDir() {
         return FMLPaths.GAMEDIR.get();
     }

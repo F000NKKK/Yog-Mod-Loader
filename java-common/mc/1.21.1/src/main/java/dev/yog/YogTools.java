@@ -122,8 +122,9 @@ public final class YogTools {
     /** The item's tooltip lines: its {@code .desc} translation, else the mod's tooltip. */
     static void hover(Item item, String tip, List<Component> lines) {
         String descKey = item.getDescriptionId() + ".desc";
-        String resolved = net.minecraft.client.resources.language.I18n.exists(descKey)
-                ? net.minecraft.client.resources.language.I18n.get(descKey)
+        // The game's own language (both sides; on a client the player's).
+        net.minecraft.locale.Language language = net.minecraft.locale.Language.getInstance();
+        String resolved = language.has(descKey) ? language.getOrDefault(descKey)
                 : (tip != null && !tip.isEmpty() ? tip : null);
         if (resolved != null) {
             for (String line : resolved.split("\n")) lines.add(Component.literal(line));

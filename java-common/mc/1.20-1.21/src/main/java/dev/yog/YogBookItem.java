@@ -1,6 +1,5 @@
 package dev.yog;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
@@ -18,8 +17,9 @@ public class YogBookItem extends YogItem {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        // Its screen through the client's own class: this one is both sides'.
         if (level.isClientSide) {
-            Minecraft.getInstance().setScreen(new YogUIScreen(bookId));
+            YogUiActions.openUI(bookId, true, false);
         }
         return InteractionResultHolder.success(player.getItemInHand(hand));
     }

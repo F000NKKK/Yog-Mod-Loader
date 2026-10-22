@@ -40,6 +40,11 @@ final class YogEarly {
         return Path.of("").toAbsolutePath();
     }
 
+    /** Whether this game is a client (the loader's platform says). */
+    static boolean isClient() {
+        return dev.yog.YogPlatform.isClient();
+    }
+
     /** Puts {@code dir}'s classes where Mixin finds them. */
     static void addClasses(Path dir) {
         try {

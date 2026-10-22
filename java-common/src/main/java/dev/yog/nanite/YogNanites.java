@@ -67,10 +67,24 @@ public final class YogNanites {
         }
     }
 
-    /** One injection a point (the first declaration of it; cancellable if any is). */
+    /** Where the game's client-only classes are (Mojang's names): none of them on a dedicated server. */
+    private static final String[] CLIENT_PACKAGES = {"net.minecraft.client.", "com.mojang.blaze3d."};
+
+    /** Whether nanite {@code i} goes into a class this game hasn't (the client's, on a dedicated server). */
+    private static boolean absent(YogTypes.Inject i, boolean client) {
+        if (client) return false;
+        for (String p : CLIENT_PACKAGES) {
+            if (i.class_().startsWith(p)) return true;
+        }
+        return false;
+    }
+
+    /** One injection a point (the first declaration of it; cancellable if any is), those this game has. */
     private static List<YogTypes.Inject> points(List<YogTypes.Inject> all) {
+        boolean client = YogEarly.isClient();
         Map<String, YogTypes.Inject> byPoint = new LinkedHashMap<>();
         for (YogTypes.Inject i : all) {
+            if (absent(i, client)) continue;
             YogTypes.Inject known = byPoint.get(i.point());
             if (known == null || (!known.cancellable() && i.cancellable())) byPoint.put(i.point(), i);
         }

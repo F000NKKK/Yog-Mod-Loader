@@ -104,6 +104,7 @@ Inside `yog-ids`:
 - [ ] **Version-neutral logic in `java-common`;** per-platform classes only adapt the game's API.
 - [ ] **The game's logger, not `System.err`.**
 - [ ] **Ids and keys from one constants class**, not literals.
+- [ ] **A dedicated server loads:** code both sides run never names a client class (`net.minecraft.client.*`, `com.mojang.blaze3d.*`) — not even in a method body the server doesn't take, since verifying the class can load it. What only the client does goes through a client class, reached behind `isClientSide()` / `YogPlatform.isClient()`; the bus's `yog:client/*` services are provided on a client only. `tools/server_smoke.sh <loader> <mc>` passes on every platform before a release.
 
 ## 3. Review process
 1. `tools/standards_check.py` lists every source file of every repository and the automatic findings per file. Its report is `docs/standards-review.tsv`: path, findings, review status.

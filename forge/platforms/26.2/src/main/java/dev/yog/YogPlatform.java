@@ -63,6 +63,11 @@ public final class YogPlatform {
         return buf;
     }
 
+    /** Whether this game is a client (an integrated server's too), not a dedicated server. */
+    public static boolean isClient() {
+        return net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT;
+    }
+
     public static Path gameDir() {
         return FMLPaths.GAMEDIR.get();
     }

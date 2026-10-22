@@ -23,6 +23,11 @@ public final class YogPlatform {
     public static final String LOADER = YogLoader.NAME;
 
     /** The game's directory. */
+    /** Whether this game is a client (an integrated server's too), not a dedicated server. */
+    public static boolean isClient() {
+        return net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT;
+    }
+
     public static Path gameDir() {
         return FabricLoader.getInstance().getGameDir();
     }

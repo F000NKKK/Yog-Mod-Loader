@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -99,11 +100,62 @@ public final class YogTags {
         return where == null || here(where);
     }
 
-    /** The tags {@code yog:<path>} is on this host, where its mods' entries go first. */
-    static List<String> tagsHere(String registry, String path) {
+    /**
+     * The tags {@code yog:<path>} is on this host, where its mods' entries go
+     * first — leaving out one that reaches a cycle (a loader's own data can
+     * name a tag in itself: Forge 1.21.1's {@code forge:feathers}). The game
+     * drops such a tag alone, but checking ours, which names it, it never
+     * gets back to where it started and recurses until the stack runs out.
+     */
+    static List<String> tagsHere(String registry, String path, boolean mc121) {
         List<String> out = new ArrayList<>();
         for (String t : YOG.getOrDefault(registry + " " + path, List.of())) {
-            if (has(registry, t)) out.add(t);
+            if (!has(registry, t)) continue;
+            if (reachesCycle(registry, t, mc121, new HashSet<>(), new HashSet<>())) {
+                YogLog.warn("tag #" + t + " (" + registry + ") reaches a cycle in this game's own data: yog:" + path + " leaves it out");
+                continue;
+            }
+            out.add(t);
+        }
+        return out;
+    }
+
+    /** Whether tag {@code id}'s definitions here (every jar's) lead into a cycle. */
+    private static boolean reachesCycle(String registry, String id, boolean mc121, Set<String> path, Set<String> done) {
+        if (path.contains(id)) return true;
+        if (!done.add(id)) return false;
+        path.add(id);
+        try {
+            for (String ref : references(registry, id, mc121)) {
+                if (reachesCycle(registry, ref, mc121, path, done)) return true;
+            }
+            return false;
+        } finally {
+            path.remove(id);
+        }
+    }
+
+    /** The tags tag {@code id} names ({@code #ns:path}), in every definition the game's class path has. */
+    private static List<String> references(String registry, String id, boolean mc121) {
+        List<String> out = new ArrayList<>();
+        int colon = id.indexOf(YogNames.Sep.NAMESPACE);
+        if (colon < 0) return out;
+        String rel = String.join(YogNames.Sep.PATH, YogNames.Pack.DATA, id.substring(0, colon), YogNames.Pack.TAGS, registry, id.substring(colon + 1)) + YogNames.Res.JSON;
+        ClassLoader loader = YogTags.class.getClassLoader();
+        try {
+            var urls = loader.getResources(YogDataLayout.remapDataPath(rel, mc121));
+            while (urls.hasMoreElements()) {
+                try (InputStream in = urls.nextElement().openStream()) {
+                    JsonObject o = new Gson().fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), JsonObject.class);
+                    if (o == null || !o.has("values")) continue;
+                    for (JsonElement v : o.getAsJsonArray("values")) {
+                        String ref = v.isJsonObject() ? v.getAsJsonObject().get("id").getAsString() : v.getAsString();
+                        if (ref.startsWith(YogNames.Sep.TAG)) out.add(ref.substring(YogNames.Sep.TAG.length()));
+                    }
+                }
+            }
+        } catch (IOException | RuntimeException e) {
+            YogLog.warn("tag #" + id + " unreadable here: " + e);
         }
         return out;
     }
@@ -118,7 +170,7 @@ public final class YogTags {
         for (Map.Entry<String, List<String>> e : YOG.entrySet()) {
             String[] key = e.getKey().split(" ", 2);
             String registry = key[0], path = key[1];
-            List<String> tags = tagsHere(registry, path);
+            List<String> tags = tagsHere(registry, path, mc121);
             Path file = tagFile(pack, registry, dev.yog.YogIds.join(dev.yog.YogNames.Ns.YOG, path), mc121);
             // The mods' entries, to the first tag it is here.
             Set<JsonElement> entries = new LinkedHashSet<>();

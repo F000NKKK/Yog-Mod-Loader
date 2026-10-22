@@ -22,9 +22,15 @@ import java.util.Map;
 public final class YogHostServices {
     private YogHostServices() {}
 
-    /** Provides every hosted action; before the mods register, so they can call them. */
+    /**
+     * Provides every hosted action; before the mods register, so they can
+     * call them. A dedicated server leaves the client's out: their host
+     * classes are the client's, never loaded there (a call finds no one).
+     */
     public static void provideAll() {
+        boolean client = YogPlatform.isClient();
         for (Map.Entry<String, YogBus.Handler> action : YogServices.HOSTED) {
+            if (!client && action.getKey().startsWith(YogNames.ServiceClient.DOMAIN)) continue;
             YogBus.provide(YogBus.resolve(action.getKey()), action.getValue());
         }
         YogHostMirrors.provide();
