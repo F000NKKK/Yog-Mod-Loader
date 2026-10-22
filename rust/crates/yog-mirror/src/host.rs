@@ -107,6 +107,9 @@ pub const CLIENT_BLOCK: HostMirror = HostMirror {
         field(mirror_word::LIQUID, fact::CLIENT_BLOCK_LIQUID, Kind::U8, 1),
         field(mirror_word::CLIMBABLE, fact::CLIENT_BLOCK_CLIMBABLE, Kind::U8, 1),
         field(mirror_word::HARMFUL, fact::CLIENT_BLOCK_HARMFUL, Kind::U8, 1),
+        field(mirror_word::FULL, fact::CLIENT_BLOCK_FULL, Kind::U8, 1),
+        field(mirror_word::FALLS, fact::CLIENT_BLOCK_FALLS, Kind::U8, 1),
+        field(mirror_word::HARDNESS, fact::CLIENT_BLOCK_HARDNESS, Kind::F32, 1),
     ],
     clock: Clock::Client,
 };

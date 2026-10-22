@@ -40,6 +40,7 @@ public final class YogHostMirrors {
         YogBus.provide(YogBus.resolve(YogMirrors.Entity.ADDRESS), YogHostMirrors::entities);
         YogBus.provide(YogBus.resolve(YogMirrors.Player.ADDRESS), YogHostMirrors::players);
         YogBus.provide(YogBus.resolve(YogMirrors.Block.ADDRESS), YogHostBlocks::blocks);
+        if (YogPlatform.isClient()) YogClientMirrors.provide();
     }
 
     private static int entities(YogMessage in, YogBus.Out out) {

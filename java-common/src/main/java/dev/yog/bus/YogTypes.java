@@ -3937,18 +3937,19 @@ public final class YogTypes {
     }
 
     /** A mirror: `yog:mirror/<mod>/<name>`, rows of one key space. */
-    public record MirrorSpec(String name, String space, java.util.List<YogTypes.FieldSpec> fields) {
+    public record MirrorSpec(String name, String space, java.util.List<YogTypes.FieldSpec> fields, String clock) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("name", name);
             m.put("space", space);
             m.put("fields", fields.stream().map(e0 -> e0.toData()).toList());
+            m.put("clock", clock);
             return m;
         }
 
         public static MirrorSpec fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new MirrorSpec(YogData.str(m.get("name"), ""), YogData.str(m.get("space"), ""), YogData.list(m.get("fields")).stream().map(e0 -> YogTypes.FieldSpec.fromData(e0)).toList());
+            return new MirrorSpec(YogData.str(m.get("name"), ""), YogData.str(m.get("space"), ""), YogData.list(m.get("fields")).stream().map(e0 -> YogTypes.FieldSpec.fromData(e0)).toList(), YogData.str(m.get("clock"), ""));
         }
 
         public static MirrorSpec fromBytes(byte[] bytes) {
@@ -3960,6 +3961,7 @@ public final class YogTypes {
             p.putStr(this.name);
             p.putStr(this.space);
             { int l0 = p.beginList(this.fields.size()); for (var e0 : this.fields) { e0.pack(p); } p.end(l0); }
+            p.putU(switch (this.clock) { case "server" -> 0; case "client" -> 1; default -> 0; });
             p.end(at);
         }
 
@@ -3968,8 +3970,9 @@ public final class YogTypes {
             String f_name = u.more(end) ? u.getStr() : "";
             String f_space = u.more(end) ? u.getStr() : "";
             java.util.List<YogTypes.FieldSpec> f_fields = u.more(end) ? YogFrame.list(u, () -> YogTypes.FieldSpec.unpack(u)) : java.util.List.of();
+            String f_clock = u.more(end) ? switch ((int) u.getU()) { case 0 -> "server"; case 1 -> "client"; default -> ""; } : "server";
             u.leave(end);
-            return new MirrorSpec(f_name, f_space, f_fields);
+            return new MirrorSpec(f_name, f_space, f_fields, f_clock);
         }
 
         public byte[] toFrame() {
@@ -4007,6 +4010,7 @@ public final class YogTypes {
             private final int o1;
             private final int o2;
             private final int h2, n2, b2;
+            private final int o3;
 
             public View(YogFrame.Unpacker u) {
                 this.u = u;
@@ -4014,6 +4018,7 @@ public final class YogTypes {
                 if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
                 if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
                 if (u.more(end)) { h2 = u.position(); n2 = u.count(); int e2 = u.listEnd(); b2 = 0; o2 = u.position(); u.skipTo(e2); } else { h2 = n2 = b2 = 0; o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
                 u.leave(end);
             }
 
@@ -4048,6 +4053,12 @@ public final class YogTypes {
                     at = u.position();
                     each.accept(v);
                 }
+            }
+
+            public String clock() {
+                if (o3 < 0) return "server";
+                u.seek(o3);
+                return switch ((int) u.getU()) { case 0 -> "server"; case 1 -> "client"; default -> ""; };
             }
         }
     }
@@ -10327,6 +10338,13 @@ public final class YogTypes {
         public static final String SOUTH = "south";
         public static final String WEST = "west";
         public static final String EAST = "east";
+    }
+
+    /** Whose ticks a mirror is written after: the server's (the world as it is), or a client's (the world as that player sees it — what a client mod reads on any server). */
+    public static final class Clock {
+        private Clock() {}
+        public static final String SERVER = "server";
+        public static final String CLIENT = "client";
     }
 
     /** [`Anchor`] as the wire names it; a bone's name goes beside it. */

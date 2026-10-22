@@ -1050,9 +1050,16 @@ public final class YogNames {
         public static final String VELOCITY = "velocity";
         public static final String HEALTH = "health";
         public static final String UUID = "uuid";
+        public static final String SOLID = "solid";
+        public static final String LIQUID = "liquid";
+        public static final String CLIMBABLE = "climbable";
+        public static final String HARMFUL = "harmful";
+        public static final String FULL = "full";
+        public static final String FALLS = "falls";
+        public static final String HARDNESS = "hardness";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MIRROR, FACT, KEYS, POS, VELOCITY, HEALTH, UUID);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MIRROR, FACT, KEYS, POS, VELOCITY, HEALTH, UUID, SOLID, LIQUID, CLIMBABLE, HARMFUL, FULL, FALLS, HARDNESS);
     }
 
     public static final class ServiceMirror {
@@ -1076,9 +1083,12 @@ public final class YogNames {
         public static final String ENTITY = "yog:mirror/yog/entity";
         public static final String PLAYER = "yog:mirror/yog/player";
         public static final String BLOCK = "yog:mirror/yog/block";
+        public static final String CLIENT = "yog:mirror/yog/client/";
+        public static final String CLIENT_ENTITY = "yog:mirror/yog/client/entity";
+        public static final String CLIENT_BLOCK = "yog:mirror/yog/client/block";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, PLAYER, BLOCK);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, PLAYER, BLOCK, CLIENT, CLIENT_ENTITY, CLIENT_BLOCK);
     }
 
     public static final class KeySpace {
@@ -1088,9 +1098,12 @@ public final class YogNames {
         public static final String ENTITY = "yog:keys/entity";
         public static final String PLAYER = "yog:keys/player";
         public static final String BLOCK = "yog:keys/block";
+        public static final String CLIENT = "yog:keys/client/";
+        public static final String CLIENT_ENTITY = "yog:keys/client/entity";
+        public static final String CLIENT_BLOCK = "yog:keys/client/block";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, PLAYER, BLOCK);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, PLAYER, BLOCK, CLIENT, CLIENT_ENTITY, CLIENT_BLOCK);
     }
 
     public static final class Fact {
@@ -1109,9 +1122,25 @@ public final class YogNames {
         public static final String PLAYER_NAME = "yog:fact/player/name";
         public static final String BLOCK = "yog:fact/block/";
         public static final String BLOCK_STATE = "yog:fact/block/state";
+        public static final String CLIENT_ENTITY = "yog:fact/client/entity/";
+        public static final String CLIENT_ENTITY_POS = "yog:fact/client/entity/pos";
+        public static final String CLIENT_ENTITY_VELOCITY = "yog:fact/client/entity/velocity";
+        public static final String CLIENT_ENTITY_ROTATION = "yog:fact/client/entity/rotation";
+        public static final String CLIENT_ENTITY_KIND = "yog:fact/client/entity/kind";
+        public static final String CLIENT_ENTITY_HEALTH = "yog:fact/client/entity/health";
+        public static final String CLIENT_ENTITY_UUID = "yog:fact/client/entity/uuid";
+        public static final String CLIENT_BLOCK = "yog:fact/client/block/";
+        public static final String CLIENT_BLOCK_STATE = "yog:fact/client/block/state";
+        public static final String CLIENT_BLOCK_SOLID = "yog:fact/client/block/solid";
+        public static final String CLIENT_BLOCK_LIQUID = "yog:fact/client/block/liquid";
+        public static final String CLIENT_BLOCK_CLIMBABLE = "yog:fact/client/block/climbable";
+        public static final String CLIENT_BLOCK_HARMFUL = "yog:fact/client/block/harmful";
+        public static final String CLIENT_BLOCK_FULL = "yog:fact/client/block/full";
+        public static final String CLIENT_BLOCK_FALLS = "yog:fact/client/block/falls";
+        public static final String CLIENT_BLOCK_HARDNESS = "yog:fact/client/block/hardness";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, ENTITY_POS, ENTITY_VELOCITY, ENTITY_ROTATION, ENTITY_KIND, ENTITY_DIMENSION, ENTITY_HEALTH, ENTITY_UUID, PLAYER, PLAYER_NAME, BLOCK, BLOCK_STATE);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, ENTITY, ENTITY_POS, ENTITY_VELOCITY, ENTITY_ROTATION, ENTITY_KIND, ENTITY_DIMENSION, ENTITY_HEALTH, ENTITY_UUID, PLAYER, PLAYER_NAME, BLOCK, BLOCK_STATE, CLIENT_ENTITY, CLIENT_ENTITY_POS, CLIENT_ENTITY_VELOCITY, CLIENT_ENTITY_ROTATION, CLIENT_ENTITY_KIND, CLIENT_ENTITY_HEALTH, CLIENT_ENTITY_UUID, CLIENT_BLOCK, CLIENT_BLOCK_STATE, CLIENT_BLOCK_SOLID, CLIENT_BLOCK_LIQUID, CLIENT_BLOCK_CLIMBABLE, CLIENT_BLOCK_HARMFUL, CLIENT_BLOCK_FULL, CLIENT_BLOCK_FALLS, CLIENT_BLOCK_HARDNESS);
     }
 
     public static final class MirrorProblem {

@@ -73,4 +73,10 @@ pub struct ClientBlocks {
     pub climbable: u8,
     /// Hurts to touch (fire, lava, cactus…).
     pub harmful: u8,
+    /// Its collision is the whole cube.
+    pub full: u8,
+    /// Falls when nothing holds it (sand, gravel…).
+    pub falls: u8,
+    /// How hard it is to break (negative: it can't be).
+    pub hardness: f32,
 }

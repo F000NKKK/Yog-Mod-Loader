@@ -88,6 +88,11 @@ public final class YogColumn {
         if (has(row)) data.putFloat(row * width, v);
     }
 
+    /** A flag (a byte: 1 or 0). */
+    public void putByte(int row, boolean on) {
+        if (has(row)) data.put(row * width, (byte) (on ? 1 : 0));
+    }
+
     public void putInt(int row, int v) {
         if (has(row)) data.putInt(row * width, v);
     }

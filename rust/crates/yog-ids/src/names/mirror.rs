@@ -19,6 +19,12 @@ names! {
         CLIMBABLE = "climbable",
         /// A block's: hurts to touch (fire, lava, cactus…).
         HARMFUL = "harmful",
+        /// A block's: its collision is the whole cube.
+        FULL = "full",
+        /// A block's: falls when nothing holds it (sand, gravel…).
+        FALLS = "falls",
+        /// A block's: how hard it is to break (negative: it can't be).
+        HARDNESS = "hardness",
     }
 
     /// `yog:mirror/…`: declaring a mirror, providing one, and the mirrors
@@ -115,6 +121,9 @@ names! {
         CLIENT_BLOCK_LIQUID = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::LIQUID),
         CLIENT_BLOCK_CLIMBABLE = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::CLIMBABLE),
         CLIENT_BLOCK_HARMFUL = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::HARMFUL),
+        CLIENT_BLOCK_FULL = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::FULL),
+        CLIENT_BLOCK_FALLS = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::FALLS),
+        CLIENT_BLOCK_HARDNESS = crate::concatcp!(CLIENT_BLOCK, crate::mirror_word::HARDNESS),
     }
 
     /// What's wrong with a mirror's declaration or provider (`YM…`).

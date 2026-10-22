@@ -20,8 +20,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -59,8 +57,6 @@ public final class YogClientOps {
     /** Blocks along a chunk section's edge, and its shift. */
     private static final int SECTION = 16;
     private static final int SECTION_SHIFT = 4;
-    /** Blocks that hurt to touch, besides fire and lava. */
-    private static final Set<Block> HARMFUL = Set.of(Blocks.CACTUS, Blocks.SWEET_BERRY_BUSH, Blocks.MAGMA_BLOCK, Blocks.WITHER_ROSE, Blocks.POWDER_SNOW);
     /** A face's hit point: this far from the block's centre toward the face. */
     private static final double FACE_OFFSET = 0.5;
     /** The partial tick the attack's charge is read at, as the game's crosshair does. */
@@ -192,9 +188,8 @@ public final class YogClientOps {
     }
 
     private static YogTypes.BlockKind kind(ClientLevel w, BlockPos at, BlockState st) {
-        boolean harmful = st.is(BlockTags.FIRE) || st.getFluidState().is(FluidTags.LAVA) || HARMFUL.contains(st.getBlock());
-        return new YogTypes.BlockKind(BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString(), !st.getCollisionShape(w, at).isEmpty(),
-                !st.getFluidState().isEmpty(), st.is(BlockTags.CLIMBABLE), harmful);
+        return new YogTypes.BlockKind(BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString(), YogBlockFlags.solid(w, at, st),
+                YogBlockFlags.liquid(st), YogBlockFlags.climbable(st), YogBlockFlags.harmful(st));
     }
 
     @YogServiceHost

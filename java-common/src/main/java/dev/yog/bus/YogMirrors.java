@@ -46,4 +46,48 @@ public final class YogMirrors {
         /** Field `state` (U32 × 1): its index, its bit is {@code 1L << index}. */
         public static final int STATE = 0;
     }
+
+    /** yog:mirror/yog/client/entity (`yog_mirror::host`). */
+    public static final class ClientEntity {
+        private ClientEntity() {}
+
+        public static final String ADDRESS = "yog:mirror/yog/client/entity";
+        public static final String SPACE = "yog:keys/client/entity";
+        /** Field `pos` (F64 × 3): its index, its bit is {@code 1L << index}. */
+        public static final int POS = 0;
+        /** Field `velocity` (F64 × 3): its index, its bit is {@code 1L << index}. */
+        public static final int VELOCITY = 1;
+        /** Field `rotation` (F32 × 2): its index, its bit is {@code 1L << index}. */
+        public static final int ROTATION = 2;
+        /** Field `kind` (U32 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int KIND = 3;
+        /** Field `health` (F32 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int HEALTH = 4;
+        /** Field `uuid` (U64 × 2): its index, its bit is {@code 1L << index}. */
+        public static final int UUID = 5;
+    }
+
+    /** yog:mirror/yog/client/block (`yog_mirror::host`). */
+    public static final class ClientBlock {
+        private ClientBlock() {}
+
+        public static final String ADDRESS = "yog:mirror/yog/client/block";
+        public static final String SPACE = "yog:keys/client/block";
+        /** Field `state` (U32 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int STATE = 0;
+        /** Field `solid` (U8 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int SOLID = 1;
+        /** Field `liquid` (U8 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int LIQUID = 2;
+        /** Field `climbable` (U8 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int CLIMBABLE = 3;
+        /** Field `harmful` (U8 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int HARMFUL = 4;
+        /** Field `full` (U8 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int FULL = 5;
+        /** Field `falls` (U8 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int FALLS = 6;
+        /** Field `hardness` (F32 × 1): its index, its bit is {@code 1L << index}. */
+        public static final int HARDNESS = 7;
+    }
 }
