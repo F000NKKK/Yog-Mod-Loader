@@ -27,8 +27,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class YogReflect {
     private YogReflect() {}
 
-    /** What a resolved member is. */
-    private record Member(MethodHandle method, Field field) {}
+    /**
+     * What a resolved member is: a method (its handle, and the same taking
+     * its arguments as one {@code Object[]} and giving an {@code Object},
+     * called exactly — no array of arguments made by the JVM a call) or a field.
+     */
+    private record Member(MethodHandle method, MethodHandle spread, Field field) {
+        static Member of(MethodHandle mh) {
+            int n = mh.type().parameterCount();
+            MethodHandle spread = mh.asType(MethodType.genericMethodType(n)).asSpreader(Object[].class, n);
+            return new Member(mh, spread, null);
+        }
+    }
 
     private static final List<Member> MEMBERS = new ArrayList<>();
     private static final Map<String, Integer> RESOLVED = new ConcurrentHashMap<>();
@@ -47,7 +57,7 @@ public final class YogReflect {
         if (known != null) return known;
         try {
             Class<?> c = YogMappings.load(cls.replace('.', '/'));
-            Member m = desc.indexOf(METHOD) == 0 ? method(c, name, desc) : new Member(null, field(c, name));
+            Member m = desc.indexOf(METHOD) == 0 ? method(c, name, desc) : new Member(null, null, field(c, name));
             MEMBERS.add(m);
             int id = MEMBERS.size() - 1;
             RESOLVED.put(key, id);
@@ -64,19 +74,19 @@ public final class YogReflect {
         if (name.equals(CONSTRUCTOR)) {
             Constructor<?> k = c.getDeclaredConstructor(type.parameterArray());
             k.setAccessible(true);
-            return new Member(lookup.unreflectConstructor(k), null);
+            return Member.of(lookup.unreflectConstructor(k));
         }
         String runtime = YogMappings.method(c, name, desc);
         for (Class<?> at = c; at != null; at = at.getSuperclass()) {
             for (Method m : at.getDeclaredMethods()) {
                 if (m.getName().equals(runtime) && Arrays.equals(m.getParameterTypes(), type.parameterArray())) {
                     m.setAccessible(true);
-                    return new Member(lookup.unreflect(m), null);
+                    return Member.of(lookup.unreflect(m));
                 }
             }
         }
         Method m = c.getMethod(runtime, type.parameterArray());
-        return new Member(lookup.unreflect(m), null);
+        return Member.of(lookup.unreflect(m));
     }
 
     private static Field field(Class<?> c, String name) throws NoSuchFieldException {
@@ -99,17 +109,16 @@ public final class YogReflect {
 
     /** Method or constructor {@code id} called on {@code target} with {@code args}. */
     public static Object call(long id, Object target, List<Object> args) throws Throwable {
-        MethodHandle mh = member(id).method();
-        if (mh == null) throw new IllegalArgumentException("member " + id + " is a field");
-        MethodType type = mh.type();
-        List<Object> in = new ArrayList<>(type.parameterCount());
-        int from = 0;
-        if (type.parameterCount() > args.size()) {
-            in.add(toJava(target, type.parameterType(0)));
-            from = 1;
+        Member m = member(id);
+        if (m.method() == null) throw new IllegalArgumentException("member " + id + " is a field");
+        MethodType type = m.method().type();
+        Object[] in = new Object[type.parameterCount()];
+        int from = in.length > args.size() ? 1 : 0;
+        if (from == 1) in[0] = toJava(target, type.parameterType(0));
+        for (int i = 0; i < args.size() && from + i < in.length; i++) {
+            in[from + i] = toJava(args.get(i), type.parameterType(from + i));
         }
-        for (int i = 0; i < args.size(); i++) in.add(toJava(args.get(i), type.parameterType(from + i)));
-        return toData(mh.invokeWithArguments(in));
+        return toData((Object) m.spread().invokeExact(in));
     }
 
     /** Field {@code id} of {@code target}. */

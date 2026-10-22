@@ -79,3 +79,8 @@ required-features = ["bench"]
 name = "bus_calls"
 harness = false
 required-features = ["bench"]
+
+[[bench]]
+name = "nanite"
+harness = false
+required-features = ["bench"]
