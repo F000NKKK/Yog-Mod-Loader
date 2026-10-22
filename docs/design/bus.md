@@ -229,6 +229,18 @@ for t in near.iter() { draw(t.pos(), t.level()); }   // drop(near) stops what on
   are declared the same way: one mechanism for host, mods and Java mods.
 * Key spaces inherit (a player is an entity): `player.pos` links to
   `entity.pos` through the player → entity map.
+* **Families** (done in F3): a key that fills 64 bits (a block's packed
+  position) can't carry its dimension, so such spaces are families — a
+  member a parameter (`yog:keys/block/<dimension>`), made when first
+  named, a family's mirrors (the host's block mirror, a mod's `family`
+  mirror) provided in each member as `<name>/<parameter>`.
+* **Scopes** (done in F3): a declaration carries its mirror's scope type
+  (`BlockScope`: a box); its provider gets every declaration's scope with
+  its turn and covers their union.
+* **Measured** (F3, one machine): a value from a mirror by row 0.92 ns, by
+  key 2.7 ns, a player's position through its entity 13 ns, 1000 entities
+  walked 1.1 µs, a tick's writing 0.83 ns a row; the same point asked over
+  the bus Rust → Java 249 ns (over the F2 estimate: worth its own pass).
 
 ### The format on the bus
 
@@ -296,10 +308,12 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
   no reference count) and trades two reply buffers. Measured in `versus`
   (one value read, opening included, against rkyv) and `bus_calls` (whole
   calls on a real JVM: Rust → Java → reply, Java → Rust).
-* **F3 — mirrors**: facts in `yog-ids`; the column store (inodes, key
-  spaces, directories, merged demand, writer hand-over); `#[yog_mirror]`;
-  its Java side; the host's mirrors (entities, players, block areas); Pipes'
-  `Flow` as the first mod mirror; key-space inheritance.
+* **F3 — mirrors** (done): facts in `yog-ids`; the column store
+  (`yog-mirror`: inodes, key spaces, directories, merged demand, writer
+  hand-over, families, scopes); `#[yog_mirror]`; its Java side
+  (`YogColumn`, `YogHostMirrors`, generated `YogMirrors`); the host's
+  mirrors (entities, players, block areas); Pipes' `Flow` as the first mod
+  mirror; key-space inheritance.
 * **F4** — the mods move: VLSI, Pipes (`bridge.rs`), Hex, Modlist, Argus;
   their hot data into mirrors.
 * **F5** — stage 5 below (nanites); **F6** — stage 6; **F7** — stage 7, with
