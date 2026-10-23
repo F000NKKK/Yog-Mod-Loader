@@ -1,8 +1,8 @@
-//! Names resolved and misplaced words found (`yog_script::check`).
+//! Names resolved and misplaced words found (`yog_script_analyze::check`).
 
 use yog_ids::script_problem;
-use yog_script::check;
-use yog_script::resolve::DefKind;
+use yog_script_analyze::check;
+use yog_script_analyze::resolve::DefKind;
 
 fn codes(name: &str, src: &str) -> Vec<String> {
     check(name, src)

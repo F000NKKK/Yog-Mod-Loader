@@ -23,11 +23,11 @@ const VERSIONS: &str = "versions";
 const ID: &str = "id";
 const URL: &str = "url";
 const DOWNLOADS: &str = "downloads";
-pub(crate) const CLIENT_MAPPINGS: &str = "client_mappings";
-pub(crate) const SERVER_MAPPINGS: &str = "server_mappings";
+pub const CLIENT_MAPPINGS: &str = "client_mappings";
+pub const SERVER_MAPPINGS: &str = "server_mappings";
 /// The game's jars, by their downloads' keys.
-pub(crate) const CLIENT_JAR: &str = "client";
-pub(crate) const SERVER_JAR: &str = "server";
+pub const CLIENT_JAR: &str = "client";
+pub const SERVER_JAR: &str = "server";
 /// A Maven metadata version's tags.
 const VERSION_OPEN: &str = "<version>";
 const VERSION_CLOSE: &str = "</version>";
@@ -102,14 +102,14 @@ fn download_url(mc: &str, key: &str) -> Result<Option<String>, String> {
 }
 
 /// Mojang's mappings of `mc`'s client (ProGuard's text).
-pub(crate) fn mojang(mc: &str) -> Result<String, String> {
+pub fn mojang(mc: &str) -> Result<String, String> {
     side_mappings(mc, CLIENT_MAPPINGS)?
         .ok_or_else(|| format!("{mc} has no mappings (unobfuscated: its names are Mojang's)"))
 }
 
 /// Mojang's mappings of one side of `mc` (`client_mappings`,
 /// `server_mappings`); none for a version that isn't obfuscated.
-pub(crate) fn side_mappings(mc: &str, key: &str) -> Result<Option<String>, String> {
+pub fn side_mappings(mc: &str, key: &str) -> Result<Option<String>, String> {
     let name = format!("{mc}.{key}.txt");
     if let Some(t) = cache_path(&name)
         .ok()
@@ -124,7 +124,7 @@ pub(crate) fn side_mappings(mc: &str, key: &str) -> Result<Option<String>, Strin
 }
 
 /// `mc`'s `client` or `server` jar, fetched once.
-pub(crate) fn game_jar(mc: &str, side: &str) -> Result<Vec<u8>, String> {
+pub fn game_jar(mc: &str, side: &str) -> Result<Vec<u8>, String> {
     let path = cache_path(&format!("{mc}.{side}.jar"))?;
     let dir = path.parent().map(PathBuf::from).unwrap_or_default();
     if let Ok(b) = std::fs::read(&path) {
@@ -139,7 +139,7 @@ pub(crate) fn game_jar(mc: &str, side: &str) -> Result<Vec<u8>, String> {
 }
 
 /// Fabric's intermediary of `mc` (tiny v2).
-pub(crate) fn intermediary(mc: &str) -> Result<String, String> {
+pub fn intermediary(mc: &str) -> Result<String, String> {
     cached(&format!("{mc}.intermediary.tiny"), || {
         zip_entry(
             &format!("{INTERMEDIARY_BASE}/{mc}/intermediary-{mc}-v2.jar"),
@@ -149,7 +149,7 @@ pub(crate) fn intermediary(mc: &str) -> Result<String, String> {
 }
 
 /// Forge's SRG of `mc` (tsrg2), from MCPConfig's latest build for it.
-pub(crate) fn srg(mc: &str) -> Result<String, String> {
+pub fn srg(mc: &str) -> Result<String, String> {
     cached(&format!("{mc}.srg.tsrg"), || {
         let metadata = text(&format!("{MCP_BASE}/{MCP_METADATA}"))?;
         let prefix = format!("{mc}-");

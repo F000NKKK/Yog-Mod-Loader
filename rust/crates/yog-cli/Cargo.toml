@@ -18,8 +18,10 @@ yog-sync = { workspace = true }
 # The library's warnings; the program says where they go (stderr).
 yog-logging = { workspace = true }
 yog-ids = { workspace = true }
-# Yog Script: a mod's .ys/.yns read and resolved by `yog build`/`yog check`.
-yog-script = { workspace = true }
+# Minecraft's names: the hosts' mapping tables, the game's downloads.
+yog-mappings = { workspace = true }
+# Yog Script's compiler: a mod's .ys/.yns checked by `yog build`/`yog check` and the editors.
+yog-script-build = { workspace = true }
 # `yog control`: the running game's control channel.
 yog-hot-reload = { workspace = true }
 yog-media = { workspace = true }

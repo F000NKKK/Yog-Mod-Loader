@@ -10,7 +10,7 @@ pub(super) fn run(rest: &[String]) -> Result<(), String> {
     let [mc, runtime_ns, dir] = rest else {
         return Err(USAGE.into());
     };
-    let table = yog_cli::game::mappings::table(mc, runtime_ns)?;
+    let table = yog_mappings::table(mc, runtime_ns)?;
     std::fs::create_dir_all(dir).map_err(|e| format!("{dir}: {e}"))?;
     if table.classes.is_empty() {
         return Ok(());

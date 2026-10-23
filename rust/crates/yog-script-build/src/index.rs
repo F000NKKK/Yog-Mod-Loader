@@ -1,5 +1,5 @@
-//! `yog index <mc>`: the class index of a Minecraft version
-//! (`yog_script::index`), built from the game's own client and server jars
+//! The class index of a Minecraft version
+//! (`yog_script_analyze::index`), built from the game's own client and server jars
 //! (Mojang's names: an obfuscated version's renamed by its mappings) and
 //! kept in Yog's cache. A class in both jars is shared, in one only that
 //! side's.
@@ -10,14 +10,12 @@ mod remap;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use yog_script::index::{Class, ClassIndex, Side};
+pub use yog_script_analyze::index::{Class, ClassIndex, Side};
 
-use crate::game::classfile::ClassFile;
-use crate::game::mappings::fetch::{
-    self, CLIENT_JAR, CLIENT_MAPPINGS, SERVER_JAR, SERVER_MAPPINGS,
-};
-use crate::game::mappings::proguard;
+use crate::classfile::ClassFile;
 use remap::Remap;
+use yog_mappings::fetch::{self, CLIENT_JAR, CLIENT_MAPPINGS, SERVER_JAR, SERVER_MAPPINGS};
+use yog_mappings::proguard;
 
 /// The packages of the game's own classes (the jars carry no others but
 /// obfuscated ones, which renaming puts in these).
@@ -54,7 +52,7 @@ fn side(mc: &str, jar: &str, mappings: &str) -> Result<Vec<ClassFile>, String> {
     let remap = fetch::side_mappings(mc, mappings)?.map(|t| Remap::new(&proguard::parse(&t)));
     Ok(bytes
         .into_iter()
-        .filter_map(|b| crate::game::classfile::read(&b))
+        .filter_map(|b| crate::classfile::read(&b))
         .map(|c| match &remap {
             Some(r) => r.apply(c),
             None => c,

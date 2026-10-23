@@ -2320,9 +2320,10 @@ dependencies = [
  "yog-hot-reload",
  "yog-ids",
  "yog-logging",
+ "yog-mappings",
  "yog-media",
  "yog-registry",
- "yog-script",
+ "yog-script-build",
  "yog-sync",
  "yog-ui",
  "yog-worldgen",
@@ -2517,6 +2518,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-mappings"
+version = "0.1.0"
+dependencies = [
+ "ureq",
+ "yog-data",
+ "yog-event",
+ "yog-home",
+ "yog-ids",
+ "zip",
+]
+
+[[package]]
 name = "yog-media"
 version = "0.6.1"
 dependencies = [
@@ -2594,10 +2607,32 @@ dependencies = [
 
 [[package]]
 name = "yog-script"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "yog-data",
  "yog-ids",
+ "yog-logging",
+ "yog-script-build",
+]
+
+[[package]]
+name = "yog-script-analyze"
+version = "0.1.0"
+dependencies = [
+ "yog-data",
+ "yog-ids",
+]
+
+[[package]]
+name = "yog-script-build"
+version = "0.1.0"
+dependencies = [
+ "yog-data",
+ "yog-home",
+ "yog-ids",
+ "yog-mappings",
+ "yog-script-analyze",
+ "zip",
 ]
 
 [[package]]

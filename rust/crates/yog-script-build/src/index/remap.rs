@@ -4,9 +4,9 @@
 
 use std::collections::HashMap;
 
-use crate::game::classfile::ClassFile;
-use crate::game::mappings::proguard::{self, Class};
-use yog_script::index::Member;
+use crate::classfile::ClassFile;
+use yog_mappings::proguard::{self, Class};
+use yog_script_analyze::index::Member;
 
 /// Obfuscated names → Mojang's.
 pub(super) struct Remap {

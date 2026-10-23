@@ -1,0 +1,15 @@
+[package]
+name = "yog-mappings"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
+description = "Minecraft's names: Mojang's mappings joined with a host's run-time names (Fabric's intermediary, Forge's SRG), fetched once into Yog's cache."
+
+[dependencies]
+yog-data = { workspace = true, features = ["json"] }
+yog-event = { workspace = true }
+yog-home = { workspace = true }
+yog-ids = { workspace = true }
+ureq = { workspace = true }
+zip = { workspace = true }

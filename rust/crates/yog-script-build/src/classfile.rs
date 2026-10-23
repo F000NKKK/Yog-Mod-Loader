@@ -5,7 +5,7 @@
 mod pool;
 
 use pool::Pool;
-use yog_script::index::Member;
+use yog_script_analyze::index::Member;
 
 /// What every class file starts with.
 const MAGIC: u32 = 0xCAFE_BABE;

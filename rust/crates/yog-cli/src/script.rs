@@ -1,5 +1,6 @@
-//! A mod's Yog Script (`src/**/*.ys`, `*.yns`): each source read and its
-//! names resolved, what's wrong reported at its file, line and column.
+//! A mod's Yog Script (`src/**/*.ys`, `*.yns`): each source checked by the
+//! compiler (`yog-script-build`), what's wrong reported at its file, line
+//! and column; errors stop the build.
 
 use std::path::Path;
 
@@ -18,15 +19,11 @@ pub fn check(root: &Path) -> Result<(), String> {
         for file in crate::files::of(&dir, format) {
             let text =
                 std::fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?;
-            let name = file
-                .strip_prefix(root)
-                .unwrap_or(&file)
-                .display()
-                .to_string();
-            let checked = yog_script::check(&name, &text);
-            errors += checked.problems.iter().filter(|d| d.is_error()).count();
-            diagnostics::report_all(&checked.problems);
-            for d in &checked.problems {
+            let name = crate::shown_path(root, &file);
+            let problems = yog_script_build::check_source(&name, &text);
+            errors += problems.iter().filter(|d| d.is_error()).count();
+            diagnostics::report_all(&problems);
+            for d in &problems {
                 match d.is_error() {
                     true => yog_logging::error!("{d}"),
                     false => yog_logging::warn!("{d}"),

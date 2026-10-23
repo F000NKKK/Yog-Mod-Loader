@@ -13,7 +13,6 @@ pub mod content;
 pub mod design;
 pub mod diagnostics;
 pub mod files;
-pub mod game;
 pub mod media;
 pub mod project;
 pub mod script;

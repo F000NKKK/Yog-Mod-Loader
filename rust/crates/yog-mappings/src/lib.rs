@@ -1,10 +1,11 @@
-//! `yog mappings` (`docs/design/nanites.md`, "Names"): a host's mapping
+//! Minecraft's names (`docs/design/nanites.md`, "Names"): a host's mapping
 //! table — Mojang's names → the host's run-time names — from Mojang's
-//! mappings and the loader's (Fabric's intermediary, Forge's SRG), fetched
-//! once into Yog's cache.
+//! mappings and the loader's (Fabric's intermediary, Forge's SRG), and the
+//! game's own downloads (its jars, each side's mappings), fetched once
+//! into Yog's cache.
 
-pub(crate) mod fetch;
-pub(crate) mod proguard;
+pub mod fetch;
+pub mod proguard;
 mod runtime;
 #[cfg(test)]
 mod tests;

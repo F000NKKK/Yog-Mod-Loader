@@ -1,5 +1,5 @@
 use super::*;
-use yog_script::index::access;
+use yog_script_analyze::index::access;
 
 /// A class file assembled by hand: `public class a/B extends
 /// java/lang/Object implements a/I { int x; boolean f(float) }`, a long

@@ -100,6 +100,11 @@ names! {
         CLI = crate::ns::YOG,
         /// The CLI's service command: tools read and write every format through it.
         SERVE = "serve",
+        /// Yog Script's tool (`yog-script check`, `yog-script index`): its own
+        /// component, which the CLI runs when a mod has scripts.
+        SCRIPT = "yog-script",
+        /// The CLI's word that hands the rest of the line to it (`yog script …`).
+        SCRIPT_COMMAND = "script",
     }
 
     /// The structs the generated code names a mod's content by

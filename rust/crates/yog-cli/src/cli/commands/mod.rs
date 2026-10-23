@@ -13,7 +13,6 @@ mod designer_lib;
 mod doctor;
 mod help;
 mod import;
-mod index;
 mod mappings;
 mod new;
 mod publish;
@@ -58,7 +57,6 @@ commands!(
     control,
     data,
     mappings,
-    index,
     publish,
     res,
     content,

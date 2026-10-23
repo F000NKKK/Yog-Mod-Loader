@@ -1,14 +1,17 @@
 [package]
 name = "yog-script"
-version = "0.2.0"
+version = "0.3.0"
 edition = { workspace = true }
 rust-version = { workspace = true }
-authors = { workspace = true }
-license = "MIT OR Apache-2.0"
-description = "Yog Script (.ys, .yns): the language a Yog mod is written in — its parser, syntax tree and diagnostics."
+license = { workspace = true }
+description = "Yog Script (.ys, .yns): the `yog-script` tool — sources checked, the game's class index built — on the yog-script-build compiler. Yog Installer's Yog Script."
+
+[[bin]]
+name = "yog-script"
+path = "src/main.rs"
 
 [dependencies]
-# Problem codes, file formats.
-yog-ids = { workspace = true }
-# Problems as Diagnostics, positions.
+yog-script-build = { workspace = true }
 yog-data = { workspace = true }
+yog-ids = { workspace = true }
+yog-logging = { workspace = true }

@@ -1,8 +1,8 @@
 //! Sources that must read cleanly, and ones whose problems must be found.
 
 use yog_ids::script_problem;
-use yog_script::ast::{DeclKind, PatchItem};
-use yog_script::parse;
+use yog_script_analyze::ast::{DeclKind, PatchItem};
+use yog_script_analyze::parse;
 
 /// The complete examples of the grammar (§7): they must read without a problem.
 #[test]
@@ -119,13 +119,13 @@ fn an_argument_point_reads_both_ways() {
 /// Every word has a description editors can show.
 #[test]
 fn every_word_is_described() {
-    for word in yog_script::words::ALL {
+    for word in yog_script_analyze::words::ALL {
         assert!(!word.doc.is_empty(), "{word:?}");
         assert!(!word.roles.is_empty(), "{word:?}");
     }
 }
 
-fn value(src: &str) -> yog_script::ast::Expr {
+fn value(src: &str) -> yog_script_analyze::ast::Expr {
     let parsed = parse("a.ys", &format!("let v = {src}\n"));
     assert!(parsed.problems.is_empty(), "{src}: {:#?}", parsed.problems);
     let DeclKind::Let { value, .. } = parsed.file.decls.into_iter().next().unwrap().kind else {
@@ -137,7 +137,7 @@ fn value(src: &str) -> yog_script::ast::Expr {
 /// Operators bind by their levels (`ys-grammar.md` §3.2), words and signs alike.
 #[test]
 fn operators_bind_by_level() {
-    use yog_script::ast::{BinOp, ExprKind};
+    use yog_script_analyze::ast::{BinOp, ExprKind};
     let ExprKind::Binary {
         op: BinOp::Add,
         right,
