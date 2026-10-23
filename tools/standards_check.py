@@ -171,6 +171,8 @@ def test_start(lines, path):
 
 # String and character literals: their braces aren't the code's.
 LITERALS = re.compile(r'"(?:\\.|[^"\\])*"|b?\'(?:\\.|[^\'\\])\'')
+# A line comment (after literals are cut out): its braces aren't code either.
+LINE_COMMENT = re.compile(r"//.*")
 
 
 def parenthesized(sig):
@@ -230,7 +232,7 @@ def functions(lines, lang):
                 params_n -= 1
         k = j
         while k < len(lines):
-            code = LITERALS.sub("", lines[k])
+            code = LINE_COMMENT.sub("", LITERALS.sub("", lines[k]))
             depth += code.count("{") - code.count("}")
             if depth <= 0 and k >= j:
                 break
