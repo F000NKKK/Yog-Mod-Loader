@@ -35,6 +35,9 @@ public class YogClient implements ClientModInitializer {
         // Blocks in 3D in a GUI box (NativeDraw.drawBlocks), drawn into a texture of their own.
         PictureInPictureRendererRegistry.register(context -> new YogBlocksPip());
         for (var layer : YogGlPip.LAYERS) PictureInPictureRendererRegistry.register(context -> YogGlPip.of(layer));
+        // The mods' particles, drawn from their pictures.
+        YogParticleClient.providers((type, make) ->
+                net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry.getInstance().register(type, make::apply));
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> YogClientEvents.tooltip(stack, lines::add));
         // Pictures in item tooltips (ABI 2.2).
         ClientTooltipComponentCallback.EVENT.register(data -> data instanceof YogTooltipData d ? new YogClientTooltip(d) : null);

@@ -27,6 +27,7 @@
         "ViewMixin",
         "ChatSendMixin",
     "ScrollMixin",
+    "ParticleOrderMixin",
         "KeyboardMixin",
         "ModelPartAccess",
         "TravelMixin",

@@ -25,8 +25,8 @@ use crate::content::recipe::registration::Recipe;
 use crate::content::recipe::{Against, compile_recipe};
 use crate::content::source::{Content, mentions_content_macro, registrations, rust_source};
 use crate::content::{
-    CONTENT_DIR, Compiled, content_format, datapack, find, looks, particles, refs, sounds, textures,
-    valid_namespace,
+    CONTENT_DIR, Compiled, content_format, datapack, find, looks, particles, refs, sounds,
+    textures, valid_namespace,
 };
 use crate::diagnostics::Diagnostic;
 use crate::yres;

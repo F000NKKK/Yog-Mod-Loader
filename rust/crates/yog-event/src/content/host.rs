@@ -10,7 +10,7 @@ use yog_data::Value;
 use yog_data::with::Raw;
 use yog_registry::{
     ArmorMaterial, ArmorSlot, AttributeDef, BiomeFeature, BlockProperty, EffectDef, EntityDef,
-    Facing, FoodDef, GameTool, Placement, PotionDef, SoundGroup, ToolMaterial,
+    Facing, FoodDef, GameTool, ParticleDef, Placement, PotionDef, SoundGroup, ToolMaterial,
 };
 
 /// Everything the hosts register.
@@ -29,6 +29,9 @@ pub struct Content {
     pub attributes: Vec<AttributeDef>,
     pub effects: Vec<EffectDef>,
     pub potions: Vec<PotionDef>,
+    /// The mods' particles: the hosts register and draw each.
+    #[data(default)]
+    pub particles: Vec<ParticleDef>,
 }
 
 /// An item: its stack, durability, fuel, food, tool or armor (materials

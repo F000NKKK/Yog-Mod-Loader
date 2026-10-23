@@ -1,7 +1,10 @@
 //! What this client's player is and sees: the host's actions (nothing on
 //! a dedicated server, nor without a player).
 
-use yog_core::{BlockArea, BlockHit, DigSpeed, Point, BlockPos, LocalState, NearbyEntity, PlacedBlock, SlotStack};
+use yog_core::{
+    BlockArea, BlockHit, BlockPos, DigSpeed, LocalState, NearbyEntity, PlacedBlock, Point,
+    SlotStack,
+};
 use yog_ids as ids;
 
 actions! {

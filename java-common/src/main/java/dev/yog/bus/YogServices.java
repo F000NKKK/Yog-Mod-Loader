@@ -18566,13 +18566,13 @@ public final class YogServices {
     public static final class Particle {
         private Particle() {}
 
-        /** Spawns `count` particles around `pos`. */
-        public record SpawnParticles(String dim, YogTypes.Point pos, String particle, int count, YogTypes.Point spread, double speed) {
+        /** Spawns `count` particles around `pos` (none: one, `spread` its motion). */
+        public record SpawnParticles(String dim, YogTypes.Point pos, YogTypes.ParticleOptions particle, int count, YogTypes.Point spread, double speed) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("dim", dim);
                 m.put("pos", pos.toData());
-                m.put("particle", particle);
+                m.put("particle", particle.toData());
                 m.put("count", count);
                 m.put("spread", spread.toData());
                 m.put("speed", speed);
@@ -18581,7 +18581,7 @@ public final class YogServices {
 
             public static SpawnParticles fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new SpawnParticles(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogData.str(m.get("particle"), ""), (int) YogData.integer(m.get("count"), 0), YogTypes.Point.fromData(m.get("spread")), YogData.number(m.get("speed"), 0));
+                return new SpawnParticles(YogData.str(m.get("dim"), ""), YogTypes.Point.fromData(m.get("pos")), YogTypes.ParticleOptions.fromData(m.get("particle")), (int) YogData.integer(m.get("count"), 0), YogTypes.Point.fromData(m.get("spread")), YogData.number(m.get("speed"), 0));
             }
 
             public static SpawnParticles fromBytes(byte[] bytes) {
@@ -18592,7 +18592,7 @@ public final class YogServices {
                 int at = p.begin();
                 p.putStr(this.dim);
                 this.pos.pack(p);
-                p.putStr(this.particle);
+                this.particle.pack(p);
                 p.putI(this.count);
                 this.spread.pack(p);
                 p.putF64(this.speed);
@@ -18603,7 +18603,7 @@ public final class YogServices {
                 int end = u.begin();
                 String f_dim = u.more(end) ? u.getStr() : "";
                 YogTypes.Point f_pos = u.more(end) ? YogTypes.Point.unpack(u) : null;
-                String f_particle = u.more(end) ? u.getStr() : "";
+                YogTypes.ParticleOptions f_particle = u.more(end) ? YogTypes.ParticleOptions.unpack(u) : null;
                 int f_count = u.more(end) ? (int) u.getI() : 0;
                 YogTypes.Point f_spread = u.more(end) ? YogTypes.Point.unpack(u) : null;
                 double f_speed = u.more(end) ? u.getF64() : 0.0;
@@ -18654,7 +18654,7 @@ public final class YogServices {
                     int end = u.begin();
                     if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
                     if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
-                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o2 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o2 = -1; }
                     if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
                     if (u.more(end)) { o4 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o4 = -1; }
                     if (u.more(end)) { o5 = u.position(); u.skip(8); } else { o5 = -1; }
@@ -18673,10 +18673,10 @@ public final class YogServices {
                     return new YogTypes.Point.View(u);
                 }
 
-                public String particle() {
-                    if (o2 < 0) return "";
+                public YogTypes.ParticleOptions.View particle() {
+                    if (o2 < 0) return null;
                     u.seek(o2);
-                    return u.getStr();
+                    return new YogTypes.ParticleOptions.View(u);
                 }
 
                 public int count() {
@@ -18732,7 +18732,7 @@ public final class YogServices {
             }
 
             private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, String.class, int.class, double.class, double.class, double.class, double.class));
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, String.class, Long.class, Float.class, int.class, double.class, double.class, double.class, double.class));
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
@@ -18740,7 +18740,7 @@ public final class YogServices {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
                     SpawnParticles.View r = new SpawnParticles.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.particle(), r.count(), r.spread().x(), r.spread().y(), r.spread().z(), r.speed());
+                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.particle().id(), r.particle().color(), r.particle().scale(), r.count(), r.spread().x(), r.spread().y(), r.spread().z(), r.speed());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
                 } catch (YogData.DecodeException e) {

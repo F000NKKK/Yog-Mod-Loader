@@ -50,6 +50,7 @@ pub(super) fn register_content(
         kind::ATTRIBUTE => h.attributes.extend(read(k, i, v)),
         kind::EFFECT => h.effects.extend(read(k, i, v)),
         kind::POTION => h.potions.extend(read(k, i, v)),
+        kind::PARTICLE => h.particles.extend(read(k, i, v)),
         kind::BIOME_FEATURE => h.biome_features.extend(read(k, i, v)),
         kind::TOOL_MATERIAL => {
             if let Some(m) = read::<yog_registry::ToolMaterial>(k, i, v) {

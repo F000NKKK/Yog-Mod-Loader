@@ -9,8 +9,13 @@ pub(super) const CLASS: &str = "YogMirrors";
 
 /// `yog:mirror/yog/entity` → `Entity`, `…/client/entity` → `ClientEntity`.
 fn class_of(m: &HostMirror) -> String {
-    let path = m.address.strip_prefix(yog_ids::host_mirror::PREFIX).unwrap_or(m.address);
-    path.split(yog_ids::sep::PATH).map(super::class_name).collect()
+    let path = m
+        .address
+        .strip_prefix(yog_ids::host_mirror::PREFIX)
+        .unwrap_or(m.address);
+    path.split(yog_ids::sep::PATH)
+        .map(super::class_name)
+        .collect()
 }
 
 fn mirror(m: &HostMirror) -> String {

@@ -175,9 +175,10 @@ public final class YogNames {
         public static final String TEXTURE = "texture";
         public static final String MATERIAL = "material";
         public static final String SOUND = "sound";
+        public static final String PARTICLE = "particle";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, ENTITY, RECIPE, ENTRY, CATEGORY, BOOK, FLUID, BIOME, BIOME_FEATURE, DIMENSION, FONT, ATTRIBUTE, EFFECT, POTION, INVENTORY, STARTUP_GRANT, ADVANCEMENT, LADDER, LEVEL, SOUND_GROUP, RECIPE_KIND, TOOL_MATERIAL, ARMOR_MATERIAL, ORE, TABLE, TAG, DAMAGE_TYPE, TREE, LOOT_MODIFIER, LOOT_TABLE, TEXTURE, MATERIAL, SOUND);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, ENTITY, RECIPE, ENTRY, CATEGORY, BOOK, FLUID, BIOME, BIOME_FEATURE, DIMENSION, FONT, ATTRIBUTE, EFFECT, POTION, INVENTORY, STARTUP_GRANT, ADVANCEMENT, LADDER, LEVEL, SOUND_GROUP, RECIPE_KIND, TOOL_MATERIAL, ARMOR_MATERIAL, ORE, TABLE, TAG, DAMAGE_TYPE, TREE, LOOT_MODIFIER, LOOT_TABLE, TEXTURE, MATERIAL, SOUND, PARTICLE);
     }
 
     public static final class Reference {
@@ -1542,6 +1543,7 @@ public final class YogNames {
         public static final String SOUNDS = "sounds/";
         public static final String SOUNDS_JSON = "sounds.json";
         public static final String SOUNDS_WORD = "sounds";
+        public static final String PARTICLES = "particles/";
         public static final String OGG = ".ogg";
         public static final String PNG = ".png";
         public static final String SVG = ".svg";
@@ -1549,7 +1551,7 @@ public final class YogNames {
         public static final String MCMETA = ".mcmeta";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(TEXTURES, MODELS, BLOCKSTATES, ITEM_DIR, ITEM_DEFINITIONS, EQUIPMENT, EQUIPMENT_TEXTURES, ARMOR_TEXTURES, ARMOR_LAYER, SPAWN_EGG_SUFFIX, BLOCK_DIR, GUI_SPRITES, ATLASES, LANG, BUILTIN, SOUNDS, SOUNDS_JSON, SOUNDS_WORD, OGG, PNG, SVG, JSON, MCMETA);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(TEXTURES, MODELS, BLOCKSTATES, ITEM_DIR, ITEM_DEFINITIONS, EQUIPMENT, EQUIPMENT_TEXTURES, ARMOR_TEXTURES, ARMOR_LAYER, SPAWN_EGG_SUFFIX, BLOCK_DIR, GUI_SPRITES, ATLASES, LANG, BUILTIN, SOUNDS, SOUNDS_JSON, SOUNDS_WORD, PARTICLES, OGG, PNG, SVG, JSON, MCMETA);
     }
 
     public static final class Yog {
@@ -2401,6 +2403,7 @@ public final class YogNames {
         public static final String FONT = "yfont";
         public static final String TEXTURE = "ytexture";
         public static final String SOUND = "ysound";
+        public static final String PARTICLE = "yparticle";
         public static final String MATERIAL = "ymaterial";
         public static final String DATA = "ydata";
         public static final String MOD = "yog";

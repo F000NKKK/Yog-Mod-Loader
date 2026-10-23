@@ -29,6 +29,7 @@ public final class YogContent {
     public final List<YogTypes.EffectDef> effects;
     public final List<YogTypes.PotionDef> potions;
     public final List<YogTypes.Font> fonts;
+    public final List<YogTypes.ParticleDef> particles;
 
     private YogContent(YogTypes.Content c) {
         items = c.items();
@@ -42,6 +43,7 @@ public final class YogContent {
         effects = c.effects();
         potions = c.potions();
         fonts = c.fonts();
+        particles = c.particles();
     }
 
     private static YogContent cached;

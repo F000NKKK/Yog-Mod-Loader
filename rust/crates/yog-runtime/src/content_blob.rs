@@ -49,6 +49,7 @@ fn content(h: &RuntimeHandlers) -> Content {
         attributes: h.attributes.clone(),
         effects: h.effects.clone(),
         potions: h.potions.clone(),
+        particles: h.particles.clone(),
     }
 }
 

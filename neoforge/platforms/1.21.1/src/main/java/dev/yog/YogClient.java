@@ -25,6 +25,8 @@ public final class YogClient {
             if (!tinted.isEmpty()) e.register(YogClientEvents.tint, tinted.toArray(new Block[0]));
         });
         modBus.addListener(RegisterClientTooltipComponentFactoriesEvent.class, e -> e.register(YogTooltipData.class, YogClientTooltip::new));
+        modBus.addListener(net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent.class, e ->
+                YogParticleClient.providers((type, make) -> e.registerSpriteSet(type, make::apply)));
         modBus.addListener(RegisterMenuScreensEvent.class, e -> e.register(YogContentRegistry.INVENTORY_MENU_TYPE, YogInventoryScreen::new));
         modBus.addListener(RegisterKeyMappingsEvent.class, e -> {
             for (KeyMapping key : YogClientEvents.keyMappings()) e.register(key);

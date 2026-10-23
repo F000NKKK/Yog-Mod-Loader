@@ -50,7 +50,9 @@ pub(crate) fn compile(
             .replace('\\', yog_ids::sep::PATH);
         let Some(id) = yog_formats::particle::id_of(mod_id, &rel) else {
             let dir = yog_formats::particle::DIR;
-            errors.push(problem(format!("a particle lives under {RESOURCES_DIR}/{dir}/")).in_file(&shown));
+            errors.push(
+                problem(format!("a particle lives under {RESOURCES_DIR}/{dir}/")).in_file(&shown),
+            );
             continue;
         };
         match read(&file, textures) {
@@ -59,10 +61,17 @@ pub(crate) fn compile(
                 let path = format!("{}{name}{}", yog_ids::res::PARTICLES, yog_ids::res::JSON);
                 let sprites: Vec<String> = look.textures.iter().map(|t| sprite(t)).collect();
                 let json = json!({ TEXTURES: sprites });
-                out.outputs.push((yog_ids::asset_file(ns, &path), super::pretty(&json)));
-                let def = ParticleDef { id: id.clone(), look };
-                out.definitions
-                    .push((yog_ids::kind::PARTICLE, id, yog_data::binary::encode(&yog_data::Schema::write(&def))));
+                out.outputs
+                    .push((yog_ids::asset_file(ns, &path), super::pretty(&json)));
+                let def = ParticleDef {
+                    id: id.clone(),
+                    look,
+                };
+                out.definitions.push((
+                    yog_ids::kind::PARTICLE,
+                    id,
+                    yog_data::binary::encode(&yog_data::Schema::write(&def)),
+                ));
             }
             Err(e) => errors.push(problem(e).in_file(&shown)),
         }
@@ -80,12 +89,16 @@ fn sprite(id: &str) -> String {
 /// The `.yparticle` at `file`: at least one picture, each a texture the mod has.
 fn read(file: &Path, textures: &std::collections::BTreeSet<String>) -> Result<Particle, String> {
     let text = crate::files::read_source(file).map_err(|e| e.to_string())?;
-    let look = yog_data::from_text::<Particle>(&text).map_err(|e| e.to_string())?.value;
+    let look = yog_data::from_text::<Particle>(&text)
+        .map_err(|e| e.to_string())?
+        .value;
     if look.textures.is_empty() {
         return Err("a particle shows at least one texture".into());
     }
     if let Some(missing) = look.textures.iter().find(|t| !textures.contains(*t)) {
-        return Err(format!("texture `{missing}`: not one of the mod's (a .ytexture under {RESOURCES_DIR}/)"));
+        return Err(format!(
+            "texture `{missing}`: not one of the mod's (a .ytexture under {RESOURCES_DIR}/)"
+        ));
     }
     Ok(look)
 }
@@ -105,14 +118,21 @@ mod tests {
             r#"{ textures: ["m:particle/cloud"], fade: true, render: { blend: "additive", depth_write: false } }"#,
         )
         .unwrap();
-        std::fs::write(particles.join("bad.yparticle"), r#"{ textures: ["m:nope"] }"#).unwrap();
+        std::fs::write(
+            particles.join("bad.yparticle"),
+            r#"{ textures: ["m:nope"] }"#,
+        )
+        .unwrap();
         let own = std::collections::BTreeSet::from(["m:particle/cloud".to_owned()]);
         let mut errors = Vec::new();
         let p = compile(&dir, "m", &own, &mut errors);
         assert_eq!(errors.len(), 1, "the unknown texture: {errors:?}");
         let (path, json) = &p.outputs[0];
         assert_eq!(path, "assets/m/particles/conjure.json");
-        assert_eq!(serde_json::from_slice::<serde_json::Value>(json).unwrap()[TEXTURES][0], "m:cloud");
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(json).unwrap()[TEXTURES][0],
+            "m:cloud"
+        );
         assert_eq!(p.definitions[0].1, "m:conjure");
         let _ = std::fs::remove_dir_all(&dir);
     }

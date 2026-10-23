@@ -26,6 +26,9 @@ public class YogClient implements ClientModInitializer {
         // Pictures in item tooltips (ABI 2.2).
         TooltipComponentCallback.EVENT.register(data -> data instanceof YogTooltipData d ? new YogClientTooltip(d) : null);
         MenuScreens.register(YogContentRegistry.INVENTORY_MENU_TYPE, YogInventoryScreen::new);
+        // The mods' particles, drawn from their pictures.
+        YogParticleClient.providers((type, make) ->
+                net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry.getInstance().register(type, make::apply));
 
         ClientPlayNetworking.registerGlobalReceiver(YogPayload.TYPE, (payload, context) -> context.client().execute(payload::toClient));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> YogClientEvents.disconnected());

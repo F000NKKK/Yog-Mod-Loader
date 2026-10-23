@@ -35,6 +35,8 @@ public final class YogClient {
             var tinted = YogClientEvents.tintedBlocks();
             if (!tinted.isEmpty()) e.register(java.util.List.of(new YogClientApi.Tint()), tinted.toArray(new Block[0]));
         });
+        net.minecraftforge.client.event.RegisterParticleProvidersEvent.BUS.addListener(e ->
+                YogParticleClient.providers((type, make) -> e.registerSpriteSet(type, make::apply)));
         RegisterPictureInPictureRendererEvent.BUS.addListener(e -> {
             e.register(new YogBlocksPip());
             for (var layer : YogGlPip.LAYERS) e.register(YogGlPip.of(layer));

@@ -1,6 +1,8 @@
-//! `SoundEvents`: the mod's sound events (`resources/sound/**/*.ysound`)
-//! as consts of their ids, named by their path (`casting/cast/fail.ysound`
-//! → `CASTING_CAST_FAIL`) — the files their one source.
+//! The ids of the resources named by their path — `SoundEvents` of the
+//! sound events (`resources/sound/**/*.ysound`), `Particles` of the
+//! particles (`resources/particle/**/*.yparticle`) — as consts, named by
+//! that path (`casting/cast/fail.ysound` → `CASTING_CAST_FAIL`): the files
+//! their one source.
 
 use std::fmt::Write as _;
 use std::path::Path;
@@ -9,15 +11,25 @@ use yog_ids::Format;
 
 use super::RESOURCES_DIR;
 
-/// The generated type's name (a `.yres` set can't take it).
-pub(super) const SET: &str = "SoundEvents";
-/// A const's name: its event's path, words joined by this, upper case.
+/// The generated types (a `.yres` set can't take their names): each a
+/// format's files under their folder.
+pub(super) const SETS: [(&str, &str, Format); 2] = [
+    ("SoundEvents", yog_formats::sound::DIR, Format::Sound),
+    ("Particles", yog_formats::particle::DIR, Format::Particle),
+];
+/// A const's name: its file's path, words joined by this, upper case.
 const WORD_SEP: &str = "_";
 
-/// Its code: a const per event, by path; none without events.
-pub(super) fn source(root: &Path, mod_id: &str) -> Option<String> {
+/// Type `set`'s code: a const per `format` file under `dir`, by path; none without them.
+pub(super) fn source(
+    root: &Path,
+    mod_id: &str,
+    set: &str,
+    dir: &str,
+    format: Format,
+) -> Option<String> {
     let resources = root.join(RESOURCES_DIR);
-    let mut events: Vec<(String, String)> = crate::files::with_ext(&resources, Format::Sound.ext())
+    let mut events: Vec<(String, String)> = crate::files::with_ext(&resources, format.ext())
         .iter()
         .filter_map(|f| {
             let rel = f
@@ -25,7 +37,7 @@ pub(super) fn source(root: &Path, mod_id: &str) -> Option<String> {
                 .ok()?
                 .to_string_lossy()
                 .replace('\\', yog_ids::sep::PATH);
-            let id = yog_formats::sound::id_of(mod_id, &rel)?;
+            let id = yog_formats::resource_id(mod_id, &rel, dir, format)?;
             Some((rel, id))
         })
         .collect();
@@ -33,9 +45,9 @@ pub(super) fn source(root: &Path, mod_id: &str) -> Option<String> {
         return None;
     }
     events.sort();
-    let dir = yog_formats::sound::DIR;
+    let ext = format.ext();
     let mut code = format!(
-        "/// The sound events of `{RESOURCES_DIR}/{dir}/` (`.ysound`), by id.\n#[allow(dead_code)]\npub struct {SET};\n\n#[allow(dead_code)]\nimpl {SET} {{\n"
+        "/// The ids of `{RESOURCES_DIR}/{dir}/`'s `.{ext}` files, by path.\n#[allow(dead_code)]\npub struct {set};\n\n#[allow(dead_code)]\nimpl {set} {{\n"
     );
     for (rel, id) in events {
         let (_, path) = yog_ids::split(&id);
@@ -60,8 +72,10 @@ mod tests {
         let sound = dir.join(super::RESOURCES_DIR).join(yog_formats::sound::DIR);
         std::fs::create_dir_all(sound.join("cast")).unwrap();
         std::fs::write(sound.join("cast/fail.ysound"), "{ sounds: [] }").unwrap();
-        assert!(super::source(&dir.join("nothing"), "m").is_none());
-        let code = super::source(&dir, "m").unwrap();
+        let (set, d, f) = super::SETS[0];
+        assert!(super::source(&dir.join("nothing"), "m", set, d, f).is_none());
+        let (set, d, f) = super::SETS[0];
+        let code = super::source(&dir, "m", set, d, f).unwrap();
         assert!(
             code.contains("pub const CAST_FAIL: &'static str = \"m:cast.fail\";"),
             "{code}"

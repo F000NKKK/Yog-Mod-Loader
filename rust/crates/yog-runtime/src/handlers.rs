@@ -44,6 +44,7 @@ pub(super) struct RuntimeHandlers {
     pub(super) attributes: Vec<yog_registry::AttributeDef>,
     pub(super) effects: Vec<yog_registry::EffectDef>,
     pub(super) potions: Vec<yog_registry::PotionDef>,
+    pub(super) particles: Vec<yog_registry::ParticleDef>,
     pub(super) blocks: Vec<BlockDef>,
     /// The content blob the hosts read (`nativeContent`), built once —
     /// dropped when more content registers.

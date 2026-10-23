@@ -64,6 +64,7 @@ public final class YogContentRegistry {
         INVENTORY_DEFS.putAll(content.inventories);
         YogCallbackChunkGenerator.schedule();
         YogEffects.schedule(content);
+        YogParticles.schedule(content);
         // Mods' entity types first: spawn eggs (items) name them.
         YogEntityTypes.schedule(content.entities);
         YogRegistrar.add(Registries.BLOCK, sink -> blocks(content, sink));

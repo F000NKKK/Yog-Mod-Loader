@@ -31,6 +31,8 @@ public final class YogClient {
             var tinted = YogClientEvents.tintedBlocks();
             if (!tinted.isEmpty()) e.register(java.util.List.of(new YogClientApi.Tint()), tinted.toArray(new Block[0]));
         });
+        modBus.addListener(net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent.class, e ->
+                YogParticleClient.providers((type, make) -> e.registerSpriteSet(type, make::apply)));
         modBus.addListener(RegisterPictureInPictureRenderersEvent.class, e -> {
             e.register(YogBlocksPip.State.class, YogBlocksPip::new);
             e.register(YogGlPip.Layer0.class, () -> new YogGlPip<>(YogGlPip.Layer0.class));

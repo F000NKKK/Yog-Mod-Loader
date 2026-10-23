@@ -21,7 +21,7 @@ mod load;
 mod names;
 mod outputs;
 mod placeholders;
-mod sound_events;
+mod resource_ids;
 
 pub use compile::compile;
 pub(crate) use names::{accessor_name, default_key, name_problem};
