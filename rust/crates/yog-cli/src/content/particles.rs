@@ -115,12 +115,12 @@ mod tests {
         std::fs::create_dir_all(&particles).unwrap();
         std::fs::write(
             particles.join("conjure.yparticle"),
-            r#"{ textures: ["m:particle/cloud"], fade: true, render: { blend: "additive", depth_write: false } }"#,
+            r#"{ textures: ["@texture:m:particle/cloud"], fade: true, render: { blend: "additive", depth_write: false } }"#,
         )
         .unwrap();
         std::fs::write(
             particles.join("bad.yparticle"),
-            r#"{ textures: ["m:nope"] }"#,
+            r#"{ textures: ["@texture:m:nope"] }"#,
         )
         .unwrap();
         let own = std::collections::BTreeSet::from(["m:particle/cloud".to_owned()]);

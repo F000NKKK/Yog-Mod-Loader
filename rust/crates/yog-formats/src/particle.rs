@@ -18,7 +18,10 @@ pub fn id_of(mod_id: &str, rel: &str) -> Option<String> {
 mod tests {
     #[test]
     fn a_particle_is_named_by_its_path_under_particle() {
-        assert_eq!(super::id_of("hex", "particle/conjure.yparticle").as_deref(), Some("hex:conjure"));
+        assert_eq!(
+            super::id_of("hex", "particle/conjure.yparticle").as_deref(),
+            Some("hex:conjure")
+        );
         assert_eq!(super::id_of("hex", "particle/cloud.ytexture"), None);
     }
 }

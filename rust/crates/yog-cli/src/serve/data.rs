@@ -67,6 +67,14 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         // its syntax, then its format's problems, each at its line and column.
         M::SOURCE_CHECK => text(params, P::PATH)
             .and_then(|p| Ok(super::check::check(p, text(params, P::TEXT)?).write())),
+        // A file's data of a format, every field it leaves out at its default
+        // (what a designer's preview takes, as the game does).
+        M::FORMAT_COMPLETE => param(params, P::FORMAT).and_then(|name| {
+            let name = name.as_str().ok_or("`format` is a name")?;
+            let format = yog_ids::Format::of(name).ok_or_else(|| format!("no format `{name}`"))?;
+            yog_formats::complete(format, param(params, P::VALUE)?)
+                .map_err(|e| ServiceError::from(crate::diagnostics::listed(&e)))
+        }),
         // A format's shape (`yog_data::Shape::describe`): `yblock`, `.ytexture`, `yog.toml`…
         M::FORMAT_SHAPE => param(params, P::FORMAT).and_then(|name| {
             let name = name.as_str().ok_or("`format` is a name")?;

@@ -2,6 +2,9 @@
 //! how it's drawn — what the hosts draw it by, and Yog-IDLE's designer
 //! previews. Its colour is each spawn's.
 
+use yog_data::kinds::Texture;
+use yog_data::with::{List, RefTo};
+
 /// The game's own particles' defaults, where a particle doesn't say.
 mod game {
     /// Speed kept each tick (`Particle.friction`).
@@ -20,7 +23,9 @@ pub struct ParticleDef {
 /// A `.yparticle`: everything but its id (its path).
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct Particle {
-    /// Its pictures: textures of the particles' atlas (`mymod:cloud`), in order.
+    /// Its pictures, in order: the mod's textures of the particles' atlas
+    /// (`@texture:mymod:particle/cloud`).
+    #[data(with = "List<RefTo<Texture>>")]
     pub textures: Vec<String>,
     /// Which of them it shows.
     #[data(default)]
@@ -147,9 +152,11 @@ mod tests {
 
     #[test]
     fn a_particle_says_only_what_isnt_the_games() {
-        let p = yog_data::from_text::<Particle>(r#"{ textures: ["m:cloud"], render: { blend: "additive" } }"#)
-            .unwrap()
-            .value;
+        let p = yog_data::from_text::<Particle>(
+            r#"{ textures: ["@texture:m:particle/cloud"], render: { blend: "additive" } }"#,
+        )
+        .unwrap()
+        .value;
         assert_eq!(p.friction, game::FRICTION);
         assert_eq!(p.lifetime, lifetime());
         assert_eq!(p.frames, Frames::Age);

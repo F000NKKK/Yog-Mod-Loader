@@ -32,7 +32,10 @@ pub fn resource_id(mod_id: &str, rel: &str, dir: &str, format: Format) -> Option
         .strip_suffix(yog_ids::sep::DOT)?
         .strip_prefix(dir)?
         .strip_prefix(yog_ids::sep::PATH)?;
-    Some(yog_ids::join(mod_id, &path.replace(yog_ids::sep::PATH, yog_ids::sep::DOT)))
+    Some(yog_ids::join(
+        mod_id,
+        &path.replace(yog_ids::sep::PATH, yog_ids::sep::DOT),
+    ))
 }
 
 /// `$body` with `$t` the type files of `$format` read as; `$none` for a
@@ -116,6 +119,13 @@ pub fn problems(format: Format, value: &Value) -> Vec<Diagnostic> {
     with_type!(format, T => yog_data::from_value::<T>(value).err().unwrap_or_default(), else Vec::new())
 }
 
+/// `value` as a file of `format` is read: what it says, every field it
+/// leaves out at its default (what the game and the designers' previews
+/// take); its problems when it won't read. A format without a shape: as it is.
+pub fn complete(format: Format, value: &Value) -> Result<Value, Vec<Diagnostic>> {
+    with_type!(format, T => yog_data::read_value::<T>(value).map(|v| v.write()), else Ok(value.clone()))
+}
+
 /// What the file `name` describes looks like: a format's extension (with or
 /// without the dot) or the manifest's name.
 #[must_use]
@@ -143,5 +153,13 @@ mod tests {
             let d = super::shape_of(name).unwrap().describe();
             assert!(d.get("root").is_some(), "{name}");
         }
+    }
+
+    #[test]
+    fn a_file_completes_with_its_defaults() {
+        let text = r#"{ textures: ["@texture:m:particle/cloud"] }"#;
+        let value = yog_data::text::parse(text).unwrap().value;
+        let full = super::complete(yog_ids::Format::Particle, &value).unwrap();
+        assert!(full.get("friction").is_some() && full.get("render").is_some());
     }
 }
