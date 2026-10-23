@@ -16,6 +16,7 @@ impl Parser<'_, '_, '_> {
             Tok::Text(key) => ExprKind::Text(key),
             Tok::Content(kind, id) => ExprKind::Content { kind, id },
             Tok::Tag(id) => ExprKind::Tag(id),
+            Tok::Ident(_) if self.macro_ahead() => return self.macro_call(),
             Tok::Ident(name) => ExprKind::Ident(name),
             Tok::Str(parts) => {
                 self.bump();
@@ -100,6 +101,31 @@ impl Parser<'_, '_, '_> {
         Ok(Expr {
             kind: ExprKind::Collection(items),
             span: start.to(self.prev()),
+        })
+    }
+}
+
+impl Parser<'_, '_, '_> {
+    /// `name!(` with nothing between: a macro's call (`x!` alone asserts
+    /// `x` isn't null).
+    fn macro_ahead(&self) -> bool {
+        let [name, bang, open] = [0, 1, 2].map(|n| self.span_at(n));
+        self.nth_is(1, Punct::Bang)
+            && self.nth_is(2, Punct::LParen)
+            && name.end == bang.start
+            && bang.end == open.start
+    }
+
+    /// `name!(a, b)`.
+    fn macro_call(&mut self) -> PResult<Expr> {
+        let name = self.name("a macro")?;
+        self.need(Punct::Bang)?;
+        self.need(Punct::LParen)?;
+        let args = self.braces(|p| p.list(Punct::RParen, Self::expr))?;
+        let span = name.span.to(self.prev());
+        Ok(Expr {
+            kind: ExprKind::Macro { name, args },
+            span,
         })
     }
 }

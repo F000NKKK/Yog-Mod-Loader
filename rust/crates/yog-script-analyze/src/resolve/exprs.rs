@@ -31,6 +31,7 @@ impl Resolver<'_, '_> {
                 "`base` is the object as its base class, in a class's members",
             ),
             ExprKind::TypeOf(ty) => self.ty(ty),
+            ExprKind::Macro { args, .. } => args.iter().for_each(|a| self.expr(a)),
             ExprKind::Declare { ty, name, mutable } => {
                 self.opt_ty(ty.as_ref());
                 self.bind(name, DefKind::local(*mutable));

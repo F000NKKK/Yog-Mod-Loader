@@ -46,6 +46,7 @@ impl Checker<'_, '_, '_> {
             }
             ExprKind::Call { callee, args } => self.call(callee, args),
             ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
+            ExprKind::Macro { name, args } => self.builtin_macro(name, args),
             ExprKind::Unary { op, expr } => self.unary(*op, expr),
             ExprKind::Binary { op, left, right } => self.binary(*op, left, right, e.span),
             ExprKind::Conditional {

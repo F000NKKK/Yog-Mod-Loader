@@ -125,6 +125,12 @@ pub enum ExprKind {
         name: Name,
         safe: bool,
     },
+    /// `panic!(…)`: a built-in macro's call (a declared macro's is
+    /// expanded before the parser sees it).
+    Macro {
+        name: Name,
+        args: Vec<Expr>,
+    },
     /// `move x`: `x` handed on, gone after.
     Move(Box<Expr>),
     /// `x!`: asserted not null.

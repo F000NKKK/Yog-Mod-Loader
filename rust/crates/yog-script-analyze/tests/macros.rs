@@ -40,3 +40,21 @@ fn a_call_no_rule_matches_is_reported() {
         [script_problem::MACRO]
     );
 }
+
+#[test]
+fn the_built_in_macros_are_typed() {
+    let ok = "i32 F(i32 x) { assert!(x > 0, \"positive\"); assert_eq!(x, 3); let y = dbg!(x * 2); \
+              if (y > 9) { panic!(\"too big\"); } return y; }\ni32 G() => todo!();\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    // `assert!` wants a bool; `dbg!` gives its argument's type; an unknown macro.
+    assert_eq!(
+        codes("void F() { assert!(3); string s = dbg!(1); nope!(1); }\n"),
+        [
+            script_problem::TYPE_MISMATCH,
+            script_problem::TYPE_MISMATCH,
+            script_problem::MACRO
+        ]
+    );
+    // `x!` alone still says `x` isn't null.
+    assert!(codes("i32 F(i32? x) => x!;\n").is_empty());
+}

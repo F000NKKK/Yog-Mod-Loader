@@ -11,7 +11,7 @@ pub mod ast;
 mod borrowck;
 pub mod index;
 mod lexer;
-mod macros;
+pub mod macros;
 pub mod parser;
 pub mod resolve;
 mod typeck;

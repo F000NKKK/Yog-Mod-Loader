@@ -13,6 +13,7 @@ mod game;
 mod generics;
 mod inherit;
 mod lambdas;
+mod macro_calls;
 mod members;
 mod model;
 mod mutation;

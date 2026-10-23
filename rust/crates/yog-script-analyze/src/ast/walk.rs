@@ -13,7 +13,9 @@ impl Expr {
                     f(e);
                 }
             }),
-            ExprKind::Tuple(items) => items.iter().for_each(f),
+            ExprKind::Tuple(items) | ExprKind::Macro { args: items, .. } => {
+                items.iter().for_each(f)
+            }
             ExprKind::Collection(items) => items.iter().for_each(|i| match i {
                 Element::Item(e) | Element::Spread(e) => f(e),
                 Element::Entry(k, v) => {

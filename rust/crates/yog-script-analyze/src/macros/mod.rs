@@ -4,6 +4,7 @@
 //! writes, again and again until no call of a declared macro is left. The
 //! built-in macros (`panic!`, …) stay for the parser.
 
+pub mod builtin;
 mod fragment;
 mod matcher;
 mod rules;

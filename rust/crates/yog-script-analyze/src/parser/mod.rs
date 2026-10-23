@@ -66,7 +66,12 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
     }
 
     pub(crate) fn span(&self) -> Span {
-        self.toks[self.pos.min(self.toks.len() - 1)].span
+        self.span_at(0)
+    }
+
+    /// Where the token `n` ahead is.
+    pub(crate) fn span_at(&self, n: usize) -> Span {
+        self.toks[(self.pos + n).min(self.toks.len() - 1)].span
     }
 
     /// Where the token before this one ends.
