@@ -2298,7 +2298,7 @@ dependencies = [
 
 [[package]]
 name = "yog-cli"
-version = "0.52.1"
+version = "0.52.2"
 dependencies = [
  "base64",
  "criterion",
@@ -2520,7 +2520,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ids"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "const_format",
  "yog-codegen",
