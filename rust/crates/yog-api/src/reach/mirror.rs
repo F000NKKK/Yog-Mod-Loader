@@ -15,7 +15,7 @@ use yog_sync::Arc;
 
 pub use yog_mirror::{Cell, Clock, FieldSpec, Kind, MirrorSpec, Rate};
 
-use crate::registry::{Registry, guard};
+use crate::mods::registry::{Registry, guard};
 
 mod host;
 mod traits;

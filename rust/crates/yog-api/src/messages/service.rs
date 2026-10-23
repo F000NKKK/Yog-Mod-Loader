@@ -8,8 +8,8 @@ use yog_abi::{YogApi, YogBytes, YogReply, YogStatus, YogStr, status};
 use yog_data::Schema;
 use yog_event::{EventPhase, Message, Service, keyed};
 
-use crate::bus::{EventCx, Subscription};
-use crate::registry::{Registry, global_api, guard};
+use crate::messages::bus::{EventCx, Subscription};
+use crate::mods::registry::{Registry, global_api, guard};
 
 /// The bus's handler for provider `ud`: the request read as `S`, the
 /// mod's answer written as the reply.

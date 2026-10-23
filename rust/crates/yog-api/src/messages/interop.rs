@@ -9,8 +9,8 @@ use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogStatus, status};
 use yog_data::Schema;
 use yog_event::Message;
 
-use crate::registry::guard;
-use crate::service::call_at;
+use crate::messages::service::call_at;
+use crate::mods::registry::guard;
 
 /// A `#[yog_export]` function, as its `ctor` registers it.
 #[doc(hidden)]

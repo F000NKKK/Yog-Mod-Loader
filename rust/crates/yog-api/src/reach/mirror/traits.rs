@@ -120,7 +120,10 @@ mod tests {
     fn every_trait_has_its_bit() {
         assert_eq!(BlockTraits::COUNT, block_trait::ALL_VALUES.len());
         assert_eq!(BlockTraits::AIR.0, 1);
-        assert_eq!(BlockTraits::GLASS.0, 1 << (block_trait::ALL_VALUES.len() - 1));
+        assert_eq!(
+            BlockTraits::GLASS.0,
+            1 << (block_trait::ALL_VALUES.len() - 1)
+        );
         assert!((BlockTraits::SLAB | BlockTraits::WATER).has(BlockTraits::SLAB));
     }
 }

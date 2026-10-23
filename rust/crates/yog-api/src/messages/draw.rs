@@ -4,8 +4,8 @@
 use yog_event::Event;
 use yog_gfx::GfxContext;
 
-use crate::bus::EventCx;
-use crate::registry::{Registry, global_api};
+use crate::messages::bus::EventCx;
+use crate::mods::registry::{Registry, global_api};
 
 /// The frame's graphics while a render event runs; `None` outside one.
 pub(crate) fn frame_gfx() -> Option<GfxContext> {

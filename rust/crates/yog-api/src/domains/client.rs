@@ -37,7 +37,13 @@ pub fn play_sound(sound_id: &str, volume: f32, pitch: f32, looping: bool) -> Sou
 
 /// [`play_sound`] started `from` seconds in — a streamed sound's (`stream`
 /// in its `.ysound`); others play whole.
-pub fn play_sound_from(sound_id: &str, volume: f32, pitch: f32, looping: bool, from: f32) -> SoundHandle {
+pub fn play_sound_from(
+    sound_id: &str,
+    volume: f32,
+    pitch: f32,
+    looping: bool,
+    from: f32,
+) -> SoundHandle {
     let handle = call(&client::PlaySound {
         sound: sound_id.to_owned(),
         volume,

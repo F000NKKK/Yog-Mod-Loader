@@ -6,7 +6,7 @@ use yog_sync::{Arc, Mutex, Once};
 use yog_abi::priority;
 use yog_event::server::game::Tick;
 
-use crate::registry::Registry;
+use crate::mods::registry::Registry;
 
 /// A scheduled task.
 type Task = Arc<dyn Fn() + Send + Sync>;
@@ -84,7 +84,7 @@ impl Registry {
             self.after_at::<Tick, _, _>(priority::LATE, |_, _| {
                 let due = TASKS.lock().due();
                 for task in due {
-                    crate::registry::guard((), &*task);
+                    crate::mods::registry::guard((), &*task);
                 }
             });
         });

@@ -5,33 +5,25 @@
 //! `yog_api::*`. Items are available both flat (`yog_api::Registry`) and
 //! namespaced by domain (`yog_api::world::World`).
 
-pub mod advancements;
-pub mod body;
-mod bus;
-pub mod client;
-mod draw;
-pub mod entities;
-pub mod java;
-pub mod loot;
-pub mod mirror;
-pub mod nanite;
+mod domains;
+mod messages;
+mod mods;
+mod reach;
+
+pub use domains::{advancements, body, client, entities, loot, vanilla, video};
+pub use mods::storage;
+pub use reach::{java, mirror, nanite};
+
 // The generated code names `::yog_api`, as in a mod (the host's mirrors are made here).
 extern crate self as yog_api;
-pub mod vanilla;
-pub mod video;
-pub use bus::{EventCx, Flow, IntoFlow, emit};
-pub use service::call;
-mod interop;
-mod lang;
-mod registry;
-mod scheduler;
-mod service;
+pub use messages::bus::{EventCx, Flow, IntoFlow, emit};
+pub use messages::service::call;
 
+pub use domains::lang::{format_translation, tag_name, tr, tr_args, translation};
 #[doc(hidden)]
-pub use interop::{__yog_export_registry, __yog_serve, YogExportEntry};
-pub use interop::{call_export, export_address};
-pub use lang::{format_translation, tag_name, tr, tr_args, translation};
-pub use registry::{Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui};
+pub use messages::interop::{__yog_export_registry, __yog_serve, YogExportEntry};
+pub use messages::interop::{call_export, export_address};
+pub use mods::registry::{Mod, ModInfo, Registry, UiHandled, close_ui, installed_mods, open_ui};
 pub use yog_gfx::{
     GfxContext, core as gfx_core, draw2d as gfx_draw2d, gl as gfx_gl, image as gfx_image,
 };
@@ -336,9 +328,6 @@ pub mod command {
 pub mod dimension {
     pub use yog_dimensions::*;
 }
-
-/// Where the mod keeps its data (typed stores by scope, values kept with the world).
-pub mod storage;
 
 /// Mod configuration (typed key/value files).
 pub mod config {

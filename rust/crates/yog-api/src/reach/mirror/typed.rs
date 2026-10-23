@@ -9,7 +9,7 @@ use yog_ids::{sep, service_mirror};
 use yog_sync::Arc;
 
 use super::{Cell, Clock, Declared, FieldSpec, MirrorSpec, Rate, Writer};
-use crate::registry::Registry;
+use crate::mods::registry::Registry;
 
 /// A mirror's row type (`#[yog_mirror]` implements it).
 pub trait Mirror: Sized + 'static {
@@ -69,7 +69,11 @@ pub trait Mirror: Sized + 'static {
 
     /// [`Mirror::declare`] covering `scope` (its scope type: a
     /// `BlockScope`…) — a mirror that isn't a family's.
-    fn declare_scoped<S: Schema>(scope: &S, fields: u64, rate: Rate) -> Result<Mirrored<Self>, Diagnostic> {
+    fn declare_scoped<S: Schema>(
+        scope: &S,
+        fields: u64,
+        rate: Rate,
+    ) -> Result<Mirrored<Self>, Diagnostic> {
         let scope = Some(yog_data::frame::to_frame(scope));
         Ok(Mirrored {
             declared: Declared::scoped(&Self::spec(), fields, rate, scope)?,

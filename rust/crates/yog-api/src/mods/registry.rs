@@ -141,9 +141,9 @@ impl Registry {
         // The mod's records go to the game's log, through the runtime.
         yog_logging::set_sink(log_to_host);
         // The actions' functions and handles (`player::give_item`, `Player`) reach the bus through it.
-        yog_event::set_caller(crate::service::call_at);
+        yog_event::set_caller(crate::messages::service::call_at);
         // Atoms number the same in every mod: the runtime's table.
-        if !yog_data::atom::install(crate::service::ATOMS) {
+        if !yog_data::atom::install(crate::messages::service::ATOMS) {
             yog_logging::warn!(
                 "atoms were made before the mod was registered: their numbers are this mod's own"
             );
@@ -525,7 +525,7 @@ impl Registry {
         F: Fn(&GfxContext, &yog_data::Value, [f32; 4]) + Send + Sync + 'static,
     {
         self.on_key::<yog_event::client::render::Page, _>(drawer, move |page, _| {
-            if let Some(gfx) = crate::draw::frame_gfx() {
+            if let Some(gfx) = crate::messages::draw::frame_gfx() {
                 handler(&gfx, &page.data, page.rect);
             }
         });
@@ -544,7 +544,7 @@ impl Registry {
             size(&p.item, &p.snbt).map(|(w, h)| [w, h])
         });
         self.on_key::<yog_event::client::render::Tooltip, _>(item, move |t, _| {
-            if let Some(gfx) = crate::draw::frame_gfx() {
+            if let Some(gfx) = crate::messages::draw::frame_gfx() {
                 draw(&gfx, &t.item, &t.snbt, t.rect);
             }
         });

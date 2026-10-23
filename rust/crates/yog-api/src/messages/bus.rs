@@ -8,7 +8,7 @@ use yog_sync::Arc;
 use yog_abi::{YogBytes, YogHandlerFn, YogReply, YogStatus, YogStr, priority, status};
 use yog_event::{Event, EventPhase, keyed};
 
-use crate::registry::{Registry, guard};
+use crate::mods::registry::{Registry, guard};
 
 /// What a handler decides about an event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -131,7 +131,7 @@ impl<E, F> Subscription<E, F> {
 /// Emits `event` on the bus — a mod's own event, or the game's on its
 /// behalf; whether no handler cancelled it (before the event, where it can be).
 pub fn emit<E: Event>(event: &E) -> bool {
-    let api = crate::registry::global_api();
+    let api = crate::mods::registry::global_api();
     if api.is_null() {
         return true;
     }
