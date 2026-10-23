@@ -35,7 +35,8 @@ final class YogParticle extends TextureSheetParticle {
         quadSize *= look.size();
         alpha = look.alpha();
         friction = look.friction();
-        gravity = look.gravity();
+        boolean everyAxis = motion.x != 0 && motion.y != 0 && motion.z != 0;
+        gravity = look.gravityNeedsMotion() && !everyAxis ? 0f : look.gravity();
         hasPhysics = look.physics();
         speedUpWhenYMotionIsBlocked = look.slideWhenBlocked();
         int min = (int) look.lifetime().min(), max = (int) look.lifetime().max();
@@ -55,9 +56,14 @@ final class YogParticle extends TextureSheetParticle {
         quadSize *= look.sizePerTick();
     }
 
-    /** The frame for its age, `frame_speed` times as fast as it lives. */
+    /**
+     * The frame for its age, {@code frame_speed} times as fast as it lives;
+     * past its life, the last, or (settling) the one for its age as it is.
+     */
     private void frame() {
-        setSprite(sprites.get(Math.min((int) (age * look.frameSpeed()), lifetime), lifetime));
+        int at = (int) (age * look.frameSpeed());
+        if (at > lifetime) at = look.frameSettle() ? age : lifetime;
+        setSprite(sprites.get(at, lifetime));
     }
 
     @Override

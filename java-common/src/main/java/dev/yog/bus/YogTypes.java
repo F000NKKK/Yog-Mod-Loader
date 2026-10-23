@@ -9999,12 +9999,13 @@ public final class YogTypes {
     }
 
     /** A `.yparticle`: everything but its id (its path). */
-    public record Particle(java.util.List<String> textures, String frames, float frameSpeed, YogTypes.Lifetime lifetime, float size, float sizePerTick, float alpha, boolean fade, float friction, float gravity, boolean physics, boolean slideWhenBlocked, boolean randomRoll, YogTypes.ParticleRender render) {
+    public record Particle(java.util.List<String> textures, String frames, float frameSpeed, boolean frameSettle, YogTypes.Lifetime lifetime, float size, float sizePerTick, float alpha, boolean fade, float friction, float gravity, boolean gravityNeedsMotion, boolean physics, boolean slideWhenBlocked, boolean randomRoll, YogTypes.ParticleRender render) {
         public java.util.Map<String, Object> toData() {
             java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
             m.put("textures", textures);
             m.put("frames", frames);
             m.put("frame_speed", frameSpeed);
+            m.put("frame_settle", frameSettle);
             m.put("lifetime", lifetime.toData());
             m.put("size", size);
             m.put("size_per_tick", sizePerTick);
@@ -10012,6 +10013,7 @@ public final class YogTypes {
             m.put("fade", fade);
             m.put("friction", friction);
             m.put("gravity", gravity);
+            m.put("gravity_needs_motion", gravityNeedsMotion);
             m.put("physics", physics);
             m.put("slide_when_blocked", slideWhenBlocked);
             m.put("random_roll", randomRoll);
@@ -10021,7 +10023,7 @@ public final class YogTypes {
 
         public static Particle fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Particle(YogData.list(m.get("textures")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.str(m.get("frames"), ""), (float) YogData.number(m.get("frame_speed"), 0), YogTypes.Lifetime.fromData(m.get("lifetime")), (float) YogData.number(m.get("size"), 0), (float) YogData.number(m.get("size_per_tick"), 0), (float) YogData.number(m.get("alpha"), 0), YogData.bool(m.get("fade"), false), (float) YogData.number(m.get("friction"), 0), (float) YogData.number(m.get("gravity"), 0), YogData.bool(m.get("physics"), false), YogData.bool(m.get("slide_when_blocked"), false), YogData.bool(m.get("random_roll"), false), YogTypes.ParticleRender.fromData(m.get("render")));
+            return new Particle(YogData.list(m.get("textures")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.str(m.get("frames"), ""), (float) YogData.number(m.get("frame_speed"), 0), YogData.bool(m.get("frame_settle"), false), YogTypes.Lifetime.fromData(m.get("lifetime")), (float) YogData.number(m.get("size"), 0), (float) YogData.number(m.get("size_per_tick"), 0), (float) YogData.number(m.get("alpha"), 0), YogData.bool(m.get("fade"), false), (float) YogData.number(m.get("friction"), 0), (float) YogData.number(m.get("gravity"), 0), YogData.bool(m.get("gravity_needs_motion"), false), YogData.bool(m.get("physics"), false), YogData.bool(m.get("slide_when_blocked"), false), YogData.bool(m.get("random_roll"), false), YogTypes.ParticleRender.fromData(m.get("render")));
         }
 
         public static Particle fromBytes(byte[] bytes) {
@@ -10033,6 +10035,7 @@ public final class YogTypes {
             { int l0 = p.beginList(this.textures.size()); for (var e0 : this.textures) { p.putStr(e0); } p.end(l0); }
             p.putU(switch (this.frames) { case "random" -> 0; case "age" -> 1; default -> 0; });
             p.putF32(this.frameSpeed);
+            p.putBool(this.frameSettle);
             this.lifetime.pack(p);
             p.putF32(this.size);
             p.putF32(this.sizePerTick);
@@ -10040,6 +10043,7 @@ public final class YogTypes {
             p.putBool(this.fade);
             p.putF32(this.friction);
             p.putF32(this.gravity);
+            p.putBool(this.gravityNeedsMotion);
             p.putBool(this.physics);
             p.putBool(this.slideWhenBlocked);
             p.putBool(this.randomRoll);
@@ -10052,6 +10056,7 @@ public final class YogTypes {
             java.util.List<String> f_textures = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
             String f_frames = u.more(end) ? switch ((int) u.getU()) { case 0 -> "random"; case 1 -> "age"; default -> ""; } : "random";
             float f_frameSpeed = u.more(end) ? u.getF32() : 0.0f;
+            boolean f_frameSettle = u.more(end) ? u.getBool() : false;
             YogTypes.Lifetime f_lifetime = u.more(end) ? YogTypes.Lifetime.unpack(u) : null;
             float f_size = u.more(end) ? u.getF32() : 0.0f;
             float f_sizePerTick = u.more(end) ? u.getF32() : 0.0f;
@@ -10059,12 +10064,13 @@ public final class YogTypes {
             boolean f_fade = u.more(end) ? u.getBool() : false;
             float f_friction = u.more(end) ? u.getF32() : 0.0f;
             float f_gravity = u.more(end) ? u.getF32() : 0.0f;
+            boolean f_gravityNeedsMotion = u.more(end) ? u.getBool() : false;
             boolean f_physics = u.more(end) ? u.getBool() : false;
             boolean f_slideWhenBlocked = u.more(end) ? u.getBool() : false;
             boolean f_randomRoll = u.more(end) ? u.getBool() : false;
             YogTypes.ParticleRender f_render = u.more(end) ? YogTypes.ParticleRender.unpack(u) : null;
             u.leave(end);
-            return new Particle(f_textures, f_frames, f_frameSpeed, f_lifetime, f_size, f_sizePerTick, f_alpha, f_fade, f_friction, f_gravity, f_physics, f_slideWhenBlocked, f_randomRoll, f_render);
+            return new Particle(f_textures, f_frames, f_frameSpeed, f_frameSettle, f_lifetime, f_size, f_sizePerTick, f_alpha, f_fade, f_friction, f_gravity, f_gravityNeedsMotion, f_physics, f_slideWhenBlocked, f_randomRoll, f_render);
         }
 
         public byte[] toFrame() {
@@ -10112,6 +10118,8 @@ public final class YogTypes {
             private final int o11;
             private final int o12;
             private final int o13;
+            private final int o14;
+            private final int o15;
 
             public View(YogFrame.Unpacker u) {
                 this.u = u;
@@ -10119,17 +10127,19 @@ public final class YogTypes {
                 if (u.more(end)) { o0 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o0 = -1; }
                 if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
                 if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
-                if (u.more(end)) { o3 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o3 = -1; }
-                if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o4 = -1; }
                 if (u.more(end)) { o5 = u.position(); u.skip(4); } else { o5 = -1; }
                 if (u.more(end)) { o6 = u.position(); u.skip(4); } else { o6 = -1; }
-                if (u.more(end)) { o7 = u.position(); u.skip(1); } else { o7 = -1; }
-                if (u.more(end)) { o8 = u.position(); u.skip(4); } else { o8 = -1; }
+                if (u.more(end)) { o7 = u.position(); u.skip(4); } else { o7 = -1; }
+                if (u.more(end)) { o8 = u.position(); u.skip(1); } else { o8 = -1; }
                 if (u.more(end)) { o9 = u.position(); u.skip(4); } else { o9 = -1; }
-                if (u.more(end)) { o10 = u.position(); u.skip(1); } else { o10 = -1; }
+                if (u.more(end)) { o10 = u.position(); u.skip(4); } else { o10 = -1; }
                 if (u.more(end)) { o11 = u.position(); u.skip(1); } else { o11 = -1; }
                 if (u.more(end)) { o12 = u.position(); u.skip(1); } else { o12 = -1; }
-                if (u.more(end)) { o13 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o13 = -1; }
+                if (u.more(end)) { o13 = u.position(); u.skip(1); } else { o13 = -1; }
+                if (u.more(end)) { o14 = u.position(); u.skip(1); } else { o14 = -1; }
+                if (u.more(end)) { o15 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o15 = -1; }
                 u.leave(end);
             }
 
@@ -10151,69 +10161,81 @@ public final class YogTypes {
                 return u.getF32();
             }
 
-            public YogTypes.Lifetime.View lifetime() {
-                if (o3 < 0) return null;
+            public boolean frameSettle() {
+                if (o3 < 0) return false;
                 u.seek(o3);
+                return u.getBool();
+            }
+
+            public YogTypes.Lifetime.View lifetime() {
+                if (o4 < 0) return null;
+                u.seek(o4);
                 return new YogTypes.Lifetime.View(u);
             }
 
             public float size() {
-                if (o4 < 0) return 0.0f;
-                u.seek(o4);
-                return u.getF32();
-            }
-
-            public float sizePerTick() {
                 if (o5 < 0) return 0.0f;
                 u.seek(o5);
                 return u.getF32();
             }
 
-            public float alpha() {
+            public float sizePerTick() {
                 if (o6 < 0) return 0.0f;
                 u.seek(o6);
                 return u.getF32();
             }
 
-            public boolean fade() {
-                if (o7 < 0) return false;
+            public float alpha() {
+                if (o7 < 0) return 0.0f;
                 u.seek(o7);
+                return u.getF32();
+            }
+
+            public boolean fade() {
+                if (o8 < 0) return false;
+                u.seek(o8);
                 return u.getBool();
             }
 
             public float friction() {
-                if (o8 < 0) return 0.0f;
-                u.seek(o8);
-                return u.getF32();
-            }
-
-            public float gravity() {
                 if (o9 < 0) return 0.0f;
                 u.seek(o9);
                 return u.getF32();
             }
 
-            public boolean physics() {
-                if (o10 < 0) return false;
+            public float gravity() {
+                if (o10 < 0) return 0.0f;
                 u.seek(o10);
-                return u.getBool();
+                return u.getF32();
             }
 
-            public boolean slideWhenBlocked() {
+            public boolean gravityNeedsMotion() {
                 if (o11 < 0) return false;
                 u.seek(o11);
                 return u.getBool();
             }
 
-            public boolean randomRoll() {
+            public boolean physics() {
                 if (o12 < 0) return false;
                 u.seek(o12);
                 return u.getBool();
             }
 
-            public YogTypes.ParticleRender.View render() {
-                if (o13 < 0) return null;
+            public boolean slideWhenBlocked() {
+                if (o13 < 0) return false;
                 u.seek(o13);
+                return u.getBool();
+            }
+
+            public boolean randomRoll() {
+                if (o14 < 0) return false;
+                u.seek(o14);
+                return u.getBool();
+            }
+
+            public YogTypes.ParticleRender.View render() {
+                if (o15 < 0) return null;
+                u.seek(o15);
                 return new YogTypes.ParticleRender.View(u);
             }
         }

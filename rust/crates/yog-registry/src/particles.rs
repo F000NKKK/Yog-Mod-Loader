@@ -28,6 +28,10 @@ pub struct Particle {
     /// How much faster than its life its frames go by age (`Frames::Age`).
     #[data(default = "one")]
     pub frame_speed: f32,
+    /// Once that faster run is past its life, its frames go by its age as it
+    /// is (else they stay on the last).
+    #[data(default)]
+    pub frame_settle: bool,
     /// Ticks it lives: between `min` and `max`.
     #[data(default = "lifetime")]
     pub lifetime: Lifetime,
@@ -49,6 +53,9 @@ pub struct Particle {
     /// Blocks a tick² it falls (negative: rises).
     #[data(default)]
     pub gravity: f32,
+    /// It falls (`gravity`) only when spawned moving along every axis.
+    #[data(default)]
+    pub gravity_needs_motion: bool,
     /// It meets blocks (it doesn't go through them).
     #[data(default)]
     pub physics: bool,
