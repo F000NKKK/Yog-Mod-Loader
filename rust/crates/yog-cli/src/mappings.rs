@@ -3,8 +3,8 @@
 //! mappings and the loader's (Fabric's intermediary, Forge's SRG), fetched
 //! once into Yog's cache.
 
-mod fetch;
-mod proguard;
+pub(crate) mod fetch;
+pub(crate) mod proguard;
 mod runtime;
 #[cfg(test)]
 mod tests;

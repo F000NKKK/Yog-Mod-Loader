@@ -23,7 +23,11 @@ const VERSIONS: &str = "versions";
 const ID: &str = "id";
 const URL: &str = "url";
 const DOWNLOADS: &str = "downloads";
-const CLIENT_MAPPINGS: &str = "client_mappings";
+pub(crate) const CLIENT_MAPPINGS: &str = "client_mappings";
+pub(crate) const SERVER_MAPPINGS: &str = "server_mappings";
+/// The game's jars, by their downloads' keys.
+pub(crate) const CLIENT_JAR: &str = "client";
+pub(crate) const SERVER_JAR: &str = "server";
 /// A Maven metadata version's tags.
 const VERSION_OPEN: &str = "<version>";
 const VERSION_CLOSE: &str = "</version>";
@@ -42,10 +46,15 @@ fn text(url: &str) -> Result<String, String> {
     String::from_utf8(get(url)?).map_err(|e| format!("{url}: {e}"))
 }
 
+/// Where `name` is kept in the cache.
+fn cache_path(name: &str) -> Result<PathBuf, String> {
+    Ok(yog_home::Home::locate()?.cache_dir().join(CACHE).join(name))
+}
+
 /// `name` from the cache, else made by `make` and kept.
 fn cached(name: &str, make: impl FnOnce() -> Result<String, String>) -> Result<String, String> {
-    let dir: PathBuf = yog_home::Home::locate()?.cache_dir().join(CACHE);
-    let path = dir.join(name);
+    let path = cache_path(name)?;
+    let dir = path.parent().map(PathBuf::from).unwrap_or_default();
     if let Ok(t) = std::fs::read_to_string(&path) {
         return Ok(t);
     }
@@ -74,32 +83,59 @@ fn json(url: &str) -> Result<Value, String> {
     yog_data::json::from_json_text(&text(url)?).ok_or_else(|| format!("{url}: not JSON"))
 }
 
+/// The URL of `mc`'s download `key` (`client`, `server_mappings`, …);
+/// none when the version has no such download.
+fn download_url(mc: &str, key: &str) -> Result<Option<String>, String> {
+    let manifest = json(MOJANG_MANIFEST)?;
+    let version = manifest
+        .get(VERSIONS)
+        .and_then(Value::as_list)
+        .and_then(|vs| {
+            vs.iter()
+                .find(|v| v.get(ID).and_then(Value::as_str) == Some(mc))
+        })
+        .and_then(|v| v.get(URL)?.as_str())
+        .ok_or_else(|| format!("Mojang has no version {mc}"))?;
+    Ok(json(version)?
+        .get(DOWNLOADS)
+        .and_then(|d| d.get(key)?.get(URL)?.as_str().map(str::to_owned)))
+}
+
 /// Mojang's mappings of `mc`'s client (ProGuard's text).
 pub(crate) fn mojang(mc: &str) -> Result<String, String> {
-    cached(&format!("{mc}.mojang.txt"), || {
-        let manifest = json(MOJANG_MANIFEST)?;
-        let version = manifest
-            .get(VERSIONS)
-            .and_then(Value::as_list)
-            .and_then(|vs| {
-                vs.iter()
-                    .find(|v| v.get(ID).and_then(Value::as_str) == Some(mc))
-            })
-            .and_then(|v| v.get(URL)?.as_str())
-            .ok_or_else(|| format!("Mojang has no version {mc}"))?;
-        let url = json(version)?
-            .get(DOWNLOADS)
-            .and_then(|d| {
-                d.get(CLIENT_MAPPINGS)?
-                    .get(URL)?
-                    .as_str()
-                    .map(str::to_owned)
-            })
-            .ok_or_else(|| {
-                format!("{mc} has no mappings (unobfuscated: its names are Mojang's)")
-            })?;
-        text(&url)
-    })
+    side_mappings(mc, CLIENT_MAPPINGS)?
+        .ok_or_else(|| format!("{mc} has no mappings (unobfuscated: its names are Mojang's)"))
+}
+
+/// Mojang's mappings of one side of `mc` (`client_mappings`,
+/// `server_mappings`); none for a version that isn't obfuscated.
+pub(crate) fn side_mappings(mc: &str, key: &str) -> Result<Option<String>, String> {
+    let name = format!("{mc}.{key}.txt");
+    if let Some(t) = cache_path(&name)
+        .ok()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+    {
+        return Ok(Some(t));
+    }
+    match download_url(mc, key)? {
+        Some(url) => cached(&name, || text(&url)).map(Some),
+        None => Ok(None),
+    }
+}
+
+/// `mc`'s `client` or `server` jar, fetched once.
+pub(crate) fn game_jar(mc: &str, side: &str) -> Result<Vec<u8>, String> {
+    let path = cache_path(&format!("{mc}.{side}.jar"))?;
+    let dir = path.parent().map(PathBuf::from).unwrap_or_default();
+    if let Ok(b) = std::fs::read(&path) {
+        return Ok(b);
+    }
+    let url = download_url(mc, side)?.ok_or_else(|| format!("{mc} has no {side} jar"))?;
+    let bytes = get(&url)?;
+    std::fs::create_dir_all(&dir)
+        .and_then(|_| std::fs::write(&path, &bytes))
+        .map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok(bytes)
 }
 
 /// Fabric's intermediary of `mc` (tiny v2).

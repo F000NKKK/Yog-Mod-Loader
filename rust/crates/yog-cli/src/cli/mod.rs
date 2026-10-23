@@ -7,6 +7,7 @@ mod check;
 mod control;
 mod data;
 mod deps;
+mod index;
 mod mappings;
 mod new;
 mod pictures;
@@ -81,6 +82,7 @@ pub(crate) fn main(args: &[String]) {
         Some("control") => control::control(rest),
         Some(data::COMMAND) => data::data(rest),
         Some(mappings::COMMAND) => mappings::mappings(rest),
+        Some(index::COMMAND) => index::index(rest),
         Some("publish") => publish_cmd(rest),
         Some("res") => sub(rest, "check", check::res_check, "usage: yog res check"),
         Some("content") => sub(

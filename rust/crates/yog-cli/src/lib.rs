@@ -12,6 +12,8 @@ pub(crate) mod audio;
 pub mod bench;
 pub(crate) mod book_page;
 pub mod cargo_toml;
+pub mod class_index;
+mod classfile;
 mod consts;
 pub mod content;
 pub mod design;

@@ -4,6 +4,7 @@
 //! says what's wrong with it, as Diagnostics placed in the source.
 
 pub mod ast;
+pub mod index;
 mod lexer;
 pub mod parser;
 mod report;
