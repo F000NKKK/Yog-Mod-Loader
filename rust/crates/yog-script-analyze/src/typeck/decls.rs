@@ -1,8 +1,8 @@
 //! Declarations: fields' values fitting their types, methods' bodies with
 //! their side, `this` and result, types' and content's members.
 
-use super::Checker;
 use super::model::Type;
+use super::{Checker, generics};
 use crate::ast::{Decl, DeclKind, Method, MethodBody, Modifier, Param, PatchItem, Point};
 use crate::index::Side;
 
@@ -53,7 +53,7 @@ impl Checker<'_, '_, '_> {
                 self.within(Some(t), side, None, |c| c.decls(body));
             }
             DeclKind::Mod { name, body } => {
-                let this = Some(Type::Own(name.text.clone()));
+                let this = Some(Type::own(name.text.clone()));
                 self.within(this, side, None, |c| c.decls(body));
             }
             DeclKind::Event { ty, .. } => {
@@ -98,14 +98,20 @@ impl Checker<'_, '_, '_> {
             | DeclKind::Screen {
                 name, body, header, ..
             } => {
-                let own = self
-                    .own
-                    .types
-                    .contains_key(&name.text)
-                    .then(|| Type::Own(name.text.clone()));
-                self.within(own, side, None, |c| {
-                    c.params(header.ctor.as_deref().unwrap_or_default());
-                    c.decls(body);
+                let args = header
+                    .generics
+                    .iter()
+                    .filter(|g| !g.lifetime)
+                    .map(|g| Type::Param(g.name.text.clone()))
+                    .collect();
+                let own = (self.own.types.contains_key(&name.text))
+                    .then(|| Type::Own(name.text.clone(), args));
+                let bound = generics::params_of(&header.generics);
+                self.with_types(bound, |c| {
+                    c.within(own, side, None, |c| {
+                        c.params(header.ctor.as_deref().unwrap_or_default());
+                        c.decls(body);
+                    });
                 });
             }
             _ => {}
@@ -129,13 +135,10 @@ impl Checker<'_, '_, '_> {
     }
 
     fn method(&mut self, m: &Method, side: Side) {
-        let ret = m.ret.as_ref().map_or(Type::Void, |t| self.type_of(t));
-        let ret = if m.generics.is_empty() {
-            ret
-        } else {
-            Type::Unknown
-        };
-        self.body(m.body.as_ref(), &m.params, Some(ret), side);
+        self.with_types(generics::params_of(&m.generics), |c| {
+            let ret = m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t));
+            c.body(m.body.as_ref(), &m.params, Some(ret), side);
+        });
     }
 
     /// A body: its parameters bound, its result expected.

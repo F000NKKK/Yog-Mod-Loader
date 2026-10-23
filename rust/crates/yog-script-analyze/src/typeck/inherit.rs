@@ -118,7 +118,7 @@ fn implemented(index: &Index, info: &Info, report: &mut Report<'_>) {
 impl super::Checker<'_, '_, '_> {
     /// `new T(…)`: `T` isn't abstract (nor an interface).
     pub(super) fn made(&mut self, t: &super::Type, at: crate::source::token::Span) {
-        let super::Type::Own(name) = t else { return };
+        let super::Type::Own(name, _) = t else { return };
         if self
             .own
             .types

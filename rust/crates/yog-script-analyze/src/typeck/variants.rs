@@ -27,7 +27,8 @@ impl Checker<'_, '_, '_> {
             passes: vec![None; params.len()],
             required: params.len(),
             params,
-            ret: Type::Own(of.to_string()),
+            ret: Type::own(of.to_string()),
+            generics: Vec::new(),
         }])
     }
 
@@ -58,7 +59,7 @@ impl Checker<'_, '_, '_> {
             Pattern::Let(n) => self.bind(&n.text, on.clone()),
             Pattern::Variant { path, args } => {
                 let fields = match (on.non_null(), path.last()) {
-                    (Type::Own(of), Some(case)) => self
+                    (Type::Own(of, _), Some(case)) => self
                         .own
                         .types
                         .get(of)
@@ -82,7 +83,9 @@ impl Checker<'_, '_, '_> {
 
     /// A `switch` over own enum `on` names every case, or has a `_`.
     fn exhaustive(&mut self, on: &Type, arms: &[Arm], at: Span) {
-        let Type::Own(of) = on.non_null() else { return };
+        let Type::Own(of, _) = on.non_null() else {
+            return;
+        };
         let Some(cases) = self.own.types.get(of).map(|t| t.cases.clone()) else {
             return;
         };

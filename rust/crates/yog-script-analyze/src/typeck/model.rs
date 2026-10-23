@@ -36,8 +36,12 @@ pub enum Type {
     /// A content reference of a kind: `@item:…` is `Content("item")`.
     Content(String),
     Tag,
-    /// A type the source declares, by name.
-    Own(String),
+    /// A type the source declares, by name, with its type arguments
+    /// (`Box<i32>`; none when it isn't generic).
+    Own(String, Vec<Type>),
+    /// A type parameter (`T`) where its argument isn't known: in its
+    /// generic's own code, or a method's before inference.
+    Param(String),
     /// An own type named where a value goes (`Mode` in `Mode.Idle`): its
     /// static members and its cases.
     Static(String),
@@ -65,6 +69,11 @@ pub const SECONDS: &str = "Seconds";
 pub const BLOCKS: &str = "Blocks";
 
 impl Type {
+    /// An own type that isn't generic.
+    pub fn own(name: impl Into<String>) -> Type {
+        Type::Own(name.into(), Vec::new())
+    }
+
     pub fn nullable(self) -> Type {
         match self {
             Type::Nullable(_) | Type::Null | Type::Unknown => self,
@@ -148,7 +157,16 @@ impl fmt::Display for Type {
             | Type::Void => write!(f, "{}", builtin::word(self).unwrap_or_default()),
             Type::Null => write!(f, "{}", crate::words::null::WORD.text),
             Type::Text => write!(f, "Text"),
-            Type::Unit(u) | Type::Own(u) | Type::Static(u) | Type::Yog(u) | Type::Namespace(u) => {
+            Type::Own(name, args) if !args.is_empty() => {
+                let args: Vec<_> = args.iter().map(ToString::to_string).collect();
+                write!(f, "{name}<{}>", args.join(", "))
+            }
+            Type::Unit(u)
+            | Type::Own(u, _)
+            | Type::Static(u)
+            | Type::Param(u)
+            | Type::Yog(u)
+            | Type::Namespace(u) => {
                 write!(f, "{u}")
             }
             Type::Content(kind) => write!(f, "@{kind}"),

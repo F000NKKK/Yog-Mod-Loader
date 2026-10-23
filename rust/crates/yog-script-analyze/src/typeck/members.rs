@@ -12,8 +12,9 @@ use crate::source::token::Span;
 
 /// What a call's callee stands for.
 pub(super) enum Callee {
-    /// The source's own methods.
-    Own(Vec<Method>),
+    /// The source's own methods, the type parameters their type binds
+    /// (`Box<i32>`'s `T` is `i32`).
+    Own(Vec<Method>, super::generics::Bound),
     /// Methods typed already: a game class's, Yog's.
     Typed(Vec<Signature>),
     Unknown,
@@ -27,6 +28,8 @@ pub(super) struct Signature {
     pub passes: Vec<Option<Pass>>,
     pub required: usize,
     pub ret: Type,
+    /// A generic method's type parameters, inferred from a call.
+    pub generics: Vec<String>,
 }
 
 impl Checker<'_, '_, '_> {
@@ -43,8 +46,8 @@ impl Checker<'_, '_, '_> {
             );
         }
         let t = match on.non_null() {
-            Type::Static(of) => self.own_member(&Type::Own(of.clone()), name),
-            Type::Own(_) => {
+            Type::Static(of) => self.own_member(&Type::own(of.clone()), name),
+            Type::Own(..) => {
                 let t = self.own_member(on.non_null(), name);
                 if !t.known() && !self.own_has_method(on.non_null(), name) {
                     self.unknown_member(on.non_null(), name, at);
@@ -68,19 +71,22 @@ impl Checker<'_, '_, '_> {
     /// The type of member `name` of the source's own type `t` (or of a
     /// component it has, or the component itself).
     pub(super) fn own_member(&mut self, t: &Type, name: &str) -> Type {
-        let type_name = match t {
-            Type::Own(n) => n,
+        let (type_name, args) = match t {
+            Type::Own(n, args) => (n, args),
             Type::Game(class) | Type::Yog(class) => {
                 return self.extension_value(class, name).unwrap_or(Type::Unknown);
             }
             _ => return Type::Unknown,
         };
-        self.own
-            .lineage(type_name)
-            .iter()
-            .map(|of| self.own_member_of(of, name))
-            .find(Type::known)
-            .unwrap_or(Type::Unknown)
+        let bound = self.bound_of(type_name, args);
+        let lineage = self.own.lineage(type_name);
+        self.with_types(bound, |c| {
+            lineage
+                .iter()
+                .map(|of| c.own_member_of(of, name))
+                .find(Type::known)
+                .unwrap_or(Type::Unknown)
+        })
     }
 
     /// Member `name` declared by own type `of` itself (or by a component
@@ -93,15 +99,15 @@ impl Checker<'_, '_, '_> {
             return self.type_of(&written);
         }
         if own.cases.iter().any(|c| c == name) {
-            return Type::Own(of.to_string());
+            return Type::own(of.to_string());
         }
         let components = own.components.clone();
         if components.iter().any(|c| c == name) {
-            return Type::Own(name.to_string());
+            return Type::own(name.to_string());
         }
         components
             .iter()
-            .map(|c| self.own_member(&Type::Own(c.clone()), name))
+            .map(|c| self.own_member(&Type::own(c.clone()), name))
             .find(Type::known)
             .unwrap_or(Type::Unknown)
     }
@@ -115,11 +121,11 @@ impl Checker<'_, '_, '_> {
         }
         let components = ext.components.clone();
         if components.iter().any(|c| c == name) {
-            return Some(Type::Own(name.to_string()));
+            return Some(Type::own(name.to_string()));
         }
         components
             .iter()
-            .map(|c| self.own_member(&Type::Own(c.clone()), name))
+            .map(|c| self.own_member(&Type::own(c.clone()), name))
             .find(Type::known)
     }
 
@@ -128,12 +134,12 @@ impl Checker<'_, '_, '_> {
         ext.methods.get(name).cloned().or_else(|| {
             ext.components
                 .iter()
-                .find_map(|c| self.own_methods(&Type::Own(c.clone()), name))
+                .find_map(|c| self.own_methods(&Type::own(c.clone()), name))
         })
     }
 
     fn own_has_method(&self, t: &Type, name: &str) -> bool {
-        let Type::Own(type_name) = t else {
+        let Type::Own(type_name, _) = t else {
             return false;
         };
         self.own.lineage(type_name).iter().any(|of| {
@@ -141,7 +147,7 @@ impl Checker<'_, '_, '_> {
                 o.methods.contains_key(name)
                     || o.components
                         .iter()
-                        .any(|c| self.own_has_method(&Type::Own(c.clone()), name))
+                        .any(|c| self.own_has_method(&Type::own(c.clone()), name))
             })
         })
     }
@@ -221,8 +227,9 @@ impl Checker<'_, '_, '_> {
         let target = self.callee(callee);
         let given: Vec<Type> = args.iter().map(|a| self.expr(&a.value)).collect();
         match target {
-            Callee::Own(methods) => {
-                let sigs: Vec<Signature> = methods.iter().map(|m| self.signature(m)).collect();
+            Callee::Own(methods, bound) => {
+                let sigs: Vec<Signature> =
+                    self.with_types(bound, |c| methods.iter().map(|m| c.signature(m)).collect());
                 self.pick(&sigs, &given, args, callee.span)
             }
             Callee::Typed(sigs) => self.pick(&sigs, &given, args, callee.span),
@@ -249,24 +256,26 @@ impl Checker<'_, '_, '_> {
                 if methods.is_empty() {
                     self.static_import(name, callee.span)
                 } else {
-                    Callee::Own(methods)
+                    Callee::Own(methods, super::generics::Bound::new())
                 }
             }
             ExprKind::Member { expr, name, .. } => {
                 let on = self.expr(expr);
                 match on.non_null() {
-                    Type::Own(of) | Type::Static(of) => {
-                        match self.own_methods(&Type::Own(of.clone()), &name.text) {
-                            Some(methods) => Callee::Own(methods),
+                    Type::Own(of, _) | Type::Static(of) => {
+                        match self.own_methods(&Type::own(of.clone()), &name.text) {
+                            Some(methods) => {
+                                Callee::Own(methods, self.bound_of(of, own_args(on.non_null())))
+                            }
                             None => self.variant_ctor(&of.clone(), &name.text),
                         }
                     }
                     Type::Yog(group) => match self.extension_methods(group, &name.text) {
-                        Some(m) => Callee::Own(m),
+                        Some(m) => Callee::Own(m, super::generics::Bound::new()),
                         None => self.yog_methods(group, &name.text, name.span),
                     },
                     Type::Game(class) => match self.extension_methods(class, &name.text) {
-                        Some(m) => Callee::Own(m),
+                        Some(m) => Callee::Own(m, super::generics::Bound::new()),
                         None if is_side_call(&name.text) => Callee::Unknown,
                         None => self.game_methods(class, &name.text, name.span),
                     },
@@ -299,13 +308,15 @@ impl Checker<'_, '_, '_> {
     }
 
     fn own_methods(&self, t: &Type, name: &str) -> Option<Vec<Method>> {
-        let Type::Own(type_name) = t else { return None };
+        let Type::Own(type_name, _) = t else {
+            return None;
+        };
         self.own.lineage(type_name).iter().find_map(|of| {
             let own = self.own.types.get(of)?;
             own.methods.get(name).cloned().or_else(|| {
                 own.components
                     .iter()
-                    .find_map(|c| self.own_methods(&Type::Own(c.clone()), name))
+                    .find_map(|c| self.own_methods(&Type::own(c.clone()), name))
             })
         })
     }
@@ -368,6 +379,7 @@ impl Checker<'_, '_, '_> {
                     passes: vec![None; m.params.len()],
                     required: m.params.iter().take_while(|p| p.required).count(),
                     ret: Type::of_shape(&m.reply),
+                    generics: Vec::new(),
                 })
                 .collect(),
         )
@@ -388,6 +400,7 @@ impl Checker<'_, '_, '_> {
                         required: params.len(),
                         params,
                         ret,
+                        generics: Vec::new(),
                     })
                     .collect(),
             ),
@@ -402,16 +415,15 @@ impl Checker<'_, '_, '_> {
     /// An own method's signature: parameters, how many are required (the
     /// rest have defaults), result.
     fn signature(&mut self, m: &Method) -> Signature {
-        let params = m.params.iter().map(|p| self.type_of(&p.ty)).collect();
-        let passes = m.params.iter().map(|p| p.pass).collect();
-        let required = m.params.iter().take_while(|p| p.default.is_none()).count();
-        let ret = m.ret.as_ref().map_or(Type::Void, |t| self.type_of(t));
-        Signature {
-            params,
-            passes,
-            required,
-            ret,
-        }
+        let bound = super::generics::params_of(&m.generics);
+        let generics = bound.keys().cloned().collect();
+        self.with_types(bound, |c| Signature {
+            params: m.params.iter().map(|p| c.type_of(&p.ty)).collect(),
+            passes: m.params.iter().map(|p| p.pass).collect(),
+            required: m.params.iter().take_while(|p| p.default.is_none()).count(),
+            ret: m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t)),
+            generics,
+        })
     }
 
     /// The signature `given` arguments fit; its result — or a report when
@@ -422,15 +434,17 @@ impl Checker<'_, '_, '_> {
         }
         let takes = |s: &Signature| (s.required..=s.params.len()).contains(&given.len());
         let fits = |s: &Signature| {
-            takes(s)
+            let mut found = super::generics::Bound::new();
+            let all = takes(s)
                 && given
                     .iter()
                     .zip(&s.params)
-                    .all(|(g, p)| self.converts(g, p))
+                    .all(|(g, p)| self.unify(p, g, &s.generics, &mut found));
+            all.then_some(found)
         };
-        if let Some(s) = sigs.iter().find(|s| fits(s)) {
+        if let Some((s, found)) = sigs.iter().find_map(|s| fits(s).map(|f| (s, f))) {
             self.check_passing(&s.passes, args);
-            return s.ret.clone();
+            return s.ret.substitute(&found);
         }
         let taking: Vec<&Signature> = sigs.iter().filter(|s| takes(s)).collect();
         match taking.as_slice() {
@@ -478,6 +492,15 @@ fn signature_of(params: &[Type], ret: &Type) -> Signature {
         passes: vec![None; params.len()],
         required: params.len(),
         ret: ret.clone(),
+        generics: Vec::new(),
+    }
+}
+
+/// An own type's type arguments (none for any other type).
+fn own_args(t: &Type) -> &[Type] {
+    match t {
+        Type::Own(_, args) => args,
+        _ => &[],
     }
 }
 

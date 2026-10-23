@@ -72,8 +72,11 @@ impl Checker<'_, '_, '_> {
         if self.own.units.iter().any(|u| u == name) {
             return Type::Unit(name.to_string());
         }
+        if let Some(t) = self.type_param(name) {
+            return t;
+        }
         if self.own.types.contains_key(name) {
-            return Type::Own(name.to_string());
+            return Type::Own(name.to_string(), args);
         }
         self.imported(name, at)
     }

@@ -105,7 +105,7 @@ impl Checker<'_, '_, '_> {
     /// one enclosing it.
     fn own_visible(&self, name: &str) -> Option<Type> {
         let ns = self.own.namespaces.get(name)?;
-        self.ns.starts_with(ns).then(|| Type::Own(name.to_string()))
+        self.ns.starts_with(ns).then(|| Type::own(name.to_string()))
     }
 
     /// A namespace `name` starts: Yog's, the game's (a `.yns`), or the source's.
@@ -175,7 +175,7 @@ impl Checker<'_, '_, '_> {
             return self.in_game(ns, name, at);
         }
         if self.own.namespaces.get(name).is_some_and(|own| own == ns) {
-            return Type::Own(name.to_string());
+            return Type::own(name.to_string());
         }
         let deeper: Vec<String> = [ns, &[name.to_string()]].concat();
         let is_own_ns = self

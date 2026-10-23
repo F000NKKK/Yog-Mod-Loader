@@ -292,3 +292,25 @@ fn enums_are_rusts() {
         [script_problem::TYPE_MISMATCH]
     );
 }
+
+#[test]
+fn generics_are_csharps() {
+    let types = "class Box<T> { public T Value; public void Put(T v) {} public T Get() => Value; }\n\
+                 static T Max<T>(T a, T b) => a;\n";
+    // A generic's members with its arguments; a method's inferred from the call.
+    let ok = format!(
+        "{types}void F(Box<i32> b) {{ i32 v = b.Value; i32 g = b.Get(); b.Put(3); i32 m = Max(1, 2); string s = Max(\"a\", \"b\"); }}\n"
+    );
+    assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+    let bad = format!(
+        "{types}void F(Box<i32> b) {{ string v = b.Value; b.Put(\"x\"); string m = Max(1, 2); }}\n"
+    );
+    assert_eq!(
+        codes(&bad),
+        [
+            script_problem::TYPE_MISMATCH,
+            script_problem::TYPE_MISMATCH,
+            script_problem::TYPE_MISMATCH
+        ]
+    );
+}

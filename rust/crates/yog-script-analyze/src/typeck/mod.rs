@@ -9,6 +9,7 @@ mod builtin;
 mod decls;
 mod exprs;
 mod game;
+mod generics;
 mod inherit;
 mod lambdas;
 mod members;
@@ -49,6 +50,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     ns: Vec<String>,
     /// A `.yns`: the game's classes reachable.
     nanites: bool,
+    /// The type parameters in scope, innermost last.
+    type_params: Vec<generics::Bound>,
 }
 
 /// `file`'s types checked against `index` (a targeted version's), what
@@ -72,6 +75,7 @@ pub(crate) fn check(
         directives: names::Directives::collect(&file.decls),
         ns: Vec::new(),
         nanites,
+        type_params: Vec::new(),
     };
     c.decls(&file.decls);
     inherit::check(&file.decls, c.report);
@@ -103,7 +107,7 @@ impl Checker<'_, '_, '_> {
             return true;
         }
         match (got.non_null(), wanted.non_null()) {
-            (Type::Own(a), Type::Own(b)) => {
+            (Type::Own(a, _), Type::Own(b, _)) => {
                 (!got.is_nullable() || wanted.is_nullable()) && self.own.is_a(a, b)
             }
             _ => false,
@@ -113,10 +117,10 @@ impl Checker<'_, '_, '_> {
     /// `base`: `this` as the class it inherits.
     fn base(&self) -> Type {
         match &self.this {
-            Some(Type::Own(name)) => self
+            Some(Type::Own(name, _)) => self
                 .own
                 .base_class(name)
-                .map_or(Type::Unknown, |b| Type::Own(b.to_string())),
+                .map_or(Type::Unknown, |b| Type::own(b.to_string())),
             _ => Type::Unknown,
         }
     }

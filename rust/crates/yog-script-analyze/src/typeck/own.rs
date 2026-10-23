@@ -20,6 +20,8 @@ pub(crate) struct OwnType {
     pub interface: bool,
     /// An `abstract class`: inherited, never made.
     pub is_abstract: bool,
+    /// Its type parameters' names (`T` of `Box<T>`).
+    pub generics: Vec<String>,
     /// An enum's cases that carry data, their fields by case.
     pub variants: HashMap<String, Vec<ast::Param>>,
 }
@@ -96,6 +98,7 @@ impl OwnTypes {
                     .collect();
                 t.interface = word.text == crate::words::interface::WORD.text;
                 t.is_abstract = d.has(ast::Modifier::Abstract);
+                t.generics = type_params(&header.generics);
                 // A record's constructor parameters are its properties.
                 let props = (word.text == crate::words::record::WORD.text)
                     .then_some(header.ctor.as_deref())
@@ -118,6 +121,7 @@ impl OwnTypes {
             DeclKind::Mod { name, body } => (name, body.as_slice(), &[][..], None),
             DeclKind::Enum {
                 name,
+                generics,
                 variants,
                 body,
                 ..
@@ -126,6 +130,7 @@ impl OwnTypes {
                     .insert(name.text.clone(), self.current.clone());
                 let t = self.types.entry(name.text.clone()).or_default();
                 t.cases = variants.iter().map(|v| v.name.text.clone()).collect();
+                t.generics = type_params(generics);
                 t.variants = variants
                     .iter()
                     .filter(|v| !v.fields.is_empty())
@@ -221,6 +226,15 @@ fn members(t: &mut OwnType, body: &[Decl]) {
             _ => {}
         }
     }
+}
+
+/// The names of a declaration's type parameters (lifetimes aside).
+fn type_params(generics: &[ast::Generic]) -> Vec<String> {
+    generics
+        .iter()
+        .filter(|g| !g.lifetime)
+        .map(|g| g.name.text.clone())
+        .collect()
 }
 
 /// `Charge(1000)` or `Charge`: the component's name.
