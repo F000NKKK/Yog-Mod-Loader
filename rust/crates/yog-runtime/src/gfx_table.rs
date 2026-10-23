@@ -1,7 +1,6 @@
 //! 2D drawing through the game, and the GFX function table.
 
 use crate::fonts::Named;
-use crate::gpu_record::*;
 use crate::gpu::gfx_buf_create;
 use crate::gpu::gfx_buf_delete;
 use crate::gpu::gfx_prog_create;
@@ -13,6 +12,11 @@ use crate::gpu::gfx_vao_attrib;
 use crate::gpu::gfx_vao_create;
 use crate::gpu::gfx_vao_delete;
 use crate::gpu::gfx_vao_set_ebo;
+use crate::gpu_record::{
+    rec_buf_data, rec_buf_subdata, rec_clear_scissor, rec_draw_arrays, rec_draw_elements,
+    rec_set_blend, rec_set_depth, rec_set_scissor, rec_set_viewport, rec_tex_bind, rec_uniform_1f,
+    rec_uniform_1i, rec_uniform_2f, rec_uniform_3f, rec_uniform_4f, rec_uniform_mat4,
+};
 use crate::images;
 use crate::svg;
 use yog_abi::YogGfxApi;
