@@ -2,7 +2,6 @@
 
 use crate::ast::DeclKind;
 use crate::parser::{PResult, Parser};
-use crate::source::token::Punct;
 use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
@@ -16,10 +15,6 @@ pub static WORD: Word = Word {
 fn parse(p: &mut Parser) -> PResult<DeclKind> {
     p.bump();
     let name = p.name("the mod's name")?;
-    p.need(Punct::LBrace)?;
-    let mut props = Vec::new();
-    while !p.eat(Punct::RBrace) {
-        props.push(p.prop()?);
-    }
-    Ok(DeclKind::Mod { name, props })
+    let body = p.body()?;
+    Ok(DeclKind::Mod { name, body })
 }

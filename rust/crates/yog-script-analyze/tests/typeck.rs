@@ -185,3 +185,24 @@ fn namespaces_and_usings_work_as_in_csharp() {
     let src = "using Y = Yog;\nusing static Yog.Chat;\nvoid F(Y.Player p) {\n    bool sent = Broadcast(\"hi\");\n    Broadcast(1, 2);\n}\n";
     assert_eq!(codes(src), [script_problem::WRONG_ARGS]);
 }
+
+/// Events as C#'s: declared, subscribed (`+=` a lambda typed by the event,
+/// or a method of its signature), raised; Yog's are its groups'.
+#[test]
+fn events_work_as_in_csharp() {
+    let fine = "mod M {\n    M() {\n        Player.Join += e => Chat.Broadcast(e.PlayerName);\n        \
+                Block.Break += OnBreak;\n    }\n    void OnBreak(Block.BreakArgs e) { }\n}\n";
+    assert!(codes(fine).is_empty(), "{:?}", codes(fine));
+    // The lambda's parameter is the event's arguments: their members only.
+    assert_eq!(
+        codes("mod M {\n    M() {\n        Player.Join += e => e.Mana;\n    }\n}\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+    // A method of another signature isn't one.
+    let src = "mod M {\n    M() {\n        Player.Join += OnBreak;\n    }\n    void OnBreak(Block.BreakArgs e) { }\n}\n";
+    assert_eq!(codes(src), [script_problem::TYPE_MISMATCH]);
+    // An event of one's own: declared, subscribed, raised.
+    let own = "class Battery {\n    public event Action<int> Charged;\n    void Fill() {\n        Charged += n => { int twice = n * 2; };\n        \
+               Charged?.Invoke(3);\n        Charged(\"three\");\n    }\n}\n";
+    assert_eq!(codes(own), [script_problem::TYPE_MISMATCH]);
+}

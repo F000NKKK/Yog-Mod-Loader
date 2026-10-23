@@ -15,6 +15,9 @@ use crate::words;
 const LIST: &str = "List";
 const SET: &str = "HashSet";
 const MAP: &str = "Dictionary";
+/// Delegates, as C#'s: `Action<A, B>` gives nothing, `Func<A, R>` an `R`.
+pub(super) const ACTION: &str = "Action";
+pub(super) const FUNC: &str = "Func";
 
 /// A plain one-name type's name (`Player`, not `List<int>` or `a.B`).
 pub(crate) fn simple_path(ty: &ast::Type) -> Option<&str> {
@@ -56,6 +59,11 @@ impl Checker<'_, '_, '_> {
                 return Type::Map(Box::new(key), Box::new(value));
             }
             TICKS | SECONDS | BLOCKS => return Type::Unit(name.to_string()),
+            ACTION => return Type::Fn(args, Box::new(Type::Void)),
+            FUNC if !args.is_empty() => {
+                let ret = args.pop().unwrap_or(Type::Unknown);
+                return Type::Fn(args, Box::new(ret));
+            }
             _ => {}
         }
         if self.own.units.iter().any(|u| u == name) {

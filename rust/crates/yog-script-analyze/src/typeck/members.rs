@@ -171,6 +171,14 @@ impl Checker<'_, '_, '_> {
             if surface.groups.contains_key(&sub) {
                 return Type::Yog(sub);
             }
+            // An event: a delegate taking its arguments (`Player.Join += e => …`).
+            if let Some(args) = surface
+                .groups
+                .get(type_name)
+                .and_then(|g| g.events.get(name))
+            {
+                return Type::Fn(vec![Type::Yog(args.clone())], Box::new(Type::Void));
+            }
             if surface
                 .groups
                 .get(type_name)
@@ -208,14 +216,23 @@ impl Checker<'_, '_, '_> {
     /// What `callee` calls.
     fn callee(&mut self, callee: &Expr) -> Callee {
         match &callee.kind {
+            // A delegate called: `handler(x)`.
+            ExprKind::Ident(name) if self.delegate(name).is_some() => self
+                .delegate(name)
+                .map_or(Callee::Unknown, |sig| Callee::Typed(vec![sig])),
+            // `Charged?.Invoke(…)`: a delegate's own call.
+            ExprKind::Member { expr, name, .. } if name.text == INVOKE => {
+                match self.expr(expr).non_null() {
+                    Type::Fn(params, ret) => Callee::Typed(vec![signature_of(params, ret)]),
+                    _ => Callee::Unknown,
+                }
+            }
             ExprKind::Ident(name) if self.local(name).is_none() => {
-                let in_this = self.this.clone().and_then(|t| match &t {
-                    Type::Game(class) | Type::Yog(class) => self.extension_methods(class, name),
-                    _ => self.own_methods(&t, name),
-                });
-                match in_this.or_else(|| self.own.methods.get(name).cloned()) {
-                    Some(methods) => Callee::Own(methods),
-                    None => self.static_import(name, callee.span),
+                let methods = self.callable(name);
+                if methods.is_empty() {
+                    self.static_import(name, callee.span)
+                } else {
+                    Callee::Own(methods)
                 }
             }
             ExprKind::Member { expr, name, .. } => {
@@ -243,6 +260,24 @@ impl Checker<'_, '_, '_> {
         }
     }
 
+    /// The source's own methods `name` reachable unqualified here: `this`'s
+    /// (its components' and extensions' too), else the file's.
+    pub(super) fn callable(&self, name: &str) -> Vec<Method> {
+        let in_this = self.this.clone().and_then(|t| match &t {
+            Type::Game(class) | Type::Yog(class) => self.extension_methods(class, name),
+            _ => self.own_methods(&t, name),
+        });
+        in_this
+            .or_else(|| self.own.methods.get(name).cloned())
+            .unwrap_or_default()
+    }
+
+    /// An own method's parameters' and result's types.
+    pub(super) fn signature_types(&mut self, m: &Method) -> (Vec<Type>, Type) {
+        let s = self.signature(m);
+        (s.params, s.ret)
+    }
+
     fn own_methods(&self, t: &Type, name: &str) -> Option<Vec<Method>> {
         let Type::Own(type_name) = t else { return None };
         let own = self.own.types.get(type_name)?;
@@ -251,6 +286,18 @@ impl Checker<'_, '_, '_> {
                 .iter()
                 .find_map(|c| self.own_methods(&Type::Own(c.clone()), name))
         })
+    }
+
+    /// A name whose value is a delegate (a local, a member, an event): its signature.
+    fn delegate(&mut self, name: &str) -> Option<Signature> {
+        let t = match self.local(name) {
+            Some(t) => t.clone(),
+            None => self.this.clone().map(|this| self.own_member(&this, name))?,
+        };
+        match t.non_null() {
+            Type::Fn(params, ret) => Some(signature_of(params, ret)),
+            _ => None,
+        }
     }
 
     /// Method `name` a `using static` brings in (`using static Yog.Chat;`
@@ -391,3 +438,15 @@ fn is_side_call(name: &str) -> bool {
         .iter()
         .any(|w| yog_codegen::pascal(w.text) == name)
 }
+
+/// What a delegate's call is matched against: every parameter required.
+fn signature_of(params: &[Type], ret: &Type) -> Signature {
+    Signature {
+        params: params.to_vec(),
+        required: params.len(),
+        ret: ret.clone(),
+    }
+}
+
+/// A delegate's own call, as C#'s.
+const INVOKE: &str = "Invoke";

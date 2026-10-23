@@ -169,13 +169,13 @@ component Charge(Energy capacity) {
 
 component Owned {
     saved Player? Owner = null;
-    on Place(Player player) { Owner = player; }   // the owner's events reach its components
+    Owned() { Place += player => Owner = player; }   // the owner's events reach its components
 }
 
 block Charger has Charge(Res.Charger.Capacity), Owned {
     Hardness = Res.Charger.Hardness;
     Slots<Battery> Inventory = new(4);
-    on Use(Player player) { player.Open(new ChargerScreen(this)); }
+    Charger() { Use += player => player.Open(new ChargerScreen(this)); }
 }
 
 item Battery has Charge(Res.Battery.Capacity) {
@@ -289,8 +289,8 @@ hand-written tick counters rarely do.
 
 ```ys
 block Charger {
-    server on Tick {
-        if (Level.IsDay) Charge.Energy += Res.SolarRate;
+    server Charger() {
+        Tick += () => { if (Level.IsDay) Charge.Energy += Res.SolarRate; };
     }
 
     server async void Arm() {
@@ -381,11 +381,10 @@ block Charger has Charge(Res.Charger.Capacity) {
 
     Slots<Battery> Inventory = new(4);
 
-    server on Tick {
-        foreach (var battery in Inventory) Charge.Push(battery.Charge);
+    Charger() {
+        Tick += () => { foreach (var battery in Inventory) Charge.Push(battery.Charge); };
+        Use += player => player.Open(new ChargerScreen(this));
     }
-
-    on Use(Player player) { player.Open(new ChargerScreen(this)); }
 }
 
 item Battery has Charge(Res.Battery.Capacity) {
@@ -398,7 +397,9 @@ recipe Battery : Shaped {
     Keys = ['R' => @item:minecraft:redstone, 'I' => @item:minecraft:iron_ingot, 'G' => @item:minecraft:gold_ingot];
 }
 
-on Player.Join(Player player) {
+// In the mod's constructor: `Player.Join += Welcome;`
+server void Welcome(Player.JoinArgs e) {
+    var player = new Player(e.PlayerName);
     player.Visits += 1;
     if (player.Visits == 1) {
         player.Give(new Battery());

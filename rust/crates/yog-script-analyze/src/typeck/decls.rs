@@ -52,7 +52,14 @@ impl Checker<'_, '_, '_> {
                 let t = self.type_of(ty);
                 self.within(Some(t), side, None, |c| c.decls(body));
             }
-            DeclKind::System { .. } | DeclKind::On { .. } | DeclKind::Test { .. } => {
+            DeclKind::Mod { name, body } => {
+                let this = Some(Type::Own(name.text.clone()));
+                self.within(this, side, None, |c| c.decls(body));
+            }
+            DeclKind::Event { ty, .. } => {
+                self.type_of(ty);
+            }
+            DeclKind::System { .. } | DeclKind::Test { .. } => {
                 self.handler(d, side);
             }
             DeclKind::Patch(p) => {
@@ -113,13 +120,6 @@ impl Checker<'_, '_, '_> {
                     c.params(params);
                     c.block(body);
                 })
-            }
-            DeclKind::On { params, body, .. } => {
-                let this = self.this.clone();
-                self.within(this, side, Some(Type::Void), |c| {
-                    c.params(params);
-                    c.block(body);
-                });
             }
             DeclKind::Test { body, .. } => {
                 self.within(None, side, Some(Type::Void), |c| c.block(body))

@@ -8,6 +8,7 @@
 mod decls;
 mod exprs;
 mod game;
+mod lambdas;
 mod members;
 mod model;
 mod names;

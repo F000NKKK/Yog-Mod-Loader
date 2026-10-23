@@ -23,7 +23,9 @@ impl Checker<'_, '_, '_> {
             }
             Stmt::Assign { place, op, value } => {
                 let t = self.expr(place);
-                if op.is_none() {
+                // `=`, and `+=`/`-=` on a delegate (an event's subscription):
+                // the value must be one.
+                if op.is_none() || matches!(t.non_null(), Type::Fn(..)) {
                     self.fits(value, &t);
                 } else {
                     self.expr(value);

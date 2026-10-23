@@ -18,24 +18,29 @@ pub(crate) struct YogMethod {
     pub reply: Shape,
 }
 
-/// A handle's or a domain's methods, by name (overloads side by side).
+/// A handle's or a domain's methods, by name (overloads side by side), and
+/// its events: each one's arguments' type (`Player.JoinArgs`).
 #[derive(Default)]
 pub(crate) struct Group {
     pub methods: HashMap<String, Vec<YogMethod>>,
+    pub events: HashMap<String, String>,
 }
 
 /// The whole surface: groups by dotted name, data types by name.
 #[derive(Default)]
 pub(crate) struct Surface {
     pub groups: HashMap<String, Group>,
-    pub structs: HashMap<&'static str, StructShape>,
-    pub enums: HashMap<&'static str, EnumShape>,
+    pub structs: HashMap<String, StructShape>,
+    pub enums: HashMap<String, EnumShape>,
 }
 
 /// What separates a domain's segments (`client/control`), and the groups'
 /// in a source (`Client.Control`).
 const DOMAIN_SEP: char = '/';
 const GROUP_SEP: &str = ".";
+/// What an event's arguments' type is named after it (`JoinArgs`), as C#'s
+/// `EventArgs`.
+const ARGS: &str = "Args";
 
 /// Yog's surface, made once a process.
 pub(crate) static SURFACE: LazyLock<Surface> = LazyLock::new(Surface::make);
@@ -72,20 +77,43 @@ impl Surface {
                 .or_default()
                 .push(method);
         }
+        for e in yog_event::all() {
+            out.event(&e);
+        }
         out
+    }
+
+    /// Event `e` as its plane's first group's (`player/session` `Join` is
+    /// `Player.Join`), its arguments a type of that group.
+    fn event(&mut self, e: &yog_event::EventInfo) {
+        let Shape::Struct(args) = &e.shape else {
+            return;
+        };
+        let plane = e.plane.split(DOMAIN_SEP).next().unwrap_or(e.plane);
+        let group = yog_codegen::pascal(plane);
+        let args_name = subgroup(&group, &format!("{}{ARGS}", e.name));
+        for f in &args.fields {
+            self.note(&(f.shape)());
+        }
+        self.structs.insert(args_name.clone(), args.clone());
+        self.groups
+            .entry(group)
+            .or_default()
+            .events
+            .insert(e.name.to_string(), args_name);
     }
 
     /// The structs and enums `shape` names (and theirs), by name.
     fn note(&mut self, shape: &Shape) {
         match shape {
             Shape::Struct(s) if !self.structs.contains_key(s.name) => {
-                self.structs.insert(s.name, s.clone());
+                self.structs.insert(s.name.to_string(), s.clone());
                 for f in &s.fields {
                     self.note(&(f.shape)());
                 }
             }
             Shape::Enum(e) if !self.enums.contains_key(e.name) => {
-                self.enums.insert(e.name, e.clone());
+                self.enums.insert(e.name.to_string(), e.clone());
             }
             Shape::List(inner) | Shape::Map(inner) | Shape::Optional(inner) => self.note(&inner()),
             _ => {}
@@ -113,3 +141,6 @@ fn group_name(domain: &str) -> String {
 pub(crate) fn subgroup(group: &str, name: &str) -> String {
     format!("{group}{GROUP_SEP}{name}")
 }
+
+#[cfg(test)]
+mod tests;

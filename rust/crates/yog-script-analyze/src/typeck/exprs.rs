@@ -201,6 +201,11 @@ impl Checker<'_, '_, '_> {
     /// `e`'s value where `wanted` is: reported when it doesn't fit. A
     /// number written as a literal fits any number and any quantity.
     pub(super) fn fits(&mut self, e: &Expr, wanted: &Type) {
+        if let Type::Fn(params, ret) = wanted.non_null()
+            && self.as_delegate(e, params, ret)
+        {
+            return;
+        }
         let t = self.expr(e);
         if is_number_literal(e) && (wanted.non_null().is_numeric()) {
             return;

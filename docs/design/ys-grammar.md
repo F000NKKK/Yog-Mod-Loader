@@ -238,14 +238,16 @@ has          = 'has' component_use (',' component_use)* ;
 component_use = path call_args? ;                                    (* a component and its arguments *)
 content_item = IDENT '=' expr ';'                                    (* a property: Hardness = 2.0f; *)
              | member ;
-handler      = modifiers? 'on' IDENT ('(' params? ')')? block ;      (* on Use(Player player), on Tick *)
 ```
 
 ```ys
 block Charger has Charge(Res.Charger.Capacity) {
     Hardness = Res.Charger.Hardness;
     Slots<Battery> Inventory = new(4);
-    on Use(Player player) { player.Open(new ChargerScreen(this)); }
+
+    Charger() {
+        Use += player => player.Open(new ChargerScreen(this));
+    }
 }
 
 recipe Battery : Shaped {
@@ -267,8 +269,8 @@ extend_decl    = 'extend' type bases? has? ('{' member* '}' | ';') ;   (* added 
 ```
 
 A component's constructor parameters are given where an object `has` it
-(`has Charge(1000)`); its items are a content declaration's, handlers
-included (they run on the owner's events). A system's parameters are
+(`has Charge(1000)`); its items are a content declaration's, its
+constructor's subscriptions included (to the owner's events). A system's parameters are
 what an object must have to be run over; their types are components,
 object types or `&` of them. Per-scope state is `extend Player { … }`
 (ys.md 4.2).
@@ -283,10 +285,35 @@ command_decl = 'command' STRING '{' member* '}' ;   (* each method a subcommand;
 A screen's `server` methods are its actions: a client calls them (a
 message).
 
-### 2.7 Events, tests, versions, native
+### 2.6.1 Events
+
+Events are C#'s. A type declares one (`public event Action<Player, int>
+Charged;`); code subscribes with `+=` — a lambda, whose parameters take
+the event's types, or a method of its signature — leaves with `-=`, and
+raises it with `Charged?.Invoke(player, 3);` (or `Charged(player, 3)`).
+Yog's events are its groups' (`Player.Join`, `Server.Tick`,
+`Block.Break`), their argument each a `…Args` of that group
+(`Player.JoinArgs`: `e.PlayerName`, `e.Dimension`). Subscriptions are made
+where code runs when things start, as in C#: the mod's constructor (it runs
+when the mod loads), a content's or a component's.
+
+```ys
+mod Charge {
+    Version = "1.0.0";
+
+    Charge() {
+        Player.Join += e => Chat.Broadcast("welcome, {e.PlayerName}");
+        Server.Tick += OnTick;
+    }
+
+    server void OnTick(Server.TickArgs e) { … }
+}
+```
+
+### 2.7 Events, tests, native
 
 ```ebnf
-event_decl   = modifiers? 'on' path ('(' params? ')')? block ;        (* on Player.Join(Player player) *)
+event_member = modifiers? 'event' type IDENT ';' ;                    (* public event Action<Player, int> Charged; *)
 test_decl    = 'test' STRING block ;
 version_cond = 'mc' ( ('>=' | '<=' | '>' | '<' | '==') VERSION | VERSION '..' VERSION ) ;
 native_decl  = 'native' STRING '{' (type_or_void IDENT '(' params? ')' ';')* '}' ;
@@ -539,7 +566,12 @@ block Charger has Charge(Res.Charger.Capacity) {
     Slots<Battery> Inventory = new(4);
     tune int Rate = 4;
 
-    server on Tick {
+    Charger() {
+        Tick += Charge;
+        Use += player => player.Open(new ChargerScreen(this));
+    }
+
+    server void Charge() {
         foreach (var battery in Inventory) Charge.Push(battery.Charge);
         Mode = Charge.Energy switch {
             0 => Mode.Idle,
@@ -547,8 +579,6 @@ block Charger has Charge(Res.Charger.Capacity) {
             _ => new Mode.Charging(Rate),
         };
     }
-
-    on Use(Player player) { player.Open(new ChargerScreen(this)); }
 }
 
 server system Solar(Charge charge, Block block) every 1t {
@@ -569,13 +599,14 @@ client void Welcome(int times) {
     Toast(t"charge.welcome"(times));
 }
 
-on Player.Join(Player player) {
+server void Welcomed(Player.JoinArgs e) {
+    var player = new Player(e.PlayerName);
     player.Visits += 1;
     player.Client.Welcome(player.Visits);
     if (player.Visits == 1) player.Give(new Battery());
 }
 
-server on Server.Started {
+server void Started(Server.StartedArgs e) {
     Task.Every(10s) {
         var lonely = Level.Entities.Near(Spawn, 32b).Where { it is Monster }.OrderBy { it.Distance }.Take(5);
         foreach (var monster in lonely) monster.Glow(5s);

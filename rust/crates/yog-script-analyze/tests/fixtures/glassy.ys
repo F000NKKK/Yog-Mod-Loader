@@ -1,12 +1,15 @@
 mod Glassy {
     Version = "1.0.0";
     Targets = mc 1.20.1..26.2;
-}
 
-const string Prefix = "g";
+    const string Prefix = "g";
 
-server on Block.Broken(BlockBreak e) {
-    if (e.Player?.Name.StartsWith(Prefix, ignoreCase: true) ?? false) {
-        e.Level.Place(@block:minecraft:glass, at: e.Pos);
+    // The mod's constructor runs when it loads: its subscriptions.
+    Glassy() {
+        Block.Break += e => {
+            if (e.PlayerName.StartsWith(Prefix)) {
+                new World(e.Dimension).SetBlock(e.Pos, "minecraft:glass");
+            }
+        };
     }
 }

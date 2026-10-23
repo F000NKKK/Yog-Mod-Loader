@@ -137,6 +137,14 @@ impl Checker<'_, '_, '_> {
         for n in rest {
             t = match &t {
                 Type::Namespace(ns) => self.in_namespace(&split(ns), &n.text, n.span),
+                // Yog's type of a group (`Player.JoinArgs`, `Client.Control`).
+                Type::Yog(group) => {
+                    let inner = super::surface::subgroup(group, &n.text);
+                    if !SURFACE.knows(&inner) {
+                        return Type::Unknown;
+                    }
+                    Type::Yog(inner)
+                }
                 // A nested class, after the class it's in.
                 Type::Game(outer) => {
                     let nested = format!("{outer}{}{}", crate::index::NESTED, n.text);

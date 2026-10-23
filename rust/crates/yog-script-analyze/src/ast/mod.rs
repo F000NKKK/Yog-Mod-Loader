@@ -17,6 +17,9 @@ pub use stmt::{Binding, Block, Stmt};
 
 use crate::source::token::Span;
 
+/// A block lambda's one parameter (`list.Select { it * 2 }`).
+pub const IT: &str = "it";
+
 /// A name as written, and where.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Name {

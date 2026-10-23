@@ -42,6 +42,7 @@ impl Resolver<'_, '_> {
                 self.define(name, DefKind::Type, case, again);
             }
             DeclKind::Method(m) => self.define(&m.name, DefKind::Method, Case::Pascal, again),
+            DeclKind::Event { name, .. } => self.define(name, DefKind::Field, Case::Pascal, again),
             DeclKind::Field(f) => self.define(&f.name, field_kind(d), Case::Pascal, again),
             DeclKind::Property {
                 name, accessors, ..
@@ -81,7 +82,8 @@ impl Resolver<'_, '_> {
 
     fn walk_decl(&mut self, d: &Decl) {
         match &d.kind {
-            DeclKind::Mod { props, .. } => props.iter().for_each(|p| self.expr(&p.value)),
+            DeclKind::Mod { body, .. } => self.members(|r| r.decls(body)),
+            DeclKind::Event { ty, .. } => self.ty(ty),
             DeclKind::Alias { ty, .. } => self.ty(ty),
             DeclKind::Method(m) => self.method(m, d.has(Modifier::Async)),
             DeclKind::Field(f) => {
@@ -181,9 +183,6 @@ impl Resolver<'_, '_> {
             } => self.scoped(|r| r.decls(body)),
             DeclKind::Prop(p) => self.expr(&p.value),
             DeclKind::Command { body, .. } => self.scoped(|r| r.decls(body)),
-            DeclKind::On { params, body, .. } => {
-                self.handler(params, d.has(Modifier::Async), |r| r.block(body))
-            }
             DeclKind::Test { body, .. } => self.handler(&[], true, |r| r.block(body)),
             DeclKind::Native { methods, .. } => methods.iter().for_each(|m| self.method(m, false)),
             DeclKind::Patch(p) => self.patch(p),

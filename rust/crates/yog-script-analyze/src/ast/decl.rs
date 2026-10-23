@@ -74,10 +74,16 @@ pub enum DeclKind {
         name: Name,
         ty: Type,
     },
-    /// `mod Charge { Version = "1.0.0"; … }`.
+    /// `mod Charge { Version = "1.0.0"; … }`: its properties, and members —
+    /// its constructor runs when the mod loads.
     Mod {
         name: Name,
-        props: Vec<Prop>,
+        body: Vec<Decl>,
+    },
+    /// `public event Action<Player> Joined;`.
+    Event {
+        ty: Type,
+        name: Name,
     },
     Method(Method),
     Field(Field),
@@ -147,12 +153,6 @@ pub enum DeclKind {
     Command {
         name: String,
         body: Vec<Decl>,
-    },
-    /// `on Player.Join(Player player) { … }`, `on Use(Player player) { … }`.
-    On {
-        event: Vec<Name>,
-        params: Vec<Param>,
-        body: Block,
     },
     Test {
         name: String,

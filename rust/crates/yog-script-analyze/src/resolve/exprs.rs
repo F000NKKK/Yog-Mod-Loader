@@ -4,10 +4,9 @@
 use yog_ids::script_problem;
 
 use super::{Context, DefKind, Resolver};
-use crate::ast::{Element, Expr, ExprKind, LambdaBody, LambdaParam, StrSeg, Type, TypeKind, UnOp};
-
-/// A block lambda's argument.
-const IT: &str = "it";
+use crate::ast::{
+    Element, Expr, ExprKind, IT, LambdaBody, LambdaParam, StrSeg, Type, TypeKind, UnOp,
+};
 
 impl Resolver<'_, '_> {
     pub(super) fn opt_expr(&mut self, e: Option<&Expr>) {

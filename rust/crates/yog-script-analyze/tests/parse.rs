@@ -43,7 +43,7 @@ pub fn examples() -> Vec<(String, String)> {
 fn a_small_mod_reads() {
     let parsed = parse("glassy.ys", include_str!("fixtures/glassy.ys"));
     assert!(parsed.problems.is_empty(), "{:#?}", parsed.problems);
-    assert_eq!(parsed.file.decls.len(), 3);
+    assert_eq!(parsed.file.decls.len(), 1);
 }
 
 fn codes(name: &str, src: &str) -> Vec<String> {

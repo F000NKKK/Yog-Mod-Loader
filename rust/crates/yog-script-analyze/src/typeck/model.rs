@@ -36,6 +36,8 @@ pub enum Type {
     List(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Tuple(Vec<Type>),
+    /// A delegate: `Action<A, B>` (its result `void`), `Func<A, R>`.
+    Fn(Vec<Type>, Box<Type>),
     Nullable(Box<Type>),
     /// Not known here (the library's, or what couldn't be typed): checks
     /// involving it pass, so one gap doesn't cascade.
@@ -147,6 +149,16 @@ impl fmt::Display for Type {
             Type::Tuple(items) => {
                 let items: Vec<_> = items.iter().map(ToString::to_string).collect();
                 write!(f, "({})", items.join(", "))
+            }
+            Type::Fn(params, ret) => {
+                let mut all: Vec<String> = params.iter().map(ToString::to_string).collect();
+                let word = if **ret == Type::Void {
+                    super::written::ACTION
+                } else {
+                    all.push(ret.to_string());
+                    super::written::FUNC
+                };
+                write!(f, "{word}<{}>", all.join(", "))
             }
             Type::Nullable(t) => write!(f, "{t}?"),
             Type::Unknown => write!(f, "?"),

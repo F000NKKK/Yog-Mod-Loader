@@ -97,6 +97,8 @@ impl OwnTypes {
             | DeclKind::Screen {
                 name, header, body, ..
             } => (name, body.as_slice(), header.has.as_slice(), None),
+            // The mod is an object too: its members, its constructor.
+            DeclKind::Mod { name, body } => (name, body.as_slice(), &[][..], None),
             DeclKind::Enum { name, cases } => {
                 self.namespaces
                     .insert(name.text.clone(), self.current.clone());
@@ -156,6 +158,9 @@ fn members(t: &mut OwnType, body: &[Decl]) {
                 t.values.insert(f.name.text.clone(), f.ty.clone());
             }
             DeclKind::Property { ty, name, .. } => {
+                t.values.insert(name.text.clone(), ty.clone());
+            }
+            DeclKind::Event { ty, name } => {
                 t.values.insert(name.text.clone(), ty.clone());
             }
             DeclKind::Method(m) => t
