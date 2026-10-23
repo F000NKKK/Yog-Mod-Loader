@@ -1,0 +1,47 @@
+enum Mode { Idle, Charging(i32 Rate), Full }
+enum Tier { Wood, Stone, Iron }
+
+abstract class Machine {
+    public i32 Stored = 0;
+    public abstract i32 Rate();
+    public void Tick() { Stored += Rate(); }
+}
+
+class Battery : Machine {
+    public override i32 Rate() => 4;
+}
+
+record Pos(i32 X, i32 Y);
+
+string Label(Mode m) => m switch {
+    Mode.Idle => "idle",
+    Mode.Charging(let r) when r > 3 => "fast",
+    Mode.Charging(let r) => "slow {r}",
+    Mode.Full => "full",
+};
+
+Result<i32, Error> Parse(i32 x) => x > 0 ? Ok(x) : Err(new Error("not positive"));
+
+Result<i32, Error> Twice(i32 x) {
+    let v = try Parse(x);
+    return Ok(v * 2);
+}
+
+i32 Sum(List<i32> xs) {
+    let mut total = 0;
+    foreach (let x in xs) { total += x; }
+    for (let mut i = 0; i < 3; i += 1) { total += i; }
+    foreach (let i in 1..3) { total += i; }
+    return total;
+}
+
+i32 Run() {
+    let mut b = new Battery();
+    b.Tick();
+    let p = new Pos(1, 2);
+    assert!(p.X == 1, "x");
+    let f = (i32 x) => x * 2;
+    return b.Stored + f(p.Y) + Math.Max(1, 2) + "abc".Length;
+}
+
+test "runs" { assert_eq!(Run(), 4 + 4 + 2 + 3); }

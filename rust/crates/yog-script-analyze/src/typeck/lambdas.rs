@@ -111,3 +111,30 @@ impl Checker<'_, '_, '_> {
         true
     }
 }
+
+impl Checker<'_, '_, '_> {
+    /// A lambda with nothing it must fit: a delegate of its parameters'
+    /// written types and its body's value (unknown when one isn't written).
+    pub(super) fn lambda_alone(&mut self, params: &[LambdaParam], body: &LambdaBody) -> Type {
+        let typed: Vec<Option<Type>> = params
+            .iter()
+            .map(|p| p.ty.as_ref().map(|t| self.type_of(t)))
+            .collect();
+        let ret = self.scoped(|c| {
+            for (p, t) in params.iter().zip(&typed) {
+                c.bind(&p.name.text, t.clone().unwrap_or(Type::Unknown));
+            }
+            match body {
+                LambdaBody::Expr(e) => c.expr(e),
+                LambdaBody::Block(stmts) => {
+                    c.stmts(stmts);
+                    Type::Unknown
+                }
+            }
+        });
+        match typed.into_iter().collect::<Option<Vec<Type>>>() {
+            Some(params) => Type::Fn(params, Box::new(ret)),
+            None => Type::Unknown,
+        }
+    }
+}

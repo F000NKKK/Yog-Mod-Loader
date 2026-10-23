@@ -7,6 +7,7 @@
 //! written wrong.
 
 mod calls;
+mod classes;
 mod decls;
 mod exprs;
 mod index;
@@ -28,7 +29,12 @@ pub struct JavaClass {
 }
 
 /// The checked source `src` of file `name` as a Java class in `package`.
-pub fn compile(name: &str, src: &str, checked: &Checked, package: &str) -> Result<JavaClass, Vec<Diagnostic>> {
+pub fn compile(
+    name: &str,
+    src: &str,
+    checked: &Checked,
+    package: &str,
+) -> Result<JavaClass, Vec<Diagnostic>> {
     let class = class_name(name);
     let mut g = Gen {
         code: Code::new(),
@@ -40,7 +46,10 @@ pub fn compile(name: &str, src: &str, checked: &Checked, package: &str) -> Resul
     };
     g.file(package, &class, &checked.file.decls);
     if g.report.out.is_empty() {
-        Ok(JavaClass { name: class, source: g.code.finish() })
+        Ok(JavaClass {
+            name: class,
+            source: g.code.finish(),
+        })
     } else {
         Err(g.report.out)
     }
@@ -48,7 +57,10 @@ pub fn compile(name: &str, src: &str, checked: &Checked, package: &str) -> Resul
 
 /// The class a source's file becomes: its stem, PascalCase, and `Script`.
 pub fn class_name(file: &str) -> String {
-    let stem = std::path::Path::new(file).file_stem().and_then(|s| s.to_str()).unwrap_or_default();
+    let stem = std::path::Path::new(file)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or_default();
     format!("{}{CLASS_SUFFIX}", yog_codegen::pascal(stem))
 }
 
@@ -56,7 +68,11 @@ pub fn class_name(file: &str) -> String {
 const CLASS_SUFFIX: &str = "Script";
 
 fn file_name(path: &str) -> String {
-    std::path::Path::new(path).file_name().and_then(|s| s.to_str()).unwrap_or_default().to_string()
+    std::path::Path::new(path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or_default()
+        .to_string()
 }
 
 pub(crate) struct Gen<'c> {
@@ -73,7 +89,11 @@ pub(crate) struct Gen<'c> {
 impl Gen<'_> {
     /// `what` isn't written as Java yet: reported at `at`.
     fn not_yet(&mut self, what: &str, at: Span) {
-        self.report.error(script_problem::NOT_COMPILED, at, format!("{what} isn't compiled to Java yet"));
+        self.report.error(
+            script_problem::NOT_COMPILED,
+            at,
+            format!("{what} isn't compiled to Java yet"),
+        );
     }
 
     /// A fresh temporary's name.
@@ -84,7 +104,8 @@ impl Gen<'_> {
 
     /// Where `at` is, as a Java string: `"file.ys:12"`.
     fn at(&self, at: Span) -> String {
-        self.code.str(&format!("{}:{}", self.file, self.report.line_of(at)))
+        self.code
+            .str(&format!("{}:{}", self.file, self.report.line_of(at)))
     }
 
     /// `name` as a Java identifier.

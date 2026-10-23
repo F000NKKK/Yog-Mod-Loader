@@ -7,7 +7,7 @@ use yog_ids::script_problem;
 use super::Checker;
 use super::game::{self, Found};
 use super::model::Type;
-use crate::ast::{Arg, Expr, ExprKind, LambdaBody, Method, Pass};
+use crate::ast::{Arg, Expr, ExprKind, Method, Pass};
 use crate::source::token::Span;
 
 /// What a call's callee stands for.
@@ -241,9 +241,13 @@ impl Checker<'_, '_, '_> {
     fn callee(&mut self, callee: &Expr) -> Callee {
         match &callee.kind {
             // A delegate called: `handler(x)`.
-            ExprKind::Ident(name) if self.delegate(name).is_some() => self
-                .delegate(name)
-                .map_or(Callee::Unknown, |sig| Callee::Typed(vec![sig])),
+            ExprKind::Ident(name) if self.delegate(name).is_some() => {
+                // The name's type kept: a compiler calls a delegate by it.
+                let t = self.expr(callee);
+                self.types.set(callee, t);
+                self.delegate(name)
+                    .map_or(Callee::Unknown, |sig| Callee::Typed(vec![sig]))
+            }
             // `Charged?.Invoke(…)`: a delegate's own call.
             ExprKind::Member { expr, name, .. } if name.text == INVOKE => {
                 match self.expr(expr).non_null() {
@@ -475,16 +479,6 @@ impl Checker<'_, '_, '_> {
                 one.ret.clone()
             }
             _ => Type::Unknown,
-        }
-    }
-
-    /// A lambda's body, its parameters' types not known.
-    pub(super) fn lambda_body(&mut self, body: &LambdaBody) {
-        match body {
-            LambdaBody::Expr(e) => {
-                self.expr(e);
-            }
-            LambdaBody::Block(stmts) => self.stmts(stmts),
         }
     }
 }

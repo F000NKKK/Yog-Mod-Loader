@@ -30,11 +30,15 @@ pub(crate) struct Info {
 #[derive(Default)]
 pub(crate) struct Index {
     pub types: HashMap<String, Info>,
+    /// Each enum's cases' fields, by (enum, case).
+    pub cases: HashMap<(String, String), Vec<String>>,
 }
 
 impl Index {
+    /// The types of the library and of `decls`.
     pub fn collect(decls: &[Decl]) -> Self {
         let mut index = Index::default();
+        index.walk(&yog_script_analyze::system::DECLS);
         index.walk(decls);
         index
     }
@@ -42,7 +46,13 @@ impl Index {
     fn walk(&mut self, decls: &[Decl]) {
         for d in decls {
             match &d.kind {
-                DeclKind::Type { word, name, value, body, .. } => {
+                DeclKind::Type {
+                    word,
+                    name,
+                    value,
+                    body,
+                    ..
+                } => {
                     let kind = if word.text == words::record::WORD.text {
                         Kind::Record
                     } else if word.text == words::interface::WORD.text {
@@ -52,15 +62,61 @@ impl Index {
                     } else {
                         Kind::Class
                     };
-                    self.types.insert(name.text.clone(), Info { kind, computed: computed(body) });
+                    self.types.insert(
+                        name.text.clone(),
+                        Info {
+                            kind,
+                            computed: computed(body),
+                        },
+                    );
                 }
-                DeclKind::Enum { name, variants, body, .. } => {
-                    let kind = if variants.iter().any(|v| !v.fields.is_empty()) { Kind::DataEnum } else { Kind::Enum };
-                    self.types.insert(name.text.clone(), Info { kind, computed: computed(body) });
+                DeclKind::Enum {
+                    name,
+                    variants,
+                    body,
+                    ..
+                } => {
+                    for v in variants {
+                        let fields = v.fields.iter().map(|f| f.name.text.clone()).collect();
+                        self.cases
+                            .insert((name.text.clone(), v.name.text.clone()), fields);
+                    }
+                    let kind = if variants.iter().any(|v| !v.fields.is_empty()) {
+                        Kind::DataEnum
+                    } else {
+                        Kind::Enum
+                    };
+                    self.types.insert(
+                        name.text.clone(),
+                        Info {
+                            kind,
+                            computed: computed(body),
+                        },
+                    );
                 }
                 kind => self.walk(kind.members()),
             }
         }
+    }
+
+    /// Case `case`'s fields' names (of enum `of`, or whichever has it).
+    pub fn case_fields(&self, of: Option<&str>, case: &str) -> Vec<String> {
+        let of = of
+            .map(str::to_string)
+            .or_else(|| self.enum_of(case))
+            .unwrap_or_default();
+        self.cases
+            .get(&(of, case.to_string()))
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// The enum a case named `case` is of.
+    pub fn enum_of(&self, case: &str) -> Option<String> {
+        self.cases
+            .keys()
+            .find(|(_, c)| c == case)
+            .map(|(o, _)| o.clone())
     }
 
     pub fn kind(&self, name: &str) -> Option<Kind> {
@@ -70,7 +126,9 @@ impl Index {
     /// Whether `name` of type `of` is read by calling it (a computed
     /// property, a record's field).
     pub fn called(&self, of: &str, name: &str) -> bool {
-        self.types.get(of).is_some_and(|i| i.kind == Kind::Record || i.computed.contains(name))
+        self.types
+            .get(of)
+            .is_some_and(|i| i.kind == Kind::Record || i.computed.contains(name))
     }
 }
 
@@ -78,8 +136,11 @@ impl Index {
 fn computed(body: &[Decl]) -> HashSet<String> {
     body.iter()
         .filter_map(|d| match &d.kind {
-            DeclKind::Property { name, accessors, .. }
-                if accessors.iter().any(|a| matches!(a.body, Some(MethodBody::Block(_) | MethodBody::Expr(_)))) =>
+            DeclKind::Property {
+                name, accessors, ..
+            } if accessors
+                .iter()
+                .any(|a| matches!(a.body, Some(MethodBody::Block(_) | MethodBody::Expr(_)))) =>
             {
                 Some(name.text.clone())
             }
