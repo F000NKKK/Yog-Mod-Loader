@@ -53,6 +53,7 @@ public final class YogNames {
     public static final class Word {
         private Word() {}
 
+        public static final String VIDEO = "video";
         public static final String DISPLAY = "display";
         public static final String MESSAGE = "message";
         public static final String PARTICLE = "particle";
@@ -141,7 +142,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {
@@ -182,9 +183,10 @@ public final class YogNames {
         public static final String MATERIAL = "material";
         public static final String SOUND = "sound";
         public static final String PARTICLE = "particle";
+        public static final String VIDEO = "video";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, ENTITY, RECIPE, ENTRY, CATEGORY, BOOK, FLUID, BIOME, BIOME_FEATURE, DIMENSION, FONT, ATTRIBUTE, EFFECT, POTION, INVENTORY, STARTUP_GRANT, ADVANCEMENT, LADDER, LEVEL, SOUND_GROUP, RECIPE_KIND, TOOL_MATERIAL, ARMOR_MATERIAL, ORE, TABLE, TAG, DAMAGE_TYPE, TREE, LOOT_MODIFIER, LOOT_TABLE, TEXTURE, MATERIAL, SOUND, PARTICLE);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, ENTITY, RECIPE, ENTRY, CATEGORY, BOOK, FLUID, BIOME, BIOME_FEATURE, DIMENSION, FONT, ATTRIBUTE, EFFECT, POTION, INVENTORY, STARTUP_GRANT, ADVANCEMENT, LADDER, LEVEL, SOUND_GROUP, RECIPE_KIND, TOOL_MATERIAL, ARMOR_MATERIAL, ORE, TABLE, TAG, DAMAGE_TYPE, TREE, LOOT_MODIFIER, LOOT_TABLE, TEXTURE, MATERIAL, SOUND, PARTICLE, VIDEO);
     }
 
     public static final class Reference {
@@ -1390,9 +1392,10 @@ public final class YogNames {
         public static final String COLOR = "color";
         public static final String NUMBER = "number";
         public static final String BOOL = "bool";
+        public static final String VIDEO = "video";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STRING, IMAGE, FILE, SOUND, COLOR, NUMBER, BOOL);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STRING, IMAGE, FILE, SOUND, COLOR, NUMBER, BOOL, VIDEO);
     }
 
     public static final class ImageScheme {
@@ -2437,6 +2440,7 @@ public final class YogNames {
         public static final String TEXTURE = "ytexture";
         public static final String SOUND = "ysound";
         public static final String PARTICLE = "yparticle";
+        public static final String VIDEO = "yvideo";
         public static final String MATERIAL = "ymaterial";
         public static final String DATA = "ydata";
         public static final String MOD = "yog";

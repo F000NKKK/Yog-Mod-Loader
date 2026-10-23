@@ -145,7 +145,7 @@ impl Build<'_> {
             }
             let written = match e.kind {
                 Kind::String => self.text(e, &a, &mut texts),
-                Kind::Image | Kind::File | Kind::Sound => self.medium(e, &a),
+                Kind::Image | Kind::File | Kind::Sound | Kind::Video => self.medium(e, &a),
                 Kind::Color | Kind::Number | Kind::Bool => self.value(e, &a),
             };
             code.push_str(&written.unwrap_or_default());
@@ -217,12 +217,18 @@ impl Build<'_> {
             return None;
         };
         let path = e.name.replace(yog_ids::sep::DOT, yog_ids::sep::PATH);
+        let id = yog_ids::join(self.mod_id, &path);
+        if e.kind == Kind::Video {
+            // Not bundled: `.yvideo` files render it.
+            self.c.refs.videos.insert(a.reference.clone(), bytes.clone());
+            return Some(accessors::medium(&a.acc, &id, &a.doc));
+        }
         let (target, id, data) = match e.kind {
             Kind::Image => self.image(e, a, bytes, &path)?,
             Kind::Sound => self.sound(e, a, bytes, &path),
             _ => (
                 yog_ids::asset_file(self.mod_id, &path),
-                yog_ids::join(self.mod_id, &path),
+                id,
                 bytes.clone(),
             ),
         };

@@ -11,6 +11,7 @@ names! {
         COLOR = crate::word::COLOR,
         NUMBER = crate::word::NUMBER,
         BOOL = crate::word::BOOL,
+        VIDEO = crate::word::VIDEO,
     }
 
     /// What an image source starts with (`item:apple`).

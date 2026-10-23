@@ -60,6 +60,8 @@ pub struct Refs {
     pub(crate) pictures: HashMap<String, Picture>,
     /// `Set.name` → a sound's file as `sounds.json` names it (`<mod id>:<path>`).
     pub(crate) sounds: HashMap<String, String>,
+    /// `Set.name` → a video's source bytes, which `.yvideo` files render.
+    pub(crate) videos: HashMap<String, Vec<u8>>,
 }
 
 impl Refs {
@@ -137,7 +139,7 @@ pub(crate) fn find(root: &Path) -> Vec<PathBuf> {
 pub(crate) fn value_problem(e: &Entry) -> Option<String> {
     let media = |what: &str| format!("{:?}: {what} are bytes (`@bytes:…`)", e.name);
     match (e.kind, &e.value) {
-        (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_))
+        (Kind::Image | Kind::File | Kind::Sound | Kind::Video, Value::Bytes(_))
             if !yog_ids::valid_path(&e.name.replace('.', yog_ids::sep::PATH)) =>
         {
             Some(format!(
@@ -145,10 +147,11 @@ pub(crate) fn value_problem(e: &Entry) -> Option<String> {
                 e.name
             ))
         }
-        (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_)) => None,
+        (Kind::Image | Kind::File | Kind::Sound | Kind::Video, Value::Bytes(_)) => None,
         (Kind::Image, _) => Some(media("images")),
         (Kind::File, _) => Some(media("files")),
         (Kind::Sound, _) => Some(media("sounds")),
+        (Kind::Video, _) => Some(media("videos")),
         (Kind::Color, _) => parse_color(e.text()).is_none().then(|| {
             format!(
                 "{:?}: `{}` isn't a color — #RRGGBB or #AARRGGBB",

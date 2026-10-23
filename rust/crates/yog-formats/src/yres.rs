@@ -1,4 +1,4 @@
-//! `.yres` — a mod's texts, images, sounds, files, colors, numbers, flags.
+//! `.yres` — a mod's texts, images, sounds, videos, files, colors, numbers, flags.
 
 use yog_data::Schema;
 use yog_ids::res_kind;
@@ -13,6 +13,7 @@ pub enum Kind {
     Color,
     Number,
     Bool,
+    Video,
 }
 
 impl Kind {
@@ -25,6 +26,7 @@ impl Kind {
             Kind::Color => res_kind::COLOR,
             Kind::Number => res_kind::NUMBER,
             Kind::Bool => res_kind::BOOL,
+            Kind::Video => res_kind::VIDEO,
         }
     }
 }

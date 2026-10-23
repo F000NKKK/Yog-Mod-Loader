@@ -25,6 +25,7 @@ fn what(e: &Entry) -> String {
         Kind::Image => format!("The image `{}`.", e.name),
         Kind::File => format!("The file `{}`.", e.name),
         Kind::Sound => format!("The sound `{}`.", e.name),
+        Kind::Video => format!("The video `{}`.", e.name),
         Kind::Color => format!("The color `{}`.", doc_line(e.text())),
         Kind::Number | Kind::Bool => match &e.value {
             Value::Num(n) => format!("The number `{n}`."),

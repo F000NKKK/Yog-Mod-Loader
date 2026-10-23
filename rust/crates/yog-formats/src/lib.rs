@@ -12,6 +12,7 @@ pub mod montage;
 pub mod particle;
 pub mod recipe;
 pub mod sound;
+pub mod video;
 pub mod tags;
 pub mod texture;
 pub mod yres;
@@ -67,6 +68,10 @@ macro_rules! with_type {
             }
             Format::Particle => {
                 type $t = yog_registry::Particle;
+                $body
+            }
+            Format::Video => {
+                type $t = crate::video::Video;
                 $body
             }
             Format::Book => {

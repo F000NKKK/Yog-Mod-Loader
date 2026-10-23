@@ -20,6 +20,7 @@ pub mod loot;
 pub mod particles;
 pub mod recipe_kinds;
 pub mod tool_levels;
+pub mod videos;
 
 /// What a `.yog` registers when the game starts — content the game can't
 /// add or change while it runs (blocks, items, entity types, sound groups,
@@ -69,6 +70,7 @@ pub use item_looks::{ItemLooks, ItemTint, LookModels};
 pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
 pub use particles::{Blend, Frames, Lifetime, Particle, ParticleDef, ParticleRender};
 pub use tool_levels::{LevelTag, ToolLadder, ToolLevel};
+pub use videos::VideoDef;
 
 mod blocks;
 mod entities;

@@ -54,6 +54,7 @@ names! {
     /// Words other names are made of, said once: sides and places, yes and no,
     /// the common fields' names.
     word {
+        VIDEO = "video",
         DISPLAY = "display",
         MESSAGE = "message",
         PARTICLE = "particle",
@@ -182,6 +183,7 @@ names! {
         MATERIAL = "material",
         SOUND = crate::word::SOUND,
         PARTICLE = crate::word::PARTICLE,
+        VIDEO = crate::word::VIDEO,
     }
 
     /// What a reference to content of a kind starts with: `@item:`.

@@ -49,6 +49,8 @@ formats! {
     Sound = "ysound", kind::SOUND;
     /// A particle: its pictures, how it moves and how it's drawn.
     Particle = "yparticle", kind::PARTICLE;
+    /// A video: what it shows (a source or a montage), its size and frame rate.
+    Video = "yvideo", kind::VIDEO;
     /// A material: the textures a surface is drawn with, and how.
     Material = "ymaterial", kind::MATERIAL;
     /// Compiled Yog Data.
