@@ -37,7 +37,7 @@ pub static ASSERT_EQ: Builtin = Builtin {
     doc: "Panics when two values differ, showing both: `assert_eq!(battery.Energy, 100)`.",
     gives: Gives::Nothing,
 };
-pub static TODO: Builtin = Builtin {
+pub static NOT_YET: Builtin = Builtin {
     name: "todo",
     doc: "Panics with \"not done yet\": a place left for later.",
     gives: Gives::Never,

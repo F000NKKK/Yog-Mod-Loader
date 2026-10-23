@@ -315,10 +315,12 @@ def check(path, text):
         code = l.split("//")[0] if lang != "java" or "//" in l else l
         if SILENCE.search(l) and "//" not in l and (i == 0 or "//" not in lines[i - 1]):
             f.silenced += 1
-        if lang == "rs" and PANIC.search(code) and i not in in_const_fn:
+        # What a string says isn't code (a macro's description names `panic!`).
+        bare = LITERALS.sub('""', code)
+        if lang == "rs" and PANIC.search(bare) and i not in in_const_fn:
             f.panics += 1
         # A command line tool's output is what it's for (CODE_STANDARDS: CLI output is exempt).
-        if PRINT.search(code) and not CLI_OUTPUT.search(path):
+        if PRINT.search(bare) and not CLI_OUTPUT.search(path):
             f.prints += 1
         if TODO.search(l):
             f.todos += 1
