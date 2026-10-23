@@ -9,6 +9,7 @@ description = "Yog Script's compiler: a .ys/.yns source checked against the game
 [dependencies]
 yog-script-analyze = { workspace = true }
 yog-script-run = { workspace = true }
+yog-script-java = { workspace = true }
 yog-mappings = { workspace = true }
 yog-data = { workspace = true }
 yog-home = { workspace = true }

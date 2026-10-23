@@ -1481,9 +1481,10 @@ public final class YogNames {
 
         public static final String MANIFEST = "mod.ydata";
         public static final String NATIVES = "natives";
+        public static final String SCRIPTS = "scripts";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MANIFEST, NATIVES);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MANIFEST, NATIVES, SCRIPTS);
     }
 
     public static final class Yimage {

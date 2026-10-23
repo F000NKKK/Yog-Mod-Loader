@@ -8,11 +8,13 @@
 
 mod classfile;
 pub mod index;
+mod jvm;
 mod macros;
 mod versions;
 
 use yog_data::Diagnostic;
 
+pub use jvm::{JvmBuild, build_jar};
 pub use macros::MacroLibrary;
 pub use yog_script_analyze::versions::targeted;
 

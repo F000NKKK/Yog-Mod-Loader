@@ -17,10 +17,31 @@ const COPY: &str = "copy";
 const BUS_CALL: &str = "dev.yog.api.YogBus.call";
 
 impl Gen<'_> {
+    /// A `mod`: a class the runtime finds and makes (`YsMod`).
+    pub(crate) fn mod_class(&mut self, d: &Decl, name: &str, body: &[Decl]) {
+        self.class_with(
+            d,
+            (name, &TypeHeader::default()),
+            body,
+            Some(crate::MOD_INTERFACE),
+        );
+    }
+
     pub(crate) fn class(&mut self, d: &Decl, name: &str, header: &TypeHeader, body: &[Decl]) {
+        self.class_with(d, (name, header), body, None);
+    }
+
+    fn class_with(
+        &mut self,
+        d: &Decl,
+        (name, header): (&str, &TypeHeader),
+        body: &[Decl],
+        also: Option<&str>,
+    ) {
         let struct_ = self.index.kind(name) == Some(Kind::Struct);
         let (extends, interfaces) = self.bases(header);
         let mut implements = interfaces;
+        implements.extend(also.map(str::to_string));
         if struct_ {
             implements.push("Cloneable".into());
         }

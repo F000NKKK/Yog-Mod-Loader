@@ -85,7 +85,7 @@ impl Gen<'_> {
                 body,
                 ..
             } => self.enum_decl(&name.text, generics, variants, body),
-            DeclKind::Mod { name, body } => self.class(d, &name.text, &TypeHeader::default(), body),
+            DeclKind::Mod { name, body } => self.mod_class(d, &name.text, body),
             DeclKind::Namespace {
                 body: Some(body), ..
             } => self.members(body, place),

@@ -26,6 +26,9 @@ use yog_script_analyze::{Checked, Types};
 pub struct JavaClass {
     pub name: String,
     pub source: String,
+    /// Its mods' classes by their binary names (`pkg.GlassyScript$Glassy`):
+    /// what the jar lists for `ServiceLoader`.
+    pub mods: Vec<String>,
 }
 
 /// The checked source `src` of file `name` as a Java class in `package`.
@@ -46,9 +49,14 @@ pub fn compile(
     };
     g.file(package, &class, &checked.file.decls);
     if g.report.out.is_empty() {
+        let mods = mods(&checked.file.decls)
+            .into_iter()
+            .map(|m| format!("{package}.{class}${m}"))
+            .collect();
         Ok(JavaClass {
             name: class,
             source: g.code.finish(),
+            mods,
         })
     } else {
         Err(g.report.out)
@@ -63,6 +71,22 @@ pub fn class_name(file: &str) -> String {
         .unwrap_or_default();
     format!("{}{CLASS_SUFFIX}", yog_codegen::pascal(stem))
 }
+
+/// The `mod`s a source declares, by name.
+fn mods(decls: &[yog_script_analyze::ast::Decl]) -> Vec<String> {
+    use yog_script_analyze::ast::DeclKind;
+    let mut out = Vec::new();
+    for d in decls {
+        match &d.kind {
+            DeclKind::Mod { name, .. } => out.push(name.text.clone()),
+            kind => out.extend(mods(kind.members())),
+        }
+    }
+    out
+}
+
+/// What the runtime's mods implement (`java-common`'s `dev.yog.script.YsMod`).
+pub const MOD_INTERFACE: &str = "dev.yog.script.YsMod";
 
 /// What a source's class name ends with: never its mod's or a type's name.
 const CLASS_SUFFIX: &str = "Script";
