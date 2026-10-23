@@ -317,6 +317,7 @@ impl Target for Process {
     }
 
     fn resume(&mut self, tid: Tid) -> Result<(), OsError> {
+        event_log!("resume {tid}");
         let thread = self.thread(tid)?;
         if self.held.remove(&tid) {
             // SAFETY: a thread port of ours, suspended by us.
@@ -326,6 +327,7 @@ impl Target for Process {
     }
 
     fn step(&mut self, tid: Tid) -> Result<(), OsError> {
+        event_log!("step {tid}");
         state::set_stepping(self.thread(tid)?, true)?;
         self.stepping.insert(tid);
         self.resume(tid)
@@ -343,6 +345,11 @@ impl Target for Process {
             }
             match self.ports.receive()? {
                 Received::Exception(exception) => {
+                    event_log!(
+                        "exception {} on thread port {}",
+                        exception.kind,
+                        exception.thread
+                    );
                     if let Some(event) = self.exception(exception) {
                         self.queue.push_back(event);
                     }

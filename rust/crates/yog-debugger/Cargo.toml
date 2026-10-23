@@ -6,6 +6,11 @@ rust-version = { workspace = true }
 license = { workspace = true }
 description = "Native debugger for Yog mods on Linux (ptrace), Windows (the debug API) and macOS (Mach), speaking the Debug Adapter Protocol (DAP)."
 
+[features]
+# Every system call and event of a backend on stderr: for chasing a
+# system's behaviour from a test run (CI), never in a release.
+event-log = []
+
 [dependencies]
 yog-symbols = { workspace = true }
 yog-hot-reload = { workspace = true }

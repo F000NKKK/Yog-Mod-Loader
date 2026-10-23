@@ -37,10 +37,23 @@ jobs:
       - name: Build the tests
         run: cargo test -p yog-symbols -p yog-debugger --no-run
 
-      - name: Test (Linux, Windows)
-        if: runner.os != 'macOS'
+      - name: Test (Linux)
+        if: runner.os == 'Linux'
         timeout-minutes: 15
         run: cargo test -p yog-symbols -p yog-debugger -- --test-threads=1
+
+      # Each test on its own, its backend's events logged: a hang names itself.
+      - name: Test (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 20
+        run: |
+          cargo test -p yog-symbols
+          for t in $(cargo test -q -p yog-debugger --features event-log --test debugger -- --list 2>/dev/null | sed -n 's/: test$//p'); do
+            echo "::group::$t"
+            timeout 120 cargo test -q -p yog-debugger --features event-log --test debugger -- --exact "$t" --nocapture || { echo "::endgroup::"; echo "FAILED: $t"; failed=1; continue; }
+            echo "::endgroup::"
+          done
+          [ -z "$failed" ]
 
       # task_for_pid needs root (or the debugger entitlement) on macOS; the
       # fixtures are built by the toolchain's own rustc (root has no rustup).

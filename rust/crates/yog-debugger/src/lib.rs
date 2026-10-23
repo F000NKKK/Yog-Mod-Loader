@@ -6,6 +6,15 @@
 //! the debugging built on it.
 
 mod arch;
+/// Writes a backend's calls and events to stderr with the `event-log`
+/// feature; nothing without it.
+macro_rules! event_log {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "event-log")]
+        eprintln!("[yog-debugger] {}", format_args!($($arg)*));
+    };
+}
+
 pub mod dap;
 mod debugger;
 #[cfg(target_os = "linux")]

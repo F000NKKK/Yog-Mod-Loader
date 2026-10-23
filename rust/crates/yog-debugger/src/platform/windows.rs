@@ -196,6 +196,7 @@ impl Target for Process {
     }
 
     fn resume(&mut self, tid: Tid) -> Result<(), OsError> {
+        event_log!("resume {tid}");
         let thread = self.thread(tid)?;
         if self.held.remove(&tid) {
             // SAFETY: a live thread handle we suspended.
@@ -205,6 +206,7 @@ impl Target for Process {
     }
 
     fn step(&mut self, tid: Tid) -> Result<(), OsError> {
+        event_log!("step {tid}");
         let thread = self.thread(tid)?;
         let mut ctx = sys::context(thread).map_err(|e| self.or_gone(e))?;
         ctx.EFlags |= TRAP_FLAG as u32;
@@ -214,6 +216,7 @@ impl Target for Process {
     }
 
     fn wait(&mut self, only: Option<Tid>) -> Result<Event, OsError> {
+        event_log!("wait {only:?}, queued {:?}", self.queue);
         loop {
             if let Some(i) = self.queue.iter().position(|e| e.answers(only))
                 && let Some(event) = self.queue.remove(i)
@@ -221,6 +224,7 @@ impl Target for Process {
                 return Ok(event);
             }
             if let Some(event) = self.pump()? {
+                event_log!("event {event:?}");
                 if event.answers(only) {
                     return Ok(event);
                 }

@@ -137,6 +137,7 @@ fn absolute_path_matches_a_dotdot_relative_compile() {
 }
 
 /// The toolchain's `rust-objcopy`, as `yog build release` splits with it.
+#[cfg(not(target_os = "macos"))]
 fn objcopy() -> PathBuf {
     let out = Command::new("rustc")
         .args(["--print", "sysroot"])
@@ -153,7 +154,10 @@ fn objcopy() -> PathBuf {
 }
 
 /// A release's native, stripped, with its debug info split beside it
-/// (`<native>.debug`): the same lines found as in the whole one.
+/// (`<native>.debug`): the same lines found as in the whole one. Not on
+/// macOS: a Mach-O keeps no debug info of its own to split (it's in the
+/// `.dSYM` beside it).
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn a_stripped_native_reads_its_split_debug_info() {
     let whole = build_fixture("split");

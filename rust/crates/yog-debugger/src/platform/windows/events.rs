@@ -52,6 +52,7 @@ impl Process {
             return Err(sys::last_error("waiting for the process"));
         }
         let tid = Tid::from(ev.dwThreadId);
+        event_log!("debug event {} on {tid}", ev.dwDebugEventCode);
         self.frozen = Some((tid, DBG_CONTINUE));
         // SAFETY (each arm): the union member the event code names.
         Ok(match ev.dwDebugEventCode {

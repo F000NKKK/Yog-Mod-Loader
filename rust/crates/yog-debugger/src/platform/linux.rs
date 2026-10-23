@@ -213,11 +213,13 @@ impl Target for Process {
     }
 
     fn resume(&mut self, tid: Tid) -> Result<(), OsError> {
+        event_log!("resume {tid}");
         let signal = self.pending.remove(&tid);
         ptrace::cont(pid_of(tid), signal).map_err(os("resume"))
     }
 
     fn step(&mut self, tid: Tid) -> Result<(), OsError> {
+        event_log!("step {tid}");
         let signal = self.pending.remove(&tid);
         self.stepping.insert(tid);
         ptrace::step(pid_of(tid), signal).map_err(os("step"))
@@ -228,6 +230,7 @@ impl Target for Process {
             let Some(status) = self.wait_status(only).map_err(os("wait"))? else {
                 return Ok(Event::Vanished(only.unwrap_or_default()));
             };
+            event_log!("status {status:?}");
             let Some(tid) = status.pid().map(|p| p.as_raw() as Tid) else {
                 continue;
             };
