@@ -147,6 +147,14 @@ pub fn rust_name(name: &str) -> String {
     name.replace(sep::HYPHEN, sep::WORD)
 }
 
+/// A mod's lib crate name, which its native is named after: its id in
+/// snake_case (`My-Mod` → `my_mod`). Cargo would keep the case and warn on
+/// every build, so the generated `Cargo.toml` pins `[lib] name` to this.
+#[must_use]
+pub fn mod_lib_name(mod_id: &str) -> String {
+    yog_codegen::snake(mod_id)
+}
+
 /// The game's registry of content `kind` — what its tags' and data's
 /// folders are named: `entity` → `entity_type`, `biome` → `worldgen/biome`.
 #[must_use]

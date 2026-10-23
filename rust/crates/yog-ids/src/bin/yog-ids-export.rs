@@ -30,13 +30,7 @@ fn main() {
 
 /// Writes `text` to `path` when it differs (so builds don't see a change).
 fn write(path: &str, text: &str) {
-    if std::fs::read_to_string(path).ok().as_deref() == Some(text) {
-        return;
-    }
-    if let Some(dir) = std::path::Path::new(path).parent() {
-        let _ = std::fs::create_dir_all(dir);
-    }
-    if let Err(e) = std::fs::write(path, text) {
+    if let Err(e) = yog_codegen::write_if_changed(std::path::Path::new(path), text) {
         eprintln!("yog-ids-export: {path}: {e}");
         std::process::exit(1);
     }

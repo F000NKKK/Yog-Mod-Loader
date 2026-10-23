@@ -9,6 +9,7 @@ description = "Yog event system — pub/sub for game/server events."
 
 [dependencies]
 yog-core = { workspace = true }
+yog-codegen = { workspace = true }
 yog-data = { workspace = true }
 yog-ids = { workspace = true }
 yog-registry = { workspace = true }

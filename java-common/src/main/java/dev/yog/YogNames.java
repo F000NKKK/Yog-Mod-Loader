@@ -1518,9 +1518,10 @@ public final class YogNames {
 
         public static final String CLI = "yog";
         public static final String SERVE = "serve";
+        public static final String SCRIPT = "yog-script";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(CLI, SERVE);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(CLI, SERVE, SCRIPT);
     }
 
     public static final class CodeSet {

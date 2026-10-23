@@ -1,0 +1,10 @@
+[package]
+name = "yog-codegen"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = "MIT OR Apache-2.0"
+description = "Yog's toolkit for code generators: name cases, string literals of each language, headers, an indenting writer, writes that keep unchanged files."
+
+[dependencies]

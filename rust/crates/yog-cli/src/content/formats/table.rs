@@ -9,6 +9,7 @@ use yog_data::{Path as At, Value};
 use yog_formats::def::TableDef;
 
 use crate::yres;
+use yog_codegen::pascal;
 
 /// A value a column holds.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -172,19 +173,6 @@ fn short(v: &Value) -> String {
     } else {
         s
     }
-}
-
-/// `snake_case` (or `kebab-case`) → `PascalCase`.
-fn pascal(s: &str) -> String {
-    s.split(['_', '-', '/', '.'])
-        .filter(|w| !w.is_empty())
-        .map(|w| {
-            let mut c = w.chars();
-            c.next()
-                .map(|f| f.to_ascii_uppercase().to_string() + c.as_str())
-                .unwrap_or_default()
-        })
-        .collect()
 }
 
 /// A table, checked: what its enum is made of.

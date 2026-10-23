@@ -1,6 +1,6 @@
 //! The generated `.yog-build/Cargo.toml`.
 
-use crate::project::manifest::{DEFAULT_EDITION, DEPS_SECTION, YogToml, to_snake_name};
+use crate::project::manifest::{DEFAULT_EDITION, DEPS_SECTION, YogToml};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
@@ -31,7 +31,7 @@ path       = "../src/lib.rs"
 {deps}
 {bench}{patch}"#,
         id = meta.id,
-        lib_name = to_snake_name(&meta.id),
+        lib_name = yog_ids::mod_lib_name(&meta.id),
         version = meta.version,
         edition = edition,
         description = meta.description,

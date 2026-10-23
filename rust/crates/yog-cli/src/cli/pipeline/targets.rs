@@ -4,7 +4,6 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use yog_cli::project::manifest::to_snake_name;
 use yog_ids::platform::{self, Platform};
 
 pub(crate) enum Builder {
@@ -195,8 +194,8 @@ pub(crate) fn installed_targets() -> Vec<String> {
 
 pub(crate) fn lib_filename(name: &str, os: &str) -> String {
     // Must match the `[lib] name` pinned in the generated wrapper Cargo.toml
-    // (see to_snake_name) — that's what cargo actually names the artifact.
-    let stem = to_snake_name(name);
+    // (see yog_ids::mod_lib_name) — that's what cargo actually names the artifact.
+    let stem = yog_ids::mod_lib_name(name);
     match os {
         "windows" => format!("{stem}.dll"),
         "macos" => format!("lib{stem}.dylib"),

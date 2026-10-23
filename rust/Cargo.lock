@@ -2310,6 +2310,7 @@ dependencies = [
  "yog-abi",
  "yog-body",
  "yog-book",
+ "yog-codegen",
  "yog-data",
  "yog-event",
  "yog-font",
@@ -2329,6 +2330,10 @@ dependencies = [
  "yog-worldgen",
  "zip",
 ]
+
+[[package]]
+name = "yog-codegen"
+version = "0.1.0"
 
 [[package]]
 name = "yog-command"
@@ -2374,6 +2379,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+ "yog-codegen",
  "yog-ids",
 ]
 
@@ -2406,6 +2412,7 @@ version = "0.10.2"
 dependencies = [
  "pastey",
  "yog-body",
+ "yog-codegen",
  "yog-core",
  "yog-data",
  "yog-dimensions",
@@ -2482,6 +2489,7 @@ name = "yog-ids"
 version = "0.5.2"
 dependencies = [
  "const_format",
+ "yog-codegen",
 ]
 
 [[package]]
@@ -2491,6 +2499,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+ "yog-codegen",
  "yog-ids",
 ]
 

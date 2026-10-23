@@ -139,7 +139,7 @@ fn is_ident(s: &str) -> bool {
 fn type_name(root: &Element, include_name: &str) -> Result<String, Diagnostic> {
     let name = match root.attr(ca::NAME).map(str::trim).filter(|s| !s.is_empty()) {
         Some(n) => n.to_string(),
-        None => yui::pascal(
+        None => yog_codegen::pascal(
             include_name
                 .rsplit(yog_ids::sep::PATH)
                 .next()

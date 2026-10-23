@@ -30,19 +30,13 @@ pub(crate) fn shown_path(root: &std::path::Path, path: &std::path::Path) -> Stri
     slash_path(path.strip_prefix(root).unwrap_or(path))
 }
 
-/// Writes generated `code` to `path` (creating its directory) unless it's
-/// already there — unchanged files keep their mtime, so cargo doesn't
-/// rebuild for nothing.
+/// Writes generated `code` to `path` unless it's already there
+/// ([`yog_codegen::write_if_changed`]), the error naming the file.
 pub(crate) fn write_if_changed(
     path: &std::path::Path,
     code: impl AsRef<[u8]>,
 ) -> Result<(), String> {
-    let code = code.as_ref();
-    if std::fs::read(path).ok().as_deref() == Some(code) {
-        return Ok(());
-    }
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    }
-    std::fs::write(path, code).map_err(|e| format!("{}: {e}", path.display()))
+    yog_codegen::write_if_changed(path, code)
+        .map(drop)
+        .map_err(|e| format!("{}: {e}", path.display()))
 }

@@ -35,14 +35,14 @@ pub use files::{GENERATED_DIR, Generated, generate_all};
 pub use files::{find_yui_files, generate_file, project_root};
 pub use screen::generate_for;
 pub(crate) use screen::generate_with;
-pub use values::{HEX_MARK, color, const_name, pascal, set_resource_refs, text_expr};
+pub use values::{HEX_MARK, color, const_name, set_resource_refs, text_expr};
 pub use yog_formats::yui::{Element, parse as parse_xml};
 
 pub(crate) use anchor::Anchor;
 pub(crate) use elements::{is_builtin, is_common_attr, is_custom_component};
 pub(crate) use screen::{screen_frame, screen_theme};
 pub(crate) use values::{
-    Names, boolean, color_attr, image_source, is_image_value, number, snake, str_consts, text_attr,
+    Names, boolean, color_attr, image_source, is_image_value, number, str_consts, text_attr,
 };
 pub(crate) use widget::static_widget;
 

@@ -115,7 +115,7 @@ pub(crate) fn generate(
         ("IDS", yui::str_consts(g.ids.as_slice())),
         ("TEMPLATES", std::mem::take(&mut g.templates)),
         ("VIEW_FIELDS", view_fields),
-        ("ANCHOR", yui::pascal(frame.anchor)),
+        ("ANCHOR", yog_codegen::pascal(frame.anchor)),
         ("MODAL", frame.modal.to_string()),
         ("PAUSE", frame.pause.to_string()),
         ("LIVE", frame.live.to_string()),

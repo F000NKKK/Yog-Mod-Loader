@@ -69,22 +69,6 @@ pub(super) fn resource_color(reference: &str) -> Option<u32> {
     RESOURCE_REFS.with(|r| r.borrow().colors.get(reference.trim()).copied())
 }
 
-/// `MinHeight` → `min_height`.
-pub(crate) fn snake(name: &str) -> String {
-    let mut out = String::new();
-    for (i, c) in name.chars().enumerate() {
-        if c.is_ascii_uppercase() {
-            if i > 0 {
-                out.push('_');
-            }
-            out.push(c.to_ascii_lowercase());
-        } else {
-            out.push(c);
-        }
-    }
-    out
-}
-
 /// `value`, one of `options`.
 pub(super) fn pick<'v>(
     el: &Element,
@@ -104,19 +88,6 @@ pub(super) fn pick<'v>(
             ))
             .at_line(el.line)
         })
-}
-
-/// `stat_bar` / `my-mod` → `StatBar` / `MyMod`.
-pub fn pascal(value: &str) -> String {
-    value
-        .split(['_', '-'])
-        .map(|w| {
-            let mut c = w.chars();
-            c.next()
-                .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
-                .unwrap_or_default()
-        })
-        .collect()
 }
 
 /// The Rust expression for a text attribute, its `@` forms as everywhere

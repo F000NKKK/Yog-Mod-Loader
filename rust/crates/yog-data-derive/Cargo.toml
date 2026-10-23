@@ -11,6 +11,7 @@ description = "#[derive(Schema)] for Yog Data."
 proc-macro = true
 
 [dependencies]
+yog-codegen = { workspace = true }
 # The words of `#[data(...)]` (`data_attr`).
 yog-ids = { workspace = true }
 syn = { workspace = true }

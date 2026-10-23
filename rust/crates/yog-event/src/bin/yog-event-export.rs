@@ -9,10 +9,7 @@ fn main() {
     };
     for (class, text) in yog_event::java::files(package) {
         let path = format!("{dir}/{class}.java");
-        if std::fs::read_to_string(&path).ok().as_deref() == Some(text.as_str()) {
-            continue;
-        }
-        if let Err(e) = std::fs::create_dir_all(dir).and_then(|_| std::fs::write(&path, text)) {
+        if let Err(e) = yog_codegen::write_if_changed(std::path::Path::new(&path), text) {
             eprintln!("yog-event-export: {path}: {e}");
             std::process::exit(1);
         }

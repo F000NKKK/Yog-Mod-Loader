@@ -9,3 +9,4 @@ description = "Yog's shared names — namespaces, content kinds, schemes, separa
 
 [dependencies]
 const_format = { workspace = true }
+yog-codegen = { workspace = true }

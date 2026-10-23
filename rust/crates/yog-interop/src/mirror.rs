@@ -67,18 +67,6 @@ fn args_of(attr: TokenStream) -> syn::Result<Args> {
     }
 }
 
-/// `PipeFlow` → `pipe_flow`.
-fn snake(name: &str) -> String {
-    let mut out = String::new();
-    for (i, c) in name.chars().enumerate() {
-        if c.is_uppercase() && i > 0 {
-            out.push_str(yog_ids::sep::WORD);
-        }
-        out.extend(c.to_lowercase());
-    }
-    out
-}
-
 /// A field: its name, type and fact (its `#[fact(…)]` taken off).
 struct Field {
     ident: syn::Ident,
@@ -157,7 +145,7 @@ fn bits(it: &Item) -> TokenStream {
 /// `impl Mirror`: its name, space, fields, and the whole row read and written.
 fn mirror_impl(it: &Item, args: &Args) -> TokenStream {
     let (m, ident) = (api(), it.ident);
-    let name = snake(&ident.to_string());
+    let name = yog_codegen::snake(&ident.to_string());
     let (view, writer) = (format_ident!("{ident}View"), format_ident!("{ident}Writer"));
     let source = source(it, args);
     let all = match it.fields.len() {

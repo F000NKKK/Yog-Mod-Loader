@@ -19,6 +19,7 @@ use quick_xml::{Reader, XmlVersion};
 
 use crate::design::host::{ComponentInfo, PropInfo};
 use crate::design::screens::markup::YuiNode;
+use yog_codegen::pascal;
 
 /// One component of the mod.
 #[derive(Debug, Clone)]
@@ -101,18 +102,6 @@ pub(crate) fn parse_tree(text: &str) -> Result<YuiNode, String> {
         }
     }
     root.ok_or_else(|| "no root element".to_string())
-}
-
-/// `stat_bar` → `StatBar`.
-fn pascal(stem: &str) -> String {
-    stem.split(['_', '-'])
-        .map(|w| {
-            let mut c = w.chars();
-            c.next()
-                .map(|f| f.to_uppercase().collect::<String>() + c.as_str())
-                .unwrap_or_default()
-        })
-        .collect()
 }
 
 /// The component a `<Component>` tree declares (`None`: not a component —

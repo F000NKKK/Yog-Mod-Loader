@@ -288,30 +288,6 @@ fn external(namespace: String, e: yog_formats::manifest::ExternalSection) -> Ext
     External { namespace, ids }
 }
 
-/// Cargo derives a lib crate name from the package `name` by turning `-` into
-/// `_`, but keeps case — so a mod `id` like "My-Mod" becomes the invalid
-/// `My_Mod` and rustc warns on every build. `id` is a free-form project
-/// identifier (not required to be a valid Rust ident), so the generated
-/// wrapper pins `[lib] name` to a proper snake_case form instead.
-pub fn to_snake_name(id: &str) -> String {
-    let mut out = String::with_capacity(id.len());
-    for c in id.chars() {
-        if c == '-' || c == '_' {
-            if !out.ends_with('_') {
-                out.push('_');
-            }
-        } else if c.is_uppercase() {
-            if !out.is_empty() && !out.ends_with('_') {
-                out.push('_');
-            }
-            out.extend(c.to_lowercase());
-        } else {
-            out.push(c);
-        }
-    }
-    out
-}
-
 /// Fetch the latest non-yanked version of `yog-api` from crates.io.
 pub fn latest_yog_api_version() -> String {
     match std::process::Command::new("cargo")

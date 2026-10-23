@@ -147,7 +147,7 @@ fn elements(prop: &Element, axis: Axis) -> Result<Vec<String>, Diagnostic> {
                     .chars()
                     .next()
                     .is_some_and(char::is_uppercase)
-                    .then(|| crate::ui::yui::snake(k));
+                    .then(|| yog_codegen::snake(k));
                 return match lower.filter(|l| [size, min, max].contains(&l.as_str())) {
                     Some(l) => err(
                         d,

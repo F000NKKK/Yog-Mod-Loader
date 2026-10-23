@@ -230,30 +230,12 @@ fn fields_as_written<T>(f: impl FnOnce() -> T) -> T {
 
 /// A variant's name as written: in snake case, or camel case (`rename_all`).
 fn variant_key(ident: &Ident) -> String {
-    if !CAMEL.with(std::cell::Cell::get) {
-        return snake(ident);
-    }
     let name = ident.to_string();
-    let mut chars = name.chars();
-    chars
-        .next()
-        .map(|first| first.to_ascii_lowercase().to_string() + chars.as_str())
-        .unwrap_or_default()
-}
-
-fn snake(ident: &Ident) -> String {
-    let mut out = String::new();
-    for (i, c) in ident.to_string().chars().enumerate() {
-        if c.is_ascii_uppercase() {
-            if i > 0 {
-                out.push('_');
-            }
-            out.push(c.to_ascii_lowercase());
-        } else {
-            out.push(c);
-        }
+    if CAMEL.with(std::cell::Cell::get) {
+        yog_codegen::camel(&name)
+    } else {
+        yog_codegen::snake(&name)
     }
-    out
 }
 
 struct NamedField {

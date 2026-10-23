@@ -3,7 +3,6 @@
 use std::path::PathBuf;
 
 use yog_cli::project::manifest::MANIFEST;
-use yog_cli::ui::yui;
 
 use crate::cli::pipeline::prepare::write_file;
 
@@ -31,7 +30,7 @@ pub(crate) fn new_mod(name: Option<&str>) -> Result<(), String> {
 
     // src/lib.rs
     let lib_rs = LIB_RS
-        .replace("$STRUCT$", &yui::pascal(name))
+        .replace("$STRUCT$", &yog_codegen::pascal(name))
         .replace("$NAME$", name);
     write_file(&root.join("src/lib.rs"), lib_rs.as_bytes())?;
 
