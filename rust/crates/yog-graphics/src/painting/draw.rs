@@ -4,13 +4,13 @@
 
 use yog_data::Schema;
 
-use crate::color::Color;
-use crate::image::Image;
-use crate::mask::Mask;
-use crate::math::Vec2;
-use crate::path::{self, Seg};
-use crate::raster::Canvas;
-use crate::rect::Rect;
+use crate::geometry::math::Vec2;
+use crate::geometry::path::{self, Seg};
+use crate::geometry::rect::Rect;
+use crate::painting::raster::Canvas;
+use crate::pixels::color::Color;
+use crate::pixels::image::Image;
+use crate::pixels::mask::Mask;
 
 /// One step of a drawing.
 #[derive(Schema, Debug, Clone, PartialEq)]

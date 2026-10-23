@@ -3,8 +3,8 @@
 
 use std::collections::BTreeMap;
 
-use crate::format::{AnimFile, ClipDef, Ease, KeyDef, Loop, TracksDef};
 use crate::math::{Vec3, rad};
+use crate::shape::format::{AnimFile, ClipDef, Ease, KeyDef, Loop, TracksDef};
 
 /// What a bone does on top of its rest: radians, pixels, a factor.
 #[derive(Debug, Clone, Copy, PartialEq)]

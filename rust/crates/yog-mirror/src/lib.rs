@@ -7,20 +7,18 @@
 //!   written, by a column's one writer) through their headers.
 //! * [`Cell`] — what a row of a column is.
 
-mod buffer;
-mod cell;
-pub mod host;
-mod keys;
-mod seq;
-mod spec;
-mod store;
-pub mod view;
+mod columns;
+mod shared;
 
-pub use cell::{Cell, Kind, NO_ATOM};
-pub use keys::KeySpace;
+pub use shared::{host, view};
+
+mod spec;
+
+pub use columns::cell::{Cell, Kind, NO_ATOM};
+pub use columns::keys::KeySpace;
+pub use columns::store::{MAX_FIELDS, SpaceId, Store};
+pub use shared::view::{Bits, ColumnRef, ColumnWriter, KeySpaceRef};
 pub use spec::{Clock, Declared, Due, DueList, FieldSpec, Linked, MirrorSpec, Rate, SCOPE_PACES};
-pub use store::{MAX_FIELDS, SpaceId, Store};
-pub use view::{Bits, ColumnRef, ColumnWriter, KeySpaceRef};
 
 #[cfg(test)]
 mod tests;

@@ -5,7 +5,7 @@
 
 use yog_ids::{fact, host_mirror, key_space, mirror_word, word};
 
-use crate::cell::Kind;
+use crate::columns::cell::Kind;
 use crate::spec::{Clock, FieldSpec, MirrorSpec};
 
 /// A host mirror field: its name, fact and shape.
@@ -87,13 +87,43 @@ pub const CLIENT_ENTITY: HostMirror = HostMirror {
     space: key_space::CLIENT_ENTITY,
     fields: &[
         field(mirror_word::POS, fact::CLIENT_ENTITY_POS, Kind::F64, XYZ),
-        field(mirror_word::VELOCITY, fact::CLIENT_ENTITY_VELOCITY, Kind::F64, XYZ),
-        field(yog_ids::model::ROTATION, fact::CLIENT_ENTITY_ROTATION, Kind::F32, YAW_PITCH),
+        field(
+            mirror_word::VELOCITY,
+            fact::CLIENT_ENTITY_VELOCITY,
+            Kind::F64,
+            XYZ,
+        ),
+        field(
+            yog_ids::model::ROTATION,
+            fact::CLIENT_ENTITY_ROTATION,
+            Kind::F32,
+            YAW_PITCH,
+        ),
         field(word::KIND, fact::CLIENT_ENTITY_KIND, Kind::U32, 1),
-        field(mirror_word::HEALTH, fact::CLIENT_ENTITY_HEALTH, Kind::F32, 1),
-        field(mirror_word::UUID, fact::CLIENT_ENTITY_UUID, Kind::U64, UUID_HALVES),
-        field(mirror_word::EYE_HEIGHT, fact::CLIENT_ENTITY_EYE_HEIGHT, Kind::F32, 1),
-        field(mirror_word::HOSTILE, fact::CLIENT_ENTITY_HOSTILE, Kind::U8, 1),
+        field(
+            mirror_word::HEALTH,
+            fact::CLIENT_ENTITY_HEALTH,
+            Kind::F32,
+            1,
+        ),
+        field(
+            mirror_word::UUID,
+            fact::CLIENT_ENTITY_UUID,
+            Kind::U64,
+            UUID_HALVES,
+        ),
+        field(
+            mirror_word::EYE_HEIGHT,
+            fact::CLIENT_ENTITY_EYE_HEIGHT,
+            Kind::F32,
+            1,
+        ),
+        field(
+            mirror_word::HOSTILE,
+            fact::CLIENT_ENTITY_HOSTILE,
+            Kind::U8,
+            1,
+        ),
         field(word::NAME, fact::CLIENT_ENTITY_NAME, Kind::U32, 1),
     ],
     clock: Clock::Client,
@@ -108,7 +138,12 @@ pub const CLIENT_BLOCK: HostMirror = HostMirror {
     fields: &[
         field(word::STATE, fact::CLIENT_BLOCK_STATE, Kind::U32, 1),
         field(mirror_word::TRAITS, fact::CLIENT_BLOCK_TRAITS, Kind::U64, 1),
-        field(mirror_word::HARDNESS, fact::CLIENT_BLOCK_HARDNESS, Kind::F32, 1),
+        field(
+            mirror_word::HARDNESS,
+            fact::CLIENT_BLOCK_HARDNESS,
+            Kind::F32,
+            1,
+        ),
     ],
     clock: Clock::Client,
 };

@@ -6,7 +6,9 @@
 use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use std::hint::black_box;
 use yog_ids::{fact, key_space};
-use yog_mirror::{Clock, ColumnRef, Declared, FieldSpec, KeySpaceRef, Kind, MirrorSpec, Rate, Store};
+use yog_mirror::{
+    Clock, ColumnRef, Declared, FieldSpec, KeySpaceRef, Kind, MirrorSpec, Rate, Store,
+};
 
 /// Entities in a busy world.
 const ENTITIES: u64 = 1_000;

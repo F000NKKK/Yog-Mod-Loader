@@ -9,7 +9,7 @@
 use std::collections::BTreeMap;
 
 use crate::math::Vec3;
-use crate::model::Quad;
+use crate::shape::model::Quad;
 use yog_graphics::Color;
 
 use crate::wire::{Anchor, Look, Mesh, Mode, Ops};

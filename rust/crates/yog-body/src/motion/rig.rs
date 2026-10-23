@@ -4,9 +4,9 @@
 
 use yog_sync::Arc;
 
-use crate::anim::{BonePose, Clip, Pose};
 use crate::math::{Mat4, Vec3};
-use crate::model::{Model, Quad};
+use crate::motion::anim::{BonePose, Clip, Pose};
+use crate::shape::model::{Model, Quad};
 use crate::wire::{Anchor, BoneOp, Look, Ops};
 
 /// A clip playing.
@@ -140,7 +140,7 @@ pub fn vanilla_op(p: &BonePose) -> BoneOp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::format::{BoneDef, CubeDef, ModelFile};
+    use crate::shape::format::{BoneDef, CubeDef, ModelFile};
     use yog_data::Ordered;
 
     fn model() -> Arc<Model> {

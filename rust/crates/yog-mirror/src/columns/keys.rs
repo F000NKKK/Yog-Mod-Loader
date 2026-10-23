@@ -4,10 +4,10 @@
 use yog_abi::{EMPTY_SLOT, GONE_SLOT, YogKeySpace};
 use yog_sync::atomic::{AtomicU32, Ordering};
 
-use crate::buffer::{Buffer, INITIAL_ROWS};
-use crate::cell::Cell;
-use crate::seq;
-use crate::view::{KEY_BYTES, KeySpaceRef, SLOT_BYTES, WORD_BITS, slot_of};
+use crate::columns::buffer::{Buffer, INITIAL_ROWS};
+use crate::columns::cell::Cell;
+use crate::shared::seq;
+use crate::shared::view::{KEY_BYTES, KeySpaceRef, SLOT_BYTES, WORD_BITS, slot_of};
 
 /// Bytes a key or a parent key takes.
 const KEY_WIDTH: u32 = KEY_BYTES as u32;

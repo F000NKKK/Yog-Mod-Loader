@@ -3,8 +3,8 @@
 
 use yog_data::Schema;
 
-use crate::math::Vec2;
-use crate::rect::Rect;
+use crate::geometry::math::Vec2;
+use crate::geometry::rect::Rect;
 
 /// A path segment.
 #[derive(Schema, Debug, Clone, Copy, PartialEq)]

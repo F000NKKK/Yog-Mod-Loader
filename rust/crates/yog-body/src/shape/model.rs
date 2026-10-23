@@ -2,8 +2,8 @@
 //! the quads vanilla's `ModelPart.Cube` makes (same corners, same box-UV,
 //! same mirroring) — so a model drawn here looks as one drawn by the game.
 
-use crate::format::{CubeDef, ModelFile};
 use crate::math::{Mat4, Vec3, rad};
+use crate::shape::format::{CubeDef, ModelFile};
 
 /// One four-cornered face: corners, their UVs (0–1), its normal.
 #[derive(Debug, Clone, Copy, PartialEq)]

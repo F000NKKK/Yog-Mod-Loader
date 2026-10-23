@@ -2,7 +2,7 @@
 
 use yog_data::Schema;
 
-use crate::math::Vec2;
+use crate::geometry::math::Vec2;
 
 /// A rectangle: its corner `x, y` (the one with the smallest coordinates)
 /// and its size.

@@ -12,25 +12,26 @@
 //! code (`yog build` compiles `.ymodel`/`.yanim`); [`model`](fn@model) and
 //! [`clip`] find them.
 
-pub mod anim;
-pub mod camera;
-pub mod format;
+mod local;
+mod motion;
+mod shape;
+
+pub use local::{camera, movement};
+pub use motion::{anim, morph, rig};
+pub use shape::{format, model};
+
 pub mod math;
-pub mod model;
-pub mod morph;
-pub mod movement;
-pub mod rig;
 pub mod wire;
 
 use std::collections::HashMap;
 use yog_sync::{Arc, LazyLock, RwLock};
 
-pub use anim::{BonePose, Clip, Pose};
-pub use camera::{CameraFrame, CameraOut};
+pub use local::camera::{CameraFrame, CameraOut};
+pub use local::movement::TravelFrame;
 pub use math::{Mat4, Vec3};
-pub use model::{Model, Quad};
-pub use movement::TravelFrame;
-pub use rig::Rig;
+pub use motion::anim::{BonePose, Clip, Pose};
+pub use motion::rig::Rig;
+pub use shape::model::{Model, Quad};
 pub use wire::{Anchor, BoneOp, Capture, Frame, Look, Mesh, Mode, Ops};
 /// A [`Look`]'s tint.
 pub use yog_graphics::Color;

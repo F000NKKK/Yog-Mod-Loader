@@ -8,8 +8,8 @@ use yog_ids::{mirror_problem, sep};
 use super::{
     Column, ColumnId, MAX_FIELDS, Mirror, Place, Store, Write, fact_space, problem, unknown_space,
 };
-use crate::buffer::Buffer;
-use crate::keys::{BIT_WORD, bit_words};
+use crate::columns::buffer::Buffer;
+use crate::columns::keys::{BIT_WORD, bit_words};
 use crate::spec::{FieldSpec, MirrorSpec, Rate};
 
 impl Store {

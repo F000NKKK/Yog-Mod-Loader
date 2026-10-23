@@ -383,7 +383,19 @@ fn each_scope_is_written_at_its_own_rate() {
         out.turns[0].writing
     };
     assert_eq!(writing(&mut s, &mut out, 0), 0b11, "both at first");
-    assert_eq!(writing(&mut s, &mut out, 1), 0b01, "the near box every tick");
-    assert_eq!(out.scopes(&out.turns[0]).len(), 2, "the far one's still its keys");
-    assert_eq!(writing(&mut s, &mut out, 4), 0b11, "the far one every fourth");
+    assert_eq!(
+        writing(&mut s, &mut out, 1),
+        0b01,
+        "the near box every tick"
+    );
+    assert_eq!(
+        out.scopes(&out.turns[0]).len(),
+        2,
+        "the far one's still its keys"
+    );
+    assert_eq!(
+        writing(&mut s, &mut out, 4),
+        0b11,
+        "the far one every fourth"
+    );
 }

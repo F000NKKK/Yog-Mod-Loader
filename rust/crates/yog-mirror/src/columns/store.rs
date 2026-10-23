@@ -13,8 +13,8 @@ use yog_data::Diagnostic;
 use yog_ids::{fact, key_space, mirror_problem, sep};
 use yog_sync::Arc;
 
-use crate::buffer::Buffer;
-use crate::keys::{KeySpace, bit_words, set_bit};
+use crate::columns::buffer::Buffer;
+use crate::columns::keys::{KeySpace, bit_words, set_bit};
 use crate::spec::{Clock, Declared, Due, DueList, Linked, MirrorSpec, Rate, SCOPE_PACES};
 
 mod families;
@@ -390,7 +390,9 @@ impl Store {
     pub fn due(&mut self, clock: Clock, tick: u64, out: &mut DueList) {
         out.clear();
         for m in self.mirrors.values_mut() {
-            let Some(p) = m.provider.filter(|p| p.clock == clock) else { continue };
+            let Some(p) = m.provider.filter(|p| p.clock == clock) else {
+                continue;
+            };
             let touched = std::mem::take(&mut m.touched);
             let (first, mut fields) = (out.next_column(), 0);
             for w in &mut m.writes {

@@ -13,20 +13,17 @@
 //! of its major version and a minor no newer than its own ([`compatible`]):
 //! such a mod sees a prefix of every table, all of it there.
 
+mod tables;
+
 use std::os::raw::c_void;
 
 mod primitives;
 pub use primitives::*;
-mod handlers;
-pub use handlers::*;
-mod gfx;
-pub use gfx::*;
-mod api;
-pub use api::*;
-mod bus;
-pub use bus::*;
-mod mirror;
-pub use mirror::*;
+pub use tables::api::*;
+pub use tables::bus::*;
+pub use tables::gfx::*;
+pub use tables::handlers::*;
+pub use tables::mirror::*;
 #[cfg(test)]
 mod tests;
 

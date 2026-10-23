@@ -4,9 +4,9 @@
 use yog_data::Schema;
 use yog_data::with::Raw;
 
-use crate::color::Color;
+use crate::pixels::color::Color;
 
-use crate::image::{BYTES_PER_PIXEL, Image};
+use crate::pixels::image::{BYTES_PER_PIXEL, Image};
 
 /// `width × height` pixels, a bit each: rows top to bottom, a row's
 /// pixels from its first byte's highest bit on, each row whole bytes.
@@ -38,7 +38,13 @@ impl Mask {
         let mut color = None;
         let row = Self::row_bytes(image.width);
         let mut bits = vec![0u8; row * image.height as usize];
-        for (i, p) in image.rgba.as_chunks::<BYTES_PER_PIXEL>().0.iter().enumerate() {
+        for (i, p) in image
+            .rgba
+            .as_chunks::<BYTES_PER_PIXEL>()
+            .0
+            .iter()
+            .enumerate()
+        {
             let alpha = p[BYTES_PER_PIXEL - 1];
             if alpha == 0 {
                 continue;

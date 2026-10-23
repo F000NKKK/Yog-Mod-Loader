@@ -112,7 +112,7 @@ pub type YogStatus = u32;
 
 /// [`YogStatus`] values.
 pub mod status {
-    use super::YogStatus;
+    use crate::YogStatus;
     /// Done; the reply (if any) is written.
     pub const OK: YogStatus = 0;
     /// No one provides the address (not on this host, this game version, or no such mod loaded).

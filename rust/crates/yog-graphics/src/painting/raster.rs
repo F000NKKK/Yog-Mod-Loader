@@ -2,11 +2,11 @@
 //! coverage (anti-aliased, non-zero winding), strokes as the union of
 //! their segments with round joins and caps, images sampled into place.
 
-use crate::color::Color;
-use crate::image::Image;
-use crate::mask::Mask;
-use crate::math::Vec2;
-use crate::rect::Rect;
+use crate::geometry::math::Vec2;
+use crate::geometry::rect::Rect;
+use crate::pixels::color::Color;
+use crate::pixels::image::Image;
+use crate::pixels::mask::Mask;
 
 /// The thinnest stroke's half-width: thinner ones vanish between pixels.
 const MIN_STROKE_RADIUS: f32 = 0.35;

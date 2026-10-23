@@ -8,8 +8,8 @@ use std::ptr::NonNull;
 use yog_abi::{EMPTY_SLOT, GONE_SLOT, YogColumn, YogKeySlot, YogKeySpace};
 use yog_sync::atomic::Ordering;
 
-use crate::cell::Cell;
-use crate::seq;
+use crate::columns::cell::Cell;
+use crate::shared::seq;
 
 /// Bits a bitmap word holds.
 pub(crate) const WORD_BITS: u32 = u64::BITS;

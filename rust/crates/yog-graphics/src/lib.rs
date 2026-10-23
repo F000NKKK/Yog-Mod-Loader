@@ -4,20 +4,19 @@
 //! [`Image`]s, drawings ([`Op`]: paths filled and stroked, images) and a
 //! [`Canvas`] that paints them to pixels.
 
-pub mod color;
-pub mod draw;
-pub mod image;
-pub mod mask;
-pub mod math;
-pub mod path;
-pub mod raster;
-pub mod rect;
+mod geometry;
+mod painting;
+mod pixels;
 
-pub use color::Color;
-pub use draw::{Fill, ImageOp, MaskOp, Op, Stroke};
-pub use image::{BYTES_PER_PIXEL, Image, PlacedImage, Rgba8};
-pub use mask::Mask;
-pub use math::{Mat4, Vec2, Vec3, rad};
-pub use path::Seg;
-pub use raster::Canvas;
-pub use rect::Rect;
+pub use geometry::{math, path, rect};
+pub use painting::{draw, raster};
+pub use pixels::{color, image, mask};
+
+pub use geometry::math::{Mat4, Vec2, Vec3, rad};
+pub use geometry::path::Seg;
+pub use geometry::rect::Rect;
+pub use painting::draw::{Fill, ImageOp, MaskOp, Op, Stroke};
+pub use painting::raster::Canvas;
+pub use pixels::color::Color;
+pub use pixels::image::{BYTES_PER_PIXEL, Image, PlacedImage, Rgba8};
+pub use pixels::mask::Mask;

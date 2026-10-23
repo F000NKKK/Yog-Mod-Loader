@@ -3,7 +3,7 @@
 use yog_data::Schema;
 use yog_data::with::Raw;
 
-use crate::color::Color;
+use crate::pixels::color::Color;
 
 /// Bytes per pixel: red, green, blue, alpha.
 pub const BYTES_PER_PIXEL: usize = 4;

@@ -3,7 +3,7 @@
 
 use yog_data::Schema;
 
-use crate::cell::Kind;
+use crate::columns::cell::Kind;
 
 /// A mirror field.
 #[derive(Schema, Clone, Debug, PartialEq, Eq)]

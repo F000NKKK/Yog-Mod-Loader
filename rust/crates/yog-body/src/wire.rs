@@ -10,7 +10,7 @@ use yog_graphics::Color;
 use yog_ids::time::TICKS_PER_SECOND as TICKS;
 
 use crate::math::{Mat4, Vec3};
-use crate::model::Quad;
+use crate::shape::model::Quad;
 
 /// Floats a vertex takes on the wire: x y z, u v, nx ny nz.
 const VERTEX_FLOATS: usize = 8;

@@ -81,9 +81,9 @@ impl Buffer {
 
     /// Runs `write` inside this buffer's own seqlock.
     pub fn locked<R>(&mut self, write: impl FnOnce(&mut Buffer) -> R) -> R {
-        let began = crate::seq::begin(&self.raw.seq);
+        let began = crate::shared::seq::begin(&self.raw.seq);
         let r = write(self);
-        crate::seq::end(&self.raw.seq, began);
+        crate::shared::seq::end(&self.raw.seq, began);
         r
     }
 
