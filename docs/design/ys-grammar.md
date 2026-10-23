@@ -4,6 +4,12 @@ Status: design draft, the syntax of `docs/design/ys.md` made exact. `.ys`
 and `.yns` share this grammar; the patch forms (§6) are accepted only in
 `.yns`.
 
+The syntax is close to C# — not a copy: declarations put the type first,
+locals are `var`, objects are made with `new` and primary constructors,
+statements end with `;`, names follow C#'s style guide. What C# has no
+word for (sides, saved and synced state, components and systems, units,
+content references, patches) is Yog Script's own.
+
 Notation: EBNF. `a?` optional, `a*` zero or more, `a+` one or more,
 `( … )` grouping, `|` choice, `'x'` a literal token, `UPPER` a lexical token.
 
@@ -11,24 +17,25 @@ Notation: EBNF. `a?` optional, `a*` zero or more, `a+` one or more,
 
 ### 1.1 Layout
 
-- Source is UTF-8. Whitespace separates tokens; indentation means nothing.
-- A **newline ends a statement** unless the line ends with a binary
-  operator, `,`, `.`, `(`, `[`, `{`, `->`, `=>`, `=`, or the next line
-  starts with `.` or `?.` (a chain continues). `;` ends a statement
-  explicitly (several on one line).
-- Comments: `// …` to the end of the line, `/* … */` (nesting), `/// …` a
-  doc comment for the next declaration (shown by the LSP and IDLE).
+- Source is UTF-8. Whitespace separates tokens; newlines and indentation
+  mean nothing.
+- `;` ends a statement and a member without a block body
+  (`int X = 0;`, `int Area(int w, int h) => w * h;`); a block (`{ … }`)
+  ends its own declaration or statement.
+- Comments: `// …` to the end of the line, `/* … */`, `/// …` a doc
+  comment for the next declaration (shown by the LSP and IDLE).
 
 ### 1.2 Tokens
 
 ```ebnf
-IDENT      = letter (letter | digit | '_')* ;        (* not a keyword *)
+IDENT      = letter (letter | digit | '_')* ;        (* not a keyword; '@' IDENT uses a keyword as a name *)
 INT        = digit (digit | '_')* | '0x' hex+ | '0b' ('0'|'1')+ ;
-FLOAT      = digit+ '.' digit+ (('e'|'E') ('+'|'-')? digit+)? ;
+FLOAT      = digit+ '.' digit+ (('e'|'E') ('+'|'-')? digit+)? ('f' | 'd')? ;
 UNIT       = (INT | FLOAT) unit_suffix ;
 unit_suffix = 't' | 's' | 'ms' | 'm' | 'h' | 'b' | IDENT ;   (* t ticks, s seconds, b blocks; a mod's own units by name *)
 STRING     = '"' (char | '\' escape | '{' expr '}')* '"' ;   (* {expr} interpolates; {{ }} are braces *)
-RAW_STRING = 'r"' char* '"' ;
+RAW_STRING = '"""' char* '"""' ;                    (* as written, lines included *)
+CHAR       = "'" (char | '\' escape) "'" ;
 TEXT       = 't"' key '"' ;                          (* a translatable text by key *)
 CONTENT    = '@' kind ':' res_id ;                   (* @item:minecraft:stick, @effect:charge:overcharged *)
 TAG        = '#' res_id ;                            (* #minecraft:logs *)
@@ -45,121 +52,189 @@ the registries of every targeted version.
 Reserved everywhere:
 
 ```
-mod use fn let var val const type unit record union enum extend
-if else match for in while loop break continue return try
-true false none self it is as and or not
-server client shared on skip
-saved synced was tune test version native
+using mod class record union enum interface component system extend unit
+public private internal static const readonly new this
+void var int long float double bool string byte char
+if else switch foreach for in while do break continue return
+true false null is as and or not when
+async await try
+server client shared on saved synced was tune test version native
 ```
 
 Contextual (keywords only where the grammar expects them, names
-elsewhere): `block item entity fluid recipe screen command state player
-world session ui action slots of where first last component system has every
-requires patch before after inside around call read write constant
-replace add uses local proceed result shaped shapeless`.
+elsewhere): `block item entity fluid recipe screen command where has
+every requires patch before after inside around call read write constant
+replace add uses local proceed result skip first last it value get set
+init mc priority`.
+
+### 1.4 Names
+
+C#'s style guide, checked by the compiler (warnings, like C#'s IDE1006):
+
+| What | Case | Examples |
+|---|---|---|
+| Types, components, systems, content, enums and their members | PascalCase | `Charger`, `Charge`, `Mode.Charging` |
+| Methods, properties, fields, events, constants | PascalCase | `Push()`, `Room`, `Energy`, `Use`, `MaxTier` |
+| Interfaces | `I` + PascalCase | `IChargeable` |
+| Parameters, locals, lambda parameters | camelCase | `amount`, `target` |
+| Type parameters | `T` or `T` + PascalCase | `T`, `TItem` |
+
+The game's Java members are seen the same way: a getter is a property
+(`getArmorValue()` → `ArmorValue`, `isDay()` → `IsDay`), a method is
+PascalCase (`hurt()` → `Hurt()`), a field PascalCase (`foodData` →
+`FoodData`). The compiler maps them back to the run-time names.
 
 ## 2. Files and declarations
 
 ```ebnf
-file        = use* decl* ;
+file        = using* decl* ;
 
-use         = 'use' path ('.' '{' IDENT (',' IDENT)* '}' | 'as' IDENT)? ;
+using       = 'using' path ';' ;
 path        = IDENT ('.' IDENT)* ;
 
-decl        = doc? modifiers? ( mod_decl | fn_decl | let_decl | var_decl | const_decl
-            | unit_decl | recipe_decl | type_decl | record_decl | union_decl | enum_decl | extend_decl
-            | content_decl | component_decl | system_decl | screen_decl | command_decl
-            | event_decl | test_decl | version_decl | native_decl
-            | patch_decl ) ;
+decl        = attributes? doc? modifiers? ( mod_decl | method_decl | field_decl
+            | type_decl | content_decl | component_decl | system_decl | extend_decl
+            | screen_decl | command_decl | event_decl | test_decl | version_decl
+            | native_decl | patch_decl ) ;
 
 modifiers   = modifier+ ;
-modifier    = 'server' | 'client' | 'shared'          (* side, §4.1 of ys.md *)
-            | 'saved' | 'synced' | 'tune' | 'pub' ;
+modifier    = 'public' | 'private' | 'internal'         (* access; members are private, types internal (the mod) *)
+            | 'static' | 'const' | 'readonly' | 'async'
+            | 'server' | 'client' | 'shared'          (* side, §4.1 of ys.md *)
+            | 'saved' | 'synced' | 'tune' ;
+attributes  = ('[' attribute (',' attribute)* ']')+ ;   (* [Obsolete("…")] *)
+attribute   = path call_args? ;
 ```
 
 ### 2.1 The mod
 
 ```ebnf
-mod_decl    = 'mod' IDENT '{' (IDENT '=' expr)* '}' ;
+mod_decl    = 'mod' IDENT '{' (IDENT '=' expr ';')* '}' ;
 ```
 
 ```ys
-mod charge {
-    version = "1.0.0"
-    targets = mc 1.20.1..26.2
-    resources = "charge.yres"
+mod Charge {
+    Version = "1.0.0";
+    Targets = mc 1.20.1..26.2;
+    Resources = "charge.yres";
 }
 ```
 
-`targets` takes a version range (`mc 1.20.1..26.2`, `mc >= 1.21`); a
-resource file's entries are reachable as `res.<path>`.
+`Targets` takes a version range (`mc 1.20.1..26.2`, `mc >= 1.21`); a
+resource file's entries are reachable as `Res.<Path>`. The mod's id is its
+name in snake_case (`charge`) unless `Id = "…";` says otherwise.
 
-### 2.2 Values and functions
+### 2.2 Methods, fields, properties
 
 ```ebnf
-let_decl    = 'let' pattern (':' type)? '=' expr ;
-var_decl    = 'var' IDENT (':' type)? ('=' expr)? migration? ;
-const_decl  = 'const' IDENT (':' type)? '=' expr ;
-val_decl    = 'val' IDENT (':' type)? '=>' expr ;    (* computed on every read *)
-migration   = 'was' IDENT (':' type)? ;              (* an old save's name and type *)
-
-fn_decl     = 'fn' IDENT generics? '(' params? ')' ('->' type)? (fn_body | requires fn_body) ;
-fn_body     = block | '=' expr ;
+method_decl = type_or_void IDENT generics? '(' params? ')' constraints? requires? method_body ;
+type_or_void = type | 'void' ;
+method_body = block | '=>' expr ';' ;
 params      = param (',' param)* ;
-param       = 'var'? IDENT ':' type ('=' expr)? ;
-requires    = 'requires' expr ;                      (* a guard: commands, server fns called by clients *)
-generics    = '<' IDENT (':' type)? (',' IDENT (':' type)?)* '>' ;
+param       = type IDENT ('=' expr)? ;
+requires    = 'requires' expr ;                      (* a guard: commands, server methods called by clients *)
+generics    = '<' IDENT (',' IDENT)* '>' ;
+constraints = ('where' IDENT ':' type (',' type)*)+ ;
+
+field_decl  = type IDENT ('=' expr)? migration? ';'                 (* a field; with `const`, a constant *)
+            | type IDENT '=>' expr ';'                               (* a computed property *)
+            | type IDENT '{' accessor+ '}' ('=' expr ';')? ;          (* a property with accessors *)
+accessor    = ('get' | 'set' | 'init') (';' | method_body) ;
+migration   = 'was' IDENT (':' type)? ;              (* an old save's name and type *)
 ```
 
-A function without a side modifier is `shared`. `server fn` and
-`client fn` called on the other side are messages (`x.client.f()`,
-`x.server.f()`, §3.6).
+```ys
+int Area(int w, int h) => w * h;
+
+void Greet(Player player) {
+    player.Say("Hello, {player.Name}!");
+}
+
+T? Heaviest<T>(List<T> list) where T : Entity => list.MaxBy { it.Mass };
+```
+
+A method without a side modifier is `shared`. `server` and `client`
+methods called on the other side are messages (`x.Client.F()`,
+`x.Server.F()`, §3.6). `async` marks a method that awaits (§3.5).
 
 ### 2.3 Types of one's own
 
 ```ebnf
-type_decl   = 'type' IDENT generics? '=' type ;                       (* an alias *)
-unit_decl   = 'unit' IDENT ('=' expr)? ;                             (* a mod's own unit; `= 20t` defines it by another *)
-record_decl = 'record' IDENT generics? '(' params ')' type_body? ;
+type_decl   = class_decl | record_decl | union_decl | enum_decl | interface_decl | alias_decl | unit_decl ;
+class_decl  = 'class' IDENT generics? primary_ctor? bases? constraints? type_body ;
+record_decl = 'record' IDENT generics? primary_ctor bases? (type_body | ';') ;
 union_decl  = 'union' IDENT generics? '{' variant (',' variant)* ','? member* '}' ;
-variant     = IDENT ('(' params ')')? ;
-enum_decl   = 'enum' IDENT '{' IDENT (',' IDENT)* ','? member* '}' ;
-extend_decl = 'extend' type (':' type)? has? ('{' member* '}')? ;   (* added members (state too), an interface, components *)
+variant     = IDENT primary_ctor? ;
+enum_decl   = 'enum' IDENT '{' IDENT (',' IDENT)* ','? '}' ;
+interface_decl = 'interface' IDENT generics? bases? '{' member* '}' ;
+alias_decl  = 'using' IDENT '=' type ';' ;                          (* an alias *)
+unit_decl   = 'unit' IDENT ('=' expr)? ';' ;                         (* a mod's own unit; `= 20t` defines it by another *)
+
+primary_ctor = '(' params? ')' ;                                     (* the type's constructor, its parameters in scope *)
+bases       = ':' type (',' type)* ;                                 (* interfaces; content kinds (§2.4) *)
 type_body   = '{' member* '}' ;
-member      = doc? modifiers? (fn_decl | let_decl | var_decl | val_decl | const_decl) ;
+member      = attributes? doc? modifiers? (method_decl | field_decl | ctor_decl | handler) ;
+ctor_decl   = IDENT '(' params? ')' (':' 'this' call_args)? block ;  (* another constructor; IDENT is the type's *)
 ```
+
+```ys
+record Pos(int X, int Y, int Z);
+
+class Timer(Ticks every) {
+    Ticks Left = every;
+    public Timer() : this(20t) { }
+}
+
+union Mode { Idle, Charging(int Rate), Full }
+
+interface IChargeable {
+    Energy Room { get; }
+}
+```
+
+A record's primary constructor parameters are its public properties; a
+class's and a component's are in scope in its body (C# 12's primary
+constructors). There is no class inheritance: `:` names interfaces only
+(and, for content, its kind's base, §2.4).
 
 ### 2.4 Content
 
 ```ebnf
-content_decl = content_kind IDENT (':' type)? has? '{' content_item* '}' ;
+content_decl = content_kind IDENT primary_ctor? bases? has? '{' content_item* '}' ;
+content_kind = 'block' | 'item' | 'entity' | 'fluid' | 'recipe' | IDENT ;   (* open: a mod's own content kinds *)
 has          = 'has' component_use (',' component_use)* ;
-component_use = path ('(' args? ')')? ;                               (* a component and its arguments *)
-content_kind = 'block' | 'item' | 'entity' | 'fluid' | IDENT ;       (* open: a mod's own content kinds *)
-content_item = IDENT '=' expr                                         (* a property: hardness = 2.0 *)
-             | modifiers? (var_decl | val_decl | let_decl | fn_decl)
-             | slots_decl | handler ;
-slots_decl   = 'slots' IDENT '[' expr ']' ('of' type)? ;
-handler      = modifiers? 'on' IDENT ('(' params_untyped? ')')? block ; (* on use(p), on tick, on load *)
-params_untyped = IDENT (',' IDENT)* ;
-
-recipe_decl  = 'recipe' type recipe_kind '{' recipe_body '}' ;
-recipe_kind  = 'shaped' | 'shapeless' | IDENT ;                       (* open: a mod's own recipe kinds *)
-recipe_body  = STRING* (IDENT '=' expr)* ;                            (* rows, then keys *)
+component_use = path call_args? ;                                    (* a component and its arguments *)
+content_item = IDENT '=' expr ';'                                    (* a property: Hardness = 2.0f; *)
+             | member ;
+handler      = modifiers? 'on' IDENT ('(' params? ')')? block ;      (* on Use(Player player), on Tick *)
 ```
 
-`recipe_decl` is a `content_decl` form. A content declaration is also a
-type (`Battery` is the item's type: `b is Battery`, `Battery()` a new
-stack).
+```ys
+block Charger has Charge(Res.Charger.Capacity) {
+    Hardness = Res.Charger.Hardness;
+    Slots<Battery> Inventory = new(4);
+    on Use(Player player) { player.Open(new ChargerScreen(this)); }
+}
+
+recipe Battery : Shaped {
+    Pattern = ["RIR", "IGI", "RIR"];
+    Keys = ['R' => @item:minecraft:redstone, 'I' => @item:minecraft:iron_ingot, 'G' => @item:minecraft:gold_ingot];
+}
+```
+
+A content declaration is also a type (`Battery` is the item's type:
+`b is Battery`, `new Battery()` a new stack). A recipe names its kind as
+its base (`: Shaped`, `: Shapeless`, a mod's own kinds).
 
 ### 2.5 Components and systems
 
 ```ebnf
-component_decl = 'component' IDENT ('(' params ')')? has? '{' content_item* '}' ;
+component_decl = 'component' IDENT primary_ctor? has? '{' content_item* '}' ;
 system_decl    = modifiers? 'system' IDENT '(' params ')' ('every' expr)? block ;
+extend_decl    = 'extend' type bases? has? ('{' member* '}' | ';') ;   (* added members (state too), interfaces, components *)
 ```
 
-A component's parameters are given where an object `has` it
+A component's constructor parameters are given where an object `has` it
 (`has Charge(1000)`); its items are a content declaration's, handlers
 included (they run on the owner's events). A system's parameters are
 what an object must have to be run over; their types are components,
@@ -169,22 +244,21 @@ object types or `&` of them. Per-scope state is `extend Player { … }`
 ### 2.6 Screens and commands
 
 ```ebnf
-screen_decl  = 'screen' IDENT '(' params? ')' 'ui' STRING '{' screen_item* '}' ;
-screen_item  = val_decl | var_decl | fn_decl
-             | 'action' IDENT '(' params? ')' fn_body ;              (* runs on the server: a message *)
-
-command_decl = 'command' STRING '{' (modifiers? fn_decl)* '}' ;      (* each fn a subcommand; its params the arguments *)
+screen_decl  = 'screen' IDENT primary_ctor? ':' 'Ui' '(' STRING ')' type_body ;
+command_decl = 'command' STRING '{' member* '}' ;   (* each method a subcommand; its parameters the arguments *)
 ```
+
+A screen's `server` methods are its actions: a client calls them (a
+message).
 
 ### 2.7 Events, tests, versions, native
 
 ```ebnf
-event_decl   = modifiers? 'on' path ('(' params_untyped? ')')? block ;  (* on player.join(p) *)
+event_decl   = modifiers? 'on' path ('(' params? ')')? block ;        (* on Player.Join(Player player) *)
 test_decl    = 'test' STRING block ;
-version_decl = 'version' version_cond '{' decl* '}' ('else' (version_decl | '{' decl* '}'))? ;
+version_decl = 'version' '(' version_cond ')' '{' decl* '}' ('else' (version_decl | '{' decl* '}'))? ;
 version_cond = 'mc' ( ('>=' | '<=' | '>' | '<' | '==') VERSION | VERSION '..' VERSION ) ;
-native_decl  = 'native' STRING '{' fn_sig* '}' ;
-fn_sig       = 'fn' IDENT '(' params? ')' ('->' type)? ;
+native_decl  = 'native' STRING '{' (type_or_void IDENT '(' params? ')' ';')* '}' ;
 ```
 
 ## 3. Statements and expressions
@@ -193,177 +267,192 @@ fn_sig       = 'fn' IDENT '(' params? ')' ('->' type)? ;
 
 ```ebnf
 block       = '{' stmt* '}' ;
-stmt        = let_decl | var_decl | assign | if_stmt | match_expr | for_stmt
-            | while_stmt | loop_stmt | 'break' | 'continue'
-            | 'return' expr? | 'skip' expr?
-            | expr ;
+stmt        = local_decl ';' | expr ';' | assign ';' | block
+            | if_stmt | foreach_stmt | for_stmt | while_stmt | do_stmt
+            | 'break' ';' | 'continue' ';' | 'return' expr? ';' | 'skip' expr? ';' ;
+local_decl  = ('var' | type) IDENT ('=' expr)?
+            | 'var' '(' IDENT (',' IDENT)+ ')' '=' expr ;            (* deconstruction *)
 assign      = place assign_op expr ;
 assign_op   = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '??=' ;
-place       = postfix ;                                      (* a name, a member, an index *)
+place       = postfix ;                                              (* a name, a member, an index *)
 
-if_stmt     = 'if' expr block ('else' (if_stmt | block))? ;
-for_stmt    = 'for' pattern 'in' expr block ;
-while_stmt  = 'while' expr block ;
-loop_stmt   = 'loop' block ;
+if_stmt     = 'if' '(' expr ')' stmt ('else' stmt)? ;
+foreach_stmt = 'foreach' '(' ('var' | type) (IDENT | '(' IDENT (',' IDENT)+ ')') 'in' expr ')' stmt ;
+for_stmt    = 'for' '(' local_decl? ';' expr? ';' assign? ')' stmt ;
+while_stmt  = 'while' '(' expr ')' stmt ;
+do_stmt     = 'do' stmt 'while' '(' expr ')' ';' ;
 ```
 
-`if` and `match` are expressions too: `let tier = if x { 1 } else { 2 }`.
-Conditions take no parentheses; bodies always take braces.
+`if` takes parentheses, as in C#; a body without braces is one statement.
+The conditional expression is `c ? a : b`; `switch` is an expression
+(§3.3).
 
 ### 3.2 Expressions by precedence (low to high)
 
 | Level | Operators | Assoc. |
 |---|---|---|
-| 1 | `x ?? y` | right |
-| 2 | `or` / `\|\|` | left |
-| 3 | `and` / `&&` | left |
-| 4 | `==` `!=` `<` `<=` `>` `>=` `is` `!is` `has` `!has` `in` `!in` | none |
-| 5 | `..` `..<` (ranges) | none |
-| 6 | `+` `-` | left |
-| 7 | `*` `/` `%` | left |
-| 8 | `as` `as?` (conversion) | left |
-| 9 | prefix `-` `not` `!` `try` | right |
-| 10 | postfix: call `f(…)`, index `a[i]`, member `.m`, safe member `?.m`, trailing lambda `{ … }`, side `.server` / `.client` | left |
+| 1 | `=>` lambdas | right |
+| 2 | `c ? a : b` | right |
+| 3 | `x ?? y` | right |
+| 4 | `\|\|` | left |
+| 5 | `&&` | left |
+| 6 | `==` `!=` | left |
+| 7 | `<` `<=` `>` `>=` `is` `as` `has` `in` | left |
+| 8 | `..` `..<` (ranges) | none |
+| 9 | `+` `-` | left |
+| 10 | `*` `/` `%` | left |
+| 11 | `switch` (`x switch { … }`) | left |
+| 12 | prefix `-` `!` `await` `try` `(T)` cast | right |
+| 13 | postfix: call `f(…)`, index `a[i]`, member `.M`, null-conditional `?.M`, `!` (not null), trailing lambda `{ … }`, side `.Server` / `.Client` | left |
 
 ```ebnf
-expr        = binary ;
-primary     = literal | IDENT | 'self' | 'it' | 'result' | 'none'
-            | '(' expr ')' | tuple | list | map | lambda
-            | if_stmt | match_expr | block ;
-literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | TEXT | CONTENT | TAG | 'true' | 'false' ;
-tuple       = '(' expr ',' (expr (',' expr)*)? ')' ;
-list        = '[' (expr (',' expr)* ','?)? ']' ;
-map         = '{' (expr ':' expr (',' expr ':' expr)* ','?)? '}' ;   (* {} is an empty map where a value is expected *)
-lambda      = '{' (params_untyped '->')? stmt* '}' ;                   (* no params: `it` *)
+expr        = lambda | conditional ;
+primary     = literal | IDENT | 'this' | 'it' | 'result' | 'value' | 'null'
+            | '(' expr ')' | tuple | collection | new_expr | block_lambda ;
+literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | CHAR | TEXT | CONTENT | TAG | 'true' | 'false' ;
+tuple       = '(' expr ',' expr (',' expr)* ')' ;
+collection  = '[' (element (',' element)* ','?)? ']' ;            (* a list, a set or a map, by its target type *)
+element     = expr ('=>' expr)? | '..' expr ;                     (* k => v in a map; ..xs spreads *)
+new_expr    = 'new' type? call_args? initializer? ;                (* new Pos(1, 2, 3); new(4) where the type is known *)
+initializer = '{' (IDENT '=' expr (',' IDENT '=' expr)* ','?)? '}' ;   (* new Battery { Count = 2 } *)
+lambda      = (IDENT | '(' (param_or_name (',' param_or_name)*)? ')') '=>' (expr | block) ;
+param_or_name = type? IDENT ;
+block_lambda = '{' stmt* expr? '}' ;                               (* trailing lambda: `it` its parameter, the last expression its value *)
 call_args   = '(' (arg (',' arg)*)? ')' ;
-arg         = (IDENT '=')? expr ;                                      (* named arguments *)
+arg         = (IDENT ':')? expr ;                                  (* named arguments, as in C# *)
 ```
 
-### 3.3 Match and patterns
+`list.Select(x => x * 2)` and `list.Select { it * 2 }` are the same call:
+a trailing block lambda is the last argument, `it` its one parameter.
+
+### 3.3 Switch and patterns
 
 ```ebnf
-match_expr  = 'match' expr '{' arm+ '}' ;
-arm         = pattern ('if' expr)? '->' (expr | block) ;
-pattern     = '_' | literal | IDENT | range_pat | type_pat | variant_pat
-            | tuple_pat | pattern '|' pattern | 'else' ;
-type_pat    = 'is' type (IDENT)? ;                    (* is Monster m *)
-variant_pat = path '(' pattern (',' pattern)* ')' ;   (* Circle(r) *)
+switch_expr = postfix 'switch' '{' arm (',' arm)* ','? '}' ;
+arm         = pattern ('when' expr)? '=>' expr ;
+pattern     = '_' | literal | 'var' IDENT | type_pat | variant_pat | relational_pat | range_pat
+            | tuple_pat | property_pat | pattern 'or' pattern | pattern 'and' pattern | 'not' pattern ;
+type_pat    = type IDENT? ;                                         (* Monster m *)
+variant_pat = path '(' pattern (',' pattern)* ')' ;                 (* Mode.Charging(var rate) *)
+relational_pat = ('<' | '<=' | '>' | '>=') literal ;
 range_pat   = literal '..' literal ;
 tuple_pat   = '(' pattern (',' pattern)* ')' ;
+property_pat = type? '{' IDENT ':' pattern (',' IDENT ':' pattern)* '}' ;   (* { Health: < 5 } *)
+is_expr     = expr 'is' pattern ;                                   (* if (target is Monster m && m.IsAlive) *)
 ```
 
-A `match` over a union or enum must cover every case (or `else`).
+A `switch` over a union or enum must cover every case (or `_`).
 
-### 3.4 Optionals and failures
+### 3.4 Nulls and failures
 
-- `T?` may be `none`. `a?.b` is `none` if `a` is; `a ?? b` the fallback;
-  `if let p = target { … }` and `match` unwrap.
-- A function returning `Result<T>` (`Ok(v)` / `Fail(reason)`): `try f()`
-  is `v`, or returns the failure from the caller. In a handler (`on`,
-  a task, a patch), an unhandled failure stops that handler and is
-  reported with its `.ys` line (ys.md §4.5); the game goes on.
+- `T?` may be `null`; other types can't be. `a?.B` is `null` if `a` is;
+  `a ?? b` the fallback; `a!` asserts it isn't (a build warning where it
+  can't be proven); `is` patterns narrow (`if (target is Player p)`).
+- A method returning `Result<T>` (`Ok(v)` / `Fail(reason)`): `try F()` is
+  `v`, or returns the failure from the caller. There are no exceptions
+  to catch: in a handler (`on`, a task, a patch), an unhandled failure
+  stops that handler and is reported with its `.ys` line (ys.md §4.5);
+  the game goes on.
 
-### 3.5 Time and queries are library, not syntax
+### 3.5 Time and queries are library
 
 Waiting, periods and world searches are the standard library (`Task`,
-`Level`), not words of the language:
+`Level`), awaited as in C#:
 
 ```ys
-server fn arm(c: Charger) {
-    c.glow()
-    Task.wait(5s)                    // suspends this function; the game goes on
-    c.explode(power = 2.0)
+server async void Arm(Charger charger) {
+    charger.Glow();
+    await Task.Delay(5s);                // the game goes on meanwhile
+    charger.Explode(power: 2.0f);
 }
 
-Task.every(10s) { … }                // a period
-Task.delay(5s) { … }                 // once, later
-Task.until { door.isOpen }           // a condition
-let near = level.entities.near(spawn, 32b).where { it is Monster }.orderBy { it.distance }.take(5)
+Task.Every(10s, () => { … });            // a period
+Task.Every(10s) { … }                    // the same, a trailing lambda
+await Task.Until { door.IsOpen };        // a condition
+var near = Level.Entities.Near(spawn, 32b).Where { it is Monster }.OrderBy { it.Distance }.Take(5);
 ```
 
-- A function calling `Task.wait` / `Task.until` (or another such function)
-  is **suspending**: the compiler turns it into a state machine run by its
-  side's ticks; no `async` / `await` words. Calling it gives a `Task`:
-  `task.wait()` waits for it (making the caller suspending too), otherwise
-  it runs on its own.
+- An `async` method is compiled into a state machine run by its side's
+  ticks; calling it gives a `Task` (awaited or left to run).
 - A task started from a `saved` object is saved with it when everything it
   captured is savable; otherwise the build warns that it won't survive a
   restart.
-- `Task.wait` in a `shared` function is an error (whose ticks?).
-- `near(…)` and its chain are known to the compiler: they compile to the
+- `await` in a `shared` method is an error (whose ticks?).
+- `Near(…)` and its chain are known to the compiler: they compile to the
   game's indexed lookups (chunk and entity sections), not a scan.
 
 ### 3.6 Across sides
 
-`x.client.f(args)` calls `client fn f` on the client(s) of `x` (a player:
-that one; a block or entity: the clients tracking it); `x.server.f(args)`
-calls `server fn f` from a client. Both compile to a generated message.
-A `server fn` taking a first parameter of type `Sender` receives the
-caller.
+`x.Client.F(args)` calls `client` method `F` on the client(s) of `x` (a
+player: that one; a block or entity: the clients tracking it);
+`x.Server.F(args)` calls `server` method `F` from a client. Both compile
+to a generated message. A `server` method taking a first parameter of
+type `Sender` receives the caller.
 
 ## 4. Types
 
 ```ebnf
-type        = base_type ('&' base_type)* ('?')? ;                (* Charge & Owned: an object with both *)
-base_type   = path generic_args?                                 (* Int, List<T>, LivingEntity, a component *)
-            | base_type 'in' range_expr                          (* bounded: Int in 0..100 *)
-            | '(' type (',' type)+ ')'                           (* a tuple *)
-            | '(' (type (',' type)*)? ')' '->' type ;            (* a function *)
+type        = base_type ('&' base_type)* '?'? ;                     (* Charge & Owned: an object with both *)
+base_type   = path generic_args?                                     (* int, List<T>, LivingEntity, a component *)
+            | base_type 'in' range_expr                              (* bounded: int in 0..100 *)
+            | '(' type IDENT? (',' type IDENT?)+ ')' ;               (* a tuple *)
 generic_args = '<' type (',' type)* '>' ;
 ```
 
-Built in: `Int` `Int32` `Byte` `Float` `Double` `Bool` `Str` `Text`
-`Ticks` `Seconds` `Blocks` `List<T>` `Map<K,V>` `Set<T>` `Result<T>`
-`Sender`, content refs (`ItemRef`, `BlockRef`, `TagRef`, … one per kind).
-The game's classes are types by their Mojang names (`LivingEntity`,
-`net.minecraft.world.entity.LivingEntity` when ambiguous); their side
-comes from the class index.
+Built in: `int` (32-bit) `long` `byte` `char` `float` `double` `bool`
+`string` `Text` `Ticks` `Seconds` `Blocks` `List<T>` `Dictionary<K, V>`
+`HashSet<T>` `Func<…>` `Action<…>` `Result<T>` `Task` `Sender`
+`Slots<T>`, content refs (`ItemRef`, `BlockRef`, `TagRef`, … one per
+kind). The game's classes are types by their Mojang names
+(`LivingEntity`, `net.minecraft.world.entity.LivingEntity` when
+ambiguous); their side comes from the class index.
 
-## 5. Generic forms
+## 5. Collections and lambdas
 
-Collections, lambdas and trailing lambdas:
+LINQ's names, on every collection and on the world's queries:
 
 ```ys
-let names = players.where { it.level > 10 }.map { it.name }
-inventory.each<Battery> { it.charge = it.charge.max }
-let total = stacks.sum { it.count }
+var names = players.Where { it.Level > 10 }.Select { it.Name };
+foreach (var battery in Inventory.OfType<Battery>()) battery.Charge.Fill();
+var total = stacks.Sum(s => s.Count);
+List<int> empty = [];
+Dictionary<string, int> scores = ["alex" => 3, "sam" => 5];
 ```
 
 ## 6. Patches (`.yns` only)
 
 ```ebnf
 patch_decl  = 'patch' type '{' patch_item* '}' ;
-patch_item  = 'add' modifiers? (var_decl | val_decl | fn_decl)         (* added members *)
-            | 'add' 'is' type                                            (* an added interface *)
-            | 'before' method uses? block                                (* @Inject HEAD *)
-            | 'after' method uses? block                                 (* @Inject TAIL / @ModifyReturnValue via result *)
+patch_item  = 'add' modifiers? (field_decl | method_decl)            (* added members *)
+            | 'add' bases ';'                                          (* added interfaces *)
+            | 'before' method uses? block                              (* @Inject HEAD *)
+            | 'after' method uses? block                               (* @Inject TAIL / @ModifyReturnValue via result *)
             | 'inside' method '{' point* '}'
-            | 'read' IDENT block                                         (* @Redirect FIELD get *)
-            | 'write' IDENT '(' IDENT ')' block                          (* @Redirect FIELD put *)
-            | 'replace' method block                                     (* @Overwrite *)
-            | priority ;
-method      = IDENT '(' params? ')' ('->' type)? ;                      (* the target by signature *)
+            | 'read' IDENT block                                       (* @Redirect FIELD get *)
+            | 'write' IDENT block                                      (* @Redirect FIELD put; `value` the new one *)
+            | 'replace' method block                                   (* @Overwrite *)
+            | 'priority' INT ';' ;
+method      = type_or_void IDENT '(' params? ')' ;                    (* the target by signature *)
 uses        = 'uses' local (',' local)* ;
-local       = 'var'? 'local' IDENT ':' type ('#' INT)? ;                 (* by name; #n: the n-th of its type *)
-point       = 'around' 'call' callee selector? block                     (* @WrapOperation *)
-            | 'at' 'call' callee selector? '(' IDENT ')' block           (* @ModifyArg: the argument by name *)
-            | 'before' 'call' callee selector? uses? block               (* @Inject INVOKE *)
-            | 'after' 'call' callee selector? uses? block                (* @Inject INVOKE, shift AFTER *)
-            | 'at' ('read' | 'write') IDENT selector? uses? block        (* @Inject FIELD *)
-            | 'at' 'new' type selector? uses? block                      (* @Inject NEW *)
-            | 'constant' literal '->' expr selector?                     (* @ModifyConstant *)
-            | 'local' IDENT ':' type ('#' INT)? '=' expr ;               (* @ModifyVariable *)
-callee      = path ('(' (type (',' type)*)? ')')? ;                     (* aiStep(), Vec3.add *)
-selector    = 'first' | 'last' | 'where' expr ;
-priority    = 'priority' INT ;
+local       = 'var'? 'local' type IDENT ('#' INT)? ;                   (* by name; #n: the n-th of its type *)
+point       = 'around' 'call' callee selector? block                   (* @WrapOperation *)
+            | 'at' 'call' callee selector? '(' IDENT ')' block         (* @ModifyArg: the argument by name *)
+            | 'before' 'call' callee selector? uses? block             (* @Inject INVOKE *)
+            | 'after' 'call' callee selector? uses? block              (* @Inject INVOKE, shift AFTER *)
+            | 'at' ('read' | 'write') IDENT selector? uses? block      (* @Inject FIELD *)
+            | 'at' 'new' type selector? uses? block                    (* @Inject NEW *)
+            | 'constant' literal '=>' expr selector? ';'               (* @ModifyConstant *)
+            | 'local' type IDENT ('#' INT)? '=' expr ';' ;             (* @ModifyVariable *)
+callee      = path ('(' (type (',' type)*)? ')')? ;                   (* AiStep(), Vec3.Add *)
+selector    = 'first' | 'last' | 'where' '(' expr ')' ;
 ```
 
 In a patch body:
 
-- `self` is the patched object; its members are reachable unqualified
-  (`shield`, `level`); the method's parameters by their names.
+- `this` is the patched object; its members are reachable unqualified
+  (`Shield`, `Level`); the method's parameters by their names.
 - `result` (in `after`) is the method's value, assignable.
-- `skip expr?` (in `before`) ends the method with that value; falling
+- `skip expr?;` (in `before`) ends the method with that value; falling
   through runs it.
 - `proceed(args?)` (in `around`, `read`, `write`) is the original; not
   calling it skips it.
@@ -373,199 +462,199 @@ In a patch body:
 ## 7. One file, every form
 
 ```ys
-use yog.ui
+using Yog.Ui;
 
-mod charge {
-    version = "1.0.0"
-    targets = mc 1.20.1..26.2
-    resources = "charge.yres"
+mod Charge {
+    Version = "1.0.0";
+    Targets = mc 1.20.1..26.2;
+    Resources = "charge.yres";
 }
 
-unit Energy                              // a mod's own unit: 100Energy
+unit Energy;                                 // a mod's own unit: 100Energy
 
-record Link(from: Pos, to: Pos)
+record Link(Pos From, Pos To);
 
-union Mode { Idle, Charging(rate: Int), Full }
+union Mode { Idle, Charging(int Rate), Full }
+
+component Charge(Energy capacity) {
+    saved synced Energy Energy in 0..capacity = 0 was Power: int;
+    public Energy Capacity => capacity;
+    public Energy Room => capacity - Energy;
+
+    public void Push(Charge into) {
+        var moved = Math.Min(Energy, into.Room);
+        into.Energy += moved;
+        Energy -= moved;
+    }
+}
 
 extend Player {
-    val isCharged: Bool => inventory.any { it is Battery b and b.charge > 0 }
+    saved int Visits = 0;
+    public bool IsCharged => Inventory.Any { it is Battery b && b.Charge.Energy > 0 };
 }
 
-block Charger {
-    hardness = res.charger.hardness
-    drops = self
+block Charger has Charge(Res.Charger.Capacity) {
+    Hardness = Res.Charger.Hardness;
+    Drops = this;
 
-    saved synced var energy: Energy in 0..res.charger.capacity = 0 was power: Int
-    saved var mode: Mode = Idle
-    slots inventory[4] of Battery
-    tune let rate = 4
+    saved Mode Mode = Mode.Idle;
+    Slots<Battery> Inventory = new(4);
+    tune int Rate = 4;
 
-    server on tick {
-        if level.isDay { energy += rate }
-        for b in inventory {
-            let moved = min(energy, b.room)
-            b.charge += moved
-            energy -= moved
-        }
-        mode = match energy {
-            0 -> Idle
-            energy.max -> Full
-            else -> Charging(rate)
-        }
+    server on Tick {
+        foreach (var battery in Inventory) Charge.Push(battery.Charge);
+        Mode = Charge.Energy switch {
+            0 => Mode.Idle,
+            var e when e == Charge.Capacity => Mode.Full,
+            _ => new Mode.Charging(Rate),
+        };
     }
 
-    on use(p) { p.open(ChargerScreen(self)) }
+    on Use(Player player) { player.Open(new ChargerScreen(this)); }
 }
 
-item Battery {
-    stack = 1
-    saved synced var charge: Energy in 0..res.battery.capacity = 0
-    val room => charge.max - charge
-    tooltip => t"charge.battery.tooltip"(charge, charge.max)
+server system Solar(Charge charge, Block block) every 1t {
+    if (block.Level.IsDay) charge.Energy += Res.SolarRate;
 }
 
-recipe Battery shaped {
-    "RIR"
-    "IGI"
-    "RIR"
-    R = @item:minecraft:redstone
-    I = @item:minecraft:iron_ingot
-    G = @item:minecraft:gold_ingot
+item Battery has Charge(Res.Battery.Capacity) {
+    StackSize = 1;
+    Tooltip = t"charge.battery.tooltip"(Charge.Energy, Charge.Room);
 }
 
-player state {
-    saved var visits = 0
+recipe Battery : Shaped {
+    Pattern = ["RIR", "IGI", "RIR"];
+    Keys = ['R' => @item:minecraft:redstone, 'I' => @item:minecraft:iron_ingot, 'G' => @item:minecraft:gold_ingot];
 }
 
-client fn welcome(times: Int) {
-    toast(t"charge.welcome"(times))
+client void Welcome(int times) {
+    Toast(t"charge.welcome"(times));
 }
 
-on player.join(p) {
-    p.state.visits += 1
-    p.client.welcome(p.state.visits)
-    if p.state.visits == 1 { p.give(Battery()) }
+on Player.Join(Player player) {
+    player.Visits += 1;
+    player.Client.Welcome(player.Visits);
+    if (player.Visits == 1) player.Give(new Battery());
 }
 
-server on server.started {
-    Task.every(10s) {
-        let lonely = level.entities.near(spawn, 32b).where { it is Monster }.orderBy { it.distance }.take(5)
-        for m in lonely { m.glow(5s) }
-    }
+server on Server.Started {
+    Task.Every(10s) {
+        var lonely = Level.Entities.Near(Spawn, 32b).Where { it is Monster }.OrderBy { it.Distance }.Take(5);
+        foreach (var monster in lonely) monster.Glow(5s);
+    };
 }
 
-screen ChargerScreen(block: Charger) ui "charger.yui" {
-    val energy => block.energy
-    val fill => energy / energy.max
-    action dump() { block.energy = 0 }
+screen ChargerScreen(Charger block) : Ui("charger.yui") {
+    Energy Energy => block.Charge.Energy;
+    float Fill => Energy / block.Charge.Capacity;
+    server void Dump() { block.Charge.Energy = 0; }
 }
 
 command "charge" {
-    server fn fill(src: Sender, target: Player = src.player) requires src.isOp {
-        target.inventory.each<Battery> { it.charge = it.charge.max }
+    server void Fill(Sender source, Player target = source.Player) requires source.IsOp {
+        foreach (var battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
     }
 }
 
-version mc >= 1.21 {
-    fn armor(p: Player) -> Int = p.getArmorValue()
+version (mc >= 1.21) {
+    int Armor(Player player) => player.ArmorValue;
 } else {
-    fn armor(p: Player) -> Int = p.armorValue
+    int Armor(Player player) => player.GetArmorValue();
 }
 
 test "a charger fills a battery" {
-    let w = testWorld()
-    let c = w.place(Charger, at = origin)
-    c.energy = 100
-    let b = c.inventory.put(Battery())
-    w.tick(1t)
-    expect(b.charge == 100 and c.energy == 0)
+    var world = TestWorld();
+    var charger = world.Place<Charger>(Origin);
+    charger.Charge.Energy = 100;
+    var battery = charger.Inventory.Put(new Battery());
+    world.Tick(1t);
+    Expect(battery.Charge.Energy == 100 && charger.Charge.Energy == 0);
 }
 ```
 
 ```yns
 patch LivingEntity {
-    add saved var shield: Float = 0
-    add is Chargeable
+    add saved float Shield = 0;
+    add : IChargeable;
 
-    before hurt(source: DamageSource, amount: Float) -> Bool {
-        if shield >= amount {
-            shield -= amount
-            skip false
+    before bool Hurt(DamageSource source, float amount) {
+        if (Shield >= amount) {
+            Shield -= amount;
+            skip false;
         }
     }
 
-    after getMaxHealth() -> Float { result += shield / 2 }
+    after float GetMaxHealth() { result += Shield / 2; }
 
-    inside tick() {
-        around call aiStep() { if not level.isFrozen { proceed() } }
+    inside void Tick() {
+        around call AiStep() { if (!Level.IsFrozen) proceed(); }
     }
 
-    inside knockback(strength: Double, x: Double, z: Double) {
-        at call Vec3.add first (x) { x * 0.5 }
-        constant 0.4 -> 0.2
+    inside void Knockback(double strength, double x, double z) {
+        at call Vec3.Add first (x) { x * 0.5 }
+        constant 0.4 => 0.2;
     }
 }
 
 patch MinecraftServer {
-    after tickServer(hasTime: BooleanSupplier) uses local start: Long, var local spent: Long #1 {
-        if spent > res.limits.slowTick { warn("slow tick: {spent} ns") }
+    after void TickServer(BooleanSupplier hasTime) uses local long start, var local long spent #1 {
+        if (spent > Res.Limits.SlowTick) Log.Warn("slow tick: {spent} ns");
     }
 }
 
 patch Player {
-    read foodData {
-        if hasEffect(@effect:charge:overcharged) { FoodData.full } else { proceed() }
+    read FoodData {
+        return HasEffect(@effect:charge:overcharged) ? FoodData.Full : proceed();
     }
-    write experienceLevel(value) {
-        if value >= experienceLevel { proceed(value) }
+    write ExperienceLevel {
+        if (value >= ExperienceLevel) proceed(value);
     }
-    replace canEat(ignoreHunger: Bool) -> Bool {
-        ignoreHunger or foodData.needsFood() or (self as Chargeable).shield > 0
+    replace bool CanEat(bool ignoreHunger) {
+        return ignoreHunger || FoodData.NeedsFood() || (this as IChargeable)?.Shield > 0;
     }
-    priority 100
+    priority 100;
 }
 ```
 
 ## 8. Conversions
 
 Implicit only where a conversion is **lossless and always possible**; one
-that can fail is `as?` or a member giving an optional; a lossy one is an
-explicit call.
+that can fail is `as` (giving `null`) or a member giving a nullable; a
+lossy one is an explicit cast or call.
 
 | From → to | How | Why |
 |---|---|---|
-| `Block` → item | `block.item: Item?` | fire, water, portals have no item |
-| `Item` → block | `item.block: Block?` | only block items have one |
-| `Block` → `BlockState` | implicit (its default state); back: `state.block` | one default, no loss |
-| `Item` → `ItemStack` | implicit (one); back: `stack.item` | a stack's count and components are lost going back |
-| `Fluid` ↔ `Block` | `fluid.block: Block?`, `block.fluid: Fluid?` | not every fluid has a block |
+| `Block` → item | `block.Item: Item?` | fire, water, portals have no item |
+| `Item` → block | `item.Block: Block?` | only block items have one |
+| `Block` → `BlockState` | implicit (its default state); back: `state.Block` | one default, no loss |
+| `Item` → `ItemStack` | implicit (one); back: `stack.Item` | a stack's count and components are lost going back |
+| `Fluid` ↔ `Block` | `fluid.Block: Block?`, `block.Fluid: Fluid?` | not every fluid has a block |
 | content ↔ tag | never; `x in #tag` | a tag is a set |
 | `Seconds` → `Ticks` | implicit (×20, exact) | |
-| `Ticks` → `Seconds` | explicit `t.seconds` (fractional) | `7t` is 0.35 s |
-| `Ticks` ↔ `Duration` | never implicit | game time vs wall time: `/tick rate` and lag make 20 t ≠ 1 s |
-| `Blocks` → `Double` | implicit; back explicit | a bare number could be anything |
-| `Int` → `Float` / `Double` | implicit (beyond 2⁵³ to `Double`: a warning) | widening |
-| `Float` → `Int` | explicit with a rounding: `floor()`, `round()`, `toInt()` (truncates) | coordinates need `floor`: −0.5 is block −1 |
-| `Vec3` → `Pos` | explicit `v.blockPos` (floor); `Pos` → `Vec3`: `pos.center` | |
-| `Int` → `Int in a..b` | a literal checked at build; an expression: `clamp(…)` or `as?` | a clamp is visible |
-| `Str` → `Text` | implicit (literal text) | |
-| `Text` → `Str` | `text.resolve()`, `client` only | it needs the client's language |
-| a mod's units | declared conversions only (`unit FE = Energy * 1`); different quantities never mix | |
-| `Entity` → subtype | `as?` → optional; `is` in `if` / `match` narrows | a downcast can fail |
+| `Ticks` → `Seconds` | explicit `t.Seconds` (fractional) | `7t` is 0.35 s |
+| `Ticks` ↔ `TimeSpan` | never implicit | game time vs wall time: `/tick rate` and lag make 20 t ≠ 1 s |
+| `Blocks` → `double` | implicit; back explicit | a bare number could be anything |
+| `int` → `long` / `float` / `double` | implicit (as C#) | widening |
+| `float` → `int` | `(int)x` truncates, or `Math.Floor`, `Math.Round` | coordinates need `Floor`: −0.5 is block −1 |
+| `Vec3` → `Pos` | explicit `v.BlockPos` (floor); `Pos` → `Vec3`: `pos.Center` | |
+| `int` → `int in a..b` | a literal checked at build; an expression: `Math.Clamp(…)` or `as` | a clamp is visible |
+| `string` → `Text` | implicit (literal text) | |
+| `Text` → `string` | `text.Resolve()`, `client` only | it needs the client's language |
+| a mod's units | declared conversions only (`unit FE = Energy * 1;`); different quantities never mix | |
+| `Entity` → subtype | `as` → nullable; `is` patterns narrow | a downcast can fail |
 | another mod's content | `@item:create:wrench` is `Item?` unless that mod is required | it may be absent |
 
 Edge cases: a stack held after it's used up is an empty stack (as in the
-game), not `none`; an entity held in a `saved` field reads as `none` once
+game), not `null`; an entity held in a `saved` field reads as `null` once
 removed or unloaded (its type is always `Entity?` there); content missing
 on a targeted version is a diagnostic for that version, used only inside
 `version` blocks.
 
 ## 9. Generics
 
-One constraint form: `T: Base` (a class or interface).
+Constraints as in C#: `where T : Base` (a class, an interface or a
+component).
 
 ```ys
-fn heaviest<T: Entity>(list: List<T>) -> T? = list.maxBy { it.mass }
+T? Heaviest<T>(List<T> list) where T : Entity => list.MaxBy { it.Mass };
 ```
-
-`and` / `or` / `not` and `&&` / `||` / `!` are both kept.
