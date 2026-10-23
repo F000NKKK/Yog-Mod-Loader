@@ -18,26 +18,21 @@
 //!     );
 //! ```
 
-pub mod attr;
-pub mod component;
-pub mod event;
-pub mod image;
-pub mod inventory_ids;
-pub mod layout;
-mod render;
-pub mod rich;
-pub mod scroll;
-#[cfg(test)]
-mod state_tests;
-pub mod surface;
-pub mod text;
-pub mod textbox;
-pub mod theme;
-pub mod widget;
+mod drawing;
+mod elements;
+mod interaction;
+mod typography;
 
+pub use drawing::layout;
+pub use elements::{attr, component, image, inventory_ids, surface, theme, widget};
+pub use interaction::{event, scroll, textbox};
+pub use typography::{rich, text};
+
+pub use drawing::render::{
+    ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW, inv_slot_bevel,
+};
 pub use event::UiEvent;
 pub use layout::{Align, FlexDir, GridLines, LayoutNode, Rect, hit_path, node_at, set_focus};
-pub use render::{ICON_SIZE, INV_SLOT_FACE, INV_SLOT_LIGHT, INV_SLOT_SHADOW, inv_slot_bevel};
 pub use scroll::ScrollState;
 pub use surface::{Pointer, Surface};
 pub use textbox::{TextBoxEvent, TextBoxState};
@@ -79,7 +74,7 @@ impl UiRoot {
         text::use_host_metrics(ctx);
         image::use_host_images(ctx);
         let d2d = ctx.draw2d();
-        render::render_node(ctx, &d2d, &self.root, &self.layout_root);
+        drawing::render::render_node(ctx, &d2d, &self.root, &self.layout_root);
     }
 
     /// The tooltip of the innermost widget at `(mx, my)` that has one.
@@ -103,7 +98,7 @@ impl UiRoot {
     pub fn render_tooltip(ctx: &GfxContext, text: &str, mx: f32, my: f32) {
         text::use_host_metrics(ctx);
         let (sw, sh) = ctx.screen_size();
-        render::tooltip(&ctx.draw2d(), text, mx, my, sw as f32, sh as f32);
+        drawing::render::tooltip(&ctx.draw2d(), text, mx, my, sw as f32, sh as f32);
     }
 
     /// Find the deepest clickable widget at `(mx, my)` in screen coordinates.

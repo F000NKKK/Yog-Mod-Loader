@@ -99,7 +99,7 @@ pub(crate) fn render(d2d: &Draw2D, image: &Image, bx: Rect, clip: Option<Rect>) 
     if whole {
         // Drawn whole or not at all — like text lines and item icons.
         let inside = clip.is_none_or(|c| {
-            let c = c.outset(crate::render::CLIP_SLACK);
+            let c = c.outset(crate::drawing::render::CLIP_SLACK);
             dest.x >= c.x
                 && dest.y >= c.y
                 && dest.right() <= c.right()

@@ -29,7 +29,7 @@ pub use yog_ids::yog::DEFAULT_FONT;
 static GLYPH_WIDTHS: LazyLock<Vec<f32>> = LazyLock::new(|| {
     yog_data::built_in(
         "yog-ui's glyph widths",
-        include_str!("../data/glyph_widths.ydata"),
+        include_str!("../../data/glyph_widths.ydata"),
     )
 });
 /// The first character of [`GLYPH_WIDTHS`].
