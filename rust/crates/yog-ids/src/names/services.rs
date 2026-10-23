@@ -112,6 +112,8 @@ names! {
         CLOSE = crate::concatcp!(DOMAIN, crate::bus_word::CLOSE),
         /// Its picture now, to draw.
         FRAME = crate::concatcp!(DOMAIN, crate::word::FRAME),
+        /// A video full screen over the game.
+        CUTSCENE = crate::concatcp!(DOMAIN, crate::word::CUTSCENE),
     }
 
     service_net {

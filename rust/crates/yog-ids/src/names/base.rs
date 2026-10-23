@@ -107,6 +107,7 @@ names! {
         CENTER = "center",
         COLOR = "color",
         COUNT = "count",
+        CUTSCENE = "cutscene",
         DATA = "data",
         DEFAULT = "default",
         DOC = "doc",

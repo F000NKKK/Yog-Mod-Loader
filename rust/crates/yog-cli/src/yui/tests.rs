@@ -62,6 +62,21 @@ fn surfaces() {
 }
 
 #[test]
+fn a_video_is_an_image_of_the_mods_video() {
+    let (code, _) = generate_for(
+        &screen(r#"<Video w="160" h="90" source="intro" stretch="Fill"/>"#),
+        "s",
+        Some("m"),
+    )
+    .unwrap();
+    assert!(
+        code.contains(r#"widget::image("video:m:intro").stretch(::yog_api::ui::Stretch::Fill)"#),
+        "{code}"
+    );
+    assert!(generate_for(&screen(r#"<Video stretch="Fill"/>"#), "s", None).is_err());
+}
+
+#[test]
 fn image_sources() {
     let (code, warnings) = generate_for(
             &screen(r##"<Image w="156" h="29" source="item:apple" stretch="UniformToFill" tint="#80FFFFFF"/>"##),

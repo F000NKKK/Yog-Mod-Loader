@@ -24,7 +24,7 @@ use yog_abi::YogStr;
 
 // ── 2D convenience (JNI — uses MC's DrawContext / text renderer) ──────────────
 
-pub(super) unsafe extern "C" fn gfx_draw2d_rect(x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
+pub(crate) unsafe extern "C" fn gfx_draw2d_rect(x1: f32, y1: f32, x2: f32, y2: f32, color: u32) {
     crate::jni_util::guard("gfx_draw2d_rect", || unsafe {
         let _: Option<()> = host!(
             "dev/yog/NativeDraw",

@@ -56,9 +56,18 @@ host-side stream that skips ahead — later.
 - `yog_api::video::Player::open("mod:intro")` (client): `play`, `pause`,
   `seek`, and `frame()` — the texture to draw (an image source), its size,
   where it is; dropped, it's closed.
-- `<Video src="@video:mod:intro" autoplay loop/>` in `.yui`.
-- `yog_api::video::cutscene("mod:intro", skippable)`: full screen over the
-  game, Esc skips it when allowed.
+- An image source `video:mod:intro`: drawn anywhere a picture is (`<Image>`,
+  a background, `draw2d.image`), it plays from its start when first drawn
+  and its player goes once it's no longer drawn. `<Video source="intro"
+  stretch="Uniform"/>` in `.yui` is that, the mod's own video by default;
+  the screen designer shows its first frame.
+- `yog_api::video::cutscene("mod:intro", skippable)`: the runtime's screen
+  `yog:cutscene`, the video letterboxed on black over the game (modal, not
+  paused — a paused game pauses its sounds); it closes at the end, Esc
+  skips it when allowed.
+- In the world: a player's `frame().texture` is a texture like any other,
+  for the mod's own quads. Entities' and models' textures naming a video
+  (hosts asking the runtime for its frame as they bind it) — later.
 
 ## Stages
 
@@ -66,5 +75,5 @@ host-side stream that skips ahead — later.
 2. The build: `.yres` videos, `.yvideo` compiled (source first, montage after).
 3. The decoder (`yog-media`) and the clock (`yog-registry`), tested on built videos.
 4. The runtime's players, the texture, the sound; the API.
-5. `<Video>`, cutscenes, the world, entities and models.
+5. `<Video>` and `video:` images, cutscenes (done); entities' and models' textures.
 6. Yog-IDLE: a video designer — player, the DAW with video tracks.

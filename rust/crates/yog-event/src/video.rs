@@ -35,6 +35,14 @@ pub struct Frame {
     pub handle: u32,
 }
 
+/// Plays video `id` full screen over the game till its end; `skippable`:
+/// Esc ends it early. Whether it started.
+#[derive(Debug, Clone, yog_data::Schema)]
+pub struct Cutscene {
+    pub id: String,
+    pub skippable: bool,
+}
+
 /// A player's picture and where it is.
 #[derive(Debug, Clone, Default, PartialEq, yog_data::Schema)]
 pub struct Picture {

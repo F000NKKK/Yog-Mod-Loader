@@ -222,6 +222,15 @@ fn draw_sprite(env: &mut JNIEnv, source: &str, sp: &Sprite, dest: Rect, tint: Co
     }
 }
 
+/// The part `uv` of a picture of `size` drawn: all of it when `uv` is empty.
+fn region(uv: Rect, size: Vec2) -> Rect {
+    if uv.w > 0.0 && uv.h > 0.0 {
+        uv
+    } else {
+        Rect::new(0.0, 0.0, size.x, size.y)
+    }
+}
+
 /// `draw2d_image` — see `YogGfxApi::draw2d_image`.
 #[allow(clippy::too_many_arguments)]
 pub(crate) unsafe extern "C" fn gfx_draw2d_image(
@@ -265,14 +274,18 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
                 }
                 Some(ImageSource::Texture(id)) => match texture_size(&mut env, &id) {
                     Some(size) => {
-                        let uv = if uw > 0.0 && vh > 0.0 {
-                            Rect::new(u, v, uw, vh)
-                        } else {
-                            Rect::new(0.0, 0.0, size.x, size.y)
-                        };
+                        let uv = region(Rect::new(u, v, uw, vh), size);
                         draw_texture(&mut env, &id, dest, Region { uv, texture: size }, tint);
                     }
                     None => warn_once(source, &format!("texture {id} not found")),
+                },
+                Some(ImageSource::Video(id)) => match crate::video::ambient::frame(&mut env, &id) {
+                    Some(p) => {
+                        let size = Vec2::new(p.width as f32, p.height as f32);
+                        let uv = region(Rect::new(u, v, uw, vh), size);
+                        draw_texture(&mut env, &p.texture, dest, Region { uv, texture: size }, tint);
+                    }
+                    None => warn_once(source, &format!("video {id} not found")),
                 },
                 Some(ImageSource::ModPath(_)) => warn_once(
                     source,
@@ -280,7 +293,7 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
                 ),
                 None => warn_once(
                     source,
-                    "not an image source (item:, block:, sprite:, <ns>:<path>)",
+                    "not an image source (item:, block:, sprite:, video:, <ns>:<path>)",
                 ),
             }
         }
@@ -307,6 +320,9 @@ pub(crate) unsafe extern "C" fn gfx_image_size(source: YogStr, w: *mut f32, h: *
             }
             Some(ImageSource::Texture(id)) => {
                 crate::jni_util::attached_env().and_then(|mut env| texture_size(&mut env, &id))
+            }
+            Some(ImageSource::Video(id)) => {
+                crate::video::size(&id).map(|(w, h)| Vec2::new(w as f32, h as f32))
             }
             Some(ImageSource::ModPath(_)) | None => None,
         };

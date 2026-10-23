@@ -142,4 +142,5 @@ services! {
     video::Seek => ids::service_video::SEEK, bool;
     video::Close => ids::service_video::CLOSE, bool;
     video::Frame => ids::service_video::FRAME, Option<video::Picture>;
+    video::Cutscene => ids::service_video::CUTSCENE, bool;
 }

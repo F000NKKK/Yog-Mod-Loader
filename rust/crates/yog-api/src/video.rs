@@ -15,9 +15,18 @@
 //! ```
 
 pub use yog_event::video::Picture;
-use yog_event::video::{Close, Frame, Open, Play, Seek};
+use yog_event::video::{Close, Cutscene, Frame, Open, Play, Seek};
 
 use crate::call;
+
+/// Plays video `id` full screen over the game till its end (a cutscene);
+/// `skippable`: Esc ends it early. Whether it started.
+pub fn cutscene(id: &str, skippable: bool) -> bool {
+    call(&Cutscene {
+        id: id.to_owned(),
+        skippable,
+    }) == Some(true)
+}
 
 /// A player of one video, paused at its start when opened; closed when dropped.
 #[derive(Debug, PartialEq, Eq)]

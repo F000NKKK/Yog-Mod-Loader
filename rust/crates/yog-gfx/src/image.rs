@@ -38,6 +38,9 @@ pub enum ImageSource {
     ModPath(String),
     /// A texture resource id, `<ns>:textures/<path>.png`.
     Texture(String),
+    /// `video:<id>` — a mod's video (`mymod:intro`), playing while it's
+    /// drawn: from its start when it's first drawn, let go when it isn't.
+    Video(String),
 }
 
 /// Side of the square 1.20.1 GUI textures most legacy regions live in.
@@ -83,6 +86,7 @@ impl std::fmt::Display for ImageSource {
             ImageSource::Sprite(name) => write!(f, "{}:{name}", scheme::SPRITE),
             ImageSource::ModPath(path) => write!(f, "{}:{path}", scheme::MOD),
             ImageSource::Texture(id) => f.write_str(id),
+            ImageSource::Video(id) => write!(f, "{}:{id}", scheme::VIDEO),
         }
     }
 }
@@ -100,6 +104,7 @@ impl ImageSource {
             scheme::BLOCK => ImageSource::Block(yog_ids::qualify(rest.trim())),
             scheme::SPRITE => ImageSource::Sprite(rest.to_string()),
             scheme::MOD => ImageSource::ModPath(rest.to_string()),
+            scheme::VIDEO => ImageSource::Video(rest.trim().to_string()),
             ns if !ns.is_empty() => ImageSource::Texture(texture_id(ns, rest)),
             _ => return None,
         })

@@ -122,6 +122,16 @@ pub(crate) fn picture(root: &Path, set: &str, name: &str) -> Option<Picture> {
 
 /// Sound `@<set>.<name>` of the mod at `root`, as stored (any format the build converts).
 pub(crate) fn sound(root: &Path, set: &str, name: &str) -> Option<Vec<u8>> {
+    stored(root, set, name, Kind::Sound)
+}
+
+/// Video `@<set>.<name>` of the mod at `root`, as stored (any format ffmpeg reads).
+pub(crate) fn video(root: &Path, set: &str, name: &str) -> Option<Vec<u8>> {
+    stored(root, set, name, Kind::Video)
+}
+
+/// The bytes of entry `@<set>.<name>` of `kind` of the mod at `root`.
+fn stored(root: &Path, set: &str, name: &str, kind: Kind) -> Option<Vec<u8>> {
     let file = root
         .join(yog_ids::project::RESOURCES)
         .join(Format::Res.file(set));
@@ -129,7 +139,7 @@ pub(crate) fn sound(root: &Path, set: &str, name: &str) -> Option<Vec<u8>> {
     yog_formats::yres::parse(&text)
         .ok()?
         .into_iter()
-        .find(|e| e.name == name && e.kind == Kind::Sound)
+        .find(|e| e.name == name && e.kind == kind)
         .and_then(|e| match e.value {
             Value::Bytes(b) => Some(b),
             _ => None,

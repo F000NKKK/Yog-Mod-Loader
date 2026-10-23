@@ -3,7 +3,7 @@
 
 use std::fmt::Write as _;
 
-use yog_gfx::image::Stretch;
+use yog_gfx::image::{ImageSource, Stretch};
 use yog_ids::yui as y;
 use yog_ids::yui_attr as at;
 use yog_ui::attr::Attr;
@@ -104,6 +104,7 @@ impl Gen {
             y::SLOT => slot(el)?,
             y::PLAYER_INVENTORY => "widget::player_inventory()".to_string(),
             y::IMAGE => self.image(el)?,
+            y::VIDEO => self.video(el)?,
             y::SURFACE => self.surface(el)?,
             _ if is_component => component_expr(el)?,
             _ => "widget::spacer()".to_string(),
@@ -210,12 +211,36 @@ impl Gen {
             })?
             .trim();
         let source = image_source(el, at::SOURCE, source, self.mod_id.as_deref())?;
+        self.picture(el, &source)
+    }
+
+    /// `widget::image("video:<id>")` for a `<Video>`: its `source` a video
+    /// (the mod's own when it has no namespace), plus `stretch`/`uv`/`tint`.
+    fn video(&mut self, el: &Element) -> Result<String, Diagnostic> {
+        let id = el
+            .attr(at::SOURCE)
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| {
+                Diagnostic::from("<Video> needs a source (e.g. source=\"mymod:intro\")".to_string())
+                    .at_line(el.line)
+            })?;
+        let id = match &self.mod_id {
+            Some(m) if !id.contains(yog_ids::sep::NAMESPACE) => yog_ids::join(m, id),
+            _ => id.to_owned(),
+        };
+        self.picture(el, &ImageSource::Video(id).to_string())
+    }
+
+    /// `widget::image(source)` with `el`'s `stretch`/`uv`/`tint`.
+    fn picture(&mut self, el: &Element, source: &str) -> Result<String, Diagnostic> {
+        let (line, kind) = (el.line, &el.name);
         let mut expr = format!("widget::image({source:?})");
         if let Some(v) = el.attr(at::STRETCH) {
             let names = || Stretch::ALL.map(|(_, n)| n).join(", ");
             let s = Stretch::parse(v).map(Stretch::name).ok_or_else(|| {
                 Diagnostic::from(format!(
-                    "<Image> stretch=\"{v}\": expected one of {}",
+                    "<{kind}> stretch=\"{v}\": expected one of {}",
                     names()
                 ))
                 .at_line(line)
@@ -230,7 +255,7 @@ impl Gen {
                 .collect::<Result<_, _>>()?;
             let [u, vv, w, h] = nums[..] else {
                 return Err(Diagnostic::from(format!(
-                    "<Image> uv=\"{v}\": expected \"u v width height\""
+                    "<{kind}> uv=\"{v}\": expected \"u v width height\""
                 ))
                 .at_line(line));
             };

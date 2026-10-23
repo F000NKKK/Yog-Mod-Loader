@@ -24010,6 +24010,124 @@ public final class YogServices {
                 });
             }
         }
+
+        /** Plays video `id` full screen over the game till its end; `skippable`: Esc ends it early. Whether it started. */
+        public record Cutscene(String id, boolean skippable) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("id", id);
+                m.put("skippable", skippable);
+                return m;
+            }
+
+            public static Cutscene fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Cutscene(YogData.str(m.get("id"), ""), YogData.bool(m.get("skippable"), false));
+            }
+
+            public static Cutscene fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.id);
+                p.putBool(this.skippable);
+                p.end(at);
+            }
+
+            public static Cutscene unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_id = u.more(end) ? u.getStr() : "";
+                boolean f_skippable = u.more(end) ? u.getBool() : false;
+                u.leave(end);
+                return new Cutscene(f_id, f_skippable);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Cutscene fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Cutscene fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Cutscene readFrame(YogFrame.Unpacker u) {
+                Cutscene v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Cutscene} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); u.skip(1); } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String id() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public boolean skippable() {
+                    if (o1 < 0) return false;
+                    u.seek(o1);
+                    return u.getBool();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceVideo.CUTSCENE);
+            }
+
+            public boolean call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Cutscene, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+        }
     }
 
     /** `world`. */

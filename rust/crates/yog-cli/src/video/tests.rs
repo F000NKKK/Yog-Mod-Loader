@@ -114,3 +114,30 @@ fn rendered_packets_decode_from_the_start_and_from_a_keyframe() {
     };
     assert!(decode(&mut d, &r, &seek).iter().all(red));
 }
+
+#[test]
+fn a_poster_is_the_first_frame_at_the_size_shown() {
+    use yog_formats::yres::{Entry, Kind, Value};
+    let root = std::env::temp_dir().join(format!("yog-poster-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let res = root.join(yog_ids::project::RESOURCES);
+    std::fs::create_dir_all(res.join(yog_formats::video::DIR).join("cut")).unwrap();
+    let entry = Entry {
+        name: "intro".into(),
+        kind: Kind::Video,
+        value: Value::Bytes(source()),
+        comment: None,
+        key: None,
+        line: 0,
+    };
+    std::fs::write(res.join("Videos.yres"), yog_formats::yres::write(&[entry])).unwrap();
+    std::fs::write(
+        res.join(yog_formats::video::DIR).join("cut/intro.yvideo"),
+        r#"{ source: "@Videos.intro", width: 64 }"#,
+    )
+    .unwrap();
+    let img = poster(&root, "m:cut.intro").unwrap();
+    assert_eq!((img.width, img.height), (64, 36));
+    assert!(poster(&root, "m:nope").is_none());
+    let _ = std::fs::remove_dir_all(&root);
+}

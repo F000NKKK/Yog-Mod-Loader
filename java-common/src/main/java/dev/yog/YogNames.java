@@ -105,6 +105,7 @@ public final class YogNames {
         public static final String CENTER = "center";
         public static final String COLOR = "color";
         public static final String COUNT = "count";
+        public static final String CUTSCENE = "cutscene";
         public static final String DATA = "data";
         public static final String DEFAULT = "default";
         public static final String DOC = "doc";
@@ -144,7 +145,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FRAME, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, DYNAMIC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FRAME, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, CUTSCENE, DATA, DEFAULT, DOC, DYNAMIC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {
@@ -792,9 +793,10 @@ public final class YogNames {
         public static final String SEEK = "yog:video/seek";
         public static final String CLOSE = "yog:video/close";
         public static final String FRAME = "yog:video/frame";
+        public static final String CUTSCENE = "yog:video/cutscene";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, OPEN, PLAY, SEEK, CLOSE, FRAME);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, OPEN, PLAY, SEEK, CLOSE, FRAME, CUTSCENE);
     }
 
     public static final class ServiceNet {
@@ -1422,9 +1424,10 @@ public final class YogNames {
         public static final String BLOCK = "block";
         public static final String SPRITE = "sprite";
         public static final String MOD = "mod";
+        public static final String VIDEO = "video";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, SPRITE, MOD);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, SPRITE, MOD, VIDEO);
     }
 
     public static final class File {
@@ -1598,13 +1601,14 @@ public final class YogNames {
         public static final String BOOK_SHEET = "yog:gui/book/book";
         public static final String CRAFTING_SHEET = "yog:gui/book/crafting";
         public static final String DESIGNER_SCREEN = "yog:designer";
+        public static final String CUTSCENE_SCREEN = "yog:cutscene";
         public static final String BOOK_TEXTURE = "yog:gui/book";
         public static final String DYNAMIC_SVG_PREFIX = "yog:dynamic/svg_";
         public static final String DYNAMIC_VIDEO_PREFIX = "yog:textures/dynamic/video_";
         public static final String DYNAMIC_TEXT_PREFIX = "yog:dynamic/text_";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_NBT, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_VIDEO_PREFIX, DYNAMIC_TEXT_PREFIX);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_NBT, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, CUTSCENE_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_VIDEO_PREFIX, DYNAMIC_TEXT_PREFIX);
     }
 
     public static final class GameFont {
@@ -1714,6 +1718,7 @@ public final class YogNames {
         public static final String TOGGLE_BUTTON = "ToggleButton";
         public static final String TEXT_BOX = "TextBox";
         public static final String IMAGE = "Image";
+        public static final String VIDEO = "Video";
         public static final String SURFACE = "Surface";
         public static final String SPACER = "Spacer";
         public static final String STAT_BAR = "StatBar";
@@ -1736,7 +1741,7 @@ public final class YogNames {
         public static final String DRAWN = "Drawn";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(SCREEN, COMPONENT, PROPERTY, EVENT, STYLE, CANVAS, COLUMN, ROW, GRID, ROW_DEFINITION, COLUMN_DEFINITION, ROW_DEFINITIONS, COLUMN_DEFINITIONS, SCROLL_VIEW, LABEL, BUTTON, TOGGLE_BUTTON, TEXT_BOX, IMAGE, SURFACE, SPACER, STAT_BAR, LIST_VIEW, ITEMS_CONTROL, CONTENT_PRESENTER, ITEM_SLOT, INV_SLOT, SLOT, PLAYER_INVENTORY, MACHINE, RECIPE_AREA, RECIPE_SLOT, RECIPE_RESULT, RECIPE_COUNT, BLOCK_SLOT, BOOK_HEADER, BOOK_TEXT, BOOK_ITEM, DRAWN);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(SCREEN, COMPONENT, PROPERTY, EVENT, STYLE, CANVAS, COLUMN, ROW, GRID, ROW_DEFINITION, COLUMN_DEFINITION, ROW_DEFINITIONS, COLUMN_DEFINITIONS, SCROLL_VIEW, LABEL, BUTTON, TOGGLE_BUTTON, TEXT_BOX, IMAGE, VIDEO, SURFACE, SPACER, STAT_BAR, LIST_VIEW, ITEMS_CONTROL, CONTENT_PRESENTER, ITEM_SLOT, INV_SLOT, SLOT, PLAYER_INVENTORY, MACHINE, RECIPE_AREA, RECIPE_SLOT, RECIPE_RESULT, RECIPE_COUNT, BLOCK_SLOT, BOOK_HEADER, BOOK_TEXT, BOOK_ITEM, DRAWN);
     }
 
     public static final class ServeRequest {

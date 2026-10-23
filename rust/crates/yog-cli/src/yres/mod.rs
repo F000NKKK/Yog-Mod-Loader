@@ -145,21 +145,22 @@ pub(crate) fn find(root: &Path) -> Vec<PathBuf> {
 /// What's wrong with `e`'s value for its type, if anything — the build's
 /// rule, which editors show too.
 pub(crate) fn value_problem(e: &Entry) -> Option<String> {
-    let media = |what: &str| format!("{:?}: {what} are bytes (`@bytes:…`)", e.name);
     match (e.kind, &e.value) {
-        (Kind::Image | Kind::File | Kind::Sound | Kind::Video, Value::Bytes(_))
-            if !yog_ids::valid_path(&e.name.replace('.', yog_ids::sep::PATH)) =>
+        (k, Value::Bytes(_))
+            if k.holds_bytes()
+                && !yog_ids::valid_path(&e.name.replace('.', yog_ids::sep::PATH)) =>
         {
             Some(format!(
                 "{:?}: Minecraft resource paths are lower case — only a-z, 0-9, `_`, `-`, `.`",
                 e.name
             ))
         }
-        (Kind::Image | Kind::File | Kind::Sound | Kind::Video, Value::Bytes(_)) => None,
-        (Kind::Image, _) => Some(media("images")),
-        (Kind::File, _) => Some(media("files")),
-        (Kind::Sound, _) => Some(media("sounds")),
-        (Kind::Video, _) => Some(media("videos")),
+        (k, Value::Bytes(_)) if k.holds_bytes() => None,
+        (k, _) if k.holds_bytes() => Some(format!(
+            "{:?}: a {} entry is bytes (`@bytes:…`)",
+            e.name,
+            k.name()
+        )),
         (Kind::Color, _) => parse_color(e.text()).is_none().then(|| {
             format!(
                 "{:?}: `{}` isn't a color — #RRGGBB or #AARRGGBB",
@@ -173,6 +174,7 @@ pub(crate) fn value_problem(e: &Entry) -> Option<String> {
         (Kind::Number, _) => Some(format!("{:?}: a number", e.name)),
         (Kind::Bool, _) => Some(format!("{:?}: true or false", e.name)),
         (Kind::String, _) => Some(format!("{:?}: a text", e.name)),
+        (Kind::Image | Kind::File | Kind::Sound | Kind::Video, _) => None,
     }
 }
 

@@ -82,6 +82,9 @@ mod tests {
         let v = yog_data::from_text::<Video>(r#"{ source: "@Videos.intro" }"#)
             .unwrap()
             .value;
-        assert_eq!((v.quality, v.sound, v.looping, v.volume), (QUALITY, true, false, 1.0));
+        assert_eq!(
+            (v.quality, v.sound, v.looping, v.volume),
+            (QUALITY, true, false, 1.0)
+        );
     }
 }

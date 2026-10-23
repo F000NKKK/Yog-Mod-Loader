@@ -7,6 +7,9 @@ use std::cell::Cell;
 
 /// Sends `ev` to screen `id`'s input handlers; `true` when one used it (cancelled it).
 fn dispatch(id: &str, ev: &str) -> bool {
+    if let Some(used) = crate::video::cutscene::input(id, ev) {
+        return used;
+    }
     !crate::bus::allowed(&yog_event::client::ui::Input {
         ui_id: id.to_owned(),
         event: ev.to_owned(),
@@ -289,6 +292,9 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeUIRender<'l>(
         let ctx = unsafe { yog_gfx::GfxContext::from_raw(&gfx as *const _) };
         let sw = screen_w as f32;
         let sh = screen_h as f32;
+        if crate::video::cutscene::render(&mut env, &id, (sw, sh)) {
+            return;
+        }
 
         // Book renderer path (books registered via register_book).
         // Only use if the book has a successfully parsed layout (ui.is_some()).

@@ -100,6 +100,11 @@ pub(crate) fn widget(node: &YuiNode) -> Widget {
     w
 }
 
+/// Video `id`'s first frame.
+fn video(id: &str) -> Option<Arc<Image>> {
+    with_doc(|d| d.and_then(|d| d.res.video(id)))
+}
+
 fn texture(id: &str) -> Option<Arc<Image>> {
     if let Some(sheet) = book_sheet(id) {
         return Some(sheet);
@@ -237,6 +242,7 @@ pub(crate) fn source_size(source: &str) -> Option<Vec2> {
         ImageSource::Texture(id) => {
             texture(&id).map(|i| Vec2::new(i.width as f32, i.height as f32))
         }
+        ImageSource::Video(id) => video(&id).map(|i| Vec2::new(i.width as f32, i.height as f32)),
         ImageSource::ModPath(_) => None,
     }
 }
@@ -253,6 +259,20 @@ fn blit_px(c: &mut Canvas, img: &Image, dest: Rect, src: Rect, t: Color) {
         Rect::new(src.x / iw, src.y / ih, src.w / iw, src.h / ih),
         t,
     );
+}
+
+/// `region` of `img` (all of it when empty) into `dest`; the missing mark without it.
+fn part(c: &mut Canvas, img: Option<Arc<Image>>, dest: Rect, region: Rect, t: Color) {
+    let Some(img) = img else {
+        missing(c, dest);
+        return;
+    };
+    let src = if region.w > 0.0 && region.h > 0.0 {
+        region
+    } else {
+        whole(&img)
+    };
+    blit_px(c, &img, dest, src, t);
 }
 
 /// All of `img`, in its pixels.
@@ -429,17 +449,8 @@ pub(crate) fn draw(c: &mut Canvas, source: &str, dest: Rect, region: Rect, t: Co
                 None => missing(c, dest),
             },
         },
-        Some(ImageSource::Texture(id)) => match texture(&id) {
-            Some(img) => {
-                let src = if region.w > 0.0 && region.h > 0.0 {
-                    region
-                } else {
-                    whole(&img)
-                };
-                blit_px(c, &img, dest, src, t);
-            }
-            None => missing(c, dest),
-        },
+        Some(ImageSource::Texture(id)) => part(c, texture(&id), dest, region, t),
+        Some(ImageSource::Video(id)) => part(c, video(&id), dest, region, t),
         Some(ImageSource::ModPath(_)) | None => missing(c, dest),
     }
 }

@@ -4,8 +4,11 @@
 
 mod av1;
 mod ivf;
+mod poster;
 mod probe;
 mod size;
+
+pub(crate) use poster::poster;
 
 use yog_formats::video::{BEST_QUALITY, Video, WORST_QUALITY};
 

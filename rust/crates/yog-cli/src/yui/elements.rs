@@ -97,7 +97,7 @@ pub(super) fn kind_attrs(kind: &str) -> &'static [&'static str] {
         yog_ids::yui::ITEM_SLOT => &[yog_ids::yui_attr::ITEM],
         yog_ids::yui::INV_SLOT => &[yog_ids::yui_attr::ITEM, yog_ids::yui_attr::COUNT],
         yog_ids::yui::SLOT => &[yog_ids::yui_attr::INDEX, yog_ids::yui_attr::ACCEPTS],
-        yog_ids::yui::IMAGE => &[
+        yog_ids::yui::IMAGE | yog_ids::yui::VIDEO => &[
             yog_ids::yui_attr::SOURCE,
             yog_ids::yui_attr::STRETCH,
             yog_ids::yui_attr::UV,

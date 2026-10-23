@@ -3,6 +3,8 @@
 //! frame is decoded when it's asked for (each frame it's drawn), so only
 //! what's seen is decoded.
 
+pub(crate) mod ambient;
+pub(crate) mod cutscene;
 mod player;
 
 use std::collections::HashMap;
@@ -24,6 +26,13 @@ struct Players {
 }
 
 static PLAYERS: Mutex<Option<Players>> = Mutex::new(None);
+
+/// Video `id`'s size, pixels.
+pub(crate) fn size(id: &str) -> Option<(u32, u32)> {
+    let videos = VIDEOS.read();
+    let def = videos.as_ref()?.get(id)?;
+    Some((def.width, def.height))
+}
 
 /// Stores a mod's video.
 pub(crate) fn register(def: VideoDef) {
@@ -83,4 +92,5 @@ pub(crate) fn provide_services() {
     provide::<video::Seek>(|s| with_player(s.handle, |v| v.seek(s.seconds)).is_some());
     provide::<video::Close>(close);
     provide::<video::Frame>(frame);
+    provide::<video::Cutscene>(cutscene::start);
 }

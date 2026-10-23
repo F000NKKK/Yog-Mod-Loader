@@ -145,8 +145,8 @@ impl Build<'_> {
             }
             let written = match e.kind {
                 Kind::String => self.text(e, &a, &mut texts),
-                Kind::Image | Kind::File | Kind::Sound | Kind::Video => self.medium(e, &a),
-                Kind::Color | Kind::Number | Kind::Bool => self.value(e, &a),
+                k if k.holds_bytes() => self.medium(e, &a),
+                _ => self.value(e, &a),
             };
             code.push_str(&written.unwrap_or_default());
         }

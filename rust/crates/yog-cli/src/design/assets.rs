@@ -373,6 +373,21 @@ impl Resources {
         self.vanilla.as_ref()?.read(&format!("{ns}/{path}"))
     }
 
+    /// Video `id`'s first frame (`mymod:intro`, the mod's own).
+    pub(crate) fn video(&self, id: &str) -> Option<Arc<Image>> {
+        type Cache = Mutex<HashMap<(PathBuf, String), Option<Arc<Image>>>>;
+        static CACHE: OnceLock<Cache> = OnceLock::new();
+        let root = self.mod_root.clone()?;
+        let cache = CACHE.get_or_init(Default::default);
+        let key = (root, id.to_string());
+        if let Some(hit) = cache.lock().get(&key) {
+            return hit.clone();
+        }
+        let image = crate::video::poster(&key.0, id).map(Arc::new);
+        cache.lock().insert(key, image.clone());
+        image
+    }
+
     /// A texture by full resource id (`minecraft:textures/item/apple.png`).
     pub(crate) fn texture(&self, id: &str) -> Option<Arc<Image>> {
         type Cache = Mutex<HashMap<(Option<PathBuf>, String), Option<Arc<Image>>>>;

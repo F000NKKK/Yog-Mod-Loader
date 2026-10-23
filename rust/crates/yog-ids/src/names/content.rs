@@ -20,6 +20,7 @@ names! {
         BLOCK = crate::kind::BLOCK,
         SPRITE = crate::word::SPRITE,
         MOD = crate::word::MOD,
+        VIDEO = crate::kind::VIDEO,
     }
 
     /// Yog's files with a fixed name.
@@ -213,6 +214,8 @@ names! {
         CRAFTING_SHEET = crate::concatcp!(BOOK_TEXTURE, crate::sep::PATH, "crafting"),
         /// A screen being designed in the IDE.
         DESIGNER_SCREEN = crate::id!(crate::ns::YOG, "designer"),
+        /// The screen a cutscene plays in (the runtime's own).
+        CUTSCENE_SCREEN = crate::id!(crate::ns::YOG, crate::word::CUTSCENE),
         /// A book's default texture (its sheet is [`BOOK_SHEET`]).
         BOOK_TEXTURE = crate::id!(crate::ns::YOG, crate::concatcp!(crate::word::GUI, crate::sep::PATH, crate::kind::BOOK)),
         /// The textures the runtime renders SVG images into: `<prefix><key>_<w>x<h>`.
@@ -332,6 +335,7 @@ names! {
         TOGGLE_BUTTON = "ToggleButton",
         TEXT_BOX = "TextBox",
         IMAGE = "Image",
+        VIDEO = "Video",
         SURFACE = "Surface",
         SPACER = "Spacer",
         STAT_BAR = "StatBar",

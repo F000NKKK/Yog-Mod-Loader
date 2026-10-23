@@ -29,6 +29,11 @@ impl Kind {
             Kind::Video => res_kind::VIDEO,
         }
     }
+
+    /// Whether its value is bytes (`@bytes:…`): a picture, a file, a sound, a video.
+    pub fn holds_bytes(self) -> bool {
+        matches!(self, Kind::Image | Kind::File | Kind::Sound | Kind::Video)
+    }
 }
 
 /// An entry's object form: `{ "type": ..., "value": ..., "comment": ..., ... }`.
@@ -189,18 +194,18 @@ fn read_entry(name: &str, v: &ValueRef, cx: &mut Reader) -> Option<Entry> {
         .and_then(|val| cx.at(Seg::Key("value".into()), |cx| scalar(val, cx)));
     let (o, value) = (o?, value?);
     let kind = o.kind.unwrap_or(kind_of(&value));
-    let fits = matches!(
-        (kind, &value),
+    let fits = match (kind, &value) {
+        (k, Value::Bytes(_)) => k.holds_bytes(),
         (Kind::Number, Value::Num(_))
-            | (Kind::Bool, Value::Bool(_))
-            | (Kind::String | Kind::Color, Value::Str(_))
-            | (Kind::Image | Kind::File | Kind::Sound, Value::Bytes(_))
-    );
+        | (Kind::Bool, Value::Bool(_))
+        | (Kind::String | Kind::Color, Value::Str(_)) => true,
+        _ => false,
+    };
     if !fits {
         let needs = match kind {
             Kind::Number => "number",
             Kind::Bool => "true/false",
-            Kind::Image | Kind::File | Kind::Sound => "bytes (`@bytes:…`)",
+            k if k.holds_bytes() => "bytes (`@bytes:…`)",
             _ => "string",
         };
         cx.at(Seg::Key("value".into()), |cx| {

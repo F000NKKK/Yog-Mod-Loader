@@ -12,9 +12,9 @@ pub mod montage;
 pub mod particle;
 pub mod recipe;
 pub mod sound;
-pub mod video;
 pub mod tags;
 pub mod texture;
+pub mod video;
 pub mod yres;
 pub mod yui;
 
