@@ -15,9 +15,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * The game's Yog Script mods: each {@code .yog}'s compiled scripts
- * ({@code scripts/*.jar}) loaded in a class loader of their own, its
- * {@link YsMod}s made. A mod that fails to load is reported; the others
+ * The game's Yog Script mods: each {@code .yog}'s scripts compiled for this
+ * game version ({@code scripts/<version>/*.jar}, its Java's) loaded in a
+ * class loader of their own, its {@link YsMod}s made. A mod that fails to load is reported; the others
  * load.
  */
 public final class YsMods {
@@ -29,24 +29,25 @@ public final class YsMods {
     /** What separates an archive's folders. */
     private static final String ZIP_SEP = "/";
 
-    /** Every {@code .yog} in {@code modsDir}: its scripts loaded. */
-    public static void load(Path modsDir) {
+    /** Every {@code .yog} in {@code modsDir}: its scripts for game version {@code mcVersion} loaded. */
+    public static void load(Path modsDir, String mcVersion) {
+        String folder = YogNames.Archive.SCRIPTS + ZIP_SEP + mcVersion + ZIP_SEP;
         try (DirectoryStream<Path> mods = Files.newDirectoryStream(modsDir, "*" + MOD_EXT)) {
             for (Path mod : mods) {
-                loadMod(mod);
+                loadMod(mod, folder);
             }
         } catch (IOException e) {
             YogLog.warn("Yog Script: " + modsDir + " can't be read: " + e.getMessage());
         }
     }
 
-    private static void loadMod(Path mod) {
+    private static void loadMod(Path mod, String folder) {
         try (ZipFile zip = new ZipFile(mod.toFile())) {
             var entries = zip.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry e = entries.nextElement();
                 String name = e.getName();
-                if (name.startsWith(YogNames.Archive.SCRIPTS + ZIP_SEP) && name.endsWith(JAR_EXT)) {
+                if (name.startsWith(folder) && name.endsWith(JAR_EXT)) {
                     start(extracted(zip, e), mod);
                 }
             }

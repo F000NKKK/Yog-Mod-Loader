@@ -213,7 +213,7 @@ public final class NativeBridge {
         YogHostServices.provideAll();
         nativeInit(YogNativeRuntime.modsDir(YogPlatform.gameDir()));
         // The mods' Yog Script, after the natives registered (it may call them).
-        dev.yog.script.YsMods.load(YogPlatform.gameDir().resolve(YogNativeRuntime.MODS_DIR));
+        dev.yog.script.YsMods.load(YogPlatform.gameDir().resolve(YogNativeRuntime.MODS_DIR), net.minecraft.SharedConstants.getCurrentVersion().getName());
         loaded = true;
     }
 

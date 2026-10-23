@@ -37,8 +37,9 @@ names! {
         MANIFEST = crate::concatcp!(crate::word::MOD, crate::sep::DOT, crate::Format::Data.ext()),
         /// Its native libraries, one folder per platform: `natives/linux-x86_64/libmymod.so`.
         NATIVES = "natives",
-        /// Its Yog Script compiled for the JVM: `scripts/<mod>.jar`, its mods
-        /// found by `ServiceLoader` (`dev.yog.script.YsMod`).
+        /// Its Yog Script compiled for the JVM, a jar per game version (its
+        /// Java's): `scripts/1.21.1/<mod>.jar`, its mods found by
+        /// `ServiceLoader` (`dev.yog.script.YsMod`).
         SCRIPTS = "scripts",
     }
 

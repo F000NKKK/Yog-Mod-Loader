@@ -10,20 +10,18 @@ use std::process::Command;
 use yog_data::Diagnostic;
 use yog_ids::script_problem;
 
-/// The Java the classes are for: the oldest the hosts run on (Minecraft
-/// 1.20.1's), so one jar serves every version.
-const JAVA_RELEASE: &str = "17";
 /// Where a jar lists a service's providers.
 const SERVICES_DIR: &str = "META-INF/services";
 /// What separates a package's names, in Java and as folders.
 const DOT: char = '.';
 const SLASH: char = '/';
 
-/// What a build of the JVM's needs: `javac`, what the code is compiled
-/// against (`java-common`'s jar), the package its classes go in, a folder
-/// to work in.
+/// What a build for one game version needs: `javac`, the Java the version
+/// runs (its `java_version`), what the code is compiled against (that
+/// version's loader jar), the package its classes go in, a folder to work in.
 pub struct JvmBuild<'a> {
     pub javac: &'a Path,
+    pub release: u32,
     pub classpath: &'a [PathBuf],
     pub package: &'a str,
     pub work: &'a Path,
@@ -74,7 +72,7 @@ fn javac(b: &JvmBuild<'_>, files: &[PathBuf], classes: &Path) -> Result<(), Vec<
     })?;
     let out = Command::new(b.javac)
         .arg("--release")
-        .arg(JAVA_RELEASE)
+        .arg(b.release.to_string())
         .arg("-encoding")
         .arg("UTF-8")
         .arg("-d")
