@@ -49,3 +49,68 @@ fn a_video_renders_into_av1_packets_and_a_sound() {
     let silent = render(&video(r#"{ source: "@V.a", sound: false }"#), &src).unwrap();
     assert!(silent.sound.is_none());
 }
+
+/// `r`'s frames `frames` decoded (after a reset when `reset`): each one's
+/// top-left pixel.
+fn decode(
+    d: &mut yog_media::video::Decoder,
+    r: &Rendered,
+    plan: &yog_registry::Plan,
+) -> Vec<[u8; 4]> {
+    if plan.reset {
+        d.reset();
+    }
+    let mut at = 0usize;
+    let mut out = Vec::new();
+    for (i, &n) in r.sizes.iter().enumerate() {
+        let packet = &r.packets[at..at + n as usize];
+        at += n as usize;
+        if !plan.frames.contains(&(i as u32)) {
+            continue;
+        }
+        let mut rgba = Vec::new();
+        let size = (r.width as usize, r.height as usize);
+        d.decode(packet, |planes, _| {
+            yog_media::video::yuv::to_rgba(planes, size, &mut rgba)
+        })
+        .unwrap()
+        .unwrap();
+        out.push([rgba[0], rgba[1], rgba[2], rgba[3]]);
+    }
+    out
+}
+
+#[test]
+fn rendered_packets_decode_from_the_start_and_from_a_keyframe() {
+    let mut cmd = ffmpeg();
+    cmd.args([
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=red:size=96x54:rate=10:duration=3",
+    ])
+    .args(["-c:v", "libvpx-vp9", "-f", "webm", STDOUT]);
+    let src = run(&mut cmd, "make a test video").unwrap();
+    let r = render(&video(r#"{ source: "@V.a" }"#), &src).unwrap();
+    assert_eq!(
+        r.keyframes.len(),
+        2,
+        "about every two seconds: {:?}",
+        r.keyframes
+    );
+    let key = r.keyframes[1];
+    let mut d = yog_media::video::Decoder::new().unwrap();
+    let all = yog_registry::Plan {
+        reset: true,
+        frames: 0..30,
+    };
+    let px = decode(&mut d, &r, &all);
+    assert_eq!(px.len(), 30);
+    let red = |p: &[u8; 4]| p[0] > 240 && p[1] < 16 && p[2] < 16 && p[3] == 255;
+    assert!(px.iter().all(red), "{:?}", px[0]);
+    let seek = yog_registry::Plan {
+        reset: true,
+        frames: key..key + 5,
+    };
+    assert!(decode(&mut d, &r, &seek).iter().all(red));
+}

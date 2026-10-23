@@ -4,6 +4,10 @@
 
 use yog_data::with::Raw;
 
+mod clock;
+
+pub use clock::{Clock, Plan};
+
 /// A compiled video (`mymod:intro`).
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct VideoDef {
@@ -100,7 +104,14 @@ mod tests {
     #[test]
     fn a_seek_starts_at_the_keyframe_before() {
         let v = def();
-        assert_eq!((v.keyframe_before(0), v.keyframe_before(1), v.keyframe_before(2)), (0, 0, 2));
+        assert_eq!(
+            (
+                v.keyframe_before(0),
+                v.keyframe_before(1),
+                v.keyframe_before(2)
+            ),
+            (0, 0, 2)
+        );
     }
 
     #[test]

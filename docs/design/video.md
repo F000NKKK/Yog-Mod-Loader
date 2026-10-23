@@ -33,9 +33,11 @@ cargo for all five, and AV1 packs smaller.
 
 ## Runtime
 
-`yog-video` decodes a definition's packets with rav1d into RGBA frames
-(YUV 4:2:0 → RGB, BT.709), a player keeping its own clock: play, pause,
-seek (from the keyframe before), loop. The runtime uploads the frame it's
+`yog_media::video` decodes packets with rav1d into RGBA frames (YUV 4:2:0
+→ RGB, BT.709 limited range, as the build encodes). Playing is pure logic
+on the definition (`yog_registry::{Clock, Plan}`) — play, pause, seek
+(from the keyframe before), loop — so the game and the editors play alike;
+yog-api, which mods build against, stays free of the decoder. The runtime uploads the frame it's
 on into a texture each client frame it changed; mods draw that texture as
 any other — a screen's `<Video>`, a quad in the world, an entity's or a
 model's texture — and the sound event plays with it (at a place in the
@@ -54,7 +56,7 @@ world, or not).
 
 1. Names, formats, the definition (`yog-ids`, `yog-formats`, `yog-registry`).
 2. The build: `.yres` videos, `.yvideo` compiled (source first, montage after).
-3. `yog-video`: the decoder and the player, tested on built videos.
+3. The decoder (`yog-media`) and the clock (`yog-registry`), tested on built videos.
 4. The runtime's players, the texture, the sound; the API.
 5. `<Video>`, cutscenes, the world, entities and models.
 6. Yog-IDLE: a video designer — player, the DAW with video tracks.

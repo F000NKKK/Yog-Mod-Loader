@@ -5,7 +5,7 @@ edition = { workspace = true }
 rust-version = { workspace = true }
 authors = { workspace = true }
 license = "MIT OR Apache-2.0"
-description = "Yog's media as the game takes it: pictures in any format decoded and written as PNG."
+description = "Yog's media as the game takes it: pictures in any format decoded and written as PNG, AV1 video decoded."
 
 [dependencies]
 yog-ids = { workspace = true }
@@ -15,3 +15,5 @@ yog-data = { workspace = true }
 image = { workspace = true }
 png = { workspace = true }
 resvg = { workspace = true }
+# Videos are AV1, decoded by dav1d's Rust port.
+rav1d = { workspace = true }

@@ -70,7 +70,7 @@ pub use item_looks::{ItemLooks, ItemTint, LookModels};
 pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
 pub use particles::{Blend, Frames, Lifetime, Particle, ParticleDef, ParticleRender};
 pub use tool_levels::{LevelTag, ToolLadder, ToolLevel};
-pub use videos::VideoDef;
+pub use videos::{Clock, Plan, VideoDef};
 
 mod blocks;
 mod entities;

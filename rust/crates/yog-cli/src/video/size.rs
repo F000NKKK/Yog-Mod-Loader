@@ -7,6 +7,9 @@ use yog_formats::video::Video;
 
 /// SVT-AV1's least width and height.
 pub(super) const ENCODER_MIN: u32 = 64;
+/// How the scaler turns the picture into YUV: BT.709, limited range, 4:2:0
+/// — as the game decodes it (`yog_media::video::yuv`).
+const TO_YUV: &str = ":out_color_matrix=bt709:out_range=tv,format=yuv420p";
 /// Sizes are multiples of this, and at least it.
 const EVEN: u32 = 2;
 
@@ -34,7 +37,7 @@ pub(super) fn shown(v: &Video, (sw, sh): (u32, u32)) -> (u32, u32) {
 /// `v`'s picture filters, shown at `(w, h)`: its frame rate, its size, its padding.
 pub(super) fn filters(v: &Video, (w, h): (u32, u32)) -> String {
     let mut f = v.fps.map(|fps| format!("fps={fps},")).unwrap_or_default();
-    f.push_str(&format!("scale={w}:{h}"));
+    f.push_str(&format!("scale={w}:{h}{TO_YUV}"));
     if w < ENCODER_MIN || h < ENCODER_MIN {
         let (pw, ph) = (w.max(ENCODER_MIN), h.max(ENCODER_MIN));
         f.push_str(&format!(",pad={pw}:{ph}"));
@@ -67,7 +70,13 @@ mod tests {
     #[test]
     fn a_small_picture_is_padded_up_to_the_encoders_least() {
         let v = video(r#"{ source: "@V.a", fps: 12.5 }"#);
-        assert_eq!(filters(&v, (320, 180)), "fps=12.5,scale=320:180");
-        assert_eq!(filters(&v, (64, 36)), "fps=12.5,scale=64:36,pad=64:64");
+        assert_eq!(
+            filters(&v, (320, 180)),
+            format!("fps=12.5,scale=320:180{TO_YUV}")
+        );
+        assert_eq!(
+            filters(&v, (64, 36)),
+            format!("fps=12.5,scale=64:36{TO_YUV},pad=64:64")
+        );
     }
 }

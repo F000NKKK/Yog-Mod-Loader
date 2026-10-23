@@ -127,6 +127,8 @@ postcard = { version = "1", features = ["alloc"] }
 semver = "1"
 png = "0.18"
 base64 = "0.23"
+# AV1 video: dav1d ported to Rust, 8-bit only, no assembly (builds with cargo for every platform).
+rav1d = { version = "1.1.0", default-features = false, features = ["bitdepth_8"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tga"] }
 ureq = "3"
 zip = { version = "9", default-features = false, features = ["deflate"] }
