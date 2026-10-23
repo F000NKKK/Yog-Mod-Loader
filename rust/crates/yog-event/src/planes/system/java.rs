@@ -18,7 +18,9 @@ use yog_codegen_java::Java;
 use yog_data::Shape;
 use yog_data::schema::StructShape;
 
-use types::{TYPES, from_data, java_type, nullable, same, to_data};
+/// The class of the payloads' own records (`YogTypes.BlockPos`).
+pub use types::TYPES;
+use types::{from_data, java_type, nullable, same, to_data};
 
 /// What the generated file says it is.
 pub(super) const HEADER: Header = Header {
@@ -39,9 +41,26 @@ const IMPORTS: &[(&str, &str)] = &[
 /// One level of indentation.
 const INDENT: &str = Java::INDENT;
 
+/// The package the bus's Java classes are in (`java-common`'s).
+pub const PACKAGE: &str = "dev.yog.bus";
+/// The classes of the events' and the services' records.
+pub const EVENTS: &str = events::CLASS;
+pub const SERVICES: &str = services::CLASS;
+
 /// A payload field's Java name: `player_name` → `playerName`, `interface` → `interface_`.
-fn field(snake: &str) -> String {
+pub fn field(snake: &str) -> String {
     Java::ident(&camel(snake))
+}
+
+/// A record's path in its class: its domain's (or plane's) segments and
+/// its name — `World.SetBlock`, `Player.Session.Join`.
+pub fn record_path(domain: &str, name: &str) -> String {
+    domain
+        .split('/')
+        .map(class_name)
+        .chain([name.to_owned()])
+        .collect::<Vec<_>>()
+        .join(".")
 }
 
 /// `key_binding` → `KeyBinding`.

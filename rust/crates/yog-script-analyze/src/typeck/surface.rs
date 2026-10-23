@@ -16,6 +16,8 @@ use yog_sync::LazyLock;
 pub(crate) struct YogMethod {
     pub params: Vec<Field>,
     pub reply: Shape,
+    /// The domain it's from (`chat`, `client/control`): where its record is.
+    pub domain: &'static str,
 }
 
 /// A handle's or a domain's methods, by name (overloads side by side), and
@@ -24,6 +26,8 @@ pub(crate) struct YogMethod {
 pub(crate) struct Group {
     pub methods: HashMap<String, Vec<YogMethod>>,
     pub events: HashMap<String, String>,
+    /// Each event's plane (`block`, `player/session`): where its record is.
+    pub planes: HashMap<String, &'static str>,
 }
 
 /// The whole surface: groups by dotted name, data types by name.
@@ -32,6 +36,8 @@ pub(crate) struct Surface {
     pub groups: HashMap<String, Group>,
     pub structs: HashMap<String, StructShape>,
     pub enums: HashMap<String, EnumShape>,
+    /// An event's arguments' type (`Block.BreakArgs`): its plane and name.
+    pub args_planes: HashMap<String, (&'static str, &'static str)>,
 }
 
 /// What separates a domain's segments (`client/control`), and the groups'
@@ -68,6 +74,7 @@ impl Surface {
             let method = YogMethod {
                 params,
                 reply: s.reply.clone(),
+                domain: s.domain,
             };
             out.groups
                 .entry(group)
@@ -96,11 +103,11 @@ impl Surface {
             self.note(&(f.shape)());
         }
         self.structs.insert(args_name.clone(), args.clone());
-        self.groups
-            .entry(group)
-            .or_default()
-            .events
-            .insert(e.name.to_string(), args_name);
+        self.args_planes
+            .insert(args_name.clone(), (e.plane, e.name));
+        let g = self.groups.entry(group).or_default();
+        g.events.insert(e.name.to_string(), args_name);
+        g.planes.insert(e.name.to_string(), e.plane);
     }
 
     /// The structs and enums `shape` names (and theirs), by name.

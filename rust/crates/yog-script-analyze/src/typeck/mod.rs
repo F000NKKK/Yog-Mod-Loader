@@ -23,7 +23,7 @@ mod own;
 mod passing;
 mod shapes;
 mod stmts;
-mod surface;
+pub(crate) mod surface;
 mod types;
 mod variants;
 mod written;

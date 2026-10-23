@@ -20,6 +20,7 @@ mod typeck;
 pub use typeck::{Type, Types};
 pub mod versions;
 pub mod words;
+pub mod yog;
 
 use std::path::Path;
 

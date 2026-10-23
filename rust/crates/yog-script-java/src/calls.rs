@@ -3,10 +3,10 @@
 //! library's members as Java's (`s.Length` is `s.length()`, `Math.Max` is
 //! `Math.max`).
 
-use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Arg, Expr, ExprKind, Name, Type as Written};
 use yog_script_analyze::macros::builtin;
 use yog_script_analyze::system::RESULT;
+use yog_script_analyze::{Type, yog};
 
 use super::Gen;
 use crate::index::Kind;
@@ -61,6 +61,7 @@ impl Gen<'_> {
             Some(Type::Own(of, _)) if self.index.called(of, name) => {
                 Some(format!("{}()", Self::ident(name)))
             }
+            Some(Type::Yog(_)) => Some(format!("{}()", yog::field(name))),
             _ => None,
         }
         .unwrap_or_else(|| Self::ident(name));
@@ -146,6 +147,17 @@ impl Gen<'_> {
                 java_member(LIST_METHODS, name).unwrap_or(n)
             ),
             Some(Type::Fn(params, ret)) => format!("{target}.{}({a})", delegate(params, ret).1),
+            Some(Type::Yog(group)) => match yog::service(group, name) {
+                Some(s) if s.on_handle => {
+                    let sep = if a.is_empty() { "" } else { ", " };
+                    format!("new {}({target}{sep}{a}).call()", s.record)
+                }
+                Some(s) => format!("new {}({a}).call()", s.record),
+                None => {
+                    self.not_yet("this Yog method", e.span);
+                    String::new()
+                }
+            },
             _ => format!("{target}.{n}({a})"),
         }
     }
@@ -165,6 +177,10 @@ impl Gen<'_> {
                 .of(e)
                 .map_or_else(|| "Object".into(), |t| crate::types::java(t, true)),
         };
+        // A handle is its subject: `new World(dim)` is `dim`.
+        if matches!(self.types.of(e), Some(Type::Yog(h)) if yog::is_handle(h)) {
+            return a;
+        }
         let made = format!("new {t}({a})");
         if init.is_empty() {
             return made;

@@ -25,7 +25,7 @@ fn an_event_round_trips_through_its_bytes() {
 fn the_java_messages_are_current() {
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../../java-common/src/main/java/dev/yog/bus");
-    for (class, text) in java::files("dev.yog.bus") {
+    for (class, text) in java::files(java::PACKAGE) {
         let Ok(on_disk) = std::fs::read_to_string(dir.join(format!("{class}.java"))) else {
             return;
         };

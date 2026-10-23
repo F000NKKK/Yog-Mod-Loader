@@ -8,7 +8,7 @@ use yog_data::schema::StructShape;
 pub(super) const F32_BITS: u32 = 32;
 
 /// The class holding the payloads' records every message shares (`BlockPos`…).
-pub(super) const TYPES: &str = "YogTypes";
+pub const TYPES: &str = "YogTypes";
 
 /// A list of numbers' Java type: a primitive array (`int[]`, `float[]`…).
 pub(super) fn number_array(item: &Shape) -> Option<&'static str> {

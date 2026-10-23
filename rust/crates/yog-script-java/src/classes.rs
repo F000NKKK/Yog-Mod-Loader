@@ -41,6 +41,7 @@ impl Gen<'_> {
             "public static {lead}class {name}{}{extends}{implements}",
             generic_list(&header.generics)
         ));
+        self.constants(body);
         for f in fields(body) {
             self.code.line(format!(
                 "public {} {};",
@@ -56,6 +57,24 @@ impl Gen<'_> {
             self.code.close("");
         }
         self.code.close("");
+    }
+
+    /// `const` fields: Java's `static final`, set where they're declared.
+    fn constants(&mut self, body: &[Decl]) {
+        for d in body {
+            if let DeclKind::Field(f) = &d.kind
+                && d.has(Modifier::Const)
+                && let Some(v) = &f.value
+            {
+                let (t, n, v) = (
+                    written(&f.ty, false),
+                    Self::ident(&f.name.text),
+                    self.expr(v),
+                );
+                self.code
+                    .line(format!("public static final {t} {n} = {v};"));
+            }
+        }
     }
 
     /// The class's base (`extends`) and interfaces (`implements`).
@@ -122,6 +141,7 @@ impl Gen<'_> {
     fn first_values(&mut self, body: &[Decl]) {
         for d in body {
             let (name, value) = match &d.kind {
+                DeclKind::Field(_) if d.has(Modifier::Const) => continue,
                 DeclKind::Field(f) => (&f.name.text, f.value.as_ref()),
                 DeclKind::Property {
                     name,
@@ -250,7 +270,7 @@ const REQUEST: &str = "Request";
 fn fields(body: &[Decl]) -> Vec<(&yog_script_analyze::ast::Type, &str)> {
     body.iter()
         .filter_map(|d| match &d.kind {
-            DeclKind::Field(f) => Some((&f.ty, f.name.text.as_str())),
+            DeclKind::Field(f) if !d.has(Modifier::Const) => Some((&f.ty, f.name.text.as_str())),
             DeclKind::Property {
                 ty,
                 name,

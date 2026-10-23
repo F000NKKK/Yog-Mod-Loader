@@ -3,7 +3,7 @@
 //! library's as the runtime's (`dev.yog.script`), delegates as
 //! `java.util.function`'s.
 
-use yog_script_analyze::Type;
+use yog_script_analyze::{Type, yog};
 
 /// Where the compiled code's runtime is (`java-common`'s `dev.yog.script`).
 pub(crate) const RUNTIME: &str = "dev.yog.script";
@@ -31,6 +31,9 @@ pub(crate) fn java(t: &Type, boxed: bool) -> String {
         Type::Map(k, v) => generic("java.util.Map", &[(**k).clone(), (**v).clone()]),
         Type::Nullable(inner) => java(inner, true),
         Type::Fn(params, ret) => delegate(params, ret).0,
+        // A handle is its subject; a payload its record.
+        Type::Yog(name) if yog::is_handle(name) => "String".into(),
+        Type::Yog(name) => yog::data(name).unwrap_or_else(|| "Object".into()),
         _ => "Object".into(),
     }
 }

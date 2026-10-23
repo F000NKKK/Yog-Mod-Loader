@@ -47,3 +47,21 @@ fn what_isnt_written_yet_is_said() {
         [script_problem::NOT_COMPILED]
     );
 }
+
+#[test]
+fn yogs_surface_is_the_bus() {
+    let src = include_str!("../../yog-script-analyze/tests/fixtures/glassy.ys");
+    let checked = yog_script_analyze::check("glassy.ys", src);
+    let out = compile("glassy.ys", src, &checked, "yogscript.glassy")
+        .map(|c| c.source)
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static final String Prefix = \"g\";",
+        "dev.yog.bus.YogEvents.Block.Break.on(0, (e) -> {",
+        "if (e.playerName().startsWith(Prefix)) {",
+        "new dev.yog.bus.YogServices.World.SetBlock(e.dimension(), e.pos(), \"minecraft:glass\").call();",
+        "return null;",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

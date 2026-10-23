@@ -55,7 +55,8 @@ impl Gen<'_> {
                 }
             }
             Pattern::Value(x) if matches!(x.kind, ExprKind::Null) => format!("({v} == null)"),
-            Pattern::Not(inner) if matches!(&**inner, Pattern::Value(x) if matches!(x.kind, ExprKind::Null)) => {
+            Pattern::Not(inner) if matches!(&**inner, Pattern::Value(x) if matches!(x.kind, ExprKind::Null)) =>
+            {
                 format!("({v} != null)")
             }
             _ => {

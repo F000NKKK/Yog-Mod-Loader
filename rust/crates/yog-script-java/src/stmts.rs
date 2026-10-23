@@ -135,6 +135,13 @@ impl Gen<'_> {
     }
 
     fn assign(&mut self, place: &Expr, op: Option<&yog_script_analyze::ast::BinOp>, value: &Expr) {
+        if let (Some(yog_script_analyze::ast::BinOp::Add), ExprKind::Member { expr, name, .. }) =
+            (op, &place.kind)
+            && let Some(Type::Yog(group)) = self.types.of(expr)
+            && let Some(event) = yog_script_analyze::yog::event(group, &name.text)
+        {
+            return self.listen(&event, value);
+        }
         let v = self.handed_expr(value);
         if let ExprKind::Index { expr, index } = &place.kind {
             let (list, at) = (self.expr(expr), self.expr(index));
@@ -212,6 +219,29 @@ impl Gen<'_> {
             _ => items,
         };
         self.branch(&format!("for (var {name} : {items})"), body);
+    }
+}
+
+impl Gen<'_> {
+    /// `Group.Event += handler`: listened to on the bus, the handler
+    /// changing nothing (its listener gives `null`).
+    fn listen(&mut self, event: &str, handler: &Expr) {
+        let ExprKind::Lambda { params, body } = &handler.kind else {
+            return self.not_yet("a handler that isn't a lambda", handler.span);
+        };
+        let name = params.first().map_or_else(
+            || yog_script_analyze::ast::IT.to_string(),
+            |p| Self::ident(&p.name.text),
+        );
+        self.code.open(format!("{event}.on(0, ({name}) ->"));
+        match body {
+            yog_script_analyze::ast::LambdaBody::Expr(e) => self.expr_stmt(e),
+            yog_script_analyze::ast::LambdaBody::Block(stmts) => {
+                stmts.iter().for_each(|s| self.stmt(s))
+            }
+        }
+        self.code.line("return null;");
+        self.code.close(");");
     }
 }
 

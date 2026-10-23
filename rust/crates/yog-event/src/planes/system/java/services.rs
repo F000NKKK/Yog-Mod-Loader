@@ -9,7 +9,7 @@ use crate::ServiceInfo;
 
 use super::frames;
 use super::types::{TYPES, boxed, java_type};
-use super::{Entry, Out, class_name, field, file, key_param, listen_target, name, target};
+use super::{Entry, Out, field, file, key_param, listen_target, name, target};
 
 /// The class it writes.
 pub(super) const CLASS: &str = "YogServices";
@@ -112,16 +112,6 @@ fn class_of(java: &str) -> String {
     format!("{}.class", java.split('<').next().unwrap_or(java))
 }
 
-/// `World.SetBlock`: a service's record, from `YogServices`.
-fn record_path(domain: &str, name: &str) -> String {
-    domain
-        .split('/')
-        .map(class_name)
-        .chain([name.to_owned()])
-        .collect::<Vec<_>>()
-        .join(".")
-}
-
 /// `dev.yog.bus.YogServices`.
 pub(super) fn services(package: &str) -> (String, Vec<StructShape>) {
     let mut o = Out::default();
@@ -131,7 +121,7 @@ pub(super) fn services(package: &str) -> (String, Vec<StructShape>) {
     let hosted: Vec<String> = services
         .iter()
         .filter(|s| s.host.is_some())
-        .map(|s| record_path(s.domain, s.name))
+        .map(|s| super::record_path(s.domain, s.name))
         .collect();
     let _ = write!(
         o.members,
