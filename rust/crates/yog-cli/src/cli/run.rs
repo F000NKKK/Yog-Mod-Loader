@@ -1,17 +1,17 @@
 //! `yog run`: the mod built, exported into a target's game, the game launched.
 
-use super::symbols::Symbols;
+use super::build::symbols::Symbols;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use yog_cli::manifest::{MANIFEST, project_root};
 
+use super::build::prepare::write_file;
 use super::build::{ARTIFACTS_DIR, build};
-use super::prepare::write_file;
 
 /// `yog run --list`: every run target, a line each. `--json`, for editors:
 /// `{"targets": [...], "sources": [folders they're read from]}`.
-pub(super) fn list_run_targets() -> Result<(), String> {
+pub(crate) fn list_run_targets() -> Result<(), String> {
     let home = yog_home::Home::locate()?;
     let resolver = yog_home::targets::Resolver::new(&home)?;
     for t in &resolver.targets()? {
@@ -23,7 +23,7 @@ pub(super) fn list_run_targets() -> Result<(), String> {
 /// Build, export the artifact into the target's game, then launch it —
 /// the target from Yog's home (`yog_home::targets`): a loader on a
 /// Minecraft version, or one of the machine's own.
-pub(super) fn run_target(id: &str, symbols: Symbols, dev: bool) -> Result<(), String> {
+pub(crate) fn run_target(id: &str, symbols: Symbols, dev: bool) -> Result<(), String> {
     let root = project_root()?;
     let resolver = yog_home::targets::Resolver::new(&yog_home::Home::locate()?)?;
     let target = resolver.target(id)?;
@@ -83,7 +83,7 @@ pub(super) fn run_target(id: &str, symbols: Symbols, dev: bool) -> Result<(), St
 
 /// `<id>.source` beside an exported `<id>.yog`: the project it was built
 /// from, so the next `yog run` into that folder can rebuild it.
-pub(super) fn source_marker(dir: &Path, id: &str) -> PathBuf {
+pub(crate) fn source_marker(dir: &Path, id: &str) -> PathBuf {
     dir.join(format!("{id}.source"))
 }
 
@@ -91,7 +91,7 @@ pub(super) fn source_marker(dir: &Path, id: &str) -> PathBuf {
 /// `<id>.source`) and re-exports it — mods from an older build would carry
 /// an older ABI, and the runtime refuses those. A mod that fails to build
 /// keeps its old artifact (with a warning); the run goes on.
-pub(super) fn refresh_exported(dir: &Path, current: &str, symbols: Symbols) {
+pub(crate) fn refresh_exported(dir: &Path, current: &str, symbols: Symbols) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };

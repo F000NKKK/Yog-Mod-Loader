@@ -6,11 +6,11 @@ use std::process::Command;
 
 use yog_ids::platform::{self, Platform};
 
-use super::targets::{
+use crate::cli::build::targets::{
     RUST_TOOLCHAIN, first_line_of, has_zigbuild, install_targets, installed_targets,
 };
 
-pub(super) fn setup() -> Result<(), String> {
+pub(crate) fn setup() -> Result<(), String> {
     eprintln!("==> yog setup — checking build dependencies\n");
 
     let rust_ok = check_rust();
@@ -33,7 +33,7 @@ pub(super) fn setup() -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn check_rust() -> bool {
+pub(crate) fn check_rust() -> bool {
     eprint!("  [?] Rust / cargo ... ");
     if let Some(ver) = first_line_of("cargo", &["--version"]) {
         eprintln!("OK  ({ver})");
@@ -46,7 +46,7 @@ pub(super) fn check_rust() -> bool {
     }
 }
 
-pub(super) fn check_zigbuild() -> bool {
+pub(crate) fn check_zigbuild() -> bool {
     eprint!("  [?] cargo-zigbuild ... ");
     if has_zigbuild() {
         eprintln!("OK");
@@ -79,7 +79,7 @@ pub(super) fn check_zigbuild() -> bool {
     }
 }
 
-pub(super) fn check_zig() -> bool {
+pub(crate) fn check_zig() -> bool {
     eprint!("  [?] zig ... ");
     if let Some(ver) = first_line_of("zig", &["version"]) {
         eprintln!("OK  ({ver})");
@@ -101,7 +101,7 @@ pub(super) fn check_zig() -> bool {
     }
 }
 
-pub(super) fn try_install_zig() -> bool {
+pub(crate) fn try_install_zig() -> bool {
     // snap
     if Command::new("snap")
         .arg("--version")
@@ -142,7 +142,7 @@ pub(super) fn try_install_zig() -> bool {
     false
 }
 
-pub(super) fn check_targets() {
+pub(crate) fn check_targets() {
     eprintln!("  [?] rustup cross-compile targets ...");
     let installed = installed_targets();
     let needed: Vec<&str> = platform::ALL
@@ -172,7 +172,7 @@ pub(super) fn check_targets() {
 /// and non-interactive, so IDEs (Yog-IDLE) can show it and install what's
 /// missing themselves. `--json` is the machine-readable form; its keys are
 /// a stable contract.
-pub(super) struct DoctorReport {
+pub(crate) struct DoctorReport {
     pub(super) cli_version: &'static str,
     pub(super) rust_toolchain: &'static str,
     pub(super) cargo: Option<String>,
@@ -183,7 +183,7 @@ pub(super) struct DoctorReport {
     pub(super) targets: Vec<(&'static str, &'static str, bool)>,
 }
 
-pub(super) fn doctor() -> DoctorReport {
+pub(crate) fn doctor() -> DoctorReport {
     let installed = installed_targets();
     DoctorReport {
         cli_version: env!("CARGO_PKG_VERSION"),
@@ -233,6 +233,6 @@ impl DoctorReport {
 }
 
 /// `yog doctor [--json]`: the report, for people or (`json`) for tools.
-pub(super) fn doctor_cmd() {
+pub(crate) fn doctor_cmd() {
     doctor().print();
 }

@@ -7,27 +7,27 @@ use std::process::Command;
 use yog_cli::manifest::to_snake_name;
 use yog_ids::platform::{self, Platform};
 
-pub(super) enum Builder {
+pub(crate) enum Builder {
     Zig,
     Cargo,
 }
 
 impl Builder {
-    pub(super) fn detect() -> Self {
+    pub(crate) fn detect() -> Self {
         if has_zigbuild() {
             Builder::Zig
         } else {
             Builder::Cargo
         }
     }
-    pub(super) fn subcmd(&self) -> &'static str {
+    pub(crate) fn subcmd(&self) -> &'static str {
         match self {
             Builder::Zig => "zigbuild",
             Builder::Cargo => "build",
         }
     }
 
-    pub(super) fn build(
+    pub(crate) fn build(
         &self,
         build_dir: &Path,
         triple: &str,
@@ -50,7 +50,7 @@ impl Builder {
 /// (e.g. `linux-x86_64`) to restrict `yog build` to. Unset or empty means
 /// every installed target. A dev loop only needs the host platform; release
 /// builds should leave it unset so the `.yog` stays multi-platform.
-pub(super) fn selected_targets() -> Option<Vec<String>> {
+pub(crate) fn selected_targets() -> Option<Vec<String>> {
     let raw = std::env::var(yog_ids::env::TARGETS).ok()?;
     let list: Vec<String> = raw
         .split(',')
@@ -64,11 +64,11 @@ pub(super) fn selected_targets() -> Option<Vec<String>> {
 /// The Rust toolchain mods are built with: the `rust-version` the yog-*
 /// crates themselves declare, so a mod always compiles with the same
 /// compiler as the API it links against.
-pub(super) const RUST_TOOLCHAIN: &str = env!("CARGO_PKG_RUST_VERSION");
+pub(crate) const RUST_TOOLCHAIN: &str = env!("CARGO_PKG_RUST_VERSION");
 
 /// `.yog-build/rust-toolchain.toml` — pins the toolchain and lists every
 /// target so rustup fetches them on its own. Generated, never hand-written.
-pub(super) fn generate_rust_toolchain() -> String {
+pub(crate) fn generate_rust_toolchain() -> String {
     let targets: Vec<String> = platform::ALL
         .iter()
         .map(|t| format!("    \"{}\",\n", t.triple))
@@ -88,7 +88,7 @@ pub(super) fn generate_rust_toolchain() -> String {
 /// (`rustup toolchain install` would update a channel like `1.99` to its
 /// newest patch, every build); and one `yog` installs at a time — builds
 /// running side by side would break each other's downloads.
-pub(super) fn install_targets(targets: &[&Platform]) {
+pub(crate) fn install_targets(targets: &[&Platform]) {
     if targets.is_empty() {
         return;
     }
@@ -152,7 +152,7 @@ pub(super) fn install_targets(targets: &[&Platform]) {
 }
 
 /// The mod toolchain's sysroot, if it's installed.
-pub(super) fn toolchain_sysroot() -> Option<PathBuf> {
+pub(crate) fn toolchain_sysroot() -> Option<PathBuf> {
     let out = Command::new("rustc")
         .args([&format!("+{RUST_TOOLCHAIN}"), "--print", "sysroot"])
         .output()
@@ -163,14 +163,14 @@ pub(super) fn toolchain_sysroot() -> Option<PathBuf> {
 }
 
 /// Whether `sysroot` has the standard library for `triple`.
-pub(super) fn has_std(sysroot: &Path, triple: &str) -> bool {
+pub(crate) fn has_std(sysroot: &Path, triple: &str) -> bool {
     std::fs::read_dir(sysroot.join("lib/rustlib").join(triple).join("lib")).is_ok_and(|d| {
         d.flatten()
             .any(|e| e.file_name().to_string_lossy().starts_with("libstd-"))
     })
 }
 
-pub(super) fn installed_targets() -> Vec<String> {
+pub(crate) fn installed_targets() -> Vec<String> {
     Command::new("rustup")
         .args([
             "target",
@@ -193,7 +193,7 @@ pub(super) fn installed_targets() -> Vec<String> {
         .unwrap_or_default()
 }
 
-pub(super) fn lib_filename(name: &str, os: &str) -> String {
+pub(crate) fn lib_filename(name: &str, os: &str) -> String {
     // Must match the `[lib] name` pinned in the generated wrapper Cargo.toml
     // (see to_snake_name) — that's what cargo actually names the artifact.
     let stem = to_snake_name(name);
@@ -205,7 +205,7 @@ pub(super) fn lib_filename(name: &str, os: &str) -> String {
 }
 
 /// Whether `cargo zigbuild` is installed.
-pub(super) fn has_zigbuild() -> bool {
+pub(crate) fn has_zigbuild() -> bool {
     Command::new("cargo")
         .args(["zigbuild", "--help"])
         .output()
@@ -213,7 +213,7 @@ pub(super) fn has_zigbuild() -> bool {
 }
 
 /// The first line `program args` prints, if it runs and succeeds.
-pub(super) fn first_line_of(program: &str, args: &[&str]) -> Option<String> {
+pub(crate) fn first_line_of(program: &str, args: &[&str]) -> Option<String> {
     let out = Command::new(program).args(args).output().ok()?;
     if !out.status.success() {
         return None;

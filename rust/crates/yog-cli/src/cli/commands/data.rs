@@ -15,13 +15,13 @@ const TEXT: &str = "text";
 const BIN: &str = "bin";
 const GIT: &str = "git";
 /// This command: `yog data`.
-pub(super) const COMMAND: &str = "data";
+pub(super) const WORDS: &[&str] = &["data"];
 const USAGE: &str = "usage: yog data text <file> | yog data bin <file>... | yog data git";
 /// What `.gitattributes` calls a Yog format's diff.
 const DIFF_DRIVER: &str = "ydata";
 const GITATTRIBUTES: &str = ".gitattributes";
 
-pub(super) fn data(rest: &[String]) -> Result<(), String> {
+pub(super) fn run(rest: &[String]) -> Result<(), String> {
     match rest.split_first() {
         Some((what, [file])) if what == TEXT => {
             print!("{}", source_text(Path::new(file))?);
@@ -69,7 +69,7 @@ fn git(root: &Path) -> Result<(), String> {
     if text != had {
         std::fs::write(&file, text).map_err(|e| format!("{}: {e}", file.display()))?;
     }
-    let textconv = format!("{} {COMMAND} {TEXT}", yog_ids::program::CLI);
+    let textconv = format!("{} {} {TEXT}", yog_ids::program::CLI, WORDS[0]);
     let status = std::process::Command::new(GIT)
         .current_dir(root)
         .args(["config", &format!("diff.{DIFF_DRIVER}.textconv"), &textconv])

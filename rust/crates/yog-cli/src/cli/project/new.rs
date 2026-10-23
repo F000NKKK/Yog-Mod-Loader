@@ -5,13 +5,13 @@ use std::path::PathBuf;
 use yog_cli::manifest::MANIFEST;
 use yog_cli::yui;
 
-use super::prepare::write_file;
+use crate::cli::build::prepare::write_file;
 
 /// A new mod's `yog.toml` and `src/lib.rs`, their `$NAME$`s to fill.
 const YOG_TOML: &str = include_str!("new/yog.toml.in");
 const LIB_RS: &str = include_str!("new/lib.rs.in");
 
-pub(super) fn new_mod(name: Option<&str>) -> Result<(), String> {
+pub(crate) fn new_mod(name: Option<&str>) -> Result<(), String> {
     let name = name.ok_or("usage: yog new <name>")?;
     if name.is_empty() || name.contains('/') || name.contains('\\') {
         return Err(format!("invalid mod name: {name:?}"));
@@ -49,7 +49,7 @@ pub(super) fn new_mod(name: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn to_display_name(id: &str) -> String {
+pub(crate) fn to_display_name(id: &str) -> String {
     id.replace('-', " ")
         .split_whitespace()
         .map(|w| {

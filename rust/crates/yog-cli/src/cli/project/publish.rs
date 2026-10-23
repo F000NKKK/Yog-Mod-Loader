@@ -5,7 +5,7 @@ use yog_cli::manifest::{
     DEFAULT_EDITION, DEFAULT_LICENSE, MANIFEST, YogToml, latest_yog_api_version, project_root,
 };
 
-use super::prepare::write_file;
+use crate::cli::build::prepare::write_file;
 
 /// What a mod's exports crate is made of.
 struct Crate {
@@ -74,7 +74,7 @@ fn write_crate(dir: &std::path::Path, c: &Crate, manifest: &YogToml) -> Result<(
 
 /// Scans the mod for `#[yog_export]` items, generates an `-exports` crate,
 /// and publishes it to crates.io (`dry_run`: only generates it).
-pub(super) fn publish_exports(dry_run: bool) -> Result<(), String> {
+pub(crate) fn publish_exports(dry_run: bool) -> Result<(), String> {
     let proj = project_root()?;
     let manifest = YogToml::read(&proj.join(MANIFEST))?;
     let c = scan(&proj, &manifest)?;

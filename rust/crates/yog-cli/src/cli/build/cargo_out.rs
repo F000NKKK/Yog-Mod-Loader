@@ -32,7 +32,7 @@ const WARNING_LINE: &str = "warning:";
 /// Runs `cmd` (a cargo command in `build_dir`, the mod's generated crate
 /// under `root`): its messages said and reported as they come; whether it
 /// succeeded.
-pub(super) fn run(cmd: &mut Command, build_dir: &Path, root: &Path) -> std::io::Result<bool> {
+pub(crate) fn run(cmd: &mut Command, build_dir: &Path, root: &Path) -> std::io::Result<bool> {
     let mut child = cmd
         .arg(JSON_MESSAGES)
         .stdout(Stdio::piped())

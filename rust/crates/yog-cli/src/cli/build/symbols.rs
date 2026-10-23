@@ -19,7 +19,7 @@ pub(crate) enum Symbols {
 const KEPT_WORD: &str = "debug";
 const SPLIT_WORD: &str = "release";
 /// Where a release's split debug info goes, under the artifacts, and its extension.
-pub(super) const SYMBOLS_DIR: &str = yog_ids::symbols::DIR;
+pub(crate) const SYMBOLS_DIR: &str = yog_ids::symbols::DIR;
 const DEBUG_EXT: &str = yog_ids::symbols::EXT;
 /// Where the packaged (stripped) copies go, under `.yog-build/`.
 const STRIPPED_DIR: &str = "stripped";
@@ -46,7 +46,7 @@ impl Symbols {
     }
 
     /// Cargo's release profile changed for it (a plain build keeps the default).
-    pub(super) fn profile(self) -> &'static [(&'static str, &'static str)] {
+    pub(crate) fn profile(self) -> &'static [(&'static str, &'static str)] {
         match self {
             Symbols::Stripped => &[],
             // A debug build in all but name: inlining and scheduling make a
@@ -72,7 +72,7 @@ impl Symbols {
 /// `artifacts/symbols/<tag>/<lib>.debug` and a stripped copy (under
 /// `build_dir`) in its place. The built file stays as it is, so building
 /// again with nothing changed splits it again whole.
-pub(super) fn split(
+pub(crate) fn split(
     bundled: Vec<(String, PathBuf)>,
     build_dir: &Path,
     artifacts: &Path,

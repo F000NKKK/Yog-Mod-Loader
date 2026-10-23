@@ -6,7 +6,7 @@ use yog_media::{image, yimage};
 
 /// `assets`' PNGs a yimage is smaller than once zipped, made yimages. Says
 /// what it saved.
-pub(super) fn pack(assets: &mut [(String, Vec<u8>)]) {
+pub(crate) fn pack(assets: &mut [(String, Vec<u8>)]) {
     let (mut packed, mut before, mut after) = (0usize, 0usize, 0usize);
     for (path, bytes) in assets.iter_mut() {
         if !path.starts_with(yog_ids::pack::ASSETS) || !path.ends_with(yog_ids::res::PNG) {

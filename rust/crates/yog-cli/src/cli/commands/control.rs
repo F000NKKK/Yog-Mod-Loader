@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use yog_hot_reload::control::{Client, Command, Event};
 
+pub(super) const WORDS: &[&str] = &["control"];
 const HOT_RELOAD: &str = "hot-reload";
 const RELOAD_RESOURCES: &str = "reload-resources";
 const USAGE: &str = "usage: yog control hot-reload <mod.yog>... | yog control reload-resources";
@@ -15,7 +16,7 @@ const HOT_RELOAD_TIMEOUT: Duration = Duration::from_secs(60);
 /// How long the game may take to reread its resources and data.
 const RELOAD_TIMEOUT: Duration = Duration::from_secs(180);
 
-pub(super) fn control(rest: &[String]) -> Result<(), String> {
+pub(super) fn run(rest: &[String]) -> Result<(), String> {
     let (what, files) = rest.split_first().ok_or(USAGE)?;
     match what.as_str() {
         HOT_RELOAD if !files.is_empty() => {

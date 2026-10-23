@@ -8,7 +8,7 @@ use yog_cli::manifest::{DEPS_SECTION, EXPORT_DEPS_SECTION, MANIFEST, project_roo
 /// section: `[dependencies]` (plain crates.io crates) or
 /// `[dependencies.exports]` (other Yog mods, mapped to their generated
 /// exports crate) — matched by exact header, never as a substring.
-pub(super) fn dep_edit<'a>(
+pub(crate) fn dep_edit<'a>(
     verb: &str,
     crate_name: Option<&'a str>,
     is_mod: bool,
@@ -28,7 +28,7 @@ pub(super) fn dep_edit<'a>(
     Ok((name, project_root()?.join(MANIFEST), section))
 }
 
-pub(super) fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
+pub(crate) fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
     let (name, yog_toml_path, target_section) = dep_edit("add", crate_name, is_mod)?;
 
     let text = std::fs::read_to_string(&yog_toml_path).map_err(|e| e.to_string())?;
@@ -75,7 +75,7 @@ pub(super) fn add_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), Stri
     Ok(())
 }
 
-pub(super) fn remove_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
+pub(crate) fn remove_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), String> {
     let (name, yog_toml_path, target_section) = dep_edit("remove", crate_name, is_mod)?;
 
     let text = std::fs::read_to_string(&yog_toml_path).map_err(|e| e.to_string())?;
@@ -113,4 +113,11 @@ pub(super) fn remove_dep(crate_name: Option<&str>, is_mod: bool) -> Result<(), S
     std::fs::write(&yog_toml_path, new_text).map_err(|e| e.to_string())?;
     eprintln!("==> removed {} from yog.toml {}", name, target_section);
     Ok(())
+}
+
+/// `yog add`/`remove`'s crate: the first word that isn't `--mod`.
+pub(crate) fn dep_name(rest: &[String]) -> Option<&str> {
+    rest.iter()
+        .map(String::as_str)
+        .find(|a| *a != crate::cli::flags::MOD)
 }

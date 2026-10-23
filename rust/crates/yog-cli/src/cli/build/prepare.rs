@@ -10,12 +10,12 @@ use yog_cli::manifest::{BUILD_DIR, MANIFEST, YogToml, project_root};
 use yog_cli::{bench, content, diagnostics, yres, yui};
 use yog_ids::{build_problem, rust_crate};
 
-use super::check::warn_all;
+use super::steps::warn_all;
 use super::targets::generate_rust_toolchain;
 
 /// A mod project made ready for cargo: `.yog-build/` (Cargo.toml, generated
 /// `.yui` screen code, toolchain, lock) written, translations compiled.
-pub(super) struct Prepared {
+pub(crate) struct Prepared {
     pub(super) root: PathBuf,
     pub(super) meta: YogToml,
     pub(super) build_dir: PathBuf,
@@ -27,7 +27,7 @@ pub(super) struct Prepared {
 /// What every command that compiles does first (`yog build`, `yog check`):
 /// regenerates `.yog-build/` from `yog.toml` and `src/**/*.yui`, and checks
 /// the translations.
-pub(super) fn prepare() -> Result<Prepared, String> {
+pub(crate) fn prepare() -> Result<Prepared, String> {
     let root = project_root()?;
     let mut meta = read_meta(&root).map_err(|e| diagnostics::failed(build_problem::MANIFEST, e))?;
     // Resources first: `.yui` screens and yog.toml (name, description,
@@ -140,11 +140,11 @@ fn settle_lock(root: &Path, build_dir: &Path) -> Result<(), String> {
 /// the current runtime's ABI (1.3) need — a mod's lock pinning older ones
 /// moves up (the runtime refuses a mod of another ABI; screens generated
 /// for a newer yog-kit don't compile).
-pub(super) const MIN_VERSIONS: &[(&str, (u64, u64, u64))] =
+pub(crate) const MIN_VERSIONS: &[(&str, (u64, u64, u64))] =
     &[(rust_crate::API, (0, 93, 0)), (rust_crate::KIT, (0, 4, 0))];
 
 /// The loader's crates a mod links, one version each.
-pub(super) const LOADER_CRATES: [&str; 6] = [
+pub(crate) const LOADER_CRATES: [&str; 6] = [
     rust_crate::API,
     rust_crate::ABI,
     rust_crate::UI,
@@ -159,7 +159,7 @@ pub(super) const LOADER_CRATES: [&str; 6] = [
 /// `yog-api`s (a dependency built against another minor) keep two sets of
 /// the loader's statics, and what one registers the other never sees
 /// (cross-mod imports go unbound, …).
-pub(super) fn one_loader_version(cargo_lock: &Path) -> Result<(), String> {
+pub(crate) fn one_loader_version(cargo_lock: &Path) -> Result<(), String> {
     let Ok(lock) = std::fs::read_to_string(cargo_lock) else {
         return Ok(());
     };
@@ -199,7 +199,7 @@ pub(super) fn one_loader_version(cargo_lock: &Path) -> Result<(), String> {
     ))
 }
 
-pub(super) fn update_old_deps(build_dir: &Path, cargo_lock: &Path) {
+pub(crate) fn update_old_deps(build_dir: &Path, cargo_lock: &Path) {
     let Ok(lock) = std::fs::read_to_string(cargo_lock) else {
         return;
     };
@@ -261,7 +261,7 @@ pub(super) fn update_old_deps(build_dir: &Path, cargo_lock: &Path) {
 /// Merges into whatever the author already has — an existing `.vscode/
 /// settings.json` (their own editor prefs) is read and only that key is
 /// touched, keeping every entry the author already listed.
-pub(super) fn configure_editor(root: &Path) -> Result<(), String> {
+pub(crate) fn configure_editor(root: &Path) -> Result<(), String> {
     let vscode_dir = root.join(".vscode");
     std::fs::create_dir_all(&vscode_dir).map_err(|e| e.to_string())?;
     let settings_path = vscode_dir.join("settings.json");
@@ -293,7 +293,7 @@ pub(super) fn configure_editor(root: &Path) -> Result<(), String> {
 /// `yog.toml`'s `name`/`description = "@<Set>.<name>"` → the neutral text
 /// (the key goes into the packaged manifest), `icon = "@<Set>.<name>"` →
 /// the image source.
-pub(super) fn resolve_metadata(meta: &mut YogToml, refs: &yres::Refs) -> Result<(), String> {
+pub(crate) fn resolve_metadata(meta: &mut YogToml, refs: &yres::Refs) -> Result<(), String> {
     let at = |e: String| format!("yog.toml: {e}");
     (meta.name, meta.name_key) = yres::resolve_text(refs, &meta.name).map_err(at)?;
     (meta.description, meta.description_key) =
@@ -304,6 +304,6 @@ pub(super) fn resolve_metadata(meta: &mut YogToml, refs: &yres::Refs) -> Result<
     Ok(())
 }
 
-pub(super) fn write_file(path: &Path, data: &[u8]) -> Result<(), String> {
+pub(crate) fn write_file(path: &Path, data: &[u8]) -> Result<(), String> {
     std::fs::write(path, data).map_err(|e| format!("writing {}: {e}", path.display()))
 }

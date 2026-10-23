@@ -1,6 +1,13 @@
 //! `yog build`, `yog check`, `yog bench`, `yog designer-lib`: the mod
 //! compiled, its assets gathered, the `.yog` packaged.
 
+pub(crate) mod cargo_out;
+mod pictures;
+pub(crate) mod prepare;
+pub(crate) mod steps;
+pub(crate) mod symbols;
+pub(crate) mod targets;
+
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -9,17 +16,16 @@ use yog_cli::manifest::YogToml;
 use yog_cli::{bench, content, diagnostics};
 use yog_ids::build_problem;
 
-use super::prepare::{Prepared, prepare};
+use prepare::{Prepared, prepare};
 use yog_ids::platform::{self, Platform};
 
-use super::cargo_out;
-use super::symbols::Symbols;
-use super::targets::{Builder, install_targets, installed_targets, lib_filename, selected_targets};
+use symbols::Symbols;
+use targets::{Builder, install_targets, installed_targets, lib_filename, selected_targets};
 
 /// `yog check` — `cargo check` of the mod for the host platform, after the
 /// same generation `yog build` does; nothing is packaged. Quick feedback
 /// (and fresh `.yog-build/generated/` for rust-analyzer) without a build.
-pub(super) fn check() -> Result<(), String> {
+pub(crate) fn check() -> Result<(), String> {
     let Prepared {
         root, build_dir, ..
     } = prepare()?;
@@ -40,7 +46,7 @@ pub(super) fn check() -> Result<(), String> {
 /// for the host after the same generation `yog build` does (see `bench`).
 /// `args` go to the benchmarks (`yog bench parse` runs those matching
 /// "parse").
-pub(super) fn run_benches(args: &[String]) -> Result<(), String> {
+pub(crate) fn run_benches(args: &[String]) -> Result<(), String> {
     let Prepared {
         root, build_dir, ..
     } = prepare()?;
@@ -70,7 +76,7 @@ pub(super) fn run_benches(args: &[String]) -> Result<(), String> {
 /// profile, `target/designer/`), for Yog-IDLE's screen designer host to
 /// load and draw the mod's custom `.yui` components with. Cargo's output
 /// goes to stderr; the library's path is the one line on stdout.
-pub(super) fn designer_lib() -> Result<(), String> {
+pub(crate) fn designer_lib() -> Result<(), String> {
     let Prepared {
         root,
         meta,
@@ -105,14 +111,14 @@ pub(super) fn designer_lib() -> Result<(), String> {
 /// a release's split out to `artifacts/symbols/`.
 /// Which platforms a build makes natives for.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub(super) enum Platforms {
+pub(crate) enum Platforms {
     /// `YOG_TARGETS`'s (every one when unset): `yog build`.
     Selected,
     /// This machine's only: `yog run`, which plays it here.
     Host,
 }
 
-pub(super) fn build(
+pub(crate) fn build(
     symbols: Symbols,
     dev: bool,
     platforms: Platforms,
@@ -135,10 +141,10 @@ pub(super) fn build(
     std::fs::create_dir_all(&artifacts).map_err(|e| e.to_string())?;
     let bundled = match symbols {
         Symbols::Split => {
-            let split = super::symbols::split(bundled, &build_dir, &artifacts)?;
+            let split = symbols::split(bundled, &build_dir, &artifacts)?;
             eprintln!(
                 "    debug info split out to {}/",
-                artifacts.join(super::symbols::SYMBOLS_DIR).display()
+                artifacts.join(symbols::SYMBOLS_DIR).display()
             );
             split
         }
@@ -179,7 +185,7 @@ fn per_platform(
 }
 
 /// Where `yog build` puts the `.yog`, under the mod's root.
-pub(super) const ARTIFACTS_DIR: &str = "artifacts";
+pub(crate) const ARTIFACTS_DIR: &str = "artifacts";
 
 /// The platforms to build for: this machine's, or those `YOG_TARGETS` picks (all when unset).
 fn wanted_targets(platforms: Platforms) -> Vec<&'static Platform> {
@@ -298,7 +304,7 @@ fn assets(
         ));
     }
     let mut assets = gather_assets(root, compiled);
-    super::pictures::pack(&mut assets);
+    pictures::pack(&mut assets);
     if !assets.is_empty() {
         eprintln!("    bundled {} asset file(s)", assets.len());
     }
@@ -308,7 +314,7 @@ fn assets(
 /// The mod's `assets/` and `data/` files plus `compiled` ones (`.yres`
 /// resources, `content/` blocks and items — replacing a file at the same
 /// path).
-pub(super) fn gather_assets(
+pub(crate) fn gather_assets(
     root: &Path,
     compiled: Vec<(String, Vec<u8>)>,
 ) -> Vec<(String, Vec<u8>)> {
@@ -365,7 +371,7 @@ fn is_source(path: &Path) -> bool {
         .is_some_and(|e| SOURCE_FILES.contains(&e.to_ascii_lowercase().as_str()))
 }
 
-pub(super) fn package(
+pub(crate) fn package(
     out: &Path,
     meta: &YogToml,
     bundled: &[(String, PathBuf)],

@@ -2,11 +2,11 @@
 //! (`yog_cli::mappings`) written into `dir` for its jar
 //! (`yog_ids::mapping_file::NAME`); none when the names are Mojang's.
 
-/// The command's word.
-pub(super) const COMMAND: &str = "mappings";
+/// The words that name it.
+pub(super) const WORDS: &[&str] = &["mappings"];
 const USAGE: &str = "usage: yog mappings <minecraft version> <mojang|intermediary|srg> <dir>";
 
-pub(super) fn mappings(rest: &[String]) -> Result<(), String> {
+pub(super) fn run(rest: &[String]) -> Result<(), String> {
     let [mc, runtime_ns, dir] = rest else {
         return Err(USAGE.into());
     };

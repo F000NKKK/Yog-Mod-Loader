@@ -14,7 +14,7 @@ use super::prepare::resolve_metadata;
 /// is above it), or for every `src/**/*.yui` of the current project.
 /// `yog build`/`yog check` do the same before compiling; this is for editors
 /// (Yog-IDLE runs it on save) and for checking a screen without a build.
-pub(super) fn ui_gen(files: &[String]) -> Result<(), String> {
+pub(crate) fn ui_gen(files: &[String]) -> Result<(), String> {
     if files.is_empty() {
         let root = project_root()?;
         load_resource_refs(&root);
@@ -44,7 +44,7 @@ pub(super) fn ui_gen(files: &[String]) -> Result<(), String> {
 }
 
 /// Says (and reports) each of `warnings`.
-pub(super) fn warn_all(warnings: &[Diagnostic]) {
+pub(crate) fn warn_all(warnings: &[Diagnostic]) {
     for w in warnings {
         eprintln!("    warning: {w}");
         diagnostics::report(w);
@@ -52,7 +52,7 @@ pub(super) fn warn_all(warnings: &[Diagnostic]) {
 }
 
 /// Writes the components' index, saying what's wrong with it.
-pub(super) fn warn_index(root: &Path) -> Result<(), String> {
+pub(crate) fn warn_index(root: &Path) -> Result<(), String> {
     if let (_, Some(w)) = yui_component::write_index(root)? {
         warn_all(&[Diagnostic::warning(yog_ids::build_problem::SCREEN, w)]);
     }
@@ -62,7 +62,7 @@ pub(super) fn warn_index(root: &Path) -> Result<(), String> {
 /// Makes the project's `.yres` resources available to `.yui` generation
 /// (`text="@Strings.title"`). Broken resources are reported but don't stop
 /// the screen from generating — `yog build` fails on them anyway.
-pub(super) fn load_resource_refs(root: &Path) {
+pub(crate) fn load_resource_refs(root: &Path) {
     let refs = YogToml::read(&root.join(MANIFEST))
         .and_then(|meta| yres::compile(root, &meta.id))
         .map(|c| c.refs)
@@ -76,7 +76,7 @@ pub(super) fn load_resource_refs(root: &Path) {
 /// `yog res check` — what `yog build` does with `resources/**/*.yres`,
 /// without building: errors with file:line, untranslated texts per locale,
 /// and fresh accessors in `.yog-build/generated/resources/`.
-pub(super) fn res_check() -> Result<(), String> {
+pub(crate) fn res_check() -> Result<(), String> {
     let root = project_root()?;
     let mut meta = YogToml::read(&root.join(MANIFEST))?;
     let compiled = yres::compile(&root, &meta.id)?;
@@ -100,7 +100,7 @@ pub(super) fn res_check() -> Result<(), String> {
 /// `yog content check` — what `yog build` does with `content/**/*.yblock`
 /// and `*.yitem`, without building: errors with file:line, a fresh
 /// `.yog-build/generated/yog-content.g.rs`.
-pub(super) fn content_check() -> Result<(), String> {
+pub(crate) fn content_check() -> Result<(), String> {
     let root = project_root()?;
     let meta = YogToml::read(&root.join(MANIFEST))?;
     let refs = yres::compile(&root, &meta.id)

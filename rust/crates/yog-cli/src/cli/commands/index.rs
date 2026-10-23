@@ -4,11 +4,11 @@
 
 use yog_script::index::Side;
 
-/// The command's word.
-pub(super) const COMMAND: &str = "index";
+/// The words that name it.
+pub(super) const WORDS: &[&str] = &["index"];
 const USAGE: &str = "usage: yog index <minecraft version>";
 
-pub(super) fn index(rest: &[String]) -> Result<(), String> {
+pub(super) fn run(rest: &[String]) -> Result<(), String> {
     let [mc] = rest else {
         return Err(USAGE.into());
     };
