@@ -14,7 +14,7 @@ mod lexer;
 pub mod macros;
 pub mod parser;
 pub mod resolve;
-mod system;
+pub mod system;
 mod typeck;
 pub mod versions;
 pub mod words;

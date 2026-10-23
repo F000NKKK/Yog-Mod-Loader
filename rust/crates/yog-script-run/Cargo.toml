@@ -1,0 +1,11 @@
+[package]
+name = "yog-script-run"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
+description = "Yog Script's interpreter: checked code run over its tree — for macros at build time, constants, `yog test`, and as the semantics the compiled code must keep."
+
+[dependencies]
+yog-script-analyze = { workspace = true }
+yog-data = { workspace = true }

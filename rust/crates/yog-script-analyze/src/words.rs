@@ -112,7 +112,7 @@ pub fn named(text: &str) -> Option<&'static Word> {
 
 macro_rules! words {
     ($($file:ident $(= $path:literal)?),* $(,)?) => {
-        $($(#[path = $path])? pub(crate) mod $file;)*
+        $($(#[path = $path])? pub mod $file;)*
 
         /// Every word, in the order the parser offers them a turn.
         pub static ALL: &[&Word] = &[$(&$file::WORD),*];
