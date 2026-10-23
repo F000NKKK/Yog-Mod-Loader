@@ -8,7 +8,8 @@ use yog_data::with::Raw;
 #[derive(yog_data::Schema, Debug, Clone, PartialEq)]
 pub struct VideoDef {
     pub id: String,
-    /// Its size, pixels.
+    /// The size it's shown at, pixels; its decoded frames may be bigger
+    /// (padded up to the encoder's least), shown from their top-left.
     pub width: u32,
     pub height: u32,
     /// Frames a second, as a fraction (`num / den`).

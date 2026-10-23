@@ -136,6 +136,7 @@ type Lang = BTreeMap<(String, String), BTreeMap<String, String>>;
 
 #[cfg(test)]
 mod tests;
+mod videos;
 
 /// Whole numbers below this are written as integers.
 const WHOLE_BELOW: f64 = 1e15;

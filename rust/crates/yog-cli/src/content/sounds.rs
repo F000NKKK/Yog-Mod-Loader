@@ -45,15 +45,16 @@ struct Mixes<'a> {
     rendered: Vec<Output>,
 }
 
-/// Every `.ysound` under `resources/sound/` of the mod at `root`; problems go to `errors`.
+/// Every `.ysound` under `resources/sound/` of the mod at `root`, with the
+/// events made elsewhere (`events`: videos'); problems go to `errors`.
 pub(crate) fn compile(
     root: &Path,
     mod_id: &str,
     refs: &Refs,
+    mut events: Map<String, Value>,
     errors: &mut Vec<Diagnostic>,
 ) -> Sounds {
     let resources = root.join(RESOURCES_DIR);
-    let mut events = Map::new();
     let mut mixes = Mixes {
         root,
         mod_id,
@@ -91,6 +92,11 @@ pub(crate) fn compile(
         output: Some((path, format!("{text}\n").into_bytes())),
         rendered: mixes.rendered,
     }
+}
+
+/// An event playing the mod's sound `name` streamed (read as it plays: a long one).
+pub(crate) fn streamed(name: &str) -> Value {
+    json!({ yog_ids::res::SOUNDS_WORD: [{ field::NAME: name, field::STREAM: true }] })
 }
 
 /// The `.ysound` at `file` (event `name`) as its `sounds.json` entry; its mixes rendered into `mixes`.
@@ -209,7 +215,9 @@ mod tests {
         refs.texts
             .insert("Lang.abacus".into(), ("m.abacus".into(), "Abacus".into()));
         let mut errors = Vec::new();
-        let out = compile(&dir, "m", &refs, &mut errors).output.unwrap();
+        let out = compile(&dir, "m", &refs, Map::new(), &mut errors)
+            .output
+            .unwrap();
         assert_eq!(
             errors.len(),
             1,

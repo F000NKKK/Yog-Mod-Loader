@@ -4,21 +4,15 @@
 //! the mix's effects over it; Ogg Vorbis out — one ffmpeg run.
 
 use std::fmt::Write as _;
-use std::io::Read;
-use std::process::{Command, Stdio};
 
 use yog_formats::montage::{Mix, SoundClip, SoundEffect};
 
-/// The program that renders, as found on `PATH`.
-const FFMPEG: &str = "ffmpeg";
 /// The rate every clip is brought to before it's sped up (its pitch with it).
 const RATE: u32 = 48_000;
 /// An echo's loudness in and out (ffmpeg's `aecho` gains).
 const ECHO_IN: f32 = 0.8;
 const ECHO_OUT: f32 = 0.9;
 const MS: f32 = 1000.0;
-/// What the mix is written as: Ogg Vorbis at a good quality, on stdout.
-const OUT: &[&str] = &["-c:a", "libvorbis", "-q:a", "6", "-f", "ogg", "pipe:1"];
 
 /// `effect` as an ffmpeg audio filter.
 fn filter(effect: &SoundEffect) -> String {
@@ -117,61 +111,19 @@ pub(crate) fn graph(mix: &Mix) -> String {
     g.join(";")
 }
 
-/// A folder of its own for a render's inputs, gone when dropped.
-struct Scratch(std::path::PathBuf);
-
-impl Scratch {
-    fn new() -> Result<Scratch, String> {
-        static NEXT: yog_sync::atomic::AtomicU64 = yog_sync::atomic::AtomicU64::new(0);
-        let n = NEXT.fetch_add(1, yog_sync::atomic::Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("yog-mix-{}-{n}", std::process::id()));
-        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        Ok(Scratch(dir))
-    }
-}
-
-impl Drop for Scratch {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
 /// `mix` rendered, its clips' sounds `sources` (in order, any format ffmpeg reads).
 pub(crate) fn render(mix: &Mix, sources: &[Vec<u8>]) -> Result<Vec<u8>, String> {
     if !mix.clips.iter().any(|c| mix.heard(c.track)) {
         return Err("a mix has at least one clip on a track that's heard".into());
     }
-    let dir = Scratch::new()?;
-    let mut cmd = Command::new(FFMPEG);
-    cmd.args(["-hide_banner", "-loglevel", "error"]);
+    let dir = crate::ffmpeg::Scratch::new()?;
+    let mut cmd = crate::ffmpeg::ffmpeg();
     for (i, bytes) in sources.iter().enumerate() {
-        let path = dir.0.join(i.to_string());
-        std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
-        cmd.arg("-i").arg(path);
+        cmd.arg("-i").arg(dir.input(&i.to_string(), bytes)?);
     }
     cmd.args(["-filter_complex", &graph(mix), "-map", "[out]"])
-        .args(OUT);
-    let mut child = cmd
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("a mix needs {FFMPEG}, which can't be run: {e}"))?;
-    let mut out = Vec::new();
-    child
-        .stdout
-        .take()
-        .ok_or("ffmpeg's output")?
-        .read_to_end(&mut out)
-        .map_err(|e| e.to_string())?;
-    let mut err = String::new();
-    if let Some(mut s) = child.stderr.take() {
-        let _ = s.read_to_string(&mut err);
-    }
-    let status = child.wait().map_err(|e| e.to_string())?;
-    if !status.success() || out.is_empty() {
-        return Err(format!("{FFMPEG} couldn't render the mix: {}", err.trim()));
-    }
-    Ok(out)
+        .args(crate::ffmpeg::OGG_OUT);
+    crate::ffmpeg::run(&mut cmd, "render the mix")
 }
 
 #[cfg(test)]

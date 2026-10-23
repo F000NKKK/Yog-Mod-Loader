@@ -220,17 +220,16 @@ impl Build<'_> {
         let id = yog_ids::join(self.mod_id, &path);
         if e.kind == Kind::Video {
             // Not bundled: `.yvideo` files render it.
-            self.c.refs.videos.insert(a.reference.clone(), bytes.clone());
+            self.c
+                .refs
+                .videos
+                .insert(a.reference.clone(), bytes.clone());
             return Some(accessors::medium(&a.acc, &id, &a.doc));
         }
         let (target, id, data) = match e.kind {
             Kind::Image => self.image(e, a, bytes, &path)?,
             Kind::Sound => self.sound(e, a, bytes, &path),
-            _ => (
-                yog_ids::asset_file(self.mod_id, &path),
-                id,
-                bytes.clone(),
-            ),
+            _ => (yog_ids::asset_file(self.mod_id, &path), id, bytes.clone()),
         };
         if let Some(other) = self.bundled.insert(target.clone(), (e.name.clone(), data))
             && other.0 != e.name

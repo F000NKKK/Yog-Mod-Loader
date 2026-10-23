@@ -80,6 +80,14 @@ impl Refs {
             .ok_or_else(|| format!("`{r}`: no sound `{}` in resources/*.yres", r.name()))
     }
 
+    /// Video `r`: its source's bytes.
+    pub(crate) fn video(&self, r: &yog_data::Res) -> Result<&[u8], String> {
+        self.videos
+            .get(&r.name())
+            .map(Vec::as_slice)
+            .ok_or_else(|| format!("`{r}`: no video `{}` in resources/*.yres", r.name()))
+    }
+
     /// Color `r` (`0xAARRGGBB`).
     pub fn color(&self, r: &yog_data::Res) -> Result<u32, String> {
         self.colors

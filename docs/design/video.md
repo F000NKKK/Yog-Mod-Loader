@@ -21,7 +21,9 @@ ffmpeg renders the `.yvideo` (its source, or its montage's graph) twice:
 - the picture as **AV1** (SVT-AV1), packets cut from an IVF stream, kept in
   the video's definition (`yog_registry::VideoDef`: size, frame rate, frame
   count, which frames are keyframes, the packets as one blob and their
-  sizes);
+  sizes). Sizes are even (4:2:0); a picture smaller than SVT-AV1's
+  least (64×64) is padded at the right and bottom, its definition keeping
+  the size shown (the top-left part);
 - the sound as **Ogg Vorbis**, a sound event `<mod>:video.<name>` in the
   mod's `sounds.json` (streamed).
 
