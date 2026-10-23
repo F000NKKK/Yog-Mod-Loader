@@ -64,6 +64,14 @@ impl Parser<'_, '_, '_> {
     }
 
     fn stmt_in(&mut self, value: bool) -> PResult<Stmt> {
+        // `;` alone: an empty statement, as C#'s (after a macro's own `;`).
+        if self.at(Punct::Semi) {
+            let span = self.bump().span;
+            return Ok(Stmt::Block(Block {
+                stmts: Vec::new(),
+                span,
+            }));
+        }
         if self.at(Punct::LBrace) {
             return self.block().map(Stmt::Block);
         }

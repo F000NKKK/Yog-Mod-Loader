@@ -82,6 +82,6 @@ puncts! {
         LBrace = "{", RBrace = "}", LParen = "(", RParen = ")", LBracket = "[", RBracket = "]",
         Comma = ",", Dot = ".", Colon = ":", Semi = ";", Question = "?",
         Eq = "=", Lt = "<", Gt = ">", Plus = "+", Minus = "-", Star = "*", Slash = "/",
-        Percent = "%", Bang = "!", Amp = "&", Hash = "#",
+        Percent = "%", Bang = "!", Amp = "&", Hash = "#", Dollar = "$",
     }
 }

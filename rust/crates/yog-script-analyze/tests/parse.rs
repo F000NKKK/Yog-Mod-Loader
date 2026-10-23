@@ -82,7 +82,7 @@ fn lexing_problems_are_found_where_they_are() {
         [script_problem::BAD_NUMBER]
     );
     assert_eq!(
-        codes("a.ys", "const i32 A = 1 $ 2;\n"),
+        codes("a.ys", "const i32 A = 1 ` 2;\n"),
         [script_problem::UNEXPECTED_CHAR, script_problem::EXPECTED]
     );
 }

@@ -21,6 +21,12 @@ impl<'a> Report<'a> {
         }
     }
 
+    /// An empty report on the same source: for a trial whose problems are
+    /// dropped (a parse that may not fit).
+    pub fn scratch(&self) -> Report<'a> {
+        Report::new(self.file, self.src)
+    }
+
     /// The source text at `span`.
     pub fn text(&self, span: Span) -> &'a str {
         self.src

@@ -61,7 +61,13 @@ impl Case {
 impl Resolver<'_, '_> {
     /// A warning when `name` isn't in `case`.
     pub(super) fn check_case(&mut self, name: &Name, case: Case) {
-        if name.text == DISCARD || case.fits(&name.text) {
+        // A macro's renamed local is checked as written in the macro.
+        let written = name
+            .text
+            .split(crate::macros::HYGIENE_MARK)
+            .next()
+            .unwrap_or_default();
+        if written == DISCARD || case.fits(written) {
             return;
         }
         self.report.warning(

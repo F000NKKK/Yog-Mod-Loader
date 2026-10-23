@@ -11,6 +11,7 @@ pub mod ast;
 mod borrowck;
 pub mod index;
 mod lexer;
+mod macros;
 pub mod parser;
 pub mod resolve;
 mod typeck;
@@ -83,7 +84,7 @@ pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Ch
 fn read(name: &str, src: &str, mc: &str, report: &mut yog_analysis::Report<'_>) -> ast::File {
     let nanites = is_nanites(name);
     let text = preprocessed(src, mc, nanites, report);
-    let tokens = lexer::lex(&text, report);
+    let tokens = macros::expand(lexer::lex(&text, report), report);
     let file = parser::Parser::new(&tokens, report, nanites).file();
     check_targets(&file, nanites, report);
     file

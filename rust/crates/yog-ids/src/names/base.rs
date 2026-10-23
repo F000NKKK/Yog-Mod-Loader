@@ -324,6 +324,9 @@ names! {
         INHERIT = "YS0028",
         /// A `switch` over an enum leaving a case out, with no `_`.
         NOT_EXHAUSTIVE = "YS0029",
+        /// A macro declared or called wrong: a rule, a fragment's kind, a
+        /// call no rule matches, an expansion without end.
+        MACRO = "YS0030",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

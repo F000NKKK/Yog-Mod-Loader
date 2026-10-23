@@ -50,6 +50,11 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
         }
     }
 
+    /// How many tokens are read.
+    pub(crate) fn consumed(&self) -> usize {
+        self.pos
+    }
+
     pub(crate) fn tok(&self) -> &'t Tok {
         self.nth(0)
     }
