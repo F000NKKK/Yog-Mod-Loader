@@ -254,7 +254,11 @@ impl Checker<'_, '_, '_> {
             ExprKind::Ident(name) if self.local(name).is_none() => {
                 let methods = self.callable(name);
                 if methods.is_empty() {
-                    self.static_import(name, callee.span)
+                    // `Ok(v)`, `Err(e)`: the prelude's cases, by their names.
+                    match self.variant_ctor(crate::system::RESULT, name) {
+                        Callee::Unknown => self.static_import(name, callee.span),
+                        made => made,
+                    }
                 } else {
                     if let Some(Type::Own(of, _)) = self.this.clone()
                         && self.own_methods(&Type::own(of.clone()), name).is_some()

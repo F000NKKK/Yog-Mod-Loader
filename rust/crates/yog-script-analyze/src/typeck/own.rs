@@ -29,6 +29,8 @@ pub(crate) struct OwnType {
     pub readonly_all: bool,
     /// A record: set once, never changed; shared, so `Copy`.
     pub record: bool,
+    /// Its primary constructor's parameters (`class Obsolete(string message)`).
+    pub ctor: Vec<ast::Param>,
     /// Its type parameters' names (`T` of `Box<T>`).
     pub generics: Vec<String>,
     /// An enum's cases that carry data, their fields by case.
@@ -52,9 +54,13 @@ pub(crate) struct OwnTypes {
 }
 
 impl OwnTypes {
-    pub fn collect(decls: &[Decl]) -> Self {
+    /// The types of each of `sources` (the library's, then the file's).
+    pub fn collect(sources: &[&[Decl]]) -> Self {
         let mut out = OwnTypes::default();
-        out.file(decls);
+        for decls in sources {
+            out.current.clear();
+            out.file(decls);
+        }
         out
     }
 
@@ -111,6 +117,7 @@ impl OwnTypes {
                 t.record = word.text == crate::words::record::WORD.text;
                 t.readonly_all = d.has(ast::Modifier::Readonly) || t.record;
                 t.generics = type_params(&header.generics);
+                t.ctor = header.ctor.clone().unwrap_or_default();
                 // A record's constructor parameters are its properties.
                 let props = (word.text == crate::words::record::WORD.text)
                     .then_some(header.ctor.as_deref())

@@ -327,6 +327,8 @@ names! {
         /// A macro declared or called wrong: a rule, a fragment's kind, a
         /// call no rule matches, an expansion without end.
         MACRO = "YS0030",
+        /// `[Name]` naming something that isn't an attribute class.
+        ATTRIBUTE = "YS0031",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

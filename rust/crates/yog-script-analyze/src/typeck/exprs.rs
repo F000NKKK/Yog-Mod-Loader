@@ -151,7 +151,14 @@ impl Checker<'_, '_, '_> {
                 Type::Bool
             }
             UnOp::Neg => t,
-            UnOp::Try | UnOp::Await => Type::Unknown,
+            // `try r`: a `Result<T, E>`'s `T`.
+            UnOp::Try => match t.non_null() {
+                Type::Own(name, args) if name == crate::system::RESULT => {
+                    args.first().cloned().unwrap_or(Type::Unknown)
+                }
+                _ => Type::Unknown,
+            },
+            UnOp::Await => Type::Unknown,
         }
     }
 

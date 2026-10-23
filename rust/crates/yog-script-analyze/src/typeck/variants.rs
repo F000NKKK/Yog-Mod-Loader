@@ -13,22 +13,25 @@ use crate::source::token::Span;
 impl Checker<'_, '_, '_> {
     /// `Mode.Charging(…)`: case `name` of own enum `of`, made with its fields.
     pub(super) fn variant_ctor(&mut self, of: &str, name: &str) -> Callee {
-        let Some(fields) = self
-            .own
-            .types
-            .get(of)
-            .and_then(|t| t.variants.get(name))
-            .cloned()
-        else {
+        let Some(own) = self.own.types.get(of) else {
             return Callee::Unknown;
         };
-        let params: Vec<Type> = fields.iter().map(|f| self.type_of(&f.ty)).collect();
+        let Some(fields) = own.variants.get(name).cloned() else {
+            return Callee::Unknown;
+        };
+        // A generic enum's case: its parameters inferred from the call.
+        let generics = own.generics.clone();
+        let params_of = |g: &String| Type::Param(g.clone());
+        let bound = generics.iter().map(|g| (g.clone(), params_of(g))).collect();
+        let params: Vec<Type> =
+            self.with_types(bound, |c| fields.iter().map(|f| c.type_of(&f.ty)).collect());
+        let ret = Type::Own(of.to_string(), generics.iter().map(params_of).collect());
         Callee::Typed(vec![Signature {
             passes: vec![None; params.len()],
             required: params.len(),
             params,
-            ret: Type::own(of.to_string()),
-            generics: Vec::new(),
+            ret,
+            generics,
         }])
     }
 

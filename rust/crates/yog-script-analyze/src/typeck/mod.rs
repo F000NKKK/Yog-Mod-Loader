@@ -5,6 +5,7 @@
 //! index of a targeted version (C#'s names over Java's); what neither the
 //! source nor the index knows (the library's) is not checked yet.
 
+mod attributes;
 mod builtin;
 mod copy;
 mod decls;
@@ -73,7 +74,7 @@ pub(crate) fn check(
     index: Option<&ClassIndex>,
     report: &mut Report<'_>,
 ) {
-    let mut own = OwnTypes::collect(&file.decls);
+    let mut own = OwnTypes::collect(&[&crate::system::DECLS, &file.decls]);
     own.extensions(&file.decls);
     let mut c = Checker {
         report,
@@ -129,8 +130,11 @@ impl Checker<'_, '_, '_> {
             return true;
         }
         match (got.non_null(), wanted.non_null()) {
-            (Type::Own(a, _), Type::Own(b, _)) => {
-                (!got.is_nullable() || wanted.is_nullable()) && self.own.is_a(a, b)
+            (Type::Own(a, xs), Type::Own(b, ys)) => {
+                let args_fit = a != b
+                    || xs.len() != ys.len()
+                    || xs.iter().zip(ys).all(|(x, y)| open(x) || open(y) || x == y);
+                (!got.is_nullable() || wanted.is_nullable()) && self.own.is_a(a, b) && args_fit
             }
             _ => false,
         }
@@ -165,4 +169,10 @@ impl Checker<'_, '_, '_> {
         (self.this, self.side, self.returns) = saved;
         out
     }
+}
+
+/// A type argument not settled yet (a case made without the others':
+/// `Ok(5)` says nothing of `E`): it fits whatever is wanted.
+fn open(t: &Type) -> bool {
+    matches!(t, Type::Param(_) | Type::Unknown)
 }
