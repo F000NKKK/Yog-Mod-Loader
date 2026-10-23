@@ -24,14 +24,13 @@ pub fn check(root: &Path) -> Result<(), String> {
                 .display()
                 .to_string();
             let checked = yog_script::check(&name, &text);
-            errors += checked
-                .problems
-                .iter()
-                .filter(|d| d.severity == yog_data::Severity::Error)
-                .count();
+            errors += checked.problems.iter().filter(|d| d.is_error()).count();
             diagnostics::report_all(&checked.problems);
             for d in &checked.problems {
-                eprintln!("{d}");
+                match d.is_error() {
+                    true => yog_logging::error!("{d}"),
+                    false => yog_logging::warn!("{d}"),
+                }
             }
         }
     }
