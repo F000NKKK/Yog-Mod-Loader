@@ -25,7 +25,7 @@ pub struct Atlas {
 static ATLASES: LazyLock<Vec<Atlas>> = LazyLock::new(|| {
     yog_data::built_in::<Vec<Atlas>>(
         "yog-registry's atlases",
-        include_str!("../assets/atlases.ydata"),
+        include_str!("../../assets/atlases.ydata"),
     )
 });
 

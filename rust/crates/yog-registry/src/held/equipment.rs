@@ -121,7 +121,7 @@ static BUILT_IN_TOOL_MATERIALS: yog_sync::LazyLock<Vec<ToolMaterial>> =
     yog_sync::LazyLock::new(|| {
         yog_data::built_in::<Vec<ToolMaterial>>(
             "yog-registry's built-in tool materials",
-            include_str!("../assets/tool_materials.ydata"),
+            include_str!("../../assets/tool_materials.ydata"),
         )
     });
 
@@ -129,7 +129,7 @@ static BUILT_IN_ARMOR_MATERIALS: yog_sync::LazyLock<Vec<ArmorMaterial>> =
     yog_sync::LazyLock::new(|| {
         yog_data::built_in::<Vec<ArmorMaterial>>(
             "yog-registry's built-in armor materials",
-            include_str!("../assets/armor_materials.ydata"),
+            include_str!("../../assets/armor_materials.ydata"),
         )
     });
 

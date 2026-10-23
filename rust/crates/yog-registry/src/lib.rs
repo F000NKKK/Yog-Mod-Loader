@@ -13,15 +13,6 @@
 //! BlockDef::new("mymod:lamp").light_level(15).sound("stone");
 //! ```
 
-pub mod atlases;
-pub mod effects;
-pub mod item_looks;
-pub mod loot;
-pub mod particles;
-pub mod recipe_kinds;
-pub mod tool_levels;
-pub mod videos;
-
 /// What a `.yog` registers when the game starts — content the game can't
 /// add or change while it runs (blocks, items, entity types, sound groups,
 /// materials, dimensions): a line each, `<kind> <id> <hash>`, the hash of
@@ -61,34 +52,35 @@ pub fn registration_changes(
         .collect();
     (added, removed, changed)
 }
-pub use atlases::Atlas;
-pub use effects::{
+mod crafting;
+mod held;
+mod looks;
+mod world;
+
+pub use crafting::loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
+pub use crafting::{loot, recipe_kinds};
+pub use held::effects::{
     AttributeDef, Brew, EffectCategory, EffectDef, EffectModifier, ModifierOperation, PotionDef,
     PotionEffect,
 };
-pub use item_looks::{ItemLooks, ItemTint, LookModels};
-pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
-pub use particles::{Blend, Frames, Lifetime, Particle, ParticleDef, ParticleRender};
-pub use tool_levels::{LevelTag, ToolLadder, ToolLevel};
-pub use videos::{Clock, Plan, VideoDef};
+pub use held::item_looks::{ItemLooks, ItemTint, LookModels};
+pub use held::tool_levels::{LevelTag, ToolLadder, ToolLevel};
+pub use held::{effects, item_looks, tool_levels};
+pub use looks::atlases::Atlas;
+pub use looks::particles::{Blend, Frames, Lifetime, Particle, ParticleDef, ParticleRender};
+pub use looks::videos::{Clock, Plan, VideoDef};
+pub use looks::{atlases, particles, videos};
 
-mod blocks;
-mod entities;
-mod equipment;
-mod items;
-mod recipes;
-mod sounds;
-mod worldgen;
-pub use blocks::{BlockDef, BlockProperty, Facing, Placement};
-pub use entities::{EntityDef, EntityKind};
-pub use equipment::{
+pub use crafting::recipes::{COOK_EXPERIENCE, Cooking, Recipe, RecipeKind, StartupGrant};
+pub use held::equipment::{
     ArmorDefense, ArmorMaterial, ArmorPiece, ArmorSlot, DIGGERS, GameTool, REFERENCE_KIND,
     REFERENCE_MATERIAL, TOOL_KINDS, ToolItem, ToolMaterial,
 };
-pub use items::{FoodDef, Hangs, ItemDef};
-pub use recipes::{COOK_EXPERIENCE, Cooking, Recipe, RecipeKind, StartupGrant};
-pub use sounds::SoundGroup;
-pub use worldgen::BiomeFeature;
+pub use held::items::{FoodDef, Hangs, ItemDef};
+pub use world::blocks::{BlockDef, BlockProperty, Facing, Placement};
+pub use world::entities::{EntityDef, EntityKind};
+pub use world::sounds::SoundGroup;
+pub use world::worldgen::BiomeFeature;
 
 #[cfg(test)]
 mod registration_tests {

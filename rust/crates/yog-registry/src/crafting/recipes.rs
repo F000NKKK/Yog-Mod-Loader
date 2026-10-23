@@ -1,6 +1,6 @@
 //! Recipes: shaped, shapeless, cooking and the rest, as the game reads them; startup grants.
 
-use crate::recipe_kinds;
+use crate::crafting::recipe_kinds;
 
 /// How a cooking recipe cooks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -106,7 +106,7 @@ pub const GRID_SIDE: usize = 3;
 pub static GAME: LazyLock<Vec<RecipeKindDef>> = LazyLock::new(|| {
     yog_data::built_in::<Vec<RecipeKindDef>>(
         "yog-registry's recipe kinds",
-        include_str!("../data/recipe_kinds.ydata"),
+        include_str!("../../data/recipe_kinds.ydata"),
     )
 });
 

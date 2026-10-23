@@ -43,7 +43,7 @@ pub struct ItemLooks {
 static ITEM_LOOKS: LazyLock<ItemLooks> = LazyLock::new(|| {
     yog_data::built_in::<ItemLooks>(
         "yog-registry's item looks",
-        include_str!("../assets/item_looks.ydata"),
+        include_str!("../../assets/item_looks.ydata"),
     )
 });
 

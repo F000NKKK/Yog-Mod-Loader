@@ -1,6 +1,6 @@
 //! Sound groups: what a block sounds like.
 
-use crate::equipment::built_in;
+use crate::held::equipment::built_in;
 
 /// What a block sounds like: the sound events it plays when broken,
 /// stepped on, placed, hit while mining and fallen on. The game's groups
@@ -32,7 +32,7 @@ fn one() -> f32 {
 static BUILT_IN_SOUND_GROUPS: yog_sync::LazyLock<Vec<SoundGroup>> = yog_sync::LazyLock::new(|| {
     yog_data::built_in::<Vec<SoundGroup>>(
         "yog-registry's built-in sound groups",
-        include_str!("../assets/sound_groups.ydata"),
+        include_str!("../../assets/sound_groups.ydata"),
     )
 });
 

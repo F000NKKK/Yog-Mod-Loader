@@ -47,7 +47,7 @@ pub struct ToolLadder {
 static TOOL_LADDER: LazyLock<ToolLadder> = LazyLock::new(|| {
     yog_data::built_in::<ToolLadder>(
         "yog-registry's tool levels",
-        include_str!("../assets/tool_levels.ydata"),
+        include_str!("../../assets/tool_levels.ydata"),
     )
 });
 
