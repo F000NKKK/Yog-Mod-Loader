@@ -1,9 +1,10 @@
 //! Names by namespace, as in C#. A simple name is, in turn: a type of the
 //! namespace the code is in (or one enclosing it); a `using` alias; a type
-//! one of the `using`s brings in — `Yog` among them, every file's, as .NET's
-//! implicit usings — where two bringing one in is an ambiguity; a namespace.
-//! The game's classes are namespace `Game`, a `.yns` file's only
-//! (`using Game.World.Entity;`); there Yog's `game` group is `Yog.Game`.
+//! one of the `using`s brings in — `System` and `System.Yog` among them,
+//! every file's, as .NET's implicit usings — where two bringing one in is
+//! an ambiguity; a namespace. Everything starts with `System`: Yog's
+//! objects are `System.Yog`'s, the game's classes `System.Game`'s — a
+//! `.yns` file's only (`using System.Game.World.Entity;`).
 
 use std::collections::HashMap;
 
@@ -15,16 +16,22 @@ use super::surface::SURFACE;
 use crate::ast::{self, Decl, DeclKind, Name};
 use crate::index::namespace;
 use crate::source::token::Span;
+use crate::system::ROOT;
 
 /// What a namespace's segments are joined with.
 const SEP: &str = ".";
 
-pub(super) fn yog_root() -> String {
-    yog_codegen::pascal(yog_ids::ns::YOG)
+/// `System.Yog`: Yog's objects, groups and events.
+pub(super) fn yog_ns() -> Vec<String> {
+    vec![ROOT.to_string(), yog_codegen::pascal(yog_ids::ns::YOG)]
 }
 
-pub(super) fn game_root() -> String {
-    yog_codegen::pascal(yog_ids::bus_word::GAME)
+/// `System.Game`: the game's classes (a `.yns`'s).
+pub(super) fn game_ns() -> Vec<String> {
+    vec![
+        ROOT.to_string(),
+        yog_codegen::pascal(yog_ids::bus_word::GAME),
+    ]
 }
 
 /// A file's `using` directives (its `global` ones too: a file is checked
@@ -39,7 +46,7 @@ pub(super) struct Directives {
 impl Directives {
     pub fn collect(decls: &[Decl]) -> Self {
         let mut out = Directives {
-            usings: vec![vec![yog_root()]],
+            usings: vec![vec![ROOT.to_string()], yog_ns()],
             ..Directives::default()
         };
         out.add(decls);
@@ -115,8 +122,7 @@ impl Checker<'_, '_, '_> {
             .namespaces
             .values()
             .any(|ns| ns.first().is_some_and(|f| f == name));
-        let game = self.nanites && name == game_root();
-        if game || name == yog_root() || own_root {
+        if name == ROOT || own_root {
             Type::Namespace(name.to_string())
         } else {
             Type::Unknown
@@ -128,8 +134,8 @@ impl Checker<'_, '_, '_> {
         let Some((first, rest)) = path.split_first() else {
             return Type::Unknown;
         };
-        // In a `.yns`, `Game` and `Yog` are the roots before anything else.
-        let mut t = if first.text == game_root() && self.nanites || first.text == yog_root() {
+        // `System` is the root before anything else.
+        let mut t = if first.text == ROOT {
             Type::Namespace(first.text.clone())
         } else {
             self.imported(&first.text, at)
@@ -161,21 +167,14 @@ impl Checker<'_, '_, '_> {
 
     /// `name` in namespace `ns`: a type, or a namespace inside it.
     pub(super) fn in_namespace(&mut self, ns: &[String], name: &str, at: Span) -> Type {
-        let Some((root, under)) = ns.split_first() else {
-            return Type::Unknown;
-        };
-        if *root == yog_root() && under.is_empty() {
-            return if SURFACE.knows(name) {
-                Type::Yog(name.to_string())
-            } else {
-                Type::Unknown
-            };
-        }
-        if *root == game_root() && (self.nanites || !SURFACE.knows(root)) {
-            return self.in_game(ns, name, at);
-        }
         if self.own.namespaces.get(name).is_some_and(|own| own == ns) {
             return Type::own(name.to_string());
+        }
+        if ns == yog_ns().as_slice() && SURFACE.knows(name) {
+            return Type::Yog(name.to_string());
+        }
+        if ns.starts_with(&game_ns()) {
+            return self.in_game(ns, name, at);
         }
         let deeper: Vec<String> = [ns, &[name.to_string()]].concat();
         let is_own_ns = self
@@ -183,14 +182,14 @@ impl Checker<'_, '_, '_> {
             .namespaces
             .values()
             .any(|own| own.starts_with(&deeper));
-        if is_own_ns {
+        if is_own_ns || deeper == yog_ns() || deeper == game_ns() {
             Type::Namespace(deeper.join(SEP))
         } else {
             Type::Unknown
         }
     }
 
-    /// `name` in the game's namespace `ns` (`Game`, `Game.World`, …).
+    /// `name` in the game's namespace `ns` (`System.Game`, `System.Game.World`, …).
     fn in_game(&mut self, ns: &[String], name: &str, at: Span) -> Type {
         if !self.nanites {
             self.report.error(
@@ -200,7 +199,7 @@ impl Checker<'_, '_, '_> {
             );
             return Type::Unknown;
         }
-        let class = namespace::class_of(&ns[1..], name);
+        let class = namespace::class_of(&ns[game_ns().len()..], name);
         match self
             .lookup
             .as_ref()
@@ -216,7 +215,7 @@ impl Checker<'_, '_, '_> {
     }
 }
 
-/// `Game.World` → `["Game", "World"]`.
+/// `System.Game.World` → `["System", "Game", "World"]`.
 pub(super) fn split(ns: &str) -> Vec<String> {
     ns.split(SEP).map(String::from).collect()
 }

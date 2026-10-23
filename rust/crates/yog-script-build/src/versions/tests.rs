@@ -52,7 +52,7 @@ fn game(mc: &str) -> Result<ClassIndex, String> {
 
 #[test]
 fn a_patch_is_checked_on_each_version() {
-    let src = "targets mc 1.20.1..26.2;\nusing Game.World.Entity;\n\npatch LivingEntity {\n    after float GetMaxHealth() {\n        float h = this.Health;\n    }\n}\n";
+    let src = "targets mc 1.20.1..26.2;\nusing System.Game.World.Entity;\n\npatch LivingEntity {\n    after float GetMaxHealth() {\n        float h = this.Health;\n    }\n}\n";
     let problems = check("a.yns", src, game, None);
     assert_eq!(problems.len(), 1, "{problems:#?}");
     assert!(

@@ -5,6 +5,11 @@ use yog_sync::LazyLock;
 
 use crate::ast::Decl;
 
+/// Every namespace of the library and of what a source reaches starts
+/// here: `System`, `System.Yog` (Yog's objects), `System.Game` (the game's
+/// classes, a `.yns`'s).
+pub const ROOT: &str = "System";
+
 /// The enum whose cases a source calls without its name (`Ok(v)`,
 /// `Err(e)`), as Rust's prelude brings them.
 pub const RESULT: &str = "Result";
@@ -23,7 +28,7 @@ pub const DERIVE_MACRO: &str = "DeriveMacro";
 /// The attribute marking an attribute class as an attribute macro (`System`).
 pub const MACRO: &str = "Macro";
 
-/// The bus's attributes (`Yog.Native`): a call, an event, a method provided.
+/// The bus's attributes (`System.Yog.Native`): a call, an event, a method provided.
 pub const SERVICE: &str = "Service";
 pub const EVENT: &str = "Event";
 pub const PROVIDE: &str = "Provide";

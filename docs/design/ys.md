@@ -368,7 +368,7 @@ members — `Math`, `Action`, `Func`, `Nullable`, `Result`, `Error`,
 `MethodInfo`, `PropertyInfo`, `FieldInfo`, attributes). It's declared in
 Yog Script itself (signatures; what runs is the host's or the runtime's),
 reachable from every part of Yog. `System`, `System.Collections.Generic`,
-`System.Linq` and `Yog` are every file's `using`s, as .NET's implicit
+`System.Linq` and `System.Yog` are every file's `using`s, as .NET's implicit
 usings; the rest (`System.Reflection`, …) are `using`'d where wanted.
 
 ### Extension members
@@ -590,7 +590,7 @@ of the game — keeps the branch that holds:
 ```yns
 targets mc 1.20.1..26.2;
 
-using Player = Game.World.Entity.Player.Player;
+using Player = System.Game.World.Entity.Player.Player;
 
 patch Player {
 #if MC >= 1.21
@@ -758,6 +758,8 @@ address, and a payload that is a `record` with the Rust struct's fields
 in the same order (it packs to the same frame).
 
 ```ys
+using System.Yog.Native;
+
 // Rust: #[yog::service("charge:simulate")] fn simulate(q: Simulate) -> i64
 [Service("charge:simulate")]
 static extern i64 Simulate(i64 nodes, i64 edges);
@@ -778,8 +780,8 @@ static i64 Double(i64 x) => x * 2;
 - `[Event]` on an `event`: `+=` listens to what Rust (or anyone) emits
   there; `Overloaded.Invoke(…)` emits it.
 - `[Provide]` on a method: Rust (or another mod) calls it at that address.
-- The attributes are `Yog.Native`'s (`Service`, `Event`, `Provide`):
-  `using Yog.Native;`.
+- The attributes are `System.Yog.Native`'s (`Service`, `Event`,
+  `Provide`): `using System.Yog.Native;`.
 - Run by the interpreter (`yog test`), an `extern` call panics unless the
   test provides the address itself (`[Provide]` in the test's source).
 

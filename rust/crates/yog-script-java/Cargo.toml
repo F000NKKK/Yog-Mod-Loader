@@ -12,3 +12,4 @@ yog-codegen = { workspace = true }
 yog-codegen-java = { workspace = true }
 yog-data = { workspace = true }
 yog-ids = { workspace = true }
+yog-analysis = { workspace = true }

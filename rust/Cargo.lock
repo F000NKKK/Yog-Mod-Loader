@@ -2693,6 +2693,7 @@ dependencies = [
 name = "yog-script-java"
 version = "0.1.0"
 dependencies = [
+ "yog-analysis",
  "yog-codegen",
  "yog-codegen-java",
  "yog-data",

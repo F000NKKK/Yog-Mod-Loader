@@ -112,18 +112,22 @@ Namespaces and `using`s work as in C#:
 
 - `namespace Charge.Machines;` puts the rest of the file in a namespace;
   `namespace Charge.Machines { … }` what's in its braces.
-- `using Yog.Ui;` brings in the types of a namespace (not the namespaces
-  in it); `using static Yog.Chat;` the static members of a type
+- `using System.Yog.Ui;` brings in the types of a namespace (not the namespaces
+  in it); `using static System.Yog.Chat;` the static members of a type
   (`Broadcast(…)`); `using Grid = Dictionary<Pos, i32>;` names a type or a
   namespace; `global using …;` is every file's of the mod.
 - A simple name is, in turn: a type of the namespace the code is in (or
   one enclosing it); an alias; a type a `using` brings in — where two
   bring one in, it's ambiguous (YS0022, C#'s CS0104): write it in full or
   alias it; then a namespace.
-- `Yog` is every file's `using` (as .NET's implicit usings): Yog's objects
-  need none. The game's classes are namespace `Game`, a `.yns` file's
-  only: `using Game.World.Entity;`, or `Game.World.Entity.LivingEntity` in
-  full. In a `.yns`, Yog's `game` group is `Yog.Game`.
+- Every namespace starts with `System`. `System.*` is the language's
+  (`System`, `System.Meta`, `System.Collections.Generic`, …);
+  `System.Yog.*` is Yog's own (its objects, groups and events,
+  `System.Yog.Ui`, `System.Yog.Native`); `System.Game.*` is the game's
+  classes, a `.yns` file's only (`using System.Game.World.Entity;`, or
+  `System.Game.World.Entity.LivingEntity` in full).
+- `System` and `System.Yog` are every file's `using`s (as .NET's implicit
+  usings): Yog's objects need none.
 
 ```ebnf
 
@@ -554,7 +558,7 @@ In a patch body:
 ## 7. One file, every form
 
 ```ys
-using Yog.Ui;
+using System.Yog.Ui;
 
 mod Charge {
     Version = "1.0.0";
@@ -665,9 +669,9 @@ test "a charger fills a battery" {
 ```yns
 targets mc 1.20.1..26.2;
 
-using Game.World.Entity;                     // LivingEntity
-using Game.Server;                           // MinecraftServer
-using Player = Game.World.Entity.Player.Player;   // the game's (Yog's Player is every file's)
+using System.Game.World.Entity;              // LivingEntity
+using System.Game.Server;                    // MinecraftServer
+using Player = System.Game.World.Entity.Player.Player;   // the game's (Yog's Player is every file's)
 
 patch LivingEntity {
     add saved f32 Shield = 0;

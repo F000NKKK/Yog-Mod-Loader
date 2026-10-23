@@ -329,6 +329,8 @@ names! {
         MACRO = "YS0030",
         /// `[Name]` naming something that isn't an attribute class.
         ATTRIBUTE = "YS0031",
+        /// What the compiler doesn't write as Java yet.
+        NOT_COMPILED = "YS0032",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the
