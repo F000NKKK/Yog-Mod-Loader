@@ -255,7 +255,9 @@ impl Target for Process {
         self.mem.write_all_at(bytes, addr).map_err(|e| OsError {
             what: "writing its memory",
             message: e.to_string(),
-            gone: false,
+            // Killed: its memory is torn down (a write then takes nothing)
+            // before its end is reported.
+            gone: e.kind() == std::io::ErrorKind::WriteZero || process_exiting(self.pid),
         })
     }
 

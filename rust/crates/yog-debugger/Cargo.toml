@@ -16,6 +16,10 @@ yog-sync = { workspace = true }
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 iced-x86 = { workspace = true }
 
+# The Windows backend: the debug API.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true }
+
 # The Linux backend: ptrace.
 [target.'cfg(target_os = "linux")'.dependencies]
 nix = { workspace = true }

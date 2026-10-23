@@ -110,6 +110,7 @@ mod session {
             let new_symbols = SymbolTable::load(&new_native_path).map_err(|e| e.to_string())?;
             let new_base = debugger
                 .module_base(&new_native_path)
+                .map(|base| new_symbols.load_bias(base))
                 .ok_or("could not locate new native's load address")?;
             let m = LoadedMod {
                 id: &self.mod_id,
@@ -153,7 +154,7 @@ mod session {
                 .and_then(Value::as_i64)
                 .ok_or("attach requires an integer \"pid\"")? as u32;
             let debugger = Debugger::attach(pid).map_err(|e| e.to_string())?;
-            self.module_base = debugger.module_base(&self.native_path).ok_or("could not locate the mod's native in the target process's memory map — has it loaded yet?")?;
+            self.module_base = debugger.module_base(&self.native_path).map(|base| self.symbols.load_bias(base)).ok_or("could not locate the mod's native in the target process's memory map — has it loaded yet?")?;
             self.debugger = Some(debugger);
             Ok(())
         }

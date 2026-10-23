@@ -1,10 +1,16 @@
-#![cfg(target_os = "linux")]
-
 use std::path::PathBuf;
 use std::process::Command;
 
 use yog_debugger::{Debugger, StopReason, Tid, interrupt};
 use yog_symbols::SymbolTable;
+
+/// Where prebuilt fixtures are, when the tests can't build them.
+const PREBUILT_FIXTURES: &str = "YOG_DEBUGGER_FIXTURES";
+
+/// The thread that stands for the process (listed first).
+fn leader(debugger: &Debugger) -> Tid {
+    debugger.threads()[0]
+}
 
 fn build_fixture() -> PathBuf {
     build("fixture")
@@ -18,6 +24,11 @@ fn build(name: &str) -> PathBuf {
 /// and one rebuilding a binary another is running breaks the latter's
 /// module lookup (the mapping turns `(deleted)`).
 fn build_as(name: &str, tag: &str) -> PathBuf {
+    // Prebuilt (a run on another system than the one building — Windows
+    // under Wine): `<dir>/<name><exe suffix>`.
+    if let Some(dir) = std::env::var_os(PREBUILT_FIXTURES) {
+        return PathBuf::from(dir).join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
+    }
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let src = manifest_dir.join(format!("tests/fixtures/{name}.rs"));
     let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_debugger_{tag}_bin"));
@@ -62,8 +73,11 @@ fn attaches_and_hits_a_real_breakpoint() {
     );
 
     let mut debugger = Debugger::attach(pid).expect("attaching to fixture process");
-    let base = debugger.module_base(&exe)
-        .expect("locating the fixture binary's own load base in its own process");
+    let base = symbols.load_bias(
+        debugger
+            .module_base(&exe)
+            .expect("locating the fixture binary's own load base in its own process"),
+    );
 
     let addr = base + offsets[0];
     debugger.set_breakpoint(addr).expect("arming breakpoint");
@@ -135,7 +149,7 @@ fn traces_every_thread_and_forwards_signals() {
 
     let mut debugger = Debugger::attach(pid).expect("attaching");
     assert!(debugger.threads().len() >= 5, "expected leader + 4 workers");
-    let base = debugger.module_base(&exe).expect("module base");
+    let base = symbols.load_bias(debugger.module_base(&exe).expect("module base"));
     let addr = base + offsets[0];
     debugger.set_breakpoint(addr).expect("arming breakpoint");
 
@@ -146,13 +160,13 @@ fn traces_every_thread_and_forwards_signals() {
         assert_eq!(debugger.registers().unwrap().pc(), addr);
         // Non-stop: only the thread that hit it is stopped.
         assert!(
-            !debugger.is_stopped(Tid::from(debugger.pid())),
+            !debugger.is_stopped(leader(&debugger)),
             "the main thread kept running"
         );
         hit_threads.insert(debugger.current_thread());
     }
     assert!(
-        !hit_threads.contains(&Tid::from(debugger.pid())),
+        !hit_threads.contains(&leader(&debugger)),
         "only workers run work()"
     );
     assert!(hit_threads.len() > 1, "expected hits on several threads");
@@ -189,7 +203,7 @@ fn traces_every_thread_and_forwards_signals() {
     // Break All with a filter: only the workers stop, the leader runs on.
     debugger.set_pause_filter(|name| name.starts_with("worker-"));
     debugger.pause().expect("pausing workers");
-    let leader = Tid::from(debugger.pid());
+    let leader = leader(&debugger);
     assert!(!debugger.is_stopped(leader), "the leader was let go");
     let workers: Vec<_> = debugger
         .threads()
@@ -231,7 +245,7 @@ fn step_over_walks_lines_and_returns_to_the_caller() {
 
     let symbols = SymbolTable::load(&exe).expect("loading fixture's own debug info");
     let mut debugger = Debugger::attach(pid).expect("attaching to fixture process");
-    let base = debugger.module_base(&exe).expect("fixture load base");
+    let base = symbols.load_bias(debugger.module_base(&exe).expect("fixture load base"));
     let addr = base + symbols.resolve_breakpoint("fixture.rs", 26)[0];
     debugger.set_breakpoint(addr).expect("arming breakpoint");
     assert_eq!(
@@ -288,7 +302,7 @@ fn step_over_leaves_std_for_the_user_caller() {
 
     let symbols = SymbolTable::load(&exe).expect("loading fixture debug info");
     let mut debugger = Debugger::attach(pid).expect("attaching");
-    let base = debugger.module_base(&exe).expect("fixture load base");
+    let base = symbols.load_bias(debugger.module_base(&exe).expect("fixture load base"));
     let addr = base + symbols.resolve_breakpoint("jmc.rs", body)[0];
     debugger.set_breakpoint(addr).expect("arming breakpoint");
     assert_eq!(
@@ -366,7 +380,7 @@ fn pause_request_interrupts_a_step_over_a_blocking_call() {
 
     let symbols = SymbolTable::load(&exe).expect("loading fixture debug info");
     let mut debugger = Debugger::attach(pid).expect("attaching");
-    let base = debugger.module_base(&exe).expect("fixture load base");
+    let base = symbols.load_bias(debugger.module_base(&exe).expect("fixture load base"));
     let addr = base + symbols.resolve_breakpoint("blocking.rs", call)[0];
     debugger.set_breakpoint(addr).expect("arming breakpoint");
     assert_eq!(
@@ -421,7 +435,7 @@ fn ticks_session(tag: &str) -> (KillOnDrop, Debugger, SymbolTable, u64, u64) {
     let child = KillOnDrop(Command::new(&exe).spawn().expect("spawning ticks fixture"));
     let symbols = SymbolTable::load(&exe).expect("loading fixture debug info");
     let mut debugger = Debugger::attach(child.0.id()).expect("attaching");
-    let base = debugger.module_base(&exe).expect("fixture load base");
+    let base = symbols.load_bias(debugger.module_base(&exe).expect("fixture load base"));
     let addr = base + symbols.resolve_breakpoint("ticks.rs", first)[0];
     debugger.set_breakpoint(addr).expect("arming breakpoint");
     assert_eq!(
@@ -514,5 +528,12 @@ fn killed_while_paused_reports_the_exit() {
     let (mut child, mut debugger, _symbols, _base, _addr) = ticks_session("ticks_killed");
     child.0.kill().expect("killing the fixture");
     let stop = debugger.continue_().expect("continuing after the kill");
+    // Killed by a signal; on Windows, terminated (its exit code 1).
+    #[cfg(target_os = "linux")]
     assert_eq!(stop, StopReason::Killed(nix::libc::SIGKILL));
+    #[cfg(not(target_os = "linux"))]
+    assert!(
+        matches!(stop, StopReason::Killed(_) | StopReason::Exited(_)),
+        "{stop:?}"
+    );
 }

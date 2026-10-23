@@ -2,7 +2,7 @@
 //! binary, plus (Linux x86_64) an end-to-end read of live values from a
 //! ptrace-stopped fixture process.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 use yog_symbols::{LocalVar, SymbolTable, VarKind};
@@ -253,6 +253,7 @@ mod live {
     use std::fs::File;
     use std::os::unix::fs::FileExt;
     use std::os::unix::process::CommandExt;
+    use std::path::Path;
 
     use nix::sys::ptrace;
     use nix::sys::signal::Signal;

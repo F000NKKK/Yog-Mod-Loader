@@ -30,7 +30,10 @@ impl SymbolTable {
     ) -> Option<FrameRegs> {
         let caller = match self.unwind_cfi(regs, load_base, mem) {
             Some(caller) => caller,
-            None => unwind_frame_pointer(regs, mem)?,
+            None => match self.unwind_pe(regs, load_base, mem) {
+                Some(caller) => caller,
+                None => unwind_frame_pointer(regs, mem)?,
+            },
         };
         let (ret, sp) = (caller.pc().wrapping_add(1), caller.sp()?);
         if ret <= 1 || sp <= regs.sp()? {
@@ -76,6 +79,21 @@ impl SymbolTable {
         self.code
             .iter()
             .any(|&(start, end)| (start..end).contains(&offset))
+    }
+
+    /// By a Windows native's exception tables, for a pc in its code.
+    fn unwind_pe(
+        &self,
+        regs: &FrameRegs,
+        load_base: u64,
+        mem: &dyn TargetMemory,
+    ) -> Option<FrameRegs> {
+        let offset = regs.pc().wrapping_sub(load_base);
+        if !self.contains(offset) {
+            return None;
+        }
+        let rva = u32::try_from(offset.wrapping_sub(self.image_base)).ok()?;
+        self.pe_unwind.as_ref()?.unwind(regs, rva, mem)
     }
 
     fn unwind_cfi(

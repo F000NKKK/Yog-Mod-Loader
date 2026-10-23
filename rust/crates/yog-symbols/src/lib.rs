@@ -34,6 +34,7 @@ pub mod arch;
 mod eval;
 mod format;
 mod locals;
+mod pe_unwind;
 mod unwind;
 
 use std::path::{Path, PathBuf};
@@ -42,8 +43,8 @@ use yog_sync::{Arc, OnceLock};
 use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};
 
-pub use eval::{EvalError, ValueNode, ValueRef};
 pub use arch::{Arch, aarch64, x86_64};
+pub use eval::{EvalError, ValueNode, ValueRef};
 pub use locals::{FrameRegs, LocalVar, TargetMemory, Value, VarKind};
 
 // `Arc`, not `Rc`: a `SymbolTable` needs to be `Send + Sync` so host apps
@@ -130,6 +131,12 @@ pub struct SymbolTable {
     debug_frame: Option<gimli::DebugFrame<R>>,
     /// Address ranges of the executable sections (module-relative).
     code: Vec<(u64, u64)>,
+    /// The address the file is linked to load at (a PE's or a Mach-O
+    /// executable's image base; 0 for an ELF shared object): its DWARF
+    /// addresses count from there.
+    image_base: u64,
+    /// A Windows native's exception tables (it has no `.eh_frame`).
+    pe_unwind: Option<pe_unwind::PeUnwind>,
 }
 
 /// The native's named code symbols.
@@ -200,6 +207,15 @@ fn frame_tables(object: &object::File<'_>, endian: RunTimeEndian) -> FrameTables
 }
 
 impl SymbolTable {
+    /// What every address this table takes or gives (`offset`s) is relative
+    /// to, for a module loaded at runtime address `base`: `base` less the
+    /// address the file was linked to load at. Pass it wherever a
+    /// `load_base` is asked for.
+    #[must_use]
+    pub fn load_bias(&self, base: u64) -> u64 {
+        base.wrapping_sub(self.image_base)
+    }
+
     /// Loads a native's debug info: its own (built with `debug = true`,
     /// `strip = false`), or — a release's, stripped — the file split from it
     /// beside it (`<native>.debug`, `yog build release`).
@@ -264,7 +280,10 @@ impl SymbolTable {
             .map(|s| (s.address(), s.address() + s.size()))
             .collect();
 
+        let image_base = object.relative_address_base();
         Ok(SymbolTable {
+            image_base,
+            pe_unwind: pe_unwind::PeUnwind::of(&object),
             dwarf,
             ctx,
             functions,

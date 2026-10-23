@@ -2376,6 +2376,7 @@ dependencies = [
  "iced-x86",
  "nix",
  "serde_json",
+ "windows-sys 0.61.2",
  "yog-hot-reload",
  "yog-symbols",
  "yog-sync",
