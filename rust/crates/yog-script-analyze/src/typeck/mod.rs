@@ -6,6 +6,7 @@
 //! source nor the index knows (the library's) is not checked yet.
 
 mod builtin;
+mod copy;
 mod decls;
 mod exprs;
 mod game;

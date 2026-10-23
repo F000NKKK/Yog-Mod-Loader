@@ -4,14 +4,18 @@
 use yog_ids::script_problem;
 
 use super::Checker;
+use super::model::Type;
 use crate::ast::{Arg, Pass};
 use crate::words::{self, Word};
 
 impl Checker<'_, '_, '_> {
     /// Each of `args` against the parameter it lands on.
-    pub(super) fn check_passing(&mut self, takes: &[Option<Pass>], args: &[Arg]) {
-        for (a, &param) in args.iter().zip(takes) {
+    pub(super) fn check_passing(&mut self, takes: &[Option<Pass>], args: &[Arg], given: &[Type]) {
+        for ((a, &param), t) in args.iter().zip(takes).zip(given) {
             if agrees(a.pass, param) {
+                if param.is_none() && a.pass.is_none() {
+                    self.handed(&a.value, t);
+                }
                 continue;
             }
             let wanted = param.map_or_else(

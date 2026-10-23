@@ -20,6 +20,9 @@ pub(crate) struct OwnType {
     pub interface: bool,
     /// An `abstract class`: inherited, never made.
     pub is_abstract: bool,
+    /// Its objects live on the heap (a class, a `record`, an interface):
+    /// never `Copy`.
+    pub heap: bool,
     /// Its type parameters' names (`T` of `Box<T>`).
     pub generics: Vec<String>,
     /// An enum's cases that carry data, their fields by case.
@@ -88,7 +91,7 @@ impl OwnTypes {
                 header,
                 body,
                 word,
-                ..
+                value,
             } => {
                 let t = self.types.entry(name.text.clone()).or_default();
                 t.bases = header
@@ -98,6 +101,7 @@ impl OwnTypes {
                     .collect();
                 t.interface = word.text == crate::words::interface::WORD.text;
                 t.is_abstract = d.has(ast::Modifier::Abstract);
+                t.heap = !value;
                 t.generics = type_params(&header.generics);
                 // A record's constructor parameters are its properties.
                 let props = (word.text == crate::words::record::WORD.text)

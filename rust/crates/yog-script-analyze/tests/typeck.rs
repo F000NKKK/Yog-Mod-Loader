@@ -214,7 +214,7 @@ fn classes_inherit_as_in_csharp() {
                  class Battery : Machine { public i32 Boost() => base.Rate + Rate; }\nclass Other {}\n";
     // Members come from the base class; a derived object goes where its base is wanted.
     let ok = format!(
-        "{types}void F() {{ let b = new Battery(); i32 r = b.Rate; b.Tick(); Machine m = b; ITick t = b; }}\n"
+        "{types}void F() {{ let b = new Battery(); i32 r = b.Rate; b.Tick(); Machine m = move b; ITick t = new Battery(); }}\n"
     );
     assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
     // Not the other way, nor an unrelated type.
@@ -313,4 +313,23 @@ fn generics_are_csharps() {
             script_problem::TYPE_MISMATCH
         ]
     );
+}
+
+#[test]
+fn values_copy_and_objects_move() {
+    let types = "record struct Pos(i32 X, i32 Y);\nstruct Bag(List<i32> items) { public List<i32> Items = items; }\n\
+                 class Box {}\nstatic void Keep(Box b) {}\n";
+    // A `Copy` struct copies; an object, a struct holding a collection, a list move.
+    assert!(
+        codes(&format!(
+            "{types}void F(Pos p) {{ let q = p; Pos r = p; }}\n"
+        ))
+        .is_empty()
+    );
+    let bad = format!(
+        "{types}void F(Box b, Bag g, List<i32> xs) {{ let c = b; let h = g; let ys = xs; Keep(b); }}\n"
+    );
+    assert_eq!(codes(&bad), vec![script_problem::PASS; 4]);
+    let ok = format!("{types}void F(Box b, Box c) {{ let d = move b; Keep(move c); }}\n");
+    assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
 }

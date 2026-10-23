@@ -443,7 +443,7 @@ impl Checker<'_, '_, '_> {
             all.then_some(found)
         };
         if let Some((s, found)) = sigs.iter().find_map(|s| fits(s).map(|f| (s, f))) {
-            self.check_passing(&s.passes, args);
+            self.check_passing(&s.passes, args, given);
             return s.ret.substitute(&found);
         }
         let taking: Vec<&Signature> = sigs.iter().filter(|s| takes(s)).collect();

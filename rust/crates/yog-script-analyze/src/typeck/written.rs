@@ -12,9 +12,9 @@ use crate::source::token::Span;
 use crate::words;
 
 /// The library's collections, by the names a source writes.
-const LIST: &str = "List";
-const SET: &str = "HashSet";
-const MAP: &str = "Dictionary";
+pub(super) const LIST: &str = "List";
+pub(super) const SET: &str = "HashSet";
+pub(super) const MAP: &str = "Dictionary";
 /// Delegates, as C#'s: `Action<A, B>` gives nothing, `Func<A, R>` an `R`.
 pub(super) const ACTION: &str = "Action";
 pub(super) const FUNC: &str = "Func";

@@ -27,6 +27,7 @@ impl Checker<'_, '_, '_> {
                 // the value must be one.
                 if op.is_none() || matches!(t.non_null(), Type::Fn(..)) {
                     self.fits(value, &t);
+                    self.handed(value, &t);
                 } else {
                     self.expr(value);
                 }
@@ -98,6 +99,9 @@ impl Checker<'_, '_, '_> {
             (None, Some(v)) => self.expr(v),
             (None, None) => Type::Unknown,
         };
+        if let Some(v) = value {
+            self.handed(v, &t);
+        }
         self.bind_binding(binding, &t);
     }
 
