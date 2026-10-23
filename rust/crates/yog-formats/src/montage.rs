@@ -52,7 +52,7 @@ pub struct SoundClip {
 
 /// What a sound goes through.
 #[derive(Schema, Debug, Clone, PartialEq)]
-#[data(tag = "effect")]
+#[data(tag = "fx")]
 pub enum SoundEffect {
     /// Heard again `delay` seconds later at `decay` of its loudness, and again, fading.
     Echo { delay: f32, decay: f32 },
@@ -82,7 +82,7 @@ mod tests {
     #[test]
     fn a_mix_reads_its_clips_and_effects() {
         let text = r#"{ clips: [{ sound: "@Sounds.abacus1", at: 0.5, to: 1, speed: 2,
-            effects: [{ effect: "low_pass", hz: 800 }] }], effects: [{ effect: "echo", delay: 0.2, decay: 0.4 }] }"#;
+            effects: [{ fx: "low_pass", hz: 800 }] }], effects: [{ fx: "echo", delay: 0.2, decay: 0.4 }] }"#;
         let mix = yog_data::from_text::<Mix>(text).unwrap().value;
         let clip = &mix.clips[0];
         assert_eq!((clip.at, clip.gain, clip.duration(3.0)), (0.5, 1.0, 0.5));

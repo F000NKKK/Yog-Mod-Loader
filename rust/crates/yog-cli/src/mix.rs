@@ -149,8 +149,8 @@ mod tests {
 
     #[test]
     fn a_mix_is_one_ffmpeg_graph() {
-        let text = r#"{ clips: [{ sound: "@S.a", at: 0.5, to: 1, speed: 2, fade_out: 0.1, effects: [{ effect: "low_pass", hz: 800 }] },
-            { file: "dig/sand1" }], effects: [{ effect: "echo", delay: 0.2, decay: 0.4 }] }"#;
+        let text = r#"{ clips: [{ sound: "@S.a", at: 0.5, to: 1, speed: 2, fade_out: 0.1, effects: [{ fx: "low_pass", hz: 800 }] },
+            { file: "dig/sand1" }], effects: [{ fx: "echo", delay: 0.2, decay: 0.4 }] }"#;
         let g = graph(&yog_data::from_text::<Mix>(text).unwrap().value);
         assert!(
             g.starts_with(
