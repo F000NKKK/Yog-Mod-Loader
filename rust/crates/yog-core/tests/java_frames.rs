@@ -20,33 +20,17 @@ fn gson() -> PathBuf {
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .unwrap_or_default();
-    let mut jars: Vec<PathBuf> =
-        walk(&home.join(".gradle/caches/modules-2/files-2.1/com.google.code.gson/gson"))
-            .into_iter()
-            .filter(|p| {
-                p.extension().is_some_and(|e| e == "jar")
-                    && !p.to_string_lossy().contains("sources")
-            })
-            .collect();
+    let mut jars: Vec<PathBuf> = yog_analysis::files::all(
+        &home.join(".gradle/caches/modules-2/files-2.1/com.google.code.gson/gson"),
+    )
+    .into_iter()
+    .filter(|p| {
+        p.extension().is_some_and(|e| e == "jar") && !p.to_string_lossy().contains("sources")
+    })
+    .collect();
     jars.sort();
     jars.pop()
         .expect("gson in the Gradle cache (build a host once)")
-}
-
-fn walk(dir: &Path) -> Vec<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return Vec::new();
-    };
-    entries
-        .flatten()
-        .flat_map(|e| {
-            if e.path().is_dir() {
-                walk(&e.path())
-            } else {
-                vec![e.path()]
-            }
-        })
-        .collect()
 }
 
 /// `value` through Java and back, as Java's record `record`.

@@ -1,0 +1,11 @@
+[package]
+name = "yog-analysis"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = "MIT OR Apache-2.0"
+description = "Yog's toolkit for analyzers: the sources under a folder and their fingerprint, and problems placed in a source as Diagnostics."
+
+[dependencies]
+yog-data = { workspace = true }

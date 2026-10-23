@@ -60,7 +60,7 @@ pub(crate) fn compile(
         mod_id,
         rendered: Vec::new(),
     };
-    for file in crate::files::with_ext(&resources, Format::Sound.ext()) {
+    for file in yog_analysis::files::with_ext(&resources, &[Format::Sound.ext()]) {
         let shown = crate::shown_path(root, &file);
         let rel = file
             .strip_prefix(&resources)

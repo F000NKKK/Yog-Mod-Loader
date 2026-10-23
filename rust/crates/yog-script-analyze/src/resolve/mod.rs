@@ -14,8 +14,8 @@ mod stmts;
 pub use scope::{Def, DefKind, Symbols};
 
 use crate::ast;
-use crate::source::report::Report;
 use scope::Scope;
+use yog_analysis::Report;
 
 /// Where the code being walked is, as far as what it may say goes.
 #[derive(Clone, Copy, Default)]

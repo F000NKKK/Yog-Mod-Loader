@@ -26,6 +26,25 @@ pub struct Span {
     pub end: u32,
 }
 
+impl Span {
+    /// `start..end`; offsets past `u32` saturate.
+    pub fn new(start: usize, end: usize) -> Span {
+        Span {
+            start: u32::try_from(start).unwrap_or(u32::MAX),
+            end: u32::try_from(end).unwrap_or(u32::MAX),
+        }
+    }
+
+    /// From this one's start to `other`'s end.
+    #[must_use]
+    pub fn to(self, other: Span) -> Span {
+        Span {
+            start: self.start,
+            end: other.end.max(self.end),
+        }
+    }
+}
+
 /// Where each value of a parsed document is: the value's span, its key's
 /// (map entries), and its children's, in the same order as the value's.
 #[derive(Debug, Clone, Default, PartialEq)]

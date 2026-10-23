@@ -376,7 +376,7 @@ pub(crate) fn status(root: &Path) -> Snapshot {
     let defs = components::scan_with_revision(root);
     let shared = state(root);
     let files = sources(root);
-    let fp = crate::files::fingerprint(&files);
+    let fp = yog_analysis::files::fingerprint(&files);
     let mut s = shared.lock();
     if s.mod_name.is_empty() {
         s.mod_name = mod_name(root);

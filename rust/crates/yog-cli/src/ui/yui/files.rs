@@ -98,7 +98,7 @@ pub fn is_book_page_file(path: &Path) -> bool {
 
 /// Every `.yui` file under `dir`, recursively.
 pub fn find_yui_files(dir: &Path) -> Vec<PathBuf> {
-    crate::files::with_ext(dir, yog_ids::Format::Ui.ext())
+    yog_analysis::files::with_ext(dir, &[yog_ids::Format::Ui.ext()])
 }
 
 /// What [`generate_all`] did: how many screens it read, what to warn of.
@@ -137,7 +137,7 @@ pub fn generate_all(root: &Path) -> Result<Generated, Diagnostic> {
         .parent()
         .map(|d| d.join(crate::content::GENERATED_PARTS_DIR))
         .unwrap_or_default();
-    for stale in crate::files::with_ext(&root.join(GENERATED_DIR), RS) {
+    for stale in yog_analysis::files::with_ext(&root.join(GENERATED_DIR), &[RS]) {
         if stale.to_string_lossy().ends_with(GENERATED_EXT)
             && !wanted.contains(&stale)
             && stale != res_index

@@ -17,19 +17,11 @@ fn repo() -> PathBuf {
 
 /// Every source of the runtime (its folders' too), one after another.
 fn runtime_sources() -> String {
-    fn walk(dir: &Path, out: &mut String) {
-        for e in fs::read_dir(dir).unwrap() {
-            let p = e.unwrap().path();
-            if p.is_dir() {
-                walk(&p, out);
-            } else if p.extension().is_some_and(|x| x == "rs") {
-                out.push_str(&fs::read_to_string(p).unwrap());
-            }
-        }
-    }
-    let mut out = String::new();
-    walk(&Path::new(env!("CARGO_MANIFEST_DIR")).join("src"), &mut out);
-    out
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    yog_analysis::files::with_ext(&src, &["rs"])
+        .iter()
+        .map(|p| fs::read_to_string(p).unwrap())
+        .collect()
 }
 
 /// The string literal `s` starts with (after whitespace), and what follows it.

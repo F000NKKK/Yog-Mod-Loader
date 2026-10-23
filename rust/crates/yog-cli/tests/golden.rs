@@ -25,19 +25,6 @@ fn copy_dir(from: &Path, to: &Path) {
     }
 }
 
-fn walk(dir: &Path) -> Vec<PathBuf> {
-    let mut found = Vec::new();
-    for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
-        let p = e.path();
-        if p.is_dir() {
-            found.extend(walk(&p));
-        } else {
-            found.push(p);
-        }
-    }
-    found
-}
-
 /// Everything the build makes of the mod at `root`, as text.
 fn build(root: &Path, mod_id: &str) -> String {
     let mut out = String::new();
@@ -77,7 +64,7 @@ fn build(root: &Path, mod_id: &str) -> String {
         Ok(g) if g.screens == 0 => {}
         Ok(_) => {
             let dir = root.join(yui::GENERATED_DIR);
-            let mut files = walk(&dir);
+            let mut files = yog_analysis::files::all(&dir);
             files.sort();
             for f in files {
                 let rel = f

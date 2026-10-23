@@ -34,7 +34,7 @@ impl Videos {
 pub(crate) fn compile(root: &Path, mod_id: &str, errors: &mut Vec<Diagnostic>) -> Videos {
     let resources = root.join(RESOURCES_DIR);
     let mut out = Videos::default();
-    for file in crate::files::with_ext(&resources, Format::Video.ext()) {
+    for file in yog_analysis::files::with_ext(&resources, &[Format::Video.ext()]) {
         let shown = crate::shown_path(root, &file);
         let rel = file
             .strip_prefix(&resources)

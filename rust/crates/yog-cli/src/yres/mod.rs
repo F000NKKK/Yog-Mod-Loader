@@ -129,7 +129,7 @@ pub struct Compiled {
 
 /// Every `resources/**/*.yres` of the mod at `root`, sorted.
 pub(crate) fn find(root: &Path) -> Vec<PathBuf> {
-    crate::files::under(&root.join(RESOURCES_DIR), &|p| yog_ids::Format::Res.is(p))
+    yog_analysis::files::under(&root.join(RESOURCES_DIR), &|p| yog_ids::Format::Res.is(p))
 }
 
 /// What's wrong with `e`'s value for its type, if anything — the build's

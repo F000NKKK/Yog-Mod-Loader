@@ -354,7 +354,7 @@ pub(crate) fn scan(mod_root: &Path) -> Arc<Vec<Def>> {
 pub(crate) fn scan_with_revision(mod_root: &Path) -> (u64, Arc<Vec<Def>>) {
     static CACHE: OnceLock<Mutex<HashMap<PathBuf, Scanned>>> = OnceLock::new();
     let files = yui_files(mod_root);
-    let fp = crate::files::fingerprint(&files);
+    let fp = yog_analysis::files::fingerprint(&files);
     let cache = CACHE.get_or_init(Default::default);
     if let Some((seen, defs)) = cache.lock().get(mod_root)
         && *seen == fp

@@ -15,9 +15,9 @@ mod types;
 
 use yog_ids::script_problem;
 
-use crate::source::report::Report;
 use crate::source::token::{Punct, Span, Tok, Token};
 use crate::words::{Starts, Word};
+use yog_analysis::Report;
 
 /// A form that didn't parse: its problem is reported already.
 #[derive(Debug)]

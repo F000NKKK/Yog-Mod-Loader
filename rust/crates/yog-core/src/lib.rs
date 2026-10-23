@@ -11,8 +11,7 @@ mod state;
 
 pub use local::{BlockArea, BlockKind, ClickMode, LocalState, NearbyEntity};
 pub use query::{
-    DigSpeed,
-    BlockHit, BlockInfo, EntityInfo, Face, PlacedBlock, PlayerInfo, Rotation, ScreenSlot,
+    BlockHit, BlockInfo, DigSpeed, EntityInfo, Face, PlacedBlock, PlayerInfo, Rotation, ScreenSlot,
     SlotStack, Stack, entity_flags,
 };
 pub use state::{join_state, split_state};

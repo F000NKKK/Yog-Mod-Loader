@@ -3,29 +3,7 @@
 use crate::words::Word;
 
 /// Where something is in its source: byte offsets, `start..end`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct Span {
-    pub start: u32,
-    pub end: u32,
-}
-
-impl Span {
-    pub fn new(start: usize, end: usize) -> Span {
-        Span {
-            start: u32::try_from(start).unwrap_or(u32::MAX),
-            end: u32::try_from(end).unwrap_or(u32::MAX),
-        }
-    }
-
-    /// From this one's start to `other`'s end.
-    #[must_use]
-    pub fn to(self, other: Span) -> Span {
-        Span {
-            start: self.start,
-            end: other.end.max(self.end),
-        }
-    }
-}
+pub use yog_data::Span;
 
 /// A part of a string literal: text as written, or `{expr}` cut into tokens.
 #[derive(Debug, Clone, PartialEq)]

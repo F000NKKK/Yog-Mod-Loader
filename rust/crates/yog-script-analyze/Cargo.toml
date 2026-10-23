@@ -11,4 +11,5 @@ description = "Yog Script (.ys, .yns) analyzed: its lexer, parser and syntax tre
 # Problem codes, file formats.
 yog-ids = { workspace = true }
 # Problems as Diagnostics, positions.
+yog-analysis = { workspace = true }
 yog-data = { workspace = true }

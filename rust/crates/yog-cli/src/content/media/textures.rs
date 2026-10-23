@@ -62,7 +62,7 @@ struct Building {
 pub fn compile(root: &Path, mod_id: &str, refs: &Refs, errors: &mut Vec<Diagnostic>) -> Textures {
     let resources = root.join(RESOURCES_DIR);
     let mut b = Building::default();
-    for file in crate::files::with_ext(&resources, Format::Texture.ext()) {
+    for file in yog_analysis::files::with_ext(&resources, &[Format::Texture.ext()]) {
         let shown = crate::shown_path(root, &file);
         let rel = file
             .strip_prefix(&resources)

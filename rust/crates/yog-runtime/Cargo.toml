@@ -63,6 +63,7 @@ dev = []
 bench = ["yog-hot-reload/testing"]
 
 [dev-dependencies]
+yog-analysis = { workspace = true }
 yog-hot-reload = { workspace = true, features = ["testing"] }
 criterion = { workspace = true }
 

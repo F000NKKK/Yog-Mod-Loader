@@ -41,7 +41,7 @@ pub(crate) fn compile(
 ) -> Particles {
     let resources = root.join(RESOURCES_DIR);
     let mut out = Particles::default();
-    for file in crate::files::with_ext(&resources, Format::Particle.ext()) {
+    for file in yog_analysis::files::with_ext(&resources, &[Format::Particle.ext()]) {
         let shown = crate::shown_path(root, &file);
         let rel = file
             .strip_prefix(&resources)

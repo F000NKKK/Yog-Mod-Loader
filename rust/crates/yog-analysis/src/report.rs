@@ -1,8 +1,8 @@
 //! The problems found in one source, as Diagnostics placed in it.
 
-use yog_data::{Diagnostic, LineCol};
+use std::fmt::Display;
 
-use crate::source::token::Span;
+use yog_data::{Diagnostic, LineCol, Span};
 
 /// Collects one source's problems, each at its line and column.
 pub struct Report<'a> {
@@ -12,13 +12,7 @@ pub struct Report<'a> {
 }
 
 impl<'a> Report<'a> {
-    /// The source text at `span`.
-    pub fn text(&self, span: Span) -> &'a str {
-        self.src
-            .get(span.start as usize..span.end as usize)
-            .unwrap_or_default()
-    }
-
+    /// A report on `src`, the file named `file`.
     pub fn new(file: &'a str, src: &'a str) -> Self {
         Report {
             src,
@@ -27,18 +21,38 @@ impl<'a> Report<'a> {
         }
     }
 
+    /// The source text at `span`.
+    pub fn text(&self, span: Span) -> &'a str {
+        self.src
+            .get(span.start as usize..span.end as usize)
+            .unwrap_or_default()
+    }
+
     /// The line (from 1) `span` starts on.
     pub fn line_of(&self, span: Span) -> u32 {
         LineCol::of(self.src, span.start as usize).line
     }
 
     /// An error of kind `code` at `span`.
-    pub fn error(&mut self, code: &str, span: Span, message: impl std::fmt::Display) {
+    pub fn error(&mut self, code: &str, span: Span, message: impl Display) {
+        self.push(Diagnostic::error(code, message), span);
+    }
+
+    /// A warning of kind `code` at `span`.
+    pub fn warning(&mut self, code: &str, span: Span, message: impl Display) {
+        self.push(Diagnostic::warning(code, message), span);
+    }
+
+    /// `d`, placed at `span` of this file.
+    fn push(&mut self, d: Diagnostic, span: Span) {
         let from = LineCol::of(self.src, span.start as usize);
         let to = LineCol::of(self.src, span.end as usize);
-        let mut d = Diagnostic::error(code, message).in_file(self.file).at(from);
+        let mut d = d.in_file(self.file).at(from);
         d.end_line = Some(to.line);
         d.end_col = Some(to.col);
         self.out.push(d);
     }
 }
+
+#[cfg(test)]
+mod tests;

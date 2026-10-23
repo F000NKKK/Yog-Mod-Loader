@@ -95,7 +95,10 @@ fn pictures_of(file: &Path, set: &str) -> Arc<Vec<Picture>> {
 /// Every picture of the mod at `root`.
 pub(crate) fn pictures(root: &Path) -> Vec<Picture> {
     let mut out = Vec::new();
-    for file in crate::files::with_ext(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
+    for file in yog_analysis::files::with_ext(
+        &root.join(yog_ids::project::RESOURCES),
+        &[Format::Res.ext()],
+    ) {
         // A culture variant (`Images.ru_ru.yres`) has no pictures of its own.
         let Some((set, None)) = file
             .file_name()
@@ -167,7 +170,10 @@ fn entries_of(root: &Path, kind: Kind) -> Vec<String> {
 /// Every entry of `kind` of the mod at `root`, sorted.
 pub(crate) fn resources_of(root: &Path, kind: Kind) -> Vec<Res> {
     let mut out = Vec::new();
-    for file in crate::files::with_ext(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
+    for file in yog_analysis::files::with_ext(
+        &root.join(yog_ids::project::RESOURCES),
+        &[Format::Res.ext()],
+    ) {
         let Some((set, None)) = file
             .file_name()
             .and_then(|n| n.to_str())
@@ -277,7 +283,7 @@ pub(crate) fn textures(root: &Path) -> Vec<Texture> {
         return Vec::new();
     };
     let resources = root.join(yog_ids::project::RESOURCES);
-    crate::files::with_ext(&resources, Format::Texture.ext())
+    yog_analysis::files::with_ext(&resources, &[Format::Texture.ext()])
         .into_iter()
         .filter_map(|f| {
             let rel = f

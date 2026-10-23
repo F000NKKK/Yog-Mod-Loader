@@ -1,4 +1,4 @@
-//! A source as the compiler holds it: its tokens, its problems placed in it.
+//! A source as the compiler holds it: its tokens (its problems go in a
+//! `yog_analysis::Report`).
 
-pub(crate) mod report;
 pub mod token;

@@ -29,18 +29,19 @@ pub(super) fn source(
     format: Format,
 ) -> Option<String> {
     let resources = root.join(RESOURCES_DIR);
-    let mut events: Vec<(String, String)> = crate::files::with_ext(&resources, format.ext())
-        .iter()
-        .filter_map(|f| {
-            let rel = f
-                .strip_prefix(&resources)
-                .ok()?
-                .to_string_lossy()
-                .replace('\\', yog_ids::sep::PATH);
-            let id = yog_formats::resource_id(mod_id, &rel, dir, format)?;
-            Some((rel, id))
-        })
-        .collect();
+    let mut events: Vec<(String, String)> =
+        yog_analysis::files::with_ext(&resources, &[format.ext()])
+            .iter()
+            .filter_map(|f| {
+                let rel = f
+                    .strip_prefix(&resources)
+                    .ok()?
+                    .to_string_lossy()
+                    .replace('\\', yog_ids::sep::PATH);
+                let id = yog_formats::resource_id(mod_id, &rel, dir, format)?;
+                Some((rel, id))
+            })
+            .collect();
     if events.is_empty() {
         return None;
     }

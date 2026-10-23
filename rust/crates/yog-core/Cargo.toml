@@ -13,3 +13,6 @@ yog-ids = { workspace = true }
 yog-data = { workspace = true }
 # Positions as mirror cells.
 yog-mirror = { workspace = true }
+
+[dev-dependencies]
+yog-analysis = { workspace = true }

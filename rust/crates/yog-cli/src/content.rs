@@ -106,7 +106,7 @@ pub(crate) use yog_ids::{valid_id, valid_namespace, valid_path};
 
 /// Every content file (`CONTENT`) under `content/` of the mod at `root`, sorted.
 pub(crate) fn find(root: &Path) -> Vec<PathBuf> {
-    crate::files::under(&root.join(CONTENT_DIR), &|p| content_format(p).is_some())
+    yog_analysis::files::under(&root.join(CONTENT_DIR), &|p| content_format(p).is_some())
 }
 
 fn pretty(v: &Value) -> Vec<u8> {

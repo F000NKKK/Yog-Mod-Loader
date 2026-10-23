@@ -5,9 +5,9 @@ mod string;
 
 use yog_ids::script_problem;
 
-use crate::source::report::Report;
 use crate::source::token::{Punct, Span, Tok, Token};
 use crate::words;
+use yog_analysis::Report;
 
 /// `src` cut into tokens, ending with `Eof`; what doesn't lex is reported.
 pub fn lex(src: &str, report: &mut Report) -> Vec<Token> {
