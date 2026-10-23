@@ -231,6 +231,14 @@ names! {
         ILLAGERALT = "illageralt",
     }
 
+    /// The game's modes a player is put in.
+    gamemode {
+        SURVIVAL = "survival",
+        CREATIVE = "creative",
+        ADVENTURE = "adventure",
+        SPECTATOR = "spectator",
+    }
+
     /// The game's ids Yog's code names.
     game {
         /// The game's own id of its default font (hosts only; everything
