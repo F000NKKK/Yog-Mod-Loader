@@ -19,6 +19,10 @@ fn the_librarys_sources_check() {
             "System.Meta.ys",
             include_str!("../src/system/System.Meta.ys"),
         ),
+        (
+            "System.Yog.Native.ys",
+            include_str!("../src/system/System.Yog.Native.ys"),
+        ),
     ] {
         let problems = check(name, src).problems;
         assert!(problems.is_empty(), "{name}: {problems:#?}");
@@ -53,7 +57,7 @@ fn attributes_are_attribute_classes() {
 
 #[test]
 fn rust_is_reached_on_the_bus() {
-    let ok = "[Service(\"charge:simulate\")]\nstatic extern i64 Simulate(i64 nodes);\ni64 F() => Simulate(3);\n\
+    let ok = "using Yog.Native;\n[Service(\"charge:simulate\")]\nstatic extern i64 Simulate(i64 nodes);\ni64 F() => Simulate(3);\n\
               [Provide(\"charge:double\")]\nstatic i64 Double(i64 x) => x * 2;\n";
     assert!(codes(ok).is_empty(), "{:?}", codes(ok));
     assert_eq!(

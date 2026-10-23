@@ -2690,6 +2690,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "yog-script-java"
+version = "0.1.0"
+dependencies = [
+ "yog-codegen",
+ "yog-codegen-java",
+ "yog-data",
+ "yog-ids",
+ "yog-script-analyze",
+]
+
+[[package]]
 name = "yog-script-run"
 version = "0.1.0"
 dependencies = [

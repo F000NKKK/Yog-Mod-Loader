@@ -1,6 +1,6 @@
 // Yog's attributes for the bus (`ys.md` §7): how Yog Script meets the
 // mod's Rust code, or anyone's, declared by hand on both sides.
-namespace Yog;
+namespace Yog.Native;
 
 /// An `extern` method that is a call on the bus: its parameters the
 /// request's fields (a Rust struct's, in order), its result the reply.

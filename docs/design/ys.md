@@ -778,8 +778,8 @@ static i64 Double(i64 x) => x * 2;
 - `[Event]` on an `event`: `+=` listens to what Rust (or anyone) emits
   there; `Overloaded.Invoke(…)` emits it.
 - `[Provide]` on a method: Rust (or another mod) calls it at that address.
-- The attributes are `Yog`'s (`Service`, `Event`, `Provide`), every
-  source's by its implicit `using Yog;`.
+- The attributes are `Yog.Native`'s (`Service`, `Event`, `Provide`):
+  `using Yog.Native;`.
 - Run by the interpreter (`yog test`), an `extern` call panics unless the
   test provides the address itself (`[Provide]` in the test's source).
 

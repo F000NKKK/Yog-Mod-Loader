@@ -23,7 +23,7 @@ pub const DERIVE_MACRO: &str = "DeriveMacro";
 /// The attribute marking an attribute class as an attribute macro (`System`).
 pub const MACRO: &str = "Macro";
 
-/// The bus's attributes (`Yog`): a call, an event, a method provided.
+/// The bus's attributes (`Yog.Native`): a call, an event, a method provided.
 pub const SERVICE: &str = "Service";
 pub const EVENT: &str = "Event";
 pub const PROVIDE: &str = "Provide";
@@ -32,7 +32,10 @@ pub const PROVIDE: &str = "Provide";
 const SOURCES: &[(&str, &str)] = &[
     ("System.ys", include_str!("system/System.ys")),
     ("System.Meta.ys", include_str!("system/System.Meta.ys")),
-    ("System.Yog.Native.ys", include_str!("system/System.Yog.Native.ys")),
+    (
+        "System.Yog.Native.ys",
+        include_str!("system/System.Yog.Native.ys"),
+    ),
 ];
 
 /// Every declaration of the library, parsed once.
