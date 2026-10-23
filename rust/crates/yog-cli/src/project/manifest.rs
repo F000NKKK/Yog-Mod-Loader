@@ -59,7 +59,7 @@ pub struct YogToml {
     /// to opt into matching the mod's own license instead.
     pub exports_license: Option<String>,
     /// The Minecraft version whose vanilla content it names (`[mod] datapack`).
-    pub datapack: Option<String>,
+    pub(crate) datapack: Option<String>,
     /// The Rust edition its code is in (the default: the toolchain's).
     pub edition: Option<String>,
     /// Optional: path to yog-api for local/monorepo development.

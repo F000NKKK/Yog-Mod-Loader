@@ -11,9 +11,9 @@ use crate::diagnostics;
 /// Where a mod's code is: its scripts beside its Rust.
 const SOURCES: &str = "src";
 
-/// Checks every script of the mod at `root` against the game's classes of
-/// `mc` (the version its vanilla content is of); an error when one has errors.
-pub fn check(root: &Path, mc: Option<&str>) -> Result<(), String> {
+/// Checks every script of the mod at `root` (a `.yns` on each game version
+/// it targets); an error when one has errors.
+pub fn check(root: &Path) -> Result<(), String> {
     let dir = root.join(SOURCES);
     let files: Vec<_> = [Format::Script, Format::Nanites]
         .into_iter()
@@ -22,13 +22,12 @@ pub fn check(root: &Path, mc: Option<&str>) -> Result<(), String> {
     if files.is_empty() {
         return Ok(());
     }
-    let game = mc.and_then(game_index);
     let mut errors = 0;
     for file in files {
         let text =
             std::fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?;
         let name = crate::shown_path(root, &file);
-        let problems = yog_script_build::check_source(&name, &text, game.as_ref());
+        let problems = yog_script_build::check_source(&name, &text);
         errors += problems.iter().filter(|d| d.is_error()).count();
         diagnostics::report_all(&problems);
         for d in &problems {
@@ -44,18 +43,6 @@ pub fn check(root: &Path, mc: Option<&str>) -> Result<(), String> {
     }
 }
 
-/// The game's classes of `mc`, from the cache or built; without them (no
-/// network the first time) the scripts are checked by what they declare.
-fn game_index(mc: &str) -> Option<yog_script_build::index::ClassIndex> {
-    yog_script_build::index::load(mc)
-        .map_err(|e| {
-            yog_logging::warn!(
-                "the game's classes of {mc} aren't at hand ({e}): scripts checked without them"
-            )
-        })
-        .ok()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -66,9 +53,9 @@ mod tests {
         let src = root.join(SOURCES).join("power");
         std::fs::create_dir_all(&src).unwrap();
         std::fs::write(src.join("ok.ys"), "int Area(int w, int h) => w * h;\n").unwrap();
-        assert_eq!(check(&root, None), Ok(()));
+        assert_eq!(check(&root), Ok(()));
         std::fs::write(src.join("bad.ys"), "void F() {\n    break;\n}\n").unwrap();
-        assert!(check(&root, None).is_err());
+        assert!(check(&root).is_err());
         std::fs::remove_dir_all(&root).unwrap();
     }
 }

@@ -66,3 +66,28 @@ fn a_font_alias_stands_for_the_games_font() {
 fn block_traits_fit_a_word() {
     assert!(block_trait::ALL_VALUES.len() <= u64::BITS as usize);
 }
+
+/// Every version Yog says it runs on has its hosts' properties, and no
+/// host has a version Yog doesn't list (in this crate's repository).
+#[test]
+fn the_game_versions_are_the_hosts() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    for loader in ["fabric", "forge", "neoforge"] {
+        let Ok(entries) = std::fs::read_dir(root.join(loader).join("versions")) else {
+            return;
+        };
+        let mut found: Vec<String> = entries
+            .flatten()
+            .filter_map(|e| {
+                e.path()
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().into_owned())
+            })
+            .collect();
+        found.sort_by(|a, b| {
+            let pos = |v: &str| game_version::ALL_VALUES.iter().position(|x| *x == v);
+            pos(a).cmp(&pos(b))
+        });
+        assert_eq!(found, game_version::ALL_VALUES, "{loader}/versions");
+    }
+}

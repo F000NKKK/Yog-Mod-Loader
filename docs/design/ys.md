@@ -1,6 +1,6 @@
 # Yog Script — a language for Minecraft mods
 
-Status: design draft. The parser, the resolver and the class index exist
+Status: design draft. The parser, the resolver, the type checker and the class index exist
 (`yog-script-analyze`, `yog-script-build`); typing and lowering don't.
 
 Yog Script (`.ys`) is a language a whole mod is written in, with no Rust
@@ -35,10 +35,16 @@ KubeJS/ProbeJS reviews; Skript forums.
 1. **A mod is objects and declarations.** Blocks, items, recipes, state,
    screens, commands, patches are words of the language, not API calls;
    shared behaviour is components (3).
-2. **The compiler knows the game.** Every id, class, method, field and
-   version is checked at build time against the index of each targeted
-   MC version. "Works on 1.20.1, breaks on 1.21" is a build error with the
-   line, not a crash.
+2. **Built on Yog, not on Minecraft.** A `.ys` reaches the game only
+   through Yog — its objects, services, events, mirrors and storage, the
+   same surface the Rust API has, described once (yog-event) — so it runs
+   on every version the mod does, unchanged. The game's own classes are
+   reached only from `.yns` (nanites), which says the versions it's for
+   (`targets mc …;`) and is checked against the class index of each:
+   "works on 1.20.1, breaks on 1.21" is a build error with the line.
+   Running code inside the game without the bus (hot paths) is a general
+   Yog mechanism too; nanites are for what's specific to a game class, or
+   needs Mixin-level access.
 3. **Sides are types.** Server, client and shared code are told apart by the
    type system: a dedicated server can't reach a client class, because such a
    program doesn't compile.
@@ -94,12 +100,11 @@ var tier = tool.Tier switch {
 | Records, unions | `record Pos(int X, int Y, int Z);`, `union Shape { Circle(float R), Box(float W, float H) }` |
 | Collections | `List<T>`, `Dictionary<K, V>`, `HashSet<T>`; collection expressions `[1, 2, 3]` |
 
-Game objects (`Player`, `Level`, `ItemStack`, any MC class) are plain
-objects: no ownership, no lifetimes. A game object held past its life
-(an entity removed) reads as `null`, not as a crash: such references are
-weak by type (`Entity?` when stored in state). Their Java members read
-C#-style: `getArmorValue()` is the property `ArmorValue`, `hurt()` the
-method `Hurt()`.
+Yog's objects (`Player`, `Level`, `Entity`, `ItemStack`, `Block`) are
+plain objects: no ownership, no lifetimes. One held past its life (an
+entity removed) reads as `null`, not as a crash: such references are weak
+by type (`Entity?` when stored in state). They're Yog's, the same on every
+game version; the game's own classes are a `.yns`'s only (6).
 
 ### Objects and constructors
 
@@ -214,10 +219,10 @@ server system Feed(Charge charge, Slots<Battery> slots) every 1t {
 
 Every method is `shared` (the default: pure, no side), `server` or
 `client`. A `client` method can call only `client` and `shared` code; a
-`server` one only `server` and `shared`. The game's own classes carry their
-side from the class index (`net.minecraft.client.*` is `client`), so a
-client class used in server code is a **build error**, not a dedicated
-server crash.
+`server` one only `server` and `shared`. Yog's objects and services
+carry their side, and in a `.yns` the game's classes theirs (from the
+class index: `net.minecraft.client.*` is `client`), so client code reached
+from server code is a **build error**, not a dedicated server crash.
 
 A call across sides is a **message**, generated: the compiler writes the
 packet, its codec and both handlers.
@@ -335,15 +340,22 @@ test "a charger fills a battery" {
 
 ### 4.7 Versions
 
-A mod says which MC versions it targets; the build checks every line
-against each. Code that differs per version is a `version` block, the
-only place such branches can be:
+A `.ys` reaches Yog only, so it has no versions of its own: it runs on
+every version the mod does. A `.yns` says the versions its patches are
+for, and the build checks every patch against each one's classes; code
+that differs by version is a `version` block there:
 
-```ys
+```yns
+targets mc 1.20.1..26.2;
+
 version (mc >= 1.21) {
-    int Armor(Player player) => player.ArmorValue;
+    patch Player {
+        after int GetArmorValue() { result += Bonus; }
+    }
 } else {
-    int Armor(Player player) => player.GetArmorValue();
+    patch Player {
+        read ArmorValue { return proceed() + Bonus; }
+    }
 }
 ```
 
@@ -509,16 +521,18 @@ native "charge_grid" {
 ## 8. How it compiles
 
 ```
-.ys / .yns ─► parse ─► resolve (class index of each targeted MC version,
-                        yog-ids, the mod's .yres) ─► type check (sides,
-                        ranges, nullables) ─► Yog IR (Yog Data, in the .yog)
+.ys / .yns ─► parse ─► resolve (Yog's surface; a .yns also the class
+                        index of each version it targets; yog-ids, the
+                        mod's .yres) ─► type check (sides, ranges,
+                        nullables) ─► Yog IR (Yog Data, in the .yog)
                                                    │
                          ┌─────────────────────────┴───────────────┐
                          ▼                                         ▼
               JVM: the host lowers IR to bytecode       Rust: `yog build` lowers IR to a
-              at launch (ASM; run-time names from        generated crate (rustc): logic that
-              the mapping table): patches, ticks,        isn't hot, or a mod's choice
-              anything hot; no bus on those paths
+              at launch, running in the host through     generated crate (rustc): logic that
+              Yog's own hooks (events, ticks, mirrors,   isn't hot, or a mod's choice
+              services): no bus on hot paths; a .yns
+              through nanites (Mixin-level)
 ```
 
 - `yog-script-analyze` reads a source (lexer, parser, resolver);
@@ -526,8 +540,11 @@ native "charge_grid" {
   through it (it alone knows projects), and `yog-script` is the
   stand-alone tool. IDLE and editors call the CLI (`formats through the
   CLI`); errors are `yog_data::Diagnostic` with YS codes.
+- Yog's surface (objects, services, events, mirrors) is yog-event's
+  own description — what Java's and the Rust API's are made from.
 - The class index is the game's jars read per MC version: classes,
-  signatures, hierarchy, sides and local names.
+  signatures, hierarchy, sides and local names. Only a `.yns` is checked
+  against it, on each version its `targets` takes.
 - A pure-JVM mod has no native library: no cross-compilation, builds in
   seconds. Rust lowering is chosen per mod or per method.
 - Line numbers: bytecode carries `SourceFile` = the `.ys` and its lines.
@@ -536,7 +553,8 @@ native "charge_grid" {
 
 1. This document; the grammar (`ys-grammar.md`); the IR.
 2. Parser, resolver, diagnostics (`yog check`).
-3. The class index (signatures, sides, locals) per version; type checker.
+3. The type checker: Yog's surface for `.ys`; the class index (signatures,
+   sides, locals) of each targeted version for `.yns`.
 4. JVM lowering for patches (`.yns`) — replaces the bus on hot paths.
 5. Content, state, sides as messages, `Task`.
 6. Rust lowering; `native`.

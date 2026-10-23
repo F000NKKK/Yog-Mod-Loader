@@ -79,9 +79,9 @@ C#'s style guide, checked by the compiler (warnings, like C#'s IDE1006):
 | Parameters, locals, lambda parameters | camelCase | `amount`, `target` |
 | Type parameters | `T` or `T` + PascalCase | `T`, `TItem` |
 
-The game's Java members are seen the same way: a getter is a property
-(`getArmorValue()` → `ArmorValue`, `isDay()` → `IsDay`), a method is
-PascalCase (`hurt()` → `Hurt()`), a field PascalCase (`foodData` →
+In a `.yns`, the game's Java members are seen the same way: a getter is a
+property (`getArmorValue()` → `ArmorValue`, `isDay()` → `IsDay`), a method
+is PascalCase (`hurt()` → `Hurt()`), a field PascalCase (`foodData` →
 `FoodData`). The compiler maps them back to the run-time names.
 
 ## 2. Files and declarations
@@ -95,7 +95,7 @@ path        = IDENT ('.' IDENT)* ;
 decl        = attributes? doc? modifiers? ( mod_decl | method_decl | field_decl
             | type_decl | content_decl | component_decl | system_decl | extend_decl
             | screen_decl | command_decl | event_decl | test_decl | version_decl
-            | native_decl | patch_decl ) ;
+            | native_decl | patch_decl | targets_decl ) ;      (* patch_decl, targets_decl: `.yns` only *)
 
 modifiers   = modifier+ ;
 modifier    = 'public' | 'private' | 'internal'         (* access; members are private, types internal (the mod) *)
@@ -403,9 +403,10 @@ Built in: `int` (32-bit) `long` `byte` `char` `float` `double` `bool`
 `string` `Text` `Ticks` `Seconds` `Blocks` `List<T>` `Dictionary<K, V>`
 `HashSet<T>` `Func<…>` `Action<…>` `Result<T>` `Task` `Sender`
 `Slots<T>`, content refs (`ItemRef`, `BlockRef`, `TagRef`, … one per
-kind). The game's classes are types by their Mojang names
-(`LivingEntity`, `net.minecraft.world.entity.LivingEntity` when
-ambiguous); their side comes from the class index.
+kind), and Yog's objects (`Player`, `Level`, `Entity`, `Block`,
+`ItemStack`, …). In a `.yns` only, the game's classes are types by their
+Mojang names (`LivingEntity`; a nested one with its outer class,
+`OutgoingChatMessage.Player`); their side comes from the class index.
 
 ## 5. Collections and lambdas
 
@@ -420,6 +421,13 @@ Dictionary<string, int> scores = ["alex" => 3, "sam" => 5];
 ```
 
 ## 6. Patches (`.yns` only)
+
+A `.yns` says the game versions it's for, once, before anything else;
+the build checks every patch on each of them:
+
+```ebnf
+targets_decl = 'targets' version_cond ';' ;           (* targets mc 1.20.1..26.2; *)
+```
 
 ```ebnf
 patch_decl  = 'patch' type '{' patch_item* '}' ;
@@ -573,6 +581,8 @@ test "a charger fills a battery" {
 ```
 
 ```yns
+targets mc 1.20.1..26.2;
+
 patch LivingEntity {
     add saved float Shield = 0;
     add : IChargeable;

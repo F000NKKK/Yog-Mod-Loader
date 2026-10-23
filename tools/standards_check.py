@@ -330,9 +330,10 @@ def check(path, text):
             f.foreign_sync += 1
         if i in in_const or l.strip().startswith(("///", "//", "*", "/*")):
             continue
+        # Where the facts are defined, a literal is the definition, not a repeat.
         if not FACT_HOME.search(path):
             f.literal_facts += len(LITERAL_FACT.findall(code))
-        f.magic_numbers += len(HEX_COLOR.findall(code)) + len(FLOAT_MAGIC.findall(code))
+            f.magic_numbers += len(HEX_COLOR.findall(code)) + len(FLOAT_MAGIC.findall(code))
     return f
 
 

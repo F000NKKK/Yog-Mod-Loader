@@ -113,13 +113,13 @@ fn only_what_can_change_is_assigned() {
 
 #[test]
 fn skip_belongs_in_a_before() {
-    let before = "patch Player {\n    before void Tick() {\n        skip;\n    }\n}\n";
+    let before = "targets mc 1.20.1..26.2;\npatch Player {\n    before void Tick() {\n        skip;\n    }\n}\n";
     assert!(
         codes("a.yns", before).is_empty(),
         "{:?}",
         codes("a.yns", before)
     );
-    let after = "patch Player {\n    after void Tick() {\n        skip;\n    }\n}\n";
+    let after = "targets mc 1.20.1..26.2;\npatch Player {\n    after void Tick() {\n        skip;\n    }\n}\n";
     assert_eq!(codes("a.yns", after), [script_problem::SKIP_OUTSIDE_BEFORE]);
 }
 

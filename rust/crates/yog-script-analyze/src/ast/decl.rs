@@ -159,6 +159,8 @@ pub enum DeclKind {
         methods: Vec<Method>,
     },
     Patch(Patch),
+    /// `targets mc 1.20.1..26.2;`: the game versions a `.yns` is for.
+    Targets(VersionCond),
 }
 
 /// `Name = value;`.

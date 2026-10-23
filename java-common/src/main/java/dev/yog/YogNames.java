@@ -274,9 +274,11 @@ public final class YogNames {
         public static final String UNKNOWN_MEMBER = "YS0017";
         public static final String WRONG_SIDE = "YS0018";
         public static final String WRONG_ARGS = "YS0019";
+        public static final String TARGETS = "YS0020";
+        public static final String NO_VERSION = "YS0021";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS, TARGETS, NO_VERSION);
     }
 
     public static final class Storage {
@@ -1512,6 +1514,17 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(RESOURCES, CONTENT, FONT_COPIES, SRC, OBJ, TARGET, GENERATED, BIN);
+    }
+
+    public static final class GameVersion {
+        private GameVersion() {}
+
+        public static final String V1_20_1 = "1.20.1";
+        public static final String V1_21_1 = "1.21.1";
+        public static final String V26_2 = "26.2";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(V1_20_1, V1_21_1, V26_2);
     }
 
     public static final class GameDir {

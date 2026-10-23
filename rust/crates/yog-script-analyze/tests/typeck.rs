@@ -91,25 +91,31 @@ fn game() -> ClassIndex {
 }
 
 #[test]
-fn the_games_classes_are_checked_by_their_index() {
+fn the_games_classes_are_a_yns_files_only() {
     let index = game();
-    let check = |src: &str| codes_of(check_with("a.ys", src, Some(&index)).problems);
-    assert!(check("float F(Player p) => p.Health;\nbool G(Player p) => p.IsAlive;\n").is_empty());
+    let yns = |src: &str| {
+        let src = format!("targets mc 1.21.1..1.21.1;\n{src}");
+        codes_of(check_with("a.yns", &src, Some(&index)).problems)
+    };
+    assert!(yns("float F(Player p) => p.Health;\nbool G(Player p) => p.IsAlive;\n").is_empty());
     assert_eq!(
-        check("int F(Player p) => p.Mana;\n"),
+        yns("int F(Player p) => p.Mana;\n"),
         [script_problem::UNKNOWN_MEMBER]
     );
     assert_eq!(
-        check("int F(Player p) => p.Health;\n"),
+        yns("int F(Player p) => p.Health;\n"),
         [script_problem::TYPE_MISMATCH]
     );
     assert_eq!(
-        check("server void F(Minecraft mc) { }\n"),
+        yns("server void F(Minecraft mc) { }\n"),
         [script_problem::WRONG_SIDE]
     );
-    assert!(check("client void F(Minecraft mc) { }\n").is_empty());
+    assert!(yns("client void F(Minecraft mc) { }\n").is_empty());
     // What `extend` adds sits beside the game's members.
     assert!(
-        check("extend Player {\n    int Visits = 0;\n}\nint F(Player p) => p.Visits;\n").is_empty()
+        yns("extend Player {\n    int Visits = 0;\n}\nint F(Player p) => p.Visits;\n").is_empty()
     );
+    // A `.ys` reaches Yog, not the game: the index isn't looked in.
+    let ys = codes_of(check_with("a.ys", "int F(Player p) => p.Mana;\n", Some(&index)).problems);
+    assert!(ys.is_empty(), "{ys:?}");
 }

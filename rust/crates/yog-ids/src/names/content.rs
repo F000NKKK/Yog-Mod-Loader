@@ -95,6 +95,15 @@ names! {
         BIN = "bin",
     }
 
+    /// The game's versions Yog runs on, oldest first: each has its hosts'
+    /// `<loader>/versions/<version>.properties`. `.yns` targets a range of
+    /// them; `yog build` checks every patch on each.
+    game_version {
+        V1_20_1 = "1.20.1",
+        V1_21_1 = "1.21.1",
+        V26_2 = "26.2",
+    }
+
     /// A game's folders Yog uses.
     game_dir {
         /// The `.yog` mods the game loads: `<game>/yog-mods`.

@@ -58,7 +58,13 @@ fn codes(name: &str, src: &str) -> Vec<String> {
 fn a_patch_outside_a_yns_file_is_reported() {
     let src = "patch Player {\n    priority 1;\n}\n";
     assert_eq!(codes("a.ys", src), [script_problem::PATCH_OUTSIDE_NANITES]);
-    assert!(codes("a.yns", src).is_empty());
+    assert!(codes("a.yns", &format!("targets mc 1.20.1..26.2;\n{src}")).is_empty());
+    // A `.yns` says its versions; a `.ys` doesn't.
+    assert_eq!(codes("a.yns", src), [script_problem::TARGETS]);
+    assert_eq!(
+        codes("a.ys", "targets mc >= 1.21;\n"),
+        [script_problem::TARGETS]
+    );
 }
 
 #[test]
@@ -99,7 +105,7 @@ fn an_argument_point_reads_both_ways() {
         "at call Vec3.Add first (x) { x * 0.5 }",
     ] {
         let src = format!(
-            "patch LivingEntity {{\n    inside void Knockback() {{\n        {point}\n    }}\n}}\n"
+            "targets mc 1.20.1..26.2;\npatch LivingEntity {{\n    inside void Knockback() {{\n        {point}\n    }}\n}}\n"
         );
         let parsed = parse("a.yns", &src);
         assert!(
@@ -107,7 +113,7 @@ fn an_argument_point_reads_both_ways() {
             "{point}: {:#?}",
             parsed.problems
         );
-        let DeclKind::Patch(patch) = &parsed.file.decls[0].kind else {
+        let DeclKind::Patch(patch) = &parsed.file.decls[1].kind else {
             panic!()
         };
         assert!(matches!(patch.items[0], PatchItem::Inside { .. }));

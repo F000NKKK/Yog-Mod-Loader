@@ -293,6 +293,10 @@ names! {
         WRONG_SIDE = "YS0018",
         /// A call with arguments the method doesn't take.
         WRONG_ARGS = "YS0019",
+        /// A `.yns` without `targets mc …;`, or `targets` outside a `.yns`.
+        TARGETS = "YS0020",
+        /// `targets` naming no version Yog runs on.
+        NO_VERSION = "YS0021",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the
