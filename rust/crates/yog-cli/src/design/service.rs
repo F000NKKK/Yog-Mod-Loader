@@ -59,6 +59,16 @@ fn texture_file_id(file: &Path) -> Option<String> {
     Some(format!("{}{id}", yog_ids::reference::TEXTURE))
 }
 
+/// The `sound` parameter as `sound_data` takes it: a resource (`@Sounds.x`,
+/// as the IDE sends one) written back as text, else the text itself.
+fn sound_param(params: &Value) -> Result<String, ServiceError> {
+    match params.get(P::SOUND) {
+        Some(Value::Res(r)) => Ok(r.to_string()),
+        Some(Value::Str(s)) => Ok(s.clone()),
+        _ => Err(ServiceError::from(format!("`{}`: a sound, `@Sounds.x` or a game's file", P::SOUND))),
+    }
+}
+
 /// A method's parameters, and the ways the methods read them.
 struct Call<'a> {
     params: &'a Value,
@@ -104,7 +114,7 @@ fn content_method(method: &str, c: &Call) -> Option<Reply> {
         M::SOUND_DATA => c.path().and_then(|p| {
             done(super::sound::sound_data(
                 Path::new(&p),
-                &param::<String>(c.params, P::SOUND)?,
+                &sound_param(c.params)?,
             ))
         }),
         M::CONTENT_SAVE_TEXTURE => c.texture(&|p, t| {
