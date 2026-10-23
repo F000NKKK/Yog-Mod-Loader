@@ -106,6 +106,74 @@ extend Player {
 }
 ```
 
+### Objects: components and systems
+
+A mod is objects. Blocks, items, entities and screens are declared
+objects; the game's own (`Player`, `Level`, `ItemStack`, the world) are
+objects too. What several of them share is a **component**: state and
+behaviour written once, carried by any object that `has` it. What runs
+over every object carrying some components is a **system**. There is no
+class inheritance: an object is its own members plus its components
+(composition), while the game's types keep their own subtyping
+(`Monster` is an `Entity`).
+
+```ys
+component Charge(capacity: Energy) {
+    saved synced var energy: Energy in 0..capacity = 0
+    val room => capacity - energy
+
+    fn push(into: Charge) {
+        let moved = min(energy, into.room)
+        into.energy += moved
+        energy -= moved
+    }
+}
+
+component Owned {
+    saved var owner: Player? = none
+    on place(p) { owner = p }          // the owner's events reach its components
+}
+
+block Charger has Charge(res.charger.capacity), Owned {
+    hardness = res.charger.hardness
+    slots inventory[4] of Battery
+    on use(p) { p.open(ChargerScreen(self)) }
+}
+
+item Battery has Charge(res.battery.capacity) {
+    stack = 1
+}
+
+extend Player has Charge(res.suit.capacity)   // the game's objects carry them too
+
+server system Solar(c: Charge, b: Block) every 1t {
+    if b.level.isDay { c.energy += res.solarRate }
+}
+
+server system Feed(c: Charge, s: Slots) every 1t {
+    for battery in s.of<Battery> { c.push(battery.Charge) }
+}
+```
+
+- **Reaching a component.** Its members read on the owner when the name is
+  unambiguous (`charger.energy`); else through its name
+  (`charger.Charge.energy`). `x has Charge` tests, `x.Charge?` reads it
+  when `x`'s type doesn't promise it.
+- **Components are types.** A function taking `Charge` takes any owner's
+  charge (`push(into: Charge)`); a parameter `c: Charge & Owned` wants both.
+- **Systems are queries.** Their parameters are the components (and the
+  object types) an object must have; `every` is how often, its side the
+  modifier. The compiler compiles a system to the game's indexed
+  lookups and ticking of exactly the objects that match — blocks with
+  block entities, entities by section — not a scan. A system that takes
+  only an object type (`system Glow(m: Monster) every 5t`) is a query too.
+- **State is a component's.** `saved` / `synced` (4.2) apply to component
+  fields as to any object's: a component's codec and mirror are generated
+  once and reused by every owner.
+- **Hot reload keeps components.** A component gained or lost by an object
+  in a reload is added with its defaults or dropped; its fields migrate by
+  `was` (4.2).
+
 ## 4. Own mechanisms
 
 ### 4.1 Sides are part of a function's type
@@ -149,14 +217,17 @@ block Charger {
     var cooldown: Ticks = 0t          // neither saved nor synced: server memory
 }
 
-player state {                        // per player
+extend Player {                       // per player: state the game's object carries
     saved var visits = 0
 }
 
-world state {                         // per world
+extend World {                        // per world
     saved var grid: Map<Pos, Int> = {}
 }
 ```
+
+State added by `extend` is an unnamed component of that type (3,
+Objects); a named `component` is the same, shared by several.
 
 - `saved`: in the world's save, in Yog Data (`docs/design/storage.md`
   scopes); the codec is generated.
@@ -292,8 +363,8 @@ recipe Battery shaped {
 }
 
 on player.join(p) {
-    p.state.visits += 1
-    if p.state.visits == 1 {
+    p.visits += 1
+    if p.visits == 1 {
         p.give(Battery())
         p.play(res.sounds.welcome)
     }

@@ -54,7 +54,7 @@ saved synced was tune test version native
 
 Contextual (keywords only where the grammar expects them, names
 elsewhere): `block item entity fluid recipe screen command state player
-world session ui action slots of where first last
+world session ui action slots of where first last component system has every
 requires patch before after inside around call read write constant
 replace add uses local proceed result shaped shapeless`.
 
@@ -68,7 +68,7 @@ path        = IDENT ('.' IDENT)* ;
 
 decl        = doc? modifiers? ( mod_decl | fn_decl | let_decl | var_decl | const_decl
             | unit_decl | recipe_decl | type_decl | record_decl | union_decl | enum_decl | extend_decl
-            | content_decl | state_decl | screen_decl | command_decl
+            | content_decl | component_decl | system_decl | screen_decl | command_decl
             | event_decl | test_decl | version_decl | native_decl
             | patch_decl ) ;
 
@@ -124,7 +124,7 @@ record_decl = 'record' IDENT generics? '(' params ')' type_body? ;
 union_decl  = 'union' IDENT generics? '{' variant (',' variant)* ','? member* '}' ;
 variant     = IDENT ('(' params ')')? ;
 enum_decl   = 'enum' IDENT '{' IDENT (',' IDENT)* ','? member* '}' ;
-extend_decl = 'extend' type (':' type)? '{' member* '}' ;            (* added members, an added interface *)
+extend_decl = 'extend' type (':' type)? has? ('{' member* '}')? ;   (* added members (state too), an interface, components *)
 type_body   = '{' member* '}' ;
 member      = doc? modifiers? (fn_decl | let_decl | var_decl | val_decl | const_decl) ;
 ```
@@ -132,7 +132,9 @@ member      = doc? modifiers? (fn_decl | let_decl | var_decl | val_decl | const_
 ### 2.4 Content
 
 ```ebnf
-content_decl = content_kind IDENT (':' type)? '{' content_item* '}' ;
+content_decl = content_kind IDENT (':' type)? has? '{' content_item* '}' ;
+has          = 'has' component_use (',' component_use)* ;
+component_use = path ('(' args? ')')? ;                               (* a component and its arguments *)
 content_kind = 'block' | 'item' | 'entity' | 'fluid' | IDENT ;       (* open: a mod's own content kinds *)
 content_item = IDENT '=' expr                                         (* a property: hardness = 2.0 *)
              | modifiers? (var_decl | val_decl | let_decl | fn_decl)
@@ -150,14 +152,19 @@ recipe_body  = STRING* (IDENT '=' expr)* ;                            (* rows, t
 type (`Battery` is the item's type: `b is Battery`, `Battery()` a new
 stack).
 
-### 2.5 State in a scope
+### 2.5 Components and systems
 
 ```ebnf
-state_decl  = scope 'state' '{' member* '}' ;
-scope       = 'player' | 'world' | 'session' | 'level' ;
+component_decl = 'component' IDENT ('(' params ')')? has? '{' content_item* '}' ;
+system_decl    = modifiers? 'system' IDENT '(' params ')' ('every' expr)? block ;
 ```
 
-`p.state.visits` reads a player's; `world.state.grid` the world's.
+A component's parameters are given where an object `has` it
+(`has Charge(1000)`); its items are a content declaration's, handlers
+included (they run on the owner's events). A system's parameters are
+what an object must have to be run over; their types are components,
+object types or `&` of them. Per-scope state is `extend Player { … }`
+(ys.md 4.2).
 
 ### 2.6 Screens and commands
 
@@ -210,7 +217,7 @@ Conditions take no parentheses; bodies always take braces.
 | 1 | `x ?? y` | right |
 | 2 | `or` / `\|\|` | left |
 | 3 | `and` / `&&` | left |
-| 4 | `==` `!=` `<` `<=` `>` `>=` `is` `!is` `in` `!in` | none |
+| 4 | `==` `!=` `<` `<=` `>` `>=` `is` `!is` `has` `!has` `in` `!in` | none |
 | 5 | `..` `..<` (ranges) | none |
 | 6 | `+` `-` | left |
 | 7 | `*` `/` `%` | left |
@@ -297,8 +304,8 @@ caller.
 ## 4. Types
 
 ```ebnf
-type        = base_type ('?')? ;
-base_type   = path generic_args?                                 (* Int, List<T>, LivingEntity *)
+type        = base_type ('&' base_type)* ('?')? ;                (* Charge & Owned: an object with both *)
+base_type   = path generic_args?                                 (* Int, List<T>, LivingEntity, a component *)
             | base_type 'in' range_expr                          (* bounded: Int in 0..100 *)
             | '(' type (',' type)+ ')'                           (* a tuple *)
             | '(' (type (',' type)*)? ')' '->' type ;            (* a function *)
