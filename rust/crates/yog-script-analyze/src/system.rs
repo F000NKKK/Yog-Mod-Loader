@@ -32,7 +32,7 @@ pub const PROVIDE: &str = "Provide";
 const SOURCES: &[(&str, &str)] = &[
     ("System.ys", include_str!("system/System.ys")),
     ("System.Meta.ys", include_str!("system/System.Meta.ys")),
-    ("System.Yog.ys", include_str!("system/System.Yog.ys")),
+    ("System.Yog.Native.ys", include_str!("system/System.Yog.Native.ys")),
 ];
 
 /// Every declaration of the library, parsed once.
