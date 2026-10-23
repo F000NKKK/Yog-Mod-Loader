@@ -20,7 +20,7 @@ from pathlib import Path
 
 LOADER = Path(__file__).resolve().parent.parent
 WORKSPACE = LOADER.parent
-REPOS = ["Yog-Mod-Loader", "Yog-IDLE", "Substrate-Platform", "HexMod-Yog", "Yog-VLSI", "Yog-Pipes", "Yog-Modlist"]
+REPOS = ["Yog-Mod-Loader", "Yog-IDLE", "Substrate-Platform", "HexMod-Yog", "Yog-VLSI", "Yog-Pipes", "Yog-Modlist", "Yog-Argus"]
 JOURNAL = LOADER / "docs" / "standards-review.tsv"
 
 SOURCE = re.compile(r"\.(rs|ts|tsx|java)$")
