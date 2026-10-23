@@ -19,7 +19,6 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.player.Player;
 
@@ -156,38 +155,20 @@ public final class YogEntityActions {
 
     @YogServiceHost
     public static double entityAttributeGet(String uuid, String attributeId) {
-        Entity e = NativeBridge.entityByUuid(uuid);
-        if (!(e instanceof LivingEntity le)) return Double.NaN;
-        Identifier id = Identifier.tryParse(attributeId);
-        if (id == null || !BuiltInRegistries.ATTRIBUTE.containsKey(id)) return Double.NaN;
-        Attribute attr = BuiltInRegistries.ATTRIBUTE.getValue(id);
-        if (attr == null) return Double.NaN;
-        AttributeInstance inst = le.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr));
+        AttributeInstance inst = YogAttributes.of(NativeBridge.entityByUuid(uuid), attributeId);
         return inst == null ? Double.NaN : inst.getBaseValue();
     }
 
     /** An attribute's value: its base changed by every modifier (effects, equipment). */
     @YogServiceHost
     public static double entityAttributeValue(String uuid, String attributeId) {
-        Entity e = NativeBridge.entityByUuid(uuid);
-        if (!(e instanceof LivingEntity le)) return Double.NaN;
-        Identifier id = Identifier.tryParse(attributeId);
-        if (id == null || !BuiltInRegistries.ATTRIBUTE.containsKey(id)) return Double.NaN;
-        Attribute attr = BuiltInRegistries.ATTRIBUTE.getValue(id);
-        if (attr == null) return Double.NaN;
-        AttributeInstance inst = le.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr));
+        AttributeInstance inst = YogAttributes.of(NativeBridge.entityByUuid(uuid), attributeId);
         return inst == null ? Double.NaN : inst.getValue();
     }
 
     @YogServiceHost
     public static boolean entityAttributeSet(String uuid, String attributeId, double value) {
-        Entity e = NativeBridge.entityByUuid(uuid);
-        if (!(e instanceof LivingEntity le)) return false;
-        Identifier id = Identifier.tryParse(attributeId);
-        if (id == null || !BuiltInRegistries.ATTRIBUTE.containsKey(id)) return false;
-        Attribute attr = BuiltInRegistries.ATTRIBUTE.getValue(id);
-        if (attr == null) return false;
-        AttributeInstance inst = le.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr));
+        AttributeInstance inst = YogAttributes.of(NativeBridge.entityByUuid(uuid), attributeId);
         if (inst == null) return false;
         inst.setBaseValue(value);
         return true;

@@ -139,13 +139,8 @@ public final class YogClientApi {
     /** An attribute's value on this client's player: its base changed by every modifier. */
     @YogServiceHost
     public static double attributeValue(String attributeId) {
-        net.minecraft.world.entity.LivingEntity le = net.minecraft.client.Minecraft.getInstance().player;
-        if (le == null) return Double.NaN;
-        net.minecraft.resources.ResourceLocation id = net.minecraft.resources.ResourceLocation.tryParse(attributeId);
-        if (id == null || !net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.containsKey(id)) return Double.NaN;
-        net.minecraft.world.entity.ai.attributes.Attribute attr = net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.get(id);
-        if (attr == null) return Double.NaN;
-        net.minecraft.world.entity.ai.attributes.AttributeInstance inst = le.getAttribute(net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr));
+        net.minecraft.world.entity.ai.attributes.AttributeInstance inst =
+                YogAttributes.of(net.minecraft.client.Minecraft.getInstance().player, attributeId);
         return inst == null ? Double.NaN : inst.getValue();
     }
 

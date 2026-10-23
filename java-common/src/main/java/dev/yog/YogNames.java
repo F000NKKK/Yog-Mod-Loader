@@ -1592,6 +1592,15 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DEFAULT, UNIFORM, ALT, ILLAGERALT);
     }
 
+    public static final class Attribute {
+        private Attribute() {}
+
+        public static final String MAX_HEALTH = "max_health";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(MAX_HEALTH);
+    }
+
     public static final class Gamemode {
         private Gamemode() {}
 

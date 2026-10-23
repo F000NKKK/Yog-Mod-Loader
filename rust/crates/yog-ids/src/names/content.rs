@@ -231,6 +231,12 @@ names! {
         ILLAGERALT = "illageralt",
     }
 
+    /// The game's attributes by name — the hosts find each on every
+    /// version (`max_health`, `generic.max_health` before 1.21.2).
+    attribute {
+        MAX_HEALTH = "max_health",
+    }
+
     /// The game's modes a player is put in.
     gamemode {
         SURVIVAL = "survival",
