@@ -40,6 +40,7 @@ pub(crate) mod markup;
 pub(crate) mod raster;
 pub(crate) mod recipe_area;
 pub(crate) mod sound;
+pub(crate) mod video;
 pub(crate) mod tags;
 
 use std::collections::HashMap;

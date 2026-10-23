@@ -8,7 +8,6 @@ use std::path::Path;
 use serde_json::{Map, Value};
 use yog_formats::video::Video;
 use yog_ids::Format;
-use yog_registry::VideoDef;
 
 use super::Output;
 use crate::content::ctx::problem;
@@ -69,9 +68,9 @@ impl Videos {
             .map_err(|e| e.to_string())?
             .value;
         let source = refs.video(&video.source)?;
-        let r = crate::video::render(&video, source)?;
+        let mut r = crate::video::render(&video, source)?;
         let (ns, name) = yog_ids::split(&id);
-        let sound = r.sound.map(|ogg| {
+        let sound = r.sound.take().map(|ogg| {
             let event = yog_formats::video::sound_event(name);
             let path = event.replace(yog_ids::sep::DOT, yog_ids::sep::PATH);
             let file = format!("{}{path}{}", yog_ids::res::SOUNDS, yog_ids::res::OGG);
@@ -80,19 +79,7 @@ impl Videos {
             self.events.insert(event.clone(), streamed);
             yog_ids::join(ns, &event)
         });
-        let def = VideoDef {
-            id: id.clone(),
-            width: r.width,
-            height: r.height,
-            fps_num: r.fps_num,
-            fps_den: r.fps_den,
-            sizes: r.sizes,
-            packets: r.packets,
-            keyframes: r.keyframes,
-            sound,
-            volume: video.volume,
-            looping: video.looping,
-        };
+        let def = r.def(id.clone(), &video, sound);
         self.definitions.push((
             yog_ids::kind::VIDEO,
             id,
@@ -105,6 +92,7 @@ impl Videos {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use yog_registry::VideoDef;
 
     #[test]
     fn a_video_needs_its_source_and_its_folder() {

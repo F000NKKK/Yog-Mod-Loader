@@ -108,6 +108,26 @@ impl Decoder {
         shown.map(Some)
     }
 
+    /// `packets` decoded in order, the last one's picture — its top-left
+    /// `size` — written into `rgba` as RGBA.
+    pub fn decode_last<'a>(
+        &mut self,
+        packets: impl IntoIterator<Item = &'a [u8]>,
+        size: (usize, usize),
+        rgba: &mut Vec<u8>,
+    ) -> Result<(), DecodeError> {
+        let mut packets = packets.into_iter().peekable();
+        while let Some(packet) = packets.next() {
+            let last = packets.peek().is_none();
+            self.decode(packet, |planes, _| {
+                if last {
+                    super::yuv::to_rgba(planes, size, rgba);
+                }
+            })?;
+        }
+        Ok(())
+    }
+
     fn send(&mut self, packet: &[u8]) -> Result<(), DecodeError> {
         let mut data = Dav1dData::default();
         // SAFETY: dav1d allocates `packet.len()` bytes for `data` and

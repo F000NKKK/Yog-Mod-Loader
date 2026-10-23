@@ -148,6 +148,16 @@ fn stored(root: &Path, set: &str, name: &str, kind: Kind) -> Option<Vec<u8>> {
 
 /// Every sound of the mod at `root`, as files name them: `@Sounds.abacus1`.
 pub(crate) fn sounds(root: &Path) -> Vec<String> {
+    entries_of(root, Kind::Sound)
+}
+
+/// Every video of the mod at `root`, as files name them: `@Videos.intro`.
+pub(crate) fn videos(root: &Path) -> Vec<String> {
+    entries_of(root, Kind::Video)
+}
+
+/// Every entry of `kind` of the mod at `root`, as files name them.
+fn entries_of(root: &Path, kind: Kind) -> Vec<String> {
     let mut out = Vec::new();
     for file in crate::files::with_ext(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
         let Some((set, None)) = file
@@ -161,18 +171,13 @@ pub(crate) fn sounds(root: &Path) -> Vec<String> {
             .ok()
             .and_then(|t| yog_formats::yres::parse(&t).ok())
             .unwrap_or_default();
-        out.extend(
-            entries
-                .into_iter()
-                .filter(|e| e.kind == Kind::Sound)
-                .map(|e| {
-                    Res {
-                        set: set.to_owned(),
-                        key: e.name,
-                    }
-                    .to_string()
-                }),
-        );
+        out.extend(entries.into_iter().filter(|e| e.kind == kind).map(|e| {
+            Res {
+                set: set.to_owned(),
+                key: e.name,
+            }
+            .to_string()
+        }));
     }
     out.sort();
     out

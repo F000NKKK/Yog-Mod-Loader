@@ -10,7 +10,7 @@ use yog_sync::Arc;
 
 use jni::JNIEnv;
 use yog_event::{client, video};
-use yog_media::video::{Decoder, yuv};
+use yog_media::video::Decoder;
 use yog_registry::{Clock, VideoDef};
 
 /// The pitch a video's sound plays at: as it was made.
@@ -114,22 +114,13 @@ impl Player {
             self.decoder.reset();
         }
         let size = (self.def.width as usize, self.def.height as usize);
-        for f in plan.frames.clone() {
-            let packet = self.def.packet(f)?;
-            let last = f + 1 == plan.frames.end;
-            let rgba = &mut self.rgba;
-            let decoded = self.decoder.decode(packet, |planes, _| {
-                if last {
-                    yuv::to_rgba(planes, size, rgba);
-                }
-            });
-            if let Err(e) = decoded {
-                yog_logging::warn!("video {} frame {f}: {e}", self.def.id);
-                self.shown = None;
-                return None;
-            }
-            self.shown = Some(f);
+        let packets = plan.frames.clone().filter_map(|f| self.def.packet(f));
+        if let Err(e) = self.decoder.decode_last(packets, size, &mut self.rgba) {
+            yog_logging::warn!("video {} frame {target}: {e}", self.def.id);
+            self.shown = None;
+            return None;
         }
+        self.shown = plan.frames.clone().next_back().or(self.shown);
         Some(())
     }
 

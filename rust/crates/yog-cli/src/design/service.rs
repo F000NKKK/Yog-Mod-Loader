@@ -115,6 +115,13 @@ fn content_method(method: &str, c: &Call) -> Option<Reply> {
         M::CONTENT_MOD_ID => c.file(|p| ok(super::mod_root(p).and_then(|r| project::mod_id(&r)))),
         M::CONTENT_TEXTURE | M::BODY_TEXTURE => c.texture(&|p, t| done(content::texture(p, t))),
         M::SOUND_LIST => c.file(|p| done(super::sound::sound_list(p))),
+        M::VIDEO_LIST => c.file(|p| done(super::video::video_list(p))),
+        M::VIDEO_PREVIEW => c.path().and_then(|p| {
+            let video = param::<yog_formats::video::Video>(c.params, P::VALUE)?;
+            done(super::video::preview(Path::new(&p), &video))
+        }),
+        M::VIDEO_FRAME => param::<String>(c.params, P::KEY)
+            .and_then(|key| done(super::video::frame(&key, param(c.params, P::FRAME)?))),
         M::SOUND_DATA => c.path().and_then(|p| {
             done(super::sound::sound_data(
                 Path::new(&p),

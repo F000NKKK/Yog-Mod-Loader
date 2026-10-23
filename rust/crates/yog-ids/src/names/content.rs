@@ -402,6 +402,8 @@ names! {
         VALUE = crate::word::VALUE,
         VALUES = crate::word::VALUES,
         FORMAT = "format",
+        FRAME = crate::word::FRAME,
+        KEY = crate::word::KEY,
     }
 
     /// The methods of `yog serve` (the CLI as a service), by the name a tool
@@ -442,6 +444,12 @@ names! {
         RECIPE_KINDS = "recipe_kinds",
         SOUND_DATA = "sound_data",
         SOUND_LIST = "sound_list",
+        /// The mod's videos (`@Videos.intro`), what a `.yvideo` can show.
+        VIDEO_LIST = "video_list",
+        /// A `.yvideo` as edited, rendered as the build renders it.
+        VIDEO_PREVIEW = "video_preview",
+        /// A render's frame, decoded as the game decodes it (PNG).
+        VIDEO_FRAME = "video_frame",
         SOURCE_CHECK = "source.check",
         SOURCE_READ = "source.read",
         SOURCE_WRITE = "source.write",

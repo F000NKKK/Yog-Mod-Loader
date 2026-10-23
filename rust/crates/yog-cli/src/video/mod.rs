@@ -49,6 +49,31 @@ pub(crate) struct Rendered {
     pub(crate) sound: Option<Vec<u8>>,
 }
 
+impl Rendered {
+    /// Its definition as video `id`, played as `v` says, with sound event
+    /// `sound` (the sound itself stays the caller's).
+    pub(crate) fn def(
+        self,
+        id: String,
+        v: &Video,
+        sound: Option<String>,
+    ) -> yog_registry::VideoDef {
+        yog_registry::VideoDef {
+            id,
+            width: self.width,
+            height: self.height,
+            fps_num: self.fps_num,
+            fps_den: self.fps_den,
+            sizes: self.sizes,
+            packets: self.packets,
+            keyframes: self.keyframes,
+            sound,
+            volume: v.volume,
+            looping: v.looping,
+        }
+    }
+}
+
 /// `v` rendered from its source's bytes `source` (any file ffmpeg reads).
 pub(crate) fn render(v: &Video, source: &[u8]) -> Result<Rendered, String> {
     if v.quality > WORST_QUALITY {
