@@ -3,10 +3,12 @@
 
 use yog_ids::script_problem;
 
-use super::{Context, DefKind, Resolver};
+use super::{Context, DefKind, Resolver, lifetime_key};
 use crate::ast::{
-    Arg, Element, Expr, ExprKind, IT, LambdaBody, LambdaParam, Pass, StrSeg, Type, TypeKind, UnOp,
+    Arg, Element, Expr, ExprKind, IT, LambdaBody, LambdaParam, Name, Pass, StrSeg, Type, TypeKind,
+    UnOp,
 };
+use crate::words::r#static;
 
 impl Resolver<'_, '_> {
     pub(super) fn opt_expr(&mut self, e: Option<&Expr>) {
@@ -190,6 +192,25 @@ impl Resolver<'_, '_> {
             TypeKind::Tuple(items) => items.iter().for_each(|(t, _)| self.ty(t)),
             TypeKind::Nullable(inner) => self.ty(inner),
             TypeKind::Both(all) => all.iter().for_each(|t| self.ty(t)),
+            TypeKind::Borrow { lifetime, ty, .. } => {
+                if let Some(l) = lifetime {
+                    self.lifetime(l);
+                }
+                self.ty(ty);
+            }
+            TypeKind::Lifetime(l) => self.lifetime(l),
         }
+    }
+
+    /// `'a`: declared by a generic list around it, or `'static`.
+    pub(super) fn lifetime(&mut self, l: &Name) {
+        if l.text == r#static::WORD.text || self.refer(&lifetime_key(&l.text), l.span).is_some() {
+            return;
+        }
+        self.report.error(
+            script_problem::LIFETIME,
+            l.span,
+            format!("no `<'{}>` declares this lifetime", l.text),
+        );
     }
 }

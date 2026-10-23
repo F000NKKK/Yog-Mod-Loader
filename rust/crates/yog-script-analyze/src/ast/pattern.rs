@@ -59,4 +59,12 @@ pub enum TypeKind {
     Nullable(Box<Type>),
     /// `Charge & Owned`.
     Both(Vec<Type>),
+    /// `in 'a T`, `ref 'a T`: a borrow (Rust's `&'a T`, `&'a mut T`).
+    Borrow {
+        mutable: bool,
+        lifetime: Option<Name>,
+        ty: Box<Type>,
+    },
+    /// `'a` among a type's arguments (`Cursor<'a>`).
+    Lifetime(Name),
 }

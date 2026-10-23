@@ -4,6 +4,7 @@
 use super::{PResult, Parser};
 use crate::ast::{Name, Type, TypeKind};
 use crate::source::token::{Punct, Tok};
+use crate::words::{r#in, r#ref};
 
 impl Parser<'_, '_, '_> {
     /// A type: `i32`, `List<T>`, `(i32 X, i32 Y)`, `Player?`, `Charge & Owned`.
@@ -25,6 +26,28 @@ impl Parser<'_, '_, '_> {
 
     fn ty_one(&mut self) -> PResult<Type> {
         let start = self.span();
+        let borrow = [(&r#in::WORD, false), (&r#ref::WORD, true)]
+            .into_iter()
+            .find(|(w, _)| self.at_word(w));
+        if let Some((_, mutable)) = borrow {
+            self.bump();
+            let lifetime = self.lifetime();
+            let ty = Box::new(self.ty_one()?);
+            return Ok(Type {
+                kind: TypeKind::Borrow {
+                    mutable,
+                    lifetime,
+                    ty,
+                },
+                span: start.to(self.prev()),
+            });
+        }
+        if let Some(name) = self.lifetime() {
+            return Ok(Type {
+                kind: TypeKind::Lifetime(name),
+                span: start,
+            });
+        }
         let mut ty = if self.at(Punct::LParen) {
             self.ty_tuple()?
         } else {
@@ -97,7 +120,12 @@ impl Parser<'_, '_, '_> {
 
     /// Where one type (no `&`) starting at `n` ends.
     fn type_one_len(&self, n: usize) -> Option<usize> {
+        if self.nth_word(n, &r#in::WORD) || self.nth_word(n, &r#ref::WORD) {
+            let at = n + 1 + usize::from(matches!(self.nth(n + 1), Tok::Lifetime(_)));
+            return self.type_one_len(at);
+        }
         let mut end = match self.nth(n) {
+            Tok::Lifetime(_) => return Some(n + 1),
             Tok::Punct(Punct::LParen) => self.tuple_type_end(n)?,
             Tok::Keyword(w) if w.is_type() => n + 1,
             Tok::Ident(_) => {

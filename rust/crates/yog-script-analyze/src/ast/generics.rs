@@ -3,11 +3,13 @@
 
 use super::{Name, Type};
 
-/// `T`, `in T`, `out T`.
+/// `T`, `in T`, `out T`, or a lifetime `'a`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Generic {
     pub name: Name,
     pub variance: Option<Variance>,
+    /// `'a`: a lifetime, not a type.
+    pub lifetime: bool,
 }
 
 /// An interface's or a delegate's type parameter: taken (`in`) or given

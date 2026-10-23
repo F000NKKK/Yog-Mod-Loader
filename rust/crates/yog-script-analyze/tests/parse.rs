@@ -252,3 +252,15 @@ fn the_type_system_reads() {
     let checked = yog_script_analyze::check("types.ys", include_str!("fixtures/types.ys"));
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
 }
+
+#[test]
+fn a_lifetime_is_declared_where_it_is_used() {
+    let src = "class A { static in 'b i32 F<'a>(in 'a List<i32> x) => x[0]; }";
+    let checked = yog_script_analyze::check("a.ys", src);
+    let codes: Vec<_> = checked
+        .problems
+        .iter()
+        .filter_map(|d| d.code.as_deref())
+        .collect();
+    assert_eq!(codes, [script_problem::LIFETIME]);
+}

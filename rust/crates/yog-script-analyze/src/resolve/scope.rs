@@ -32,6 +32,8 @@ pub enum DefKind {
     Component,
     /// A name a `using` brings in.
     Import,
+    /// `'a`, declared by a generic list.
+    Lifetime,
 }
 
 impl DefKind {

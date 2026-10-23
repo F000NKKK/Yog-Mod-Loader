@@ -308,6 +308,16 @@ names! {
         /// A preprocessor directive out of place: an `#elif`, `#else` or
         /// `#endif` without its `#if`, an `#if` never ended, one in a `.ys`.
         DIRECTIVE = "YS0023",
+        /// A lifetime (`'a`) no generic list declares.
+        LIFETIME = "YS0024",
+        /// A value used after `move` handed it on (Rust's E0382).
+        MOVED = "YS0025",
+        /// A borrow that breaks the rules: a `ref` beside another borrow,
+        /// a change or a move of what's borrowed, one outliving its owner.
+        BORROW = "YS0026",
+        /// An argument passed otherwise than its parameter takes it
+        /// (`ref` for `in`, none for `out`, …).
+        PASS = "YS0027",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

@@ -16,6 +16,12 @@ mod stmts;
 
 pub use scope::{Def, DefKind, Symbols};
 
+/// The name a lifetime is kept by among the scope's: `'a`, apart from an
+/// `a` there.
+fn lifetime_key(name: &str) -> String {
+    format!("{}{name}", crate::source::token::QUOTE)
+}
+
 use crate::ast;
 use scope::Scope;
 use yog_analysis::Report;

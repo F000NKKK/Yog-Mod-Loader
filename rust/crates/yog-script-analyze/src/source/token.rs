@@ -5,6 +5,10 @@ use crate::words::Word;
 /// Where something is in its source: byte offsets, `start..end`.
 pub use yog_data::Span;
 
+/// What a character literal is between and a lifetime starts with
+/// (`'R'`, `'a`).
+pub const QUOTE: char = '\'';
+
 /// A part of a string literal: text as written, or `{expr}` cut into tokens.
 #[derive(Debug, Clone, PartialEq)]
 pub enum StrPart {
@@ -28,6 +32,8 @@ pub enum Tok {
     Str(Vec<StrPart>),
     RawStr(String),
     Char(char),
+    /// `'a`: a lifetime, by its name.
+    Lifetime(String),
     /// A translatable text by key: `t"charge.tooltip"`.
     Text(String),
     /// `@kind:namespace:path`: the kind, the id.

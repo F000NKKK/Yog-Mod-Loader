@@ -36,6 +36,7 @@ unit_suffix = 't' | 's' | 'ms' | 'm' | 'h' | 'b' | IDENT ;   (* t ticks, s secon
 STRING     = '"' (char | '\' escape | '{' expr '}')* '"' ;   (* {expr} interpolates; {{ }} are braces *)
 RAW_STRING = '"""' char* '"""' ;                    (* as written, lines included *)
 CHAR       = "'" (char | '\' escape) "'" ;
+LIFETIME   = "'" IDENT ;                              (* 'a, 'static: no closing quote, unlike a CHAR *)
 TEXT       = 't"' key '"' ;                          (* a translatable text by key *)
 CONTENT    = '@' kind ':' res_id ;                   (* @item:minecraft:stick, @effect:charge:overcharged *)
 TAG        = '#' res_id ;                            (* #minecraft:logs *)
@@ -169,7 +170,7 @@ method_decl = type_or_void IDENT generics? '(' params? ')' constraints? requires
 type_or_void = type | 'void' ;
 method_body = block | '=>' expr ';' ;
 params      = param (',' param)* ;
-param       = pass? type IDENT ('=' expr)? ;
+param       = pass? LIFETIME? type IDENT ('=' expr)? ;
 pass        = 'in' | 'ref' | 'out' | 'move' ;                       (* ys.md §3 Memory *)
 requires    = 'requires' expr ;                      (* a guard: commands, server methods called by clients *)
 generics    = '<' IDENT (',' IDENT)* '>' ;
@@ -202,13 +203,13 @@ methods called on the other side are messages (`x.Client.F()`,
 ```ebnf
 type_decl   = class_decl | struct_decl | record_decl | enum_decl | interface_decl | unit_decl ;
 class_decl  = class_mod* 'class' IDENT generics? primary_ctor? bases? constraints? type_body ;
-class_mod   = 'abstract' | 'sealed' | 'static' ;
+class_mod   = 'abstract' | 'sealed' | 'static' ;                    (* 'ref' struct: holds borrows *)
 struct_decl = 'struct' IDENT generics? primary_ctor? bases? constraints? type_body ;
 record_decl = 'record' ('class' | 'struct')? IDENT generics? primary_ctor bases? constraints? (type_body | ';') ;
 enum_decl   = 'enum' IDENT generics? (':' type)? '{' variant (',' variant)* ','? (';' member*)? '}' ;
 variant     = IDENT (primary_ctor | '=' expr)? ;                     (* Idle, Charging(i32 Rate), Wood = 1 *)
 generics    = '<' generic (',' generic)* '>' ;
-generic     = ('in' | 'out')? IDENT ;                                (* variance: interfaces, delegates *)
+generic     = LIFETIME | ('in' | 'out')? IDENT ;                     (* 'a; variance: interfaces, delegates *)
 constraints = ('where' IDENT ':' constraint (',' constraint)*)+ ;
 constraint  = 'class' | 'struct' | 'new' '(' ')' | type ;
 interface_decl = 'interface' IDENT generics? bases? '{' member* '}' ;
@@ -472,6 +473,8 @@ type `Sender` receives the caller.
 ```ebnf
 type        = base_type ('&' base_type)* '?'? ;                     (* Charge & Owned: an object with both *)
 base_type   = path generic_args?                                     (* i32, List<T>, LivingEntity, a component *)
+            | ('in' | 'ref') LIFETIME? base_type                     (* a borrow: in 'a T is &'a T, ref 'a T &'a mut T *)
+            | LIFETIME ;                                             (* among type arguments: Cursor<'a> *)
             | '(' type IDENT? (',' type IDENT?)+ ')' ;               (* a tuple *)
 generic_args = '<' type (',' type)* '>' ;
 ```

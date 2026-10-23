@@ -5,7 +5,7 @@
 use super::{PResult, Parser};
 use crate::ast::{Attribute, Decl, DeclKind, File, Modifier};
 use crate::source::token::{Punct, Tok};
-use crate::words::{ALL, Role};
+use crate::words::{ALL, Role, r#ref, r#struct};
 
 impl Parser<'_, '_, '_> {
     /// The whole source.
@@ -89,6 +89,10 @@ impl Parser<'_, '_, '_> {
     }
 
     fn modifier_here(&self) -> Option<Modifier> {
+        // `ref` marks a type only as `ref struct`; elsewhere it's a borrow.
+        if self.at_word(&r#ref::WORD) && !self.nth_word(1, &r#struct::WORD) {
+            return None;
+        }
         ALL.iter().filter(|w| self.at_word(w)).find_map(|w| {
             w.role(|r| match r {
                 Role::Modifier(m) => Some(*m),

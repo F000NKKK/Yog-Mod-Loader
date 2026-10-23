@@ -25,6 +25,8 @@ pub enum Modifier {
     Virtual,
     Override,
     Sealed,
+    /// `ref struct`: holds borrows, never on the heap.
+    Ref,
 }
 
 /// `[Obsolete("…")]`.
@@ -237,6 +239,8 @@ pub enum Chain {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Param {
     pub pass: Option<super::Pass>,
+    /// `in 'a T x`: the borrow's lifetime.
+    pub lifetime: Option<Name>,
     pub ty: Type,
     pub name: Name,
     pub default: Option<Expr>,

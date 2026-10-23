@@ -219,6 +219,7 @@ fn describe(tok: &Tok) -> String {
         Tok::Version(v) => format!("the version `{v}`"),
         Tok::Str(_) | Tok::RawStr(_) | Tok::Text(_) => "a string".into(),
         Tok::Char(_) => "a character".into(),
+        Tok::Lifetime(name) => format!("the lifetime `'{name}`"),
         Tok::Content(kind, id) => format!("`@{kind}:{id}`"),
         Tok::Tag(id) => format!("`#{id}`"),
         Tok::Doc(_) => "a doc comment".into(),

@@ -37,7 +37,7 @@ const BLOCK_OPEN: &str = "/*";
 const BLOCK_CLOSE: &str = "*/";
 const RAW_QUOTES: &str = "\"\"\"";
 const TEXT_PREFIX: &str = "t\"";
-const CHAR_QUOTE: char = '\'';
+use crate::source::token::QUOTE as CHAR_QUOTE;
 /// Before a name: the name even when it's a keyword (`@this`).
 const VERBATIM: char = '@';
 /// Hexadecimal: `0x…` numbers, `\u{…}` escapes.
@@ -101,6 +101,7 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
             '0'..='9' => self.number(start),
             '"' if self.rest().starts_with(RAW_QUOTES) => self.raw_block(start),
             '"' => self.string(start),
+            CHAR_QUOTE if self.lifetime_follows() => self.lifetime(start),
             CHAR_QUOTE => self.char_literal(start),
             't' if self.rest().starts_with(TEXT_PREFIX) => {
                 self.raw(start, TEXT_PREFIX.len(), Tok::Text)

@@ -8,7 +8,7 @@ use crate::source::token::{Span, StrPart, Tok, Token};
 
 const QUOTE: char = '"';
 const RAW_QUOTES: &str = "\"\"\"";
-const CHAR_QUOTE: char = '\'';
+use crate::source::token::QUOTE as CHAR_QUOTE;
 const ESCAPE: char = '\\';
 const OPEN: char = '{';
 const CLOSE: char = '}';
@@ -106,6 +106,24 @@ impl Lexer<'_, '_, '_> {
         }
         self.bump();
         self.push(Tok::Char(c.unwrap_or_default()), start);
+    }
+
+    /// `'a` (not `'a'`): a name after the quote, no quote after the name.
+    pub(super) fn lifetime_follows(&self) -> bool {
+        if !self.peek_at(1).is_some_and(super::is_ident_start) {
+            return false;
+        }
+        let name = self.rest()[1..]
+            .chars()
+            .take_while(|c| super::is_ident_char(*c))
+            .count();
+        self.peek_at(name + 1) != Some(CHAR_QUOTE)
+    }
+
+    pub(super) fn lifetime(&mut self, start: usize) {
+        self.bump();
+        let name = self.word().to_string();
+        self.push(Tok::Lifetime(name), start);
     }
 
     /// `{XXXX}` after `\u`.

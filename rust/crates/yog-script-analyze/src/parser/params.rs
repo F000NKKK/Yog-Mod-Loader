@@ -56,6 +56,7 @@ impl Parser<'_, '_, '_> {
 
     fn param(&mut self) -> PResult<Param> {
         let pass = self.pass();
+        let lifetime = self.lifetime();
         let ty = self.ty()?;
         let name = self.name("a parameter's name")?;
         let default = if self.eat(Punct::Eq) {
@@ -65,6 +66,7 @@ impl Parser<'_, '_, '_> {
         };
         Ok(Param {
             pass,
+            lifetime,
             ty,
             name,
             default,
@@ -94,6 +96,16 @@ impl Parser<'_, '_, '_> {
             self.expr()?
         };
         Ok(Arg { name, pass, value })
+    }
+
+    /// `'a`, or nothing.
+    pub(crate) fn lifetime(&mut self) -> Option<Name> {
+        let Tok::Lifetime(text) = self.tok() else {
+            return None;
+        };
+        let text = text.clone();
+        let span = self.bump().span;
+        Some(Name { text, span })
     }
 
     /// `in`, `ref`, `out` or `move`, or nothing.
@@ -136,6 +148,13 @@ impl Parser<'_, '_, '_> {
             return Ok(Vec::new());
         }
         self.list(Punct::Gt, |p| {
+            if let Some(name) = p.lifetime() {
+                return Ok(Generic {
+                    name,
+                    variance: None,
+                    lifetime: true,
+                });
+            }
             let variance = if p.eat_word(&r#in::WORD) {
                 Some(Variance::In)
             } else if p.eat_word(&out::WORD) {
@@ -144,7 +163,11 @@ impl Parser<'_, '_, '_> {
                 None
             };
             let name = p.name("a type parameter")?;
-            Ok(Generic { name, variance })
+            Ok(Generic {
+                name,
+                variance,
+                lifetime: false,
+            })
         })
     }
 

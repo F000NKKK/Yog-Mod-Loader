@@ -34,6 +34,9 @@ impl Checker<'_, '_, '_> {
             TypeKind::Tuple(items) => {
                 Type::Tuple(items.iter().map(|(t, _)| self.type_of(t)).collect())
             }
+            // A borrow is typed as what it lends; the borrow checker sees the rest.
+            TypeKind::Borrow { ty, .. } => self.type_of(ty),
+            TypeKind::Lifetime(_) => Type::Unknown,
             // `A & B`: an object with both; checked as the first.
             TypeKind::Both(all) => all.first().map_or(Type::Unknown, |t| self.type_of(t)),
             TypeKind::Path { path, args } => {

@@ -51,3 +51,14 @@ public static class Tools {
         dynamic loose = 2.0f32;
     }
 }
+
+// Lifetimes: a borrow kept by a `ref struct`, one given back.
+public ref struct Cursor<'a>(in 'a List<i32> items) {
+    i32 At = 0;
+}
+
+public static class Borrows {
+    public static in 'a i32 First<'a>(in 'a List<i32> items) => items[0];
+    public static Cursor<'a> Walk<'a>(in 'a List<i32> items) => new Cursor<'a>(items);
+    public static char Letter() => 'a';
+}

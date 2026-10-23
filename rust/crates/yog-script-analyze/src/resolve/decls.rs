@@ -4,7 +4,8 @@
 use super::naming::Case;
 use super::{Context, DefKind, Resolver};
 use crate::ast::{
-    Constraint, Decl, DeclKind, Generic, Method, MethodBody, Modifier, Param, TypeHeader, Where,
+    Constraint, Decl, DeclKind, Generic, Method, MethodBody, Modifier, Name, Param, TypeHeader,
+    Where,
 };
 use crate::words::{interface, record};
 
@@ -257,6 +258,9 @@ impl Resolver<'_, '_> {
 
     pub(super) fn params(&mut self, params: &[Param]) {
         for p in params {
+            if let Some(l) = &p.lifetime {
+                self.lifetime(l);
+            }
             self.ty(&p.ty);
             self.opt_expr(p.default.as_ref());
             self.define(&p.name, DefKind::Param, Case::Camel, false);
@@ -265,7 +269,15 @@ impl Resolver<'_, '_> {
 
     fn generics(&mut self, generics: &[Generic]) {
         for g in generics {
-            self.define(&g.name, DefKind::Type, Case::TypeParam, false);
+            if g.lifetime {
+                let key = Name {
+                    text: super::lifetime_key(&g.name.text),
+                    span: g.name.span,
+                };
+                self.define(&key, DefKind::Lifetime, Case::Any, false);
+            } else {
+                self.define(&g.name, DefKind::Type, Case::TypeParam, false);
+            }
         }
     }
 
