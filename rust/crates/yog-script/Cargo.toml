@@ -12,6 +12,8 @@ path = "src/main.rs"
 
 [dependencies]
 yog-script-build = { workspace = true }
+yog-script-analyze = { workspace = true }
+yog-script-run = { workspace = true }
 yog-data = { workspace = true }
 yog-ids = { workspace = true }
 yog-logging = { workspace = true }

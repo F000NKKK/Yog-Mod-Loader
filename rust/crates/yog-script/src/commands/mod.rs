@@ -3,8 +3,9 @@
 mod check;
 mod index;
 mod source;
+mod test;
 
-pub(super) const USAGE: &str = "usage: yog-script check <file>... | yog-script index <minecraft version> | yog-script source <path>";
+pub(super) const USAGE: &str = "usage: yog-script check <file>... | yog-script test <file>... | yog-script index <minecraft version> | yog-script source <path>";
 
 type Run = fn(&[String]) -> Result<(), String>;
 
@@ -25,6 +26,10 @@ const ALL: &[Command] = &[
     Command {
         words: source::WORDS,
         run: source::run,
+    },
+    Command {
+        words: test::WORDS,
+        run: test::run,
     },
 ];
 

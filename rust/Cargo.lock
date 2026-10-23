@@ -2658,7 +2658,9 @@ dependencies = [
  "yog-data",
  "yog-ids",
  "yog-logging",
+ "yog-script-analyze",
  "yog-script-build",
+ "yog-script-run",
 ]
 
 [[package]]

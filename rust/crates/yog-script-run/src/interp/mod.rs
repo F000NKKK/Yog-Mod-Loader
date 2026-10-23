@@ -81,6 +81,15 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// A block run on its own (a test's): to its end, or the panic that
+    /// stopped it.
+    pub fn run_block(&mut self, b: &yog_script_analyze::ast::Block) -> Result<(), Panic> {
+        match self.block(b) {
+            Err(Stop::Panic(p)) => Err(p),
+            _ => Ok(()),
+        }
+    }
+
     /// `m` run with `args` (its defaults for the rest), `this` its object.
     pub(crate) fn invoke(
         &mut self,

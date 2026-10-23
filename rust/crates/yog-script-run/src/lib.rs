@@ -12,8 +12,10 @@
 mod interp;
 mod natives;
 mod program;
+mod tests;
 mod value;
 
 pub use interp::{Interp, Panic};
 pub use program::Program;
+pub use tests::{TestRun, run_tests};
 pub use value::Value;

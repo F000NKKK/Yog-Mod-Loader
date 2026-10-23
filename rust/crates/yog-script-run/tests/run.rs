@@ -74,3 +74,17 @@ fn lambdas_and_out_parameters() {
     assert_eq!(run(src, "Twice", vec![]), Ok(int(42)));
     assert_eq!(run(src, "Half", vec![]), Ok(int(5)));
 }
+
+#[test]
+fn test_blocks_pass_or_fail() {
+    let src = "i32 Twice(i32 x) => x * 2;\ntest \"twice\" { assert_eq!(Twice(2), 4); }\ntest \"wrong\" { assert_eq!(Twice(2), 5); }\n";
+    let checked = check("a.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let program = Program::of(&[&system::DECLS, &checked.file.decls]);
+    let runs = yog_script_run::run_tests(&program, &checked.file.decls);
+    let ends: Vec<(&str, bool)> = runs
+        .iter()
+        .map(|r| (r.name.as_str(), r.outcome.is_ok()))
+        .collect();
+    assert_eq!(ends, [("twice", true), ("wrong", false)]);
+}

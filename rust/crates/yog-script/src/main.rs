@@ -1,5 +1,6 @@
 //! `yog-script`: Yog Script's tool on its compiler (`yog-script-build`):
-//! `yog-script check <file>...` checks sources, `yog-script source <path>`
+//! `yog-script check <file>...` checks sources, `yog-script test <file>...`
+//! runs their tests, `yog-script source <path>`
 //! checks one from stdin (for an editor), `yog-script index <mc>` builds a
 //! version's class index.
 
