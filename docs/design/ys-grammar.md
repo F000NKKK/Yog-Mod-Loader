@@ -226,8 +226,9 @@ interface IChargeable {
 
 A record's primary constructor parameters are its public properties; a
 class's and a component's are in scope in its body (C# 12's primary
-constructors). There is no class inheritance: `:` names interfaces only
-(and, for content, its kind's base, §2.4).
+constructors). A class's `:` names one base class and any interfaces; a
+struct's and an interface's interfaces only; content's its kind's base
+(§2.4). See ys.md §3 (Types) for what each kind of type is.
 
 ### 2.4 Content
 

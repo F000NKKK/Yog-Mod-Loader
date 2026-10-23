@@ -97,7 +97,7 @@ var tier = tool.Tier switch {
 | Content | `ItemRef` (`@item:minecraft:stick`), `BlockRef`, `TagRef` (`#minecraft:logs`) — checked against the registries the mod targets |
 | Nullable | `Player?` — only nullable types can be `null` |
 | Results | `Ok` / `Fail(reason)`: `try` passes a failure up, like Rust's `?` |
-| Records, unions | `record Pos(int X, int Y, int Z);`, `union Shape { Circle(float R), Box(float W, float H) }` |
+| Records, enums | `record Pos(int X, int Y, int Z);`, `enum Shape { Circle(float R), Box(float W, float H) }` |
 | Collections | `List<T>`, `Dictionary<K, V>`, `HashSet<T>`; collection expressions `[1, 2, 3]` |
 
 Yog's objects (`Player`, `Level`, `Entity`, `ItemStack`, `Block`) are
@@ -131,6 +131,70 @@ Timer daily = new(24000t);
 var battery = new Battery { Count = 2 };    // content is made the same way
 ```
 
+### Types: classes, structs, interfaces, records, enums
+
+C#'s type system, with Rust's enums:
+
+- **Classes** inherit one class and implement any interfaces
+  (`class Machine : Block, ITickable, IChargeable`); members are
+  `virtual`/`abstract` and `override`n, a class `sealed` or `abstract`;
+  `base` reaches the base class (`base.Tick()`, `: base(…)`).
+- **Structs** (`struct Pos(int X, int Y, int Z)`) are values: copied, no
+  inheritance, interfaces allowed.
+- **Interfaces** inherit interfaces (any number); members may have bodies
+  (default implementations), as in C#.
+- **Records** are `record class` (the default) or `record struct`: their
+  constructor's parameters are their properties; compared by value; `with`
+  copies one with some properties changed.
+- **Enums** are C#'s, values included (`enum Tier { Wood = 1, Stone, Iron }`),
+  and Rust's: a variant may carry data (`enum Mode { Idle, Charging(int
+  Rate), Full }`, `Mode.Charging(4)`).
+- **Generics**: types and methods (`class Box<T>`, `T Max<T>(T a, T b)`),
+  constraints (`where T : class, struct, new(), IComparable<T>, Base`),
+  type arguments inferred from a call's arguments; variance on interfaces
+  and delegates (`in T`, `out T`).
+- **Delegates**: `Action<…>`, `Func<…, R>`, and `Expression<Func<…>>` — a
+  lambda as code to read (a query to compile, a binding to follow), as C#'s
+  expression trees.
+- `typeof(T)` and `x.GetType()` give a `System.Type`; `nameof(x)` a name.
+
+Components stay the way content shares state and behaviour (3, below):
+inheritance is for a mod's own classes, components for what several
+objects carry.
+
+### Pattern matching
+
+`switch` and `is` match by shape, as in C# and as Rust's `match`:
+variants and records taken apart (`Mode.Charging(var rate)`, `Pos(0, var
+y, _)`), properties (`{ Health: < 5 }`), lists (`[var first, .., var
+last]`), relations and ranges (`> 3`, `1..10`), `and`/`or`/`not`, guards
+(`when rate > 3`). A `switch` over an enum or a sealed hierarchy must
+cover every case, or say `_`: a case left out is a build error, not a
+warning.
+
+```ys
+var label = mode switch {
+    Mode.Idle => "idle",
+    Mode.Charging(var rate) when rate > 3 => "fast",
+    Mode.Charging(_) => "slow",
+    Mode.Full => "full",
+};
+```
+
+### The System library
+
+What every C# program has, as Yog Script's own library: `System` (the
+built-in types — `int` is `System.Int32`, `string` `System.String` with its
+members — `Math`, `Action`, `Func`, `Nullable`, `Exception` types for
+failures), `System.Collections.Generic` (`List<T>`, `Dictionary<K, V>`,
+`HashSet<T>`, `Queue<T>`, …), `System.Linq` (LINQ over any `IEnumerable<T>`),
+`System.Linq.Expressions`, `System.Text`, `System.Reflection` (`Type`,
+`MethodInfo`, `PropertyInfo`, `FieldInfo`, attributes). It's declared in
+Yog Script itself (signatures; what runs is the host's or the runtime's),
+reachable from every part of Yog. `System`, `System.Collections.Generic`,
+`System.Linq` and `Yog` are every file's `using`s, as .NET's implicit
+usings; the rest (`System.Reflection`, …) are `using`'d where wanted.
+
 ### Extension members
 
 Any type, the game's included, can gain members in a mod. They're
@@ -149,10 +213,9 @@ A mod is objects. Blocks, items, entities and screens are declared
 objects; the game's own (`Player`, `Level`, `ItemStack`, the world) are
 objects too. What several of them share is a **component**: state and
 behaviour written once, carried by any object that `has` it. What runs
-over every object carrying some components is a **system**. There is no
-class inheritance: an object is its own members plus its components
-(composition), while the game's types keep their own subtyping
-(`Monster` is an `Entity`).
+over every object carrying some components is a **system**. Content
+objects are their own members plus their components (composition); a
+mod's own classes inherit as in C# (above).
 
 ```ys
 component Charge(Energy capacity) {
