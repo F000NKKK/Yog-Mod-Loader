@@ -13,6 +13,11 @@ pub struct ModelFile {
     /// (`@texture:minecraft:entity/elytra`).
     #[data(with = "yog_data::with::RefTo<yog_data::kinds::Texture>")]
     pub texture: String,
+    /// Shown instead of the texture: a video of the mod
+    /// (`@video:mymod:screen`), playing while the model is drawn — its UVs
+    /// over the video's frame as over the texture.
+    #[data(with = "yog_data::with::Opt<yog_data::with::RefTo<yog_data::kinds::Video>>")]
+    pub video: Option<String>,
     /// The texture's size in pixels, as its UVs count them.
     #[data(default = "default_texture_size")]
     pub texture_size: [u32; 2],

@@ -47,7 +47,8 @@ pub struct Bone {
 /// A model, ready.
 #[derive(Debug, Clone)]
 pub struct Model {
-    /// The texture as the host loads it (`ns:textures/….png`).
+    /// The texture as the host loads it (`ns:textures/….png`), or the
+    /// video shown instead (`video:<id>`, which the runtime swaps for its frame).
     pub texture: String,
     pub bones: Vec<Bone>,
 }
@@ -56,7 +57,14 @@ impl Model {
     /// Builds `file`. Errors name what's wrong (an unknown or later
     /// parent, a repeated name).
     pub fn new(file: &ModelFile) -> Result<Model, String> {
-        let texture = texture_resource(&file.texture);
+        let texture = match &file.video {
+            Some(v) => format!(
+                "{}{}{v}",
+                yog_ids::image_scheme::VIDEO,
+                yog_ids::sep::NAMESPACE
+            ),
+            None => texture_resource(&file.texture),
+        };
         let [tw, th] = file.texture_size.map(|n| n.max(1) as f32);
         let mut bones: Vec<Bone> = Vec::with_capacity(file.bones.len());
         for b in &file.bones {
@@ -177,6 +185,16 @@ mod tests {
         let q = cube(&c, 64.0, 32.0);
         assert_eq!(q[2].normal, Vec3::new(1.0, 0.0, 0.0));
         assert_eq!(q[0].pos[3], Vec3::new(-11.0, -1.0, 3.0));
+    }
+
+    #[test]
+    fn a_video_stands_for_the_texture() {
+        let file = yog_data::from_text::<ModelFile>(
+            r#"{ texture: "@texture:m:screen", video: "@video:m:intro", bones: [] }"#,
+        )
+        .unwrap()
+        .value;
+        assert_eq!(Model::new(&file).unwrap().texture, "video:m:intro");
     }
 
     #[test]

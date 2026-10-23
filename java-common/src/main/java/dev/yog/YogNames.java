@@ -199,10 +199,11 @@ public final class YogNames {
         public static final String BLOCK = "@block:";
         public static final String CATEGORY = "@category:";
         public static final String TEXTURE = "@texture:";
+        public static final String VIDEO = "@video:";
         public static final String TAG = "@tag:";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, CATEGORY, TEXTURE, TAG);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ITEM, BLOCK, CATEGORY, TEXTURE, VIDEO, TAG);
     }
 
     public static final class DataProblem {

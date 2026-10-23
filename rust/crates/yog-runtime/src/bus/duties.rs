@@ -123,7 +123,9 @@ pub(crate) fn register() {
         crate::mirrors::after_tick(yog_mirror::Clock::Server);
     });
     // What a client sees is written after its own ticks (on any server).
-    after::<client::game::Tick>(LAST, |_| crate::mirrors::after_tick(yog_mirror::Clock::Client));
+    after::<client::game::Tick>(LAST, |_| {
+        crate::mirrors::after_tick(yog_mirror::Clock::Client)
+    });
     after::<server::life::Stopping>(LAST, |_| crate::entity_data::server_stopped());
     super::declared::register();
     super::describe::register();
@@ -134,6 +136,10 @@ pub(crate) fn register() {
     change::<client::render::Camera>(FIRST, |c| c.out = yog_body::CameraOut::default());
     // A body's frame carries what this client was told its entity keeps.
     change::<client::render::Body>(FIRST, |b| crate::entity_data::fill_frame(&mut b.frame));
+    // A body's meshes textured with a video get its frame, whoever drew them.
+    change::<client::render::Body>(LAST, |b| {
+        crate::video::ambient::body_textures(&mut b.ops.draws)
+    });
     // Mods' records go to the game's log.
     after::<log::Record>(LAST, |r| {
         crate::logging::host_log(yog_logging::Level::from_u32(r.level), &r.message)

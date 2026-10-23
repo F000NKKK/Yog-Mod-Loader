@@ -79,8 +79,12 @@ the stream the game opens for it (`YogSounds`), and a mixin on
   paused — a paused game pauses its sounds); it closes at the end, Esc
   skips it when allowed.
 - In the world: a player's `frame().texture` is a texture like any other,
-  for the mod's own quads. Entities' and models' textures naming a video
-  (hosts asking the runtime for its frame as they bind it) — later.
+  for the mod's own quads.
+- On entities and models: a body mesh textured `video:mod:intro` (a
+  `.ymodel`'s `video: "@video:mod:intro"`, or a mod's own
+  `Mesh::new("video:mod:intro", …)`) shows the video's frame — after the
+  mods drew a body, the runtime swaps each such texture for its playing
+  frame (the same players as `video:` images).
 
 ## Stages
 
@@ -88,5 +92,5 @@ the stream the game opens for it (`YogSounds`), and a mixin on
 2. The build: `.yres` videos, `.yvideo` compiled — a source, or a montage.
 3. The decoder (`yog-media`) and the clock (`yog-registry`), tested on built videos.
 4. The runtime's players, the texture, the sound; the API.
-5. `<Video>` and `video:` images, cutscenes (done); entities' and models' textures.
-6. Yog-IDLE: a video designer — player, the DAW with video tracks.
+5. `<Video>` and `video:` images, cutscenes, entities' and models' textures.
+6. Yog-IDLE: a video designer — player, picture tracks, the sound's DAW.

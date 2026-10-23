@@ -146,6 +146,7 @@ mod tests {
     fn model() -> Arc<Model> {
         let file = ModelFile {
             texture: "m:x".into(),
+            video: None,
             texture_size: [64, 32],
             bones: vec![
                 BoneDef {

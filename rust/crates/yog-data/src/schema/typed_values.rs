@@ -51,6 +51,7 @@ pub mod kinds {
         Biome = yog_ids::kind::BIOME,
         Dimension = yog_ids::kind::DIMENSION,
         Texture = yog_ids::kind::TEXTURE,
+        Video = yog_ids::kind::VIDEO,
         Material = yog_ids::kind::MATERIAL,
         Advancement = yog_ids::kind::ADVANCEMENT,
     }

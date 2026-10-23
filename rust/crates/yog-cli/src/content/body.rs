@@ -115,6 +115,39 @@ pub(super) fn compile_font(
     })
 }
 
+/// What's wrong with `.ymodel` `file`: it doesn't make a model (parents
+/// before children, names once), or names a texture or a video of the mod
+/// that it hasn't.
+fn model_problem(cx: &Shared, file: &yog_body::format::ModelFile) -> Result<(), String> {
+    yog_body::Model::new(file).map_err(|e| e.to_string())?;
+    let (tns, tpath) = yog_ids::split(&file.texture);
+    if tns == cx.ns && !cx.own_textures.contains(&file.texture) {
+        return Err(format!(
+            "texture `{}`: no {}/{}",
+            file.texture,
+            crate::yres::RESOURCES_DIR,
+            Format::Texture.file(tpath)
+        ));
+    }
+    if let Some((vns, vpath)) = file.video.as_deref().map(yog_ids::split)
+        && vns == cx.ns
+    {
+        let rel = vpath.replace(yog_ids::sep::DOT, yog_ids::sep::PATH);
+        let video = cx
+            .root
+            .join(crate::yres::RESOURCES_DIR)
+            .join(yog_formats::video::DIR)
+            .join(Format::Video.file(&rel));
+        if !video.is_file() {
+            return Err(format!(
+                "video `{vns}:{vpath}`: no {}",
+                crate::shown_path(cx.root, &video)
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Checks a `.ymodel` (its schema, and that it makes a model: parents
 /// before children, names once) or a `.yanim` (schema, times).
 pub(super) fn compile_body(
@@ -125,7 +158,6 @@ pub(super) fn compile_body(
     path: &Path,
     errors: &mut Vec<Diagnostic>,
 ) -> Option<BodyFile> {
-    let ns = cx.ns;
     let id = cx.content_id(path);
     let report = |errors: &mut Vec<Diagnostic>, e: yog_data::Errors| {
         for l in &e.0 {
@@ -140,22 +172,8 @@ pub(super) fn compile_body(
                 return None;
             }
         };
-        if let Err(e) = yog_body::Model::new(&file) {
-            errors.push(problem(e.to_string()).in_file(shown));
-            return None;
-        }
-        // The mod's own texture must be one of its `.ytexture`s.
-        let (tns, tpath) = yog_ids::split(&file.texture);
-        if tns == ns && !cx.own_textures.contains(&file.texture) {
-            errors.push(
-                problem(format!(
-                    "texture `{}`: no {}/{}",
-                    file.texture,
-                    crate::yres::RESOURCES_DIR,
-                    Format::Texture.file(tpath)
-                ))
-                .in_file(shown),
-            );
+        if let Err(e) = model_problem(cx, &file) {
+            errors.push(problem(e).in_file(shown));
             return None;
         }
         yog_data::Schema::write(&file)

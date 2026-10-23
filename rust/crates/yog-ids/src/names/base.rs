@@ -195,6 +195,7 @@ names! {
         BLOCK = crate::concatcp!(crate::sep::TYPED, crate::kind::BLOCK, crate::sep::NAMESPACE),
         CATEGORY = crate::concatcp!(crate::sep::TYPED, crate::kind::CATEGORY, crate::sep::NAMESPACE),
         TEXTURE = crate::concatcp!(crate::sep::TYPED, crate::kind::TEXTURE, crate::sep::NAMESPACE),
+        VIDEO = crate::concatcp!(crate::sep::TYPED, crate::kind::VIDEO, crate::sep::NAMESPACE),
         /// A tag, its registry after: `@tag:item:c:ingots`.
         TAG = crate::concatcp!(crate::sep::TYPED, crate::kind::TAG, crate::sep::NAMESPACE),
     }
