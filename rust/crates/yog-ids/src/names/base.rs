@@ -318,6 +318,10 @@ names! {
         /// An argument passed otherwise than its parameter takes it
         /// (`ref` for `in`, none for `out`, …).
         PASS = "YS0027",
+        /// Inheritance that breaks C#'s rules: two base classes, a sealed
+        /// one inherited, an abstract member left unimplemented, an
+        /// `override` of nothing, an abstract class made with `new`.
+        INHERIT = "YS0028",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

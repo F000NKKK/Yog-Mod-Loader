@@ -15,12 +15,10 @@ const BLOCK_SUFFIX: &str = "b";
 
 impl Checker<'_, '_, '_> {
     pub(super) fn expr(&mut self, e: &Expr) -> Type {
+        if let Some(t) = literal(&e.kind) {
+            return t;
+        }
         match &e.kind {
-            ExprKind::Int(_) => Type::I32,
-            ExprKind::Float(_) => Type::F64,
-            ExprKind::Unit { unit, .. } => super::builtin::by_word(unit)
-                .filter(super::builtin::is_number)
-                .unwrap_or_else(|| Type::Unit(unit_of(unit))),
             ExprKind::Str(segs) => {
                 for s in segs {
                     if let StrSeg::Expr(e) = s {
@@ -29,16 +27,10 @@ impl Checker<'_, '_, '_> {
                 }
                 Type::String
             }
-            ExprKind::RawStr(_) => Type::String,
-            ExprKind::Char(_) => Type::Char,
-            ExprKind::Text(_) => Type::Text,
-            ExprKind::Content { kind, .. } => Type::Content(kind.clone()),
-            ExprKind::Tag(_) => Type::Tag,
             ExprKind::Bool(_) | ExprKind::Mc(_) | ExprKind::Is { .. } | ExprKind::Has { .. } => {
                 self.walk_inner(e);
                 Type::Bool
             }
-            ExprKind::Null => Type::Null,
             ExprKind::Ident(name) => self.name(name, e.span),
             ExprKind::This => self.this.clone().unwrap_or(Type::Unknown),
             ExprKind::Base => self.base(),
@@ -78,7 +70,9 @@ impl Checker<'_, '_, '_> {
                 init.iter().for_each(|(_, v)| {
                     self.expr(v);
                 });
-                ty.as_ref().map_or(Type::Unknown, |t| self.type_of(t))
+                let t = ty.as_ref().map_or(Type::Unknown, |t| self.type_of(t));
+                self.made(&t, e.span);
+                t
             }
             ExprKind::NotNull(inner) => self.expr(inner).non_null().clone(),
             ExprKind::Index { expr, index } => {
@@ -258,6 +252,25 @@ impl Checker<'_, '_, '_> {
         self.expr(expr);
         Type::String
     }
+}
+
+/// A literal's type: what it is as written.
+fn literal(kind: &ExprKind) -> Option<Type> {
+    let t = match kind {
+        ExprKind::Int(_) => Type::I32,
+        ExprKind::Float(_) => Type::F64,
+        ExprKind::Unit { unit, .. } => super::builtin::by_word(unit)
+            .filter(super::builtin::is_number)
+            .unwrap_or_else(|| Type::Unit(unit_of(unit))),
+        ExprKind::RawStr(_) => Type::String,
+        ExprKind::Char(_) => Type::Char,
+        ExprKind::Text(_) => Type::Text,
+        ExprKind::Content { kind, .. } => Type::Content(kind.clone()),
+        ExprKind::Tag(_) => Type::Tag,
+        ExprKind::Null => Type::Null,
+        _ => return None,
+    };
+    Some(t)
 }
 
 fn unit_of(suffix: &str) -> String {

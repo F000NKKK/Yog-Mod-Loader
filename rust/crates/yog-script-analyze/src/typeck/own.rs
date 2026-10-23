@@ -18,6 +18,8 @@ pub(crate) struct OwnType {
     pub bases: Vec<String>,
     /// An `interface`: what classes implement, never one's base class.
     pub interface: bool,
+    /// An `abstract class`: inherited, never made.
+    pub is_abstract: bool,
 }
 
 /// Every type the source declares, by name; the units it declares.
@@ -91,6 +93,7 @@ impl OwnTypes {
                     .filter_map(|b| super::written::simple_path(b).map(str::to_string))
                     .collect();
                 t.interface = word.text == crate::words::interface::WORD.text;
+                t.is_abstract = d.has(ast::Modifier::Abstract);
                 // A record's constructor parameters are its properties.
                 let props = (word.text == crate::words::record::WORD.text)
                     .then_some(header.ctor.as_deref())

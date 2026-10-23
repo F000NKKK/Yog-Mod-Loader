@@ -225,3 +225,36 @@ fn classes_inherit_as_in_csharp() {
         [script_problem::TYPE_MISMATCH, script_problem::TYPE_MISMATCH]
     );
 }
+
+#[test]
+fn inheritance_follows_csharps_rules() {
+    let base = "interface ITick { void Tick(); }\nabstract class Machine { public abstract i32 Rate(); \
+                public virtual void Glow() {} }\nsealed class Final {}\n";
+    let ok = format!(
+        "{base}class Battery : Machine, ITick {{ public override i32 Rate() => 4; public override void Glow() {{}} \
+         public void Tick() {{}} }}\n"
+    );
+    assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+    let cases = [
+        // An abstract member left, an interface member left.
+        "class A : Machine, ITick {}",
+        // The base class after an interface.
+        "class A : ITick, Machine { public override i32 Rate() => 1; public void Tick() {} }",
+        // A sealed class inherited.
+        "class A : Final {}",
+        // An override of nothing.
+        "class A { public override void Glow() {} }",
+        // A struct inheriting a class.
+        "struct A : Final {}",
+    ];
+    let counts = [2, 1, 1, 1, 1];
+    for (case, count) in cases.iter().zip(counts) {
+        let found = codes(&format!("{base}{case}\n"));
+        assert_eq!(found, vec![script_problem::INHERIT; count], "{case}");
+    }
+    // An abstract class isn't made.
+    assert_eq!(
+        codes(&format!("{base}void F() {{ let m = new Machine(); }}\n")),
+        [script_problem::INHERIT]
+    );
+}

@@ -9,6 +9,7 @@ mod builtin;
 mod decls;
 mod exprs;
 mod game;
+mod inherit;
 mod lambdas;
 mod members;
 mod model;
@@ -72,6 +73,7 @@ pub(crate) fn check(
         nanites,
     };
     c.decls(&file.decls);
+    inherit::check(&file.decls, c.report);
 }
 
 impl Checker<'_, '_, '_> {
