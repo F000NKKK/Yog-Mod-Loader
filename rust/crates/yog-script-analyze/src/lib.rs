@@ -16,6 +16,8 @@ pub mod parser;
 pub mod resolve;
 pub mod system;
 mod typeck;
+
+pub use typeck::{Type, Types};
 pub mod versions;
 pub mod words;
 
@@ -37,6 +39,8 @@ pub struct Checked {
     pub file: ast::File,
     pub symbols: resolve::Symbols,
     pub problems: Vec<Diagnostic>,
+    /// Each expression's type (none when the source had errors before types).
+    pub types: Types,
 }
 
 /// The source `src` of the file `name` read; patches are allowed when it's
@@ -86,14 +90,16 @@ pub fn check_in(name: &str, src: &str, env: Env<'_>) -> Checked {
     let game = game.filter(|_| is_nanites(name));
     // Types are checked in what reads and resolves cleanly: a broken tree
     // would only report the same problem again.
+    let mut types = Types::default();
     if !report.out.iter().any(yog_data::Diagnostic::is_error) {
-        typeck::check(&file, is_nanites(name), game, &mut report);
+        types = typeck::check(&file, is_nanites(name), game, &mut report);
         borrowck::check(&file, &mut report);
     }
     Checked {
         file,
         symbols,
         problems: report.out,
+        types,
     }
 }
 

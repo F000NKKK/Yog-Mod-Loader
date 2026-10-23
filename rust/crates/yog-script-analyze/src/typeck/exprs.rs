@@ -15,6 +15,12 @@ const BLOCK_SUFFIX: &str = "b";
 
 impl Checker<'_, '_, '_> {
     pub(super) fn expr(&mut self, e: &Expr) -> Type {
+        let t = self.expr_kind(e);
+        self.types.set(e, t.clone());
+        t
+    }
+
+    fn expr_kind(&mut self, e: &Expr) -> Type {
         if let Some(t) = literal(&e.kind) {
             return t;
         }

@@ -24,12 +24,14 @@ mod passing;
 mod shapes;
 mod stmts;
 mod surface;
+mod types;
 mod variants;
 mod written;
 
 use std::collections::HashMap;
 
 pub use model::Type;
+pub use types::Types;
 
 use crate::ast::File;
 use crate::index::{ClassIndex, Lookup, Side};
@@ -64,6 +66,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     nanites: bool,
     /// The type parameters in scope, innermost last.
     type_params: Vec<generics::Bound>,
+    /// Each expression's type found.
+    types: Types,
 }
 
 /// `file`'s types checked against `index` (a targeted version's), what
@@ -73,7 +77,7 @@ pub(crate) fn check(
     nanites: bool,
     index: Option<&ClassIndex>,
     report: &mut Report<'_>,
-) {
+) -> Types {
     let mut own = OwnTypes::collect(&[&crate::system::DECLS, &file.decls]);
     own.extensions(&file.decls);
     let mut c = Checker {
@@ -89,9 +93,11 @@ pub(crate) fn check(
         nanites,
         type_params: Vec::new(),
         readonly_this: false,
+        types: Types::default(),
     };
     c.decls(&file.decls);
     inherit::check(&file.decls, c.report);
+    c.types
 }
 
 impl Checker<'_, '_, '_> {
