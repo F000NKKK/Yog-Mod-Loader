@@ -32,11 +32,18 @@ pub struct SoundHandle(pub u32);
 /// position; `looping` keeps it playing (following the player) until
 /// [`stop_sound`].
 pub fn play_sound(sound_id: &str, volume: f32, pitch: f32, looping: bool) -> SoundHandle {
+    play_sound_from(sound_id, volume, pitch, looping, 0.0)
+}
+
+/// [`play_sound`] started `from` seconds in — a streamed sound's (`stream`
+/// in its `.ysound`); others play whole.
+pub fn play_sound_from(sound_id: &str, volume: f32, pitch: f32, looping: bool, from: f32) -> SoundHandle {
     let handle = call(&client::PlaySound {
         sound: sound_id.to_owned(),
         volume,
         pitch,
         looping,
+        from,
     })
     .flatten();
     SoundHandle(handle.and_then(|h| u32::try_from(h).ok()).unwrap_or(0))

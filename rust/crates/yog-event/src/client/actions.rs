@@ -4,8 +4,9 @@ use yog_core::{BlockPos, ScreenSlot, Stack};
 use yog_ids as ids;
 
 actions! {
-    /// Plays `sound` to this client's player; its handle (to stop it).
-    PlaySound { sound: String, volume: f32, pitch: f32, looping: bool } -> Option<i32> = ids::service_client::PLAY_SOUND, "YogClientApi.playSound";
+    /// Plays `sound` to this client's player, a streamed one from `from`
+    /// seconds; its handle (to stop it).
+    PlaySound { sound: String, volume: f32, pitch: f32, looping: bool, from: f32 } -> Option<i32> = ids::service_client::PLAY_SOUND, "YogClientApi.playSound";
     /// Stops a sound `PlaySound` started.
     StopSound { handle: i32 } -> bool = ids::service_client::STOP_SOUND, "YogClientApi.stopSound";
     /// What this client's player holds.

@@ -30,6 +30,7 @@
     "LimbAnimatorAccess",
     "ModelPartAccess",
     "NativeImageAccess",
+    "SoundStreamMixin",
     "TravelMixin",
     "ModelPoseMixin",
     "LevelProjectionMixin",

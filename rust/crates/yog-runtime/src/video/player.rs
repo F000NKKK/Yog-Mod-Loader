@@ -1,9 +1,7 @@
 //! One player: a video's clock, its decoder and the texture its frame is
-//! in, and the sound played with it.
-//!
-//! The game can't start a sound partway, so the sound plays from the
-//! video's start alone: played from its start (or when it loops round), it
-//! sounds; sought or resumed elsewhere, it's silent till it starts over.
+//! in, and the sound played with it — started again from where the clock
+//! is whenever it plays, is sought or loops round (the hosts start a
+//! streamed sound partway).
 
 use std::time::Instant;
 use yog_sync::Arc;
@@ -54,16 +52,13 @@ impl Player {
             self.clock.at = 0.0;
         }
         self.clock.playing = playing;
-        self.stop_sound();
-        if playing && self.clock.frame(&self.def) == 0 {
-            self.start_sound();
-        }
+        self.restart_sound();
     }
 
     pub(super) fn seek(&mut self, seconds: f64) {
         self.tick();
         self.clock.seek(&self.def, seconds);
-        self.stop_sound();
+        self.restart_sound();
     }
 
     /// Its picture now: the clock moved on, the frame it's on decoded into its texture.
@@ -99,8 +94,7 @@ impl Player {
         let before = self.clock.at;
         let frame = self.clock.advance(&self.def, dt);
         if self.clock.playing && self.clock.at < before {
-            self.stop_sound();
-            self.start_sound();
+            self.restart_sound();
         } else if !self.clock.playing {
             self.stop_sound();
         }
@@ -124,8 +118,10 @@ impl Player {
         Some(())
     }
 
-    fn start_sound(&mut self) {
-        let Some(sound) = self.def.sound.clone() else {
+    /// Its sound stopped, and started again from where the clock is when it plays.
+    fn restart_sound(&mut self) {
+        self.stop_sound();
+        let Some(sound) = self.def.sound.clone().filter(|_| self.clock.playing) else {
             return;
         };
         self.sound = crate::bus::call(&client::PlaySound {
@@ -133,6 +129,7 @@ impl Player {
             volume: self.def.volume,
             pitch: PITCH,
             looping: false,
+            from: self.clock.at as f32,
         })
         .flatten();
     }

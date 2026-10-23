@@ -46,10 +46,11 @@ any other — a screen's `<Video>`, a quad in the world, an entity's or a
 model's texture — and the sound event plays with it (at a place in the
 world, or not).
 
-The game can't start a sound partway: a video's sound plays from its
-start (and again each time it loops round); sought or resumed elsewhere,
-the video is silent till it starts over. Sound from any point needs a
-host-side stream that skips ahead — later.
+The sound plays from wherever the video is: each play, seek and loop
+round starts it again from there. The game can't start a sound partway by
+itself, so the hosts do: a mod's sound played `from` some seconds marks
+the stream the game opens for it (`YogSounds`), and a mixin on
+`SoundBufferLibrary.getStream` reads that much and drops it.
 
 ## API
 

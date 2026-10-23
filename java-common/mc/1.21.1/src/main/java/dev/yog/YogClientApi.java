@@ -3,7 +3,7 @@ package dev.yog;
 import dev.yog.bus.YogTypes;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
@@ -25,8 +25,6 @@ import net.minecraft.world.item.ItemStack;
 public final class YogClientApi {
     private YogClientApi() {}
 
-    private static final Map<Integer, SoundInstance> SOUNDS = new ConcurrentHashMap<>();
-    private static final AtomicInteger NEXT = new AtomicInteger(1);
 
     /** Flags: 1 = modal, 2 = pause, 4 = no background. */
     @YogServiceHost
@@ -36,25 +34,18 @@ public final class YogClientApi {
     }
 
     @YogServiceHost
-    public static int playSound(String id, float volume, float pitch, boolean looping) {
-        Minecraft mc = Minecraft.getInstance();
+    public static int playSound(String id, float volume, float pitch, boolean looping, float from) {
         ResourceLocation rl = ResourceLocation.tryParse(id);
         if (rl == null) return 0;
         SoundInstance s = new SimpleSoundInstance(rl, SoundSource.PLAYERS, volume, pitch,
             SoundInstance.createUnseededRandom(), looping, 0, SoundInstance.Attenuation.NONE,
             0.0, 0.0, 0.0, true);
-        int h = NEXT.getAndIncrement();
-        if (looping) SOUNDS.put(h, s);
-        mc.execute(() -> mc.getSoundManager().play(s));
-        return h;
+        return YogSounds.play(s, from);
     }
 
     @YogServiceHost
     public static void stopSound(int handle) {
-        SoundInstance s = SOUNDS.remove(handle);
-        if (s == null) return;
-        Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> mc.getSoundManager().stop(s));
+        YogSounds.stop(handle);
     }
 
     @YogServiceHost

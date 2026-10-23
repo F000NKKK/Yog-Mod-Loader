@@ -5274,20 +5274,21 @@ public final class YogServices {
             }
         }
 
-        /** Plays `sound` to this client's player; its handle (to stop it). */
-        public record PlaySound(String sound, float volume, float pitch, boolean looping) {
+        /** Plays `sound` to this client's player, a streamed one from `from` seconds; its handle (to stop it). */
+        public record PlaySound(String sound, float volume, float pitch, boolean looping, float from) {
             public java.util.Map<String, Object> toData() {
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
                 m.put("sound", sound);
                 m.put("volume", volume);
                 m.put("pitch", pitch);
                 m.put("looping", looping);
+                m.put("from", from);
                 return m;
             }
 
             public static PlaySound fromData(Object data) {
                 java.util.Map<String, Object> m = YogData.map(data);
-                return new PlaySound(YogData.str(m.get("sound"), ""), (float) YogData.number(m.get("volume"), 0), (float) YogData.number(m.get("pitch"), 0), YogData.bool(m.get("looping"), false));
+                return new PlaySound(YogData.str(m.get("sound"), ""), (float) YogData.number(m.get("volume"), 0), (float) YogData.number(m.get("pitch"), 0), YogData.bool(m.get("looping"), false), (float) YogData.number(m.get("from"), 0));
             }
 
             public static PlaySound fromBytes(byte[] bytes) {
@@ -5300,6 +5301,7 @@ public final class YogServices {
                 p.putF32(this.volume);
                 p.putF32(this.pitch);
                 p.putBool(this.looping);
+                p.putF32(this.from);
                 p.end(at);
             }
 
@@ -5309,8 +5311,9 @@ public final class YogServices {
                 float f_volume = u.more(end) ? u.getF32() : 0.0f;
                 float f_pitch = u.more(end) ? u.getF32() : 0.0f;
                 boolean f_looping = u.more(end) ? u.getBool() : false;
+                float f_from = u.more(end) ? u.getF32() : 0.0f;
                 u.leave(end);
-                return new PlaySound(f_sound, f_volume, f_pitch, f_looping);
+                return new PlaySound(f_sound, f_volume, f_pitch, f_looping, f_from);
             }
 
             public byte[] toFrame() {
@@ -5348,6 +5351,7 @@ public final class YogServices {
                 private final int o1;
                 private final int o2;
                 private final int o3;
+                private final int o4;
 
                 public View(YogFrame.Unpacker u) {
                     this.u = u;
@@ -5356,6 +5360,7 @@ public final class YogServices {
                     if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
                     if (u.more(end)) { o2 = u.position(); u.skip(4); } else { o2 = -1; }
                     if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.skip(4); } else { o4 = -1; }
                     u.leave(end);
                 }
 
@@ -5381,6 +5386,12 @@ public final class YogServices {
                     if (o3 < 0) return false;
                     u.seek(o3);
                     return u.getBool();
+                }
+
+                public float from() {
+                    if (o4 < 0) return 0.0f;
+                    u.seek(o4);
+                    return u.getF32();
                 }
             }
 
@@ -5418,7 +5429,7 @@ public final class YogServices {
             }
 
             private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, float.class, boolean.class));
+                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, float.class, boolean.class, float.class));
             }
 
             /** Answers the action: the request out of its frame, the host method called, the reply packed. */
@@ -5426,7 +5437,7 @@ public final class YogServices {
                 if (HostMethod.H == null) return YogBus.NO_HANDLER;
                 try {
                     PlaySound.View r = new PlaySound.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.sound(), r.volume(), r.pitch(), r.looping());
+                    Object out = (Object) HostMethod.H.invokeExact(r.sound(), r.volume(), r.pitch(), r.looping(), r.from());
                     reply(dev.yog.YogHostServices.none(out), sink.frame());
                     return YogBus.OK;
                 } catch (YogData.DecodeException e) {
