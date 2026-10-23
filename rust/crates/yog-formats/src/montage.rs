@@ -54,7 +54,7 @@ pub struct SoundClip {
 #[derive(Schema, Debug, Clone, PartialEq)]
 #[data(tag = "fx")]
 pub enum SoundEffect {
-    /// Heard again `delay` seconds later at `decay` of its loudness, and again, fading.
+    /// Heard once more `delay` seconds later, at `decay` of its loudness.
     Echo { delay: f32, decay: f32 },
     /// Only what's lower than `hz`: muffled, as through a wall.
     LowPass { hz: f32 },
