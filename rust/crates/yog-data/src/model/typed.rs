@@ -13,7 +13,7 @@
 //! A string that starts with `@` is always one of these (or an error), in
 //! any field — so a typo in a reference is never silently plain text.
 
-use crate::value::{Ref, Res, Value};
+use crate::model::value::{Ref, Res, Value};
 
 use base64::Engine as _;
 use yog_ids::typed;

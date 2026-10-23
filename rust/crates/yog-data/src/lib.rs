@@ -13,33 +13,28 @@
 // `::yog_data::…` paths of `#[derive(Schema)]` work inside this crate too.
 extern crate self as yog_data;
 
-pub mod atom;
-pub mod binary;
-mod borrowed;
 pub mod diagnostic;
-pub mod export;
-pub mod frame;
-pub mod io;
+mod forms;
+mod model;
+mod wire;
+
 #[cfg(feature = "json")]
-pub mod json;
-pub mod patch;
-mod stream;
-pub mod text;
+pub use forms::json;
 #[cfg(feature = "toml")]
-pub mod toml;
-pub mod typed;
-mod value;
-pub mod with;
+pub use forms::toml;
+pub use forms::{patch, source, text};
+pub use model::{atom, typed};
+pub use schema::with;
+pub use wire::{binary, export, frame, io};
 
 pub use atom::Atom;
-pub use borrowed::{MapRef, ValueRef};
 pub use bumpalo::Bump;
 pub use diagnostic::{Diagnostic, Errors, Severity};
-pub use stream::{Stream, StreamWriter};
+pub use model::borrowed::{MapRef, ValueRef};
+pub use model::value::{Map, Path, Ref, Res, Seg, Value};
 pub use text::{Doc, LineCol, Span, Spans, SyntaxError};
-pub use value::{Map, Path, Ref, Res, Seg, Value};
+pub use wire::stream::{Stream, StreamWriter};
 pub mod schema;
-pub mod source;
 
 pub use schema::{
     AnyRefOrTag, BlockId, Color, EntityId, Id, Image, ItemId, ItemIdOrTag, Kind, Kinds, OneOrList,

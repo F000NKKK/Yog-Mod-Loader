@@ -3,8 +3,8 @@
 //! generated Java codecs follow: what packs itself is read as packed,
 //! everything else as its binary form.
 
+use crate::model::value::{Map, Value};
 use crate::schema::{EnumShape, Shape, StructShape};
-use crate::value::{Map, Value};
 
 use super::Unpacker;
 

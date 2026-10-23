@@ -2,7 +2,7 @@
 
 use super::interner::Interner;
 use super::{MAGIC, NEW_STRING, VERSION, tag, varint, zigzag};
-use crate::value::Value;
+use crate::model::value::Value;
 
 /// What a writer reserves to start with: most messages fit.
 pub(crate) const START_BYTES: usize = 256;

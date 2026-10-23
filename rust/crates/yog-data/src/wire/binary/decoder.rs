@@ -9,8 +9,8 @@ use super::{
     DecodeError, MAGIC, MAX_DEPTH, NEW_STRING, STREAM_LEN_BYTES, VERSION, read_varint, tag,
     unzigzag,
 };
-use crate::borrowed::{MapRef, ValueRef};
-use crate::value::{Map, Ref, Res, Value};
+use crate::model::borrowed::{MapRef, ValueRef};
+use crate::model::value::{Map, Ref, Res, Value};
 
 /// Strings a decoder makes room for at once: a message's keys and values.
 const STRINGS_START: usize = 16;

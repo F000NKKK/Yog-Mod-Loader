@@ -1,7 +1,7 @@
 //! JSON ⇄ Yog Data (feature `json`): for what still speaks JSON — a file
 //! of the game's own format, a tool's protocol — on its way into a blob.
 
-use crate::value::{Map, Value};
+use crate::model::value::{Map, Value};
 
 /// `j` as Yog Data (integers stay integers).
 pub fn from_json(j: &serde_json::Value) -> Value {

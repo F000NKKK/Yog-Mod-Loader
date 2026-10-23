@@ -10,6 +10,7 @@ mod plain;
 mod reader;
 mod shape;
 mod typed_values;
+pub mod with;
 
 pub use fields::{Fields, field_name};
 pub use one_or_list::OneOrList;
@@ -23,12 +24,12 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
-use crate::borrowed::{MapRef, ValueRef};
 use crate::diagnostic::{Diagnostic, Errors};
 use crate::frame::{Packer, Unpacker};
+use crate::model::borrowed::{MapRef, ValueRef};
+use crate::model::value::{Map, Path, Ref, Res, Seg, Value};
 use crate::text::{self, Doc, LineCol};
 use crate::typed;
-use crate::value::{Map, Path, Ref, Res, Seg, Value};
 
 /// A Yog Data format.
 pub trait Schema: Sized {

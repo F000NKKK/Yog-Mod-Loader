@@ -6,7 +6,7 @@
 
 use bumpalo::Bump;
 
-use crate::value::{Map, Ref, Res, Value};
+use crate::model::value::{Map, Ref, Res, Value};
 
 /// A borrowed [`Value`]: the same cases, strings `&'a str`, lists and maps slices.
 #[derive(Debug, Clone, Copy, PartialEq)]

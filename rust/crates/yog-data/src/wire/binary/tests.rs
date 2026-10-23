@@ -3,7 +3,7 @@
 use bumpalo::Bump;
 
 use super::*;
-use crate::value::{Map, Ref, Res, Value};
+use crate::model::value::{Map, Ref, Res, Value};
 
 fn sample() -> Value {
     let mut m = Map::new();

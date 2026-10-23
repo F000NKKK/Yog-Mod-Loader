@@ -58,8 +58,8 @@ use bumpalo::Bump;
 pub use decoder::Decoder;
 pub use writer::Writer;
 
-use crate::borrowed::ValueRef;
-use crate::value::Value;
+use crate::model::borrowed::ValueRef;
+use crate::model::value::Value;
 
 pub const MAGIC: &[u8; 4] = b"YOGD";
 pub const VERSION: u8 = 2;

@@ -9,8 +9,8 @@
 use serde_spanned::Spanned;
 use toml::de::{DeTable, DeValue};
 
+use crate::model::value::{Map, Value};
 use crate::text::{Doc, LineCol, Span, Spans, SyntaxError};
-use crate::value::{Map, Value};
 
 /// Parses a TOML document.
 pub fn parse(text: &str) -> Result<Doc, SyntaxError> {

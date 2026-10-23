@@ -3,8 +3,8 @@
 //! key order, number spelling, layout. What changed is written by
 //! [`format`], the way Yog's editors write a value.
 
+use crate::model::value::{Map, Value};
 use crate::text::{Spans, write_string};
-use crate::value::{Map, Value};
 
 /// A line no longer than this is written on one line by [`format`].
 const ONE_LINE: usize = 72;

@@ -1,5 +1,5 @@
 use super::with_comments;
-use crate::value::Value;
+use crate::model::value::Value;
 
 fn s(v: &Value, key: &str) -> Option<String> {
     v.get(key).and_then(Value::as_str).map(str::to_string)

@@ -21,10 +21,10 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
-use crate::borrowed::ValueRef;
 use crate::frame::{Packer, Unpacker};
+use crate::model::borrowed::ValueRef;
+use crate::model::value::{Seg, Value};
 use crate::schema::{Reader, Schema, Shape};
-use crate::value::{Seg, Value};
 
 /// A list of `T` kept written: its body in the binary form, its strings its own.
 pub struct Stream<T> {

@@ -20,10 +20,10 @@ use std::collections::{BTreeMap, HashMap};
 use std::marker::PhantomData;
 
 use crate::binary::{Decoder, Writer};
-use crate::borrowed::ValueRef;
 use crate::frame::{Packer, Unpacker};
+use crate::model::borrowed::ValueRef;
+use crate::model::value::{Map, Ref, Seg, Value};
 use crate::schema::{Kinds, Reader, Schema, Shape, Text, is_metadata_key, read_ref};
-use crate::value::{Map, Ref, Seg, Value};
 
 /// How a field of type `F` is read and written.
 pub trait With<F> {

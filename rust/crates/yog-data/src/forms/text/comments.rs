@@ -5,8 +5,8 @@
 //! object joins the list's nearest map's `comment`.
 
 use super::{Spans, SyntaxError, parse};
+use crate::model::value::{Map, Value};
 use crate::schema::{COMMENT_KEY, META_PREFIX};
-use crate::value::{Map, Value};
 
 /// `text`'s value, its comments in it (see the module docs).
 pub fn with_comments(text: &str) -> Result<Value, SyntaxError> {

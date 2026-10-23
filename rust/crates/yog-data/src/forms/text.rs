@@ -10,7 +10,7 @@ use std::fmt;
 /// `\\u` escapes are hexadecimal.
 const HEX_RADIX: u32 = 16;
 
-use crate::value::{Map, Path, Seg, Value};
+use crate::model::value::{Map, Path, Seg, Value};
 
 mod comments;
 
