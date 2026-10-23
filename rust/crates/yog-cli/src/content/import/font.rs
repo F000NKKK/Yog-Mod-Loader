@@ -11,8 +11,8 @@ use yog_graphics::{Color, Image, ImageOp, Mask, MaskOp, Op, Rect};
 use yog_ids::Format;
 
 use super::Target;
-use crate::design::assets::Resources;
-use crate::design::font::{Font as GameFont, Glyph as GameGlyph, GlyphBitmap};
+use crate::design::drawing::assets::Resources;
+use crate::design::fonts::font::{Font as GameFont, Glyph as GameGlyph, GlyphBitmap};
 
 /// Font units a GUI pixel is: fine enough for Unifont's half pixels and
 /// TrueType's fractional advances.

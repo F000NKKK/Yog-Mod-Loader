@@ -126,9 +126,10 @@ impl<'a> Models<'a> {
         }
         if !self.jar_tried {
             self.jar_tried = true;
-            self.jar = crate::design::assets::newest_client_jar(std::slice::from_ref(&self.root))
-                .and_then(|p| std::fs::File::open(p).ok())
-                .and_then(|f| zip::ZipArchive::new(f).ok());
+            self.jar =
+                crate::design::drawing::assets::newest_client_jar(std::slice::from_ref(&self.root))
+                    .and_then(|p| std::fs::File::open(p).ok())
+                    .and_then(|f| zip::ZipArchive::new(f).ok());
         }
         let jar = self.jar.as_mut()?;
         let mut entry = jar.by_name(&rel).ok()?;

@@ -23,8 +23,8 @@ use yog_ui::component::designer::{self as protocol, Answer};
 
 pub(crate) use yog_ui::component::designer::{ComponentInfo, PropInfo, Render as RenderReq};
 
-use super::raster::DrawOp;
-use super::{gfx, images, raster};
+use super::drawing::raster::DrawOp;
+use super::{drawing::gfx, drawing::images, drawing::raster};
 
 /// Starts every answer on stdout.
 pub const MARK: &[u8] = b"\x01yog-designer\x01";
@@ -198,7 +198,7 @@ impl Host {
                 .map(|(w, h, ops)| HostAnswer::Drawn { w, h, ops }),
             HostRequest::Png { req, scale, out } => {
                 let (w, h, ops) = self.loaded()?.render(&req)?;
-                let res = super::assets::Resources::for_mod(self.mod_root.as_deref());
+                let res = super::drawing::assets::Resources::for_mod(self.mod_root.as_deref());
                 let (cw, ch) = (w.ceil().max(1.0) as u32, h.ceil().max(1.0) as u32);
                 let scale = scale.unwrap_or(PNG_SCALE).clamp(1, MAX_PNG_SCALE);
                 let canvas = raster::rasterize(&ops, cw, ch, scale, &res);
@@ -316,7 +316,7 @@ mod tests {
             .unwrap();
         assert!(w > 0.0 && h > 0.0 && !ops.is_empty());
         if let Ok(out) = std::env::var(yog_ids::env::DESIGNER_PNG) {
-            let res = super::super::assets::Resources::for_mod(None);
+            let res = super::super::drawing::assets::Resources::for_mod(None);
             let canvas = raster::rasterize(&ops, w.ceil() as u32, h.ceil() as u32, 6, &res);
             std::fs::write(&out, canvas.png().unwrap()).unwrap();
         }

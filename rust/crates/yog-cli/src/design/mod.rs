@@ -4,16 +4,13 @@
 //! files; a preview mode driving the same tree with real UI events
 //! (`click:X:Y`, `scroll:DY`, scrollbar drags); and code-behind handlers.
 
-pub(crate) mod advancements;
-pub(crate) mod content;
-pub(crate) mod data;
-pub(crate) mod mod_ui;
-pub(crate) mod project;
-pub(crate) mod recipe_kinds;
-pub(crate) mod refs;
+pub(crate) mod drawing;
+pub(crate) mod editors;
+pub(crate) mod fonts;
+pub(crate) mod screens;
+pub(crate) mod sources;
+
 pub(crate) mod service;
-pub(crate) mod worldgen;
-pub(crate) mod yui_codegen;
 
 /// This CLI as a command, for a design call that runs one of its
 /// subcommands: the running binary when it's `yog`, else the `yog` on `PATH`.
@@ -23,25 +20,7 @@ pub(crate) fn this_cli() -> std::process::Command {
         .filter(|e| e.file_stem().is_some_and(|s| s == yog_ids::program::CLI));
     std::process::Command::new(exe.unwrap_or_else(|| yog_ids::program::CLI.into()))
 }
-pub(crate) mod assets;
-pub(crate) mod blocks3d;
-pub(crate) mod book;
-pub(crate) mod codebehind;
-pub(crate) mod components;
-pub(crate) mod custom;
-pub(crate) mod font;
-pub(crate) mod font_copy;
-mod font_yog;
-pub(crate) mod gfx;
 pub mod host;
-pub(crate) mod images;
-pub(crate) mod item_models;
-pub(crate) mod markup;
-pub(crate) mod raster;
-pub(crate) mod recipe_area;
-pub(crate) mod sound;
-pub(crate) mod tags;
-pub(crate) mod video;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -52,8 +31,8 @@ use yog_gfx::Vec2;
 use yog_ui::layout::LayoutNode;
 use yog_ui::{ScrollState, UiRoot, Widget};
 
-use self::assets::Resources;
-use self::markup::YuiNode;
+use self::drawing::assets::Resources;
+use self::screens::markup::YuiNode;
 
 /// A laid-out widget: its border box and its content box (inside padding), GUI px.
 #[derive(Debug, Clone, yog_data::Schema)]
@@ -95,7 +74,7 @@ pub struct Rendered {
 /// The mod a file belongs to: the folder with its `yog.toml` (else the
 /// folder holding the `src/` it's in).
 pub(crate) fn mod_root(file: &Path) -> Option<PathBuf> {
-    project::mod_root(file).or_else(|| {
+    sources::project::mod_root(file).or_else(|| {
         file.ancestors()
             .find(|p| p.file_name().is_some_and(|n| n == "src"))
             .and_then(|p| p.parent())
@@ -109,11 +88,11 @@ type Laid = UiRoot;
 fn lay_out(root: &YuiNode, screen_w: f32, screen_h: f32, scroll: &HashMap<String, f32>) -> Laid {
     let mut ui = UiRoot::new(
         "yog-idle:designer",
-        markup::screen(root, screen_w, screen_h, scroll),
+        screens::markup::screen(root, screen_w, screen_h, scroll),
     );
     // Text widths and image sizes come from the "host" — the designer's own
     // font and image resolution — as they do from the game in `UiRoot::render`.
-    let table = gfx::api(screen_w as i32, screen_h as i32, 1.0);
+    let table = drawing::gfx::api(screen_w as i32, screen_h as i32, 1.0);
     // SAFETY: every function in `table` is sound to call; only fn pointers are kept.
     let ctx = unsafe { yog_gfx::GfxContext::from_raw(&table) };
     yog_ui::text::use_host_metrics(&ctx);
@@ -131,10 +110,10 @@ fn walk<'a>(
     visit: &mut impl FnMut(&'a YuiNode, &'a Widget, &'a LayoutNode),
 ) {
     visit(node, w, l);
-    if !markup::is_container(&node.kind) {
+    if !screens::markup::is_container(&node.kind) {
         return;
     }
-    for (i, child) in markup::widget_children(node).enumerate() {
+    for (i, child) in screens::markup::widget_children(node).enumerate() {
         if let (Some(cw), Some(cl)) = (w.children.get(i), l.children.get(i)) {
             walk(child, cw, cl, visit);
         }
@@ -221,28 +200,28 @@ pub fn render(args: &RenderArgs) -> Result<Rendered, String> {
     let (sw, sh) = (args.screen_w.clamp(1, 4096), args.screen_h.clamp(1, 4096));
     let scroll = offsets(&args.path, args.preview);
     let root = mod_root(Path::new(&args.path));
-    images::set_document(root.as_deref());
+    drawing::images::set_document(root.as_deref());
     // The mod's own components: expanded from markup, or marked spacers here drawn by the designer host below.
     let mut themed = args.root.clone();
-    markup::apply_resources(&mut themed);
-    markup::apply_theme(&mut themed);
-    recipe_area::expand(&mut themed, root.as_deref());
-    let prepared = custom::prepare(&themed, root.as_deref(), sw as f32, sh as f32);
+    screens::markup::apply_resources(&mut themed);
+    screens::markup::apply_theme(&mut themed);
+    screens::recipe_area::expand(&mut themed, root.as_deref());
+    let prepared = screens::custom::prepare(&themed, root.as_deref(), sw as f32, sh as f32);
     let laid = lay_out(&prepared.root, sw as f32, sh as f32, &scroll);
-    let mut ops = gfx::record(sw as i32, sh as i32, |ctx| laid.render(ctx));
+    let mut ops = drawing::gfx::record(sw as i32, sh as i32, |ctx| laid.render(ctx));
     let mut node_rects = rects(&prepared.root, &laid);
     if !prepared.is_empty() {
-        custom::splice(
+        screens::custom::splice(
             &mut ops,
             &prepared,
             &node_rects.iter().map(|r| (r.uid.clone(), r.rect)).collect(),
         );
     }
     // The inside of an expanded component instance isn't the document's.
-    node_rects.retain(|r| !r.uid.contains(components::INNER));
+    node_rects.retain(|r| !r.uid.contains(screens::components::INNER));
     let res = Resources::for_mod(root.as_deref());
-    let scale = raster::fit_scale(sw, sh, args.scale);
-    let canvas = raster::rasterize(&ops, sw, sh, scale, &res);
+    let scale = drawing::raster::fit_scale(sw, sh, args.scale);
+    let canvas = drawing::raster::rasterize(&ops, sw, sh, scale, &res);
     let real_font = res.vanilla.is_some() || canvas_font_real(&res);
     let png = canvas.png()?;
     Ok(Rendered {
@@ -261,7 +240,7 @@ pub fn render(args: &RenderArgs) -> Result<Rendered, String> {
 }
 
 fn canvas_font_real(res: &Resources) -> bool {
-    font::Font::load(res, yog_ids::yog::DEFAULT_FONT).is_real()
+    fonts::font::Font::load(res, yog_ids::yog::DEFAULT_FONT).is_real()
 }
 
 #[derive(Debug, yog_data::Schema)]
@@ -296,9 +275,11 @@ fn hit<'a>(node: &'a YuiNode, l: &'a LayoutNode, mx: f32, my: f32) -> Option<&'a
     if !l.rect.contains(Vec2::new(mx, my)) {
         return None;
     }
-    if markup::is_container(&node.kind) {
+    if screens::markup::is_container(&node.kind) {
         // Laid out from the widget children only — property elements have no layout node.
-        let children: Vec<_> = markup::widget_children(node).zip(&l.children).collect();
+        let children: Vec<_> = screens::markup::widget_children(node)
+            .zip(&l.children)
+            .collect();
         for (child, cl) in children.into_iter().rev() {
             if let Some(found) = hit(child, cl, mx, my) {
                 return Some(found);
@@ -321,12 +302,12 @@ pub(crate) fn event(args: &EventArgs) -> EventResult {
     let scroll = offsets(&args.path, true);
     let mod_root = mod_root(Path::new(&args.path));
     // Laid out like `render` does: images size by the same mod's resources.
-    images::set_document(mod_root.as_deref());
+    drawing::images::set_document(mod_root.as_deref());
     let mut themed = args.root.clone();
-    markup::apply_resources(&mut themed);
-    markup::apply_theme(&mut themed);
-    recipe_area::expand(&mut themed, mod_root.as_deref());
-    let prepared = custom::prepare(&themed, mod_root.as_deref(), sw, sh);
+    screens::markup::apply_resources(&mut themed);
+    screens::markup::apply_theme(&mut themed);
+    screens::recipe_area::expand(&mut themed, mod_root.as_deref());
+    let prepared = screens::custom::prepare(&themed, mod_root.as_deref(), sw, sh);
     let root = &prepared.root;
     let laid = lay_out(root, sw, sh, &scroll);
     let mut out = EventResult::default();
@@ -364,7 +345,7 @@ pub(crate) fn event(args: &EventArgs) -> EventResult {
         // Inside a component instance: the instance.
         out.hit = found.map(|n| {
             n.uid
-                .split(components::INNER)
+                .split(screens::components::INNER)
                 .next()
                 .unwrap_or_default()
                 .to_string()
@@ -386,7 +367,7 @@ pub(crate) fn reset(path: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::design::raster::DrawOp;
+    use crate::design::drawing::raster::DrawOp;
 
     fn node(uid: &str, kind: &str, attrs: &[(&str, &str)], children: Vec<YuiNode>) -> YuiNode {
         YuiNode {
@@ -516,7 +497,7 @@ mod tests {
             preview: false,
         };
         let laid = lay_out(&args.root, 200.0, 100.0, &HashMap::new());
-        let ops = gfx::record(200, 100, |ctx| laid.render(ctx));
+        let ops = drawing::gfx::record(200, 100, |ctx| laid.render(ctx));
         assert!(
             matches!(
                 ops.first(),

@@ -130,7 +130,7 @@ fn path(params: &Value, name: &str) -> Result<PathBuf, ServiceError> {
 
 /// The mod a file is in (the folder with its manifest, up from it).
 fn mod_root(file: &Path) -> Result<PathBuf, ServiceError> {
-    crate::design::project::mod_root(file)
+    crate::design::sources::project::mod_root(file)
         .ok_or_else(|| format!("{} isn't in a mod", file.display()).into())
 }
 

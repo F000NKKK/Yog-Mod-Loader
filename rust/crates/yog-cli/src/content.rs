@@ -19,35 +19,19 @@
 //!   also registers them (unless an entry says `"register": "manual"`) and
 //!   every recipe.
 
-mod block_item;
-mod body;
-mod book;
-mod compile;
-mod ctx;
-mod datapack;
-mod defs;
-mod entry;
-mod file;
-mod files;
+pub(crate) mod formats;
+pub(crate) mod media;
+pub(crate) mod pipeline;
+
 mod import;
 pub(crate) use import::font_copy_path;
-mod looks;
-pub(crate) mod material;
-mod model;
-mod outputs;
-mod particles;
-mod recipe;
 pub(crate) mod refs;
-mod sounds;
-mod source;
-mod table;
-mod textures;
 mod vocab;
 
-pub use compile::compile;
 pub use import::{Imported, import_command};
-pub use outputs::{OutputSet, TAGS_FILE, TagLists, merge_outputs, read_tags};
-pub use source::{GENERATED_PARTS_DIR, Source, write_source};
+pub use pipeline::compile::compile;
+pub use pipeline::outputs::{OutputSet, TAGS_FILE, TagLists, merge_outputs, read_tags};
+pub use pipeline::source::{GENERATED_PARTS_DIR, Source, write_source};
 pub(crate) use vocab::TEMPLATES;
 
 use serde_json::Value;
@@ -92,7 +76,7 @@ pub struct Compiled {
     /// `.yres` text keys to copy under another key: (from, to).
     lang_aliases: Vec<(String, String)>,
     /// Tag path (`data/minecraft/tags/block/...json`) → its entries.
-    tags: BTreeMap<String, defs::data::TagEntries>,
+    tags: BTreeMap<String, formats::defs::data::TagEntries>,
     /// The generated Rust code; `None` when the mod has no content files.
     pub source: Option<Source>,
     /// Data the code includes (`include_bytes!`), by path under
@@ -136,7 +120,6 @@ type Lang = BTreeMap<(String, String), BTreeMap<String, String>>;
 
 #[cfg(test)]
 mod tests;
-mod videos;
 
 /// Whole numbers below this are written as integers.
 const WHOLE_BELOW: f64 = 1e15;

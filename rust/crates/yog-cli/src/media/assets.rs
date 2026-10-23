@@ -196,7 +196,7 @@ pub(crate) fn game_sounds() -> Vec<String> {
         yog_ids::sep::PATH,
         yog_ids::res::SOUNDS
     );
-    crate::design::assets::vanilla(&[])
+    crate::design::drawing::assets::vanilla(&[])
         .map(|v| v.object_names(&prefix))
         .unwrap_or_default()
         .iter()
@@ -218,7 +218,7 @@ pub(crate) fn game_sound(id: &str) -> Option<Vec<u8>> {
         yog_ids::res::SOUNDS,
         yog_ids::res::OGG
     );
-    crate::design::assets::vanilla(&[]).and_then(|v| v.read_all(&key).pop())
+    crate::design::drawing::assets::vanilla(&[]).and_then(|v| v.read_all(&key).pop())
 }
 
 /// Writes `bytes` as picture `@<set>.<name>` of the mod at `root` (the
