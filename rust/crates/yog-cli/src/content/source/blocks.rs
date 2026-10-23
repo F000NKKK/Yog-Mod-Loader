@@ -184,7 +184,7 @@ pub(super) fn entry_idents(entries: &[Entry]) -> Vec<String> {
 
 /// `ident` as Rust takes it: a keyword as `r#ident`.
 pub(super) fn escaped(ident: &str) -> String {
-    if crate::rust_code::is_keyword(ident) {
+    if crate::project::rust_code::is_keyword(ident) {
         format!("r#{ident}")
     } else {
         ident.to_string()

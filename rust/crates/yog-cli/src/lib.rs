@@ -8,34 +8,18 @@
 // What the binary, tests and benches reach is documented (the rest is `pub(crate)`).
 #![warn(missing_docs)]
 
-pub(crate) mod audio;
-pub mod bench;
-pub(crate) mod book_page;
-pub mod cargo_toml;
-pub mod class_index;
-mod classfile;
 mod consts;
 pub mod content;
 pub mod design;
 pub mod diagnostics;
-pub mod exports;
-pub(crate) mod ffmpeg;
 pub mod files;
-pub mod manifest;
-pub mod mappings;
-pub(crate) mod media;
-pub(crate) mod mix;
-pub(crate) mod recipe_area;
-pub(crate) mod rust_code;
+pub mod game;
+pub mod media;
+pub mod project;
 pub mod script;
 pub mod serve;
-pub(crate) mod video;
+pub mod ui;
 pub mod yres;
-pub mod yui;
-pub mod yui_component;
-pub mod yui_grid;
-pub(crate) mod yui_resources;
-pub(crate) mod yui_vm;
 
 /// `path` with `/` between its parts, whatever the system's separator.
 pub fn slash_path(path: &std::path::Path) -> String {

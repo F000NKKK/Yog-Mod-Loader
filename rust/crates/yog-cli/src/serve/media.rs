@@ -93,7 +93,7 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         // The mod's pictures: set, name, path, file.
         M::MEDIA_PICTURES => path(params, P::PATH).and_then(|p| {
             let root = mod_root(&p)?;
-            let list = crate::media::pictures(&root)
+            let list = crate::media::assets::pictures(&root)
                 .into_iter()
                 .map(|p| {
                     PictureInfo {
@@ -110,7 +110,7 @@ pub(super) fn method(method: &str, params: &Value) -> Option<Reply> {
         // The id of the mod a file is in.
         M::MOD_ID => path(params, P::PATH)
             .and_then(|p| mod_root(&p))
-            .map(|root| crate::media::mod_id(&root).write()),
+            .map(|root| crate::media::assets::mod_id(&root).write()),
         _ => return None,
     })
 }

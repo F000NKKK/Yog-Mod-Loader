@@ -1,11 +1,11 @@
 //! `yog publish exports`: the mod's `#[yog_export]` items as a crate on crates.io.
 
-use yog_cli::exports::{self, ExportItem, collect_rs_files};
-use yog_cli::manifest::{
+use yog_cli::project::exports::{self, ExportItem, collect_rs_files};
+use yog_cli::project::manifest::{
     DEFAULT_EDITION, DEFAULT_LICENSE, MANIFEST, YogToml, latest_yog_api_version, project_root,
 };
 
-use crate::cli::build::prepare::write_file;
+use crate::cli::pipeline::prepare::write_file;
 
 /// What a mod's exports crate is made of.
 struct Crate {
@@ -84,7 +84,7 @@ pub(crate) fn publish_exports(dry_run: bool) -> Result<(), String> {
     }
     // Generated in .yog-build/exports/<crate>/.
     let dir = proj
-        .join(yog_cli::manifest::BUILD_DIR)
+        .join(yog_cli::project::manifest::BUILD_DIR)
         .join(EXPORTS_DIR)
         .join(&c.name);
     write_crate(&dir, &c, &manifest)?;

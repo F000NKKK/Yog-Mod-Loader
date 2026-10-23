@@ -3,5 +3,5 @@
 pub(super) const WORDS: &[&str] = &["bench"];
 
 pub(super) fn run(rest: &[String]) -> Result<(), String> {
-    crate::cli::build::run_benches(rest)
+    crate::cli::pipeline::run_benches(rest)
 }

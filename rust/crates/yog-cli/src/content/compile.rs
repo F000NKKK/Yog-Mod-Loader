@@ -257,8 +257,10 @@ impl<'a> Build<'a> {
     /// among its `.ymodel`/`.yanim`.
     fn known(&mut self) -> refs::Known {
         // A manifest that doesn't read was reported when the build prepared.
-        let manifest =
-            crate::manifest::YogToml::read(&self.shared.root.join(yog_ids::file::MANIFEST)).ok();
+        let manifest = crate::project::manifest::YogToml::read(
+            &self.shared.root.join(yog_ids::file::MANIFEST),
+        )
+        .ok();
         let externals = manifest
             .as_ref()
             .map(|t| t.externals.clone())
@@ -423,7 +425,7 @@ impl<'a> Build<'a> {
             .collect();
         // The mod's own kinds of book page (`.yui` components with `book_page`).
         let page_types =
-            crate::book_page::find(self.shared.root, self.shared.ns, &mut self.sink.errors);
+            crate::ui::book_page::find(self.shared.root, self.shared.ns, &mut self.sink.errors);
         let against = BookAgainst {
             known,
             layouts,

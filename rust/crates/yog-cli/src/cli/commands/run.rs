@@ -1,7 +1,7 @@
 //! `yog run <target> | <loader> <mc> [--debug] [--dev]`, `yog run --list [--json]`.
 
-use crate::cli::build::symbols::Symbols;
 use crate::cli::flags::{DEBUG, DEV, LIST, has, words};
+use crate::cli::pipeline::symbols::Symbols;
 
 pub(super) const WORDS: &[&str] = &["run"];
 const USAGE: &str =

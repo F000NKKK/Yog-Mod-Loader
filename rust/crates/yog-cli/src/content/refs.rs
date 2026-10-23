@@ -11,7 +11,7 @@ use yog_sync::LazyLock;
 
 use yog_formats::book::refs::bare;
 
-use crate::manifest::External;
+use crate::project::manifest::External;
 
 /// What a reference names that the build can check.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

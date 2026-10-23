@@ -293,7 +293,7 @@ fn external(root: &Path, kind: &str) -> Vec<String> {
     let Some(kind) = crate::content::refs::RefKind::from_word(kind) else {
         return Vec::new();
     };
-    let Ok(manifest) = crate::manifest::YogToml::read(&project::path(root)) else {
+    let Ok(manifest) = crate::project::manifest::YogToml::read(&project::path(root)) else {
         return Vec::new();
     };
     let mut out = Vec::new();

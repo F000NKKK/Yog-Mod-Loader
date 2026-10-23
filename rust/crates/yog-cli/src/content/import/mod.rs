@@ -118,7 +118,7 @@ fn read_mod_id(root: &std::path::Path) -> Result<String, String> {
     if !path.is_file() {
         return Err("no yog.toml in the current directory — run `yog import` in a mod".into());
     }
-    crate::manifest::YogToml::read(&path).map(|m| m.id)
+    crate::project::manifest::YogToml::read(&path).map(|m| m.id)
 }
 
 #[cfg(test)]

@@ -8,7 +8,8 @@ mod common;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 use std::path::Path;
-use yog_cli::{content, manifest, yres};
+use yog_cli::project::manifest;
+use yog_cli::{content, yres};
 
 fn bench(c: &mut Criterion) {
     let block = common::yblock(1);

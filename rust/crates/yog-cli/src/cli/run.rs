@@ -1,13 +1,13 @@
 //! `yog run`: the mod built, exported into a target's game, the game launched.
 
-use super::build::symbols::Symbols;
+use super::pipeline::symbols::Symbols;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use yog_cli::manifest::{MANIFEST, project_root};
+use yog_cli::project::manifest::{MANIFEST, project_root};
 
-use super::build::prepare::write_file;
-use super::build::{ARTIFACTS_DIR, build};
+use super::pipeline::prepare::write_file;
+use super::pipeline::{ARTIFACTS_DIR, build};
 
 /// `yog run --list`: every run target, a line each. `--json`, for editors:
 /// `{"targets": [...], "sources": [folders they're read from]}`.
@@ -30,7 +30,7 @@ pub(crate) fn run_target(id: &str, symbols: Symbols, dev: bool) -> Result<(), St
     let plan = resolver.plan(&target);
 
     // It's played here: this machine's platform is all it needs.
-    let (meta, artifact) = build(symbols, dev, super::build::Platforms::Host)?;
+    let (meta, artifact) = build(symbols, dev, super::pipeline::Platforms::Host)?;
 
     if let Some(dir) = &plan.export_dir {
         std::fs::create_dir_all(dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;

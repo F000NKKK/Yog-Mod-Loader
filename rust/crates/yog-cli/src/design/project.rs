@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-pub(crate) use crate::media::mod_id;
+pub(crate) use crate::media::assets::mod_id;
 
 /// `<root>/yog.toml`.
 pub(crate) fn path(root: &Path) -> PathBuf {

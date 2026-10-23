@@ -6,7 +6,7 @@ mod common;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
-use yog_cli::{yui, yui_grid};
+use yog_cli::ui::{grid, yui};
 
 /// Synthetic markup of `n` elements.
 type Markup = fn(usize) -> String;
@@ -44,7 +44,7 @@ fn bench(c: &mut Criterion) {
         grid.bench_with_input(BenchmarkId::from_parameter(n), &parsed, |b, parsed| {
             b.iter(|| {
                 let mut root = parsed.clone();
-                yui_grid::normalize(black_box(&mut root)).unwrap();
+                grid::normalize(black_box(&mut root)).unwrap();
                 root
             })
         });

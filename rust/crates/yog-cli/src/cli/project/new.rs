@@ -2,10 +2,10 @@
 
 use std::path::PathBuf;
 
-use yog_cli::manifest::MANIFEST;
-use yog_cli::yui;
+use yog_cli::project::manifest::MANIFEST;
+use yog_cli::ui::yui;
 
-use crate::cli::build::prepare::write_file;
+use crate::cli::pipeline::prepare::write_file;
 
 /// A new mod's `yog.toml` and `src/lib.rs`, their `$NAME$`s to fill.
 const YOG_TOML: &str = include_str!("new/yog.toml.in");

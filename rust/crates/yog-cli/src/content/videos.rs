@@ -1,4 +1,4 @@
-//! `.yvideo` files: the mod's videos — each rendered (`crate::video`) into
+//! `.yvideo` files: the mod's videos — each rendered (`crate::media::video`) into
 //! a definition the code registers (its AV1 packets and how they play) and,
 //! when it keeps its sound, a streamed sound event `video.<name>` with its
 //! Ogg file.
@@ -62,7 +62,7 @@ impl Videos {
         let video = yog_data::from_text::<Video>(&text)
             .map_err(|e| e.to_string())?
             .value;
-        let mut r = crate::video::render(&video, root)?;
+        let mut r = crate::media::video::render(&video, root)?;
         let (ns, name) = yog_ids::split(&id);
         let sound = r.sound.take().map(|ogg| {
             let event = yog_formats::video::sound_event(name);
@@ -118,7 +118,7 @@ mod tests {
             r#"{ source: "@Media.intro", width: 64, looping: true }"#,
         )
         .unwrap();
-        crate::video::tests::put_source(&dir, "intro");
+        crate::media::video::tests::put_source(&dir, "intro");
         let mut errors = Vec::new();
         let v = compile(&dir, "m", &mut errors);
         assert!(errors.is_empty(), "{errors:?}");

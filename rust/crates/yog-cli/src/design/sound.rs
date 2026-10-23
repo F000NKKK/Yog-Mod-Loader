@@ -38,8 +38,8 @@ pub(crate) struct SoundList {
 pub(crate) fn sound_list(file: &Path) -> Result<SoundList, ServiceError> {
     let root = mod_root(file).ok_or("not in a mod")?;
     Ok(SoundList {
-        own: crate::media::sounds(&root),
-        game: crate::media::game_sounds(),
+        own: crate::media::assets::sounds(&root),
+        game: crate::media::assets::game_sounds(),
     })
 }
 
@@ -66,13 +66,13 @@ fn own(file: &Path, res: &str) -> Result<Vec<u8>, ServiceError> {
         .split_once(yog_ids::sep::DOT)
         .ok_or_else(|| ServiceError::from(format!("`{res}`: a sound is `@Set.name`")))?;
     let root = mod_root(file).ok_or("not in a mod")?;
-    crate::media::sound(&root, set, name)
+    crate::media::assets::sound(&root, set, name)
         .ok_or_else(|| ServiceError::not_found(format!("no sound `@{res}` in the mod's .yres")))
 }
 
 /// The game's sound file `id`, from its assets.
 fn game(id: &str) -> Result<Vec<u8>, ServiceError> {
-    crate::media::game_sound(id).ok_or_else(|| {
+    crate::media::assets::game_sound(id).ok_or_else(|| {
         ServiceError::not_found(format!(
             "the game's sound {id}: no assets found on this machine"
         ))

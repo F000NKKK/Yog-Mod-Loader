@@ -4,7 +4,7 @@
 use std::fmt::Write as _;
 
 use super::names::accessor_name;
-use crate::rust_code::{is_ident, is_keyword};
+use crate::project::rust_code::{is_ident, is_keyword};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Segment {

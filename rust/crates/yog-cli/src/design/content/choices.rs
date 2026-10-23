@@ -161,7 +161,7 @@ pub(crate) fn textures(file: &Path) -> Vec<TextureChoice> {
     let root = mod_root(file);
     if let Some(root) = &root {
         out.extend(
-            crate::media::textures(root)
+            crate::media::assets::textures(root)
                 .into_iter()
                 .map(|t| TextureChoice {
                     value: format!("{}{}", yog_ids::reference::TEXTURE, t.id),

@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use yog_cli::manifest::{DEPS_SECTION, EXPORT_DEPS_SECTION, MANIFEST, project_root};
+use yog_cli::project::manifest::{DEPS_SECTION, EXPORT_DEPS_SECTION, MANIFEST, project_root};
 
 /// `yog add`/`yog remove`'s operand, the `yog.toml` it edits and the
 /// section: `[dependencies]` (plain crates.io crates) or

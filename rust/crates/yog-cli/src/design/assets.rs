@@ -360,7 +360,7 @@ impl Resources {
         if let Some(bytes) = self
             .mod_root
             .as_deref()
-            .and_then(|root| crate::media::built_asset(root, ns, path))
+            .and_then(|root| crate::media::assets::built_asset(root, ns, path))
         {
             return Some(bytes);
         }
@@ -383,7 +383,7 @@ impl Resources {
         if let Some(hit) = cache.lock().get(&key) {
             return hit.clone();
         }
-        let image = crate::video::poster(&key.0, id).map(Arc::new);
+        let image = crate::media::video::poster(&key.0, id).map(Arc::new);
         cache.lock().insert(key, image.clone());
         image
     }

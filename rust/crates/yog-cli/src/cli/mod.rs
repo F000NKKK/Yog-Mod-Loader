@@ -1,10 +1,10 @@
 //! The `yog` command line: each command in its own module
-//! ([`commands`]), picked by its first word; what they do in [`build`],
+//! ([`commands`]), picked by its first word; what they do in [`pipeline`],
 //! [`project`] and [`run`].
 
-mod build;
 mod commands;
 mod flags;
+mod pipeline;
 mod project;
 mod run;
 

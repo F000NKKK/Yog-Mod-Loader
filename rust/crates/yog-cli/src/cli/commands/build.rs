@@ -4,12 +4,12 @@
 //! out beside it; `--dev`: for a game that hot-reloads it (Yog-IDLE,
 //! dev.sh) — the `.yog` carries what hot reload checks.
 
-use crate::cli::build::{self, Platforms, symbols::Symbols};
 use crate::cli::flags::{DEV, has};
+use crate::cli::pipeline::{self, Platforms, symbols::Symbols};
 
 pub(super) const WORDS: &[&str] = &["build"];
 
 pub(super) fn run(rest: &[String]) -> Result<(), String> {
     let symbols = Symbols::of(rest.first().map(String::as_str));
-    build::build(symbols, has(rest, DEV), Platforms::Selected).map(|_| ())
+    pipeline::build(symbols, has(rest, DEV), Platforms::Selected).map(|_| ())
 }

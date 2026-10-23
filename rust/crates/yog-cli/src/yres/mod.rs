@@ -177,7 +177,7 @@ pub(crate) fn color_of(e: &Entry) -> Option<u32> {
 
 /// `#RRGGBB` / `#AARRGGBB`: a `.yres` color is written with its `#`.
 fn parse_color(s: &str) -> Option<u32> {
-    crate::yui::color(s).filter(|_| s.trim().starts_with(crate::yui::HEX_MARK))
+    crate::ui::yui::color(s).filter(|_| s.trim().starts_with(crate::ui::yui::HEX_MARK))
 }
 
 /// Resolves a `yog.toml` value: `@<Set>.<name>` of a text → (neutral text,

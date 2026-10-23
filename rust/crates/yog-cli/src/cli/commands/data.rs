@@ -30,7 +30,7 @@ pub(super) fn run(rest: &[String]) -> Result<(), String> {
         Some((what, files)) if what == BIN && !files.is_empty() => {
             files.iter().try_for_each(|f| to_binary(Path::new(f)))
         }
-        Some((what, [])) if what == GIT => git(&yog_cli::manifest::project_root()?),
+        Some((what, [])) if what == GIT => git(&yog_cli::project::manifest::project_root()?),
         _ => Err(USAGE.into()),
     }
 }

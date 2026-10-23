@@ -471,11 +471,15 @@ pub(crate) fn candidates(path: &Path) -> Vec<Candidate> {
     let root = super::mod_root(path);
     let mut out = Vec::new();
     if let Some(root) = &root {
-        out.extend(crate::media::pictures(root).into_iter().map(|p| Candidate {
-            source: ImageSource::ModPath(p.path()).to_string(),
-            group: "mod".into(),
-            detail: format!("@{}.{}", p.set, p.name),
-        }));
+        out.extend(
+            crate::media::assets::pictures(root)
+                .into_iter()
+                .map(|p| Candidate {
+                    source: ImageSource::ModPath(p.path()).to_string(),
+                    group: "mod".into(),
+                    detail: format!("@{}.{}", p.set, p.name),
+                }),
+        );
     }
     out.extend(SPRITES.iter().map(|s| Candidate {
         source: format!("sprite:{}", s.name),

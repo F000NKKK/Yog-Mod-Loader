@@ -164,9 +164,9 @@ impl Mixes<'_> {
         let sources = mix
             .clips
             .iter()
-            .map(|c| crate::mix::clip_source(self.root, c))
+            .map(|c| crate::media::mix::clip_source(self.root, c))
             .collect::<Result<Vec<_>, _>>()?;
-        let ogg = crate::mix::render(mix, &sources)?;
+        let ogg = crate::media::mix::render(mix, &sources)?;
         let path = format!("{MIX_DIR}{}{slot}", yog_ids::sep::PATH);
         let file = format!("{}{path}{}", yog_ids::res::SOUNDS, yog_ids::res::OGG);
         self.rendered

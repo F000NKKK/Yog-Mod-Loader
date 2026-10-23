@@ -7,7 +7,7 @@ const USAGE: &str = "usage: yog ui gen [file.yui ...]  (no files: every src/**/*
 
 pub(super) fn run(rest: &[String]) -> Result<(), String> {
     match rest.first().map(String::as_str) {
-        Some(GEN) => crate::cli::build::steps::ui_gen(rest.get(1..).unwrap_or_default()),
+        Some(GEN) => crate::cli::pipeline::steps::ui_gen(rest.get(1..).unwrap_or_default()),
         _ => Err(USAGE.into()),
     }
 }

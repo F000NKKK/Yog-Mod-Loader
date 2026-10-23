@@ -3,7 +3,7 @@
 //! build` emits (yog-cli `yui.rs`), made directly instead of as source —
 //! wrapped like the generated `root_with` (the screen panel, anchored).
 
-use crate::yui_resources::{Entry, Resources, local_name};
+use crate::ui::resources::{Entry, Resources, local_name};
 use std::collections::HashMap;
 use yog_ui::attr::Attr;
 
@@ -11,8 +11,8 @@ use yog_ui::layout::Align;
 use yog_ui::widget::{self, Widget};
 use yog_ui::{FlexDir, Track, Units};
 
-use crate::yui::Anchor;
-use crate::yui_grid::Axis;
+use crate::ui::grid::Axis;
+use crate::ui::yui::Anchor;
 
 /// One element of the designer's document (`YuiNode` in `yui.ts`).
 #[derive(Debug, Clone, yog_data::Schema)]
@@ -99,7 +99,7 @@ fn num(v: Option<&str>) -> Option<f32> {
 }
 
 /// `#RRGGBB`, `#AARRGGBB` or `0xAARRGGBB`: the `.yui` compiler's rule.
-pub(crate) use crate::yui::color;
+pub(crate) use crate::ui::yui::color;
 
 /// A translation key's mark in a text: `@lang:key`.
 const LANG: &str = yog_ids::concatcp!(yog_ids::typed::LANG, yog_ids::sep::NAMESPACE);

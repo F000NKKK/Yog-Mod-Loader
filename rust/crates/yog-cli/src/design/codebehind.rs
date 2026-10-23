@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use syn::visit::Visit;
 
-use crate::yui::const_name;
+use crate::ui::yui::const_name;
 
 /// Where the editor should go.
 #[derive(Debug, PartialEq, yog_data::Schema)]

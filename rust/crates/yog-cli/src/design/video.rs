@@ -63,22 +63,22 @@ static DECODING: Mutex<Option<Decoding>> = Mutex::new(None);
 /// The videos of the mod at `file`.
 pub(crate) fn video_list(file: &Path) -> Result<VideoList, ServiceError> {
     let root = mod_root(file).ok_or("not in a mod")?;
-    let videos = crate::media::resources_of(&root, yog_formats::yres::Kind::Video);
+    let videos = crate::media::assets::resources_of(&root, yog_formats::yres::Kind::Video);
     let seconds = videos
         .iter()
-        .map(|r| crate::video::montage::video_seconds(&root, r).unwrap_or(0.0))
+        .map(|r| crate::media::video::montage::video_seconds(&root, r).unwrap_or(0.0))
         .collect();
     Ok(VideoList {
         own: videos.iter().map(ToString::to_string).collect(),
         seconds,
-        images: crate::media::images(&root),
+        images: crate::media::assets::images(&root),
     })
 }
 
 /// Video `video` (as edited) of the mod at `file`, rendered.
 pub(crate) fn preview(file: &Path, video: &Video) -> Result<Preview, ServiceError> {
     let root = mod_root(file).ok_or("not in a mod")?;
-    let mut rendered = crate::video::render(video, &root)?;
+    let mut rendered = crate::media::video::render(video, &root)?;
     // Each render its own key: the decoder never mistakes one for another.
     static MADE: yog_sync::atomic::AtomicU64 = yog_sync::atomic::AtomicU64::new(0);
     let key = MADE
@@ -100,7 +100,7 @@ pub(crate) fn preview(file: &Path, video: &Video) -> Result<Preview, ServiceErro
         clips: video
             .montage
             .as_ref()
-            .map(|m| crate::video::montage::durations(m, &root))
+            .map(|m| crate::media::video::montage::durations(m, &root))
             .unwrap_or_default(),
     };
     let mut renders = RENDERS.lock();
@@ -176,7 +176,7 @@ mod tests {
         let entry = Entry {
             name: "intro".into(),
             kind: Kind::Video,
-            value: Value::Bytes(crate::video::tests::source()),
+            value: Value::Bytes(crate::media::video::tests::source()),
             comment: None,
             key: None,
             line: 0,

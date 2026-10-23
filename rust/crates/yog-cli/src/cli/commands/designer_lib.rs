@@ -3,5 +3,5 @@
 pub(super) const WORDS: &[&str] = &["designer-lib"];
 
 pub(super) fn run(_rest: &[String]) -> Result<(), String> {
-    crate::cli::build::designer_lib()
+    crate::cli::pipeline::designer_lib()
 }

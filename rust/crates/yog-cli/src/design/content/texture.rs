@@ -119,7 +119,7 @@ pub(crate) fn write_animation(
         }
         None => None,
     };
-    crate::media::save_texture_animation(&root, &id, animation)
+    crate::media::assets::save_texture_animation(&root, &id, animation)
 }
 
 pub(crate) fn texture(file: &Path, texture: &str) -> Result<Texture, ServiceError> {
@@ -144,7 +144,7 @@ pub(crate) fn own_texture(file: &Path, texture: &str) -> Option<(PathBuf, String
     }
     let root = mod_root(file)?;
     let id = texture_id(texture);
-    crate::media::is_own_texture(&root, &id).then_some((root, id))
+    crate::media::assets::is_own_texture(&root, &id).then_some((root, id))
 }
 
 /// Writes `png` as the picture of the mod's texture `texture`; the `.yres` written.
@@ -154,7 +154,7 @@ pub(crate) fn write_texture(file: &Path, texture: &str, png: Vec<u8>) -> Result<
     }
     let (root, id) = own_texture(file, texture)
         .ok_or_else(|| format!("{texture} isn't a texture of this mod"))?;
-    crate::media::save_texture_picture(&root, &id, png)
+    crate::media::assets::save_texture_picture(&root, &id, png)
 }
 
 /// Width and height from a PNG header.

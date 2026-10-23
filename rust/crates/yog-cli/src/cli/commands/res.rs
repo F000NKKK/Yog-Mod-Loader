@@ -6,7 +6,7 @@ const USAGE: &str = "usage: yog res check";
 
 pub(super) fn run(rest: &[String]) -> Result<(), String> {
     match rest.first().map(String::as_str) {
-        Some(CHECK) => crate::cli::build::steps::res_check(),
+        Some(CHECK) => crate::cli::pipeline::steps::res_check(),
         _ => Err(USAGE.into()),
     }
 }

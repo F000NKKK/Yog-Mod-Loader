@@ -6,7 +6,7 @@ use std::process::Command;
 
 use yog_ids::platform::{self, Platform};
 
-use crate::cli::build::targets::{
+use crate::cli::pipeline::targets::{
     RUST_TOOLCHAIN, first_line_of, has_zigbuild, install_targets, installed_targets,
 };
 

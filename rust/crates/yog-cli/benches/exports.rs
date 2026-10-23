@@ -3,7 +3,7 @@
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
-use yog_cli::exports;
+use yog_cli::project::exports;
 
 /// A mod source with `n` exported structs, enums and fns, `use` lines and
 /// unexported filler between them.

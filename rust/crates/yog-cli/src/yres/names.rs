@@ -4,7 +4,7 @@
 use yog_ids::code_set;
 use yog_ids::kind;
 
-use crate::rust_code::{is_ident, is_keyword};
+use crate::project::rust_code::{is_ident, is_keyword};
 
 /// An entry name: identifiers joined by `.` (`title`, `screen.title`).
 pub(crate) fn valid_name(name: &str) -> bool {

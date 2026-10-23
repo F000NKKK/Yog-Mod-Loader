@@ -4,5 +4,5 @@
 pub(super) const WORDS: &[&str] = &["check"];
 
 pub(super) fn run(_rest: &[String]) -> Result<(), String> {
-    crate::cli::build::check()
+    crate::cli::pipeline::check()
 }

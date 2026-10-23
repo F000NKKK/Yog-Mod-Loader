@@ -9,7 +9,8 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use yog_cli::{content, yres, yui};
+use yog_cli::ui::yui;
+use yog_cli::{content, yres};
 
 fn copy_dir(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();

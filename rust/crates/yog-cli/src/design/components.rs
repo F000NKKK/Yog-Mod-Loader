@@ -143,9 +143,9 @@ pub(crate) fn definition(root: &YuiNode, file: &Path) -> Option<Def> {
                     .trim()
                     .to_string()
             };
-            let options = crate::yui_component::options_of(c.attr(ca::OPTIONS));
+            let options = crate::ui::component::options_of(c.attr(ca::OPTIONS));
             let default = c.attr(ca::DEFAULT).map_or_else(
-                || crate::yui_component::default_of(&kind, &options),
+                || crate::ui::component::default_of(&kind, &options),
                 str::to_string,
             );
             PropInfo {

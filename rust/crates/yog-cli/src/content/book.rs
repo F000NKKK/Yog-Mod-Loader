@@ -353,7 +353,7 @@ pub(super) fn recipe_layouts(
 ) -> Vec<RecipeLayout> {
     let mut laid_out: HashMap<String, String> = HashMap::new();
     let mut out = Vec::new();
-    for (shown, l) in crate::book_page::find_layouts(root, ns, errors) {
+    for (shown, l) in crate::ui::book_page::find_layouts(root, ns, errors) {
         let before = errors.len();
         layout_kinds(&shown, &l, kinds, &mut laid_out, errors);
         layout_parts(&shown, &l, kinds, known, errors);

@@ -12,7 +12,7 @@ use super::{
     Compiled, Entry, Kind, NEUTRAL_LOCALE, Picture, Value, accessors, outputs, value_problem,
 };
 use crate::diagnostics::Diagnostic;
-use crate::rust_code::is_keyword;
+use crate::project::rust_code::is_keyword;
 use crate::shown_path;
 use crate::yres::{caveat, problem};
 
@@ -277,7 +277,7 @@ impl Build<'_> {
         bytes: &[u8],
         path: &str,
     ) -> (String, String, Vec<u8>) {
-        let ogg = crate::audio::to_ogg(bytes).unwrap_or_else(|err| {
+        let ogg = crate::media::audio::to_ogg(bytes).unwrap_or_else(|err| {
             self.errors
                 .push(a.at.problem(format!("{:?}: {err}", e.name)));
             Vec::new()
