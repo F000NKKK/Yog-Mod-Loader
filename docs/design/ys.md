@@ -176,8 +176,8 @@ for good.
 
 - **Locals**: `let x = …` never changes; `let mut x = …` may. Only a `mut` local is lent by `ref` or assigned.
 - **Moves are explicit**: handing an owned value on is written `move x`
-  (an argument, an assignment, a return of a local needs none); after it
-  `x` is gone — using it is a build error. Copies are implicit only for
+  (in an argument or an assignment; returning a local needs none — it
+  ends there anyway); after it `x` is gone — using it is a build error. Copies are implicit only for
   `Copy` values: numbers, `bool`, `char`, enums without data, structs and
   `record struct`s made of copies. Anything else is moved, borrowed or
   `Clone()`d — never silently aliased.
@@ -208,6 +208,41 @@ for good.
   (doesn't keep it), `Cell<T>`/`Lock<T>` for changing what's shared. The
   game's objects (players, entities, worlds) are handles: `Copy`, owned by
   the game.
+
+#### Values and objects: what a move moves
+
+The same words, two kinds of storage:
+
+| | Value types: `struct`, `record struct`, enums, numbers | Heap types: `class`, `record`, interfaces, delegates, `List<T>`… |
+|---|---|---|
+| Where it lives | inline: in its local, in the object or array holding it | on the heap, under the GC; the local holds a reference |
+| `Copy`? | yes when every field is `Copy` (the compiler sees it, as C# copies every struct) — then `=` and passing copy, and `move` is allowed but changes nothing | never: one owner at a time |
+| Plain `b = a` | a copy (a `Copy` struct); a build error for a struct holding an owned field — write `move a` or `a.Clone()` | a build error — write `move a` (hand the object on), `in a` (lend it), `a.Clone()`, or make it `Shared<T>` |
+| `move a` | the bytes go to the new place; `a` is gone | the reference goes, the object stays where it is (O(1)); `a` is gone |
+| `in a` | lent without a copy, read-only: no field written, only `readonly` members called | the object lent read-only: no field written, only `readonly` methods called |
+| `ref a` | the caller's own value changed in place | the object changed, and the caller's reference may be replaced |
+| Drop | when its owner's scope ends (its owned fields first) | when its owner's scope ends, if it wasn't moved: `Dispose()`; the GC frees the memory later |
+
+- **Methods take `this` as C#'s `readonly` says**: a `readonly` method
+  (and every member of a `readonly struct`) borrows `this` read-only —
+  Rust's `&self`; any other method borrows it to change — `&mut self`, so
+  it's called only on a `let mut` or through a `ref`. A `move` method
+  (`public move Stream Into() …`) consumes `this` — Rust's `self`.
+- **Fields**: an object owns its fields' values. Moving one out leaves a
+  hole, so it's written as an exchange: `let old = Replace(ref this.Slot,
+  new Item())`, `Take(ref this.Cache)` (leaves `default`) — Rust's
+  `mem::replace`/`mem::take`. A local struct may be moved out of field by
+  field (`move pos.Item`); it's whole again once that field is assigned.
+- **Lambdas** borrow what they capture, as long as they live (a stored
+  lambda can't outlive what it borrows); `move x => …` takes ownership of
+  its captures, as Rust's `move ||`.
+- **Collections own their items**: `list.Add(move item)`; reading
+  `list[i]` lends it (`in`), `list.Remove(i)` gives it back by value.
+- **Things that aren't owned**: the game's handles (`Player`, `Entity`,
+  `World` — ids the game owns), `string` (immutable, shared) and content
+  references are `Copy`: passed freely, never moved.
+- **A boxed value** (a struct as an `object` or an interface) is a heap
+  object of its own: boxing copies a `Copy` struct, moves any other.
 
 ### Failures: Result and panics
 
