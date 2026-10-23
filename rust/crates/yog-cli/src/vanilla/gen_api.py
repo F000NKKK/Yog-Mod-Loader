@@ -4,7 +4,7 @@ Blocks, items and entities come from ids.txt; effects, enchantments,
 particles, damage types, dimensions, sounds and tags from
 the client jars of every supported version (Loom's cache):
 
-    python3 gen.py ids.txt && python3 gen_api.py ../../../yog-api/src/vanilla.rs
+    python3 gen.py ids.txt && python3 gen_api.py ../../../yog-api/src/domains/vanilla.rs
 """
 import collections, os, re, sys, zipfile
 
