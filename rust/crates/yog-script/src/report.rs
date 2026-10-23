@@ -27,6 +27,11 @@ impl<'a> Report<'a> {
         }
     }
 
+    /// The line (from 1) `span` starts on.
+    pub fn line_of(&self, span: Span) -> u32 {
+        LineCol::of(self.src, span.start as usize).line
+    }
+
     /// An error of kind `code` at `span`.
     pub fn error(&mut self, code: &str, span: Span, message: impl std::fmt::Display) {
         let from = LineCol::of(self.src, span.start as usize);

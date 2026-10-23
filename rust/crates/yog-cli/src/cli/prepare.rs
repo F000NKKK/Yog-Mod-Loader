@@ -40,6 +40,8 @@ pub(super) fn prepare() -> Result<Prepared, String> {
     yui::set_resource_refs(&resources.refs);
     // Blocks and items: models, states, loot, lang and their Rust glue.
     let content = content::compile(&root, &meta.id, &resources.refs)?;
+    // Yog Script: read and resolved, its errors stop the build.
+    yog_cli::script::check(&root)?;
     warn_all(&content.warnings);
     content::write_source(&root, &content)?;
     let build_dir = write_build_dir(&root, &meta)?;

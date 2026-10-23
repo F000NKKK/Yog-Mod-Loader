@@ -13,6 +13,16 @@ pub(crate) struct Checked {
 /// The text of the file at `path` (unsaved, as edited), checked: a syntax
 /// error, or what its format finds (none for a format it doesn't know).
 pub(crate) fn check(path: &str, text: &str) -> Checked {
+    // Yog Script is code, not Yog Data: its own reader says what's wrong.
+    let format = yog_ids::Format::of_path(std::path::Path::new(path));
+    if matches!(
+        format,
+        Some(yog_ids::Format::Script | yog_ids::Format::Nanites)
+    ) {
+        return Checked {
+            problems: yog_script::check(path, text).problems,
+        };
+    }
     let doc = match yog_data::text::parse(text) {
         Ok(doc) => doc,
         Err(e) => {

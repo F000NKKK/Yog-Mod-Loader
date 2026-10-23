@@ -25,6 +25,7 @@ pub(crate) mod media;
 pub(crate) mod mix;
 pub(crate) mod recipe_area;
 pub(crate) mod rust_code;
+pub mod script;
 pub mod serve;
 pub(crate) mod video;
 pub mod yres;

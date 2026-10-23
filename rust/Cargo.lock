@@ -2322,6 +2322,7 @@ dependencies = [
  "yog-logging",
  "yog-media",
  "yog-registry",
+ "yog-script",
  "yog-sync",
  "yog-ui",
  "yog-worldgen",

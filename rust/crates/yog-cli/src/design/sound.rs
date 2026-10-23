@@ -102,7 +102,10 @@ mod tests {
             ("audio/ogg", ogg.as_str())
         );
         assert!(super::sound_data(&file, "@Sounds.nope").is_err());
-        assert_eq!(super::sound_list(&file).unwrap().own, vec!["@Sounds.click".to_owned()]);
+        assert_eq!(
+            super::sound_list(&file).unwrap().own,
+            vec!["@Sounds.click".to_owned()]
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

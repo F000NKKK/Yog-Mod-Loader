@@ -122,7 +122,10 @@ impl Resolver<'_, '_> {
 
     /// The definition `name` stands for here, innermost first.
     pub(super) fn lookup(&self, name: &str) -> Option<usize> {
-        self.scopes.iter().rev().find_map(|s| s.names.get(name).copied())
+        self.scopes
+            .iter()
+            .rev()
+            .find_map(|s| s.names.get(name).copied())
     }
 
     /// A use of `name` at `span`: recorded when it's one of the source's

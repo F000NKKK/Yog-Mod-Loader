@@ -184,7 +184,11 @@ fn a_montage_lays_clips_over_each_other_with_their_sound() {
     );
     let r = render(&v, &root).unwrap();
     assert_eq!((r.width, r.height), (64, 64));
-    assert!((20..=21).contains(&r.sizes.len()), "2 s at 10 fps: {}", r.sizes.len());
+    assert!(
+        (20..=21).contains(&r.sizes.len()),
+        "2 s at 10 fps: {}",
+        r.sizes.len()
+    );
     assert!(r.sound.is_some(), "the red clip's own sound");
     let mut d = yog_media::video::Decoder::new().unwrap();
     let px = decode(&mut d, &r, &all(20));
