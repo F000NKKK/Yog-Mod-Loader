@@ -421,8 +421,10 @@ cmd_release() {
     [ "${#jars[@]}" -gt 0 ] || die "no jars in artifacts/"
     git -C "$ROOT" tag "$version"
     git -C "$ROOT" push origin "$version"
+    # A version with a suffix (0.7.0-beta.1) is a pre-release.
+    local pre=(); [[ "$version" == *-* ]] && pre=(--prerelease)
     (cd "$ROOT" && gh release create "$version" "${jars[@]}" "$SYMBOLS_ZIP" \
-        --title "Yog $version" --notes-file "$notes")
+        --title "Yog $version" --notes-file "$notes" "${pre[@]}")
     echo "==> released $version: ${#jars[@]} jar(s) and ${SYMBOLS_ZIP#$ROOT/}"
 }
 
