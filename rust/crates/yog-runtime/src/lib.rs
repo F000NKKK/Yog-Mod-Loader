@@ -55,6 +55,7 @@ mod registrations;
 mod svg;
 mod textures;
 mod ui_jni;
+mod video;
 // Entry points for the benchmarks only: never in a build of the loader.
 #[cfg(feature = "bench")]
 #[doc(hidden)]

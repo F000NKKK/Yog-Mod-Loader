@@ -7,6 +7,7 @@ use yog_ids as ids;
 use crate::message::{Message, branch, last_segment};
 use crate::{
     block, bus, client, command, content, entity, game, item, key_binding, media, menu, mirror,
+    video,
 };
 
 /// A call the bus carries: its payload is `Self`, its answer a [`Service::Reply`].
@@ -136,4 +137,9 @@ services! {
     mirror::Touch => ids::service_mirror::TOUCH, bool;
     mirror::Keys => ids::service_mirror::KEYS, Vec<u32>;
     media::Png => ids::service_media::PNG, media::PngBytes;
+    video::Open => ids::service_video::OPEN, Option<u32>;
+    video::Play => ids::service_video::PLAY, bool;
+    video::Seek => ids::service_video::SEEK, bool;
+    video::Close => ids::service_video::CLOSE, bool;
+    video::Frame => ids::service_video::FRAME, Option<video::Picture>;
 }

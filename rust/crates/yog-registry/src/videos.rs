@@ -64,6 +64,15 @@ impl VideoDef {
         })
     }
 
+    /// Frame `frame`'s packet (none past its end).
+    #[must_use]
+    pub fn packet(&self, frame: u32) -> Option<&[u8]> {
+        let i = frame as usize;
+        let size = *self.sizes.get(i)? as usize;
+        let start: usize = self.sizes[..i].iter().map(|&n| n as usize).sum();
+        self.packets.get(start..start + size)
+    }
+
     /// The keyframe at or before `frame`.
     #[must_use]
     pub fn keyframe_before(&self, frame: u32) -> u32 {
@@ -97,6 +106,8 @@ mod tests {
         let v = def();
         let p: Vec<&[u8]> = v.packets().collect();
         assert_eq!(p, vec![&[1, 2, 3][..], &[4][..], &[5, 6][..]]);
+        assert_eq!(v.packet(2), Some(&[5, 6][..]));
+        assert_eq!(v.packet(3), None);
         assert_eq!(v.frames(), 3);
         assert!((v.seconds() - 0.15).abs() < 1e-9);
     }

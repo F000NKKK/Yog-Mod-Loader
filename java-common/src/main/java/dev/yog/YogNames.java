@@ -70,6 +70,7 @@ public final class YogNames {
         public static final String DIMENSION = "dimension";
         public static final String EQUIPMENT = "equipment";
         public static final String EVENT = "event";
+        public static final String FRAME = "frame";
         public static final String FUNCTION = "function";
         public static final String GENERIC = "generic";
         public static final String GUI = "gui";
@@ -107,6 +108,7 @@ public final class YogNames {
         public static final String DATA = "data";
         public static final String DEFAULT = "default";
         public static final String DOC = "doc";
+        public static final String DYNAMIC = "dynamic";
         public static final String END = "end";
         public static final String ENTRIES = "entries";
         public static final String FALSE = "false";
@@ -142,7 +144,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FRAME, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, DATA, DEFAULT, DOC, DYNAMIC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class Kind {
@@ -335,6 +337,7 @@ public final class YogNames {
         public static final String OPEN = "open";
         public static final String PACKET = "packet";
         public static final String PLACE = "place";
+        public static final String PLAY = "play";
         public static final String RELEASE = "release";
         public static final String SERVER = "server";
         public static final String SET = "set";
@@ -348,7 +351,7 @@ public final class YogNames {
         public static final String WORLD = "world";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ATTACK, ATTRIBUTE_VALUE, CALL, CHAT, CLIENT, CLOSE, CONTAINER, CRAFT, DEATH, GET, DECLARE, DECLARED, GAME, INFO, INPUT, LIFE, NBT, NET, OPEN, PACKET, PLACE, RELEASE, SERVER, SET, SET_DIMENSIONS, SET_NBT, SPAWN, TELEPORT, TELEPORT_TO_DIM, TICK, USE_ITEM, WORLD);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ATTACK, ATTRIBUTE_VALUE, CALL, CHAT, CLIENT, CLOSE, CONTAINER, CRAFT, DEATH, GET, DECLARE, DECLARED, GAME, INFO, INPUT, LIFE, NBT, NET, OPEN, PACKET, PLACE, PLAY, RELEASE, SERVER, SET, SET_DIMENSIONS, SET_NBT, SPAWN, TELEPORT, TELEPORT_TO_DIM, TICK, USE_ITEM, WORLD);
     }
 
     public static final class Event {
@@ -778,6 +781,20 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, PNG);
+    }
+
+    public static final class ServiceVideo {
+        private ServiceVideo() {}
+
+        public static final String DOMAIN = "yog:video/";
+        public static final String OPEN = "yog:video/open";
+        public static final String PLAY = "yog:video/play";
+        public static final String SEEK = "yog:video/seek";
+        public static final String CLOSE = "yog:video/close";
+        public static final String FRAME = "yog:video/frame";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, OPEN, PLAY, SEEK, CLOSE, FRAME);
     }
 
     public static final class ServiceNet {
@@ -1583,10 +1600,11 @@ public final class YogNames {
         public static final String DESIGNER_SCREEN = "yog:designer";
         public static final String BOOK_TEXTURE = "yog:gui/book";
         public static final String DYNAMIC_SVG_PREFIX = "yog:dynamic/svg_";
+        public static final String DYNAMIC_VIDEO_PREFIX = "yog:textures/dynamic/video_";
         public static final String DYNAMIC_TEXT_PREFIX = "yog:dynamic/text_";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_NBT, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_TEXT_PREFIX);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(STATE, HANGING, ENTITY_NBT, ENTITY_DATA, DIMENSIONS, SLOT_PREFIX, PLAYER_INVENTORY, MACHINE_PREFIX, POTION_ALIAS, FONT_ALIAS, DEFAULT_FONT, SPAWN_EGG_MODEL, BOOK_SHEET, CRAFTING_SHEET, DESIGNER_SCREEN, BOOK_TEXTURE, DYNAMIC_SVG_PREFIX, DYNAMIC_VIDEO_PREFIX, DYNAMIC_TEXT_PREFIX);
     }
 
     public static final class GameFont {

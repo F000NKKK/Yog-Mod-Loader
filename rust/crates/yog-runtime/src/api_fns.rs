@@ -81,6 +81,11 @@ pub(super) fn register_content(
             }
         }
         kind::BOOK => register_book(h, k, id, v),
+        kind::VIDEO => {
+            if let Some(video) = read::<yog_registry::VideoDef>(k, i, v) {
+                crate::video::register(video);
+            }
+        }
         kind::DIMENSION => register_dimension(h, k, id, v),
         other => yog_logging::warn!(
             "unknown kind of content `{other}` ({id}) — this runtime doesn't know it"

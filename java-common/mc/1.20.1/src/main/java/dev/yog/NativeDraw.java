@@ -274,22 +274,34 @@ public final class NativeDraw {
     /** Registers (or replaces) the texture {@code id} made of {@code w}×{@code h} RGBA pixels. */
     public static boolean registerTexture(String id, int w, int h, byte[] rgba) {
         ResourceLocation ident = ResourceLocation.tryParse(id);
-        if (ident == null || w <= 0 || h <= 0 || rgba.length < w * h * 4) return false;
+        if (ident == null || !YogPixels.fits(w, h, rgba)) return false;
         com.mojang.blaze3d.platform.NativeImage img = new com.mojang.blaze3d.platform.NativeImage(w, h, false);
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                int i = (y * w + x) * 4;
-                int abgr = (rgba[i + 3] & 0xFF) << 24 | (rgba[i + 2] & 0xFF) << 16 | (rgba[i + 1] & 0xFF) << 8 | (rgba[i] & 0xFF);
-                img.setPixelRGBA(x, y, abgr);
-            }
-        }
-        Minecraft.getInstance().getTextureManager()
-                .register(ident, new net.minecraft.client.renderer.texture.DynamicTexture(img));
+        YogPixels.fill(img, rgba);
+        var tex = new net.minecraft.client.renderer.texture.DynamicTexture(img);
+        Minecraft.getInstance().getTextureManager().register(ident, tex);
+        DYNAMIC.put(id, tex);
+        return true;
+    }
+
+    /** The textures {@link #registerTexture} made, by id. */
+    private static final java.util.Map<String, net.minecraft.client.renderer.texture.DynamicTexture> DYNAMIC = new java.util.HashMap<>();
+
+    /**
+     * Texture {@code id}'s pixels replaced (a video's frame): kept and uploaded again
+     * when its size is the same, else made anew.
+     */
+    public static boolean updateTexture(String id, int w, int h, byte[] rgba) {
+        var tex = DYNAMIC.get(id);
+        var img = tex == null ? null : tex.getPixels();
+        if (img == null || img.getWidth() != w || img.getHeight() != h) return registerTexture(id, w, h, rgba);
+        if (!YogPixels.fill(img, rgba)) return false;
+        tex.upload();
         return true;
     }
 
     /** Lets go of a texture {@link #registerTexture} made. */
     public static void releaseTexture(String id) {
+        DYNAMIC.remove(id);
         ResourceLocation ident = ResourceLocation.tryParse(id);
         if (ident != null) Minecraft.getInstance().getTextureManager().release(ident);
     }

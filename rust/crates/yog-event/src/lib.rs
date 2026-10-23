@@ -47,6 +47,7 @@ pub mod server;
 pub mod sound;
 pub mod tag;
 pub mod ui;
+pub mod video;
 pub mod world;
 
 pub use address::{Address, Cached, NO_ADDRESS, resolve};

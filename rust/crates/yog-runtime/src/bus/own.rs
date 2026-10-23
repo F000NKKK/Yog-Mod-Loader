@@ -46,6 +46,7 @@ pub(crate) fn register() {
     provide::<client::EntityData>(|d| {
         crate::entity_data::client_get(&d.uuid, &d.key).map(|bytes| entity::DataValue { bytes })
     });
+    crate::video::provide_services();
 }
 
 /// A `.yog`'s yimage as the PNG the game reads (none when it isn't one).

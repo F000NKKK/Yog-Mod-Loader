@@ -25,6 +25,25 @@ pub(crate) fn register(env: &mut JNIEnv, id: &str, w: u32, h: u32, rgba: &[u8]) 
     ok == Some(true)
 }
 
+/// Replaces texture `id`'s pixels (`w`×`h` RGBA) — kept when its size is
+/// the same, else made anew (a video's frame each frame); whether it took them.
+pub(crate) fn update(env: &mut JNIEnv, id: &str, w: u32, h: u32, rgba: &[u8]) -> bool {
+    let ok: Option<bool> = unsafe {
+        jcall!(
+            env,
+            "dev/yog/NativeDraw",
+            "updateTexture",
+            [
+                S(YogStr::from_str(id)),
+                I(w as i32),
+                I(h as i32),
+                Bytes(rgba)
+            ]
+        )
+    };
+    ok == Some(true)
+}
+
 /// Lets go of texture `id`.
 pub(crate) fn release(env: &mut JNIEnv, id: &str) {
     let _: Option<()> = unsafe {

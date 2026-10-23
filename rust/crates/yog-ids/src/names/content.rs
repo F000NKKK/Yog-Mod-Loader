@@ -216,9 +216,12 @@ names! {
         /// A book's default texture (its sheet is [`BOOK_SHEET`]).
         BOOK_TEXTURE = crate::id!(crate::ns::YOG, crate::concatcp!(crate::word::GUI, crate::sep::PATH, crate::kind::BOOK)),
         /// The textures the runtime renders SVG images into: `<prefix><key>_<w>x<h>`.
-        DYNAMIC_SVG_PREFIX = crate::id!(crate::ns::YOG, "dynamic/svg_"),
+        DYNAMIC_SVG_PREFIX = crate::id!(crate::ns::YOG, crate::concatcp!(crate::word::DYNAMIC, crate::sep::PATH, "svg", crate::sep::WORD)),
+        /// The textures the runtime shows videos' frames in:
+        /// `<prefix><player>.png`, a texture's full id (an image source as it is).
+        DYNAMIC_VIDEO_PREFIX = crate::id!(crate::ns::YOG, crate::concatcp!(crate::res::TEXTURES, crate::word::DYNAMIC, crate::sep::PATH, crate::word::VIDEO, crate::sep::WORD)),
         /// The textures the runtime draws text in Yog's fonts into: `<prefix><n>`.
-        DYNAMIC_TEXT_PREFIX = crate::id!(crate::ns::YOG, crate::concatcp!("dynamic", crate::sep::PATH, crate::word::TEXT, crate::sep::WORD)),
+        DYNAMIC_TEXT_PREFIX = crate::id!(crate::ns::YOG, crate::concatcp!(crate::word::DYNAMIC, crate::sep::PATH, crate::word::TEXT, crate::sep::WORD)),
     }
 
     /// The game's fonts, by name: Yog aliases each as
@@ -730,7 +733,7 @@ names! {
         SLOT = "slot",
         BLOCK = crate::kind::BLOCK,
         /// A slot frame behind it, for layouts without their own picture.
-        FRAME = "frame",
+        FRAME = crate::word::FRAME,
         SIZE = crate::word::SIZE,
         /// A `<Component>` that is a kind of book page, its id.
         BOOK_PAGE = "book_page",

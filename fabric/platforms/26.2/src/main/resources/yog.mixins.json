@@ -29,6 +29,7 @@
     "KeyboardMixin",
     "LimbAnimatorAccess",
     "ModelPartAccess",
+    "NativeImageAccess",
     "TravelMixin",
     "ModelPoseMixin",
     "LevelProjectionMixin",

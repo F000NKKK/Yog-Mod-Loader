@@ -103,6 +103,17 @@ names! {
         PNG = crate::concatcp!(DOMAIN, crate::word::PNG),
     }
 
+    /// `yog:video/…`: the videos a client plays (the runtime answers).
+    service_video {
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::VIDEO, crate::sep::PATH),
+        OPEN = crate::concatcp!(DOMAIN, crate::bus_word::OPEN),
+        PLAY = crate::concatcp!(DOMAIN, crate::bus_word::PLAY),
+        SEEK = crate::concatcp!(DOMAIN, "seek"),
+        CLOSE = crate::concatcp!(DOMAIN, crate::bus_word::CLOSE),
+        /// Its picture now, to draw.
+        FRAME = crate::concatcp!(DOMAIN, crate::word::FRAME),
+    }
+
     service_net {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::bus_word::NET, crate::sep::PATH),
         SEND_TO_PLAYER = crate::concatcp!(DOMAIN, "send_to_player"),
@@ -112,7 +123,7 @@ names! {
     /// `yog:sound/…`: sounds.
     service_sound {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::SOUND, crate::sep::PATH),
-        PLAY = crate::concatcp!(DOMAIN, "play"),
+        PLAY = crate::concatcp!(DOMAIN, crate::bus_word::PLAY),
         PLAY_TO_PLAYER = crate::concatcp!(DOMAIN, "play_to_player"),
     }
 

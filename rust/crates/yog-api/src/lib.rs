@@ -18,6 +18,7 @@ pub mod nanite;
 // The generated code names `::yog_api`, as in a mod (the host's mirrors are made here).
 extern crate self as yog_api;
 pub mod vanilla;
+pub mod video;
 pub use bus::{EventCx, Flow, IntoFlow, emit};
 pub use service::call;
 mod interop;

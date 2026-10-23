@@ -30,6 +30,7 @@
     "ParticleOrderMixin",
     "KeyboardMixin",
     "ModelPartAccess",
+    "NativeImageAccess",
     "TravelMixin",
     "WalkAnimationAccess"
   ],

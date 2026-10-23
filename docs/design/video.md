@@ -37,17 +37,25 @@ cargo for all five, and AV1 packs smaller.
 → RGB, BT.709 limited range, as the build encodes). Playing is pure logic
 on the definition (`yog_registry::{Clock, Plan}`) — play, pause, seek
 (from the keyframe before), loop — so the game and the editors play alike;
-yog-api, which mods build against, stays free of the decoder. The runtime uploads the frame it's
-on into a texture each client frame it changed; mods draw that texture as
+yog-api, which mods build against, stays free of the decoder. The runtime answers the `yog:video/…` services: a player's frame is
+decoded when it's asked for (each frame it's drawn, the clock moved on by
+the time passed), into a texture `yog:textures/dynamic/video_<n>.png`
+refilled in place (the hosts' `updateTexture`: one copy into the image,
+one upload); mods draw that texture as
 any other — a screen's `<Video>`, a quad in the world, an entity's or a
 model's texture — and the sound event plays with it (at a place in the
 world, or not).
 
+The game can't start a sound partway: a video's sound plays from its
+start (and again each time it loops round); sought or resumed elsewhere,
+the video is silent till it starts over. Sound from any point needs a
+host-side stream that skips ahead — later.
+
 ## API
 
 - `yog_api::video::Player::open("mod:intro")` (client): `play`, `pause`,
-  `seek`, `looping`, `volume`, `at(pos)` for a sound in the world,
-  `texture()` to draw it by.
+  `seek`, and `frame()` — the texture to draw (an image source), its size,
+  where it is; dropped, it's closed.
 - `<Video src="@video:mod:intro" autoplay loop/>` in `.yui`.
 - `yog_api::video::cutscene("mod:intro", skippable)`: full screen over the
   game, Esc skips it when allowed.

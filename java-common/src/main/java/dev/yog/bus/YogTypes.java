@@ -4036,6 +4036,139 @@ public final class YogTypes {
         }
     }
 
+    /** A player's picture and where it is. */
+    public record Picture(String texture, long width, long height, double seconds, double length, boolean playing) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("texture", texture);
+            m.put("width", width);
+            m.put("height", height);
+            m.put("seconds", seconds);
+            m.put("length", length);
+            m.put("playing", playing);
+            return m;
+        }
+
+        public static Picture fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Picture(YogData.str(m.get("texture"), ""), YogData.integer(m.get("width"), 0), YogData.integer(m.get("height"), 0), YogData.number(m.get("seconds"), 0), YogData.number(m.get("length"), 0), YogData.bool(m.get("playing"), false));
+        }
+
+        public static Picture fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.texture);
+            p.putI(this.width);
+            p.putI(this.height);
+            p.putF64(this.seconds);
+            p.putF64(this.length);
+            p.putBool(this.playing);
+            p.end(at);
+        }
+
+        public static Picture unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_texture = u.more(end) ? u.getStr() : "";
+            long f_width = u.more(end) ? u.getI() : 0L;
+            long f_height = u.more(end) ? u.getI() : 0L;
+            double f_seconds = u.more(end) ? u.getF64() : 0.0;
+            double f_length = u.more(end) ? u.getF64() : 0.0;
+            boolean f_playing = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new Picture(f_texture, f_width, f_height, f_seconds, f_length, f_playing);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Picture fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Picture fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Picture readFrame(YogFrame.Unpacker u) {
+            Picture v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Picture} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int o5;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(8); } else { o3 = -1; }
+                if (u.more(end)) { o4 = u.position(); u.skip(8); } else { o4 = -1; }
+                if (u.more(end)) { o5 = u.position(); u.skip(1); } else { o5 = -1; }
+                u.leave(end);
+            }
+
+            public String texture() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public long width() {
+                if (o1 < 0) return 0L;
+                u.seek(o1);
+                return u.getI();
+            }
+
+            public long height() {
+                if (o2 < 0) return 0L;
+                u.seek(o2);
+                return u.getI();
+            }
+
+            public double seconds() {
+                if (o3 < 0) return 0.0;
+                u.seek(o3);
+                return u.getF64();
+            }
+
+            public double length() {
+                if (o4 < 0) return 0.0;
+                u.seek(o4);
+                return u.getF64();
+            }
+
+            public boolean playing() {
+                if (o5 < 0) return false;
+                u.seek(o5);
+                return u.getBool();
+            }
+        }
+    }
+
     /** A mirror: `yog:mirror/<mod>/<name>`, rows of one key space. */
     public record MirrorSpec(String name, String space, java.util.List<YogTypes.FieldSpec> fields, String clock) {
         public java.util.Map<String, Object> toData() {
@@ -10023,7 +10156,7 @@ public final class YogTypes {
 
         public static Particle fromData(Object data) {
             java.util.Map<String, Object> m = YogData.map(data);
-            return new Particle(YogData.list(m.get("textures")).stream().map(e0 -> YogData.str(e0, "")).toList(), YogData.str(m.get("frames"), ""), (float) YogData.number(m.get("frame_speed"), 0), YogData.bool(m.get("frame_settle"), false), YogTypes.Lifetime.fromData(m.get("lifetime")), (float) YogData.number(m.get("size"), 0), (float) YogData.number(m.get("size_per_tick"), 0), (float) YogData.number(m.get("alpha"), 0), YogData.bool(m.get("fade"), false), (float) YogData.number(m.get("friction"), 0), (float) YogData.number(m.get("gravity"), 0), YogData.bool(m.get("gravity_needs_motion"), false), YogData.bool(m.get("physics"), false), YogData.bool(m.get("slide_when_blocked"), false), YogData.bool(m.get("random_roll"), false), YogTypes.ParticleRender.fromData(m.get("render")));
+            return new Particle(YogData.list(m.get("textures")).stream().map(e0 -> YogData.id(e0)).toList(), YogData.str(m.get("frames"), ""), (float) YogData.number(m.get("frame_speed"), 0), YogData.bool(m.get("frame_settle"), false), YogTypes.Lifetime.fromData(m.get("lifetime")), (float) YogData.number(m.get("size"), 0), (float) YogData.number(m.get("size_per_tick"), 0), (float) YogData.number(m.get("alpha"), 0), YogData.bool(m.get("fade"), false), (float) YogData.number(m.get("friction"), 0), (float) YogData.number(m.get("gravity"), 0), YogData.bool(m.get("gravity_needs_motion"), false), YogData.bool(m.get("physics"), false), YogData.bool(m.get("slide_when_blocked"), false), YogData.bool(m.get("random_roll"), false), YogTypes.ParticleRender.fromData(m.get("render")));
         }
 
         public static Particle fromBytes(byte[] bytes) {
@@ -10032,7 +10165,7 @@ public final class YogTypes {
 
         public void pack(YogFrame.Packer p) {
             int at = p.begin();
-            { int l0 = p.beginList(this.textures.size()); for (var e0 : this.textures) { p.putStr(e0); } p.end(l0); }
+            { int l0 = p.beginList(this.textures.size()); for (var e0 : this.textures) { p.putTagged(e0); } p.end(l0); }
             p.putU(switch (this.frames) { case "random" -> 0; case "age" -> 1; default -> 0; });
             p.putF32(this.frameSpeed);
             p.putBool(this.frameSettle);
@@ -10053,7 +10186,7 @@ public final class YogTypes {
 
         public static Particle unpack(YogFrame.Unpacker u) {
             int end = u.begin();
-            java.util.List<String> f_textures = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+            java.util.List<String> f_textures = u.more(end) ? YogFrame.list(u, () -> YogData.id(u.getTagged())) : java.util.List.of();
             String f_frames = u.more(end) ? switch ((int) u.getU()) { case 0 -> "random"; case 1 -> "age"; default -> ""; } : "random";
             float f_frameSpeed = u.more(end) ? u.getF32() : 0.0f;
             boolean f_frameSettle = u.more(end) ? u.getBool() : false;
@@ -10146,7 +10279,7 @@ public final class YogTypes {
             public java.util.List<String> textures() {
                 if (o0 < 0) return java.util.List.of();
                 u.seek(o0);
-                return YogFrame.list(u, () -> u.getStr());
+                return YogFrame.list(u, () -> YogData.id(u.getTagged()));
             }
 
             public String frames() {

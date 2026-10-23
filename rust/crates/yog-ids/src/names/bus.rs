@@ -24,6 +24,7 @@ names! {
         OPEN = "open",
         PACKET = "packet",
         PLACE = "place",
+        PLAY = "play",
         RELEASE = "release",
         SERVER = "server",
         SET = "set",
