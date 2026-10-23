@@ -27,6 +27,22 @@ pub(crate) struct SoundData {
     pub(crate) mime: String,
 }
 
+/// The sounds a montage can take: the mod's, and the game's.
+#[derive(yog_data::Schema)]
+pub(crate) struct SoundList {
+    pub(crate) own: Vec<String>,
+    pub(crate) game: Vec<String>,
+}
+
+/// The sounds of the mod at `file`, and the game's.
+pub(crate) fn sound_list(file: &Path) -> Result<SoundList, ServiceError> {
+    let root = mod_root(file).ok_or("not in a mod")?;
+    Ok(SoundList {
+        own: crate::media::sounds(&root),
+        game: crate::media::game_sounds(),
+    })
+}
+
 /// Sound `sound` as the mod at `file` plays it: `@Set.name` its own, else
 /// a file of the game's sounds (`minecraft:dig/sand1`, no namespace: the game's).
 pub(crate) fn sound_data(file: &Path, sound: &str) -> Result<SoundData, ServiceError> {
@@ -86,6 +102,7 @@ mod tests {
             ("audio/ogg", ogg.as_str())
         );
         assert!(super::sound_data(&file, "@Sounds.nope").is_err());
+        assert_eq!(super::sound_list(&file).unwrap().own, vec!["@Sounds.click".to_owned()]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

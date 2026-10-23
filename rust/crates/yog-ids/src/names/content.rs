@@ -415,6 +415,7 @@ names! {
         RECIPE_KIND_CREATE = "recipe_kind_create",
         RECIPE_KINDS = "recipe_kinds",
         SOUND_DATA = "sound_data",
+        SOUND_LIST = "sound_list",
         SOURCE_CHECK = "source.check",
         SOURCE_READ = "source.read",
         SOURCE_WRITE = "source.write",

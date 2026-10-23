@@ -85,6 +85,20 @@ impl Vanilla {
         out
     }
 
+    /// The asset objects' keys under `prefix` (`minecraft/sounds/`), the prefix kept.
+    pub(crate) fn object_names(&self, prefix: &str) -> Vec<String> {
+        let Some((_, index)) = &self.objects else {
+            return Vec::new();
+        };
+        let mut names: Vec<String> = index
+            .keys()
+            .filter(|k| k.starts_with(prefix))
+            .cloned()
+            .collect();
+        names.sort();
+        names
+    }
+
     /// `data/<key>` from the jar (tags, recipes, …), if there.
     pub(crate) fn read_data(&self, key: &str) -> Option<Vec<u8>> {
         let mut zip = self.zip.lock();

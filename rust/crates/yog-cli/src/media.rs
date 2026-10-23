@@ -136,6 +136,58 @@ pub(crate) fn sound(root: &Path, set: &str, name: &str) -> Option<Vec<u8>> {
         })
 }
 
+/// Every sound of the mod at `root`, as files name them: `@Sounds.abacus1`.
+pub(crate) fn sounds(root: &Path) -> Vec<String> {
+    let mut out = Vec::new();
+    for file in crate::files::with_ext(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
+        let Some((set, None)) = file
+            .file_name()
+            .and_then(|n| n.to_str())
+            .and_then(split_file_name)
+        else {
+            continue;
+        };
+        let entries = crate::files::read_source(&file)
+            .ok()
+            .and_then(|t| yog_formats::yres::parse(&t).ok())
+            .unwrap_or_default();
+        out.extend(
+            entries
+                .into_iter()
+                .filter(|e| e.kind == Kind::Sound)
+                .map(|e| {
+                    Res {
+                        set: set.to_owned(),
+                        key: e.name,
+                    }
+                    .to_string()
+                }),
+        );
+    }
+    out.sort();
+    out
+}
+
+/// Every sound file the game has (`minecraft:dig/sand1`), from its assets on this machine.
+pub(crate) fn game_sounds() -> Vec<String> {
+    let prefix = format!(
+        "{}{}{}",
+        yog_ids::ns::MINECRAFT,
+        yog_ids::sep::PATH,
+        yog_ids::res::SOUNDS
+    );
+    crate::design::assets::vanilla(&[])
+        .map(|v| v.object_names(&prefix))
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|k| {
+            k.strip_prefix(&prefix)?
+                .strip_suffix(yog_ids::res::OGG)
+                .map(|p| yog_ids::join(yog_ids::ns::MINECRAFT, p))
+        })
+        .collect()
+}
+
 /// The game's sound file `id` (`minecraft:dig/sand1`, no namespace: the
 /// game's), from its assets on this machine.
 pub(crate) fn game_sound(id: &str) -> Option<Vec<u8>> {
