@@ -265,11 +265,13 @@ public final class YogNames {
         public static final String OUTSIDE_LOOP = "YS0008";
         public static final String SKIP_OUTSIDE_BEFORE = "YS0009";
         public static final String IT_OUTSIDE_LAMBDA = "YS0010";
-        public static final String SELF_OUTSIDE_MEMBER = "YS0011";
+        public static final String THIS_OUTSIDE_MEMBER = "YS0011";
         public static final String ASSIGN_TO_CONSTANT = "YS0012";
+        public static final String NAMING = "YS0013";
+        public static final String AWAIT_OUTSIDE_ASYNC = "YS0014";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, SELF_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC);
     }
 
     public static final class Storage {
