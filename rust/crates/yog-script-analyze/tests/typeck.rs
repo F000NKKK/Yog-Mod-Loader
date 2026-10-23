@@ -207,3 +207,21 @@ fn events_work_as_in_csharp() {
                Charged?.Invoke(3);\n        Charged(\"three\");\n    }\n}\n";
     assert_eq!(codes(own), [script_problem::TYPE_MISMATCH]);
 }
+
+#[test]
+fn classes_inherit_as_in_csharp() {
+    let types = "interface ITick { void Tick(); }\nclass Machine : ITick { public i32 Rate = 1; public void Tick() {} }\n\
+                 class Battery : Machine { public i32 Boost() => base.Rate + Rate; }\nclass Other {}\n";
+    // Members come from the base class; a derived object goes where its base is wanted.
+    let ok = format!(
+        "{types}void F() {{ let b = new Battery(); i32 r = b.Rate; b.Tick(); Machine m = b; ITick t = b; }}\n"
+    );
+    assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+    // Not the other way, nor an unrelated type.
+    let bad =
+        format!("{types}void F() {{ Battery b = new Machine(); Machine m = new Other(); }}\n");
+    assert_eq!(
+        codes(&bad),
+        [script_problem::TYPE_MISMATCH, script_problem::TYPE_MISMATCH]
+    );
+}

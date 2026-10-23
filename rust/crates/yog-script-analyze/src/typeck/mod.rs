@@ -93,6 +93,31 @@ impl Checker<'_, '_, '_> {
         self.scopes.iter().rev().find_map(|s| s.get(name))
     }
 
+    /// Whether a `got` goes where `wanted` is: a conversion, or an own
+    /// type that is the one wanted (inherits or implements it).
+    fn converts(&self, got: &Type, wanted: &Type) -> bool {
+        if got.converts_to(wanted) {
+            return true;
+        }
+        match (got.non_null(), wanted.non_null()) {
+            (Type::Own(a), Type::Own(b)) => {
+                (!got.is_nullable() || wanted.is_nullable()) && self.own.is_a(a, b)
+            }
+            _ => false,
+        }
+    }
+
+    /// `base`: `this` as the class it inherits.
+    fn base(&self) -> Type {
+        match &self.this {
+            Some(Type::Own(name)) => self
+                .own
+                .base_class(name)
+                .map_or(Type::Unknown, |b| Type::Own(b.to_string())),
+            _ => Type::Unknown,
+        }
+    }
+
     /// Runs `f` with the code's `this`, side and expected result set.
     fn within<R>(
         &mut self,

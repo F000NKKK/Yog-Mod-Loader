@@ -14,6 +14,10 @@ pub(crate) struct OwnType {
     /// The components an object of it has (`has Charge(…)`), by name.
     pub components: Vec<String>,
     pub cases: Vec<String>,
+    /// What it inherits and implements, by the names written (`: Machine, ITickable`).
+    pub bases: Vec<String>,
+    /// An `interface`: what classes implement, never one's base class.
+    pub interface: bool,
 }
 
 /// Every type the source declares, by name; the units it declares.
@@ -80,6 +84,13 @@ impl OwnTypes {
                 word,
                 ..
             } => {
+                let t = self.types.entry(name.text.clone()).or_default();
+                t.bases = header
+                    .bases
+                    .iter()
+                    .filter_map(|b| super::written::simple_path(b).map(str::to_string))
+                    .collect();
+                t.interface = word.text == crate::words::interface::WORD.text;
                 // A record's constructor parameters are its properties.
                 let props = (word.text == crate::words::record::WORD.text)
                     .then_some(header.ctor.as_deref())
@@ -123,6 +134,41 @@ impl OwnTypes {
         }
         t.components = has.iter().filter_map(component_name).collect();
         members(t, body);
+    }
+
+    /// `name` and every type it inherits or implements, nearest first,
+    /// each once (a cycle doesn't loop).
+    pub fn lineage(&self, name: &str) -> Vec<String> {
+        let mut out = vec![name.to_string()];
+        let mut i = 0;
+        while let Some(at) = out.get(i) {
+            let bases = self
+                .types
+                .get(at)
+                .map(|t| t.bases.clone())
+                .unwrap_or_default();
+            for b in bases {
+                if !out.contains(&b) {
+                    out.push(b);
+                }
+            }
+            i += 1;
+        }
+        out
+    }
+
+    /// Whether own type `a` is `b`, inherits it or implements it.
+    pub fn is_a(&self, a: &str, b: &str) -> bool {
+        self.lineage(a).iter().any(|t| t == b)
+    }
+
+    /// The class `name` inherits (not an interface it implements).
+    pub fn base_class(&self, name: &str) -> Option<&str> {
+        let t = self.types.get(name)?;
+        t.bases
+            .iter()
+            .find(|b| self.types.get(*b).is_some_and(|o| !o.interface))
+            .map(String::as_str)
     }
 
     /// `extend T { … }`'s members and components: added to `T` when it's

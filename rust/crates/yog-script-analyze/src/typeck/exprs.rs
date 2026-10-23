@@ -41,6 +41,7 @@ impl Checker<'_, '_, '_> {
             ExprKind::Null => Type::Null,
             ExprKind::Ident(name) => self.name(name, e.span),
             ExprKind::This => self.this.clone().unwrap_or(Type::Unknown),
+            ExprKind::Base => self.base(),
             ExprKind::Declare { ty, name, .. } => self.declare(ty.as_ref(), &name.text),
             ExprKind::NameOf(expr) => self.name_of(expr),
             ExprKind::Move(expr) => self.expr(expr),
@@ -221,7 +222,7 @@ impl Checker<'_, '_, '_> {
 
     /// `got` where `wanted` is: reported when it doesn't convert.
     pub(super) fn want(&mut self, got: &Type, wanted: &Type, at: Span) {
-        if got.converts_to(wanted) {
+        if self.converts(got, wanted) {
             return;
         }
         let (code, message) = if *got == Type::Null

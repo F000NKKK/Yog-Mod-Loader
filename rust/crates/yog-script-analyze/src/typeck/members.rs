@@ -74,7 +74,18 @@ impl Checker<'_, '_, '_> {
             }
             _ => return Type::Unknown,
         };
-        let Some(own) = self.own.types.get(type_name) else {
+        self.own
+            .lineage(type_name)
+            .iter()
+            .map(|of| self.own_member_of(of, t, name))
+            .find(Type::known)
+            .unwrap_or(Type::Unknown)
+    }
+
+    /// Member `name` declared by own type `of` itself (or by a component
+    /// it has); `t` is the type it's read on.
+    fn own_member_of(&mut self, of: &str, t: &Type, name: &str) -> Type {
+        let Some(own) = self.own.types.get(of) else {
             return Type::Unknown;
         };
         if let Some(written) = own.values.get(name).cloned() {
@@ -124,11 +135,13 @@ impl Checker<'_, '_, '_> {
         let Type::Own(type_name) = t else {
             return false;
         };
-        self.own.types.get(type_name).is_some_and(|o| {
-            o.methods.contains_key(name)
-                || o.components
-                    .iter()
-                    .any(|c| self.own_has_method(&Type::Own(c.clone()), name))
+        self.own.lineage(type_name).iter().any(|of| {
+            self.own.types.get(of).is_some_and(|o| {
+                o.methods.contains_key(name)
+                    || o.components
+                        .iter()
+                        .any(|c| self.own_has_method(&Type::Own(c.clone()), name))
+            })
         })
     }
 
@@ -283,11 +296,13 @@ impl Checker<'_, '_, '_> {
 
     fn own_methods(&self, t: &Type, name: &str) -> Option<Vec<Method>> {
         let Type::Own(type_name) = t else { return None };
-        let own = self.own.types.get(type_name)?;
-        own.methods.get(name).cloned().or_else(|| {
-            own.components
-                .iter()
-                .find_map(|c| self.own_methods(&Type::Own(c.clone()), name))
+        self.own.lineage(type_name).iter().find_map(|of| {
+            let own = self.own.types.get(of)?;
+            own.methods.get(name).cloned().or_else(|| {
+                own.components
+                    .iter()
+                    .find_map(|c| self.own_methods(&Type::Own(c.clone()), name))
+            })
         })
     }
 
@@ -402,8 +417,13 @@ impl Checker<'_, '_, '_> {
             return Type::Unknown;
         }
         let takes = |s: &Signature| (s.required..=s.params.len()).contains(&given.len());
-        let fits =
-            |s: &Signature| takes(s) && given.iter().zip(&s.params).all(|(g, p)| g.converts_to(p));
+        let fits = |s: &Signature| {
+            takes(s)
+                && given
+                    .iter()
+                    .zip(&s.params)
+                    .all(|(g, p)| self.converts(g, p))
+        };
         if let Some(s) = sigs.iter().find(|s| fits(s)) {
             self.check_passing(&s.passes, args);
             return s.ret.clone();
