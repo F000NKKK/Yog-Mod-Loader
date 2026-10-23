@@ -53,13 +53,13 @@ fn game(mc: &str) -> Result<ClassIndex, String> {
 #[test]
 fn a_patch_is_checked_on_each_version() {
     let src = "targets mc 1.20.1..26.2;\nusing Game.World.Entity;\n\npatch LivingEntity {\n    after float GetMaxHealth() {\n        float h = this.Health;\n    }\n}\n";
-    let problems = check("a.yns", src, game);
+    let problems = check("a.yns", src, game, None);
     assert_eq!(problems.len(), 1, "{problems:#?}");
     assert!(
         problems[0].message.ends_with("(on 26.2)"),
         "{}",
         problems[0].message
     );
-    let none = check("a.yns", "targets mc < 1.19;\n", game);
+    let none = check("a.yns", "targets mc < 1.19;\n", game, None);
     assert_eq!(none[0].code.as_deref(), Some(script_problem::NO_VERSION));
 }

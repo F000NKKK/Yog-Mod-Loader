@@ -13,9 +13,16 @@ fn codes(src: &str) -> Vec<String> {
 
 #[test]
 fn the_librarys_sources_check() {
-    let src = include_str!("../src/system/System.ys");
-    let problems = check("System.ys", src).problems;
-    assert!(problems.is_empty(), "{problems:#?}");
+    for (name, src) in [
+        ("System.ys", include_str!("../src/system/System.ys")),
+        (
+            "System.Meta.ys",
+            include_str!("../src/system/System.Meta.ys"),
+        ),
+    ] {
+        let problems = check(name, src).problems;
+        assert!(problems.is_empty(), "{name}: {problems:#?}");
+    }
 }
 
 #[test]

@@ -2,10 +2,11 @@
 
 mod check;
 mod index;
+mod macros;
 mod source;
 mod test;
 
-pub(super) const USAGE: &str = "usage: yog-script check <file>... | yog-script test <file>... | yog-script index <minecraft version> | yog-script source <path>";
+pub(super) const USAGE: &str = "usage: yog-script check [--macros <file>]... <file>... | yog-script test [--macros <file>]... <file>... | yog-script index <minecraft version> | yog-script source <path>";
 
 type Run = fn(&[String]) -> Result<(), String>;
 

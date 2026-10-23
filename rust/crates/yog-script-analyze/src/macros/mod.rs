@@ -5,8 +5,10 @@
 //! built-in macros (`panic!`, …) stay for the parser.
 
 pub mod builtin;
+mod calls;
 mod fragment;
 mod matcher;
+mod procs;
 mod rules;
 mod transcribe;
 mod tree;
@@ -21,18 +23,28 @@ use rules::Macro;
 use tree::{Tree, closer, tree_at};
 use yog_analysis::Report;
 
+pub use procs::ProcMacros;
 pub(crate) use transcribe::HYGIENE_MARK;
 
 /// How many expansions one source may make: a macro calling itself
 /// forever stops here.
 const MAX_EXPANSIONS: usize = 4096;
 
-/// `tokens` (ending with `Eof`) with the source's macros expanded.
-pub(crate) fn expand(mut tokens: Vec<Token>, report: &mut Report<'_>) -> Vec<Token> {
+/// `tokens` (ending with `Eof`, cut from `text`) with the source's macros
+/// expanded: its declared ones, then the build's procedural ones.
+pub(crate) fn expand(
+    mut tokens: Vec<Token>,
+    text: &str,
+    procs: Option<&dyn ProcMacros>,
+    report: &mut Report<'_>,
+) -> Vec<Token> {
     let eof = tokens.pop();
     let macros = take_macros(&mut tokens, report);
     if !macros.is_empty() {
         tokens = expand_calls(tokens, &macros, report);
+    }
+    if let Some(procs) = procs {
+        tokens = calls::expand(tokens, text, procs, report);
     }
     tokens.extend(eof);
     tokens

@@ -1,20 +1,23 @@
 //! `yog-script test <file>...`: each source checked, then its `test` blocks
 //! run by the interpreter — each passed, or failed with its panic and line.
 
-use yog_script_analyze::system;
+use yog_script_analyze::macros::ProcMacros;
+use yog_script_analyze::{Env, system};
+use yog_script_build::MacroLibrary;
 use yog_script_run::{Program, run_tests};
 
 pub(super) const WORDS: &[&str] = &["test"];
-const USAGE: &str = "usage: yog-script test <file.ys>...";
+const USAGE: &str = "usage: yog-script test [--macros <file.ys>]... <file.ys>...";
 
 pub(super) fn run(rest: &[String]) -> Result<(), String> {
-    if rest.is_empty() {
+    let (macros, files) = super::macros::split(rest)?;
+    if files.is_empty() {
         return Err(USAGE.into());
     }
     let mut failed = 0;
-    for file in rest {
+    for file in &files {
         let text = std::fs::read_to_string(file).map_err(|e| format!("{file}: {e}"))?;
-        failed += source(file, &text);
+        failed += source(file, &text, macros.as_ref());
     }
     match failed {
         0 => Ok(()),
@@ -23,13 +26,18 @@ pub(super) fn run(rest: &[String]) -> Result<(), String> {
 }
 
 /// One source's tests run: how many failed (its errors count as one).
-fn source(file: &str, text: &str) -> usize {
-    let problems = yog_script_build::check_source(file, text);
+fn source(file: &str, text: &str, macros: Option<&MacroLibrary>) -> usize {
+    let load = yog_script_build::index::load;
+    let problems = yog_script_build::check_source_using(file, text, load, macros);
     problems.iter().for_each(|d| eprintln!("{d}"));
     if problems.iter().any(yog_data::Diagnostic::is_error) {
         return 1;
     }
-    let checked = yog_script_analyze::check(file, text);
+    let env = Env {
+        game: None,
+        macros: macros.map(|m| m as &dyn ProcMacros),
+    };
+    let checked = yog_script_analyze::check_in(file, text, env);
     let program = Program::of(&[&system::DECLS, &checked.file.decls]);
     let mut failed = 0;
     for t in run_tests(&program, &checked.file.decls) {

@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 
 use yog_data::Diagnostic;
 use yog_ids::{game_version, script_problem};
+use yog_script_analyze::Env;
 use yog_script_analyze::versions::targeted;
 
 use crate::index::ClassIndex;
@@ -16,8 +17,9 @@ pub(crate) fn check(
     name: &str,
     text: &str,
     load: impl Fn(&str) -> Result<ClassIndex, String>,
+    macros: Option<&dyn yog_script_analyze::macros::ProcMacros>,
 ) -> Vec<Diagnostic> {
-    let read = yog_script_analyze::check(name, text);
+    let read = yog_script_analyze::check_in(name, text, Env { game: None, macros });
     let Some(cond) = yog_script_analyze::targets(&read.file) else {
         return read.problems;
     };
@@ -58,7 +60,16 @@ pub(crate) fn check(
             }
         };
         checked += 1;
-        for d in yog_script_analyze::check_with(name, text, Some(&game)).problems {
+        for d in yog_script_analyze::check_in(
+            name,
+            text,
+            Env {
+                game: Some(&game),
+                macros,
+            },
+        )
+        .problems
+        {
             found
                 .entry(d.to_string())
                 .or_insert_with(|| (d, Vec::new()))

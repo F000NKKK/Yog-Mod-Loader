@@ -8,10 +8,12 @@
 
 mod classfile;
 pub mod index;
+mod macros;
 mod versions;
 
 use yog_data::Diagnostic;
 
+pub use macros::MacroLibrary;
 pub use yog_script_analyze::versions::targeted;
 
 /// What's wrong with the source `text` of the file `name` (`.ys`, `.yns`);
@@ -28,8 +30,21 @@ pub fn check_source_with(
     text: &str,
     load: impl Fn(&str) -> Result<index::ClassIndex, String>,
 ) -> Vec<Diagnostic> {
+    check_source_using(name, text, load, None)
+}
+
+/// [`check_source_with`], the build's procedural macros `macros` run where
+/// the source calls them.
+pub fn check_source_using(
+    name: &str,
+    text: &str,
+    load: impl Fn(&str) -> Result<index::ClassIndex, String>,
+    macros: Option<&MacroLibrary>,
+) -> Vec<Diagnostic> {
+    let macros = macros.map(|m| m as &dyn yog_script_analyze::macros::ProcMacros);
     if !yog_script_analyze::is_nanites(name) {
-        return yog_script_analyze::check(name, text).problems;
+        let env = yog_script_analyze::Env { game: None, macros };
+        return yog_script_analyze::check_in(name, text, env).problems;
     }
-    versions::check(name, text, load)
+    versions::check(name, text, load, macros)
 }

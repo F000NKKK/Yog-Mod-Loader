@@ -2685,6 +2685,7 @@ dependencies = [
  "yog-ids",
  "yog-mappings",
  "yog-script-analyze",
+ "yog-script-run",
  "zip",
 ]
 

@@ -81,6 +81,15 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// An object of type `name` made with `args` (its constructor's).
+    pub fn make_object(&mut self, name: &str, args: Vec<Value>) -> Result<Value, Panic> {
+        match self.make(name, args, Span::default()) {
+            Err(Stop::Panic(p)) => Err(p),
+            Err(_) => Ok(Value::Void),
+            Ok(v) => Ok(v),
+        }
+    }
+
     /// A block run on its own (a test's): to its end, or the panic that
     /// stopped it.
     pub fn run_block(&mut self, b: &yog_script_analyze::ast::Block) -> Result<(), Panic> {
