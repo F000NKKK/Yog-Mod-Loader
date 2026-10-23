@@ -7,7 +7,7 @@ use yog_ids::script_problem;
 use super::Checker;
 use super::game::{self, Found};
 use super::model::Type;
-use crate::ast::{Arg, Expr, ExprKind, LambdaBody, Method};
+use crate::ast::{Arg, Expr, ExprKind, LambdaBody, Method, Pass};
 use crate::source::token::Span;
 
 /// What a call's callee stands for.
@@ -22,6 +22,9 @@ enum Callee {
 /// What a call is matched against.
 struct Signature {
     params: Vec<Type>,
+    /// How each parameter takes its argument (`in`, `ref`, …): only the
+    /// source's own methods say.
+    passes: Vec<Option<Pass>>,
     required: usize,
     ret: Type,
 }
@@ -343,6 +346,7 @@ impl Checker<'_, '_, '_> {
                         .iter()
                         .map(|p| Type::of_shape(&(p.shape)()))
                         .collect(),
+                    passes: vec![None; m.params.len()],
                     required: m.params.iter().take_while(|p| p.required).count(),
                     ret: Type::of_shape(&m.reply),
                 })
@@ -361,6 +365,7 @@ impl Checker<'_, '_, '_> {
             Found::Methods(sigs) => Callee::Typed(
                 sigs.into_iter()
                     .map(|(params, ret)| Signature {
+                        passes: vec![None; params.len()],
                         required: params.len(),
                         params,
                         ret,
@@ -379,10 +384,12 @@ impl Checker<'_, '_, '_> {
     /// rest have defaults), result.
     fn signature(&mut self, m: &Method) -> Signature {
         let params = m.params.iter().map(|p| self.type_of(&p.ty)).collect();
+        let passes = m.params.iter().map(|p| p.pass).collect();
         let required = m.params.iter().take_while(|p| p.default.is_none()).count();
         let ret = m.ret.as_ref().map_or(Type::Void, |t| self.type_of(t));
         Signature {
             params,
+            passes,
             required,
             ret,
         }
@@ -398,6 +405,7 @@ impl Checker<'_, '_, '_> {
         let fits =
             |s: &Signature| takes(s) && given.iter().zip(&s.params).all(|(g, p)| g.converts_to(p));
         if let Some(s) = sigs.iter().find(|s| fits(s)) {
+            self.check_passing(&s.passes, args);
             return s.ret.clone();
         }
         let taking: Vec<&Signature> = sigs.iter().filter(|s| takes(s)).collect();
@@ -443,6 +451,7 @@ fn is_side_call(name: &str) -> bool {
 fn signature_of(params: &[Type], ret: &Type) -> Signature {
     Signature {
         params: params.to_vec(),
+        passes: vec![None; params.len()],
         required: params.len(),
         ret: ret.clone(),
     }

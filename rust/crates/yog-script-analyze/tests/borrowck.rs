@@ -67,3 +67,17 @@ fn borrows_follow_the_rules() {
     );
     assert!(codes("static void F(move Box b) { Keep(move b); }").is_empty());
 }
+
+#[test]
+fn both_ends_pass_alike() {
+    assert_eq!(
+        codes("static void F() { let b = new Box(); Keep(b); }"),
+        [script_problem::PASS]
+    );
+    assert_eq!(
+        codes("static void F() { let mut b = new Box(); Fill(b); }"),
+        [script_problem::PASS]
+    );
+    // An `in` is lent with or without the word.
+    assert!(codes("static void F() { let b = new Box(); Look(b); Look(in b); }").is_empty());
+}

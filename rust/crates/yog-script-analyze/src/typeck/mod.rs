@@ -14,6 +14,7 @@ mod members;
 mod model;
 mod names;
 mod own;
+mod passing;
 mod shapes;
 mod stmts;
 mod surface;
