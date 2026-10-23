@@ -136,7 +136,8 @@ requires    = 'requires' expr ;                      (* a guard: commands, serve
 generics    = '<' IDENT (',' IDENT)* '>' ;
 constraints = ('where' IDENT ':' type (',' type)*)+ ;
 
-field_decl  = type IDENT ('=' expr)? migration? ';'                 (* a field; with `const`, a constant *)
+field_decl  = type IDENT bound? ('=' expr)? migration? ';'          (* a field; with `const`, a constant *)
+bound       = 'in' range_expr ;                      (* int Level in 0..100: kept in range *)
             | type IDENT '=>' expr ';'                               (* a computed property *)
             | type IDENT '{' accessor+ '}' ('=' expr ';')? ;          (* a property with accessors *)
 accessor    = ('get' | 'set' | 'init') (';' | method_body) ;
@@ -394,7 +395,6 @@ type `Sender` receives the caller.
 ```ebnf
 type        = base_type ('&' base_type)* '?'? ;                     (* Charge & Owned: an object with both *)
 base_type   = path generic_args?                                     (* int, List<T>, LivingEntity, a component *)
-            | base_type 'in' range_expr                              (* bounded: int in 0..100 *)
             | '(' type IDENT? (',' type IDENT?)+ ')' ;               (* a tuple *)
 generic_args = '<' type (',' type)* '>' ;
 ```

@@ -87,7 +87,7 @@ var tier = tool.Tier switch {
 | Numbers | `int` (32-bit), `long`, `float`, `double`, `byte` |
 | Text, truth | `string`, `char`, `bool`, `Text` (translatable: `t"charge.tooltip"`) |
 | Units | `Ticks` (`20t`), `Seconds` (`5s`, convertible to ticks), `Blocks` (`3b`), `Energy` (a mod declares its own units) |
-| Bounded | `int in 0..100` — a range is a type: proven where it can be, clamped where it can't |
+| Bounded | `int Level in 0..100` — a field's range: proven where it can be, clamped where it can't |
 | Content | `ItemRef` (`@item:minecraft:stick`), `BlockRef`, `TagRef` (`#minecraft:logs`) — checked against the registries the mod targets |
 | Nullable | `Player?` — only nullable types can be `null` |
 | Results | `Ok` / `Fail(reason)`: `try` passes a failure up, like Rust's `?` |
