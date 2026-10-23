@@ -1,13 +1,16 @@
 //! What the names of a source stand for, and what's out of place: each
 //! name looked up in the scopes around it (a declaration's anywhere in its
 //! body, a block's from where it's bound), declared twice, assigned while
-//! constant, `break` outside a loop, `skip` outside a `before`, `it`
-//! outside a lambda, `self` outside members. Names a source doesn't
-//! declare are the game's and the library's: the type checker looks them up.
+//! constant, cased against C#'s style, `break` outside a loop, `skip`
+//! outside a `before`, `it` outside a block lambda, `this` outside members,
+//! `await` outside `async`. Names a source doesn't declare are the game's
+//! and the library's: the type checker looks them up.
 
 mod decls;
 mod exprs;
+mod naming;
 mod patches;
+mod patterns;
 mod scope;
 mod stmts;
 
@@ -20,14 +23,17 @@ use yog_analysis::Report;
 /// Where the code being walked is, as far as what it may say goes.
 #[derive(Clone, Copy, Default)]
 struct Context {
-    /// Loops around it (in its function or lambda).
+    /// Loops around it (in its method or lambda).
     loops: u32,
-    /// A lambda without parameters is around it: `it` is its argument.
+    /// A block lambda is around it: `it` is its argument.
     it: bool,
     /// In a patch's `before`: `skip` ends the method.
     before: bool,
-    /// In a type's, a content's or a patch's members: `self` is the object.
+    /// In a type's, a content's, a component's or a patch's members: `this`
+    /// is the object.
     member: bool,
+    /// In an `async` method (or a test): `await` may wait.
+    awaits: bool,
 }
 
 pub(crate) struct Resolver<'r, 's> {
@@ -58,11 +64,12 @@ impl Resolver<'_, '_> {
         out
     }
 
-    /// A function's or a handler's body context: no loops, no lambda,
-    /// members as around it.
-    fn body_cx(&self) -> Context {
+    /// A method's or a handler's body context: no loops, no lambda,
+    /// members as around it, awaiting when `awaits`.
+    fn body_cx(&self, awaits: bool) -> Context {
         Context {
             member: self.cx.member,
+            awaits,
             ..Context::default()
         }
     }

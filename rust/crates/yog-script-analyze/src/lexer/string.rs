@@ -1,5 +1,5 @@
-//! Strings: `"…"` with escapes and `{expr}` interpolation, raw `r"…"`,
-//! translatable `t"key"`.
+//! Strings: `"…"` with escapes and `{expr}` interpolation, raw `"""…"""`,
+//! translatable `t"key"`, characters `'c'`.
 
 use yog_ids::script_problem;
 
@@ -7,6 +7,8 @@ use super::{HEX, Lexer};
 use crate::source::token::{Span, StrPart, Tok, Token};
 
 const QUOTE: char = '"';
+const RAW_QUOTES: &str = "\"\"\"";
+const CHAR_QUOTE: char = '\'';
 const ESCAPE: char = '\\';
 const OPEN: char = '{';
 const CLOSE: char = '}';
@@ -56,20 +58,54 @@ impl Lexer<'_, '_, '_> {
     }
 
     fn escape(&mut self, text: &mut String) {
+        if let Some(c) = self.escaped() {
+            text.push(c);
+        }
+    }
+
+    /// The character an escape after `\\` stands for; a bad one reported.
+    fn escaped(&mut self) -> Option<char> {
         let at = self.pos;
         let c = match self.bump() {
             Some('n') => '\n',
             Some('t') => '\t',
             Some('r') => '\r',
             Some('0') => '\0',
-            Some(c @ (ESCAPE | QUOTE | OPEN | CLOSE)) => c,
+            Some(c @ (ESCAPE | QUOTE | CHAR_QUOTE | OPEN | CLOSE)) => c,
             Some('u') if self.src[at..].starts_with(UNICODE_OPEN) => match self.unicode() {
                 Some(c) => c,
-                None => return self.bad_escape(at),
+                None => {
+                    self.bad_escape(at);
+                    return None;
+                }
             },
-            _ => return self.bad_escape(at),
+            _ => {
+                self.bad_escape(at);
+                return None;
+            }
         };
-        text.push(c);
+        Some(c)
+    }
+
+    /// `'c'` or `'\\n'`.
+    pub(super) fn char_literal(&mut self, start: usize) {
+        self.bump();
+        let c = match self.bump() {
+            Some(ESCAPE) => self.escaped(),
+            Some(c) if c != CHAR_QUOTE => Some(c),
+            _ => None,
+        };
+        if self.peek() != Some(CHAR_QUOTE) {
+            let span = Span::new(start, self.pos);
+            self.report.error(
+                script_problem::UNTERMINATED,
+                span,
+                "a character is one, between `'`s: `'R'`",
+            );
+            return self.push(Tok::Char(c.unwrap_or_default()), start);
+        }
+        self.bump();
+        self.push(Tok::Char(c.unwrap_or_default()), start);
     }
 
     /// `{XXXX}` after `\u`.
@@ -91,11 +127,23 @@ impl Lexer<'_, '_, '_> {
         self.report.error(
             script_problem::EXPECTED,
             span,
-            "an escape is one of \\n \\t \\r \\0 \\\\ \\\" \\{ \\} \\u{…}",
+            "an escape is one of \\n \\t \\r \\0 \\\\ \\\" \\' \\{ \\} \\u{…}",
         );
     }
 
-    /// `r"…"` or `t"…"`: the text up to the next `"`, as written.
+    /// `"""…"""`: the text up to the next `"""`, as written, lines included.
+    pub(super) fn raw_block(&mut self, start: usize) {
+        self.pos += RAW_QUOTES.len();
+        let Some(len) = self.rest().find(RAW_QUOTES) else {
+            self.pos = self.src.len();
+            return self.unterminated(start, Tok::RawStr(String::new()));
+        };
+        let text = self.rest()[..len].to_string();
+        self.pos += len + RAW_QUOTES.len();
+        self.push(Tok::RawStr(text), start);
+    }
+
+    /// `t"…"`: the text up to the next `"`, as written.
     pub(super) fn raw(&mut self, start: usize, prefix: usize, tok: fn(String) -> Tok) {
         self.pos += prefix;
         let Some(len) = self.rest().find(QUOTE) else {

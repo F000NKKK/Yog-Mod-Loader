@@ -1,49 +1,7 @@
-//! Statements, expressions, patterns and types (`ys-grammar.md` §3, §4).
+//! Expressions (`ys-grammar.md` §3.2–3.4).
 
-use super::{Name, VersionCond};
+use super::{Name, Pattern, Stmt, Type, VersionCond};
 use crate::source::token::Span;
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Block {
-    pub stmts: Vec<Stmt>,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Stmt {
-    Let {
-        pattern: Pattern,
-        ty: Option<Type>,
-        value: Expr,
-    },
-    Var {
-        name: Name,
-        ty: Option<Type>,
-        value: Option<Expr>,
-    },
-    /// `place op value`; `op` None for `=`.
-    Assign {
-        place: Expr,
-        op: Option<BinOp>,
-        value: Expr,
-    },
-    For {
-        pattern: Pattern,
-        iter: Expr,
-        body: Block,
-    },
-    While {
-        cond: Cond,
-        body: Block,
-    },
-    Loop(Block),
-    Break(Span),
-    Continue(Span),
-    Return(Option<Expr>, Span),
-    /// `skip value` in a patch's `before`: the method ends with it.
-    Skip(Option<Expr>, Span),
-    Expr(Expr),
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
@@ -61,6 +19,7 @@ pub enum ExprKind {
     },
     Str(Vec<StrSeg>),
     RawStr(String),
+    Char(char),
     Text(String),
     Content {
         kind: String,
@@ -68,21 +27,33 @@ pub enum ExprKind {
     },
     Tag(String),
     Bool(bool),
-    None,
+    Null,
     Ident(String),
-    SelfValue,
+    This,
     It,
     /// `mc >= 1.21`: the running game's version.
     Mc(VersionCond),
     Tuple(Vec<Expr>),
-    List(Vec<Expr>),
-    Map(Vec<(Expr, Expr)>),
+    /// `[a, b]`, `[k => v]`, `[..xs]`: a list, a set or a map by its target.
+    Collection(Vec<Element>),
+    /// `new Pos(1, 2, 3)`, `new(4)`, `new Battery { Count = 2 }`.
+    New {
+        ty: Option<Type>,
+        args: Option<Vec<Arg>>,
+        init: Vec<(Name, Expr)>,
+    },
+    /// `x => …`, `(a, b) => …`, `{ … }` after a call (`it` its parameter).
     Lambda {
-        params: Vec<Name>,
-        body: Vec<Stmt>,
+        params: Vec<LambdaParam>,
+        body: LambdaBody,
     },
     Unary {
         op: UnOp,
+        expr: Box<Expr>,
+    },
+    /// `(int)x`.
+    Cast {
+        ty: Type,
         expr: Box<Expr>,
     },
     Binary {
@@ -95,18 +66,31 @@ pub enum ExprKind {
         to: Box<Expr>,
         inclusive: bool,
     },
-    /// `x is T`, `x is T name`, `x !is T`.
+    /// `x is Monster m`, `x is not null`.
     Is {
         expr: Box<Expr>,
-        ty: Type,
-        bind: Option<Name>,
-        negated: bool,
+        pattern: Box<Pattern>,
     },
-    /// `x as T`, `x as? T`.
+    /// `x as T`: `null` when it isn't one.
     As {
         expr: Box<Expr>,
         ty: Type,
-        checked: bool,
+    },
+    /// `x has Charge`.
+    Has {
+        expr: Box<Expr>,
+        ty: Type,
+    },
+    /// `c ? a : b`.
+    Conditional {
+        cond: Box<Expr>,
+        then: Box<Expr>,
+        otherwise: Box<Expr>,
+    },
+    /// `x switch { … }`.
+    Switch {
+        expr: Box<Expr>,
+        arms: Vec<Arm>,
     },
     Call {
         callee: Box<Expr>,
@@ -121,22 +105,14 @@ pub enum ExprKind {
         expr: Box<Expr>,
         args: Vec<Type>,
     },
-    /// `x.name`, `x?.name`.
+    /// `x.Name`, `x?.Name`.
     Member {
         expr: Box<Expr>,
         name: Name,
         safe: bool,
     },
-    If {
-        cond: Box<Cond>,
-        then: Block,
-        otherwise: Option<Box<Expr>>,
-    },
-    Match {
-        expr: Box<Expr>,
-        arms: Vec<Arm>,
-    },
-    Block(Block),
+    /// `x!`: asserted not null.
+    NotNull(Box<Expr>),
     /// What couldn't be parsed (reported already).
     Error,
 }
@@ -148,24 +124,40 @@ pub enum StrSeg {
     Expr(Expr),
 }
 
-/// `if expr` or `if let pattern = expr`.
+/// An element of a collection expression.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Cond {
-    Expr(Expr),
-    Let { pattern: Box<Pattern>, value: Expr },
+pub enum Element {
+    Item(Expr),
+    Entry(Expr, Expr),
+    Spread(Expr),
 }
 
+/// A lambda's parameter: typed or not.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LambdaParam {
+    pub ty: Option<Type>,
+    pub name: Name,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LambdaBody {
+    Expr(Box<Expr>),
+    Block(Vec<Stmt>),
+}
+
+/// `value` or `name: value`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Arg {
     pub name: Option<Name>,
     pub value: Expr,
 }
 
+/// `pattern when guard => value`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Arm {
     pub pattern: Pattern,
     pub guard: Option<Expr>,
-    pub body: Expr,
+    pub value: Expr,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -173,6 +165,7 @@ pub enum UnOp {
     Neg,
     Not,
     Try,
+    Await,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -187,58 +180,9 @@ pub enum BinOp {
     Gt,
     GtEq,
     In,
-    NotIn,
     Add,
     Sub,
     Mul,
     Div,
     Rem,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Pattern {
-    Wild(Span),
-    /// A literal or a path to a value (`0`, `energy.max`); a single name
-    /// binds or names a case: the resolver tells which.
-    Value(Expr),
-    Range {
-        from: Expr,
-        to: Expr,
-    },
-    Is {
-        ty: Type,
-        bind: Option<Name>,
-    },
-    Variant {
-        path: Vec<Name>,
-        args: Vec<Pattern>,
-    },
-    Tuple(Vec<Pattern>),
-    Or(Vec<Pattern>),
-    Else(Span),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Type {
-    pub kind: TypeKind,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum TypeKind {
-    Path {
-        path: Vec<Name>,
-        args: Vec<Type>,
-    },
-    /// `Int in 0..100`.
-    Bounded {
-        base: Box<Type>,
-        range: Box<Expr>,
-    },
-    Tuple(Vec<Type>),
-    Fn {
-        params: Vec<Type>,
-        ret: Box<Type>,
-    },
-    Optional(Box<Type>),
 }

@@ -2,7 +2,8 @@
 
 use crate::ast::DeclKind;
 use crate::parser::{PResult, Parser};
-use crate::words::{Role, Word, union};
+use crate::source::token::Punct;
+use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "enum",
@@ -14,6 +15,7 @@ pub static WORD: Word = Word {
 fn parse(p: &mut Parser) -> PResult<DeclKind> {
     p.bump();
     let name = p.name("an enum's name")?;
-    let (cases, body) = union::cases(p, |p| p.name("a case"))?;
-    Ok(DeclKind::Enum { name, cases, body })
+    p.need(Punct::LBrace)?;
+    let cases = p.list(Punct::RBrace, |p| p.name("a case"))?;
+    Ok(DeclKind::Enum { name, cases })
 }

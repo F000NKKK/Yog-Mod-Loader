@@ -1,11 +1,13 @@
 //! The parser core: a cursor over tokens, problems and recovery, and the
 //! turn-taking — each form is parsed by its word (`words/`) or by a generic
-//! form here (types, blocks, expressions by precedence).
+//! form here (types, members, blocks, expressions by precedence).
 
 mod block;
 mod decl;
 mod expr;
-mod forms;
+mod header;
+mod lambda;
+mod member;
 mod params;
 pub(crate) mod patch;
 mod pattern;
@@ -31,8 +33,8 @@ pub struct Parser<'t, 'r, 'a> {
     pub(crate) report: &'r mut Report<'a>,
     /// Patches are allowed (a `.yns` source).
     pub(crate) nanites: bool,
-    /// A `{` here ends the expression (an `if`'s condition) instead of
-    /// starting a trailing lambda.
+    /// A `{` here ends the expression (a system's period, a guard) instead
+    /// of starting a trailing lambda.
     no_brace: bool,
 }
 
@@ -81,6 +83,10 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
         *self.tok() == Tok::Punct(p)
     }
 
+    pub(crate) fn nth_is(&self, n: usize, p: Punct) -> bool {
+        *self.nth(n) == Tok::Punct(p)
+    }
+
     pub(crate) fn eat(&mut self, p: Punct) -> bool {
         let here = self.at(p);
         if here {
@@ -94,6 +100,11 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
             return Ok(self.bump().span);
         }
         Err(self.expected(&format!("`{}`", p.text())))
+    }
+
+    /// The `;` ending a statement or a member.
+    pub(crate) fn end(&mut self) -> PResult<()> {
+        self.need(Punct::Semi).map(drop)
     }
 
     /// Whether `tok` is `word` (reserved or written as a name).
@@ -133,32 +144,6 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
         starts.map_or_else(|| self.at_word(word), |f| f(self))
     }
 
-    /// Newlines and doc lines skipped (between statements).
-    pub(crate) fn skip_newlines(&mut self) {
-        while matches!(self.tok(), Tok::Newline | Tok::Doc(_)) {
-            self.bump();
-        }
-    }
-
-    /// Whether a statement may end here.
-    pub(crate) fn at_stmt_end(&self) -> bool {
-        matches!(
-            self.tok(),
-            Tok::Newline | Tok::Doc(_) | Tok::Eof | Tok::Punct(Punct::Semi | Punct::RBrace)
-        )
-    }
-
-    /// The end of a statement: a newline or `;` taken, `}` and the end left.
-    pub(crate) fn end_stmt(&mut self) -> PResult<()> {
-        if !self.at_stmt_end() {
-            return Err(self.expected("the end of the line"));
-        }
-        if !matches!(self.tok(), Tok::Eof | Tok::Punct(Punct::RBrace)) {
-            self.bump();
-        }
-        Ok(())
-    }
-
     /// `what` was expected here: reported.
     pub(crate) fn expected(&mut self, what: &str) -> Fail {
         let found = describe(self.tok());
@@ -179,20 +164,27 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
         Fail
     }
 
-    /// Past a form that failed: to the end of its statement (a newline, `;`
-    /// or a `}` closing what it's in), nested brackets skipped whole.
+    /// Past a form that failed: through its `;`, or through the `{ … }`
+    /// that ended it, or up to a `}` closing what it's in.
     pub(crate) fn recover(&mut self) {
         let mut depth = 0usize;
         loop {
             match self.tok() {
                 Tok::Eof => return,
-                Tok::Newline | Tok::Punct(Punct::Semi) if depth == 0 => return,
+                Tok::Punct(Punct::Semi) if depth == 0 => {
+                    self.bump();
+                    return;
+                }
                 Tok::Punct(Punct::LBrace | Punct::LParen | Punct::LBracket) => depth += 1,
                 Tok::Punct(Punct::RBrace | Punct::RParen | Punct::RBracket) => {
                     if depth == 0 {
                         return;
                     }
                     depth -= 1;
+                    if depth == 0 && self.at(Punct::RBrace) {
+                        self.bump();
+                        return;
+                    }
                 }
                 _ => {}
             }
@@ -200,7 +192,7 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
         }
     }
 
-    /// `f` with `{` ending expressions (conditions, iterated values).
+    /// `f` with `{` ending expressions (a system's period, a guard).
     pub(crate) fn no_brace<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
         let was = std::mem::replace(&mut self.no_brace, true);
         let out = f(self);
@@ -226,10 +218,10 @@ fn describe(tok: &Tok) -> String {
         Tok::Int(_) | Tok::Float(_) | Tok::Unit(..) => "a number".into(),
         Tok::Version(v) => format!("the version `{v}`"),
         Tok::Str(_) | Tok::RawStr(_) | Tok::Text(_) => "a string".into(),
+        Tok::Char(_) => "a character".into(),
         Tok::Content(kind, id) => format!("`@{kind}:{id}`"),
         Tok::Tag(id) => format!("`#{id}`"),
         Tok::Doc(_) => "a doc comment".into(),
-        Tok::Newline => "the end of the line".into(),
         Tok::Eof => "the end of the file".into(),
     }
 }

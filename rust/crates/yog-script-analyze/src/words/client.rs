@@ -1,11 +1,11 @@
-//! `client` — a modifier.
+//! `client`.
 
 use crate::ast::Modifier;
 use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "client",
-    doc: "Runs on a client: `client fn showCharge(level: Int) { … }`. The server reaches it with `player.client.showCharge(5)` — a message made for it.",
+    doc: "Runs on the client: `client void Welcome(…)`. Called from the server (`player.Client.F()`) it's a message.",
     reserved: true,
     roles: &[Role::Modifier(Modifier::Client)],
 };

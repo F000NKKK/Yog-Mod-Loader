@@ -1,23 +1,19 @@
-//! `write` — a field's writes.
+//! `write` — a field's every write.
 
 use crate::ast::PatchItem;
 use crate::parser::{PResult, Parser};
-use crate::source::token::Punct;
 use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "write",
-    doc: "Every write of a patched class's field passes here: `write experienceLevel(value) { if … { proceed(value) } }`; \
-          not calling `proceed` drops the write. Inside a method, `at write field { … }` runs at a write.",
+    doc: "Every write of a field of the patched class: `write ExperienceLevel { if (value >= ExperienceLevel) proceed(value); }` — `value` is the new one, `proceed(v)` writes.",
     reserved: false,
     roles: &[Role::PatchItem { parse }],
 };
 
 fn parse(p: &mut Parser) -> PResult<PatchItem> {
     p.bump();
-    let field = p.name("a field")?;
-    p.need(Punct::LParen)?;
-    let value = p.name("the written value")?;
-    p.need(Punct::RParen)?;
-    Ok(PatchItem::Write { field, value, body: p.block()? })
+    let field = p.any_name("a field")?;
+    let body = p.block()?;
+    Ok(PatchItem::Write { field, body })
 }

@@ -7,7 +7,7 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "mc",
-    doc: "The game's version, compared: `targets = mc 1.20.1..26.2`, `version mc >= 1.21 { … }`.",
+    doc: "The game's version, compared: `Targets = mc 1.20.1..26.2;`, `version (mc >= 1.21) { … }`.",
     reserved: false,
     roles: &[Role::Prefix { starts: Some(starts), parse }],
 };
@@ -22,7 +22,7 @@ const COMPARE: &[(Punct, BinOp)] = &[
 
 fn starts(p: &Parser) -> bool {
     let version_next = matches!(p.nth(1), Tok::Version(_) | Tok::Float(_) | Tok::Int(_));
-    let compare_next = COMPARE.iter().any(|(c, _)| *p.nth(1) == Tok::Punct(*c));
+    let compare_next = COMPARE.iter().any(|(c, _)| p.nth_is(1, *c));
     p.at_word(&WORD) && (version_next || compare_next)
 }
 

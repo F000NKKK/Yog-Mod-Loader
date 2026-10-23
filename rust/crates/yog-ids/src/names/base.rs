@@ -273,12 +273,16 @@ names! {
         OUTSIDE_LOOP = "YS0008",
         /// `skip` outside a patch's `before`.
         SKIP_OUTSIDE_BEFORE = "YS0009",
-        /// `it` outside a lambda that has it.
+        /// `it` outside a block lambda (`{ it * 2 }`).
         IT_OUTSIDE_LAMBDA = "YS0010",
-        /// `self` outside a type's, a content's or a patch's members.
-        SELF_OUTSIDE_MEMBER = "YS0011",
-        /// A value (`let`, `const`, a parameter, a function) assigned to.
+        /// `this` outside a type's, a content's, a component's or a patch's members.
+        THIS_OUTSIDE_MEMBER = "YS0011",
+        /// What can't be assigned (`const`, `readonly`, a method, a type) assigned to.
         ASSIGN_TO_CONSTANT = "YS0012",
+        /// A name not in C#'s case for what it names (a warning).
+        NAMING = "YS0013",
+        /// `await` outside an `async` method.
+        AWAIT_OUTSIDE_ASYNC = "YS0014",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

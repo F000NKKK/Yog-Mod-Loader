@@ -1,76 +1,98 @@
-//! Patterns (`ys-grammar.md` §3.3): `let`, `for`, `match` arms.
+//! Patterns (`ys-grammar.md` §3.3): `switch` arms and `is`.
 
 use super::{PResult, Parser};
-use crate::ast::{Expr, ExprKind, Pattern};
+use crate::ast::{BinOp, Name, Pattern};
 use crate::source::token::{Punct, Tok};
-use crate::words;
+use crate::words::{and, not, or, var};
 
 const WILDCARD: &str = "_";
 
+const RELATIONAL: &[(Punct, BinOp)] = &[
+    (Punct::Lt, BinOp::Lt),
+    (Punct::LtEq, BinOp::LtEq),
+    (Punct::Gt, BinOp::Gt),
+    (Punct::GtEq, BinOp::GtEq),
+];
+
 impl Parser<'_, '_, '_> {
-    /// One pattern, or several joined by `|`.
+    /// A pattern: `a or b`, `a and b`, `not a`, and the single ones.
     pub(crate) fn pattern(&mut self) -> PResult<Pattern> {
-        let first = self.pattern_one()?;
-        if !self.at(Punct::Pipe) {
-            return Ok(first);
+        let mut left = self.pattern_and()?;
+        while self.eat_word(&or::WORD) {
+            left = Pattern::Or(Box::new(left), Box::new(self.pattern_and()?));
         }
-        let mut all = vec![first];
-        while self.eat(Punct::Pipe) {
-            all.push(self.pattern_one()?);
+        Ok(left)
+    }
+
+    fn pattern_and(&mut self) -> PResult<Pattern> {
+        let mut left = self.pattern_not()?;
+        while self.eat_word(&and::WORD) {
+            left = Pattern::And(Box::new(left), Box::new(self.pattern_not()?));
         }
-        Ok(Pattern::Or(all))
+        Ok(left)
+    }
+
+    fn pattern_not(&mut self) -> PResult<Pattern> {
+        if self.eat_word(&not::WORD) {
+            return Ok(Pattern::Not(Box::new(self.pattern_not()?)));
+        }
+        self.pattern_one()
     }
 
     fn pattern_one(&mut self) -> PResult<Pattern> {
-        if self.at_word(&words::r#else::WORD) {
-            return Ok(Pattern::Else(self.bump().span));
+        if self.eat_word(&var::WORD) {
+            return Ok(Pattern::Var(self.name("a name")?));
         }
-        if self.eat_word(&words::is::WORD) {
-            let ty = self.ty_plain()?;
-            let bind = if matches!(self.tok(), Tok::Ident(_)) {
-                Some(self.name("a name")?)
-            } else {
-                None
-            };
-            return Ok(Pattern::Is { ty, bind });
+        if let Some(&(p, op)) = RELATIONAL.iter().find(|(p, _)| self.at(*p)) {
+            self.need(p)?;
+            return Ok(Pattern::Relational {
+                op,
+                value: self.binary(crate::words::Level::Sum)?,
+            });
         }
         match self.tok() {
             Tok::Ident(name) if name == WILDCARD => Ok(Pattern::Wild(self.bump().span)),
-            Tok::Ident(_) => self.path_pattern(),
             Tok::Punct(Punct::LParen) => {
                 self.bump();
                 Ok(Pattern::Tuple(self.list(Punct::RParen, Self::pattern)?))
             }
+            Tok::Punct(Punct::LBrace) => self.property_pattern(None),
+            Tok::Ident(_) => self.path_pattern(),
+            Tok::Keyword(w) if w.is_type() => self.path_pattern(),
             _ => self.value_pattern(),
         }
     }
 
-    /// `Circle(r)`, or a name or path to a value (`energy.max`).
+    /// `Mode.Charging(var rate)`, `Monster m`, `Monster { … }`, or a path
+    /// to a value, a case or a type (`Mode.Idle`, `Monster`).
     fn path_pattern(&mut self) -> PResult<Pattern> {
         let start = self.span();
-        let path = self.path("a pattern")?;
-        if self.eat(Punct::LParen) {
+        let ty = self.ty()?;
+        if self.at(Punct::LParen) {
+            let path = self.type_path(&ty, start)?;
+            self.bump();
             let args = self.list(Punct::RParen, Self::pattern)?;
             return Ok(Pattern::Variant { path, args });
         }
-        let mut names = path.into_iter();
-        let first = names.next().map(|n| Expr {
-            kind: ExprKind::Ident(n.text),
-            span: n.span,
-        });
-        let mut expr = first.ok_or_else(|| self.expected("a pattern"))?;
-        for name in names {
-            let span = start.to(name.span);
-            expr = Expr {
-                kind: ExprKind::Member {
-                    expr: Box::new(expr),
-                    name,
-                    safe: false,
-                },
-                span,
-            };
+        if self.at(Punct::LBrace) {
+            return self.property_pattern(Some(ty));
         }
-        Ok(Pattern::Value(expr))
+        if matches!(self.tok(), Tok::Ident(_)) {
+            let bind = Some(self.name("a name")?);
+            return Ok(Pattern::Type { ty, bind });
+        }
+        Ok(Pattern::Type { ty, bind: None })
+    }
+
+    /// `{ Name: pattern, … }`, after its type if any.
+    fn property_pattern(&mut self, ty: Option<crate::ast::Type>) -> PResult<Pattern> {
+        self.need(Punct::LBrace)?;
+        let fields = self.list(Punct::RBrace, |p| {
+            let name: Name = p.name("a member")?;
+            p.need(Punct::Colon)?;
+            Ok((name, p.pattern()?))
+        })?;
+        Ok(Pattern::Property { ty, fields })
     }
 
     /// A literal, or a range of two.
@@ -81,5 +103,21 @@ impl Parser<'_, '_, '_> {
         }
         let to = self.unary()?;
         Ok(Pattern::Range { from, to })
+    }
+
+    /// A variant's path: the type written as a plain path.
+    fn type_path(
+        &mut self,
+        ty: &crate::ast::Type,
+        at: crate::source::token::Span,
+    ) -> PResult<Vec<Name>> {
+        match &ty.kind {
+            crate::ast::TypeKind::Path { path, args } if args.is_empty() => Ok(path.clone()),
+            _ => Err(self.error(
+                yog_ids::script_problem::EXPECTED,
+                at,
+                "a case is named by a path: `Mode.Charging(var rate)`",
+            )),
+        }
     }
 }

@@ -1,9 +1,9 @@
-//! Statements and patterns: what a block binds, what a loop allows.
+//! Statements: what a block binds, what a loop allows, what may be assigned.
 
 use yog_ids::script_problem;
 
 use super::{Context, DefKind, Resolver};
-use crate::ast::{Block, Cond, ExprKind, Name, Pattern, Stmt};
+use crate::ast::{Binding, Block, Expr, ExprKind, Stmt};
 
 impl Resolver<'_, '_> {
     /// A block in a scope of its own.
@@ -17,38 +17,69 @@ impl Resolver<'_, '_> {
         }
     }
 
+    /// A statement standing as a branch or a body: its own scope.
+    fn branch(&mut self, s: &Stmt) {
+        self.scoped(|r| r.stmt(s));
+    }
+
     fn stmt(&mut self, s: &Stmt) {
         match s {
-            Stmt::Let { pattern, ty, value } => {
-                self.opt_ty(ty.as_ref());
-                self.expr(value);
-                self.bind_pattern(pattern);
-            }
-            Stmt::Var { name, ty, value } => {
+            Stmt::Local { ty, binding, value } => {
                 self.opt_ty(ty.as_ref());
                 self.opt_expr(value.as_ref());
-                self.bind(name, DefKind::Variable);
+                self.binding(binding, DefKind::Variable);
             }
             Stmt::Assign { place, value, .. } => {
                 self.assigned(place);
                 self.expr(value);
             }
-            Stmt::For {
-                pattern,
+            // An `is` pattern's names reach the branch it guards.
+            Stmt::If {
+                cond,
+                then,
+                otherwise,
+            } => {
+                self.scoped(|r| {
+                    r.expr(cond);
+                    r.branch(then);
+                });
+                if let Some(o) = otherwise {
+                    self.branch(o);
+                }
+            }
+            Stmt::Foreach {
+                ty,
+                binding,
                 iter,
                 body,
             } => {
+                self.opt_ty(ty.as_ref());
                 self.expr(iter);
                 self.looping(|r| {
-                    r.bind_pattern(pattern);
-                    r.stmts(&body.stmts);
+                    r.binding(binding, DefKind::ReadOnly);
+                    r.stmt(body);
                 });
             }
-            Stmt::While { cond, body } => self.scoped(|r| {
-                r.cond(cond);
-                r.looping(|r| r.stmts(&body.stmts));
+            Stmt::For {
+                init,
+                cond,
+                step,
+                body,
+            } => self.scoped(|r| {
+                if let Some(i) = init {
+                    r.stmt(i);
+                }
+                r.opt_expr(cond.as_ref());
+                if let Some(s) = step {
+                    r.stmt(s);
+                }
+                r.looping(|r| r.stmt(body));
             }),
-            Stmt::Loop(body) => self.looping(|r| r.stmts(&body.stmts)),
+            Stmt::While { cond, body } | Stmt::DoWhile { body, cond } => self.scoped(|r| {
+                r.expr(cond);
+                r.looping(|r| r.stmt(body));
+            }),
+            Stmt::Block(b) => self.block(b),
             Stmt::Break(at) | Stmt::Continue(at) if self.cx.loops == 0 => {
                 self.report.error(
                     script_problem::OUTSIDE_LOOP,
@@ -68,7 +99,7 @@ impl Resolver<'_, '_> {
                 }
                 self.opt_expr(value.as_ref());
             }
-            Stmt::Expr(e) => self.expr(e),
+            Stmt::Expr(e) | Stmt::Value(e) => self.expr(e),
         }
     }
 
@@ -81,20 +112,17 @@ impl Resolver<'_, '_> {
         self.within(cx, |r| r.scoped(f));
     }
 
-    /// An `if`'s or a `while`'s condition: `if let` binds for what follows.
-    pub(super) fn cond(&mut self, c: &Cond) {
-        match c {
-            Cond::Expr(e) => self.expr(e),
-            Cond::Let { pattern, value } => {
-                self.expr(value);
-                self.bind_pattern(pattern);
-            }
+    /// The names a local declaration or a `foreach` binds.
+    fn binding(&mut self, b: &Binding, kind: DefKind) {
+        match b {
+            Binding::One(n) => self.bind(n, kind),
+            Binding::Tuple(names) => names.iter().for_each(|n| self.bind(n, kind)),
         }
     }
 
     /// The place an assignment writes: a name of the source's own must be
-    /// a variable (members and the game's are checked with their types).
-    fn assigned(&mut self, place: &crate::ast::Expr) {
+    /// assignable (members and the game's are checked with their types).
+    fn assigned(&mut self, place: &Expr) {
         let ExprKind::Ident(name) = &place.kind else {
             self.expr(place);
             return;
@@ -106,65 +134,10 @@ impl Resolver<'_, '_> {
             self.report.error(
                 script_problem::ASSIGN_TO_CONSTANT,
                 place.span,
-                format!("`{name}` isn't a `var`: it can't be assigned"),
+                format!(
+                    "`{name}` can't be assigned: it's a constant, read-only, a method or a type"
+                ),
             );
-        }
-    }
-
-    /// The names a pattern binds, bound here; what it compares with, looked up.
-    pub(super) fn bind_pattern(&mut self, p: &Pattern) {
-        match p {
-            Pattern::Wild(_) | Pattern::Else(_) => {}
-            // A single name: a case or a value it compares with when there
-            // is one, else a new binding.
-            Pattern::Value(e) => match &e.kind {
-                ExprKind::Ident(name) if self.lookup(name).is_none() => {
-                    self.bind(
-                        &Name {
-                            text: name.clone(),
-                            span: e.span,
-                        },
-                        DefKind::Value,
-                    );
-                }
-                _ => self.expr(e),
-            },
-            Pattern::Range { from, to } => {
-                self.expr(from);
-                self.expr(to);
-            }
-            Pattern::Is { ty, bind } => {
-                self.ty(ty);
-                if let Some(n) = bind {
-                    self.bind(n, DefKind::Value);
-                }
-            }
-            Pattern::Variant { path, args } => {
-                if let Some(first) = path.first() {
-                    self.refer(&first.text, first.span);
-                }
-                args.iter().for_each(|a| self.bind_pattern(a));
-            }
-            Pattern::Tuple(ps) | Pattern::Or(ps) => ps.iter().for_each(|a| self.bind_pattern(a)),
-        }
-    }
-
-    /// The names a declaration's pattern declares (`let (a, b) = …`).
-    pub(super) fn pattern_names(&mut self, p: &Pattern, again: bool) {
-        match p {
-            Pattern::Value(e) => {
-                if let ExprKind::Ident(name) = &e.kind {
-                    let n = Name {
-                        text: name.clone(),
-                        span: e.span,
-                    };
-                    self.define(&n, DefKind::Value, again);
-                }
-            }
-            Pattern::Is { bind: Some(n), .. } => self.define(n, DefKind::Value, again),
-            Pattern::Variant { args, .. } => args.iter().for_each(|a| self.pattern_names(a, again)),
-            Pattern::Tuple(ps) => ps.iter().for_each(|a| self.pattern_names(a, again)),
-            _ => {}
         }
     }
 }

@@ -1,9 +1,9 @@
-//! Names, parameter lists and generic parameters.
+//! Names, parameter and argument lists, strings and numbers as forms take
+//! them.
 
 use super::{PResult, Parser};
-use crate::ast::{Generic, Name, Param};
+use crate::ast::{Arg, Name, Param};
 use crate::source::token::{Punct, StrPart, Tok};
-use crate::words;
 
 impl Parser<'_, '_, '_> {
     /// A name (not a reserved word).
@@ -30,7 +30,7 @@ impl Parser<'_, '_, '_> {
         self.name(what)
     }
 
-    /// `a.b.c`.
+    /// `A.B.C`.
     pub(crate) fn path(&mut self, what: &str) -> PResult<Vec<Name>> {
         let mut path = vec![self.any_name(what)?];
         while self.at(Punct::Dot) && matches!(self.nth(1), Tok::Ident(_) | Tok::Keyword(_)) {
@@ -40,59 +40,62 @@ impl Parser<'_, '_, '_> {
         Ok(path)
     }
 
-    /// `(var? name (: Type)? (= default)?, …)`.
+    /// Doc comments skipped (where nothing they could document follows).
+    pub(crate) fn skip_docs(&mut self) {
+        while matches!(self.tok(), Tok::Doc(_)) {
+            self.bump();
+        }
+    }
+
+    /// `(Type name = default, …)`.
     pub(crate) fn params(&mut self) -> PResult<Vec<Param>> {
         self.need(Punct::LParen)?;
         self.braces(|p| p.list(Punct::RParen, Self::param))
     }
 
     fn param(&mut self) -> PResult<Param> {
-        let var = self.eat_word(&words::r#var::WORD);
-        let name = self.name("a parameter")?;
-        let ty = if self.eat(Punct::Colon) {
-            Some(self.ty()?)
-        } else {
-            None
-        };
+        let ty = self.ty()?;
+        let name = self.name("a parameter's name")?;
         let default = if self.eat(Punct::Eq) {
             Some(self.expr()?)
         } else {
             None
         };
-        Ok(Param {
-            var,
+        Ok(Param { ty, name, default })
+    }
+
+    /// `(a, name: b)`.
+    pub(crate) fn args(&mut self) -> PResult<Vec<Arg>> {
+        self.need(Punct::LParen)?;
+        self.braces(|p| p.list(Punct::RParen, Self::arg))
+    }
+
+    /// `name: value` or `value`.
+    fn arg(&mut self) -> PResult<Arg> {
+        let named = matches!(self.tok(), Tok::Ident(_)) && self.nth_is(1, Punct::Colon);
+        let name = if named {
+            let name = self.name("an argument")?;
+            self.bump();
+            Some(name)
+        } else {
+            None
+        };
+        Ok(Arg {
             name,
-            ty,
-            default,
+            value: self.expr()?,
         })
     }
 
-    /// `(a, b)`, or nothing: the names an event or a lambda hands over.
-    pub(crate) fn untyped_params(&mut self) -> PResult<Vec<Name>> {
-        if !self.eat(Punct::LParen) {
-            return Ok(Vec::new());
-        }
-        self.list(Punct::RParen, |p| p.name("a parameter"))
-    }
-
-    /// `<T, U: Base>`, or nothing.
-    pub(crate) fn generics(&mut self) -> PResult<Vec<Generic>> {
+    /// `<T, U>`, or nothing.
+    pub(crate) fn generics(&mut self) -> PResult<Vec<Name>> {
         if !self.eat(Punct::Lt) {
             return Ok(Vec::new());
         }
-        self.list(Punct::Gt, |p| {
-            let name = p.name("a type parameter")?;
-            let bound = if p.eat(Punct::Colon) {
-                Some(p.ty()?)
-            } else {
-                None
-            };
-            Ok(Generic { name, bound })
-        })
+        self.list(Punct::Gt, |p| p.name("a type parameter"))
     }
 
-    /// Items by `item`, separated by `,` (a trailing one allowed, newlines
-    /// between them too), up to and with `close`.
+    /// Items by `item`, separated by `,` (a trailing one allowed), up to
+    /// and with `close`.
     pub(crate) fn list<T>(
         &mut self,
         close: Punct,
@@ -100,21 +103,18 @@ impl Parser<'_, '_, '_> {
     ) -> PResult<Vec<T>> {
         let mut out = Vec::new();
         loop {
-            self.skip_newlines();
             if self.eat(close) {
                 return Ok(out);
             }
             out.push(item(self)?);
-            self.skip_newlines();
             if !self.eat(Punct::Comma) {
-                self.skip_newlines();
                 self.need(close)?;
                 return Ok(out);
             }
         }
     }
 
-    /// A string without `{…}` in it (a file, a test's name, a recipe row).
+    /// A string without `{…}` in it (a file, a test's name).
     pub(crate) fn plain_string(&mut self, what: &str) -> PResult<String> {
         let Tok::Str(parts) = self.tok() else {
             return Err(self.expected(what));
@@ -140,5 +140,13 @@ impl Parser<'_, '_, '_> {
             return Ok(self.report.text(span).to_string());
         }
         Err(self.expected("a version"))
+    }
+
+    pub(crate) fn int(&mut self, what: &str) -> PResult<i64> {
+        if let Tok::Int(v) = self.tok() {
+            self.bump();
+            return Ok(*v);
+        }
+        Err(self.expected(what))
     }
 }

@@ -1,20 +1,40 @@
-//! `for` — once per item.
+//! `for` — a counted loop.
 
 use crate::ast::Stmt;
 use crate::parser::{PResult, Parser};
-use crate::words::{Role, Word, r#in};
+use crate::source::token::Punct;
+use crate::words::{Role, Word, var};
 
 pub static WORD: Word = Word {
     text: "for",
-    doc: "Runs a block once per item: `for b in inventory { … }`, `for (k, v) in map { … }`.",
+    doc: "A counted loop: `for (var i = 0; i < 4; i += 1) { … }`. Over items, `foreach`.",
     reserved: true,
     roles: &[Role::Stmt { parse }],
 };
 
 fn parse(p: &mut Parser) -> PResult<Stmt> {
     p.bump();
-    let pattern = p.pattern()?;
-    p.need_word(&r#in::WORD)?;
-    let iter = p.expr_no_brace()?;
-    Ok(Stmt::For { pattern, iter, body: p.block()? })
+    p.need(Punct::LParen)?;
+    let init = if p.at(Punct::Semi) {
+        None
+    } else if p.at_word(&var::WORD) {
+        Some(Box::new(var::local(p)?))
+    } else if p.typed_ahead().is_some() {
+        Some(Box::new(p.typed_local()?))
+    } else {
+        let e = p.expr()?;
+        Some(Box::new(p.assign_or(e)?))
+    };
+    p.need(Punct::Semi)?;
+    let cond = if p.at(Punct::Semi) { None } else { Some(p.expr()?) };
+    p.need(Punct::Semi)?;
+    let step = if p.at(Punct::RParen) {
+        None
+    } else {
+        let e = p.expr()?;
+        Some(Box::new(p.assign_or(e)?))
+    };
+    p.need(Punct::RParen)?;
+    let body = Box::new(p.stmt()?);
+    Ok(Stmt::For { init, cond, step, body })
 }

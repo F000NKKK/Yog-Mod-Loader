@@ -1,18 +1,23 @@
-//! Patches: `self` is the patched object; a `before` may `skip`; the
+//! Patches: `this` is the patched object; a `before` may `skip`; the
 //! method's parameters and the locals it asks for are names in its body.
 
+use super::naming::Case;
 use super::{Context, DefKind, Resolver};
-use crate::ast::{Block, Local, Method, Patch, PatchItem, Point, Selector};
+use crate::ast::{Block, Local, Patch, PatchItem, Point, Selector, Target};
 
 impl Resolver<'_, '_> {
     pub(super) fn patch(&mut self, p: &Patch) {
         self.ty(&p.target);
         self.members(|r| {
-            for item in &p.items {
-                if let PatchItem::Add(d) = item {
-                    r.decls(std::slice::from_ref(d.as_ref()));
-                }
-            }
+            let added: Vec<_> = p
+                .items
+                .iter()
+                .filter_map(|i| match i {
+                    PatchItem::Add(d) => Some(d.as_ref().clone()),
+                    _ => None,
+                })
+                .collect();
+            r.decls(&added);
             for item in &p.items {
                 r.patch_item(item);
             }
@@ -21,7 +26,7 @@ impl Resolver<'_, '_> {
 
     fn patch_item(&mut self, item: &PatchItem) {
         match item {
-            PatchItem::AddIs(t) => self.ty(t),
+            PatchItem::AddBases(bases) => bases.iter().for_each(|t| self.ty(t)),
             PatchItem::Before { method, uses, body } => self.code(Some(method), uses, body, true),
             PatchItem::After { method, uses, body } => self.code(Some(method), uses, body, false),
             PatchItem::Replace { method, body } => self.code(Some(method), &[], body, false),
@@ -30,17 +35,15 @@ impl Resolver<'_, '_> {
                     self.point(method, point);
                 }
             }
-            PatchItem::Read { body, .. } => self.code(None, &[], body, false),
-            PatchItem::Write { value, body, .. } => self.patch_code(false, |r| {
-                r.define(value, DefKind::Param, false);
-                r.stmts(&body.stmts);
-            }),
+            PatchItem::Read { body, .. } | PatchItem::Write { body, .. } => {
+                self.code(None, &[], body, false)
+            }
             PatchItem::Add(_) | PatchItem::Priority(..) => {}
         }
     }
 
     /// A point inside a method: its body sees the method's parameters.
-    fn point(&mut self, method: &Method, point: &Point) {
+    fn point(&mut self, method: &Target, point: &Point) {
         match point {
             Point::Around { select, body, .. } => {
                 self.selector(select.as_ref());
@@ -52,7 +55,7 @@ impl Resolver<'_, '_> {
                 self.selector(select.as_ref());
                 self.patch_code(false, |r| {
                     r.params(&method.params);
-                    r.define(arg, DefKind::Variable, true);
+                    r.define(arg, DefKind::Variable, Case::Camel, true);
                     r.stmts(&body.stmts);
                 });
             }
@@ -92,7 +95,7 @@ impl Resolver<'_, '_> {
 
     /// Code run in the patched method: its parameters, the locals it asks
     /// for (assignable when written back), then `body`.
-    fn code(&mut self, method: Option<&Method>, uses: &[Local], body: &Block, before: bool) {
+    fn code(&mut self, method: Option<&Target>, uses: &[Local], body: &Block, before: bool) {
         self.patch_code(before, |r| {
             if let Some(m) = method {
                 r.params(&m.params);
@@ -103,15 +106,15 @@ impl Resolver<'_, '_> {
                 let kind = if l.write {
                     DefKind::Variable
                 } else {
-                    DefKind::Value
+                    DefKind::ReadOnly
                 };
-                r.define(&l.name, kind, false);
+                r.define(&l.name, kind, Case::Camel, false);
             }
             r.stmts(&body.stmts);
         });
     }
 
-    /// A patch's code in a scope of its own: `self` the object, `skip`
+    /// A patch's code in a scope of its own: `this` the object, `skip`
     /// allowed when `before`.
     fn patch_code(&mut self, before: bool, f: impl FnOnce(&mut Self)) {
         let cx = Context {

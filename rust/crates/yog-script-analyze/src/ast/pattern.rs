@@ -1,0 +1,62 @@
+//! Patterns (`ys-grammar.md` §3.3) and types (§4).
+
+use super::{BinOp, Expr, Name};
+use crate::source::token::Span;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Pattern {
+    Wild(Span),
+    /// A literal or a path to a value or a case (`0`, `Mode.Idle`); a
+    /// lone path may be a type too: the resolver and the checker tell.
+    Value(Expr),
+    /// `var e`.
+    Var(Name),
+    /// `Monster m`, `Monster`.
+    Type {
+        ty: Type,
+        bind: Option<Name>,
+    },
+    /// `Mode.Charging(var rate)`.
+    Variant {
+        path: Vec<Name>,
+        args: Vec<Pattern>,
+    },
+    /// `< 5`.
+    Relational {
+        op: BinOp,
+        value: Expr,
+    },
+    Range {
+        from: Expr,
+        to: Expr,
+    },
+    Tuple(Vec<Pattern>),
+    /// `{ Health: < 5 }`, `Monster { Health: < 5 }`.
+    Property {
+        ty: Option<Type>,
+        fields: Vec<(Name, Pattern)>,
+    },
+    Or(Box<Pattern>, Box<Pattern>),
+    And(Box<Pattern>, Box<Pattern>),
+    Not(Box<Pattern>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Type {
+    pub kind: TypeKind,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TypeKind {
+    /// `int`, `List<T>`, `Mode.Charging`.
+    Path {
+        path: Vec<Name>,
+        args: Vec<Type>,
+    },
+    /// `(int X, int Y)`.
+    Tuple(Vec<(Type, Option<Name>)>),
+    Nullable(Box<Type>),
+    /// `Charge & Owned`.
+    Both(Vec<Type>),
+}

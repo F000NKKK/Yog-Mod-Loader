@@ -1,5 +1,5 @@
 //! What follows a primary: calls, trailing lambdas, indexing, members,
-//! type arguments.
+//! type arguments, `!`.
 
 use super::{PResult, Parser};
 use crate::ast::{Arg, Expr, ExprKind};
@@ -12,6 +12,13 @@ impl Parser<'_, '_, '_> {
                 Tok::Punct(Punct::LParen) => self.call(expr)?,
                 Tok::Punct(Punct::LBrace) if !self.no_brace => self.trailing_lambda(expr)?,
                 Tok::Punct(Punct::LBracket) => self.index(expr)?,
+                Tok::Punct(Punct::Bang) => {
+                    let span = expr.span.to(self.bump().span);
+                    Expr {
+                        kind: ExprKind::NotNull(Box::new(expr)),
+                        span,
+                    }
+                }
                 Tok::Punct(p @ (Punct::Dot | Punct::SafeDot)) => {
                     let safe = *p == Punct::SafeDot;
                     self.bump();
@@ -43,8 +50,7 @@ impl Parser<'_, '_, '_> {
     }
 
     fn call(&mut self, callee: Expr) -> PResult<Expr> {
-        self.bump();
-        let args = self.braces(|p| p.list(Punct::RParen, Self::arg))?;
+        let args = self.args()?;
         let span = callee.span.to(self.prev());
         Ok(Expr {
             kind: ExprKind::Call {
@@ -55,25 +61,9 @@ impl Parser<'_, '_, '_> {
         })
     }
 
-    /// `name = value` or `value`.
-    fn arg(&mut self) -> PResult<Arg> {
-        let named = matches!(self.tok(), Tok::Ident(_)) && *self.nth(1) == Tok::Punct(Punct::Eq);
-        let name = if named {
-            let name = self.name("an argument")?;
-            self.bump();
-            Some(name)
-        } else {
-            None
-        };
-        Ok(Arg {
-            name,
-            value: self.expr()?,
-        })
-    }
-
     /// `f { … }` / `f(a) { … }`: the lambda is the last argument.
     fn trailing_lambda(&mut self, callee: Expr) -> PResult<Expr> {
-        let lambda = self.lambda()?;
+        let lambda = self.block_lambda()?;
         let span = callee.span.to(lambda.span);
         let arg = Arg {
             name: None,

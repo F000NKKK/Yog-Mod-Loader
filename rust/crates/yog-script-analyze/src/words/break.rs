@@ -12,5 +12,7 @@ pub static WORD: Word = Word {
 };
 
 fn parse(p: &mut Parser) -> PResult<Stmt> {
-    Ok(Stmt::Break(p.bump().span))
+    let at = p.bump().span;
+    p.end()?;
+    Ok(Stmt::Break(at))
 }

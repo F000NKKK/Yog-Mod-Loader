@@ -1,20 +1,14 @@
 //! Sources that must read cleanly, and ones whose problems must be found.
 
 use yog_ids::script_problem;
-use yog_script_analyze::ast::{DeclKind, PatchItem};
+use yog_script_analyze::ast::{BinOp, DeclKind, ExprKind, PatchItem, Stmt};
 use yog_script_analyze::parse;
 
 /// The complete examples of the grammar (§7): they must read without a problem.
 #[test]
 fn the_grammars_examples_read() {
-    let doc = include_str!("../../../../docs/design/ys-grammar.md");
-    let section = doc
-        .split("## 7.")
-        .nth(1)
-        .and_then(|s| s.split("\n## ").next())
-        .unwrap();
     let mut read = 0;
-    for (lang, code) in code_blocks(section) {
+    for (lang, code) in examples() {
         let parsed = parse(&format!("example.{lang}"), &code);
         assert!(
             parsed.problems.is_empty(),
@@ -27,9 +21,16 @@ fn the_grammars_examples_read() {
     assert_eq!(read, 2, "a .ys and a .yns example");
 }
 
-fn code_blocks(text: &str) -> Vec<(String, String)> {
+/// The code blocks of the grammar's §7.
+pub fn examples() -> Vec<(String, String)> {
+    let doc = include_str!("../../../../docs/design/ys-grammar.md");
+    let section = doc
+        .split("## 7.")
+        .nth(1)
+        .and_then(|s| s.split("\n## ").next())
+        .unwrap();
     let mut out = Vec::new();
-    let mut parts = text.split("```");
+    let mut parts = section.split("```");
     parts.next();
     while let (Some(block), _) = (parts.next(), parts.next()) {
         let (lang, code) = block.split_once('\n').unwrap();
@@ -42,13 +43,7 @@ fn code_blocks(text: &str) -> Vec<(String, String)> {
 fn a_small_mod_reads() {
     let parsed = parse("glassy.ys", include_str!("fixtures/glassy.ys"));
     assert!(parsed.problems.is_empty(), "{:#?}", parsed.problems);
-    let kinds: Vec<_> = parsed
-        .file
-        .decls
-        .iter()
-        .map(|d| std::mem::discriminant(&d.kind))
-        .collect();
-    assert_eq!(kinds.len(), 3);
+    assert_eq!(parsed.file.decls.len(), 3);
 }
 
 fn codes(name: &str, src: &str) -> Vec<String> {
@@ -61,47 +56,50 @@ fn codes(name: &str, src: &str) -> Vec<String> {
 
 #[test]
 fn a_patch_outside_a_yns_file_is_reported() {
-    let src = "patch Player {\n    priority 1\n}\n";
+    let src = "patch Player {\n    priority 1;\n}\n";
     assert_eq!(codes("a.ys", src), [script_problem::PATCH_OUTSIDE_NANITES]);
     assert!(codes("a.yns", src).is_empty());
 }
 
 #[test]
 fn lexing_problems_are_found_where_they_are() {
-    let parsed = parse("a.ys", "let a = \"open\nlet b = 1\n");
+    let parsed = parse("a.ys", "const string A = \"open;\nconst int B = 1;\n");
     let first = &parsed.problems[0];
     assert_eq!(first.code.as_deref(), Some(script_problem::UNTERMINATED));
-    assert_eq!((first.line, first.col), (Some(1), Some(9)));
+    assert_eq!((first.line, first.col), (Some(1), Some(18)));
     assert_eq!(
-        codes("a.ys", "let a = @item\n"),
+        codes("a.ys", "const int A = @item:;\n"),
         [script_problem::BAD_REFERENCE]
     );
-    assert_eq!(codes("a.ys", "let a = 0x\n"), [script_problem::BAD_NUMBER]);
     assert_eq!(
-        codes("a.ys", "let a = 1 $ 2\n"),
+        codes("a.ys", "const int A = 0x;\n"),
+        [script_problem::BAD_NUMBER]
+    );
+    assert_eq!(
+        codes("a.ys", "const int A = 1 $ 2;\n"),
         [script_problem::UNEXPECTED_CHAR, script_problem::EXPECTED]
     );
 }
 
-/// A broken line is reported and the lines after it still read.
+/// A broken statement is reported and the ones after it still read.
 #[test]
 fn reading_goes_on_after_a_problem() {
-    let src = "fn a() {\n    let = 1\n    let b = 2\n}\nfn c() = 3\n";
+    let src = "void A() {\n    var = 1;\n    var b = 2;\n}\nint C() => 3;\n";
     let parsed = parse("a.ys", src);
     assert_eq!(parsed.problems.len(), 1, "{:#?}", parsed.problems);
     assert_eq!(parsed.problems[0].line, Some(2));
     assert_eq!(parsed.file.decls.len(), 2);
 }
 
-/// `at call X(x)`: the one name is the argument, not a type list.
+/// `at call X (x)`: the one name is the argument, not a type list.
 #[test]
 fn an_argument_point_reads_both_ways() {
     for point in [
-        "at call Vec3.add(x) { x * 0.5 }",
-        "at call Vec3.add first (x) { x * 0.5 }",
+        "at call Vec3.Add (x) { x * 0.5 }",
+        "at call Vec3.Add first (x) { x * 0.5 }",
     ] {
         let src = format!(
-            "patch LivingEntity {{\n    inside knockback() {{\n        {point}\n    }}\n}}\n"
+            "patch LivingEntity {{\n    inside void Knockback() {{\n        {point}\n    }}\n}}\n"
         );
         let parsed = parse("a.yns", &src);
         assert!(
@@ -125,19 +123,25 @@ fn every_word_is_described() {
     }
 }
 
+/// The value of `var v = <src>;` in a method.
 fn value(src: &str) -> yog_script_analyze::ast::Expr {
-    let parsed = parse("a.ys", &format!("let v = {src}\n"));
+    let parsed = parse("a.ys", &format!("void F() {{ var v = {src}; }}\n"));
     assert!(parsed.problems.is_empty(), "{src}: {:#?}", parsed.problems);
-    let DeclKind::Let { value, .. } = parsed.file.decls.into_iter().next().unwrap().kind else {
+    let DeclKind::Method(m) = parsed.file.decls.into_iter().next().unwrap().kind else {
         panic!()
     };
-    value
+    let Some(yog_script_analyze::ast::MethodBody::Block(b)) = m.body else {
+        panic!()
+    };
+    let Some(Stmt::Local { value: Some(v), .. }) = b.stmts.into_iter().next() else {
+        panic!()
+    };
+    v
 }
 
 /// Operators bind by their levels (`ys-grammar.md` §3.2), words and signs alike.
 #[test]
 fn operators_bind_by_level() {
-    use yog_script_analyze::ast::{BinOp, ExprKind};
     let ExprKind::Binary {
         op: BinOp::Add,
         right,
@@ -154,11 +158,11 @@ fn operators_bind_by_level() {
         op: BinOp::And,
         left,
         ..
-    } = value("it is Battery b and b.charge > 0").kind
+    } = value("it is Battery b && b.Charge > 0").kind
     else {
-        panic!("`and` on top")
+        panic!("`&&` on top")
     };
-    assert!(matches!(left.kind, ExprKind::Is { bind: Some(_), .. }));
+    assert!(matches!(left.kind, ExprKind::Is { .. }));
     assert!(matches!(
         value("x ?? y ?? z").kind,
         ExprKind::Binary {
@@ -166,25 +170,71 @@ fn operators_bind_by_level() {
             ..
         }
     ));
-    assert!(matches!(value("-x as Int").kind, ExprKind::As { .. }));
     assert!(matches!(
-        value("x !in 0..10").kind,
-        ExprKind::Binary {
-            op: BinOp::NotIn,
-            ..
-        }
+        value("x as IChargeable").kind,
+        ExprKind::As { .. }
     ));
-    let ExprKind::Call { args, .. } = value("list.map { it * 2 }").kind else {
+    assert!(matches!(
+        value("a > 1 ? b : c").kind,
+        ExprKind::Conditional { .. }
+    ));
+    assert!(matches!(value("(int)x").kind, ExprKind::Cast { .. }));
+    assert!(matches!(value("(x)").kind, ExprKind::Ident(_)));
+    assert!(matches!(value("x => x * 2").kind, ExprKind::Lambda { .. }));
+    assert!(matches!(
+        value("(a, b) => a + b").kind,
+        ExprKind::Lambda { .. }
+    ));
+    assert!(matches!(
+        value("new Pos(1, 2, 3) { X = 4 }").kind,
+        ExprKind::New { .. }
+    ));
+    assert!(matches!(
+        value("tier switch { Tier.Wood or Tier.Stone => 1, _ => 2 }").kind,
+        ExprKind::Switch { .. }
+    ));
+    let ExprKind::Call { args, .. } = value("list.Select { it * 2 }").kind else {
         panic!("a trailing lambda")
     };
     assert!(matches!(args[0].value.kind, ExprKind::Lambda { .. }));
-    assert!(matches!(value("{ \"a\": 1 }").kind, ExprKind::Map(_)));
     assert!(matches!(
-        value("each<Battery> { it }").kind,
+        value("[\"a\" => 1]").kind,
+        ExprKind::Collection(_)
+    ));
+    assert!(matches!(
+        value("OfType<Battery>()").kind,
         ExprKind::Call { .. }
     ));
     assert!(matches!(
         value("a < b").kind,
         ExprKind::Binary { op: BinOp::Lt, .. }
     ));
+    assert!(matches!(
+        value("target!.Health").kind,
+        ExprKind::Member { .. }
+    ));
+}
+
+/// Members written type first tell methods, fields and properties apart.
+#[test]
+fn members_are_told_by_what_follows_their_name() {
+    let src = "class Timer(Ticks every) {\n    Ticks Left = every;\n    public bool Done => Left <= 0t;\n    \
+               int Count { get; set; } = 0;\n    public Timer() : this(20t) { }\n    \
+               List<int> Ticks<T>(T x) where T : Entity { return []; }\n}\n";
+    let parsed = parse("a.ys", src);
+    assert!(parsed.problems.is_empty(), "{:#?}", parsed.problems);
+    let DeclKind::Type { body, header, .. } = &parsed.file.decls[0].kind else {
+        panic!()
+    };
+    assert!(header.ctor.is_some());
+    let kinds: Vec<_> = body
+        .iter()
+        .map(|d| std::mem::discriminant(&d.kind))
+        .collect();
+    assert_eq!(kinds.len(), 5);
+    assert!(matches!(body[0].kind, DeclKind::Field(_)));
+    assert!(matches!(body[1].kind, DeclKind::Property { .. }));
+    assert!(matches!(body[2].kind, DeclKind::Property { .. }));
+    assert!(matches!(body[3].kind, DeclKind::Ctor(_)));
+    assert!(matches!(body[4].kind, DeclKind::Method(_)));
 }

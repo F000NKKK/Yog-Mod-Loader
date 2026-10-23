@@ -1,15 +1,14 @@
-//! `at` — a place inside a patched method.
+//! `at` — a point inside the method: an argument, a field, a `new`.
 
-use crate::ast::{Callee, Name, Point, TypeKind};
+use crate::ast::{Point, Selector};
 use crate::parser::{PResult, Parser};
 use crate::source::token::Punct;
-use crate::words::{Role, Word, call, new, read, uses, write};
+use crate::words::{Role, Word, call, local, new, read, write};
 
 pub static WORD: Word = Word {
     text: "at",
-    doc: "A place inside the patched method: `at call Vec3.add (x) { x * 0.5 }` changes an argument by its \
-          name; `at read field { … }` / `at write field { … }` run at a field's access; `at new Type { … }` \
-          where one is made.",
+    doc: "A point inside the patched method: an argument of a call by its name (`at call Vec3.Add (x) { x * 0.5 }`), \
+          a field's read or write (`at read Speed { … }`), where an object is made (`at new BlockPos { … }`).",
     reserved: false,
     roles: &[Role::Point { parse }],
 };
@@ -20,9 +19,8 @@ fn parse(p: &mut Parser) -> PResult<Point> {
         return argument(p);
     }
     if p.eat_word(&new::WORD) {
-        let ty = p.ty_plain()?;
-        let select = p.selector()?;
-        let uses = uses::list(p)?;
+        let ty = p.ty()?;
+        let (select, uses) = after_target(p)?;
         return Ok(Point::New { ty, select, uses, body: p.block()? });
     }
     let write = if p.eat_word(&write::WORD) {
@@ -31,36 +29,23 @@ fn parse(p: &mut Parser) -> PResult<Point> {
         p.need_word(&read::WORD)?;
         false
     };
-    let field = p.name("a field")?;
-    let select = p.selector()?;
-    let uses = uses::list(p)?;
+    let field = p.any_name("a field")?;
+    let (select, uses) = after_target(p)?;
     Ok(Point::Field { write, field, select, uses, body: p.block()? })
 }
 
-/// `at call X (arg) { … }`. Written `X(arg)`, the one name in the
-/// brackets is the argument, not a type list.
+/// `call Callee selector? (arg) { … }`.
 fn argument(p: &mut Parser) -> PResult<Point> {
-    let mut callee = p.callee()?;
+    let callee = p.callee()?;
     let select = p.selector()?;
-    let arg = if p.eat(Punct::LParen) {
-        let arg = p.name("an argument's name")?;
-        p.need(Punct::RParen)?;
-        arg
-    } else {
-        lone_name(&mut callee).ok_or_else(|| p.expected("`(argument)`"))?
-    };
-    Ok(Point::Arg { callee, select, arg, body: p.block()? })
+    p.need(Punct::LParen)?;
+    let arg = p.name("the argument's name")?;
+    p.need(Punct::RParen)?;
+    let body = p.value_block()?;
+    Ok(Point::Arg { callee, select, arg, body })
 }
 
-/// `X(name)` read as the callee `X` and its argument `name`.
-fn lone_name(callee: &mut Callee) -> Option<Name> {
-    let [one] = callee.args.as_deref()? else { return None };
-    let TypeKind::Path { path, args } = &one.kind else { return None };
-    let [name] = path.as_slice() else { return None };
-    if !args.is_empty() {
-        return None;
-    }
-    let name = name.clone();
-    callee.args = None;
-    Some(name)
+fn after_target(p: &mut Parser) -> PResult<(Option<Selector>, Vec<crate::ast::Local>)> {
+    let select = p.selector()?;
+    Ok((select, local::uses(p)?))
 }

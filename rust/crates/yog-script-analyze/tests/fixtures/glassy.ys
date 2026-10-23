@@ -1,12 +1,12 @@
-mod glassy {
-    version = "1.0.0"
-    targets = mc 1.20.1..26.2
+mod Glassy {
+    Version = "1.0.0";
+    Targets = mc 1.20.1..26.2;
 }
 
-const PREFIX = "g"
+const string Prefix = "g";
 
-server on block.broken(e) {
-    if e.player?.name.startsWith(PREFIX, ignoreCase = true) {
-        e.level.place(@block:minecraft:glass, at = e.pos)
+server on Block.Broken(BlockBreak e) {
+    if (e.Player?.Name.StartsWith(Prefix, ignoreCase: true) ?? false) {
+        e.Level.Place(@block:minecraft:glass, at: e.Pos);
     }
 }

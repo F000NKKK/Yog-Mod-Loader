@@ -6,7 +6,7 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "false",
-    doc: "No.",
+    doc: "Untruth.",
     reserved: true,
     roles: &[Role::Prefix { starts: None, parse }],
 };

@@ -1,29 +1,31 @@
-//! `before` — before a patched method, or a call in it.
+//! `before` — code run before a method.
 
 use crate::ast::{PatchItem, Point};
 use crate::parser::{PResult, Parser};
-use crate::words::{Role, Word, call, uses};
+use crate::words::{Role, Word, call, local};
 
 pub static WORD: Word = Word {
     text: "before",
-    doc: "Runs before the patched method: `before hurt(source: DamageSource, amount: Float) -> Bool { … }`. `skip value` ends the method there; falling through runs it. Inside a method, `before call X { … }` runs before that call.",
+    doc: "Runs before the patched method; inside one, before a call in it (`before call Spawn() { … }`) (`@Inject` at its head): `before bool Hurt(DamageSource source, float amount) { … }`. `skip value;` ends the method with that value; falling through runs it.",
     reserved: false,
-    roles: &[Role::PatchItem { parse: item }, Role::Point { parse: point }],
+    roles: &[Role::PatchItem { parse }, Role::Point { parse: point }],
 };
 
-fn item(p: &mut Parser) -> PResult<PatchItem> {
+fn parse(p: &mut Parser) -> PResult<PatchItem> {
     p.bump();
-    let method = p.method()?;
-    let uses = uses::list(p)?;
-    Ok(PatchItem::Before { method, uses, body: p.block()? })
+    let method = p.target()?;
+    let uses = local::uses(p)?;
+    let body = p.block()?;
+    Ok(PatchItem::Before { method, uses, body })
 }
 
-/// Inside a method: `before call X …`.
+/// `before call Callee selector? uses? { … }` inside a method.
 fn point(p: &mut Parser) -> PResult<Point> {
     p.bump();
     p.need_word(&call::WORD)?;
     let callee = p.callee()?;
     let select = p.selector()?;
-    let uses = uses::list(p)?;
-    Ok(Point::BeforeCall { callee, select, uses, body: p.block()? })
+    let uses = local::uses(p)?;
+    let body = p.block()?;
+    Ok(Point::BeforeCall { callee, select, uses, body })
 }

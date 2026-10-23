@@ -35,20 +35,20 @@ pub enum Role {
     Stmt {
         parse: fn(&mut Parser) -> PResult<Stmt>,
     },
-    /// Starts an expression (a literal, a prefix, `if`, `match`).
+    /// Starts an expression (a literal, a prefix, `new`).
     Prefix {
         starts: Starts,
         parse: fn(&mut Parser) -> PResult<Expr>,
     },
-    /// Joins the expression before it with what follows; `negated` when
-    /// written `!word` (`!is`, `!in`).
+    /// Joins the expression before it with what follows.
     Infix {
         level: Level,
-        parse: fn(&mut Parser, Expr, bool) -> PResult<Expr>,
-        negatable: bool,
+        parse: fn(&mut Parser, Expr) -> PResult<Expr>,
     },
     /// Marks the declaration after it.
     Modifier(Modifier),
+    /// A built-in type (`int`, `string`, `void`).
+    BuiltinType,
     /// Starts an item of a patch (`before`, `add`, …).
     PatchItem {
         parse: fn(&mut Parser) -> PResult<PatchItem>,
@@ -57,27 +57,34 @@ pub enum Role {
     Point {
         parse: fn(&mut Parser) -> PResult<Point>,
     },
-    /// Only part of another word's form (`else`, `was`, `of`).
+    /// Only part of another word's form (`else`, `was`, `when`).
     Part,
 }
 
 /// Binding strength of infix forms, loosest first (`ys-grammar.md` §3.2).
+/// Lambdas and `c ? a : b` are looser still; prefixes and postfixes tighter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Level {
     Coalesce,
     Or,
     And,
+    Equality,
     Compare,
     Range,
     Sum,
     Product,
-    Convert,
+    Switch,
 }
 
 impl Word {
     /// Its role of the kind `pick` finds.
     pub fn role<T>(&self, pick: impl Fn(&Role) -> Option<T>) -> Option<T> {
         self.roles.iter().find_map(pick)
+    }
+
+    /// Whether it names a built-in type.
+    pub fn is_type(&self) -> bool {
+        self.roles.iter().any(|r| matches!(r, Role::BuiltinType))
     }
 }
 
@@ -113,20 +120,21 @@ macro_rules! words {
 }
 
 words! {
-    // Files and declarations.
-    // `mod.rs` and `self` can't name a module file: theirs say `_word`.
-    r#use, module = "words/mod_word.rs", r#fn, r#let, r#var, val, r#const, r#type, unit, record, union, r#enum,
-    extend, on, test, native, version, recipe, screen, command, state, action, slots,
-    patch,
+    // Files and declarations. `mod.rs` can't name a module file: its says `_word`.
+    using, module = "words/mod_word.rs", class, record, interface, union, r#enum, unit,
+    component, system, extend, on, test, native, version, screen, command, patch,
     // Parts of declarations.
-    was, requires, ui, of, mc,
+    was, requires, every, has, r#where, when, get, set, init, mc,
     // Modifiers.
-    server, client, shared, saved, synced, tune, r#pub,
+    public, private, internal, r#static, r#const, readonly, r#async,
+    server, client, shared, saved, synced, tune,
+    // Built-in types.
+    void, int, long, float, double, bool, string, byte, char,
     // Statements.
-    r#for, r#while, r#loop, r#break, r#continue, r#return, skip,
+    var, r#if, r#else, foreach, r#for, r#while, r#do, r#break, r#continue, r#return, skip,
     // Expressions.
-    r#if, r#else, r#match, r#try, r#true, r#false, none, this = "words/self_word.rs", it, not, and, or, is, r#as, r#in,
+    new, this, r#true, r#false, null, r#await, r#try, is, r#as, r#in, switch, and, or, not,
     // Patches: items, points, selectors.
     add, before, after, inside, replace, read, write, priority, uses, local,
-    around, at, call, new, constant, first, last, r#where,
+    around, at, call, constant, first, last,
 }

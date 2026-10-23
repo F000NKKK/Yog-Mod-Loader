@@ -1,21 +1,11 @@
-//! `const` — a value known when the mod is built.
+//! `const`.
 
-use crate::ast::DeclKind;
-use crate::parser::{PResult, Parser};
-use crate::source::token::Punct;
+use crate::ast::Modifier;
 use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "const",
-    doc: "A value known when the mod is built: `const PREFIX = \"g\"`. Numbers and texts players see belong in the mod's `.yres`.",
+    doc: "A value known at build time: `const int MaxTier = 3;`.",
     reserved: true,
-    roles: &[Role::Decl { starts: None, parse }],
+    roles: &[Role::Modifier(Modifier::Const)],
 };
-
-fn parse(p: &mut Parser) -> PResult<DeclKind> {
-    p.bump();
-    let name = p.name("a constant")?;
-    let ty = if p.eat(Punct::Colon) { Some(p.ty()?) } else { None };
-    p.need(Punct::Eq)?;
-    Ok(DeclKind::Const { name, ty, value: p.expr()? })
-}

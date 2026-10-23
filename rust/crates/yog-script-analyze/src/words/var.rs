@@ -1,32 +1,36 @@
-//! `var` — a value that changes.
+//! `var` — a local whose type is its value's.
 
-use crate::ast::{DeclKind, Stmt, VarDecl};
+use crate::ast::{Binding, Stmt};
 use crate::parser::{PResult, Parser};
 use crate::source::token::Punct;
-use crate::words::{Role, Word, was};
+use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "var",
-    doc: "A value that changes: `var count = 0`. On content and in state, `saved` keeps it in the world's \
-          save, `synced` shows it to the clients that see its owner, and `was old: Type` reads an old \
-          save's field: `saved synced var energy: Energy in 0..1000 = 0 was power: Int`.",
+    doc: "A local whose type is its value's: `var moved = Math.Min(Energy, into.Room);`; \
+          `var (a, b) = pair;` takes a tuple apart. In a pattern, `var e` binds anything.",
     reserved: true,
-    roles: &[Role::Decl { starts: None, parse: decl }, Role::Stmt { parse: stmt }],
+    roles: &[Role::Stmt { parse }],
 };
 
-fn rest(p: &mut Parser) -> PResult<VarDecl> {
-    p.bump();
-    let name = p.name("a variable")?;
-    let ty = if p.eat(Punct::Colon) { Some(p.ty()?) } else { None };
+fn parse(p: &mut Parser) -> PResult<Stmt> {
+    let s = local(p)?;
+    p.end()?;
+    Ok(s)
+}
+
+/// `var name (= value)?` or `var (a, b) = value`, without the `;`.
+pub(crate) fn local(p: &mut Parser) -> PResult<Stmt> {
+    p.need_word(&WORD)?;
+    let binding = binding(p)?;
     let value = if p.eat(Punct::Eq) { Some(p.expr()?) } else { None };
-    let was = was::migration(p)?;
-    Ok(VarDecl { name, ty, value, was })
+    Ok(Stmt::Local { ty: None, binding, value })
 }
 
-fn decl(p: &mut Parser) -> PResult<DeclKind> {
-    rest(p).map(DeclKind::Var)
-}
-
-fn stmt(p: &mut Parser) -> PResult<Stmt> {
-    rest(p).map(|v| Stmt::Var { name: v.name, ty: v.ty, value: v.value })
+/// `name` or `(a, b)`.
+pub(crate) fn binding(p: &mut Parser) -> PResult<Binding> {
+    if p.eat(Punct::LParen) {
+        return Ok(Binding::Tuple(p.list(Punct::RParen, |p| p.name("a name"))?));
+    }
+    Ok(Binding::One(p.name("a name")?))
 }

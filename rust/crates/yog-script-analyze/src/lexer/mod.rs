@@ -14,31 +14,11 @@ pub fn lex(src: &str, report: &mut Report) -> Vec<Token> {
     let mut lexer = Lexer::new(src, 0, report);
     lexer.run(false);
     let end = Span::new(src.len(), src.len());
-    let mut out = continued(lexer.out);
+    let mut out = lexer.out;
     out.push(Token {
         tok: Tok::Eof,
         span: end,
     });
-    out
-}
-
-/// Newlines that don't end a statement dropped: before a line starting
-/// with `.`, `?.` or `else`, and repeated ones.
-fn continued(tokens: Vec<Token>) -> Vec<Token> {
-    let mut out: Vec<Token> = Vec::with_capacity(tokens.len());
-    for t in tokens {
-        let goes_on = match &t.tok {
-            Tok::Punct(p) => matches!(p, Punct::Dot | Punct::SafeDot),
-            Tok::Keyword(w) => **w == words::r#else::WORD,
-            _ => false,
-        };
-        if goes_on {
-            while out.last().is_some_and(|l| l.tok == Tok::Newline) {
-                out.pop();
-            }
-        }
-        out.push(t);
-    }
     out
 }
 
@@ -47,7 +27,7 @@ pub(crate) struct Lexer<'s, 'r, 'a> {
     pos: usize,
     out: Vec<Token>,
     report: &'r mut Report<'a>,
-    /// The brackets open now: newlines inside `(` and `[` mean nothing.
+    /// The brackets open now: a `}` closing none ends an interpolation.
     open: Vec<Punct>,
 }
 
@@ -55,8 +35,11 @@ const LINE_COMMENT: &str = "//";
 const DOC_COMMENT: &str = "///";
 const BLOCK_OPEN: &str = "/*";
 const BLOCK_CLOSE: &str = "*/";
-const RAW_PREFIX: &str = "r\"";
+const RAW_QUOTES: &str = "\"\"\"";
 const TEXT_PREFIX: &str = "t\"";
+const CHAR_QUOTE: char = '\'';
+/// Before a name: the name even when it's a keyword (`@this`).
+const VERBATIM: char = '@';
 /// Hexadecimal: `0x…` numbers, `\u{…}` escapes.
 const HEX: u32 = 16;
 
@@ -103,47 +86,30 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
             if interpolation && c == '}' && self.open.is_empty() {
                 return;
             }
-            self.token(c, interpolation);
+            self.token(c);
         }
     }
 
-    fn token(&mut self, c: char, interpolation: bool) {
+    fn token(&mut self, c: char) {
         let start = self.pos;
         match c {
-            ' ' | '\t' | '\r' => {
+            c if c.is_whitespace() => {
                 self.bump();
-            }
-            '\n' => {
-                self.bump();
-                self.newline(start, interpolation);
             }
             '/' if self.rest().starts_with(LINE_COMMENT) => self.line_comment(start),
             '/' if self.rest().starts_with(BLOCK_OPEN) => self.block_comment(start),
             '0'..='9' => self.number(start),
+            '"' if self.rest().starts_with(RAW_QUOTES) => self.raw_block(start),
             '"' => self.string(start),
-            'r' if self.rest().starts_with(RAW_PREFIX) => {
-                self.raw(start, RAW_PREFIX.len(), Tok::RawStr)
-            }
+            CHAR_QUOTE => self.char_literal(start),
             't' if self.rest().starts_with(TEXT_PREFIX) => {
                 self.raw(start, TEXT_PREFIX.len(), Tok::Text)
             }
             c if is_ident_start(c) => self.ident(start),
-            '@' => self.content(start),
+            VERBATIM if self.verbatim_name_follows() => self.verbatim(start),
+            VERBATIM => self.content(start),
             '#' if self.peek_at(1).is_some_and(is_ident_start) => self.tag(start),
             _ => self.punct(start, c),
-        }
-    }
-
-    fn newline(&mut self, start: usize, interpolation: bool) {
-        let inside =
-            interpolation || matches!(self.open.last(), Some(Punct::LParen | Punct::LBracket));
-        let ends = match self.out.last().map(|t| &t.tok) {
-            None | Some(Tok::Newline) => false,
-            Some(Tok::Punct(p)) => !p.continues(),
-            Some(_) => true,
-        };
-        if !inside && ends {
-            self.push(Tok::Newline, start);
         }
     }
 
@@ -183,6 +149,19 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
             span,
             "this comment never ends (`*/`)",
         );
+    }
+
+    /// `@name` without a `:` after it: a name, keyword or not.
+    fn verbatim_name_follows(&self) -> bool {
+        let rest = &self.rest()[VERBATIM.len_utf8()..];
+        let name_len = rest.find(|c: char| !is_ident_char(c)).unwrap_or(rest.len());
+        name_len > 0 && !rest[name_len..].starts_with(':')
+    }
+
+    fn verbatim(&mut self, start: usize) {
+        self.bump();
+        let text = self.word().to_string();
+        self.push(Tok::Ident(text), start);
     }
 
     fn ident(&mut self, start: usize) {

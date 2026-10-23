@@ -1,18 +1,10 @@
 //! `or`.
 
-use crate::ast::{BinOp, Expr};
-use crate::parser::{PResult, Parser};
-use crate::words::{Level, Role, Word};
+use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "or",
-    doc: "Either holds: `a or b` (or `a || b`); `b` is evaluated only when `a` doesn't.",
+    doc: "In a pattern, either holds: `Tier.Wood or Tier.Stone => 1`. Conditions join with `||`.",
     reserved: true,
-    roles: &[Role::Infix { level: Level::Or, parse, negatable: false }],
+    roles: &[Role::Part],
 };
-
-fn parse(p: &mut Parser, left: Expr, _negated: bool) -> PResult<Expr> {
-    p.bump();
-    let right = p.binary(Level::Or.tighter())?;
-    Ok(Parser::binary_node(BinOp::Or, left, right))
-}

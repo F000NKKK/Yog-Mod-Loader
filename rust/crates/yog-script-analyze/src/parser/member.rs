@@ -1,0 +1,210 @@
+//! Members written type first (`ys-grammar.md` §2.2): methods, fields,
+//! properties; constructors; content of any kind (`block Charger { … }`,
+//! a mod's own kinds: the kinds are open); `Name = value;` properties.
+
+use super::{PResult, Parser};
+use crate::ast::{Accessor, Ctor, DeclKind, Field, Method, MethodBody, Name, Prop, Type};
+use crate::source::token::{Punct, Tok};
+use crate::words::{get, has, r#in, init, requires, set, void, was};
+
+impl Parser<'_, '_, '_> {
+    /// A member no word starts.
+    pub(super) fn member(&mut self) -> PResult<DeclKind> {
+        if self.at_word(&void::WORD) {
+            self.bump();
+            let name = self.name("a method's name")?;
+            return self.method_rest(None, name).map(DeclKind::Method);
+        }
+        if matches!(self.tok(), Tok::Ident(_)) && self.nth_is(1, Punct::LParen) {
+            return self.ctor().map(DeclKind::Ctor);
+        }
+        let Some(len) = self.typed_ahead() else {
+            return Err(self.expected("a declaration"));
+        };
+        let content = len == 1
+            && (self.nth_word(2, &has::WORD)
+                || self.nth_is(2, Punct::Colon)
+                || (self.nth_is(2, Punct::LBrace) && !self.accessor_ahead(3)));
+        if content {
+            return self.content();
+        }
+        let ty = self.ty()?;
+        let name = self.name("a name")?;
+        match self.tok() {
+            Tok::Punct(Punct::LParen | Punct::Lt) => {
+                self.method_rest(Some(ty), name).map(DeclKind::Method)
+            }
+            Tok::Punct(Punct::LBrace) => self.property(ty, name),
+            Tok::Punct(Punct::FatArrow) => {
+                self.bump();
+                let value = self.expr()?;
+                self.end()?;
+                let get = Accessor {
+                    name: Name {
+                        text: get::WORD.text.to_string(),
+                        span: value.span,
+                    },
+                    body: Some(MethodBody::Expr(value)),
+                };
+                Ok(DeclKind::Property {
+                    ty,
+                    name,
+                    accessors: vec![get],
+                    value: None,
+                })
+            }
+            _ => self.field_rest(ty, name).map(DeclKind::Field),
+        }
+    }
+
+    /// Whether `get`, `set` or `init` stands `n` ahead: a property's braces.
+    fn accessor_ahead(&self, n: usize) -> bool {
+        [&get::WORD, &set::WORD, &init::WORD]
+            .iter()
+            .any(|w| self.nth_word(n, w))
+    }
+
+    /// After a method's result and name: generics, parameters, constraints,
+    /// guard, body (none for a signature: `;`).
+    pub(crate) fn method_rest(&mut self, ret: Option<Type>, name: Name) -> PResult<Method> {
+        let generics = self.generics()?;
+        let params = self.params()?;
+        let constraints = self.constraints()?;
+        let requires = if self.eat_word(&requires::WORD) {
+            Some(self.no_brace(Self::expr)?)
+        } else {
+            None
+        };
+        let body = self.method_body()?;
+        Ok(Method {
+            ret,
+            name,
+            generics,
+            params,
+            constraints,
+            requires,
+            body,
+        })
+    }
+
+    /// `{ … }`, `=> expr;`, or `;` (none).
+    pub(crate) fn method_body(&mut self) -> PResult<Option<MethodBody>> {
+        if self.eat(Punct::FatArrow) {
+            let e = self.expr()?;
+            self.end()?;
+            return Ok(Some(MethodBody::Expr(e)));
+        }
+        if self.at(Punct::LBrace) {
+            return Ok(Some(MethodBody::Block(self.block()?)));
+        }
+        self.end()?;
+        Ok(None)
+    }
+
+    /// After a field's type and name: `in range`, `= value`, `was Old: T`, `;`.
+    pub(crate) fn field_rest(&mut self, ty: Type, name: Name) -> PResult<Field> {
+        let bound = if self.eat_word(&r#in::WORD) {
+            Some(self.range_bound()?)
+        } else {
+            None
+        };
+        let value = if self.eat(Punct::Eq) {
+            Some(self.expr()?)
+        } else {
+            None
+        };
+        let was = if self.eat_word(&was::WORD) {
+            let old = self.name("the old name")?;
+            let ty = if self.eat(Punct::Colon) {
+                Some(self.ty()?)
+            } else {
+                None
+            };
+            Some((old, ty))
+        } else {
+            None
+        };
+        self.end()?;
+        Ok(Field {
+            ty,
+            name,
+            bound,
+            value,
+            was,
+        })
+    }
+
+    /// `{ get; set { … } }` and maybe `= value;`.
+    fn property(&mut self, ty: Type, name: Name) -> PResult<DeclKind> {
+        self.need(Punct::LBrace)?;
+        let mut accessors = Vec::new();
+        while !self.eat(Punct::RBrace) {
+            if !self.accessor_ahead(0) {
+                return Err(self.expected("`get`, `set` or `init`"));
+            }
+            let name = self.any_name("an accessor")?;
+            let body = self.method_body()?;
+            accessors.push(Accessor { name, body });
+        }
+        let value = if self.eat(Punct::Eq) {
+            let v = self.expr()?;
+            self.end()?;
+            Some(v)
+        } else {
+            None
+        };
+        Ok(DeclKind::Property {
+            ty,
+            name,
+            accessors,
+            value,
+        })
+    }
+
+    /// `Name(params) : this(args) { … }`.
+    fn ctor(&mut self) -> PResult<Ctor> {
+        let name = self.name("a constructor")?;
+        let params = self.params()?;
+        let this_args = if self.eat(Punct::Colon) {
+            self.need_word(&crate::words::this::WORD)?;
+            Some(self.args()?)
+        } else {
+            None
+        };
+        let body = self.block()?;
+        Ok(Ctor {
+            name,
+            params,
+            this_args,
+            body,
+        })
+    }
+
+    /// `Name = value;`.
+    pub(crate) fn prop(&mut self) -> PResult<Prop> {
+        let name = self.name("a property")?;
+        self.need(Punct::Eq)?;
+        let value = self.expr()?;
+        self.end()?;
+        Ok(Prop { name, value })
+    }
+
+    /// `kind Name (: Base)? (has …)? { body }`.
+    fn content(&mut self) -> PResult<DeclKind> {
+        let kind = self.name("a content kind")?;
+        let name = self.name("a name")?;
+        let header = self.header(false)?;
+        let body = self.body()?;
+        Ok(DeclKind::Content {
+            kind,
+            name,
+            header,
+            body,
+        })
+    }
+
+    /// What a declaration's `in` bounds it by: a range.
+    fn range_bound(&mut self) -> PResult<crate::ast::Expr> {
+        self.binary(crate::words::Level::Range)
+    }
+}

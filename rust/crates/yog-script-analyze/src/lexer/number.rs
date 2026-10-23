@@ -10,6 +10,8 @@ const HEX_PREFIX: &str = "0x";
 const BIN_PREFIX: &str = "0b";
 const BIN: u32 = 2;
 const DIGIT_SEP: char = '_';
+/// What makes a number a `float` or a `double` (`2.0f`, `1d`), as in C#.
+const FLOAT_SUFFIXES: [&str; 2] = ["f", "d"];
 
 impl Lexer<'_, '_, '_> {
     pub(super) fn number(&mut self, start: usize) {
@@ -40,6 +42,10 @@ impl Lexer<'_, '_, '_> {
         let text = self.src[start..self.pos].replace(DIGIT_SEP, "");
         if self.peek().is_some_and(is_ident_start) {
             let unit = self.word().to_string();
+            if FLOAT_SUFFIXES.contains(&unit.as_str()) {
+                let tok = text.parse().ok().map(Tok::Float);
+                return self.number_or_problem(tok, start);
+            }
             return self.push(Tok::Unit(text, unit), start);
         }
         let tok = if dots == 0 {

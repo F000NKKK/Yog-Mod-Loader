@@ -27,6 +27,7 @@ pub enum Tok {
     Version(String),
     Str(Vec<StrPart>),
     RawStr(String),
+    Char(char),
     /// A translatable text by key: `t"charge.tooltip"`.
     Text(String),
     /// `@kind:namespace:path`: the kind, the id.
@@ -36,8 +37,6 @@ pub enum Tok {
     /// `/// …`: a declaration's documentation line.
     Doc(String),
     Punct(Punct),
-    /// The end of a statement (a newline that isn't a continuation).
-    Newline,
     Eof,
 }
 
@@ -70,24 +69,13 @@ puncts! {
     /// Punctuation and operators, longest first where one starts another.
     Punct {
         RangeExcl = "..<", NullAssign = "??=",
-        Arrow = "->", FatArrow = "=>", SafeDot = "?.", Coalesce = "??",
+        FatArrow = "=>", SafeDot = "?.", Coalesce = "??",
         EqEq = "==", NotEq = "!=", LtEq = "<=", GtEq = ">=", AndAnd = "&&", OrOr = "||",
         PlusEq = "+=", MinusEq = "-=", StarEq = "*=", SlashEq = "/=", PercentEq = "%=",
         Range = "..",
         LBrace = "{", RBrace = "}", LParen = "(", RParen = ")", LBracket = "[", RBracket = "]",
         Comma = ",", Dot = ".", Colon = ":", Semi = ";", Question = "?",
         Eq = "=", Lt = "<", Gt = ">", Plus = "+", Minus = "-", Star = "*", Slash = "/",
-        Percent = "%", Bang = "!", Pipe = "|", Hash = "#",
-    }
-}
-
-impl Punct {
-    /// After it a newline doesn't end the statement: the line goes on.
-    #[must_use]
-    pub const fn continues(self) -> bool {
-        !matches!(
-            self,
-            Punct::RBrace | Punct::RParen | Punct::RBracket | Punct::Semi | Punct::Question
-        )
+        Percent = "%", Bang = "!", Amp = "&", Hash = "#",
     }
 }

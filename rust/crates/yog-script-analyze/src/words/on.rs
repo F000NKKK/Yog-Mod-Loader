@@ -7,18 +7,16 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "on",
-    doc: "What runs when something happens: `on player.join(p) { … }` in a file, `on use(p) { … }` \
-          or `server on tick { … }` on content. A failure in it stops that handler, never the game.",
+    doc: "What runs when something happens: `on Player.Join(Player player) { … }` in a file, \
+          `on Use(Player player) { … }` or `server on Tick { … }` on content and components. \
+          A failure in it stops that handler, never the game.",
     reserved: true,
     roles: &[Role::Decl { starts: None, parse }],
 };
 
 fn parse(p: &mut Parser) -> PResult<DeclKind> {
     p.bump();
-    let mut event = vec![p.any_name("an event")?];
-    while p.eat(Punct::Dot) {
-        event.push(p.any_name("an event")?);
-    }
-    let params = p.untyped_params()?;
+    let event = p.path("an event")?;
+    let params = if p.at(Punct::LParen) { p.params()? } else { Vec::new() };
     Ok(DeclKind::On { event, params, body: p.block()? })
 }

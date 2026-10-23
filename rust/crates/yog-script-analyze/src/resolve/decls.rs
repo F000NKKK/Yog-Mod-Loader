@@ -1,8 +1,10 @@
 //! Declarations: their names are known in all of the body they're in
-//! (declared first, then each walked), members see `self`.
+//! (declared first, then each walked); members see `this`.
 
+use super::naming::Case;
 use super::{Context, DefKind, Resolver};
-use crate::ast::{Decl, DeclKind, FnBody, FnDecl, Generic, Name, Param};
+use crate::ast::{Decl, DeclKind, Method, MethodBody, Modifier, Name, Param, TypeHeader};
+use crate::words::{interface, record};
 
 impl Resolver<'_, '_> {
     /// A body of declarations: every name first, then each one walked.
@@ -23,31 +25,54 @@ impl Resolver<'_, '_> {
 
     fn declare(&mut self, d: &Decl, again: bool) {
         match &d.kind {
-            DeclKind::Use { path, items, alias } => {
-                let names = match (alias, items.is_empty()) {
-                    (Some(a), _) => std::slice::from_ref(a),
-                    (None, false) => items.as_slice(),
-                    (None, true) => path.last().map(std::slice::from_ref).unwrap_or_default(),
-                };
-                for n in names {
-                    self.define(n, DefKind::Import, again);
+            DeclKind::Using(path) => {
+                if let Some(last) = path.last() {
+                    self.define(last, DefKind::Import, Case::Any, again);
                 }
             }
-            DeclKind::Fn(f) | DeclKind::Action(f) => self.define(&f.name, DefKind::Fn, again),
-            DeclKind::Let { pattern, .. } => self.pattern_names(pattern, again),
-            DeclKind::Var(v) => self.define(&v.name, DefKind::Variable, again),
-            DeclKind::Const { name, .. } | DeclKind::Val { name, .. } => {
-                self.define(name, DefKind::Value, again);
-            }
-            DeclKind::Unit { name, .. }
-            | DeclKind::Type { name, .. }
-            | DeclKind::Record { name, .. }
+            DeclKind::Alias { name, .. }
+            | DeclKind::Unit { name, .. }
             | DeclKind::Union { name, .. }
-            | DeclKind::Enum { name, .. } => self.define(name, DefKind::Type, again),
-            DeclKind::Content { name, .. } | DeclKind::Screen { name, .. } => {
-                self.define(name, DefKind::Content, again);
+            | DeclKind::Enum { name, .. } => {
+                self.define(name, DefKind::Type, Case::Pascal, again);
             }
-            DeclKind::Slots { name, .. } => self.define(name, DefKind::Field, again),
+            DeclKind::Type { word, name, .. } => {
+                let case = if word.text == interface::WORD.text {
+                    Case::Interface
+                } else {
+                    Case::Pascal
+                };
+                self.define(name, DefKind::Type, case, again);
+            }
+            DeclKind::Method(m) => self.define(&m.name, DefKind::Method, Case::Pascal, again),
+            DeclKind::Field(f) => self.define(&f.name, field_kind(d), Case::Pascal, again),
+            DeclKind::Property {
+                name, accessors, ..
+            } => {
+                let settable = accessors.is_empty()
+                    || accessors
+                        .iter()
+                        .any(|a| a.name.text != crate::words::get::WORD.text);
+                let kind = if settable {
+                    DefKind::Field
+                } else {
+                    DefKind::ReadOnly
+                };
+                self.define(name, kind, Case::Pascal, again);
+            }
+            // A recipe is named by what it makes: it declares no name.
+            DeclKind::Content { kind, name, .. } if kind.text == yog_ids::kind::RECIPE => {
+                self.refer(&name.text, name.span);
+            }
+            DeclKind::Content { name, .. } | DeclKind::Screen { name, .. } => {
+                self.define(name, DefKind::Content, Case::Pascal, again);
+            }
+            DeclKind::Component { name, .. } => {
+                self.define(name, DefKind::Component, Case::Pascal, again)
+            }
+            DeclKind::System { name, .. } => {
+                self.define(name, DefKind::Method, Case::Pascal, again)
+            }
             DeclKind::Version {
                 then, otherwise, ..
             } => {
@@ -56,9 +81,9 @@ impl Resolver<'_, '_> {
                     self.declare_all(o, true);
                 }
             }
-            DeclKind::Native { fns, .. } => {
-                for f in fns {
-                    self.define(&f.name, DefKind::Fn, again);
+            DeclKind::Native { methods, .. } => {
+                for m in methods {
+                    self.define(&m.name, DefKind::Method, Case::Pascal, again);
                 }
             }
             _ => {}
@@ -68,32 +93,44 @@ impl Resolver<'_, '_> {
     fn walk_decl(&mut self, d: &Decl) {
         match &d.kind {
             DeclKind::Mod { props, .. } => props.iter().for_each(|p| self.expr(&p.value)),
-            DeclKind::Fn(f) | DeclKind::Action(f) => self.function(f),
-            DeclKind::Let { ty, value, .. } => {
-                self.opt_ty(ty.as_ref());
-                self.expr(value);
+            DeclKind::Alias { ty, .. } => self.ty(ty),
+            DeclKind::Method(m) => self.method(m, d.has(Modifier::Async)),
+            DeclKind::Field(f) => {
+                self.ty(&f.ty);
+                self.opt_expr(f.bound.as_ref());
+                self.opt_expr(f.value.as_ref());
+                if let Some((_, ty)) = &f.was {
+                    self.opt_ty(ty.as_ref());
+                }
             }
-            DeclKind::Var(v) => {
-                self.opt_ty(v.ty.as_ref());
-                self.opt_expr(v.value.as_ref());
-            }
-            DeclKind::Const { ty, value, .. } | DeclKind::Val { ty, value, .. } => {
-                self.opt_ty(ty.as_ref());
-                self.expr(value);
-            }
-            DeclKind::Unit { value, .. } => self.opt_expr(value.as_ref()),
-            DeclKind::Type { generics, ty, .. } => self.scoped(|r| {
-                r.generics(generics);
-                r.ty(ty);
-            }),
-            DeclKind::Record {
-                generics,
-                fields,
-                body,
+            DeclKind::Property {
+                ty,
+                accessors,
+                value,
                 ..
-            } => self.members(|r| {
-                r.generics(generics);
-                r.fields(fields);
+            } => {
+                self.ty(ty);
+                for a in accessors {
+                    self.body(a.body.as_ref(), false);
+                }
+                self.opt_expr(value.as_ref());
+            }
+            DeclKind::Ctor(c) => self.scoped(|r| {
+                r.params(&c.params);
+                c.this_args.iter().flatten().for_each(|a| r.expr(&a.value));
+                r.block(&c.body);
+            }),
+            DeclKind::Type {
+                word, header, body, ..
+            } => {
+                let record = word.text == record::WORD.text;
+                self.members(|r| {
+                    r.header(header, record);
+                    r.decls(body);
+                });
+            }
+            DeclKind::Component { header, body, .. } => self.members(|r| {
+                r.header(header, false);
                 r.decls(body);
             }),
             DeclKind::Union {
@@ -104,95 +141,130 @@ impl Resolver<'_, '_> {
             } => self.members(|r| {
                 r.generics(generics);
                 for v in variants {
-                    r.define(&v.name, DefKind::Case, false);
-                    r.scoped(|r| r.fields(&v.fields));
+                    r.define(&v.name, DefKind::Case, Case::Pascal, false);
+                    v.fields.iter().for_each(|f| r.ty(&f.ty));
                 }
                 r.decls(body);
             }),
-            DeclKind::Enum { cases, body, .. } => self.members(|r| {
+            DeclKind::Enum { cases, .. } => self.members(|r| {
                 for c in cases {
-                    r.define(c, DefKind::Case, false);
+                    r.define(c, DefKind::Case, Case::Pascal, false);
                 }
-                r.decls(body);
             }),
-            DeclKind::Extend { ty, adds, body } => {
-                self.ty(ty);
-                self.opt_ty(adds.as_ref());
-                self.members(|r| r.decls(body));
-            }
-            DeclKind::Content { base, body, .. } => {
-                self.opt_ty(base.as_ref());
-                self.members(|r| r.decls(body));
-            }
-            DeclKind::Screen { params, body, .. } => self.members(|r| {
-                r.params(params);
-                r.decls(body);
-            }),
+            DeclKind::Unit { value, .. } => self.opt_expr(value.as_ref()),
             _ => self.walk_rest(d),
         }
     }
 
-    /// The declarations that hold code but no names of their own.
+    /// The declarations that hold code but few names of their own.
     fn walk_rest(&mut self, d: &Decl) {
         match &d.kind {
-            DeclKind::Recipe { result, keys, .. } => {
-                self.ty(result);
-                keys.iter().for_each(|k| self.expr(&k.value));
+            DeclKind::Content { header, body, .. } | DeclKind::Screen { header, body, .. } => {
+                self.members(|r| {
+                    r.header(header, false);
+                    r.decls(body);
+                });
+            }
+            DeclKind::Extend { ty, header, body } => {
+                self.ty(ty);
+                self.members(|r| {
+                    r.header(header, false);
+                    r.decls(body);
+                });
+            }
+            DeclKind::System {
+                params,
+                every,
+                body,
+                ..
+            } => {
+                let cx = self.body_cx(false);
+                self.within(cx, |r| {
+                    r.scoped(|r| {
+                        r.params(params);
+                        r.opt_expr(every.as_ref());
+                        r.block(body);
+                    });
+                });
             }
             DeclKind::Prop(p) => self.expr(&p.value),
-            DeclKind::Slots { size, of, .. } => {
-                self.expr(size);
-                self.opt_ty(of.as_ref());
+            DeclKind::Command { body, .. } => self.scoped(|r| r.decls(body)),
+            DeclKind::On { params, body, .. } => {
+                self.handler(params, d.has(Modifier::Async), |r| r.block(body))
             }
-            DeclKind::State { body, .. } | DeclKind::Command { body, .. } => {
-                self.scoped(|r| r.decls(body));
-            }
-            DeclKind::On { params, body, .. } => self.handler(params, |r| r.block(body)),
-            DeclKind::Test { body, .. } => self.handler(&[], |r| r.block(body)),
+            DeclKind::Test { body, .. } => self.handler(&[], true, |r| r.block(body)),
             DeclKind::Version {
                 then, otherwise, ..
             } => {
                 then.iter().for_each(|d| self.walk_decl(d));
                 otherwise.iter().flatten().for_each(|d| self.walk_decl(d));
             }
-            DeclKind::Native { fns, .. } => fns.iter().for_each(|f| self.function(f)),
+            DeclKind::Native { methods, .. } => methods.iter().for_each(|m| self.method(m, false)),
             DeclKind::Patch(p) => self.patch(p),
             _ => {}
         }
     }
 
-    /// A function: its generics, parameters, condition and body in a scope.
-    pub(super) fn function(&mut self, f: &FnDecl) {
-        let cx = self.body_cx();
+    /// A type's header: its generics, constructor parameters (a record's
+    /// are its properties), bases, constraints and components.
+    fn header(&mut self, h: &TypeHeader, record: bool) {
+        self.generics(&h.generics);
+        for p in h.ctor.iter().flatten() {
+            self.ty(&p.ty);
+            self.opt_expr(p.default.as_ref());
+            let (kind, case) = if record {
+                (DefKind::ReadOnly, Case::Pascal)
+            } else {
+                (DefKind::Param, Case::Camel)
+            };
+            self.define(&p.name, kind, case, false);
+        }
+        h.bases.iter().for_each(|b| self.ty(b));
+        for (_, bounds) in &h.constraints {
+            bounds.iter().for_each(|b| self.ty(b));
+        }
+        h.has.iter().for_each(|c| self.expr(c));
+    }
+
+    /// A method: its generics, parameters, constraints, guard and body in a scope.
+    pub(super) fn method(&mut self, m: &Method, awaits: bool) {
+        let cx = self.body_cx(awaits);
         self.within(cx, |r| {
             r.scoped(|r| {
-                r.generics(&f.generics);
-                r.params(&f.params);
-                r.opt_ty(f.ret.as_ref());
-                r.opt_expr(f.requires.as_ref());
-                match &f.body {
-                    Some(FnBody::Block(b)) => r.block(b),
-                    Some(FnBody::Expr(e)) => r.expr(e),
-                    None => {}
+                r.generics(&m.generics);
+                r.params(&m.params);
+                r.opt_ty(m.ret.as_ref());
+                for (_, bounds) in &m.constraints {
+                    bounds.iter().for_each(|b| r.ty(b));
                 }
+                r.opt_expr(m.requires.as_ref());
+                r.body(m.body.as_ref(), awaits);
             });
         });
     }
 
+    /// A method's or an accessor's body.
+    fn body(&mut self, body: Option<&MethodBody>, awaits: bool) {
+        let cx = Context { awaits, ..self.cx };
+        self.within(cx, |r| match body {
+            Some(MethodBody::Block(b)) => r.block(b),
+            Some(MethodBody::Expr(e)) => r.expr(e),
+            None => {}
+        });
+    }
+
     /// An event's or a test's body: its parameters, then `body`.
-    fn handler(&mut self, params: &[Name], body: impl FnOnce(&mut Self)) {
-        let cx = self.body_cx();
+    fn handler(&mut self, params: &[Param], awaits: bool, body: impl FnOnce(&mut Self)) {
+        let cx = self.body_cx(awaits);
         self.within(cx, |r| {
             r.scoped(|r| {
-                for p in params {
-                    r.define(p, DefKind::Param, false);
-                }
+                r.params(params);
                 body(r);
             });
         });
     }
 
-    /// A body of members: `self` is the object.
+    /// A body of members: `this` is the object.
     pub(super) fn members(&mut self, f: impl FnOnce(&mut Self)) {
         let cx = Context {
             member: true,
@@ -203,35 +275,26 @@ impl Resolver<'_, '_> {
 
     pub(super) fn params(&mut self, params: &[Param]) {
         for p in params {
-            self.opt_ty(p.ty.as_ref());
+            self.ty(&p.ty);
             self.opt_expr(p.default.as_ref());
-            let kind = if p.var {
-                DefKind::Variable
-            } else {
-                DefKind::Param
-            };
-            self.define(&p.name, kind, false);
+            self.define(&p.name, DefKind::Param, Case::Camel, false);
         }
     }
 
-    /// A record's or a variant's fields: assignable when `var`.
-    fn fields(&mut self, fields: &[Param]) {
-        for f in fields {
-            self.opt_ty(f.ty.as_ref());
-            self.opt_expr(f.default.as_ref());
-            let kind = if f.var {
-                DefKind::Field
-            } else {
-                DefKind::Value
-            };
-            self.define(&f.name, kind, false);
-        }
-    }
-
-    fn generics(&mut self, generics: &[Generic]) {
+    fn generics(&mut self, generics: &[Name]) {
         for g in generics {
-            self.opt_ty(g.bound.as_ref());
-            self.define(&g.name, DefKind::Type, false);
+            self.define(g, DefKind::Type, Case::TypeParam, false);
         }
+    }
+}
+
+/// What a field is by its modifiers.
+fn field_kind(d: &Decl) -> DefKind {
+    if d.has(Modifier::Const) {
+        DefKind::Constant
+    } else if d.has(Modifier::Readonly) {
+        DefKind::ReadOnly
+    } else {
+        DefKind::Field
     }
 }

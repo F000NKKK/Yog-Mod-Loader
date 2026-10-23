@@ -6,34 +6,38 @@ use std::collections::HashMap;
 use yog_ids::script_problem;
 
 use super::Resolver;
+use super::naming::Case;
 use crate::ast::Name;
 use crate::source::token::Span;
 
 /// What a name stands for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DefKind {
-    /// `let`, `const`, `val`, a pattern's binding: read only.
-    Value,
-    /// `var`, a `var` parameter or field, a patch's written local.
+    /// `const`: known at build time.
+    Constant,
+    /// `readonly`, a computed property, a `foreach`'s item: read only.
+    ReadOnly,
+    /// A local, a pattern's binding, a patch's written local.
     Variable,
     Param,
-    Fn,
-    /// A type: a record, union, enum, alias, unit, generic.
+    Method,
+    /// A type: a class, record, union, enum, interface, alias, unit, generic.
     Type,
     /// An enum's case, a union's variant.
     Case,
-    /// A record's field, a content's slots.
+    /// A field or a property that can be set.
     Field,
     /// A block, an item, a mod's own kind of content; a screen.
     Content,
-    /// A name a `use` brings in.
+    Component,
+    /// A name a `using` brings in.
     Import,
 }
 
 impl DefKind {
     /// Whether it may be assigned to.
     pub fn assignable(self) -> bool {
-        matches!(self, DefKind::Variable | DefKind::Field)
+        matches!(self, DefKind::Variable | DefKind::Param | DefKind::Field)
     }
 }
 
@@ -80,9 +84,9 @@ impl Resolver<'_, '_> {
         out
     }
 
-    /// Declares `name` here; a second one of a name in one scope is an
-    /// error, unless `again` allows it (a version's other branch).
-    pub(super) fn define(&mut self, name: &Name, kind: DefKind, again: bool) {
+    /// Declares `name` here, cased as `case` says; a second one of a name in
+    /// one scope is an error, unless `again` allows it (a version's other branch).
+    pub(super) fn define(&mut self, name: &Name, kind: DefKind, case: Case, again: bool) {
         let id = self.symbols.defs.len();
         let Some(scope) = self.scopes.last_mut() else {
             return;
@@ -105,6 +109,7 @@ impl Resolver<'_, '_> {
             span: name.span,
             kind,
         });
+        self.check_case(name, case);
     }
 
     /// Declares `name` in a block: a later one of the name hides the earlier.
@@ -118,6 +123,7 @@ impl Resolver<'_, '_> {
                 kind,
             });
         }
+        self.check_case(name, Case::Camel);
     }
 
     /// The definition `name` stands for here, innermost first.

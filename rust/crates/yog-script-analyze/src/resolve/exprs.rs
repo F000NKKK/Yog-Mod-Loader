@@ -1,10 +1,13 @@
-//! Expressions and types: names looked up, `it` and `self` where they mean
-//! something, lambdas and match arms in scopes of their own.
+//! Expressions and types: names looked up, `it`, `this` and `await` where
+//! they mean something, lambdas and switch arms in scopes of their own.
 
 use yog_ids::script_problem;
 
 use super::{Context, DefKind, Resolver};
-use crate::ast::{Expr, ExprKind, StrSeg, Type, TypeKind};
+use crate::ast::{Element, Expr, ExprKind, LambdaBody, LambdaParam, StrSeg, Type, TypeKind, UnOp};
+
+/// A block lambda's argument.
+const IT: &str = "it";
 
 impl Resolver<'_, '_> {
     pub(super) fn opt_expr(&mut self, e: Option<&Expr>) {
@@ -15,18 +18,11 @@ impl Resolver<'_, '_> {
 
     pub(super) fn expr(&mut self, e: &Expr) {
         match &e.kind {
-            ExprKind::Ident(name) => {
-                self.refer(name, e.span);
-            }
-            ExprKind::It if !self.cx.it => self.report.error(
-                script_problem::IT_OUTSIDE_LAMBDA,
+            ExprKind::Ident(name) => self.name_use(name, e),
+            ExprKind::This if !self.cx.member => self.report.error(
+                script_problem::THIS_OUTSIDE_MEMBER,
                 e.span,
-                "`it` is a lambda's argument: `{ it * 2 }`",
-            ),
-            ExprKind::SelfValue if !self.cx.member => self.report.error(
-                script_problem::SELF_OUTSIDE_MEMBER,
-                e.span,
-                "`self` is the object in a type's, a content's or a patch's members",
+                "`this` is the object in a type's, a content's, a component's or a patch's members",
             ),
             ExprKind::Str(segs) => {
                 for s in segs {
@@ -35,40 +31,87 @@ impl Resolver<'_, '_> {
                     }
                 }
             }
-            ExprKind::Tuple(items) | ExprKind::List(items) => {
-                items.iter().for_each(|i| self.expr(i))
-            }
-            ExprKind::Map(pairs) => pairs.iter().for_each(|(k, v)| {
-                self.expr(k);
-                self.expr(v);
+            ExprKind::Tuple(items) => items.iter().for_each(|i| self.expr(i)),
+            ExprKind::Collection(items) => items.iter().for_each(|i| match i {
+                Element::Item(e) | Element::Spread(e) => self.expr(e),
+                Element::Entry(k, v) => {
+                    self.expr(k);
+                    self.expr(v);
+                }
             }),
-            ExprKind::Lambda { params, body } => self.lambda(params, body),
-            ExprKind::Unary { expr, .. } => self.expr(expr),
-            ExprKind::Binary { left, right, .. } => {
-                self.expr(left);
-                self.expr(right);
+            ExprKind::New { ty, args, init } => {
+                self.opt_ty(ty.as_ref());
+                args.iter().flatten().for_each(|a| self.expr(&a.value));
+                init.iter().for_each(|(_, v)| self.expr(v));
             }
-            ExprKind::Range { from, to, .. } => {
-                self.expr(from);
-                self.expr(to);
+            ExprKind::Lambda { params, body } => self.lambda(params, body),
+            ExprKind::Unary { op, expr } => {
+                if *op == UnOp::Await && !self.cx.awaits {
+                    self.report.error(
+                        script_problem::AWAIT_OUTSIDE_ASYNC,
+                        e.span,
+                        "`await` waits in an `async` method: `async void Arm() { await Task.Delay(5s); }`",
+                    );
+                }
+                self.expr(expr);
             }
             _ => self.compound(e),
         }
     }
 
-    /// The expressions made of others with types, blocks and arms.
+    /// A name: `it` in a block lambda, else the source's own when it has one.
+    fn name_use(&mut self, name: &str, e: &Expr) {
+        if self.refer(name, e.span).is_some() || name != IT {
+            return;
+        }
+        if !self.cx.it {
+            self.report.error(
+                script_problem::IT_OUTSIDE_LAMBDA,
+                e.span,
+                "`it` is a block lambda's argument: `list.Select { it * 2 }`",
+            );
+        }
+    }
+
+    /// The expressions made of others, types and arms.
     fn compound(&mut self, e: &Expr) {
         match &e.kind {
-            ExprKind::Is { expr, ty, bind, .. } => {
-                self.expr(expr);
+            ExprKind::Cast { ty, expr }
+            | ExprKind::As { expr, ty }
+            | ExprKind::Has { expr, ty } => {
                 self.ty(ty);
-                if let Some(n) = bind {
-                    self.bind(n, DefKind::Value);
-                }
+                self.expr(expr);
             }
-            ExprKind::As { expr, ty, .. } => {
+            ExprKind::Binary {
+                left: a, right: b, ..
+            }
+            | ExprKind::Range { from: a, to: b, .. } => {
+                self.expr(a);
+                self.expr(b);
+            }
+            // The pattern's names reach what follows (`x is Monster m && m.IsAlive`).
+            ExprKind::Is { expr, pattern } => {
                 self.expr(expr);
-                self.ty(ty);
+                self.bind_pattern(pattern);
+            }
+            ExprKind::Conditional {
+                cond,
+                then,
+                otherwise,
+            } => {
+                self.expr(cond);
+                self.expr(then);
+                self.expr(otherwise);
+            }
+            ExprKind::Switch { expr, arms } => {
+                self.expr(expr);
+                for a in arms {
+                    self.scoped(|r| {
+                        r.bind_pattern(&a.pattern);
+                        r.opt_expr(a.guard.as_ref());
+                        r.expr(&a.value);
+                    });
+                }
             }
             ExprKind::Call { callee, args } => {
                 self.expr(callee);
@@ -83,49 +126,29 @@ impl Resolver<'_, '_> {
                 args.iter().for_each(|t| self.ty(t));
             }
             // A member is the object's: looked up with its type.
-            ExprKind::Member { expr, .. } => self.expr(expr),
-            ExprKind::If {
-                cond,
-                then,
-                otherwise,
-            } => {
-                self.scoped(|r| {
-                    r.cond(cond);
-                    r.block(then);
-                });
-                if let Some(o) = otherwise {
-                    self.expr(o);
-                }
-            }
-            ExprKind::Match { expr, arms } => {
-                self.expr(expr);
-                for a in arms {
-                    self.scoped(|r| {
-                        r.bind_pattern(&a.pattern);
-                        r.opt_expr(a.guard.as_ref());
-                        r.expr(&a.body);
-                    });
-                }
-            }
-            ExprKind::Block(b) => self.block(b),
+            ExprKind::Member { expr, .. } | ExprKind::NotNull(expr) => self.expr(expr),
             _ => {}
         }
     }
 
     /// A lambda: its parameters (none: `it`), its own loops.
-    fn lambda(&mut self, params: &[crate::ast::Name], body: &[crate::ast::Stmt]) {
+    fn lambda(&mut self, params: &[LambdaParam], body: &LambdaBody) {
         let cx = Context {
             loops: 0,
             it: params.is_empty() || self.cx.it,
             before: false,
-            member: self.cx.member,
+            ..self.cx
         };
         self.within(cx, |r| {
             r.scoped(|r| {
                 for p in params {
-                    r.bind(p, DefKind::Param);
+                    r.opt_ty(p.ty.as_ref());
+                    r.bind(&p.name, DefKind::Param);
                 }
-                r.stmts(body);
+                match body {
+                    LambdaBody::Expr(e) => r.expr(e),
+                    LambdaBody::Block(stmts) => r.stmts(stmts),
+                }
             });
         });
     }
@@ -145,16 +168,9 @@ impl Resolver<'_, '_> {
                 }
                 args.iter().for_each(|a| self.ty(a));
             }
-            TypeKind::Bounded { base, range } => {
-                self.ty(base);
-                self.expr(range);
-            }
-            TypeKind::Tuple(items) => items.iter().for_each(|i| self.ty(i)),
-            TypeKind::Fn { params, ret } => {
-                params.iter().for_each(|p| self.ty(p));
-                self.ty(ret);
-            }
-            TypeKind::Optional(inner) => self.ty(inner),
+            TypeKind::Tuple(items) => items.iter().for_each(|(t, _)| self.ty(t)),
+            TypeKind::Nullable(inner) => self.ty(inner),
+            TypeKind::Both(all) => all.iter().for_each(|t| self.ty(t)),
         }
     }
 }

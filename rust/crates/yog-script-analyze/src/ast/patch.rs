@@ -12,56 +12,55 @@ pub struct Patch {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PatchItem {
-    /// `add saved var shield: Float = 0`, `add fn …`.
+    /// `add saved float Shield = 0;`, `add void Zap() { … }`.
     Add(Box<Decl>),
-    /// `add is Chargeable`.
-    AddIs(Type),
+    /// `add : IChargeable;`.
+    AddBases(Vec<Type>),
     Before {
-        method: Method,
+        method: Target,
         uses: Vec<Local>,
         body: Block,
     },
     After {
-        method: Method,
+        method: Target,
         uses: Vec<Local>,
         body: Block,
     },
     Inside {
-        method: Method,
+        method: Target,
         points: Vec<Point>,
     },
-    /// `read foodData { … }`.
+    /// `read FoodData { … }`.
     Read {
         field: Name,
         body: Block,
     },
-    /// `write experienceLevel(value) { … }`.
+    /// `write ExperienceLevel { … }`: `value` the new one.
     Write {
         field: Name,
-        value: Name,
         body: Block,
     },
     Replace {
-        method: Method,
+        method: Target,
         body: Block,
     },
     Priority(i64, Span),
 }
 
-/// A target method by its signature.
+/// A target method by its signature: `bool Hurt(DamageSource source, float amount)`.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Method {
+pub struct Target {
+    pub ret: Option<Type>,
     pub name: Name,
     pub params: Vec<Param>,
-    pub ret: Option<Type>,
 }
 
-/// `var local spent: Long #1`.
+/// `var local long spent #1`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Local {
     pub write: bool,
-    pub name: Name,
     pub ty: Type,
+    pub name: Name,
     pub ordinal: Option<i64>,
 }
 
@@ -73,7 +72,7 @@ pub enum Point {
         select: Option<Selector>,
         body: Block,
     },
-    /// `at call Vec3.add (x) { … }`: an argument by its name.
+    /// `at call Vec3.Add (x) { … }`: an argument by its name.
     Arg {
         callee: Callee,
         select: Option<Selector>,
@@ -116,8 +115,8 @@ pub enum Point {
     },
 }
 
-/// A called method: `aiStep`, `Vec3.add`, with argument types to tell
-/// overloads apart (`Vec3.add(Double, Double, Double)`).
+/// A called method: `AiStep`, `Vec3.Add`, with argument types to tell
+/// overloads apart (`Vec3.Add(double, double, double)`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Callee {
     pub path: Vec<Name>,

@@ -6,8 +6,8 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "test",
-    doc: "A check `yog test` runs in a headless world on every targeted version: \
-          `test \"a charger fills a battery\" { … expect(…) }`.",
+    doc: "A check run in a headless game on every targeted version, by `yog test`: \
+          `test \"a charger fills a battery\" { … Expect(…); }`.",
     reserved: true,
     roles: &[Role::Decl { starts: None, parse }],
 };
