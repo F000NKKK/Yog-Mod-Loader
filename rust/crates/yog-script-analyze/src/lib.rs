@@ -13,6 +13,7 @@ mod lexer;
 pub mod parser;
 pub mod resolve;
 mod typeck;
+pub mod versions;
 pub mod words;
 
 use std::path::Path;
@@ -36,11 +37,11 @@ pub struct Checked {
 }
 
 /// The source `src` of the file `name` read; patches are allowed when it's
-/// a `.yns` file.
+/// a `.yns` file (read as the newest game version Yog runs on).
 #[must_use]
 pub fn parse(name: &str, src: &str) -> Parsed {
     let mut report = yog_analysis::Report::new(name, src);
-    let file = read(name, src, &mut report);
+    let file = read(name, src, versions::newest(), &mut report);
     Parsed {
         file,
         problems: report.out,
@@ -60,7 +61,9 @@ pub fn check(name: &str, src: &str) -> Checked {
 #[must_use]
 pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Checked {
     let mut report = yog_analysis::Report::new(name, src);
-    let file = read(name, src, &mut report);
+    // A `.yns` is read as the version whose classes it's checked with.
+    let mc = game.map_or(versions::newest(), |g| g.mc.as_str());
+    let file = read(name, src, mc, &mut report);
     let symbols = resolve::resolve(&file, &mut report);
     let game = game.filter(|_| is_nanites(name));
     // Types are checked in what reads and resolves cleanly: a broken tree
@@ -75,12 +78,50 @@ pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Ch
     }
 }
 
-fn read(name: &str, src: &str, report: &mut yog_analysis::Report<'_>) -> ast::File {
+fn read(name: &str, src: &str, mc: &str, report: &mut yog_analysis::Report<'_>) -> ast::File {
     let nanites = is_nanites(name);
-    let tokens = lexer::lex(src, report);
+    let text = preprocessed(src, mc, nanites, report);
+    let tokens = lexer::lex(&text, report);
     let file = parser::Parser::new(&tokens, report, nanites).file();
     check_targets(&file, nanites, report);
     file
+}
+
+/// `src` as game version `mc` reads it: a `.yns`'s `#if MC >= 1.21`
+/// directives (C#'s, by the toolkit's preprocessor, which knows nothing of
+/// Yog: it's handed the variable) applied; a `.ys` has none, as it runs on
+/// every version unchanged.
+fn preprocessed(
+    src: &str,
+    mc: &str,
+    nanites: bool,
+    report: &mut yog_analysis::Report<'_>,
+) -> String {
+    use yog_analysis::preprocess::{Defines, Problem};
+    use yog_ids::script_problem::DIRECTIVE;
+    let defines: Defines = if nanites {
+        [(yog_ids::script_define::GAME.to_string(), mc.to_string())].into()
+    } else {
+        Defines::new()
+    };
+    let out = yog_analysis::preprocess::preprocess(src, &defines);
+    for (at, problem) in out.problems {
+        let span = source::token::Span::new(at.start, at.end);
+        let message = match problem {
+            Problem::Unmatched => "no `#if` before it, or after `#else`".to_string(),
+            Problem::Unterminated => "this `#if` never ends: `#endif`".to_string(),
+            Problem::BadCondition(why) => format!("the condition doesn't read: {why}"),
+        };
+        report.error(DIRECTIVE, span, message);
+    }
+    if out.directives && !nanites {
+        report.error(
+            DIRECTIVE,
+            source::token::Span::default(),
+            "a `.ys` runs on every game version unchanged: directives (`#if`) are for a `.yns`",
+        );
+    }
+    out.text
 }
 
 /// Whether the file `name` is Yog Nanite Script (`.yns`): patches allowed,

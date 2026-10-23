@@ -342,20 +342,23 @@ test "a charger fills a battery" {
 
 A `.ys` reaches Yog only, so it has no versions of its own: it runs on
 every version the mod does. A `.yns` says the versions its patches are
-for, and the build checks every patch against each one's classes; code
-that differs by version is a `version` block there:
+for (`targets`) and is compiled once each — one binary a version, as the
+hosts are built. Code that differs by version is preprocessor
+directives, as in C#: the compiler declares `MC` (the version being
+compiled for) and the preprocessor — a general one, which knows nothing
+of the game — keeps the branch that holds:
 
 ```yns
 targets mc 1.20.1..26.2;
 
-version (mc >= 1.21) {
-    patch Player {
-        after int GetArmorValue() { result += Bonus; }
-    }
-} else {
-    patch Player {
-        read ArmorValue { return proceed() + Bonus; }
-    }
+using Player = Game.World.Entity.Player.Player;
+
+patch Player {
+#if MC >= 1.21
+    after int GetArmorValue() { result += Bonus; }
+#else
+    read ArmorValue { return proceed() + Bonus; }
+#endif
 }
 ```
 

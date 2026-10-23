@@ -12,7 +12,7 @@ mod versions;
 
 use yog_data::Diagnostic;
 
-pub use versions::targeted;
+pub use yog_script_analyze::versions::targeted;
 
 /// What's wrong with the source `text` of the file `name` (`.ys`, `.yns`);
 /// a `.yns` checked on each version it targets, its classes from the cache

@@ -253,6 +253,12 @@ names! {
         BENCH = "YB0009",
     }
 
+    /// The variables Yog hands Yog Script's preprocessor (`#if MC >= 1.21`).
+    script_define {
+        /// The game version a `.yns` is being compiled for.
+        GAME = "MC",
+    }
+
     /// What's wrong with Yog Script (`.ys`, `.yns`: `YS…`).
     script_problem {
         /// A character no token starts with.
@@ -299,6 +305,9 @@ names! {
         NO_VERSION = "YS0021",
         /// A name two `using`s bring in (C#'s CS0104).
         AMBIGUOUS = "YS0022",
+        /// A preprocessor directive out of place: an `#elif`, `#else` or
+        /// `#endif` without its `#if`, an `#if` never ended, one in a `.ys`.
+        DIRECTIVE = "YS0023",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

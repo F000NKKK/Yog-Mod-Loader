@@ -84,6 +84,17 @@ property (`getArmorValue()` → `ArmorValue`, `isDay()` → `IsDay`), a method
 is PascalCase (`hurt()` → `Hurt()`), a field PascalCase (`foodData` →
 `FoodData`). The compiler maps them back to the run-time names.
 
+### 1.5 Directives (`.yns` only)
+
+As C#'s preprocessor, first on their lines: `#if cond`, `#elif cond`,
+`#else`, `#endif`, `#define NAME`, `#undef NAME`. A condition is names and
+values compared (`== != < <= > >=`, values by their dot-separated parts,
+as numbers where they are), joined with `!`, `&&`, `||` and brackets. The
+compiler declares the variables: `MC`, the game version a `.yns` is being
+compiled for (once each version its `targets` takes). What a branch
+leaves out isn't read at all on that version. The preprocessor is
+general — it knows nothing of Yog or the game: `#if MC >= 1.21`.
+
 ## 2. Files and declarations
 
 ```ebnf
@@ -115,7 +126,7 @@ Namespaces and `using`s work as in C#:
 
 decl        = attributes? doc? modifiers? ( mod_decl | method_decl | field_decl
             | type_decl | content_decl | component_decl | system_decl | extend_decl
-            | screen_decl | command_decl | event_decl | test_decl | version_decl
+            | screen_decl | command_decl | event_decl | test_decl
             | native_decl | patch_decl | targets_decl ) ;      (* patch_decl, targets_decl: `.yns` only *)
 
 modifiers   = modifier+ ;
@@ -277,7 +288,6 @@ message).
 ```ebnf
 event_decl   = modifiers? 'on' path ('(' params? ')')? block ;        (* on Player.Join(Player player) *)
 test_decl    = 'test' STRING block ;
-version_decl = 'version' '(' version_cond ')' '{' decl* '}' ('else' (version_decl | '{' decl* '}'))? ;
 version_cond = 'mc' ( ('>=' | '<=' | '>' | '<' | '==') VERSION | VERSION '..' VERSION ) ;
 native_decl  = 'native' STRING '{' (type_or_void IDENT '(' params? ')' ';')* '}' ;
 ```

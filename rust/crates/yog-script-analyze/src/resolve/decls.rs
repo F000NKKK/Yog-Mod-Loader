@@ -70,14 +70,6 @@ impl Resolver<'_, '_> {
             DeclKind::System { name, .. } => {
                 self.define(name, DefKind::Method, Case::Pascal, again)
             }
-            DeclKind::Version {
-                then, otherwise, ..
-            } => {
-                self.declare_all(then, again);
-                if let Some(o) = otherwise {
-                    self.declare_all(o, true);
-                }
-            }
             DeclKind::Native { methods, .. } => {
                 for m in methods {
                     self.define(&m.name, DefKind::Method, Case::Pascal, again);
@@ -193,12 +185,6 @@ impl Resolver<'_, '_> {
                 self.handler(params, d.has(Modifier::Async), |r| r.block(body))
             }
             DeclKind::Test { body, .. } => self.handler(&[], true, |r| r.block(body)),
-            DeclKind::Version {
-                then, otherwise, ..
-            } => {
-                then.iter().for_each(|d| self.walk_decl(d));
-                otherwise.iter().flatten().for_each(|d| self.walk_decl(d));
-            }
             DeclKind::Native { methods, .. } => methods.iter().for_each(|m| self.method(m, false)),
             DeclKind::Patch(p) => self.patch(p),
             _ => {}

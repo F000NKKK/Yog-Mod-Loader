@@ -66,14 +66,6 @@ impl OwnTypes {
                         }
                     }
                 }
-                DeclKind::Version {
-                    then, otherwise, ..
-                } => {
-                    self.file(then);
-                    if let Some(o) = otherwise {
-                        self.file(o);
-                    }
-                }
                 _ => self.type_decl(d),
             }
         }

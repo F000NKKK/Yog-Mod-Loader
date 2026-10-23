@@ -158,11 +158,6 @@ pub enum DeclKind {
         name: String,
         body: Block,
     },
-    Version {
-        cond: VersionCond,
-        then: Vec<Decl>,
-        otherwise: Option<Vec<Decl>>,
-    },
     Native {
         library: String,
         methods: Vec<Method>,

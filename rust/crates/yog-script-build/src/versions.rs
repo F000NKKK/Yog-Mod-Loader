@@ -7,35 +7,9 @@ use std::collections::BTreeMap;
 
 use yog_data::Diagnostic;
 use yog_ids::{game_version, script_problem};
-use yog_script_analyze::ast::{BinOp, VersionCond};
+use yog_script_analyze::versions::targeted;
 
 use crate::index::ClassIndex;
-
-/// The versions Yog runs on that `cond` takes, oldest first.
-#[must_use]
-pub fn targeted(cond: &VersionCond) -> Vec<&'static str> {
-    use std::cmp::Ordering::{Equal, Greater, Less};
-    game_version::ALL_VALUES
-        .iter()
-        .copied()
-        .filter(|v| match cond {
-            VersionCond::Range { from, to } => {
-                yog_home::version::compare(v, from) != Less
-                    && yog_home::version::compare(v, to) != Greater
-            }
-            VersionCond::Compare { op, version } => {
-                let ord = yog_home::version::compare(v, version);
-                match op {
-                    BinOp::GtEq => ord != Less,
-                    BinOp::Gt => ord == Greater,
-                    BinOp::LtEq => ord != Greater,
-                    BinOp::Lt => ord == Less,
-                    _ => ord == Equal,
-                }
-            }
-        })
-        .collect()
-}
 
 /// A `.yns` checked on each version it targets.
 pub(crate) fn check(

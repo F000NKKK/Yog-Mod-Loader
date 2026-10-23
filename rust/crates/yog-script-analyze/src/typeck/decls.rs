@@ -55,12 +55,6 @@ impl Checker<'_, '_, '_> {
             DeclKind::System { .. } | DeclKind::On { .. } | DeclKind::Test { .. } => {
                 self.handler(d, side);
             }
-            DeclKind::Version {
-                then, otherwise, ..
-            } => {
-                self.decls(then);
-                otherwise.iter().for_each(|o| self.decls(o));
-            }
             DeclKind::Patch(p) => {
                 let target = self.type_of(&p.target);
                 self.within(Some(target), side, None, |c| c.patch(&p.items));

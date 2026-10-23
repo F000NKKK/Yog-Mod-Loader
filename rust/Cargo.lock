@@ -2669,6 +2669,7 @@ dependencies = [
  "yog-codegen",
  "yog-data",
  "yog-event",
+ "yog-home",
  "yog-ids",
  "yog-sync",
 ]

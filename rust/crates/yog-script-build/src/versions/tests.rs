@@ -1,4 +1,5 @@
 use super::*;
+use yog_script_analyze::ast::VersionCond;
 use yog_script_analyze::index::{Class, Member, Side, access};
 
 fn cond(src: &str) -> VersionCond {
