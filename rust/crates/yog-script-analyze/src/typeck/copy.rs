@@ -1,7 +1,8 @@
 //! Which values are copied and which are handed on (`ys.md` §3, Values
-//! and objects): a `Copy` value goes anywhere by itself; any other is
-//! moved (`move a`), lent (`in a`) or cloned — a plain `b = a` of one, or
-//! one passed by value without `move`, is reported.
+//! and objects): a `Copy` value (numbers, handles, records — which never
+//! change) goes anywhere by itself; any other is moved (`move a`), lent
+//! (`in a`) or cloned — a plain `b = a` of one, or one passed by value
+//! without `move`, is reported.
 
 use std::collections::HashSet;
 
@@ -53,6 +54,9 @@ impl Checker<'_, '_, '_> {
         let Some(own) = self.own.types.get(name) else {
             return true;
         };
+        if own.record {
+            return true;
+        }
         if own.heap || !seen.insert(name.to_string()) {
             return !own.heap;
         }

@@ -145,9 +145,13 @@ C#'s type system, with Rust's enums:
   inheritance, interfaces allowed.
 - **Interfaces** inherit interfaces (any number); members may have bodies
   (default implementations), as in C#.
-- **Records** are `record class` (the default) or `record struct`: their
-  constructor's parameters are their properties; compared by value; `with`
-  copies one with some properties changed.
+- **Records** are `readonly` classes (`record`, `record class`) or
+  `readonly struct`s (`record struct`): their constructor's parameters are
+  their properties, set once; every member is `readonly`; compared by
+  value; `with` gives a copy with some properties changed (`pos with { Y =
+  64 }`). Nothing changes one, so sharing it is safe: a record is `Copy`
+  — a `record class` shares its object (as `string` does), a `record
+  struct` copies its bytes.
 - **Enums** are C#'s, values included (`enum Tier { Wood = 1, Stone, Iron }`),
   and Rust's: a variant may carry data (`enum Mode { Idle, Charging(int
   Rate), Full }`, `Mode.Charging(4)`).
@@ -216,7 +220,7 @@ The same words, two kinds of storage:
 | | Value types: `struct`, `record struct`, enums, numbers | Heap types: `class`, `record`, interfaces, delegates, `List<T>`… |
 |---|---|---|
 | Where it lives | inline: in its local, in the object or array holding it | on the heap, under the GC; the local holds a reference |
-| `Copy`? | yes when every field is `Copy` (the compiler sees it, as C# copies every struct) — then `=` and passing copy, and `move` is allowed but changes nothing | never: one owner at a time |
+| `Copy`? | yes when every field is `Copy` (the compiler sees it, as C# copies every struct) — then `=` and passing copy, and `move` is allowed but changes nothing; a `record struct` always | never: one owner at a time — except a record, which never changes and so is shared |
 | Plain `b = a` | a copy (a `Copy` struct); a build error for a struct holding an owned field — write `move a` or `a.Clone()` | a build error — write `move a` (hand the object on), `in a` (lend it), `a.Clone()`, or make it `Shared<T>` |
 | `move a` | the bytes go to the new place; `a` is gone | the reference goes, the object stays where it is (O(1)); `a` is gone |
 | `in a` | lent without a copy, read-only: no field written, only `readonly` members called | the object lent read-only: no field written, only `readonly` methods called |
@@ -253,8 +257,8 @@ Rust's model, not exceptions:
   `UnwrapOr`, `OkOr` on `T?`) or passed up by `try F()` (Rust's `F()?`) —
   which converts the error when the caller's `E` has a conversion from it
   (`From`). A `Result` dropped unused is a warning (`#[must_use]`).
-- **Bugs panic**: `panic("…")`, `Unwrap()`/`Expect("…")` on an `Err` or a
-  `null`, `unreachable()`, `todo()`, `assert(…)`, an index out of range,
+- **Bugs panic**: `panic!("…")`, `Unwrap()`/`Expect("…")` on an `Err` or a
+  `null`, `unreachable!()`, `todo!()`, `assert!(…)`, an index out of range,
   integer overflow in a checked build. A panic unwinds to the handler's
   boundary (4.5), dropping what it owns on the way; there's no
   `try`/`catch`.
@@ -282,6 +286,76 @@ let label = mode switch {
     Mode.Full => "full",
 };
 ```
+
+### Attributes and macros
+
+C#'s attributes and Rust's macros, one system: an attribute is data on a
+declaration, a macro is code that runs at build time and writes code, and
+an attribute can *be* a macro.
+
+**Attributes** are C#'s: `[Obsolete("use Charge")]`, `[Range(0, 100)]`, on
+a type, a member, a parameter, a return value (`[return: NotNull]`), a
+generic parameter, the whole mod (`[module: …]`). An attribute is a class
+inheriting `System.Attribute`, its uses limited by `[AttributeUsage(…)]`;
+its arguments are constants. At run time `System.Reflection` reads them
+(`typeof(Charger).GetCustomAttributes<Range>()`); at build time macros
+read the very same objects.
+
+**Macros** are Rust's, called with `!` (`name!(…)`, `name![…]`,
+`name!{…}`; `!` right after a name and before a bracket, which `x!` —
+"not null" — never is):
+
+- **Declarative** — rules matched against the call's tokens, as
+  `macro_rules!`: fragments `$e:expr`, `$t:ty`, `$n:ident`, `$p:pat`,
+  `$s:stmt`, `$b:block`, `$l:literal`, `$x:tt`, repetitions `$(…),*`
+  `$(…);+` `$(…)?`; hygienic (a name the macro makes never meets one at
+  the call).
+
+  ```ys
+  macro Square {
+      ($x:expr) => { ($x) * ($x) };
+  }
+  macro MaxOf {
+      ($x:expr) => { $x };
+      ($x:expr, $($rest:expr),+) => { Math.Max($x, MaxOf!($($rest),+)) };
+  }
+  ```
+
+- **Procedural** — written in Yog Script, compiled and run by the build
+  (no game, no files, no network: a sandbox): a method taking the call's
+  syntax and giving syntax back through `System.Meta` (trees for
+  declarations, expressions, types; `quote { … $name … }` to write them,
+  as Rust's `quote!`; `Meta.Error(span, "…")` reporting where the user
+  wrote it). Three kinds, as Rust's: function-like (`Sql!(…)`), derive and
+  attribute macros — and the last two are attributes:
+
+**Where they meet**:
+
+- A **derive** is an attribute: `[Derive(Clone, Equals, Saved)]` — each
+  argument names a derive macro that adds code next to the type (as
+  Rust's `#[derive]`); `record`s and enums derive `Equals`/`Hash`/`Clone`
+  this way, by the library.
+- An **attribute macro** is an attribute class marked as one:
+  `[Macro] class Command : Attribute { … static Syntax Expand(Syntax item,
+  Command self) … }`. Where `[Command("charge")]` stands, the build runs
+  `Expand` on the item and puts its output in its place; the attribute
+  stays on what it gives back unless the macro drops it — so Reflection
+  still sees it at run time.
+- **Helper attributes** are plain attributes a macro reads: a derive
+  `[Derive(Saved)]` reads `[Rename("power")]` and `[Skip]` on the fields
+  (Rust's `#[serde(rename)]`), declared by the macro's library as
+  ordinary attribute classes, so editors complete and check them.
+- Macros **write attributes** too (a derive marking what it made
+  `[Generated]`), and function-like macros take attribute-typed values.
+- **Order**: the preprocessor (`#if`), then macros — expanded until none
+  is left (a depth limit stops a loop) — then names, types, borrows. A
+  macro's output is checked as if written by hand; a problem in it points
+  at the call, with the expansion shown.
+- Built in: `panic!`, `assert!`, `assert_eq!`, `todo!`,
+  `unreachable!`, `dbg!`, `matches!`, `include_str!`, `nameof` stays an
+  operator (C#'s). Yog's own declarations (`saved`, `synced`, content
+  kinds) stay keywords; a mod adds its own forms as macros and
+  attributes, not new keywords.
 
 ### The System library
 

@@ -139,8 +139,12 @@ modifier    = 'public' | 'private' | 'internal'         (* access; members are p
             | 'abstract' | 'virtual' | 'override' | 'sealed' | 'new'   (* inheritance, as C#'s *)
             | 'server' | 'client' | 'shared'          (* side, §4.1 of ys.md *)
             | 'saved' | 'synced' | 'tune' ;
-attributes  = ('[' attribute (',' attribute)* ']')+ ;   (* [Obsolete("…")] *)
-attribute   = path call_args? ;
+attributes  = ('[' (attr_target ':')? attribute (',' attribute)* ']')+ ;   (* [Obsolete("…")] *)
+attr_target = 'return' | 'module' | 'field' | 'property' | 'param' | 'type' ;
+attribute   = path call_args? ;                     (* an attribute class, or an attribute macro *)
+macro_decl  = 'macro' IDENT '{' macro_rule+ '}' ;   (* a declarative macro *)
+macro_rule  = '(' token_tree* ')' '=>' '{' token_tree* '}' ';' ;
+macro_call  = path '!' ('(' token_tree* ')' | '[' token_tree* ']' | '{' token_tree* '}') ;   (* no space before '!' *)
 ```
 
 ### 2.1 The mod
@@ -160,8 +164,8 @@ mod Charge {
 `Targets` takes a version range (`mc 1.20.1..26.2`, `mc >= 1.21`); a
 resource file's entries are reachable as `Res.<Path>`. The mod's id is its
 name in snake_case (`charge`) unless `Id = "…";` says otherwise.
-`panic`, `unreachable`, `todo` and `assert` are `System` functions (as
-Rust's macros), not keywords.
+`panic!`, `unreachable!`, `todo!` and `assert!` are `System` macros (as
+Rust's), not keywords.
 
 ### 2.2 Methods, fields, properties
 
@@ -380,7 +384,7 @@ The conditional expression is `c ? a : b`; `switch` is an expression
 
 ```ebnf
 expr        = lambda | conditional ;
-primary     = literal | IDENT | 'this' | 'it' | 'result' | 'value' | 'null'
+primary     = literal | macro_call | IDENT | 'this' | 'it' | 'result' | 'value' | 'null'
             | '(' expr ')' | tuple | collection | new_expr | block_lambda ;
 literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | CHAR | TEXT | CONTENT | TAG | 'true' | 'false' ;
 tuple       = '(' expr ',' expr (',' expr)* ')' ;
@@ -426,7 +430,7 @@ case (or `_`): a case left out is an error.
 - A method returning `Result<T, E>` (`Ok(v)` / `Err(e)`): `try F()` is
   `v`, or returns the `Err` from the caller (converted to its `E`), as
   Rust's `F()?`. A `Result` left unused is a warning.
-- A bug panics (`panic(…)`, `Unwrap()` of an `Err`/`null`, `unreachable()`,
+- A bug panics (`panic!(…)`, `Unwrap()` of an `Err`/`null`, `unreachable!()`,
   an index out of range). There are no exceptions to catch: a panic
   unwinds to its handler's boundary (an event handler, a task, a patch),
   which reports it with its `.ys` line (ys.md §4.5); the game goes on.

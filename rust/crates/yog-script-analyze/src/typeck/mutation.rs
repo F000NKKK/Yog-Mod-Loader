@@ -16,6 +16,9 @@ impl Checker<'_, '_, '_> {
     /// may change.
     pub(super) fn written(&mut self, place: &Expr) {
         let why = match &place.kind {
+            ExprKind::Member { expr, .. } if self.is_record(expr) => {
+                Some("a record (changed only by `with`)".to_string())
+            }
             ExprKind::Member { expr, .. } | ExprKind::Index { expr, .. } => self.fixed_root(expr),
             // A field of `this` by its name.
             ExprKind::Ident(name) if self.local(name).is_none() => {
@@ -78,6 +81,19 @@ fn this_why() -> String {
 }
 
 impl Checker<'_, '_, '_> {
+    /// Whether `e` — a local or `this` — is a record: set once, never written.
+    fn is_record(&self, e: &Expr) -> bool {
+        let t = match &e.kind {
+            ExprKind::Ident(name) => self.local(name),
+            ExprKind::This => self.this.as_ref(),
+            _ => None,
+        };
+        match t.map(Type::non_null) {
+            Some(Type::Own(name, _)) => self.own.types.get(name).is_some_and(|t| t.record),
+            _ => false,
+        }
+    }
+
     /// Whether `this` is a `readonly struct`: every member borrows it read-only.
     pub(super) fn this_readonly(&self) -> bool {
         match &self.this {

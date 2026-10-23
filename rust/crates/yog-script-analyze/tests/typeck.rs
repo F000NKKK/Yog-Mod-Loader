@@ -358,3 +358,14 @@ fn what_is_lent_read_only_isnt_changed() {
         codes(&ok)
     );
 }
+
+#[test]
+fn records_never_change() {
+    let types = "record Pos(i32 X, i32 Y);\n";
+    // Shared freely (Copy), never written, even through a `let mut`.
+    let src = format!("{types}void F(Pos p) {{ let q = p; let mut r = p; r.X = 2; }}\n");
+    assert_eq!(codes(&src), [script_problem::BORROW], "{:?}", codes(&src));
+    // Not by its own members either.
+    let own = "record Pos(i32 X) { public void Move() { X = 1; } }\n";
+    assert_eq!(codes(own), [script_problem::ASSIGN_TO_CONSTANT]);
+}

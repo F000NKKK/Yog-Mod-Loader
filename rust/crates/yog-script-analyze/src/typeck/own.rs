@@ -25,8 +25,10 @@ pub(crate) struct OwnType {
     pub heap: bool,
     /// Its `readonly` methods (Rust's `&self`): the others change it.
     pub readonly: Vec<String>,
-    /// A `readonly struct`: every member is.
+    /// A `readonly struct` or a record: every member is.
     pub readonly_all: bool,
+    /// A record: set once, never changed; shared, so `Copy`.
+    pub record: bool,
     /// Its type parameters' names (`T` of `Box<T>`).
     pub generics: Vec<String>,
     /// An enum's cases that carry data, their fields by case.
@@ -106,7 +108,8 @@ impl OwnTypes {
                 t.interface = word.text == crate::words::interface::WORD.text;
                 t.is_abstract = d.has(ast::Modifier::Abstract);
                 t.heap = !value;
-                t.readonly_all = d.has(ast::Modifier::Readonly);
+                t.record = word.text == crate::words::record::WORD.text;
+                t.readonly_all = d.has(ast::Modifier::Readonly) || t.record;
                 t.generics = type_params(&header.generics);
                 // A record's constructor parameters are its properties.
                 let props = (word.text == crate::words::record::WORD.text)
