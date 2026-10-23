@@ -15,7 +15,7 @@
 //! ```
 //!
 //! `yog build` (and `yog check`, `yog ui gen`) turns `src/**/foo.yui` into
-//! `.yog-build/generated/**/foo.g.rs` — WPF's `MainWindow.g.cs`: generated
+//! `obj/generated/**/foo.g.rs` — WPF's `MainWindow.g.cs`: generated
 //! into the build directory on every build, never committed, pulled into the
 //! screen's hand-written code-behind module with `yog_api::ui_include!("foo")`.
 //! See `docs/yui.md` in Yog-IDLE for the full format.

@@ -38,7 +38,7 @@ impl Builder {
     ) -> Result<(), ()> {
         let mut cmd = Command::new("cargo");
         cmd.current_dir(build_dir)
-            .env("CARGO_TARGET_DIR", root.join("target"))
+            .env("CARGO_TARGET_DIR", root.join(yog_ids::project::TARGET))
             .args([self.subcmd(), "--release", "--target", triple]);
         cmd.envs(symbols.profile().iter().copied());
         match super::cargo_out::run(&mut cmd, build_dir, root) {
@@ -68,7 +68,7 @@ pub(crate) fn selected_targets() -> Option<Vec<String>> {
 /// compiler as the API it links against.
 pub(crate) const RUST_TOOLCHAIN: &str = env!("CARGO_PKG_RUST_VERSION");
 
-/// `.yog-build/rust-toolchain.toml` — pins the toolchain and lists every
+/// `obj/rust-toolchain.toml` — pins the toolchain and lists every
 /// target so rustup fetches them on its own. Generated, never hand-written.
 pub(crate) fn generate_rust_toolchain() -> String {
     let targets: Vec<String> = platform::ALL

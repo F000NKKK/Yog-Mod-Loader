@@ -339,7 +339,9 @@ fn generated_paths() {
     assert_eq!(project_root(&yui).as_deref(), Some(dir.as_path()));
     assert_eq!(include_name(&dir, &yui), "screens/opts");
     assert_eq!(generate_all(&dir).unwrap().screens, 1);
-    let generated = dir.join(".yog-build/generated/screens/opts.g.rs");
+    let generated = dir
+        .join(yog_ids::project::GENERATED)
+        .join("screens/opts.g.rs");
     assert!(generated.is_file());
     std::fs::remove_file(&yui).unwrap();
     generate_all(&dir).unwrap();

@@ -13,7 +13,7 @@
 //!   text of a `.yres` file under the key Minecraft looks up, a literal into
 //!   `en_us`);
 //! - builds the mod's textures (`.ytexture`, see `textures`);
-//! - generates `.yog-build/generated/yog-content.g.rs` — `Blocks`/`Items`
+//! - generates `obj/generated/yog-content.g.rs` — `Blocks`/`Items`
 //!   with an id constant and a `BlockDef`/`ItemDef` builder per entry and
 //!   a `register` function — pulled in by `yog_api::content!();`, which
 //!   also registers them (unless an entry says `"register": "manual"`) and
@@ -42,7 +42,11 @@ use yog_ids::Format;
 /// Where content files live, under the mod root.
 pub const CONTENT_DIR: &str = yog_ids::project::CONTENT;
 /// The generated Rust code, under the mod root.
-pub const GENERATED_FILE: &str = ".yog-build/generated/yog-content.g.rs";
+pub const GENERATED_FILE: &str = yog_ids::concatcp!(
+    yog_ids::project::GENERATED,
+    yog_ids::sep::PATH,
+    "yog-content.g.rs"
+);
 
 /// A generated file: path inside the `.yog` and its bytes.
 pub(crate) type Output = (String, Vec<u8>);
@@ -80,7 +84,7 @@ pub struct Compiled {
     /// The generated Rust code; `None` when the mod has no content files.
     pub source: Option<Source>,
     /// Data the code includes (`include_bytes!`), by path under
-    /// `.yog-build/generated/`: the books, as Yog Data.
+    /// `obj/generated/`: the books, as Yog Data.
     pub data_files: Vec<(String, Vec<u8>)>,
     /// What's suspect but builds.
     pub warnings: Vec<crate::diagnostics::Diagnostic>,

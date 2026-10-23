@@ -1,7 +1,7 @@
 //! What a mod's native keeps of its debug info: none (a plain build), all
 //! of it unoptimized (`yog build debug`, for stepping through), or a
 //! release's — optimized, the debug info split out beside the `.yog`
-//! (`yog build release`: `artifacts/symbols/<platform>/<lib>.debug`, what a
+//! (`yog build release`: `bin/symbols/<platform>/<lib>.debug`, what a
 //! crash's stack is read with), the packaged native without it.
 
 use std::path::{Path, PathBuf};
@@ -18,10 +18,10 @@ pub(crate) enum Symbols {
 /// `yog build debug`, `yog build release`.
 const KEPT_WORD: &str = "debug";
 const SPLIT_WORD: &str = "release";
-/// Where a release's split debug info goes, under the artifacts, and its extension.
+/// Where a release's split debug info goes, under `bin/`, and its extension.
 pub(crate) const SYMBOLS_DIR: &str = yog_ids::symbols::DIR;
 const DEBUG_EXT: &str = yog_ids::symbols::EXT;
-/// Where the packaged (stripped) copies go, under `.yog-build/`.
+/// Where the packaged (stripped) copies go, under `obj/`.
 const STRIPPED_DIR: &str = "stripped";
 /// The linker-agnostic objcopy every Rust toolchain ships (LLVM's).
 const OBJCOPY: &str = "rust-objcopy";
@@ -69,20 +69,20 @@ impl Symbols {
 }
 
 /// A release's natives as packaged: each one's debug info written to
-/// `artifacts/symbols/<tag>/<lib>.debug` and a stripped copy (under
+/// `bin/symbols/<tag>/<lib>.debug` and a stripped copy (under
 /// `build_dir`) in its place. The built file stays as it is, so building
 /// again with nothing changed splits it again whole.
 pub(crate) fn split(
     bundled: Vec<(String, PathBuf)>,
     build_dir: &Path,
-    artifacts: &Path,
+    bin: &Path,
 ) -> Result<Vec<(String, PathBuf)>, String> {
     let objcopy = objcopy()?;
     bundled
         .into_iter()
         .map(|(tag, native)| {
             let name = native.file_name().ok_or("a native without a name")?;
-            let symbols = artifacts.join(SYMBOLS_DIR).join(&tag);
+            let symbols = bin.join(SYMBOLS_DIR).join(&tag);
             let stripped = build_dir.join(STRIPPED_DIR).join(&tag);
             for dir in [&symbols, &stripped] {
                 std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
@@ -156,13 +156,13 @@ mod tests {
         let out = split(
             vec![(tag.clone(), exe.clone())],
             &dir.join("build"),
-            &dir.join("artifacts"),
+            &dir.join(yog_ids::project::BIN),
         )
         .unwrap();
         let size = |p: &Path| std::fs::metadata(p).unwrap().len();
         let name = exe.file_name().unwrap();
         let debug = dir
-            .join("artifacts")
+            .join(yog_ids::project::BIN)
             .join(SYMBOLS_DIR)
             .join(&tag)
             .join(name)

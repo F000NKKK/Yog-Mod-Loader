@@ -11,6 +11,8 @@ use serde_json::Value;
 use yog_cli::diagnostics::{self, Diagnostic, Severity};
 use yog_ids::build_problem;
 
+use super::prune::Used;
+
 /// The flag that makes cargo write its messages as JSON lines on stdout.
 const JSON_MESSAGES: &str = "--message-format=json";
 /// A JSON line's kind, and the kind that's the compiler's message.
@@ -30,8 +32,9 @@ const GENERATED: &str = ") generated ";
 const WARNING_LINE: &str = "warning:";
 
 /// Runs `cmd` (a cargo command in `build_dir`, the mod's generated crate
-/// under `root`): its messages said and reported as they come; whether it
-/// succeeded.
+/// under `root`): its messages said and reported as they come, what an
+/// earlier build left in the target folder removed when it succeeds;
+/// whether it succeeded.
 pub(crate) fn run(cmd: &mut Command, build_dir: &Path, root: &Path) -> std::io::Result<bool> {
     let mut child = cmd
         .arg(JSON_MESSAGES)
@@ -40,14 +43,19 @@ pub(crate) fn run(cmd: &mut Command, build_dir: &Path, root: &Path) -> std::io::
         .spawn()?;
     let stderr = child.stderr.take().map(|e| std::thread::spawn(|| said(e)));
     let mut compiler_failed = false;
+    let mut used = Used::default();
     if let Some(stdout) = child.stdout.take() {
         for line in BufReader::new(stdout).lines() {
             if let Ok(v) = serde_json::from_str::<Value>(&line?) {
                 compiler_failed |= message(&v, build_dir, root) == Some(Severity::Error);
+                used.note(&v);
             }
         }
     }
     let status = child.wait()?;
+    if status.success() {
+        used.prune();
+    }
     let stderr = stderr.and_then(|t| t.join().ok()).unwrap_or_default();
     if !status.success() && !compiler_failed {
         cargo_failed(status, &stderr);
@@ -190,7 +198,7 @@ mod tests {
         let root = Path::new("/m");
         let span = serde_json::json!({ "file_name": "../src/lib.rs", "line_start": 3, "column_start": 5, "line_end": 3, "column_end": 9 });
         let mut d = Diagnostic::error("E0308", "mismatched types");
-        place(&mut d, &span, &root.join(".yog-build"), root);
+        place(&mut d, &span, &root.join(yog_ids::project::OBJ), root);
         assert_eq!(d.file.as_deref(), Some("src/lib.rs"));
         assert_eq!((d.line, d.col, d.end_col), (Some(3), Some(5), Some(9)));
     }

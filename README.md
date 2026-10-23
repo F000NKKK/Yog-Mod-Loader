@@ -171,7 +171,7 @@ windows-x86_64, macos-x86_64 and macos-aarch64**.
 cargo install --locked yog-cli      # installs the `yog` command
 yog setup                  # Rust targets, Zig and cargo-zigbuild for cross builds
 yog new my-mod && cd my-mod
-yog build                  # -> artifacts/my-mod.yog
+yog build                  # -> bin/my-mod.yog
 ```
 
 `yog new` creates two files. `yog.toml` replaces `Cargo.toml`:
@@ -204,7 +204,7 @@ impl Mod for MyMod {
 yog_api::export_mod!(MyMod);
 ```
 
-Copy `artifacts/my-mod.yog` into `<game dir>/yog-mods/` of an instance that
+Copy `bin/my-mod.yog` into `<game dir>/yog-mods/` of an instance that
 has the Yog loader jar installed. The log confirms it:
 
 ```
@@ -381,8 +381,8 @@ crate with `yog publish exports`.
 | Command | What it does |
 |---|---|
 | `yog new <name>` | Create a mod project |
-| `yog build` / `yog build debug` | Build for every platform and package `artifacts/<id>.yog` (`debug` keeps debug info for the debugger) |
-| `yog check` | Generate `.yog-build/` and `cargo check` for the host only |
+| `yog build` / `yog build debug` | Build for every platform and package `bin/<id>.yog` (`debug` keeps debug info for the debugger) |
+| `yog check` | Generate `obj/` and `cargo check` for the host only |
 | `yog run <loader> <mc> [--debug]` | Build, copy the `.yog` into that loader's dev game, and launch it. Targets come from the loader SDK and `~/.yog/local.toml`, never from the mod (`yog run --list`) |
 | `yog ui gen` | Generate `.g.rs` from `.yui` screens and components |
 | `yog res check` | Validate `.yres` files, regenerate accessors, list untranslated texts |
@@ -454,7 +454,7 @@ JDK 17 and 21 for Gradle. `build.sh` picks the JDK from
 ./build.sh run fabric --client            # build and start the Fabric dev client
 ./build.sh run neoforge --client --mc 1.21.1
 ./build.sh test                           # cargo test
-./build.sh publish fabric                 # release jar -> artifacts/fabric/
+./build.sh publish fabric                 # release jar -> bin/fabric/
 YOG_TARGETS=linux-x86_64 ./build.sh build # host platform only, much faster
 ```
 

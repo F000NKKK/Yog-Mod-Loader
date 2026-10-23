@@ -80,8 +80,8 @@ fn banner(source: &str) -> String {
 /// What a generated source's file name ends with.
 const SOURCE_EXT: &str = ".g.rs";
 
-/// Writes `.yog-build/generated/resources/<Set>.g.rs` per set and
-/// `.yog-build/generated/resources.g.rs` including them all (what
+/// Writes `obj/generated/resources/<Set>.g.rs` per set and
+/// `obj/generated/resources.g.rs` including them all (what
 /// `yog_api::resources!()` pulls in as `crate::res`); deletes those of sets
 /// that are gone.
 pub fn write_sources(root: &Path, compiled: &Compiled) -> Result<(), String> {

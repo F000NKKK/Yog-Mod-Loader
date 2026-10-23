@@ -327,7 +327,7 @@ tick before, ~0.26 % after F2, ~0.03 % with mirrors.
   PNG made in memory (`YogImagePack`, `yog:media/png`): Hexcasting's 365
   pictures 312 → 178 KB zipped. One `.yog` a platform beside the whole
   one (natives are 1.4 of its 2.9 MB). `yog build release` / `build.sh
-  publish` split the debug info out (`artifacts/symbols/`, the runtime's
+  publish` split the debug info out (`bin/symbols/`, the runtime's
   as Yog Installer's `yog.symbols.runtime`). Editors' files stay out.)
 
 ## Migration (one major release, staged on master)

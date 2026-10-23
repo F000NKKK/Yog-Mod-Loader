@@ -370,7 +370,7 @@ impl SymbolTable {
     /// in `file`. An absolute `file` (what an IDE passes) must be the same
     /// file — line-table paths are resolved against the unit's
     /// `DW_AT_comp_dir` and normalized first, since `yog build` compiles from
-    /// `.yog-build/` with sources at `../src/`. A relative `file` matches on
+    /// `obj/` with sources at `../src/`. A relative `file` matches on
     /// trailing path components, so callers can pass just a filename or a
     /// partial path.
     pub fn resolve_breakpoint(&self, file: &str, line: u32) -> Vec<u64> {
@@ -508,7 +508,7 @@ fn function_name(function: &addr2line::FunctionName<R>) -> Option<String> {
 }
 
 /// Lexically resolves `.` and `..` — DWARF paths like
-/// `<mod>/.yog-build/../src/lib.rs` must compare equal to the
+/// `<mod>/obj/../src/lib.rs` must compare equal to the
 /// `<mod>/src/lib.rs` an editor has open. No filesystem access (the paths
 /// may not exist on this machine).
 fn normalize_path(path: &Path) -> PathBuf {

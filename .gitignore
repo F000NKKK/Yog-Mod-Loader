@@ -28,8 +28,9 @@ build/
 *.dylib
 *.dll
 
-# ── build.sh output bundles ──
-artifacts/
+# ── Build output: obj/ (cargo's target, intermediates), bin/ (build.sh's bundles) ──
+obj/
+/bin/
 
 # ── IDE / editor / OS ──
 .idea/

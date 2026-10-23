@@ -19,7 +19,7 @@
 //!
 //! No harness, no `criterion_main!`, no Cargo.toml: each file becomes a
 //! `[[bench]]` target of the generated crate whose `main`
-//! (`.yog-build/generated/benches/<file>.rs`) runs its functions in source
+//! (`obj/generated/benches/<file>.rs`) runs its functions in source
 //! order. A function taking `&mut Bencher` is one benchmark named
 //! `<file>/<fn>`; one taking `&mut Criterion` sets up its own (groups,
 //! throughput, batched inputs). The mod is linked in as a library under
@@ -36,7 +36,8 @@ use yog_codegen_rust::Rust;
 /// Where the mod's benchmark files live, under the project root.
 pub const BENCH_DIR: &str = "benches";
 /// The generated `main`s, under the project root.
-pub const GENERATED_DIR: &str = ".yog-build/generated/benches";
+pub const GENERATED_DIR: &str =
+    yog_ids::concatcp!(yog_ids::project::GENERATED, yog_ids::sep::PATH, "benches");
 /// criterion, added to `[dev-dependencies]` unless yog.toml lists its own.
 const CRITERION: &str = r#"criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }"#;
 /// The marker attribute, as written in a benchmark file.

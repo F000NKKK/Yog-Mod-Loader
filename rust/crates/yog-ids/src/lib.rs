@@ -42,6 +42,7 @@ mod names {
     pub mod datapack;
     pub mod mirror;
     pub mod nanite;
+    pub mod serve;
     pub mod services;
     pub mod ui;
 }
@@ -54,6 +55,7 @@ pub use names::content::*;
 pub use names::datapack::*;
 pub use names::mirror::*;
 pub use names::nanite::*;
+pub use names::serve::*;
 pub use names::services::*;
 pub use names::ui::*;
 pub use tooling::formats::*;
@@ -69,6 +71,7 @@ pub const ALL: &[&[Group]] = &[
     names::mirror::ALL,
     names::nanite::ALL,
     names::content::ALL,
+    names::serve::ALL,
     names::datapack::ALL,
     names::ui::ALL,
 ];

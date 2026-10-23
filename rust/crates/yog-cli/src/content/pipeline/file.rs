@@ -12,7 +12,7 @@ use yog_ids::sep::{DOT, NAMESPACE, PATH};
 /// What joins an id's parts in a generated file's name: `ns__path__more`.
 const NAME_JOIN: &str = "__";
 
-/// Where `id`'s data is kept under `.yog-build/generated/`, in folder
+/// Where `id`'s data is kept under `obj/generated/`, in folder
 /// `dir`: `<dir>/<ns>__<path>.<ext>`.
 pub(in crate::content) fn generated(dir: &str, id: &str, format: Format) -> String {
     let name = id.replace(NAMESPACE, NAME_JOIN).replace(PATH, NAME_JOIN);

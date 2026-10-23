@@ -1,6 +1,6 @@
 //! What an item tag holds (`#minecraft:planks`), for slots that show each
 //! of its items in turn, as JEI does: the mod's own tags as `yog build`
-//! makes them (its `.yog-build/generated/tags.ydata`, `content::TAGS_FILE` — content files'
+//! makes them (its `obj/generated/tags.ydata`, `content::TAGS_FILE` — content files'
 //! `tags`, `.ydef` tags), and the game's — from the newest version that has
 //! the tag (one removed in 1.21 still shows its 1.20 items) — nested tags
 //! opened. Yog's common tags (`yog:ingots/iron`) are the game's and the

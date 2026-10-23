@@ -969,7 +969,7 @@ Substrate stays generic: it gets only a reusable `AssetPicker` widget (a searcha
 | `mod:<path>`, bare ids meaning `minecraft:` | full `<ns>:<path>` (D10) |
 | `.yres` `sound`/`file` types | `.ogg` + `.ysound` under `content/`, raw files under `pack/` |
 | `noOcclusion` derived from appearance, `YogShapedBlock` as the only block class | behaviours (§4.6), `YogBlockTraits` |
-| `resources/`, top-level `assets/`/`data/`, `.yog-build/`, `.yog-idle/`, root `target/` | §13 layout |
+| `resources/`, top-level `assets/`/`data/`, `obj/`, `.yog-idle/`, root `target/` | §13 layout |
 | fixed control defaults in `render.rs` | `minecraft:vanilla.ytheme` + `.ytheme` cascade |
 | yog-ui flat defaults, amber focus, `focus_color`, `Style.bg: u32` | theme, `Brush`, `focus` brush (a flat look is a `.ytheme` on `yog:bare`) |
 | `NativeDraw.textureSize` (PNG IHDR read) | `yog/textures.json` + the vanilla index |
@@ -1048,7 +1048,7 @@ The following docs are rewritten:
 
 ### 13.1 Today
 
-`src/` (Rust plus `.yui` and `*.designer.rs`), `resources/` (`.yres` plus PNGs), `content/` (`.yblock`/`.yitem`), top-level `assets/` and `data/` (copied verbatim by `gather_assets`, main.rs ~1892), `.yog-build/` (generated cargo project, main.rs:651), `.yog-idle/`, `target/`, `artifacts/`. The `.gitignore` template (main.rs:486) lists `.yog-build/`, `target/`, `artifacts/` and `*.designer.rs`. Asset kinds are split by folder for historical reasons, and textures sit far from the blocks that use them.
+`src/` (Rust plus `.yui` and `*.designer.rs`), `resources/` (`.yres` plus PNGs), `content/` (`.yblock`/`.yitem`), top-level `assets/` and `data/` (copied verbatim by `gather_assets`, main.rs ~1892), `obj/` (generated cargo project, main.rs:651), `.yog-idle/`, `target/`, `bin/`. The `.gitignore` template (main.rs:486) lists `obj/`, `target/`, `bin/` and `*.designer.rs`. Asset kinds are split by folder for historical reasons, and textures sit far from the blocks that use them.
 
 ### 13.2 New layout
 
@@ -1063,10 +1063,10 @@ src/                    Rust only. .yui code-behind view-models stay here and ar
 content/                every asset; free-form/feature folders; the type is the extension
 pack/assets/…           raw resource-pack passthrough (OptiFine CTM, particles, anything Yog has no format for)
 pack/data/…             raw data-pack passthrough (loot tables, tags, recipes until .yloot/.ytag/.yrecipe exist)
-artifacts/              built .yog files (visible, git-ignored)
-.yog/                   hidden, git-ignored:
-  build/                  generated cargo project (was .yog-build/)
-  target/                 cargo target-dir (was ./target/)
+bin/                    what the build makes: the .yog, one a platform, symbols (git-ignored)
+obj/                    what it makes on the way (git-ignored), as .NET's:
+  Cargo.toml, generated/  the generated cargo project and code
+  target/                 cargo's target-dir: only the current build kept
   cache/                  texture alpha, vanilla refs index, incremental state
   idle/                   IDE state (was .yog-idle/)
   backup/                 pre-migration backups (§14)
@@ -1093,18 +1093,18 @@ artifacts/              built .yog files (visible, git-ignored)
 - yog-cli scans `content/**` once per build and dispatches by extension. The scan result is the reference index used by validation, the IDE rename refactoring (§10) and the migration's ref rewriting (§14).
 - `src/` is the cargo crate root. `.yui` files under `content/` generate code into `.yog/build/generated/ui/`, and the screen binds to its view-model by Rust path. A `.yui` without `x:ViewModel` needs no Rust at all.
 - `pack/` is copied verbatim into the `.yog`, after generated files. A collision with a generated file is a build error.
-- yog-cli's paths (`src`, `.yog-build`, `artifacts`, `assets`/`data` in `gather_assets`, the `.gitignore` template) change accordingly. `CARGO_TARGET_DIR` points to `.yog/target`.
+- yog-cli's paths (`src`, `obj/`, `bin/`, `assets`/`data` in `gather_assets`, the `.gitignore` template) change accordingly. `CARGO_TARGET_DIR` points to `obj/target`.
 
 **Migration (one format step, §14):**
 - `resources/*.yres` → `content/` (same relative path). `image` entries become PNG files plus full texture ids at each use. `sound` entries become `.ysound`, and `file` entries move to `pack/`.
 - PNGs from `resources/` and `assets/<mod>/textures/` move **next to their single user** (`.yblock`/`.yitem`/`.ymat`), or to `content/textures/<old path>` when used by several files or by none. Every ref is rewritten.
 - `src/**/*.yui` → `content/ui/**`. `x:ViewModel="X"` becomes `crate::<module of the old file>::X`. `*.designer.rs` files are deleted: designer code is generated into `.yog/build/generated/ui/` only.
 - `assets/` and `data/` remaining after that → `pack/assets/`, `pack/data/`.
-- `.yog-build/`, `.yog-idle/` and `target/` are deleted (regenerated in `.yog/`), and `.gitignore` is rewritten.
+- `obj/`, `.yog-idle/` and `target/` are deleted (regenerated in `.yog/`), and `.gitignore` is rewritten.
 
 ### 13.3 IDLE templates
 
-New Project creates `yog.toml` (with `format`), `src/lib.rs`, `content/` with a sample `.yblock` and texture side by side, an empty `pack/`, and `.gitignore` with `.yog/` and `artifacts/`. New Item templates are listed in §10.
+New Project creates `yog.toml` (with `format`), `src/lib.rs`, `content/` with a sample `.yblock` and texture side by side, an empty `pack/`, and `.gitignore` with `.yog/` and `bin/`. New Item templates are listed in §10.
 
 ---
 

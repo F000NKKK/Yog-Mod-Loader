@@ -9,7 +9,6 @@ const DEFAULT_VERSION: &str = "0.1.0";
 /// The manifest's file name, in the project root.
 pub use yog_ids::file::MANIFEST;
 /// Where `yog build` generates the cargo project, under the project root.
-pub const BUILD_DIR: &str = yog_ids::project::BUILD;
 /// Plain crates.io dependencies.
 pub const DEPS_SECTION: &str = "[dependencies]";
 /// Other Yog mods' exports crates.

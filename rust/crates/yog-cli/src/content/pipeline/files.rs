@@ -1,12 +1,12 @@
 //! The checked books, entities, bodies and fonts: their data and where
-//! it's kept under `.yog-build/generated/`.
+//! it's kept under `obj/generated/`.
 
 use yog_ids::Format;
 use yog_ids::sep::PATH;
 
 use crate::content::pipeline::file::generated;
 
-/// Their folders under `.yog-build/generated/`.
+/// Their folders under `obj/generated/`.
 const BOOKS_DIR: &str = "books";
 const ENTITIES_DIR: &str = yog_ids::word::ENTITIES;
 const FONTS_DIR: &str = "fonts";
@@ -34,7 +34,7 @@ pub(in crate::content) struct EntityFile {
 }
 
 impl EntityFile {
-    /// Its file under `.yog-build/generated/`.
+    /// Its file under `obj/generated/`.
     pub(in crate::content) fn path(&self) -> String {
         generated(ENTITIES_DIR, &self.id, Format::Data)
     }
@@ -58,14 +58,14 @@ pub(in crate::content) struct FontFile {
 }
 
 impl FontFile {
-    /// Its file under `.yog-build/generated/`.
+    /// Its file under `obj/generated/`.
     pub(in crate::content) fn path(&self) -> String {
         generated(FONTS_DIR, &self.id, Format::Font)
     }
 }
 
 impl BodyFile {
-    /// Its file under `.yog-build/generated/`.
+    /// Its file under `obj/generated/`.
     pub(in crate::content) fn path(&self) -> String {
         let dir = if self.model { MODELS_DIR } else { ANIMS_DIR };
         generated(&[BODY_DIR, dir].join(PATH), &self.id, Format::Data)
@@ -73,7 +73,7 @@ impl BodyFile {
 }
 
 impl BookFile {
-    /// Its file under `.yog-build/generated/`.
+    /// Its file under `obj/generated/`.
     pub(in crate::content) fn path(&self) -> String {
         generated(BOOKS_DIR, &self.id, Format::Data)
     }

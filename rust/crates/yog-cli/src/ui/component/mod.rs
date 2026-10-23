@@ -39,7 +39,11 @@ use crate::ui::yui::{self, Element, RAW_CALL, RAW_VALUE, UI_USE, err};
 use yog_data::Diagnostic;
 
 /// Index of the components without a code-behind, included by `ui_components!()`.
-pub const INDEX_FILE: &str = ".yog-build/generated/components.g.rs";
+pub const INDEX_FILE: &str = yog_ids::concatcp!(
+    yog_ids::project::GENERATED,
+    yog_ids::sep::PATH,
+    "components.g.rs"
+);
 
 /// A property type: its word, its field's Rust type, and whether
 /// `Props` reads it by a method of its name (else as a word).

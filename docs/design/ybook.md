@@ -592,7 +592,7 @@ Diagnostics carry the file, line and column of the `.ybook`/`.yentry`, or of the
 
 ### 7.2 Typed handles
 
-`.yog-build/generated/books.g.rs`, included by `#[yog_api::main]` (boilerplate F8; until F8 lands, by the existing
+`obj/generated/books.g.rs`, included by `#[yog_api::main]` (boilerplate F8; until F8 lands, by the existing
 `content!()`):
 
 ```rust

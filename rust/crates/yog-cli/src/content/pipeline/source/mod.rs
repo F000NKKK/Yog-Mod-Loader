@@ -325,7 +325,7 @@ const GENERATED_HEADER: Header = Header {
 };
 
 /// Where the content's code goes besides the root file, under
-/// `.yog-build/generated/`: one file a part (`items.g.rs`, `register.g.rs`, …).
+/// `obj/generated/`: one file a part (`items.g.rs`, `register.g.rs`, …).
 pub const GENERATED_PARTS_DIR: &str = "content";
 
 /// The content's code: the root file ([`GENERATED_FILE`]), which only

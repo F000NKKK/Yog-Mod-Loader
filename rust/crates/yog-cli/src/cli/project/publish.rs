@@ -82,9 +82,9 @@ pub(crate) fn publish_exports(dry_run: bool) -> Result<(), String> {
         eprintln!("==> no #[yog_export] items found — nothing to publish");
         return Ok(());
     }
-    // Generated in .yog-build/exports/<crate>/.
+    // Generated in obj/exports/<crate>/.
     let dir = proj
-        .join(yog_cli::project::manifest::BUILD_DIR)
+        .join(yog_ids::project::OBJ)
         .join(EXPORTS_DIR)
         .join(&c.name);
     write_crate(&dir, &c, &manifest)?;
@@ -109,5 +109,5 @@ pub(crate) fn publish_exports(dry_run: bool) -> Result<(), String> {
     Ok(())
 }
 
-/// Where exports crates are generated, under `.yog-build/`.
+/// Where exports crates are generated, under `obj/`.
 const EXPORTS_DIR: &str = "exports";

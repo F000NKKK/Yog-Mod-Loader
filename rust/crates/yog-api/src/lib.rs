@@ -201,7 +201,7 @@ macro_rules! ui_component {
 /// ```
 ///
 /// `yog build`, `yog check` and `yog ui gen` write the list to
-/// `.yog-build/generated/components.g.rs` (a module per component).
+/// `obj/generated/components.g.rs` (a module per component).
 #[macro_export]
 macro_rules! ui_components {
     () => {
@@ -356,7 +356,7 @@ pub mod ui {
 /// `<name>` is the `.yui` file's path under `src/` without the extension
 /// (`"screens/options"` for `src/screens/options.yui`). `yog build`,
 /// `yog check` and `yog ui gen` write the code to
-/// `.yog-build/generated/<name>.g.rs` (the build crate's own directory,
+/// `obj/generated/<name>.g.rs` (the build crate's own directory,
 /// `CARGO_MANIFEST_DIR`), so it's never committed and never stale.
 #[macro_export]
 macro_rules! ui_include {
@@ -384,8 +384,8 @@ macro_rules! ui_include {
 /// ```
 ///
 /// `yog build`, `yog check` and `yog res check` generate one
-/// `.yog-build/generated/resources/<Set>.g.rs` per `resources/**/<Set>.yres`
-/// plus `.yog-build/generated/resources.g.rs` including them all (see
+/// `obj/generated/resources/<Set>.g.rs` per `resources/**/<Set>.yres`
+/// plus `obj/generated/resources.g.rs` including them all (see
 /// Yog-IDLE's `docs/yres.md`); never committed, never stale.
 #[macro_export]
 macro_rules! resources {
@@ -415,7 +415,7 @@ macro_rules! resources {
 /// ```
 ///
 /// `yog build`, `yog check` and `yog content check` generate
-/// `.yog-build/generated/yog-content.g.rs` — never committed, never stale.
+/// `obj/generated/yog-content.g.rs` — never committed, never stale.
 /// The models, blockstates, loot tables, tags and lang entries go into the
 /// `.yog` as assets. See Yog-IDLE's `docs/blocks-items.md`.
 #[macro_export]

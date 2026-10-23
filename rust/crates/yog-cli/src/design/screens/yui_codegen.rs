@@ -1,5 +1,5 @@
 //! `.yui` screen files (the screen designer's format) — regenerating their
-//! code (`.yog-build/generated/**/*.g.rs`, what the code-behind pulls in
+//! code (`obj/generated/**/*.g.rs`, what the code-behind pulls in
 //! with `yog_api::ui_include!`) when one is saved, through `yog ui gen` —
 //! and the same for `.yres` resource files (`resources/<Set>.g.rs`,
 //! through `yog res check`).
@@ -16,9 +16,9 @@ pub(crate) fn codegen(path: &str) -> Result<Codegen, String> {
     let file = PathBuf::from(path);
     let args: &[&str] = match Format::of_path(&file) {
         Some(Format::Ui) => &["ui", "gen"],
-        // Regenerates `.yog-build/generated/resources/<Set>.g.rs` (and checks the set).
+        // Regenerates `obj/generated/resources/<Set>.g.rs` (and checks the set).
         Some(Format::Res) => &["res", "check"],
-        // Regenerates `.yog-build/generated/yog-content.g.rs` and its parts (and checks every content file).
+        // Regenerates `obj/generated/yog-content.g.rs` and its parts (and checks every content file).
         Some(Format::Block | Format::Item) => &["content", "check"],
         _ => return Err(format!("not a .yui, .yres, .yblock or .yitem file: {path}")),
     };

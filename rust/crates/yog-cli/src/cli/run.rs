@@ -6,8 +6,8 @@ use std::process::Command;
 
 use yog_cli::project::manifest::{MANIFEST, project_root};
 
+use super::pipeline::build;
 use super::pipeline::prepare::write_file;
-use super::pipeline::{ARTIFACTS_DIR, build};
 
 /// `yog run --list`: every run target, a line each. `--json`, for editors:
 /// `{"targets": [...], "sources": [folders they're read from]}`.
@@ -133,7 +133,7 @@ pub(crate) fn refresh_exported(dir: &Path, current: &str, symbols: Symbols) {
         }
         let built = cmd.status().is_ok_and(|s| s.success());
         let artifact = source
-            .join(ARTIFACTS_DIR)
+            .join(yog_ids::project::BIN)
             .join(yog_ids::Format::Mod.file(&id));
         if !built || !artifact.is_file() {
             eprintln!("warning: {id} didn't build — keeping its previous {id}.yog");

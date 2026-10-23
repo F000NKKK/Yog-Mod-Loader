@@ -10,7 +10,7 @@ use yog_cli::{content, yres};
 
 use super::prepare::resolve_metadata;
 
-/// `yog ui gen [files...]` — regenerates `.yog-build/generated/**/*.g.rs`
+/// `yog ui gen [files...]` — regenerates `obj/generated/**/*.g.rs`
 /// for the given `.yui` screen files (each in the project whose `yog.toml`
 /// is above it), or for every `src/**/*.yui` of the current project.
 /// `yog build`/`yog check` do the same before compiling; this is for editors
@@ -76,7 +76,7 @@ pub(crate) fn load_resource_refs(root: &Path) {
 
 /// `yog res check` — what `yog build` does with `resources/**/*.yres`,
 /// without building: errors with file:line, untranslated texts per locale,
-/// and fresh accessors in `.yog-build/generated/resources/`.
+/// and fresh accessors in `obj/generated/resources/`.
 pub(crate) fn res_check() -> Result<(), String> {
     let root = project_root()?;
     let mut meta = YogToml::read(&root.join(MANIFEST))?;
@@ -100,7 +100,7 @@ pub(crate) fn res_check() -> Result<(), String> {
 
 /// `yog content check` — what `yog build` does with `content/**/*.yblock`
 /// and `*.yitem`, without building: errors with file:line, a fresh
-/// `.yog-build/generated/yog-content.g.rs`.
+/// `obj/generated/yog-content.g.rs`.
 pub(crate) fn content_check() -> Result<(), String> {
     let root = project_root()?;
     let meta = YogToml::read(&root.join(MANIFEST))?;

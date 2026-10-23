@@ -105,10 +105,10 @@ pub(super) fn tree(t: &TreeDef, id: &str) -> Result<Output, String> {
     Ok((feature_file(wg::CONFIGURED_FEATURE, id), pretty(&v)))
 }
 
-/// Where dimensions' data is kept under `.yog-build/generated/`.
+/// Where dimensions' data is kept under `obj/generated/`.
 const DIMENSIONS_DIR: &str = "dimensions";
 
-/// A dimension's data file under `.yog-build/generated/`.
+/// A dimension's data file under `obj/generated/`.
 pub(in crate::content) fn dimension_path(id: &str) -> String {
     generated(DIMENSIONS_DIR, id, yog_ids::Format::Data)
 }

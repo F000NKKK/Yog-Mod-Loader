@@ -4,6 +4,7 @@
 pub(crate) mod cargo_out;
 mod pictures;
 pub(crate) mod prepare;
+mod prune;
 pub(crate) mod steps;
 pub(crate) mod symbols;
 pub(crate) mod targets;
@@ -25,14 +26,14 @@ use targets::{Builder, install_targets, installed_targets, lib_filename, selecte
 
 /// `yog check` — `cargo check` of the mod for the host platform, after the
 /// same generation `yog build` does; nothing is packaged. Quick feedback
-/// (and fresh `.yog-build/generated/` for rust-analyzer) without a build.
+/// (and fresh `obj/generated/` for rust-analyzer) without a build.
 pub(crate) fn check() -> Result<(), String> {
     let Prepared {
         root, build_dir, ..
     } = prepare()?;
     let mut cmd = Command::new("cargo");
     cmd.current_dir(&build_dir)
-        .env("CARGO_TARGET_DIR", root.join("target"))
+        .env("CARGO_TARGET_DIR", root.join(yog_ids::project::TARGET))
         .arg("check");
     let ok = cargo_out::run(&mut cmd, &build_dir, &root)
         .map_err(|e| format!("failed to run cargo: {e}"))?;
@@ -62,7 +63,7 @@ pub(crate) fn run_benches(args: &[String]) -> Result<(), String> {
     }
     let status = Command::new("cargo")
         .current_dir(&build_dir)
-        .env("CARGO_TARGET_DIR", root.join("target"))
+        .env("CARGO_TARGET_DIR", root.join(yog_ids::project::TARGET))
         .args(["bench", "--benches", "--"])
         .args(args)
         .status()
@@ -84,7 +85,7 @@ pub(crate) fn designer_lib() -> Result<(), String> {
         build_dir,
         ..
     } = prepare()?;
-    let target_dir = root.join("target").join("designer");
+    let target_dir = root.join(yog_ids::project::TARGET).join("designer");
     let mut cmd = Command::new("cargo");
     cmd.current_dir(&build_dir)
         .env("CARGO_TARGET_DIR", &target_dir)
@@ -109,7 +110,7 @@ pub(crate) fn designer_lib() -> Result<(), String> {
 /// callers like `run_target` can reuse them without re-parsing/rebuilding.
 ///
 /// `symbols`: what the native keeps of its debug info (`cli/symbols.rs`) —
-/// a release's split out to `artifacts/symbols/`.
+/// a release's split out to `bin/symbols/`.
 /// Which platforms a build makes natives for.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub(crate) enum Platforms {
@@ -138,41 +139,41 @@ pub(crate) fn build(
         std::fs::copy(&new_lock, root.join(yog_ids::file::LOCK)).map_err(|e| e.to_string())?;
     }
     let assets = assets(&root, resources, content, dev)?;
-    let artifacts = root.join(ARTIFACTS_DIR);
-    std::fs::create_dir_all(&artifacts).map_err(|e| e.to_string())?;
+    let bin = root.join(yog_ids::project::BIN);
+    std::fs::create_dir_all(&bin).map_err(|e| e.to_string())?;
     let bundled = match symbols {
         Symbols::Split => {
-            let split = symbols::split(bundled, &build_dir, &artifacts)?;
+            let split = symbols::split(bundled, &build_dir, &bin)?;
             eprintln!(
                 "    debug info split out to {}/",
-                artifacts.join(symbols::SYMBOLS_DIR).display()
+                bin.join(symbols::SYMBOLS_DIR).display()
             );
             split
         }
         Symbols::Stripped | Symbols::Kept => bundled,
     };
-    let out = artifacts.join(yog_ids::Format::Mod.file(&meta.id));
+    let out = bin.join(yog_ids::Format::Mod.file(&meta.id));
     package(&out, &meta, &bundled, &assets)
         .map_err(|e| diagnostics::failed(build_problem::PACKAGE, e))?;
     let tags: Vec<&str> = bundled.iter().map(|(t, _)| t.as_str()).collect();
     eprintln!("==> packaged {} [{}]", out.display(), tags.join(", "));
     if bundled.len() > 1 {
-        per_platform(&artifacts, &meta, &bundled, &assets)?;
+        per_platform(&bin, &meta, &bundled, &assets)?;
     }
     Ok((meta, out))
 }
 
-/// Each platform's own `.yog` (`artifacts/<platform>/<id>.yog`): the same
+/// Each platform's own `.yog` (`bin/<platform>/<id>.yog`): the same
 /// mod with only that platform's native — what a player of it downloads,
 /// a fifth of the whole.
 fn per_platform(
-    artifacts: &Path,
+    bin: &Path,
     meta: &YogToml,
     bundled: &[(String, PathBuf)],
     assets: &[(String, Vec<u8>)],
 ) -> Result<(), String> {
     for native in bundled {
-        let dir = artifacts.join(&native.0);
+        let dir = bin.join(&native.0);
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         let out = dir.join(yog_ids::Format::Mod.file(&meta.id));
         package(&out, meta, std::slice::from_ref(native), assets)
@@ -180,13 +181,10 @@ fn per_platform(
     }
     eprintln!(
         "    and one .yog a platform, in {}/<platform>/",
-        artifacts.display()
+        bin.display()
     );
     Ok(())
 }
-
-/// Where `yog build` puts the `.yog`, under the mod's root.
-pub(crate) const ARTIFACTS_DIR: &str = "artifacts";
 
 /// The platforms to build for: this machine's, or those `YOG_TARGETS` picks (all when unset).
 fn wanted_targets(platforms: Platforms) -> Vec<&'static Platform> {
@@ -239,9 +237,9 @@ fn build_natives(
             continue;
         }
         let lib = lib_filename(&meta.id, t.os);
-        // Cargo puts output under project-root/target/<triple>/release/ (we set CARGO_TARGET_DIR)
+        // Cargo puts output under obj/target/<triple>/release/ (we set CARGO_TARGET_DIR)
         let path = root
-            .join(TARGET_DIR)
+            .join(yog_ids::project::TARGET)
             .join(t.triple)
             .join(RELEASE_DIR)
             .join(&lib);
@@ -263,8 +261,7 @@ fn build_natives(
     Ok(bundled)
 }
 
-/// Cargo's output folders: its target folder (the mod root's), a profile's.
-const TARGET_DIR: &str = "target";
+/// Cargo's output folder of a release build.
 const RELEASE_DIR: &str = "release";
 
 /// What the `.yog` bundles besides the natives: the mod's files and what

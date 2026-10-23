@@ -55,7 +55,7 @@ pub(in crate::content) struct Recipe {
 
 impl Recipe {
     /// A recipe of the mod's own kind as the code hands it over: its file
-    /// under `.yog-build/generated/` and Yog's recipe in it, as Yog Data
+    /// under `obj/generated/` and Yog's recipe in it, as Yog Data
     /// (the host keeps it out of the game's data). `None` for the game's kinds.
     pub(in crate::content) fn data_file(&self) -> Option<(String, Vec<u8>)> {
         let RecipeKind::Custom {

@@ -10,7 +10,7 @@
 //!   a hand-written one), `{name}`/`{0}` placeholders turned into `%1$s`;
 //! - bundles image/file/sound entries' files under `assets/<mod id>/...`
 //!   (sounds as Ogg Vorbis: `.ysound` events name them);
-//! - generates `.yog-build/generated/resources/<Set>.g.rs` — a type per
+//! - generates `obj/generated/resources/<Set>.g.rs` — a type per
 //!   set with a typed accessor per entry — and `resources.g.rs` including
 //!   them, pulled in as `crate::res` by `yog_api::resources!();`;
 //! - resolves `@<Set>.<name>` references for `.yui` screens and `yog.toml`.
@@ -38,9 +38,14 @@ pub(crate) const RESOURCES_DIR: &str = yog_ids::project::RESOURCES;
 /// Where the generated accessors go, under the mod root.
 /// The file `yog_api::resources!()` includes; it includes one
 /// `resources/<Set>.g.rs` per set (shown under its `.yres` in Yog-IDLE).
-pub const GENERATED_FILE: &str = ".yog-build/generated/resources.g.rs";
+pub const GENERATED_FILE: &str = yog_ids::concatcp!(
+    yog_ids::project::GENERATED,
+    yog_ids::sep::PATH,
+    "resources.g.rs"
+);
 /// Where the per-set `<Set>.g.rs` files go.
-pub const GENERATED_DIR: &str = ".yog-build/generated/resources";
+pub const GENERATED_DIR: &str =
+    yog_ids::concatcp!(yog_ids::project::GENERATED, yog_ids::sep::PATH, "resources");
 
 /// A generated file: path inside the `.yog` and its bytes.
 pub(crate) type Output = (String, Vec<u8>);

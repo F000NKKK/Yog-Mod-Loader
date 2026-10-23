@@ -218,7 +218,7 @@ Params: the behaviour struct *is* its params (`#[derive(Codec, Default)]`, field
 yog-cli's content codegen emits them as **Rust struct literals**:
 
 ```rust
-// .yog-build/content.rs (generated)
+// obj/content.rs (generated)
 blocks.attach::<yog_pipes::Pipe>("copper-pipes:copper_pipe",
     yog_pipes::Pipe { kind: PipeKind::Item, speed: 2.0, ..Default::default() });
 ```

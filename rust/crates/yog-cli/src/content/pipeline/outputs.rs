@@ -300,8 +300,12 @@ pub(in crate::content) fn is_lang_path(p: &str) -> bool {
 /// Where the mod's tags are listed for tools (`ns:path` → its entries, by
 /// kind), as binary Yog Data — the IDE shows a tag's items from here, as the
 /// build makes them.
-pub const TAGS_FILE: &str =
-    yog_ids::concatcp!(".yog-build/generated/tags.", yog_ids::Format::Data.ext());
+pub const TAGS_FILE: &str = yog_ids::concatcp!(
+    yog_ids::project::GENERATED,
+    yog_ids::sep::PATH,
+    "tags.",
+    yog_ids::Format::Data.ext()
+);
 
 /// The mod's tags as [`TAGS_FILE`] lists them: kind → tag → its entries.
 pub type TagLists = BTreeMap<String, BTreeMap<String, Vec<String>>>;

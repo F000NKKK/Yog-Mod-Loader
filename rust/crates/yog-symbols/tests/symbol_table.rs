@@ -101,7 +101,7 @@ fn lists_exported_functions() {
 
 /// What an IDE passes: the absolute path of the open file — while the
 /// DWARF says `../…` relative to the build dir, because `yog build`
-/// compiles from `.yog-build/` with `path = "../src/lib.rs"`.
+/// compiles from `obj/` with `path = "../src/lib.rs"`.
 #[test]
 fn absolute_path_matches_a_dotdot_relative_compile() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

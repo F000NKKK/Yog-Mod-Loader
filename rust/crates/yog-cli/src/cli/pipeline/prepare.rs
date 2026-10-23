@@ -1,4 +1,4 @@
-//! What every command that compiles does first: `.yog-build/` regenerated,
+//! What every command that compiles does first: `obj/` regenerated,
 //! resources and content compiled, the lock made to agree with this yog.
 
 use std::collections::BTreeMap;
@@ -7,7 +7,7 @@ use std::process::Command;
 
 use yog_cli::project::bench;
 use yog_cli::project::cargo_toml::generate_cargo_toml;
-use yog_cli::project::manifest::{BUILD_DIR, MANIFEST, YogToml, project_root};
+use yog_cli::project::manifest::{MANIFEST, YogToml, project_root};
 use yog_cli::ui::yui;
 use yog_cli::{content, diagnostics, yres};
 use yog_ids::{build_problem, rust_crate};
@@ -15,7 +15,7 @@ use yog_ids::{build_problem, rust_crate};
 use super::steps::warn_all;
 use super::targets::generate_rust_toolchain;
 
-/// A mod project made ready for cargo: `.yog-build/` (Cargo.toml, generated
+/// A mod project made ready for cargo: `obj/` (Cargo.toml, generated
 /// `.yui` screen code, toolchain, lock) written, translations compiled.
 pub(crate) struct Prepared {
     pub(super) root: PathBuf,
@@ -27,7 +27,7 @@ pub(crate) struct Prepared {
 }
 
 /// What every command that compiles does first (`yog build`, `yog check`):
-/// regenerates `.yog-build/` from `yog.toml` and `src/**/*.yui`, and checks
+/// regenerates `obj/` from `yog.toml` and `src/**/*.yui`, and checks
 /// the translations.
 pub(crate) fn prepare() -> Result<Prepared, String> {
     let root = project_root()?;
@@ -78,10 +78,10 @@ fn read_meta(root: &Path) -> Result<YogToml, String> {
     Ok(meta)
 }
 
-/// `.yog-build/`: its `Cargo.toml`, the benches', the screens' code, the
+/// `obj/`: its `Cargo.toml`, the benches', the screens' code, the
 /// toolchain; the editor pointed at it.
 fn write_build_dir(root: &Path, meta: &YogToml) -> Result<PathBuf, String> {
-    let build_dir = root.join(BUILD_DIR);
+    let build_dir = root.join(yog_ids::project::OBJ);
     std::fs::create_dir_all(&build_dir).map_err(|e| e.to_string())?;
     let benches = bench::discover(root).map_err(diagnostics::reported)?;
     bench::write_sources(root, &benches)?;
@@ -256,7 +256,7 @@ pub(crate) fn update_old_deps(build_dir: &Path, cargo_lock: &Path) {
 
 /// Make the editor "just work" for a `yog.toml`-only project: rust-analyzer
 /// has nothing to find at the project root (a `Cargo.toml` there is
-/// forbidden — `.yog-build/Cargo.toml` is the real one), so
+/// forbidden — `obj/Cargo.toml` is the real one), so
 /// `rust-analyzer.linkedProjects` in `.vscode/settings.json` points it at
 /// the generated one.
 ///
@@ -282,7 +282,11 @@ pub(crate) fn configure_editor(root: &Path) -> Result<(), String> {
         .entry("rust-analyzer.linkedProjects")
         .or_insert_with(|| serde_json::json!([]));
     if let Some(arr) = linked.as_array_mut() {
-        let wanted = serde_json::json!(".yog-build/Cargo.toml");
+        let wanted = serde_json::json!(yog_ids::concatcp!(
+            yog_ids::project::OBJ,
+            yog_ids::sep::PATH,
+            "Cargo.toml"
+        ));
         if !arr.contains(&wanted) {
             arr.push(wanted);
         }

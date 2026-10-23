@@ -76,12 +76,12 @@ pub(super) fn damage_type(d: &DamageTypeDef, id: &str) -> (Output, Vec<(String, 
     ((datapack::data_file(kind, id), pretty(&v)), tags)
 }
 
-/// A definition's file under `.yog-build/generated/`.
+/// A definition's file under `obj/generated/`.
 pub(in crate::content) fn definition_path(kind: &str, id: &str) -> String {
     generated(kind, id, Format::Data)
 }
 
-/// A loot modifier's file under `.yog-build/generated/`.
+/// A loot modifier's file under `obj/generated/`.
 pub(in crate::content) fn loot_path(id: &str) -> String {
     definition_path(yog_ids::word::LOOT, id)
 }

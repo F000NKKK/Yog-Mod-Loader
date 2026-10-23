@@ -7,7 +7,7 @@ use super::{generate_with, parse_xml};
 use yog_data::Diagnostic;
 
 /// Where generated screen code goes, under the project root.
-pub const GENERATED_DIR: &str = ".yog-build/generated";
+pub const GENERATED_DIR: &str = yog_ids::project::GENERATED;
 
 /// `path` from the current folder when it's relative.
 fn absolute(path: &Path) -> PathBuf {
@@ -43,7 +43,7 @@ pub fn include_name(root: &Path, yui: &Path) -> String {
 }
 
 /// Where `src/<name>.yui`'s generated code goes:
-/// `.yog-build/generated/<name>.g.rs`.
+/// `obj/generated/<name>.g.rs`.
 pub fn generated_path(root: &Path, name: &str) -> PathBuf {
     root.join(GENERATED_DIR)
         .join(format!("{name}{GENERATED_EXT}"))
@@ -53,7 +53,7 @@ pub fn generated_path(root: &Path, name: &str) -> PathBuf {
 const RS: &str = "rs";
 const GENERATED_EXT: &str = ".g.rs";
 
-/// Generates `.yog-build/generated/<name>.g.rs` for one `.yui` file of the
+/// Generates `obj/generated/<name>.g.rs` for one `.yui` file of the
 /// project at `root` — only rewritten when the output changed, so cargo
 /// doesn't rebuild for nothing. Its path, and what to warn of.
 pub fn generate_file(root: &Path, yui: &Path) -> Result<(PathBuf, Vec<Diagnostic>), Diagnostic> {

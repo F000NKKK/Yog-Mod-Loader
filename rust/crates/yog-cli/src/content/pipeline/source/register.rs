@@ -11,7 +11,7 @@ use crate::content::pipeline::source::Content;
 use crate::content::pipeline::source::blocks::{escaped, item_props};
 use crate::content::pipeline::source::float;
 
-/// The data at `path` under `.yog-build/generated/`, as the code includes it.
+/// The data at `path` under `obj/generated/`, as the code includes it.
 pub(in crate::content) fn included(path: &str) -> String {
     format!("include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/{path}\"))")
 }

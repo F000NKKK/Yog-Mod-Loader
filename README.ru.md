@@ -174,7 +174,7 @@ windows-x86_64, macos-x86_64 и macos-aarch64**.
 cargo install --locked yog-cli      # ставит команду `yog`
 yog setup                  # таргеты Rust, Zig и cargo-zigbuild для кросс-сборки
 yog new my-mod && cd my-mod
-yog build                  # -> artifacts/my-mod.yog
+yog build                  # -> bin/my-mod.yog
 ```
 
 `yog new` создаёт два файла. `yog.toml` заменяет `Cargo.toml`:
@@ -207,7 +207,7 @@ impl Mod for MyMod {
 yog_api::export_mod!(MyMod);
 ```
 
-Скопируйте `artifacts/my-mod.yog` в `<папка игры>/yog-mods/` сборки, где
+Скопируйте `bin/my-mod.yog` в `<папка игры>/yog-mods/` сборки, где
 установлен jar загрузчика Yog. В логе появится:
 
 ```
@@ -385,8 +385,8 @@ broadcast(
 | Команда | Что делает |
 |---|---|
 | `yog new <name>` | Создать проект мода |
-| `yog build` / `yog build debug` | Собрать под все платформы и упаковать `artifacts/<id>.yog` (`debug` сохраняет отладочную информацию для отладчика) |
-| `yog check` | Сгенерировать `.yog-build/` и выполнить `cargo check` для текущей машины |
+| `yog build` / `yog build debug` | Собрать под все платформы и упаковать `bin/<id>.yog` (`debug` сохраняет отладочную информацию для отладчика) |
+| `yog check` | Сгенерировать `obj/` и выполнить `cargo check` для текущей машины |
 | `yog run <loader> <mc> [--debug]` | Собрать, скопировать `.yog` в dev-игру загрузчика и запустить её. Цели берутся из SDK загрузчика и `~/.yog/local.toml`, а не из мода (`yog run --list`) |
 | `yog ui gen` | Сгенерировать `.g.rs` из экранов и компонентов `.yui` |
 | `yog res check` | Проверить `.yres`, перегенерировать методы доступа, показать непереведённые тексты |
@@ -458,7 +458,7 @@ flowchart TB
 ./build.sh run fabric --client            # собрать и запустить dev-клиент Fabric
 ./build.sh run neoforge --client --mc 1.21.1
 ./build.sh test                           # cargo test
-./build.sh publish fabric                 # релизный jar -> artifacts/fabric/
+./build.sh publish fabric                 # релизный jar -> bin/fabric/
 YOG_TARGETS=linux-x86_64 ./build.sh build # только текущая платформа, гораздо быстрее
 ```
 

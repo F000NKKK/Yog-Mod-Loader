@@ -21,7 +21,7 @@ RUST = ["Yog-Mod-Loader/rust/crates", "Yog-IDLE/src-tauri/src", "Yog-Installer/c
         "Yog-Pipes", "Yog-VLSI", "HexMod-Yog", "Yog-Modlist"]
 JAVA = ["Yog-Mod-Loader/java-common", "Yog-Mod-Loader/fabric", "Yog-Mod-Loader/forge", "Yog-Mod-Loader/neoforge"]
 TS = ["Yog-IDLE/src"]
-SKIP = ("/target/", "/build/", "node_modules", ".yog-build", "generated", "YogNames.java")
+SKIP = ("/target/", "/build/", "node_modules", "obj", "generated", "YogNames.java")
 GROUP = re.compile(r"^    (\w+) \{\s*$")
 NAME = re.compile(r"^        ([A-Z][A-Z0-9_]*) = (.+?),?\s*$")
 

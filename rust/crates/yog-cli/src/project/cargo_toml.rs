@@ -1,4 +1,4 @@
-//! The generated `.yog-build/Cargo.toml`.
+//! The generated `obj/Cargo.toml`.
 
 use crate::project::manifest::{DEFAULT_EDITION, DEPS_SECTION, YogToml};
 use std::fmt::Write as _;

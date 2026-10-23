@@ -37,7 +37,7 @@ pub(crate) fn new_mod(name: Option<&str>) -> Result<(), String> {
     // .gitignore
     write_file(
         &root.join(".gitignore"),
-        b".yog-build/\ntarget/\nartifacts/\n",
+        yog_ids::concatcp!(yog_ids::project::OBJ, "/\n", yog_ids::project::BIN, "/\n").as_bytes(),
     )?;
 
     eprintln!("==> created {name}/");
