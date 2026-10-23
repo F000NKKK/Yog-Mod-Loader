@@ -1598,6 +1598,8 @@ public final class YogNames {
         public static final String DEFAULT_FONT = "minecraft:default";
         public static final String VANILLA_THEME = "minecraft:vanilla";
         public static final String OVERWORLD = "minecraft:overworld";
+        public static final String AIR = "minecraft:air";
+        public static final String PLAYER = "minecraft:player";
         public static final String NO_SOUND = "minecraft:intentionally_empty";
         public static final String PLAINS = "minecraft:plains";
         public static final String THE_NETHER = "minecraft:the_nether";
@@ -1610,7 +1612,7 @@ public final class YogNames {
         public static final String LOCALE = "en_us";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DEFAULT_FONT, VANILLA_THEME, OVERWORLD, NO_SOUND, PLAINS, THE_NETHER, THE_END, MINEABLE, MISSING_TEXTURE, WRITTEN_BOOK, BOOK, OLD_ATTRIBUTE_PREFIX, LOCALE);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DEFAULT_FONT, VANILLA_THEME, OVERWORLD, AIR, PLAYER, NO_SOUND, PLAINS, THE_NETHER, THE_END, MINEABLE, MISSING_TEXTURE, WRITTEN_BOOK, BOOK, OLD_ATTRIBUTE_PREFIX, LOCALE);
     }
 
     public static final class ShapeKind {
@@ -1707,6 +1709,7 @@ public final class YogNames {
         public static final String TEXT = "text";
         public static final String SIZE = "size";
         public static final String TEXTURE = "texture";
+        public static final String SOUND = "sound";
         public static final String PNG = "png";
         public static final String ANIMATION = "animation";
         public static final String KIND = "kind";
@@ -1732,7 +1735,7 @@ public final class YogNames {
         public static final String FORMAT = "format";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PATH, NAME, TEXT, SIZE, TEXTURE, PNG, ANIMATION, KIND, REGISTRY, ID, ALIAS, MODEL, SOURCE, FORCE, WIDTH, HEIGHT, TAG, ARGS, EVENT, FILE, SET, MOD_ID, ENTRIES, NEXT, LEVEL, VALUE, VALUES, FORMAT);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PATH, NAME, TEXT, SIZE, TEXTURE, SOUND, PNG, ANIMATION, KIND, REGISTRY, ID, ALIAS, MODEL, SOURCE, FORCE, WIDTH, HEIGHT, TAG, ARGS, EVENT, FILE, SET, MOD_ID, ENTRIES, NEXT, LEVEL, VALUE, VALUES, FORMAT);
     }
 
     public static final class ServeMethod {
@@ -1763,6 +1766,7 @@ public final class YogNames {
         public static final String DATA_PARSE = "data.parse";
         public static final String DATA_PATCH = "data.patch";
         public static final String FONT_COPY = "font_copy";
+        public static final String FORMAT_COMPLETE = "format.complete";
         public static final String FORMAT_SHAPE = "format.shape";
         public static final String ITEM_TAG_ITEMS = "item_tag_items";
         public static final String MEDIA_IMPORT = "media.import";
@@ -1770,6 +1774,8 @@ public final class YogNames {
         public static final String MOD_ID = "mod.id";
         public static final String RECIPE_KIND_CREATE = "recipe_kind_create";
         public static final String RECIPE_KINDS = "recipe_kinds";
+        public static final String SOUND_DATA = "sound_data";
+        public static final String SOUND_LIST = "sound_list";
         public static final String SOURCE_CHECK = "source.check";
         public static final String SOURCE_READ = "source.read";
         public static final String SOURCE_WRITE = "source.write";
@@ -1791,7 +1797,7 @@ public final class YogNames {
         public static final String YUI_IMAGE_SOURCES = "yui_image_sources";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ADVANCEMENT_RENDER, BODY_TEXTURE, BOOK_DESIGNER_CLOSE, BOOK_DESIGNER_RENDER, BOOK_PAGE_PREVIEW, CONTENT_ARMOR_MATERIALS, CONTENT_BLOCK_KINDS, CONTENT_DEFS, CONTENT_IMPORT, CONTENT_ITEM_POTION_COLOR, CONTENT_MOD_ID, CONTENT_PARENT_MODEL, CONTENT_REFS, CONTENT_SAVE_TEXTURE, CONTENT_SAVE_TEXTURE_ANIMATION, CONTENT_SOUND_GROUPS, CONTENT_STRINGS, CONTENT_TAGS, CONTENT_TEXTURE, CONTENT_TEXTURES, CONTENT_TOOL_MATERIALS, DATA_FORMAT, DATA_PARSE, DATA_PATCH, FONT_COPY, FORMAT_SHAPE, ITEM_TAG_ITEMS, MEDIA_IMPORT, MEDIA_PICTURES, MOD_ID, RECIPE_KIND_CREATE, RECIPE_KINDS, SOURCE_CHECK, SOURCE_READ, SOURCE_WRITE, TEXTURE_ANIMATION_FORMAT, TEXTURE_ANIMATION_RESOLVE, TEXTURE_FILE_ID, TYPED_CLASSIFY, VERSION, WORLDGEN_PREVIEW, YRES_PARSE, YRES_WRITE, YUI_CODEGEN, YUI_DESIGNER_COMPONENTS, YUI_DESIGNER_EVENT, YUI_DESIGNER_RENDER, YUI_DESIGNER_RESET, YUI_EVENT_HANDLER, YUI_IMAGE_PREVIEW, YUI_IMAGE_SOURCES);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(ADVANCEMENT_RENDER, BODY_TEXTURE, BOOK_DESIGNER_CLOSE, BOOK_DESIGNER_RENDER, BOOK_PAGE_PREVIEW, CONTENT_ARMOR_MATERIALS, CONTENT_BLOCK_KINDS, CONTENT_DEFS, CONTENT_IMPORT, CONTENT_ITEM_POTION_COLOR, CONTENT_MOD_ID, CONTENT_PARENT_MODEL, CONTENT_REFS, CONTENT_SAVE_TEXTURE, CONTENT_SAVE_TEXTURE_ANIMATION, CONTENT_SOUND_GROUPS, CONTENT_STRINGS, CONTENT_TAGS, CONTENT_TEXTURE, CONTENT_TEXTURES, CONTENT_TOOL_MATERIALS, DATA_FORMAT, DATA_PARSE, DATA_PATCH, FONT_COPY, FORMAT_COMPLETE, FORMAT_SHAPE, ITEM_TAG_ITEMS, MEDIA_IMPORT, MEDIA_PICTURES, MOD_ID, RECIPE_KIND_CREATE, RECIPE_KINDS, SOUND_DATA, SOUND_LIST, SOURCE_CHECK, SOURCE_READ, SOURCE_WRITE, TEXTURE_ANIMATION_FORMAT, TEXTURE_ANIMATION_RESOLVE, TEXTURE_FILE_ID, TYPED_CLASSIFY, VERSION, WORLDGEN_PREVIEW, YRES_PARSE, YRES_WRITE, YUI_CODEGEN, YUI_DESIGNER_COMPONENTS, YUI_DESIGNER_EVENT, YUI_DESIGNER_RENDER, YUI_DESIGNER_RESET, YUI_EVENT_HANDLER, YUI_IMAGE_PREVIEW, YUI_IMAGE_SOURCES);
     }
 
     public static final class TagFile {

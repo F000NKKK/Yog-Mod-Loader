@@ -239,6 +239,10 @@ names! {
         /// The UI theme drawn like the game's own screens.
         VANILLA_THEME = crate::id!(crate::ns::MINECRAFT, "vanilla"),
         OVERWORLD = crate::id!(crate::ns::MINECRAFT, "overworld"),
+        /// The empty block: what's left where a block is removed.
+        AIR = crate::id!(crate::ns::MINECRAFT, "air"),
+        /// The player entity's type.
+        PLAYER = crate::id!(crate::ns::MINECRAFT, crate::word::PLAYER),
         /// The sound event that plays nothing: a block or item without a sound of its own.
         NO_SOUND = crate::id!(crate::ns::MINECRAFT, "intentionally_empty"),
         /// The biome a dimension is all of when it doesn't say.
