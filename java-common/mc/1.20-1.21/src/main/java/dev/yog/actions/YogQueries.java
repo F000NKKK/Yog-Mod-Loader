@@ -3,7 +3,7 @@ package dev.yog.actions;
 import dev.yog.NativeBridge;
 import dev.yog.YogLog;
 import dev.yog.YogServiceHost;
-import dev.yog.content.YogInventoryMenu;
+import dev.yog.content.blocks.YogInventoryMenu;
 
 import dev.yog.bus.YogTypes;
 import java.util.ArrayList;

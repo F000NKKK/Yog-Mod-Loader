@@ -1,6 +1,6 @@
 package dev.yog;
 
-import dev.yog.content.YogInventoryMenu;
+import dev.yog.content.blocks.YogInventoryMenu;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.yog.bus.YogTypes;

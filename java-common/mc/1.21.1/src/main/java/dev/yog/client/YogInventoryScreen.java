@@ -2,7 +2,7 @@ package dev.yog.client;
 
 import dev.yog.NativeBridge;
 import dev.yog.content.YogContentRegistry;
-import dev.yog.content.YogInventoryMenu;
+import dev.yog.content.blocks.YogInventoryMenu;
 import dev.yog.render.NativeDraw;
 
 import dev.yog.util.YogInventoryDef;

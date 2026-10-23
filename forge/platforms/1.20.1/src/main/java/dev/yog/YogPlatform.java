@@ -1,7 +1,7 @@
 package dev.yog;
 
-import dev.yog.content.YogInventoryBlockEntity;
-import dev.yog.content.YogInventoryMenu;
+import dev.yog.content.blocks.YogInventoryBlockEntity;
+import dev.yog.content.blocks.YogInventoryMenu;
 
 import dev.yog.util.YogModInfo;
 

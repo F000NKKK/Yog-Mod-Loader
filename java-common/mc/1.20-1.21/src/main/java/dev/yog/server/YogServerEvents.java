@@ -4,7 +4,7 @@ import dev.yog.NativeBridge;
 import dev.yog.YogLog;
 import dev.yog.YogNames;
 import dev.yog.actions.YogNetActions;
-import dev.yog.content.YogInventoryBlockEntity;
+import dev.yog.content.blocks.YogInventoryBlockEntity;
 
 import dev.yog.bus.YogEvents;
 import dev.yog.bus.YogTypes;

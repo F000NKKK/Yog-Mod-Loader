@@ -2,7 +2,7 @@ package dev.yog.client;
 
 import dev.yog.YogServiceHost;
 import dev.yog.actions.YogQueries;
-import dev.yog.content.YogBlockTraits;
+import dev.yog.content.blocks.YogBlockTraits;
 
 import net.minecraft.world.phys.HitResult;
 

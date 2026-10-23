@@ -2,7 +2,7 @@ package dev.yog;
 
 import dev.yog.actions.YogQueries;
 import dev.yog.client.YogClientMirrors;
-import dev.yog.content.YogHostBlocks;
+import dev.yog.content.blocks.YogHostBlocks;
 
 import dev.yog.bus.YogMirrors;
 import dev.yog.bus.YogServices;

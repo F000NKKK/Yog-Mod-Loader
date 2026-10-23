@@ -4,9 +4,9 @@ import dev.yog.YogAtoms;
 import dev.yog.YogBus;
 import dev.yog.YogHostMirrors;
 import dev.yog.YogMessage;
-import dev.yog.content.YogBlockBoxes;
-import dev.yog.content.YogBlockTraits;
-import dev.yog.content.YogHostBlocks;
+import dev.yog.content.blocks.YogBlockBoxes;
+import dev.yog.content.blocks.YogBlockTraits;
+import dev.yog.content.blocks.YogHostBlocks;
 
 import dev.yog.bus.YogMirrors;
 import dev.yog.bus.YogTypes;
