@@ -19,7 +19,11 @@ const KEPT: usize = 4;
 /// The videos a `.yvideo` can show: the mod's.
 #[derive(yog_data::Schema)]
 pub(crate) struct VideoList {
+    /// The mod's videos (`@Videos.intro`), and how long each lasts (seconds; 0: unreadable).
     pub(crate) own: Vec<String>,
+    pub(crate) seconds: Vec<f32>,
+    /// The mod's pictures, for a montage's picture clips.
+    pub(crate) images: Vec<String>,
 }
 
 /// A render: its key (for its frames), its picture's size and frame rate,
@@ -33,6 +37,8 @@ pub(crate) struct Preview {
     pub(crate) fps_den: u32,
     pub(crate) frames: u32,
     pub(crate) sound: Option<String>,
+    /// A montage's clips: how long each shows, seconds.
+    pub(crate) clips: Vec<f32>,
 }
 
 /// One frame, as PNG (base64).
@@ -57,8 +63,15 @@ static DECODING: Mutex<Option<Decoding>> = Mutex::new(None);
 /// The videos of the mod at `file`.
 pub(crate) fn video_list(file: &Path) -> Result<VideoList, ServiceError> {
     let root = mod_root(file).ok_or("not in a mod")?;
+    let videos = crate::media::resources_of(&root, yog_formats::yres::Kind::Video);
+    let seconds = videos
+        .iter()
+        .map(|r| crate::video::montage::video_seconds(&root, r).unwrap_or(0.0))
+        .collect();
     Ok(VideoList {
-        own: crate::media::videos(&root),
+        own: videos.iter().map(ToString::to_string).collect(),
+        seconds,
+        images: crate::media::images(&root),
     })
 }
 
@@ -84,6 +97,11 @@ pub(crate) fn preview(file: &Path, video: &Video) -> Result<Preview, ServiceErro
         fps_den: def.fps_den,
         frames: def.frames(),
         sound,
+        clips: video
+            .montage
+            .as_ref()
+            .map(|m| crate::video::montage::durations(m, &root))
+            .unwrap_or_default(),
     };
     let mut renders = RENDERS.lock();
     renders.retain(|(k, _)| *k != key);

@@ -151,13 +151,21 @@ pub(crate) fn sounds(root: &Path) -> Vec<String> {
     entries_of(root, Kind::Sound)
 }
 
-/// Every video of the mod at `root`, as files name them: `@Videos.intro`.
-pub(crate) fn videos(root: &Path) -> Vec<String> {
-    entries_of(root, Kind::Video)
+/// Every picture of the mod at `root`, as files name them: `@Images.logo`.
+pub(crate) fn images(root: &Path) -> Vec<String> {
+    entries_of(root, Kind::Image)
 }
 
 /// Every entry of `kind` of the mod at `root`, as files name them.
 fn entries_of(root: &Path, kind: Kind) -> Vec<String> {
+    resources_of(root, kind)
+        .iter()
+        .map(Res::to_string)
+        .collect()
+}
+
+/// Every entry of `kind` of the mod at `root`, sorted.
+pub(crate) fn resources_of(root: &Path, kind: Kind) -> Vec<Res> {
     let mut out = Vec::new();
     for file in crate::files::with_ext(&root.join(yog_ids::project::RESOURCES), Format::Res.ext()) {
         let Some((set, None)) = file
@@ -171,12 +179,9 @@ fn entries_of(root: &Path, kind: Kind) -> Vec<String> {
             .ok()
             .and_then(|t| yog_formats::yres::parse(&t).ok())
             .unwrap_or_default();
-        out.extend(entries.into_iter().filter(|e| e.kind == kind).map(|e| {
-            Res {
-                set: set.to_owned(),
-                key: e.name,
-            }
-            .to_string()
+        out.extend(entries.into_iter().filter(|e| e.kind == kind).map(|e| Res {
+            set: set.to_owned(),
+            key: e.name,
         }));
     }
     out.sort();

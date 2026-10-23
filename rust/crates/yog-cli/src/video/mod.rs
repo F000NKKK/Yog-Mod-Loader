@@ -4,7 +4,7 @@
 
 mod av1;
 mod ivf;
-mod montage;
+pub(crate) mod montage;
 mod poster;
 mod probe;
 mod size;

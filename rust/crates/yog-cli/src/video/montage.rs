@@ -75,6 +75,26 @@ pub(super) fn lay<'a>(
     Ok(placed)
 }
 
+/// How long the video `r` of the mod at `root` lasts, seconds (none when it can't be read).
+pub(crate) fn video_seconds(root: &Path, r: &yog_data::Res) -> Option<f32> {
+    let bytes = crate::media::video(root, &r.set, &r.key)?;
+    let dir = Scratch::new().ok()?;
+    probe::probe(&dir.input(crate::ffmpeg::INPUT, &bytes).ok()?)
+        .ok()?
+        .seconds
+}
+
+/// How long each clip of `m` shows, seconds (0 for one whose video can't be read).
+pub(crate) fn durations(m: &Montage, root: &Path) -> Vec<f32> {
+    m.clips
+        .iter()
+        .map(|c| match &c.video {
+            Some(r) => video_seconds(root, r).map_or(0.0, |l| c.duration(Some(l))),
+            None => c.duration(None),
+        })
+        .collect()
+}
+
 /// Clip `k`'s chain: cut, timed, fitted into `w`×`h`, faded, placed at its time.
 fn chain(k: usize, p: &Placed, (w, h): (u32, u32), fps: f32) -> String {
     let c = p.clip;
