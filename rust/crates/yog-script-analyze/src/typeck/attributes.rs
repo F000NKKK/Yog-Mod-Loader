@@ -8,6 +8,7 @@ use super::Checker;
 use super::model::Type;
 use crate::ast::{self, Attribute, TypeKind};
 use crate::source::token::Span;
+use crate::system::SERVICE;
 
 /// The class every attribute class inherits.
 const ATTRIBUTE: &str = "Attribute";
@@ -62,6 +63,24 @@ impl Checker<'_, '_, '_> {
         for (arg, p) in a.args.iter().zip(&params) {
             let wanted = self.type_of(&p.ty);
             self.fits(&arg.value, &wanted);
+        }
+    }
+
+    /// An `extern` method is a call on the bus: it says where.
+    pub(super) fn extern_has_service(&mut self, d: &crate::ast::Decl) {
+        let crate::ast::DeclKind::Method(m) = &d.kind else {
+            return;
+        };
+        let service = d
+            .attributes
+            .iter()
+            .any(|a| a.path.last().is_some_and(|n| n.text == SERVICE));
+        if d.has(crate::ast::Modifier::Extern) != service {
+            self.report.error(
+                script_problem::ATTRIBUTE,
+                m.name.span,
+                format!("an `extern` method is a call on the bus, and a `[{SERVICE}]` one is `extern`: `[{SERVICE}(\"mod:address\")] static extern …`"),
+            );
         }
     }
 

@@ -61,7 +61,7 @@ ref out move typeof nameof default
 if else switch foreach for in while do break continue return
 true false null is as and or not when
 async await try
-server client shared on saved synced was tune test version native
+server client shared saved synced was tune test extern
 ```
 
 Contextual (keywords only where the grammar expects them, names
@@ -130,13 +130,14 @@ Namespaces and `using`s work as in C#:
 decl        = attributes? doc? modifiers? ( mod_decl | method_decl | field_decl
             | type_decl | content_decl | component_decl | system_decl | extend_decl
             | screen_decl | command_decl | event_decl | test_decl
-            | native_decl | patch_decl | targets_decl ) ;      (* patch_decl, targets_decl: `.yns` only *)
+            | patch_decl | targets_decl ) ;      (* patch_decl, targets_decl: `.yns` only *)
 
 modifiers   = modifier+ ;
 modifier    = 'public' | 'private' | 'internal'         (* access; members are private, types internal (the mod) *)
             | 'protected'
             | 'static' | 'const' | 'readonly' | 'async'
             | 'abstract' | 'virtual' | 'override' | 'sealed' | 'new'   (* inheritance, as C#'s *)
+            | 'extern'                                (* its body is elsewhere: on the bus, ys.md §7 *)
             | 'server' | 'client' | 'shared'          (* side, §4.1 of ys.md *)
             | 'saved' | 'synced' | 'tune' ;
 attributes  = ('[' (attr_target ':')? attribute (',' attribute)* ']')+ ;   (* [Obsolete("…")] *)
@@ -334,7 +335,7 @@ mod Charge {
 event_member = modifiers? 'event' type IDENT ';' ;                    (* public event Action<Player, i32> Charged; *)
 test_decl    = 'test' STRING block ;
 version_cond = 'mc' ( ('>=' | '<=' | '>' | '<' | '==') VERSION | VERSION '..' VERSION ) ;
-native_decl  = 'native' STRING '{' (type_or_void IDENT '(' params? ')' ';')* '}' ;
+(* Rust code is reached through the bus: `[Service("addr")] static extern R Name(params);`, ys.md §7 *)
 ```
 
 ## 3. Statements and expressions

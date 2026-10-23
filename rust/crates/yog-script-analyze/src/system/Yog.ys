@@ -1,0 +1,14 @@
+// Yog's attributes for the bus (`ys.md` §7): how Yog Script meets the
+// mod's Rust code, or anyone's, declared by hand on both sides.
+namespace Yog;
+
+/// An `extern` method that is a call on the bus: its parameters the
+/// request's fields (a Rust struct's, in order), its result the reply.
+public sealed class Service(string address) : Attribute {}
+
+/// An `event` on the bus: `+=` listens to what's emitted there, `Invoke`
+/// emits it.
+public sealed class Event(string address) : Attribute {}
+
+/// A method others call on the bus at this address.
+public sealed class Provide(string address) : Attribute {}

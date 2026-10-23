@@ -1,0 +1,14 @@
+[package]
+name = "yog-script-java"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+license = { workspace = true }
+description = "Yog Script compiled to Java: a checked source written as one Java class (its types nested), for javac to make the bytecode the hosts load."
+
+[dependencies]
+yog-script-analyze = { workspace = true }
+yog-codegen = { workspace = true }
+yog-codegen-java = { workspace = true }
+yog-data = { workspace = true }
+yog-ids = { workspace = true }

@@ -50,3 +50,14 @@ fn attributes_are_attribute_classes() {
         [script_problem::ATTRIBUTE, script_problem::TYPE_MISMATCH]
     );
 }
+
+#[test]
+fn rust_is_reached_on_the_bus() {
+    let ok = "[Service(\"charge:simulate\")]\nstatic extern i64 Simulate(i64 nodes);\ni64 F() => Simulate(3);\n\
+              [Provide(\"charge:double\")]\nstatic i64 Double(i64 x) => x * 2;\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    assert_eq!(
+        codes("static extern i64 Simulate(i64 nodes);\n"),
+        [script_problem::ATTRIBUTE]
+    );
+}

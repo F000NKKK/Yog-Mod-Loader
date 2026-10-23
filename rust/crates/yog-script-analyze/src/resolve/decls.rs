@@ -72,11 +72,6 @@ impl Resolver<'_, '_> {
             DeclKind::System { name, .. } => {
                 self.define(name, DefKind::Method, Case::Pascal, again)
             }
-            DeclKind::Native { methods, .. } => {
-                for m in methods {
-                    self.define(&m.name, DefKind::Method, Case::Pascal, again);
-                }
-            }
             _ => {}
         }
     }
@@ -186,7 +181,6 @@ impl Resolver<'_, '_> {
             DeclKind::Prop(p) => self.expr(&p.value),
             DeclKind::Command { body, .. } => self.scoped(|r| r.decls(body)),
             DeclKind::Test { body, .. } => self.handler(&[], true, |r| r.block(body)),
-            DeclKind::Native { methods, .. } => methods.iter().for_each(|m| self.method(m, false)),
             DeclKind::Patch(p) => self.patch(p),
             _ => {}
         }

@@ -27,6 +27,8 @@ pub enum Modifier {
     Sealed,
     /// `ref struct`: holds borrows, never on the heap.
     Ref,
+    /// Its body is elsewhere: a `[Service]` method's, on the bus.
+    Extern,
 }
 
 /// `[Obsolete("…")]`.
@@ -164,10 +166,6 @@ pub enum DeclKind {
     Test {
         name: String,
         body: Block,
-    },
-    Native {
-        library: String,
-        methods: Vec<Method>,
     },
     Patch(Patch),
     /// `targets mc 1.20.1..26.2;`: the game versions a `.yns` is for.

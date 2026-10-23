@@ -749,17 +749,39 @@ What this fixes:
 - **Hot.** A patch's body is reached through an indirection
   (`MutableCallSite`): a reload swaps the body without touching the class.
 
-## 7. Native code (optional)
+## 7. Rust code beside Yog Script (optional)
 
-A mod may have a Rust crate; its exported functions are callable with
-typed signatures, and Rust can call Yog Script methods. Neither is
-required.
+A mod may have a Rust crate written as Rust mods are — `yog-api`, the
+bus — and use it from Yog Script, or the other way. They meet on the bus,
+declared by hand on both sides (no generated glue between them): an
+address, and a payload that is a `record` with the Rust struct's fields
+in the same order (it packs to the same frame).
 
 ```ys
-native "charge_grid" {
-    List<i32> Simulate(List<i32> nodes, List<(i32, i32)> edges);
-}
+// Rust: #[yog::service("charge:simulate")] fn simulate(q: Simulate) -> i64
+[Service("charge:simulate")]
+static extern i64 Simulate(i64 nodes, i64 edges);
+
+// Rust: yog::emit("charge:overloaded", Overloaded { pos, energy })
+record Overloaded(Pos Pos, i64 Energy);
+[Event("charge:overloaded")]
+public static event Action<Overloaded> Overloaded;
+
+// Rust: yog::call::<Double, i64>("charge:double", Double { x })
+[Provide("charge:double")]
+static i64 Double(i64 x) => x * 2;
 ```
+
+- `extern` (C#'s) says the body is elsewhere: a `[Service]` method is a
+  call on the bus, its parameters the request's fields, its result the
+  reply. A call no one provides panics (`NO_HANDLER`).
+- `[Event]` on an `event`: `+=` listens to what Rust (or anyone) emits
+  there; `Overloaded.Invoke(…)` emits it.
+- `[Provide]` on a method: Rust (or another mod) calls it at that address.
+- The attributes are `Yog`'s (`Service`, `Event`, `Provide`), every
+  source's by its implicit `using Yog;`.
+- Run by the interpreter (`yog test`), an `extern` call panics unless the
+  test provides the address itself (`[Provide]` in the test's source).
 
 ## 8. How it compiles
 
