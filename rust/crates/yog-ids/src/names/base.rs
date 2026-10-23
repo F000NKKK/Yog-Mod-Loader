@@ -54,9 +54,15 @@ names! {
     /// Words other names are made of, said once: sides and places, yes and no,
     /// the common fields' names.
     word {
+        DISPLAY = "display",
+        MESSAGE = "message",
+        PARTICLE = "particle",
+        TARGET = "target",
+        WALL = "wall",
         ARMOR = "armor",
         BASE = "base",
         BLOCK = "block",
+        AIR = "air",
         CATEGORY = "category",
         CHUNK = "chunk",
         CONTENT = "content",
@@ -175,7 +181,7 @@ names! {
         TEXTURE = crate::word::TEXTURE,
         MATERIAL = "material",
         SOUND = crate::word::SOUND,
-        PARTICLE = "particle",
+        PARTICLE = crate::word::PARTICLE,
     }
 
     /// What a reference to content of a kind starts with: `@item:`.

@@ -86,7 +86,7 @@ names! {
         ITEM = crate::word::ITEM,
         TAG = crate::word::TAG,
         /// What a recipe makes when it says nothing.
-        AIR = crate::id!(crate::ns::MINECRAFT, "air"),
+        AIR = crate::game::AIR,
     }
 
     /// Yog's chunk generator in code (`yog:callback_generator`): the hosts
@@ -150,7 +150,7 @@ names! {
 
     /// An advancement's fields: how it's shown, and in it its tab's background.
     advancement_field {
-        DISPLAY = "display",
+        DISPLAY = crate::word::DISPLAY,
         BACKGROUND = "background",
     }
 

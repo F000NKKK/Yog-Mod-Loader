@@ -70,7 +70,7 @@ names! {
     /// `yog:event/player/chat/…`.
     event_player_chat {
         PLANE = crate::concatcp!(crate::event::PREFIX, crate::word::PLAYER, crate::sep::PATH, crate::bus_word::CHAT, crate::sep::PATH),
-        MESSAGE = crate::concatcp!(PLANE, "message"),
+        MESSAGE = crate::concatcp!(PLANE, crate::word::MESSAGE),
         MESSAGE_PRE = crate::concatcp!(MESSAGE, crate::event::PRE),
     }
 
@@ -207,7 +207,7 @@ names! {
 
     /// `yog:event/client/chat/…`: what the player sends to the chat.
     event_client_chat {
-        PLANE = crate::concatcp!(crate::event::PREFIX, crate::bus_word::CLIENT, crate::sep::PATH, "chat", crate::sep::PATH),
+        PLANE = crate::concatcp!(crate::event::PREFIX, crate::bus_word::CLIENT, crate::sep::PATH, crate::bus_word::CHAT, crate::sep::PATH),
         SEND = crate::concatcp!(PLANE, "send"),
         SEND_PRE = crate::concatcp!(SEND, crate::event::PRE),
     }

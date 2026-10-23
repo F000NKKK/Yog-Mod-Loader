@@ -8,7 +8,7 @@ names! {
     /// block's state properties are in its state atom.
     block_trait {
         /// Nothing there (air).
-        AIR = "air",
+        AIR = crate::word::AIR,
         /// Its collision isn't empty: it can be stood on, not walked through.
         SOLID = "solid",
         /// Its collision is the whole cube.
@@ -18,7 +18,7 @@ names! {
         WATER = "water",
         LAVA = "lava",
         /// Its fluid is a source (a full one).
-        SOURCE = "source",
+        SOURCE = crate::word::SOURCE,
         /// A pure fluid block (not a waterlogged one).
         FLUID_BLOCK = "fluid_block",
         /// Ladders, vines: climbed by jumping in it.
@@ -42,7 +42,7 @@ names! {
         FENCE_GATE = "fence_gate",
         TRAPDOOR = "trapdoor",
         FENCE = "fence",
-        WALL = "wall",
+        WALL = crate::word::WALL,
         CARPET = "carpet",
         SNOW_LAYER = "snow_layer",
         SKULL = "skull",

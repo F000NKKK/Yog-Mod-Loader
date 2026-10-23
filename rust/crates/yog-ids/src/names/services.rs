@@ -241,8 +241,8 @@ names! {
         ENTITIES = crate::concatcp!(DOMAIN, crate::word::ENTITIES),
         DIG_SPEEDS = crate::concatcp!(DOMAIN, "dig_speeds"),
         RAYCAST = crate::concatcp!(DOMAIN, "raycast"),
-        TARGET = crate::concatcp!(DOMAIN, "target"),
-        MESSAGE = crate::concatcp!(DOMAIN, "message"),
+        TARGET = crate::concatcp!(DOMAIN, crate::word::TARGET),
+        MESSAGE = crate::concatcp!(DOMAIN, crate::word::MESSAGE),
     }
 
     /// `yog:client/control/…`: this client's player doing what a player

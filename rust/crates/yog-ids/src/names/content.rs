@@ -254,7 +254,7 @@ names! {
         VANILLA_THEME = crate::id!(crate::ns::MINECRAFT, "vanilla"),
         OVERWORLD = crate::id!(crate::ns::MINECRAFT, "overworld"),
         /// The empty block: what's left where a block is removed.
-        AIR = crate::id!(crate::ns::MINECRAFT, "air"),
+        AIR = crate::id!(crate::ns::MINECRAFT, crate::word::AIR),
         /// The player entity's type.
         PLAYER = crate::id!(crate::ns::MINECRAFT, crate::word::PLAYER),
         /// The sound event that plays nothing: a block or item without a sound of its own.
@@ -508,7 +508,7 @@ names! {
         /// What an attached block hangs on.
         FACE = "face",
         FLOOR = "floor",
-        WALL = "wall",
+        WALL = crate::word::WALL,
         CEILING = "ceiling",
         /// Whether it stands in water.
         WATERLOGGED = "waterlogged",
@@ -614,7 +614,7 @@ names! {
         PARENT = "parent",
         TEXTURES = "textures",
         ELEMENTS = "elements",
-        DISPLAY = "display",
+        DISPLAY = crate::word::DISPLAY,
         FACES = "faces",
         FROM = "from",
         TO = "to",
@@ -624,7 +624,7 @@ names! {
         /// A sprite item's (`item/generated`) first layer.
         LAYER0 = "layer0",
         /// The texture a block's particles take, and what a face falls back to.
-        PARTICLE = "particle",
+        PARTICLE = crate::word::PARTICLE,
         /// A block state variant's model.
         MODEL = crate::word::MODEL,
         /// An element's rotation.
@@ -767,7 +767,7 @@ names! {
         X_VIEW_MODEL = "x:ViewModel",
         X_CREATE = "x:Create",
         X_DATA_TYPE = "x:DataType",
-        TARGET = "target",
+        TARGET = crate::word::TARGET,
         GRID_ROW = crate::concatcp!(crate::yui::GRID, crate::sep::DOT, crate::yui::ROW),
         GRID_COLUMN = crate::concatcp!(crate::yui::GRID, crate::sep::DOT, crate::yui::COLUMN),
         GRID_ROWSPAN = crate::concatcp!(crate::yui::GRID, crate::sep::DOT, "RowSpan"),
