@@ -11,6 +11,8 @@ exclude = ["benches/hexbook.ybook"]
 
 [dependencies]
 # The names every part shares (namespaces, kinds, typed-value words).
+yog-codegen = { workspace = true }
+yog-codegen-typescript = { workspace = true }
 yog-ids = { workspace = true }
 # A built-in table that won't read is reported, not a crash.
 yog-logging = { workspace = true }

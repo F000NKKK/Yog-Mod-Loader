@@ -66,6 +66,6 @@ pub(super) fn file(package: &str) -> String {
     let body: String = no_atom() + &ALL.iter().map(|m| mirror(m)).collect::<String>() + &traits();
     format!(
         "{}package {package};\n\n/** The host's mirrors: their addresses, key spaces and fields. */\npublic final class {CLASS} {{\n    private {CLASS}() {{}}\n{body}}}\n",
-        super::HEADER.line_comment()
+        super::HEADER.comment::<yog_codegen_java::Java>()
     )
 }

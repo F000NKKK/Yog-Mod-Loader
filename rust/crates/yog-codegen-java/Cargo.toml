@@ -1,0 +1,11 @@
+[package]
+name = "yog-codegen-java"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = "MIT OR Apache-2.0"
+description = "Java for yog-codegen: its comments, string literals, reserved words and blocks."
+
+[dependencies]
+yog-codegen = { workspace = true }

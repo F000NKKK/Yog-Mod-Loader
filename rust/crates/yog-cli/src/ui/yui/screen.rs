@@ -183,6 +183,7 @@ fn screen_code(root: &Element, name: &str, mod_id: Option<&str>) -> Result<Strin
     let body = codegen.widget(&content_root, false, 0)?;
     let anchor = Anchor::parse(frame.anchor).unwrap_or(Anchor::At(Align::Center, Align::Center));
     let values = [
+        ("HEADER", crate::ui::generated_header(name)),
         ("NAME", name.to_string()),
         ("ID_LIT", format!("{id:?}")),
         ("WIDTH", f32_lit(frame.width)),

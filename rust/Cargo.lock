@@ -2319,6 +2319,7 @@ dependencies = [
  "yog-body",
  "yog-book",
  "yog-codegen",
+ "yog-codegen-rust",
  "yog-data",
  "yog-event",
  "yog-font",
@@ -2342,6 +2343,27 @@ dependencies = [
 [[package]]
 name = "yog-codegen"
 version = "0.1.0"
+
+[[package]]
+name = "yog-codegen-java"
+version = "0.1.0"
+dependencies = [
+ "yog-codegen",
+]
+
+[[package]]
+name = "yog-codegen-rust"
+version = "0.1.0"
+dependencies = [
+ "yog-codegen",
+]
+
+[[package]]
+name = "yog-codegen-typescript"
+version = "0.1.0"
+dependencies = [
+ "yog-codegen",
+]
 
 [[package]]
 name = "yog-command"
@@ -2374,6 +2396,8 @@ dependencies = [
  "serde_json",
  "serde_spanned",
  "toml",
+ "yog-codegen",
+ "yog-codegen-typescript",
  "yog-data-derive",
  "yog-ids",
  "yog-logging",
@@ -2422,6 +2446,7 @@ dependencies = [
  "pastey",
  "yog-body",
  "yog-codegen",
+ "yog-codegen-java",
  "yog-core",
  "yog-data",
  "yog-dimensions",
@@ -2499,6 +2524,8 @@ version = "0.5.2"
 dependencies = [
  "const_format",
  "yog-codegen",
+ "yog-codegen-java",
+ "yog-codegen-typescript",
 ]
 
 [[package]]

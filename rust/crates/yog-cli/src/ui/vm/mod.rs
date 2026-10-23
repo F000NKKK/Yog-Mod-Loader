@@ -106,6 +106,7 @@ pub(crate) fn generate(
         })
         .collect();
     let values = [
+        ("HEADER", crate::ui::generated_header(name)),
         ("NAME", name.to_string()),
         ("VM", vm),
         ("CODEGEN", CODEGEN.to_string()),

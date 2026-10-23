@@ -13,7 +13,8 @@ mod words;
 
 use std::fmt::Write;
 
-use yog_codegen::{Header, Lang, camel, pascal};
+use yog_codegen::{Blocks, Header, Identifiers, Regenerate, camel, pascal};
+use yog_codegen_java::Java;
 use yog_data::Shape;
 use yog_data::schema::StructShape;
 
@@ -23,7 +24,7 @@ use types::{TYPES, from_data, java_type, nullable, same, to_data};
 pub(super) const HEADER: Header = Header {
     tool: "yog-event",
     source: "Yog-Mod-Loader/rust/crates/yog-event",
-    regenerate: "cargo run -p yog-event --bin yog-event-export",
+    regenerate: Regenerate::Command("cargo run -p yog-event --bin yog-event-export"),
 };
 
 /// The imports, each added when the file uses it. Java's own types are
@@ -36,11 +37,11 @@ const IMPORTS: &[(&str, &str)] = &[
 ];
 
 /// One level of indentation.
-const INDENT: &str = Lang::Java.indent();
+const INDENT: &str = Java::INDENT;
 
 /// A payload field's Java name: `player_name` → `playerName`, `interface` → `interface_`.
 fn field(snake: &str) -> String {
-    Lang::Java.ident(&camel(snake))
+    Java::ident(&camel(snake))
 }
 
 /// `key_binding` → `KeyBinding`.
@@ -250,7 +251,7 @@ fn finish(package: &str, mut o: Out) -> (String, Vec<StructShape>) {
         .collect();
     let text = format!(
         "{}package {package};\n\n{imports}{out}",
-        HEADER.line_comment()
+        HEADER.comment::<Java>()
     );
     (
         text.lines()

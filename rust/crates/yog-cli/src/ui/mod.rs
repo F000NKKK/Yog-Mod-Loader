@@ -9,3 +9,13 @@ pub mod recipe_area;
 pub(crate) mod resources;
 pub(crate) mod vm;
 pub mod yui;
+
+/// The header of the Rust generated from `src/<name>.yui`.
+pub(crate) fn generated_header(name: &str) -> String {
+    yog_codegen::Header {
+        tool: "`yog build`",
+        source: &format!("{}/{name}.{}", yog_ids::project::SRC, yog_ids::Format::Ui.ext()),
+        regenerate: yog_codegen::Regenerate::EveryBuild,
+    }
+    .comment::<yog_codegen_rust::Rust>()
+}

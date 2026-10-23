@@ -1,12 +1,14 @@
 //! The names for the other languages: TypeScript for the IDE, Java for the hosts.
 
 use crate::groups;
-use yog_codegen::{Code, Header, Lang, camel, pascal};
+use yog_codegen::{Code, Header, Regenerate, camel, pascal};
+use yog_codegen_java::Java;
+use yog_codegen_typescript::TypeScript;
 
 const HEADER: Header = Header {
     tool: "yog-ids",
     source: "Yog-Mod-Loader/rust/crates/yog-ids",
-    regenerate: "cargo run -p yog-ids --bin yog-ids-export",
+    regenerate: Regenerate::Command("cargo run -p yog-ids --bin yog-ids-export"),
 };
 
 /// The hosts' class of the names, and its package.
@@ -31,7 +33,7 @@ fn format_word(f: crate::Format) -> String {
 
 /// A TypeScript module: one `as const` object per group.
 pub fn typescript() -> String {
-    let mut c = Code::starting(Lang::TypeScript, HEADER.line_comment());
+    let mut c = Code::<TypeScript>::starting(HEADER.comment::<TypeScript>());
     for (group, names) in groups() {
         c.blank().open(format!("export const {} =", camel(group)));
         for (name, value) in *names {
@@ -57,7 +59,7 @@ pub fn typescript() -> String {
 
 /// A Java class (`package`): a nested class of constants per group.
 pub fn java(package: &str, class: &str) -> String {
-    let mut c = Code::starting(Lang::Java, HEADER.line_comment());
+    let mut c = Code::<Java>::starting(HEADER.comment::<Java>());
     c.line(format!("package {package};")).blank();
     c.doc("The names Yog's code shares (yog-ids).");
     c.open(format!("public final class {class}"));

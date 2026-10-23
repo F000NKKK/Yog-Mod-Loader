@@ -326,7 +326,13 @@ fn mask_glyphs_make_a_small_file() {
     let rect = Rect::new(0.0, 0.0, CELL as f32, CELL as f32);
     let picture = |i: u32| {
         let mut image = Image::new(CELL, CELL);
-        for (k, p) in image.rgba.as_chunks_mut::<BYTES_PER_PIXEL>().0.iter_mut().enumerate() {
+        for (k, p) in image
+            .rgba
+            .as_chunks_mut::<BYTES_PER_PIXEL>()
+            .0
+            .iter_mut()
+            .enumerate()
+        {
             if (k as u32 + i).is_multiple_of(3) {
                 p.copy_from_slice(&[0xFF; BYTES_PER_PIXEL]);
             }

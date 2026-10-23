@@ -16,6 +16,7 @@ path = "src/main.rs"
 [dependencies]
 yog-analysis = { workspace = true }
 yog-codegen = { workspace = true }
+yog-codegen-rust = { workspace = true }
 yog-sync = { workspace = true }
 # The library's warnings; the program says where they go (stderr).
 yog-logging = { workspace = true }

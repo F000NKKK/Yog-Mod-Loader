@@ -5,7 +5,7 @@ fn main() {
         eprintln!("usage: yog-data-export <file.ts>");
         std::process::exit(2);
     };
-    if let Err(e) = std::fs::write(&path, yog_data::export::typescript()) {
+    if let Err(e) = yog_codegen::write_if_changed(path.as_ref(), yog_data::export::typescript()) {
         eprintln!("{path}: {e}");
         std::process::exit(1);
     }

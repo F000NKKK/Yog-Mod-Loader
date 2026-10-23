@@ -3,6 +3,8 @@
 //! tools write (a [`crate::Diagnostic`]) is described once, in Rust.
 
 use crate::schema::{EnumShape, Field, Shape, StructShape};
+use yog_codegen::Literals;
+use yog_codegen_typescript::TypeScript;
 
 /// `shape`'s TypeScript type.
 fn ts_type(shape: &Shape) -> String {
@@ -54,21 +56,25 @@ fn enumeration(e: &EnumShape) -> String {
     let consts = lower_first(e.name);
     out.push_str(&format!("export const {consts} = {{\n"));
     for v in &e.variants {
-        out.push_str(&format!("  {}: {:?},\n", v.name.to_uppercase(), v.name));
+        out.push_str(&format!(
+            "  {}: {},\n",
+            v.name.to_uppercase(),
+            TypeScript::string(v.name)
+        ));
     }
     out.push_str("} as const;\n");
     let variants: Vec<String> = e
         .variants
         .iter()
         .map(|v| match e.tag {
-            None => format!("{:?}", v.name),
+            None => TypeScript::string(v.name),
             Some(tag) => {
                 let fields: String = v
                     .fields
                     .iter()
                     .map(|f| format!(" {}", field(f).trim()))
                     .collect();
-                format!("{{ {tag}: {:?};{fields} }}", v.name)
+                format!("{{ {tag}: {};{fields} }}", TypeScript::string(v.name))
             }
         })
         .collect();

@@ -10,6 +10,9 @@ members = [
     "crates/yog-network",
     "crates/yog-analysis",
     "crates/yog-codegen",
+    "crates/yog-codegen-java",
+    "crates/yog-codegen-rust",
+    "crates/yog-codegen-typescript",
     "crates/yog-command",
     "crates/yog-dimensions",
     # declarative terrain: noise, layers, caves, ores — the runtime's and the IDE's preview
@@ -93,6 +96,9 @@ yog-body = { version = "0.7.1", path = "crates/yog-body" }
 yog-book = { version = "0.72.2", path = "crates/yog-book" }
 yog-analysis = { version = "0.1.0", path = "crates/yog-analysis" }
 yog-codegen = { version = "0.1.0", path = "crates/yog-codegen" }
+yog-codegen-java = { version = "0.1.0", path = "crates/yog-codegen-java" }
+yog-codegen-rust = { version = "0.1.0", path = "crates/yog-codegen-rust" }
+yog-codegen-typescript = { version = "0.1.0", path = "crates/yog-codegen-typescript" }
 yog-command = { version = "0.4.0", path = "crates/yog-command" }
 yog-config = { version = "0.3.0", path = "crates/yog-config" }
 yog-core = { version = "0.9.0", path = "crates/yog-core" }
