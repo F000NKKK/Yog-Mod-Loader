@@ -63,7 +63,7 @@ pub static ALL: &[&Builtin] = &[
     &PANIC,
     &ASSERT,
     &ASSERT_EQ,
-    &TODO,
+    &NOT_YET,
     &UNREACHABLE,
     &DBG,
     &INCLUDE_STR,
