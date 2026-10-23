@@ -283,6 +283,16 @@ names! {
         NAMING = "YS0013",
         /// `await` outside an `async` method.
         AWAIT_OUTSIDE_ASYNC = "YS0014",
+        /// A value of one type where another is wanted.
+        TYPE_MISMATCH = "YS0015",
+        /// `null` where the type can't be `null`, or a nullable used without `?.`.
+        NULLABLE = "YS0016",
+        /// A member the type doesn't have.
+        UNKNOWN_MEMBER = "YS0017",
+        /// A class of one side reached from code of the other.
+        WRONG_SIDE = "YS0018",
+        /// A call with arguments the method doesn't take.
+        WRONG_ARGS = "YS0019",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

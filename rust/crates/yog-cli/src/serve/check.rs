@@ -20,7 +20,7 @@ pub(crate) fn check(path: &str, text: &str) -> Checked {
         Some(yog_ids::Format::Script | yog_ids::Format::Nanites)
     ) {
         return Checked {
-            problems: yog_script_build::check_source(path, text),
+            problems: yog_script_build::check_source(path, text, None),
         };
     }
     let doc = match yog_data::text::parse(text) {

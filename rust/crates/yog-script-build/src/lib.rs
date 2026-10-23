@@ -9,8 +9,10 @@ pub mod index;
 
 use yog_data::Diagnostic;
 
-/// What's wrong with the source `text` of the file `name` (`.ys`, `.yns`).
+/// What's wrong with the source `text` of the file `name` (`.ys`, `.yns`),
+/// checked against the game's classes of a targeted version when `game`
+/// gives them (otherwise only what the source itself declares).
 #[must_use]
-pub fn check_source(name: &str, text: &str) -> Vec<Diagnostic> {
-    yog_script_analyze::check(name, text).problems
+pub fn check_source(name: &str, text: &str, game: Option<&index::ClassIndex>) -> Vec<Diagnostic> {
+    yog_script_analyze::check_with(name, text, game).problems
 }

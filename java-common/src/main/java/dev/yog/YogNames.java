@@ -269,9 +269,14 @@ public final class YogNames {
         public static final String ASSIGN_TO_CONSTANT = "YS0012";
         public static final String NAMING = "YS0013";
         public static final String AWAIT_OUTSIDE_ASYNC = "YS0014";
+        public static final String TYPE_MISMATCH = "YS0015";
+        public static final String NULLABLE = "YS0016";
+        public static final String UNKNOWN_MEMBER = "YS0017";
+        public static final String WRONG_SIDE = "YS0018";
+        public static final String WRONG_ARGS = "YS0019";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS);
     }
 
     public static final class Storage {

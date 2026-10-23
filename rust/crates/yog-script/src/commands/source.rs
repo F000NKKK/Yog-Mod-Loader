@@ -16,7 +16,7 @@ pub(super) fn run(rest: &[String]) -> Result<(), String> {
         .read_to_string(&mut text)
         .map_err(|e| e.to_string())?;
     let mut out = std::io::stdout().lock();
-    for d in yog_script_build::check_source(path, &text) {
+    for d in yog_script_build::check_source(path, &text, None) {
         yog_data::io::write_frame(&mut out, &d).map_err(|e| e.to_string())?;
     }
     Ok(())

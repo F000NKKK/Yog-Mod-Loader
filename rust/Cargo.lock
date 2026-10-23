@@ -2666,6 +2666,7 @@ name = "yog-script-analyze"
 version = "0.2.0"
 dependencies = [
  "yog-analysis",
+ "yog-codegen",
  "yog-data",
  "yog-ids",
 ]

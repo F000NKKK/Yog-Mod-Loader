@@ -12,4 +12,6 @@ description = "Yog Script (.ys, .yns) analyzed: its lexer, parser and syntax tre
 yog-ids = { workspace = true }
 # Problems as Diagnostics, positions.
 yog-analysis = { workspace = true }
+# C#'s names to the game's Java ones.
+yog-codegen = { workspace = true }
 yog-data = { workspace = true }

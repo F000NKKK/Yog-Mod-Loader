@@ -43,7 +43,7 @@ pub(crate) fn prepare() -> Result<Prepared, String> {
     // Blocks and items: models, states, loot, lang and their Rust glue.
     let content = content::compile(&root, &meta.id, &resources.refs)?;
     // Yog Script: read and resolved, its errors stop the build.
-    yog_cli::script::check(&root)?;
+    yog_cli::script::check(&root, meta.datapack.as_deref())?;
     warn_all(&content.warnings);
     content::write_source(&root, &content)?;
     let build_dir = write_build_dir(&root, &meta)?;

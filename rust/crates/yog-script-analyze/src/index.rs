@@ -67,11 +67,14 @@ impl ClassIndex {
     }
 }
 
+/// What separates a nested class from the class it's in (`Outer$Inner`).
+pub const NESTED: char = '$';
+
 /// `net/minecraft/world/entity/LivingEntity` → `LivingEntity`; a nested
 /// class (`Outer$Inner`) by its own name (`Inner`).
 pub fn simple_name(internal: &str) -> &str {
     let tail = internal.rsplit('/').next().unwrap_or(internal);
-    tail.rsplit('$').next().unwrap_or(tail)
+    tail.rsplit(NESTED).next().unwrap_or(tail)
 }
 
 impl<'i> Lookup<'i> {
@@ -86,6 +89,16 @@ impl<'i> Lookup<'i> {
             .get(name)
             .map(Vec::as_slice)
             .unwrap_or_default()
+    }
+
+    /// The top-level classes of unqualified `name`: a nested one is written
+    /// with the class it's in (`OutgoingChatMessage.Player`), as in C#.
+    pub fn top_level(&self, name: &str) -> Vec<&'i Class> {
+        self.simple(name)
+            .iter()
+            .copied()
+            .filter(|c| !c.name.contains(NESTED))
+            .collect()
     }
 
     /// `class` and every class it extends, nearest first (the index's).

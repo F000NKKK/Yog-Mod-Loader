@@ -12,6 +12,7 @@ pub mod index;
 mod lexer;
 pub mod parser;
 pub mod resolve;
+mod typeck;
 pub mod words;
 
 use std::path::Path;
@@ -46,13 +47,25 @@ pub fn parse(name: &str, src: &str) -> Parsed {
     }
 }
 
-/// The source `src` of the file `name` read and its names resolved: what
-/// `yog check` and the editors report.
+/// The source `src` of the file `name` read, its names resolved and its
+/// types checked (the game's unknown): what the editors report.
 #[must_use]
 pub fn check(name: &str, src: &str) -> Checked {
+    check_with(name, src, None)
+}
+
+/// [`check`] with the game's classes of a targeted version: what `yog
+/// build` reports, once a version.
+#[must_use]
+pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Checked {
     let mut report = yog_analysis::Report::new(name, src);
     let file = read(name, src, &mut report);
     let symbols = resolve::resolve(&file, &mut report);
+    // Types are checked in what reads and resolves cleanly: a broken tree
+    // would only report the same problem again.
+    if !report.out.iter().any(yog_data::Diagnostic::is_error) {
+        typeck::check(&file, game, &mut report);
+    }
     Checked {
         file,
         symbols,
