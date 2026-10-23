@@ -102,7 +102,7 @@ yog-hot-reload = { version = "0.5.0", path = "crates/yog-hot-reload" }
 yog-ids = { version = "0.5.2", path = "crates/yog-ids" }
 yog-mirror = { version = "0.2.0", path = "crates/yog-mirror" }
 yog-sync = { version = "0.4.0", path = "crates/yog-sync" }
-yog-media = { version = "0.6.0", path = "crates/yog-media" }
+yog-media = { version = "0.6.1", path = "crates/yog-media" }
 yog-interop = { version = "0.24.0", path = "crates/yog-interop" }
 yog-kit = { version = "0.14.0", path = "crates/yog-kit" }
 yog-inventory = { version = "0.23.0", path = "crates/yog-inventory" }
