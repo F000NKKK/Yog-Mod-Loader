@@ -4,7 +4,7 @@
 use yog_data::{Schema, Shape};
 use yog_ids as ids;
 
-use crate::message::{Message, branch, last_segment};
+use crate::wire::message::{Message, branch, last_segment};
 use crate::{
     block, bus, client, command, content, entity, game, item, key_binding, media, menu, mirror,
     video,
@@ -25,7 +25,7 @@ pub trait Service: Message {
 
     /// Where this call goes: the address, or its branch for the key.
     fn target(&self) -> String {
-        crate::message::target(Self::ADDRESS, self.key())
+        crate::wire::message::target(Self::ADDRESS, self.key())
     }
 
     /// [`Service::target`]'s number — the type's own address cached.
@@ -82,7 +82,7 @@ macro_rules! services {
 
             fn address(&self) -> crate::Address {
                 static AT: crate::Cached = crate::Cached::new();
-                crate::address::of(&AT, $address, self.key())
+                crate::wire::address::of(&AT, $address, self.key())
             }
         })*
 

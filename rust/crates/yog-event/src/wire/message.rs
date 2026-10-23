@@ -139,7 +139,7 @@ macro_rules! actions {
         /// This domain's actions.
         pub(crate) fn actions() -> Vec<$crate::ServiceInfo> {
             vec![$($crate::ServiceInfo {
-                domain: $crate::message::branch($address, yog_ids::service::PREFIX),
+                domain: $crate::wire::message::branch($address, yog_ids::service::PREFIX),
                 name: stringify!($name),
                 address: $address,
                 key: None,

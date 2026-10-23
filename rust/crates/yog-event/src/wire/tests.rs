@@ -2,7 +2,7 @@
 
 use yog_core::BlockPos;
 
-use super::*;
+use crate::*;
 
 #[test]
 fn an_event_round_trips_through_its_bytes() {

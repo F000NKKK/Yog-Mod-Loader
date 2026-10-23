@@ -3,7 +3,7 @@
 use yog_data::Schema;
 use yog_ids as ids;
 
-use crate::message::{Message, branch, last_segment};
+use crate::wire::message::{Message, branch, last_segment};
 
 use crate::{block, client, container, entity, log, nanite, player, server, world};
 
@@ -22,12 +22,12 @@ pub trait Event: Message {
 
     /// Where this event goes after the game did it: the address, or its branch for the key.
     fn target(&self) -> String {
-        crate::message::target(Self::ADDRESS, self.key())
+        crate::wire::message::target(Self::ADDRESS, self.key())
     }
 
     /// Where it goes before, if it can be stopped.
     fn pre_target(&self) -> Option<String> {
-        Self::PRE.map(|pre| crate::message::target(pre, self.key()))
+        Self::PRE.map(|pre| crate::wire::message::target(pre, self.key()))
     }
 
     /// [`Event::target`]'s number — the type's own address cached.
@@ -61,12 +61,12 @@ macro_rules! events {
 
             fn address(&self) -> crate::Address {
                 static AT: crate::Cached = crate::Cached::new();
-                crate::address::of(&AT, $post, self.key())
+                crate::wire::address::of(&AT, $post, self.key())
             }
 
             fn pre_address(&self) -> Option<crate::Address> {
                 static PRE: crate::Cached = crate::Cached::new();
-                $pre.map(|pre: &'static str| crate::address::of(&PRE, pre, self.key()))
+                $pre.map(|pre: &'static str| crate::wire::address::of(&PRE, pre, self.key()))
             }
         })*
 
