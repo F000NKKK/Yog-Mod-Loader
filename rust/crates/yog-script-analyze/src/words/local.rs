@@ -3,12 +3,12 @@
 use crate::ast::{Local, Point};
 use crate::parser::{PResult, Parser};
 use crate::source::token::Punct;
-use crate::words::{Role, Word, uses, var};
+use crate::words::{Role, Word, r#mut, uses};
 
 pub static WORD: Word = Word {
     text: "local",
     doc: "A local of the patched method, by name (the class index keeps the game's local names) or by \
-          type and order (`#1`): `uses local i64 start` reads it, `var local` writes it back; inside a \
+          type and order (`#1`): `uses local i64 start` reads it, `mut local` writes it back; inside a \
           method, `local f32 speed = speed * 2;` changes it (`@ModifyVariable`).",
     reserved: false,
     roles: &[Role::Point { parse }],
@@ -22,7 +22,7 @@ fn parse(p: &mut Parser) -> PResult<Point> {
     Ok(Point::Local { local, value })
 }
 
-/// `local Type name (#n)?` (after `var` when `write`).
+/// `local Type name (#n)?` (after `mut` when `write`).
 fn declared(p: &mut Parser, write: bool) -> PResult<Local> {
     p.need_word(&WORD)?;
     let ty = p.ty()?;
@@ -31,14 +31,14 @@ fn declared(p: &mut Parser, write: bool) -> PResult<Local> {
     Ok(Local { write, ty, name, ordinal })
 }
 
-/// `uses local …, var local …`, or none.
+/// `uses local …, mut local …`, or none.
 pub(crate) fn uses(p: &mut Parser) -> PResult<Vec<Local>> {
     if !p.eat_word(&uses::WORD) {
         return Ok(Vec::new());
     }
     let mut out = Vec::new();
     loop {
-        let write = p.eat_word(&var::WORD);
+        let write = p.eat_word(&r#mut::WORD);
         out.push(declared(p, write)?);
         if !p.eat(Punct::Comma) {
             return Ok(out);

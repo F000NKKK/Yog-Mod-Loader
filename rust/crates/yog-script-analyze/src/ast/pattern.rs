@@ -9,14 +9,14 @@ pub enum Pattern {
     /// A literal or a path to a value or a case (`0`, `Mode.Idle`); a
     /// lone path may be a type too: the resolver and the checker tell.
     Value(Expr),
-    /// `var e`.
-    Var(Name),
+    /// `let e`.
+    Let(Name),
     /// `Monster m`, `Monster`.
     Type {
         ty: Type,
         bind: Option<Name>,
     },
-    /// `Mode.Charging(var rate)`.
+    /// `Mode.Charging(let rate)`.
     Variant {
         path: Vec<Name>,
         args: Vec<Pattern>,

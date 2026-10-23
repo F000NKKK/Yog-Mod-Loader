@@ -37,7 +37,7 @@ pub enum DefKind {
 }
 
 impl DefKind {
-    /// A local: `let mut`/`var` or `let`.
+    /// A local: `let mut` or `let`.
     pub fn local(mutable: bool) -> Self {
         if mutable {
             DefKind::Variable

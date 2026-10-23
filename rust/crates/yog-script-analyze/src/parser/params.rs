@@ -4,7 +4,7 @@
 use super::{PResult, Parser};
 use crate::ast::{Arg, Expr, ExprKind, Generic, Name, Param, Pass, Variance};
 use crate::source::token::{Punct, StrPart, Tok};
-use crate::words::{r#in, r#let, r#move, r#mut, out, r#ref, var};
+use crate::words::{r#in, r#let, r#move, r#mut, out, r#ref};
 
 impl Parser<'_, '_, '_> {
     /// A name (not a reserved word).
@@ -122,14 +122,12 @@ impl Parser<'_, '_, '_> {
         Some(pass.1)
     }
 
-    /// After `out`: `let x`, `let mut x`, `var x`, `i32 x` (a local declared
+    /// After `out`: `let x`, `let mut x`, `i32 x` (a local declared
     /// there) or a place.
     fn declared(&mut self) -> PResult<Expr> {
         let start = self.span();
         let (ty, mutable) = if self.eat_word(&r#let::WORD) {
             (None, self.eat_word(&r#mut::WORD))
-        } else if self.eat_word(&var::WORD) {
-            (None, true)
         } else if self.typed_ahead().is_some() {
             (Some(self.ty()?), true)
         } else {

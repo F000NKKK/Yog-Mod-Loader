@@ -8,6 +8,7 @@ mod source;
 pub use source::token;
 
 pub mod ast;
+mod borrowck;
 pub mod index;
 mod lexer;
 pub mod parser;
@@ -70,6 +71,7 @@ pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Ch
     // would only report the same problem again.
     if !report.out.iter().any(yog_data::Diagnostic::is_error) {
         typeck::check(&file, is_nanites(name), game, &mut report);
+        borrowck::check(&file, &mut report);
     }
     Checked {
         file,

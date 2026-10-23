@@ -43,6 +43,7 @@ impl Checker<'_, '_, '_> {
             ExprKind::This => self.this.clone().unwrap_or(Type::Unknown),
             ExprKind::Declare { ty, name, .. } => self.declare(ty.as_ref(), &name.text),
             ExprKind::NameOf(expr) => self.name_of(expr),
+            ExprKind::Move(expr) => self.expr(expr),
             ExprKind::Default(Some(ty)) => self.type_of(ty),
             ExprKind::Member { expr, name, safe } => {
                 let on = self.expr(expr);

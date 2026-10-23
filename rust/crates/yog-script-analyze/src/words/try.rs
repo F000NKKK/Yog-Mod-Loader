@@ -6,7 +6,7 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "try",
-    doc: "Takes a result's value, or ends this method with its failure: `var v = try Parse(text);`.",
+    doc: "Takes a result's value, or ends this method with its failure: `let v = try Parse(text);`.",
     reserved: true,
     roles: &[Role::Prefix { starts: None, parse }],
 };

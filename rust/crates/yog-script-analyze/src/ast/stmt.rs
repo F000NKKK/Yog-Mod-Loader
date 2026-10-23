@@ -10,7 +10,7 @@ pub struct Block {
 }
 
 /// What a local declaration or a `foreach` binds: one name or a
-/// deconstruction (`var (a, b)`).
+/// deconstruction (`let (a, b)`).
 #[derive(Debug, Clone, PartialEq)]
 pub enum Binding {
     One(Name),
@@ -19,13 +19,13 @@ pub enum Binding {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
-    /// `let x = …;`, `let mut x = …;`, `var x = …;`, `i32 x;`,
+    /// `let x = …;`, `let mut x = …;`, `i32 x;`,
     /// `let (a, b) = …;`; `ty` None: its value's.
     Local {
         ty: Option<Type>,
         binding: Binding,
         value: Option<Expr>,
-        /// May be assigned again (`let mut`, `var`, a typed local).
+        /// May be assigned again (`let mut`, a typed local).
         mutable: bool,
     },
     /// `place op= value;`; `op` None for `=`.

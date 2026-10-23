@@ -9,7 +9,7 @@ impl Resolver<'_, '_> {
         match p {
             Pattern::Wild(_) => {}
             Pattern::Value(e) => self.expr(e),
-            Pattern::Var(n) => self.bind(n, DefKind::Variable),
+            Pattern::Let(n) => self.bind(n, DefKind::Variable),
             Pattern::Type { ty, bind } => {
                 self.ty(ty);
                 if let Some(n) = bind {

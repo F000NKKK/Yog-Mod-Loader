@@ -5,7 +5,7 @@ and `.yns` share this grammar; the patch forms (§6) are accepted only in
 `.yns`.
 
 The syntax is close to C# — not a copy: declarations put the type first,
-locals are `var`, objects are made with `new` and primary constructors,
+locals are `let` / `let mut` (Rust's), objects are made with `new` and primary constructors,
 statements end with `;`, names follow C#'s style guide. What C# has no
 word for (sides, saved and synced state, components and systems, units,
 content references, patches) is Yog Script's own.
@@ -56,7 +56,7 @@ Reserved everywhere:
 using mod class struct record enum interface component system extend unit
 public private internal protected static const readonly new this base
 abstract sealed virtual override typeof nameof default
-void var let mut i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 decimal bool char string object dynamic
+void let mut i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 decimal bool char string object dynamic
 ref out move typeof nameof default
 if else switch foreach for in while do break continue return
 true false null is as and or not when
@@ -343,15 +343,14 @@ stmt        = local_decl ';' | expr ';' | assign ';' | block
             | if_stmt | foreach_stmt | for_stmt | while_stmt | do_stmt
             | 'break' ';' | 'continue' ';' | 'return' expr? ';' | 'skip' expr? ';' ;
 local_decl  = 'let' 'mut'? binding (':' type)? ('=' expr)?
-            | ('var' | type) IDENT ('=' expr)?
-            | 'var' binding '=' expr ;
+            | type IDENT ('=' expr)? ;                               (* C#'s typed local: assignable *)
 binding     = IDENT | '(' IDENT (',' IDENT)+ ')' ;                   (* deconstruction *)
 assign      = place assign_op expr ;
 assign_op   = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '??=' ;
 place       = postfix ;                                              (* a name, a member, an index *)
 
 if_stmt     = 'if' '(' expr ')' stmt ('else' stmt)? ;
-foreach_stmt = 'foreach' '(' ('var' | type) (IDENT | '(' IDENT (',' IDENT)+ ')') 'in' expr ')' stmt ;
+foreach_stmt = 'foreach' '(' ('let' | type) (IDENT | '(' IDENT (',' IDENT)+ ')') 'in' expr ')' stmt ;
 for_stmt    = 'for' '(' local_decl? ';' expr? ';' assign? ')' stmt ;
 while_stmt  = 'while' '(' expr ')' stmt ;
 do_stmt     = 'do' stmt 'while' '(' expr ')' ';' ;
@@ -394,7 +393,7 @@ param_or_name = type? IDENT ;
 block_lambda = '{' stmt* expr? '}' ;                               (* trailing lambda: `it` its parameter, the last expression its value *)
 call_args   = '(' (arg (',' arg)*)? ')' ;
 arg         = (IDENT ':')? pass? (out_decl | expr) ;               (* named arguments, as in C# *)
-out_decl    = ('let' 'mut'? | 'var' | type) IDENT ;                  (* F(out let x) *)
+out_decl    = ('let' 'mut'? | type) IDENT ;                  (* F(out let x) *)
 ```
 
 `list.Select(x => x * 2)` and `list.Select { it * 2 }` are the same call:
@@ -405,10 +404,10 @@ a trailing block lambda is the last argument, `it` its one parameter.
 ```ebnf
 switch_expr = postfix 'switch' '{' arm (',' arm)* ','? '}' ;
 arm         = pattern ('when' expr)? '=>' expr ;
-pattern     = '_' | literal | 'var' IDENT | type_pat | variant_pat | relational_pat | range_pat
+pattern     = '_' | literal | 'let' IDENT | type_pat | variant_pat | relational_pat | range_pat
             | tuple_pat | property_pat | pattern 'or' pattern | pattern 'and' pattern | 'not' pattern ;
 type_pat    = type IDENT? ;                                         (* Monster m *)
-variant_pat = path '(' pattern (',' pattern)* ')' ;                 (* Mode.Charging(var rate) *)
+variant_pat = path '(' pattern (',' pattern)* ')' ;                 (* Mode.Charging(let rate) *)
 relational_pat = ('<' | '<=' | '>' | '>=') literal ;
 range_pat   = literal '..' literal ;
 tuple_pat   = '(' pattern (',' pattern)* ')' ;
@@ -448,7 +447,7 @@ server async void Arm(Charger charger) {
 Task.Every(10s, () => { … });            // a period
 Task.Every(10s) { … }                    // the same, a trailing lambda
 await Task.Until { door.IsOpen };        // a condition
-var near = Level.Entities.Near(spawn, 32b).Where { it is Monster }.OrderBy { it.Distance }.Take(5);
+let near = Level.Entities.Near(spawn, 32b).Where { it is Monster }.OrderBy { it.Distance }.Take(5);
 ```
 
 - An `async` method is compiled into a state machine run by its side's
@@ -493,9 +492,9 @@ Mojang names (`LivingEntity`; a nested one with its outer class,
 LINQ's names, on every collection and on the world's queries:
 
 ```ys
-var names = players.Where { it.Level > 10 }.Select { it.Name };
-foreach (var battery in Inventory.OfType<Battery>()) battery.Charge.Fill();
-var total = stacks.Sum(s => s.Count);
+let names = players.Where { it.Level > 10 }.Select { it.Name };
+foreach (let battery in Inventory.OfType<Battery>()) battery.Charge.Fill();
+let total = stacks.Sum(s => s.Count);
 List<i32> empty = [];
 Dictionary<string, i32> scores = ["alex" => 3, "sam" => 5];
 ```
@@ -522,7 +521,7 @@ patch_item  = 'add' modifiers? (field_decl | method_decl)            (* added me
             | 'priority' INT ';' ;
 method      = type_or_void IDENT '(' params? ')' ;                    (* the target by signature *)
 uses        = 'uses' local (',' local)* ;
-local       = 'var'? 'local' type IDENT ('#' INT)? ;                   (* by name; #n: the n-th of its type *)
+local       = 'mut'? 'local' type IDENT ('#' INT)? ;                   (* by name; #n: the n-th of its type *)
 point       = 'around' 'call' callee selector? block                   (* @WrapOperation *)
             | 'at' 'call' callee selector? '(' IDENT ')' block         (* @ModifyArg: the argument by name *)
             | 'before' 'call' callee selector? uses? block             (* @Inject INVOKE *)
@@ -570,7 +569,7 @@ component Charge(Energy capacity) {
     public Energy Room => capacity - Energy;
 
     public void Push(Charge into) {
-        var moved = Math.Min(Energy, into.Room);
+        let moved = Math.Min(Energy, into.Room);
         into.Energy += moved;
         Energy -= moved;
     }
@@ -595,10 +594,10 @@ block Charger has Charge(Res.Charger.Capacity) {
     }
 
     server void Charge() {
-        foreach (var battery in Inventory) Charge.Push(battery.Charge);
+        foreach (let battery in Inventory) Charge.Push(battery.Charge);
         Mode = Charge.Energy switch {
             0 => Mode.Idle,
-            var e when e == Charge.Capacity => Mode.Full,
+            let e when e == Charge.Capacity => Mode.Full,
             _ => new Mode.Charging(Rate),
         };
     }
@@ -623,7 +622,7 @@ client void Welcome(i32 times) {
 }
 
 server void Welcomed(Player.JoinArgs e) {
-    var player = new Player(e.PlayerName);
+    let player = new Player(e.PlayerName);
     player.Visits += 1;
     player.Client.Welcome(player.Visits);
     if (player.Visits == 1) player.Give(new Battery());
@@ -631,8 +630,8 @@ server void Welcomed(Player.JoinArgs e) {
 
 server void Started(Server.StartedArgs e) {
     Task.Every(10s) {
-        var lonely = Level.Entities.Near(Spawn, 32b).Where { it is Monster }.OrderBy { it.Distance }.Take(5);
-        foreach (var monster in lonely) monster.Glow(5s);
+        let lonely = Level.Entities.Near(Spawn, 32b).Where { it is Monster }.OrderBy { it.Distance }.Take(5);
+        foreach (let monster in lonely) monster.Glow(5s);
     };
 }
 
@@ -644,15 +643,15 @@ screen ChargerScreen(Charger block) : Ui("charger.yui") {
 
 command "charge" {
     server void Fill(Sender source, Player target = source.Player) requires source.IsOp {
-        foreach (var battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
+        foreach (let battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
     }
 }
 
 test "a charger fills a battery" {
-    var world = TestWorld();
-    var charger = world.Place<Charger>(Origin);
+    let world = TestWorld();
+    let charger = world.Place<Charger>(Origin);
     charger.Charge.Energy = 100;
-    var battery = charger.Inventory.Put(new Battery());
+    let battery = charger.Inventory.Put(new Battery());
     world.Tick(1t);
     Expect(battery.Charge.Energy == 100 && charger.Charge.Energy == 0);
 }
@@ -689,7 +688,7 @@ patch LivingEntity {
 }
 
 patch MinecraftServer {
-    after void TickServer(BooleanSupplier hasTime) uses local i64 start, var local i64 spent #1 {
+    after void TickServer(BooleanSupplier hasTime) uses local i64 start, mut local i64 spent #1 {
         if (spent > Res.Limits.SlowTick) Log.Warn("slow tick: {spent} ns");
     }
 }

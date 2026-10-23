@@ -55,7 +55,7 @@ pub struct Target {
     pub params: Vec<Param>,
 }
 
-/// `var local i64 spent #1`.
+/// `mut local i64 spent #1`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Local {
     pub write: bool,

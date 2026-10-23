@@ -90,7 +90,7 @@ fn lexing_problems_are_found_where_they_are() {
 /// A broken statement is reported and the ones after it still read.
 #[test]
 fn reading_goes_on_after_a_problem() {
-    let src = "void A() {\n    var = 1;\n    var b = 2;\n}\nint C() => 3;\n";
+    let src = "void A() {\n    let = 1;\n    let b = 2;\n}\ni32 C() => 3;\n";
     let parsed = parse("a.ys", src);
     assert_eq!(parsed.problems.len(), 1, "{:#?}", parsed.problems);
     assert_eq!(parsed.problems[0].line, Some(2));
@@ -129,9 +129,9 @@ fn every_word_is_described() {
     }
 }
 
-/// The value of `var v = <src>;` in a method.
+/// The value of `let v = <src>;` in a method.
 fn value(src: &str) -> yog_script_analyze::ast::Expr {
-    let parsed = parse("a.ys", &format!("void F() {{ var v = {src}; }}\n"));
+    let parsed = parse("a.ys", &format!("void F() {{ let v = {src}; }}\n"));
     assert!(parsed.problems.is_empty(), "{src}: {:#?}", parsed.problems);
     let DeclKind::Method(m) = parsed.file.decls.into_iter().next().unwrap().kind else {
         panic!()

@@ -86,7 +86,7 @@ impl Checker<'_, '_, '_> {
         }
     }
 
-    /// `T x = v;` / `var x = v;`: the value fits the type written, or gives it.
+    /// `T x = v;` / `let x = v;`: the value fits the type written, or gives it.
     fn local_decl(&mut self, ty: Option<&ast::Type>, binding: &Binding, value: Option<&Expr>) {
         let declared = ty.map(|t| self.type_of(t));
         let t = match (declared, value) {
@@ -151,7 +151,7 @@ impl Checker<'_, '_, '_> {
                 let t = self.type_of(ty);
                 self.bind(&n.text, t);
             }
-            Pattern::Var(n) => self.bind(&n.text, Type::Unknown),
+            Pattern::Let(n) => self.bind(&n.text, Type::Unknown),
             Pattern::And(a, b) | Pattern::Or(a, b) => {
                 self.bind_pattern(a);
                 self.bind_pattern(b);

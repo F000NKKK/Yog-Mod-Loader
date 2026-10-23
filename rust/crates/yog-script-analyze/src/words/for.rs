@@ -3,11 +3,11 @@
 use crate::ast::Stmt;
 use crate::parser::{PResult, Parser};
 use crate::source::token::Punct;
-use crate::words::{Role, Word, var};
+use crate::words::{Role, Word, r#let};
 
 pub static WORD: Word = Word {
     text: "for",
-    doc: "A counted loop: `for (var i = 0; i < 4; i += 1) { … }`. Over items, `foreach`.",
+    doc: "A counted loop: `for (let mut i = 0; i < 4; i += 1) { … }`. Over items, `foreach`.",
     reserved: true,
     roles: &[Role::Stmt { parse }],
 };
@@ -17,8 +17,8 @@ fn parse(p: &mut Parser) -> PResult<Stmt> {
     p.need(Punct::LParen)?;
     let init = if p.at(Punct::Semi) {
         None
-    } else if p.at_word(&var::WORD) {
-        Some(Box::new(var::local(p)?))
+    } else if p.at_word(&r#let::WORD) {
+        Some(Box::new(r#let::local(p)?))
     } else if p.typed_ahead().is_some() {
         Some(Box::new(p.typed_local()?))
     } else {

@@ -7,6 +7,7 @@ mod pass;
 mod patch;
 mod pattern;
 mod stmt;
+mod walk;
 
 pub use decl::{
     Accessor, Attribute, Chain, Ctor, Decl, DeclKind, Field, Method, MethodBody, Modifier, Param,

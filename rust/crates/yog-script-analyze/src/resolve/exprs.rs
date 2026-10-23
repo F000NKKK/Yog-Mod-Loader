@@ -35,7 +35,7 @@ impl Resolver<'_, '_> {
                 self.opt_ty(ty.as_ref());
                 self.bind(name, DefKind::local(*mutable));
             }
-            ExprKind::NameOf(expr) => self.expr(expr),
+            ExprKind::NameOf(expr) | ExprKind::Move(expr) => self.expr(expr),
             ExprKind::Default(ty) => self.opt_ty(ty.as_ref()),
             ExprKind::Str(segs) => {
                 for s in segs {

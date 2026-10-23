@@ -9,7 +9,7 @@ that reach into other code (patches). Both compile through one IR, either
 to JVM bytecode injected into the game or to Rust built into the mod's
 library (`docs/design/nanites.md`, `docs/design/bus.md`).
 
-Its syntax is close to C# — types first, `var`, `new` and primary
+Its syntax is close to C# — types first, `let`, `new` and primary
 constructors, properties, LINQ, `switch` expressions, `async`/`await`, C#'s
 naming — without being a copy: it drops what modders complain about and
 adds mechanisms only a language that *knows it is a Minecraft mod* can
@@ -63,12 +63,12 @@ KubeJS/ProbeJS reviews; Skript forums.
 
 ## 3. The language core
 
-C#'s shape: types first, `var` for locals, `;` after statements, PascalCase
+C#'s shape: types first, `let`/`let mut` for locals (Rust's), `;` after statements, PascalCase
 for types and members, camelCase for locals and parameters.
 
 ```ys
 const string Name = "charger";
-var count = 0;
+let mut count = 0;
 count += 1;
 
 i32 Area(i32 w, i32 h) => w * h;
@@ -78,10 +78,10 @@ void Greet(Player player) {
 }
 
 List<i32> numbers = [1, 2, 3];
-var doubled = numbers.Select { it * 2 }.Where(x => x > 2);
-var health = target?.Health ?? 0;           // ?. null-conditional, ?? otherwise
+let doubled = numbers.Select { it * 2 }.Where(x => x > 2);
+let health = target?.Health ?? 0;           // ?. null-conditional, ?? otherwise
 
-var tier = tool.Tier switch {
+let tier = tool.Tier switch {
     Tier.Wood or Tier.Stone => 1,
     Tier.Iron => 2,
     _ => 3,
@@ -127,10 +127,10 @@ class Timer(Ticks every) {
     }
 }
 
-var spawn = new Pos(0, 64, 0);
-var timer = new Timer(5s) { Left = 1t };
+let spawn = new Pos(0, 64, 0);
+let timer = new Timer(5s) { Left = 1t };
 Timer daily = new(24000t);
-var battery = new Battery { Count = 2 };    // content is made the same way
+let battery = new Battery { Count = 2 };    // content is made the same way
 ```
 
 ### Types: classes, structs, interfaces, records, enums
@@ -174,8 +174,7 @@ native runtime's own): whatever the checks let through — a cycle of
 `Shared`s, a value a host still holds — is still collected, never leaked
 for good.
 
-- **Locals**: `let x = …` never changes; `let mut x = …` may (`var` is
-  `let mut`, for C#). Only a `mut` local is lent by `ref` or assigned.
+- **Locals**: `let x = …` never changes; `let mut x = …` may. Only a `mut` local is lent by `ref` or assigned.
 - **Moves are explicit**: handing an owned value on is written `move x`
   (an argument, an assignment, a return of a local needs none); after it
   `x` is gone — using it is a build error. Copies are implicit only for
@@ -233,17 +232,17 @@ Rust's model, not exceptions:
 ### Pattern matching
 
 `switch` and `is` match by shape, as in C# and as Rust's `match`:
-variants and records taken apart (`Mode.Charging(var rate)`, `Pos(0, var
-y, _)`), properties (`{ Health: < 5 }`), lists (`[var first, .., var
+variants and records taken apart (`Mode.Charging(let rate)`, `Pos(0, let
+y, _)`), properties (`{ Health: < 5 }`), lists (`[let first, .., let
 last]`), relations and ranges (`> 3`, `1..10`), `and`/`or`/`not`, guards
 (`when rate > 3`). A `switch` over an enum or a sealed hierarchy must
 cover every case, or say `_`: a case left out is a build error, not a
 warning.
 
 ```ys
-var label = mode switch {
+let label = mode switch {
     Mode.Idle => "idle",
-    Mode.Charging(var rate) when rate > 3 => "fast",
+    Mode.Charging(let rate) when rate > 3 => "fast",
     Mode.Charging(_) => "slow",
     Mode.Full => "full",
 };
@@ -292,7 +291,7 @@ component Charge(Energy capacity) {
     public Energy Room => capacity - Energy;
 
     public void Push(Charge into) {
-        var moved = Math.Min(Energy, into.Room);
+        let moved = Math.Min(Energy, into.Room);
         into.Energy += moved;
         Energy -= moved;
     }
@@ -320,7 +319,7 @@ server system Solar(Charge charge, Block block) every 1t {
 }
 
 server system Feed(Charge charge, Slots<Battery> slots) every 1t {
-    foreach (var battery in slots) charge.Push(battery.Charge);
+    foreach (let battery in slots) charge.Push(battery.Charge);
 }
 ```
 
@@ -439,8 +438,8 @@ Searching the world is a library chain the compiler knows, so it compiles
 to the game's indexed lookups (chunk and entity sections), not a scan:
 
 ```ys
-var threats = Level.Entities.Near(pos, 16b).Where { it is Monster && it.CanSee(player) };
-var nearest = Level.Blocks.Near(pos, 8b).OfType<Charger>().OrderBy { it.Distance }.FirstOrDefault();
+let threats = Level.Entities.Near(pos, 16b).Where { it is Monster && it.CanSee(player) };
+let nearest = Level.Blocks.Near(pos, 8b).OfType<Charger>().OrderBy { it.Distance }.FirstOrDefault();
 ```
 
 ### 4.5 Failures don't crash the world
@@ -460,10 +459,10 @@ faulty, by policy), and the game goes on. A crash report names the
 
 ```ys
 test "a charger fills a battery" {
-    var world = TestWorld();
-    var charger = world.Place<Charger>(Origin);
+    let world = TestWorld();
+    let charger = world.Place<Charger>(Origin);
     charger.Charge.Energy = 100;
-    var battery = charger.Inventory.Put(new Battery());
+    let battery = charger.Inventory.Put(new Battery());
     world.Tick(1t);
     Expect(battery.Charge.Energy == 100 && charger.Charge.Energy == 0);
 }
@@ -513,7 +512,7 @@ block Charger has Charge(Res.Charger.Capacity) {
     Slots<Battery> Inventory = new(4);
 
     Charger() {
-        Tick += () => { foreach (var battery in Inventory) Charge.Push(battery.Charge); };
+        Tick += () => { foreach (let battery in Inventory) Charge.Push(battery.Charge); };
         Use += player => player.Open(new ChargerScreen(this));
     }
 }
@@ -530,7 +529,7 @@ recipe Battery : Shaped {
 
 // In the mod's constructor: `Player.Join += Welcome;`
 server void Welcome(Player.JoinArgs e) {
-    var player = new Player(e.PlayerName);
+    let player = new Player(e.PlayerName);
     player.Visits += 1;
     if (player.Visits == 1) {
         player.Give(new Battery());
@@ -540,7 +539,7 @@ server void Welcome(Player.JoinArgs e) {
 
 command "charge" {
     server void Fill(Sender source, Player target = source.Player) requires source.IsOp {
-        foreach (var battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
+        foreach (let battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
     }
 }
 ```
@@ -597,8 +596,8 @@ patch LivingEntity {
 
 patch MinecraftServer {
     // Locals by name (the class index keeps local names where the game has them);
-    // by type and order where it doesn't. `var` writes back.
-    after void TickServer(BooleanSupplier hasTime) uses local i64 start, var local i64 spent {
+    // by type and order where it doesn't. `mut` writes back.
+    after void TickServer(BooleanSupplier hasTime) uses local i64 start, mut local i64 spent {
         if (spent > Res.Limits.SlowTick) Log.Warn("slow tick: {spent} ns");
     }
 }

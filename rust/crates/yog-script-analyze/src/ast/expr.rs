@@ -125,6 +125,8 @@ pub enum ExprKind {
         name: Name,
         safe: bool,
     },
+    /// `move x`: `x` handed on, gone after.
+    Move(Box<Expr>),
     /// `x!`: asserted not null.
     NotNull(Box<Expr>),
     /// What couldn't be parsed (reported already).

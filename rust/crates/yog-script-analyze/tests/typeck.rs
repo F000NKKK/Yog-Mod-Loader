@@ -150,8 +150,8 @@ fn the_games_classes_are_a_yns_files_only() {
 #[test]
 fn yogs_surface_is_typed() {
     let fine = "server void F(Player p, World w) {\n    bool given = p.GiveItem(\"minecraft:diamond\", 1);\n    \
-                var info = p.Info();\n    i32 level = info?.XpLevel ?? 0;\n    bool flies = info!.MayFly;\n    \
-                w.SetTime(6000);\n    Chat.Broadcast(\"hello\");\n    var online = Player.Online();\n}\n";
+                let info = p.Info();\n    i32 level = info?.XpLevel ?? 0;\n    bool flies = info!.MayFly;\n    \
+                w.SetTime(6000);\n    Chat.Broadcast(\"hello\");\n    let online = Player.Online();\n}\n";
     assert!(codes(fine).is_empty(), "{:?}", codes(fine));
     assert_eq!(
         codes("void F(Player p) {\n    p.GiveItem(1);\n}\n"),

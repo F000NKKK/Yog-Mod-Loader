@@ -3,7 +3,7 @@
 use super::{PResult, Parser};
 use crate::ast::{BinOp, Name, Pattern};
 use crate::source::token::{Punct, Tok};
-use crate::words::{and, not, or, var};
+use crate::words::{and, r#let, not, or};
 
 const WILDCARD: &str = "_";
 
@@ -40,8 +40,8 @@ impl Parser<'_, '_, '_> {
     }
 
     fn pattern_one(&mut self) -> PResult<Pattern> {
-        if self.eat_word(&var::WORD) {
-            return Ok(Pattern::Var(self.name("a name")?));
+        if self.eat_word(&r#let::WORD) {
+            return Ok(Pattern::Let(self.name("a name")?));
         }
         if let Some(&(p, op)) = RELATIONAL.iter().find(|(p, _)| self.at(*p)) {
             self.need(p)?;
@@ -63,7 +63,7 @@ impl Parser<'_, '_, '_> {
         }
     }
 
-    /// `Mode.Charging(var rate)`, `Monster m`, `Monster { … }`, or a path
+    /// `Mode.Charging(let rate)`, `Monster m`, `Monster { … }`, or a path
     /// to a value, a case or a type (`Mode.Idle`, `Monster`).
     fn path_pattern(&mut self) -> PResult<Pattern> {
         let start = self.span();
@@ -116,7 +116,7 @@ impl Parser<'_, '_, '_> {
             _ => Err(self.error(
                 yog_ids::script_problem::EXPECTED,
                 at,
-                "a case is named by a path: `Mode.Charging(var rate)`",
+                "a case is named by a path: `Mode.Charging(let rate)`",
             )),
         }
     }
