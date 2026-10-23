@@ -1,7 +1,8 @@
 //! Videos drawn as pictures (`video:mymod:intro`: a `.yui`'s `<Video>`, an
 //! image, an entity's or a model's texture): a player each, opened and
 //! played when the video is first drawn, closed once it hasn't been drawn
-//! for a while — drawn again, it starts over.
+//! for a while (looked at each client tick: a closed screen draws nothing
+//! more, and its video's sound must stop) — drawn again, it starts over.
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
@@ -21,14 +22,11 @@ static DRAWN: Mutex<Option<HashMap<String, (u32, Instant)>>> = Mutex::new(None);
 pub(crate) fn frame(env: &mut JNIEnv, id: &str) -> Option<video::Picture> {
     super::size(id)?;
     let now = Instant::now();
-    let (handle, stale) = {
+    sweep();
+    let handle = {
         let mut drawn = DRAWN.lock();
         let drawn = drawn.get_or_insert_with(HashMap::new);
-        let stale: Vec<u32> = drawn
-            .extract_if(|_, (_, at)| now.duration_since(*at) > LINGER)
-            .map(|(_, (handle, _))| handle)
-            .collect();
-        let handle = match drawn.get_mut(id) {
+        match drawn.get_mut(id) {
             Some((handle, at)) => {
                 *at = now;
                 Some(*handle)
@@ -37,13 +35,27 @@ pub(crate) fn frame(env: &mut JNIEnv, id: &str) -> Option<video::Picture> {
                 super::with_player(h, |p| p.play(true));
                 drawn.insert(id.to_owned(), (h, now));
             }),
-        };
-        (handle, stale)
+        }
     };
+    super::with_player(handle?, |p| p.frame(env)).flatten()
+}
+
+/// Closes the players not drawn lately (their sound stops).
+pub(crate) fn sweep() {
+    let now = Instant::now();
+    let stale: Vec<u32> = DRAWN
+        .lock()
+        .as_mut()
+        .map(|drawn| {
+            drawn
+                .extract_if(|_, (_, at)| now.duration_since(*at) > LINGER)
+                .map(|(_, (handle, _))| handle)
+                .collect()
+        })
+        .unwrap_or_default();
     for handle in stale {
         super::close(&video::Close { handle });
     }
-    super::with_player(handle?, |p| p.frame(env)).flatten()
 }
 
 /// Whether texture `t` names a video (`video:mymod:intro`): its id.

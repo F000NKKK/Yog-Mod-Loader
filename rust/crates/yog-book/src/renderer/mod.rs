@@ -157,7 +157,11 @@ impl BookRenderer {
     fn prepare(&mut self, sw: f32, sh: f32) -> Rect {
         let room = ((sw - SCREEN_MARGIN) / BK_W).min((sh - SCREEN_MARGIN) / BK_H);
         let wanted = (sh * SCREEN_FILL / BK_H).round().max(1.0);
-        let scale = if room >= 1.0 { wanted.min(room.floor()) } else { room.max(MIN_SCALE) };
+        let scale = if room >= 1.0 {
+            wanted.min(room.floor())
+        } else {
+            room.max(MIN_SCALE)
+        };
         let (bw, bh) = (BK_W * scale, BK_H * scale);
         let book_rect = Rect::new((sw - bw) / 2.0, (sh - bh) / 2.0, bw, bh);
         self.localize();

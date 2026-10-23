@@ -64,6 +64,8 @@ pub const BOOK_NAME_X: f32 = 13.0;
 pub const BOOK_NAME_Y: f32 = 16.0;
 pub const EDITION_X: f32 = 24.0;
 pub const EDITION_Y: f32 = 24.0;
+/// The second line is drawn smaller than the name (Patchouli's 0.6).
+pub const EDITION_SCALE: f32 = 0.6;
 /// The landing text: where it starts, the entry count's line under it.
 pub const LANDING_Y: f32 = 25.0;
 pub const COUNT_H: f32 = 9.0;

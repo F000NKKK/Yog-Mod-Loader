@@ -16,8 +16,10 @@ use yog_symbols::{FrameRegs, SymbolTable, TargetMemory};
 
 fn build(tag: &str) -> PathBuf {
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/unwind.rs");
-    let out =
-        PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_symbols_unwind_{tag}_bin"));
+    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
+        "yog_symbols_unwind_{tag}_bin{}",
+        std::env::consts::EXE_SUFFIX
+    ));
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
         .args([
             "--crate-type=bin",

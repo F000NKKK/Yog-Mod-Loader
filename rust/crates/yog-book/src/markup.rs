@@ -35,7 +35,9 @@ fn keys(text: &str) -> String {
         let after = &rest[at + KEY_OPEN.len()..];
         let Some(end) = after.find(CLOSE) else { break };
         let binding = &after[..end];
-        let name = (*KEY_NAMER.read()).and_then(|f| f(binding)).unwrap_or_else(|| binding.to_owned());
+        let name = (*KEY_NAMER.read())
+            .and_then(|f| f(binding))
+            .unwrap_or_else(|| binding.to_owned());
         out.push_str(&rest[..at]);
         out.push_str(&name.replace('{', "{{").replace('}', "}}"));
         rest = &after[end + 1..];
@@ -76,6 +78,9 @@ mod tests {
     fn a_key_is_named_as_the_game_binds_it() {
         assert_eq!(resolve("hold {key|sprint}.", "#000000"), "hold sprint.");
         set_key_namer(|b| (b == "sprint").then(|| "Left Control".to_owned()));
-        assert_eq!(resolve("hold {key|sprint}.", "#000000"), "hold Left Control.");
+        assert_eq!(
+            resolve("hold {key|sprint}.", "#000000"),
+            "hold Left Control."
+        );
     }
 }

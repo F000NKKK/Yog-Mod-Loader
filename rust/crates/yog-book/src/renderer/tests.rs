@@ -300,9 +300,9 @@ fn multiblocks_turn_and_animate() {
     let mut r = BookRenderer::new(b);
     r.prepare(800.0, 600.0);
     assert!(!r.animated(), "the landing page is still");
-    assert_eq!(landing_fit("short"), 1.0);
+    assert_eq!(landing_fit("short", 1.0, 1.0), 1.0);
     assert!(
-        landing_fit(&"many words here ".repeat(60)) < 1.0,
+        landing_fit(&"many words here ".repeat(60), 1.0, 1.0) < 1.0,
         "long landing texts shrink"
     );
     r.show("e", 0);

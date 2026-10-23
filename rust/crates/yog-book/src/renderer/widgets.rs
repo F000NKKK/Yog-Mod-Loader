@@ -8,8 +8,8 @@ use yog_gfx::{Rect, Vec2};
 use yog_ui::{Align, FlexDir, widget};
 
 use super::geometry::{
-    ARROW_BACK_V, ARROW_H, ARROW_NEXT_V, ARROW_U, ARROW_W, HOME_H, HOME_U, HOME_V,
-    NAV_H, PAGE_W, SEP_H, SEP_U, SEP_V, SEP_W, TITLE_INSET,
+    ARROW_BACK_V, ARROW_H, ARROW_NEXT_V, ARROW_U, ARROW_W, HOME_H, HOME_U, HOME_V, NAV_H, PAGE_W,
+    SEP_H, SEP_U, SEP_V, SEP_W, TITLE_INSET,
 };
 use super::overlay::{BgSprite, OverlayCmd, SpriteSheet};
 use crate::theme::BookTheme;
@@ -42,6 +42,19 @@ pub(crate) fn title_lbl(text: impl Into<String>) -> widget::Widget {
         .w((PAGE_W - TITLE_INSET) * text_scale())
 }
 
+/// A page's header title: one line, a long one drawn smaller till it fits
+/// the page (as Patchouli does).
+pub(crate) fn header_lbl(text: impl Into<String>) -> widget::Widget {
+    let text = text.into();
+    let room = (PAGE_W - TITLE_INSET) * text_scale();
+    let wide = yog_ui::text::str_width_in(&text, text_scale(), "");
+    let scale = match wide > room {
+        true => text_scale() * room / wide,
+        false => text_scale(),
+    };
+    title_lbl(text).font_scale(scale).no_wrap()
+}
+
 /// A row of pages' navigation: back and next (their actions), `label`
 /// between them, and a home button when there is `home`.
 pub(crate) struct Nav<'a> {
@@ -69,7 +82,7 @@ impl Nav<'_> {
         );
         let mut row = widget::panel(FlexDir::Row)
             .h(NAV_H * sy)
-            .gap(NAV_GAP)
+            .gap(NAV_GAP * sx)
             .align(Align::Center)
             .child(back);
         row = row.child(

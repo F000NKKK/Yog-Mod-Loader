@@ -22,8 +22,10 @@ fn build(tag: &str) -> PathBuf {
 }
 
 fn build_with(tag: &str, extra: &[&str]) -> PathBuf {
-    let out =
-        PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_symbols_{FIXTURE}_{tag}_bin"));
+    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
+        "yog_symbols_{FIXTURE}_{tag}_bin{}",
+        std::env::consts::EXE_SUFFIX
+    ));
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
         .args([
             "--crate-type=bin",

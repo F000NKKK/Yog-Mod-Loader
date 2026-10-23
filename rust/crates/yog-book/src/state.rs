@@ -110,7 +110,11 @@ impl BookViewState {
         let (mut start, mut used) = (0, 0);
         for (i, e) in all.iter().enumerate() {
             let rows = list_rows(&e.name);
-            let room = if spreads.is_empty() { ENTRIES_FIRST } else { ENTRIES_PER };
+            let room = if spreads.is_empty() {
+                ENTRIES_FIRST
+            } else {
+                ENTRIES_PER
+            };
             if used + rows > room && i > start {
                 spreads.push(start..i);
                 (start, used) = (i, 0);
@@ -128,14 +132,23 @@ impl BookViewState {
 
     /// Absolute index of the first entry on the current list spread.
     pub fn list_spread_start(&self, book: &Book) -> usize {
-        self.list_spreads(book).get(self.list_spread).map_or(0, |r| r.start)
+        self.list_spreads(book)
+            .get(self.list_spread)
+            .map_or(0, |r| r.start)
     }
 
     /// The slice of entries visible on the current list spread.
     pub fn entries_visible<'b>(&self, book: &'b Book) -> Vec<&'b yog_formats::book::BookEntry> {
-        let range = self.list_spreads(book).get(self.list_spread).cloned().unwrap_or_default();
+        let range = self
+            .list_spreads(book)
+            .get(self.list_spread)
+            .cloned()
+            .unwrap_or_default();
         let all = self.entries_in_cat(book);
-        all.into_iter().skip(range.start).take(range.len()).collect()
+        all.into_iter()
+            .skip(range.start)
+            .take(range.len())
+            .collect()
     }
 
     pub fn current_entry<'b>(&self, book: &'b Book) -> Option<&'b yog_formats::book::BookEntry> {

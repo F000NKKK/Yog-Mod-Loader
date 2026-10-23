@@ -2276,7 +2276,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.72.1"
+version = "0.72.2"
 dependencies = [
  "criterion",
  "serde_json",
@@ -2377,7 +2377,7 @@ dependencies = [
 
 [[package]]
 name = "yog-debugger"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "iced-x86",
  "libc",
@@ -2559,7 +2559,7 @@ dependencies = [
 
 [[package]]
 name = "yog-runtime"
-version = "0.110.2"
+version = "0.110.3"
 dependencies = [
  "criterion",
  "glow",
@@ -2610,7 +2610,7 @@ dependencies = [
 
 [[package]]
 name = "yog-symbols"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "addr2line",
  "criterion",

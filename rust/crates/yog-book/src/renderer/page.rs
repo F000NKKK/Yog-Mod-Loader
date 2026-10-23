@@ -19,7 +19,7 @@ use super::geometry::{
 use super::names::{entity_name, pretty_item_name, word};
 use super::overlay::{BgSprite, OverlayCmd, SpriteSheet};
 use super::recipe::RecipeVis;
-use super::widgets::{Canvas, lbl, text_scale, title_lbl};
+use super::widgets::{Canvas, header_lbl, lbl, text_scale, title_lbl};
 
 /// What a page is built with besides its canvas.
 pub(crate) struct Context<'a> {
@@ -245,11 +245,10 @@ fn text_page(
         && let Some(t) = title
     {
         col = col.child(
-            title_lbl(t.as_str())
+            header_lbl(t.as_str())
                 .color(c.theme.title)
                 .h(TITLE_H * c.sy)
-                .align(Align::Center)
-                .no_wrap(),
+                .align(Align::Center),
         );
         c.separator(cx.at, SEP_Y);
         let sep_h = c.sep_h();
@@ -430,6 +429,7 @@ fn recipe_parts(c: &mut Canvas<'_>, place: &Place, vis: &RecipeVis, layout: &Rec
                     text: format!("x{}", vis.count),
                     at: Vec2::new(r.x, r.y),
                     color: c.theme.title,
+                    scale: c.sx,
                 }
             }
             LayoutPart::Text { text, at: p } => {
@@ -441,6 +441,7 @@ fn recipe_parts(c: &mut Canvas<'_>, place: &Place, vis: &RecipeVis, layout: &Rec
                     text: shown,
                     at: Vec2::new(r.x, r.y),
                     color: c.theme.text,
+                    scale: c.sx,
                 }
             }
             _ => continue,

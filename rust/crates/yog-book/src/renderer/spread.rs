@@ -11,15 +11,15 @@ use yog_ui::{Align, FlexDir, UiRoot, widget};
 
 use super::geometry::{
     BK_H, BK_W, BODY_Y, BOOK_NAME_X, BOOK_NAME_Y, CAT_CELL, CAT_COLUMNS, CAT_GRID_X, CAT_GRID_Y,
-    CAT_ICON_INSET, COUNT_H, COUNT_SLACK, EDITION_X, EDITION_Y, GAP, LANDING_FIT_STEP,
-    LANDING_MIN_FIT, LANDING_Y, LEFT_X, LIST_ICON, LIST_ICON_INSET, LIST_NAME_W, LIST_PAD_BOTTOM,
-    LIST_ROW_H, LIST_Y, NAMEPLATE_H, NAMEPLATE_V, NAMEPLATE_W, NAMEPLATE_X, NAMEPLATE_Y, PAGE_H,
-    PAGE_W, RIGHT_X, SEP_H, SEP_Y, TEXT_W, TITLE_H, TOP_PAD,
+    CAT_ICON_INSET, COUNT_H, COUNT_SLACK, EDITION_SCALE, EDITION_X, EDITION_Y, GAP,
+    LANDING_FIT_STEP, LANDING_MIN_FIT, LANDING_Y, LEFT_X, LIST_ICON, LIST_ICON_INSET, LIST_NAME_W,
+    LIST_PAD_BOTTOM, LIST_ROW_H, LIST_Y, NAMEPLATE_H, NAMEPLATE_V, NAMEPLATE_W, NAMEPLATE_X,
+    NAMEPLATE_Y, PAGE_H, PAGE_W, RIGHT_X, SEP_H, SEP_Y, TITLE_H, TOP_PAD,
 };
 use super::names::{ordinal, word};
 use super::overlay::{BgSprite, OverlayCmd, SpriteSheet};
 use super::recipe::RecipeVis;
-use super::widgets::{Canvas, Nav, lbl, set_text_scale, text_scale, title_lbl};
+use super::widgets::{Canvas, Nav, header_lbl, lbl, set_text_scale, text_scale, title_lbl};
 use crate::state::{BookViewState, action};
 use crate::theme::BookTheme;
 
@@ -104,6 +104,7 @@ impl Spread<'_> {
             text: book.name.clone(),
             at: on_book(BOOK_NAME_X, BOOK_NAME_Y),
             color: c.theme.nameplate,
+            scale: c.sx,
         });
         // Its edition ("1st Edition"), else its subtitle — as Patchouli.
         let second = match book.version {
@@ -115,12 +116,13 @@ impl Spread<'_> {
                 text,
                 at: on_book(EDITION_X, EDITION_Y),
                 color: c.theme.nameplate,
+                scale: c.sx * EDITION_SCALE,
             });
         }
         let mut col = self
             .page(c)
             .padding(LANDING_Y * c.sy, PAGE_PAD_RIGHT, GAP, GAP);
-        let fit = landing_fit(&book.landing_text);
+        let fit = landing_fit(&book.landing_text, c.sx, c.sy);
         for para in book.landing_text.split('\n') {
             col = col.child(match para.is_empty() {
                 true => widget::spacer().h(GAP * c.sy),
@@ -139,11 +141,10 @@ impl Spread<'_> {
         let header_h = TITLE_H * c.sy;
         let mut col = self.page(c).padding(0.0, GAP, GAP, 0.0);
         col = col.child(
-            title_lbl(word("categories", ""))
+            header_lbl(word("categories", ""))
                 .color(c.theme.divider)
                 .h(header_h)
-                .align(Align::Center)
-                .no_wrap(),
+                .align(Align::Center),
         );
         col = col.child(widget::spacer().h(CAT_GRID_Y * c.sy - header_h));
         let icon = ICON_PX * c.sx.min(c.sy);
@@ -213,11 +214,10 @@ impl Spread<'_> {
         self.page(c)
             .padding(0.0, PAGE_PAD_RIGHT, GAP, GAP)
             .child(
-                title_lbl(title)
+                header_lbl(title)
                     .color(c.theme.title)
                     .h(TITLE_H * c.sy)
-                    .align(Align::Center)
-                    .no_wrap(),
+                    .align(Align::Center),
             )
             .child(widget::spacer().h((SEP_Y - TITLE_H) * c.sy))
             .child(widget::spacer().h(sep_h))
@@ -302,21 +302,24 @@ impl Spread<'_> {
 const PAGE_PAD_RIGHT: f32 = 6.0;
 const LIST_GAP: f32 = 2.0;
 
-/// The scale (≤ 1) the landing text fits its page at, above the entry count.
-pub(super) fn landing_fit(text: &str) -> f32 {
-    use yog_ui::text::{LINE_GAP, LINE_H, line_count};
-    let room = PAGE_H - LANDING_Y - GAP - COUNT_H - COUNT_SLACK;
-    let height = |scale: f32| -> f32 {
+/// The scale (≤ 1) the landing text fits its page at, above the entry
+/// count: the page's own layout measured (on screen, the book `sx`×`sy`
+/// its size), as the label wraps it.
+pub(super) fn landing_fit(text: &str, sx: f32, sy: f32) -> f32 {
+    use yog_ui::text::text_height_in;
+    let width = PAGE_W * sx - PAGE_PAD_RIGHT - GAP;
+    let room = (PAGE_H - LANDING_Y - COUNT_H - COUNT_SLACK) * sy - GAP;
+    let height = |fit: f32| -> f32 {
         text.split('\n')
             .map(|p| match p.is_empty() {
-                true => GAP,
-                false => line_count(p, TEXT_W, scale) as f32 * (LINE_H * scale + LINE_GAP),
+                true => GAP * sy,
+                false => text_height_in(p, width, sx * fit, ""),
             })
             .sum()
     };
-    let mut scale = 1.0;
-    while scale > LANDING_MIN_FIT && height(scale) > room {
-        scale -= LANDING_FIT_STEP;
+    let mut fit = 1.0;
+    while fit > LANDING_MIN_FIT && height(fit) > room {
+        fit -= LANDING_FIT_STEP;
     }
-    scale
+    fit
 }

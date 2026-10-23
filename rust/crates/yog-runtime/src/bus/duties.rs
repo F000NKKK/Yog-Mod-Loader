@@ -124,7 +124,9 @@ pub(crate) fn register() {
     });
     // What a client sees is written after its own ticks (on any server).
     after::<client::game::Tick>(LAST, |_| {
-        crate::mirrors::after_tick(yog_mirror::Clock::Client)
+        crate::mirrors::after_tick(yog_mirror::Clock::Client);
+        // Videos drawn as pictures no longer drawn stop (a screen closed).
+        crate::video::ambient::sweep();
     });
     after::<server::life::Stopping>(LAST, |_| crate::entity_data::server_stopped());
     super::declared::register();

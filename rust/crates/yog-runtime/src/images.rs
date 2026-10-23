@@ -283,7 +283,13 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_image(
                     Some(p) => {
                         let size = Vec2::new(p.width as f32, p.height as f32);
                         let uv = region(Rect::new(u, v, uw, vh), size);
-                        draw_texture(&mut env, &p.texture, dest, Region { uv, texture: size }, tint);
+                        draw_texture(
+                            &mut env,
+                            &p.texture,
+                            dest,
+                            Region { uv, texture: size },
+                            tint,
+                        );
                     }
                     None => warn_once(source, &format!("video {id} not found")),
                 },

@@ -141,18 +141,28 @@ pub extern "system" fn Java_dev_yog_NativeBridge_nativeOnWorldRender<'l>(
 /// From now on, this thread's raw GL draws are kept for later
 /// (`gpu_record`): a GUI extracted now and drawn after (26.x).
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeGfxRecordStart<'l>(_env: JNIEnv<'l>, _class: JClass<'l>) {
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeGfxRecordStart<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) {
     crate::gpu_record::start();
 }
 
 /// Stops keeping them: the recording's id (0: nothing was drawn).
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeGfxRecordFinish<'l>(_env: JNIEnv<'l>, _class: JClass<'l>) -> jni::sys::jlong {
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeGfxRecordFinish<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+) -> jni::sys::jlong {
     crate::gpu_record::finish() as jni::sys::jlong
 }
 
 /// Draws recording `id` now, on the target bound.
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_dev_yog_NativeBridge_nativeGfxReplay<'l>(_env: JNIEnv<'l>, _class: JClass<'l>, id: jni::sys::jlong) {
+pub extern "system" fn Java_dev_yog_NativeBridge_nativeGfxReplay<'l>(
+    _env: JNIEnv<'l>,
+    _class: JClass<'l>,
+    id: jni::sys::jlong,
+) {
     crate::jni_util::guard("nativeGfxReplay", || crate::gpu_record::replay(id as u64));
 }

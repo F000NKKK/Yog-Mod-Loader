@@ -52,10 +52,12 @@ pub(crate) enum OverlayCmd {
     /// A living entity standing in the box.
     Entity { entity: String, at: Rect },
     /// The game font's text (the nameplate's title and subtitle).
+    /// Text in the game's font, at the book's scale.
     McText {
         text: String,
         at: Vec2,
         color: Color,
+        scale: f32,
     },
     /// An item's icon.
     McItem { item_id: String, at: Rect },
@@ -166,7 +168,21 @@ pub(crate) fn draw_items(ctx: &GfxContext, overlays: &[OverlayCmd], second: usiz
                 Vec2::new(at.x, at.y),
                 at.w.min(at.h),
             ),
-            OverlayCmd::McText { text, at, color } => d2.text(text, *at, *color, false),
+            OverlayCmd::McText {
+                text,
+                at,
+                color,
+                scale,
+            } => d2.text_scaled(
+                text,
+                *at,
+                &yog_gfx::draw2d::TextStyle {
+                    font: "",
+                    scale: *scale,
+                    color: *color,
+                    shadow: false,
+                },
+            ),
             // A texture of its own, not an atlas region: drawn whole into the box.
             OverlayCmd::McTexture { path, at } => d2.image(path, *at),
             _ => {}

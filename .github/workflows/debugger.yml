@@ -47,7 +47,7 @@ jobs:
         if: runner.os == 'Windows'
         timeout-minutes: 20
         run: |
-          cargo test -p yog-symbols
+          cargo test -p yog-symbols || failed=1
           for t in $(cargo test -q -p yog-debugger --features event-log --test debugger -- --list 2>/dev/null | sed -n 's/: test$//p'); do
             echo "::group::$t"
             timeout 120 cargo test -q -p yog-debugger --features event-log --test debugger -- --exact "$t" --nocapture || { echo "::endgroup::"; echo "FAILED: $t"; failed=1; continue; }
