@@ -65,7 +65,10 @@ fn sound_param(params: &Value) -> Result<String, ServiceError> {
     match params.get(P::SOUND) {
         Some(Value::Res(r)) => Ok(r.to_string()),
         Some(Value::Str(s)) => Ok(s.clone()),
-        _ => Err(ServiceError::from(format!("`{}`: a sound, `@Sounds.x` or a game's file", P::SOUND))),
+        _ => Err(ServiceError::from(format!(
+            "`{}`: a sound, `@Sounds.x` or a game's file",
+            P::SOUND
+        ))),
     }
 }
 
