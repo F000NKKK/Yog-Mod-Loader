@@ -84,7 +84,7 @@ serde_spanned = "1"
 toml = { version = "1", default-features = false }
 yog-abi = { version = "0.32.1", path = "crates/yog-abi" }
 yog-api = { version = "0.103.0", path = "crates/yog-api" }
-yog-body = { version = "0.7.0", path = "crates/yog-body" }
+yog-body = { version = "0.7.1", path = "crates/yog-body" }
 yog-book = { version = "0.72.1", path = "crates/yog-book" }
 yog-command = { version = "0.4.0", path = "crates/yog-command" }
 yog-config = { version = "0.3.0", path = "crates/yog-config" }
