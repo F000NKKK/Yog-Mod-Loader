@@ -78,7 +78,7 @@ final class YogClientMirrors {
         if ((c = due.column(YogMirrors.ClientEntity.EYE_HEIGHT)) != null) c.putFloat(row, e.getEyeHeight());
         if ((c = due.column(YogMirrors.ClientEntity.HOSTILE)) != null) c.putByte(row, e instanceof Enemy);
         if ((c = due.column(YogMirrors.ClientEntity.NAME)) != null) {
-            c.putInt(row, e instanceof Player p ? YogAtoms.number(p.getName().getString()) : 0);
+            c.putInt(row, e instanceof Player p ? YogAtoms.number(p.getName().getString()) : YogMirrors.NO_ATOM);
         }
     }
 
@@ -123,7 +123,7 @@ final class YogClientMirrors {
 
         /** {@code f} at {@code row}; none, when null. */
         void write(int row, Flags f) {
-            if (state != null) state.putInt(row, f == null ? 0 : f.atom());
+            if (state != null) state.putInt(row, f == null ? YogMirrors.NO_ATOM : f.atom());
             if (traits != null) traits.putLong(row, f == null ? 0L : f.traits());
             if (hardness != null) hardness.putFloat(row, f == null ? -1f : f.hardness());
         }

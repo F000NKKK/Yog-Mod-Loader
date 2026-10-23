@@ -5,6 +5,9 @@ package dev.yog.bus;
 public final class YogMirrors {
     private YogMirrors() {}
 
+    /** An atom field's "none" (`yog_mirror::NO_ATOM`): not 0, which is an atom. */
+    public static final int NO_ATOM = -1;
+
     /** yog:mirror/yog/entity (`yog_mirror::host`). */
     public static final class Entity {
         private Entity() {}
