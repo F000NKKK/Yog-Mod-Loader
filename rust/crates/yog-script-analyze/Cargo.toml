@@ -15,3 +15,6 @@ yog-analysis = { workspace = true }
 # C#'s names to the game's Java ones.
 yog-codegen = { workspace = true }
 yog-data = { workspace = true }
+# Yog's surface (its services, handles, events): what a `.ys` reaches.
+yog-event = { workspace = true }
+yog-sync = { workspace = true }

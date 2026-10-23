@@ -17,9 +17,6 @@ use remap::Remap;
 use yog_mappings::fetch::{self, CLIENT_JAR, CLIENT_MAPPINGS, SERVER_JAR, SERVER_MAPPINGS};
 use yog_mappings::proguard;
 
-/// The packages of the game's own classes (the jars carry no others but
-/// obfuscated ones, which renaming puts in these).
-const GAME_PACKAGES: [&str; 2] = ["net/minecraft/", "com/mojang/"];
 /// Where indexes are kept in the cache, and their files' extension.
 const CACHE: &str = "class-index";
 
@@ -57,7 +54,9 @@ fn side(mc: &str, jar: &str, mappings: &str) -> Result<Vec<ClassFile>, String> {
             Some(r) => r.apply(c),
             None => c,
         })
-        .filter(|c| GAME_PACKAGES.iter().any(|p| c.name.starts_with(p)))
+        // The game's own classes (the jars carry no others but obfuscated
+        // ones, which renaming puts in these).
+        .filter(|c| yog_script_analyze::index::namespace::is_game_class(&c.name))
         .collect())
 }
 

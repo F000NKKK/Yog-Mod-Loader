@@ -564,12 +564,6 @@ command "charge" {
     }
 }
 
-version (mc >= 1.21) {
-    int Armor(Player player) => player.ArmorValue;
-} else {
-    int Armor(Player player) => player.GetArmorValue();
-}
-
 test "a charger fills a battery" {
     var world = TestWorld();
     var charger = world.Place<Charger>(Origin);
@@ -582,6 +576,10 @@ test "a charger fills a battery" {
 
 ```yns
 targets mc 1.20.1..26.2;
+
+using Game.World.Entity;                     // LivingEntity
+using Game.World.Entity.Player;              // the game's Player (Yog's is then Yog.Player)
+using Game.Server;                           // MinecraftServer
 
 patch LivingEntity {
     add saved float Shield = 0;

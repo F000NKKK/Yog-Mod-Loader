@@ -2668,7 +2668,9 @@ dependencies = [
  "yog-analysis",
  "yog-codegen",
  "yog-data",
+ "yog-event",
  "yog-ids",
+ "yog-sync",
 ]
 
 [[package]]

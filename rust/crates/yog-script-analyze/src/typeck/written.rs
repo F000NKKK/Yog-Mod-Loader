@@ -1,6 +1,6 @@
 //! Types as written (`ast::Type`) to types as checked: the built-in ones,
-//! the units, the source's own, collections, and the game's classes — whose
-//! side must be the code's.
+//! the units, the source's own, collections, and by namespace Yog's and
+//! the game's (`names`) — whose side must be the code's.
 
 use yog_ids::script_problem;
 
@@ -37,7 +37,7 @@ impl Checker<'_, '_, '_> {
                 let args: Vec<Type> = args.iter().map(|a| self.type_of(a)).collect();
                 match path.as_slice() {
                     [one] => self.named(&one.text, args, t.span),
-                    _ => Type::Unknown,
+                    _ => self.qualified(path, t.span),
                 }
             }
         }
@@ -64,21 +64,7 @@ impl Checker<'_, '_, '_> {
         if self.own.types.contains_key(name) {
             return Type::Own(name.to_string());
         }
-        self.game_class(name, at)
-    }
-
-    /// The game's class a source names unqualified, when exactly one has
-    /// the name; reached from code of its side only.
-    pub(super) fn game_class(&mut self, name: &str, at: Span) -> Type {
-        let Some(lookup) = &self.lookup else {
-            return Type::Unknown;
-        };
-        let [class] = lookup.top_level(name)[..] else {
-            return Type::Unknown;
-        };
-        let (class_name, side) = (class.name.clone(), class.side);
-        self.check_side(side, name, at);
-        Type::Game(class_name)
+        self.imported(name, at)
     }
 
     /// A game class of `side` used where the code runs on `self.side`.

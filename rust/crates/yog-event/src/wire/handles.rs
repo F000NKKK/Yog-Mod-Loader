@@ -13,6 +13,17 @@
 use yog_core::{BlockPos, join_state, split_state};
 use yog_ids::sep::{PROPERTY_IS, PROPERTY_SEP};
 
+/// Which handle an action belongs to, by its first field: the actions
+/// whose first field is `uuid` are [`Entity`]'s, `player` [`Player`]'s,
+/// `dim` [`World`]'s. What other languages see of the handles (Yog
+/// Script's objects) reads this; `handle_method!`'s arms are the same
+/// three, as a macro must spell them.
+pub const SUBJECTS: &[(&str, &str)] = &[
+    (stringify!(uuid), stringify!(Entity)),
+    (stringify!(player), stringify!(Player)),
+    (stringify!(dim), stringify!(World)),
+];
+
 /// An entity, by its uuid: every action whose first field is `uuid`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Entity {

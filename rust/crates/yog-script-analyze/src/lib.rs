@@ -66,7 +66,7 @@ pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Ch
     // Types are checked in what reads and resolves cleanly: a broken tree
     // would only report the same problem again.
     if !report.out.iter().any(yog_data::Diagnostic::is_error) {
-        typeck::check(&file, game, &mut report);
+        typeck::check(&file, is_nanites(name), game, &mut report);
     }
     Checked {
         file,

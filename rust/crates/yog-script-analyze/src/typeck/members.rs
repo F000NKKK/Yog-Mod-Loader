@@ -14,8 +14,8 @@ use crate::source::token::Span;
 enum Callee {
     /// The source's own methods.
     Own(Vec<Method>),
-    /// A game class's methods: each one's parameters and result.
-    Game(Vec<(Vec<Type>, Type)>),
+    /// Methods typed already: a game class's, Yog's.
+    Typed(Vec<Signature>),
     Unknown,
 }
 
@@ -51,6 +51,11 @@ impl Checker<'_, '_, '_> {
                 Some(t) => t,
                 None => self.game_value(class, name, at),
             },
+            Type::Namespace(ns) => self.in_namespace(&super::names::split(ns), name, at),
+            Type::Yog(type_name) => match self.extension_value(type_name, name) {
+                Some(t) => t,
+                None => self.yog_value(type_name, name, at),
+            },
             _ => Type::Unknown,
         };
         if safe { t.nullable() } else { t }
@@ -61,7 +66,9 @@ impl Checker<'_, '_, '_> {
     pub(super) fn own_member(&mut self, t: &Type, name: &str) -> Type {
         let type_name = match t {
             Type::Own(n) => n,
-            Type::Game(class) => return self.extension_value(class, name).unwrap_or(Type::Unknown),
+            Type::Game(class) | Type::Yog(class) => {
+                return self.extension_value(class, name).unwrap_or(Type::Unknown);
+            }
             _ => return Type::Unknown,
         };
         let Some(own) = self.own.types.get(type_name) else {
@@ -139,6 +146,43 @@ impl Checker<'_, '_, '_> {
         }
     }
 
+    /// Member `name` of Yog's `type_name`: a struct's field (`Health` is
+    /// `health`), an enum's case, a group's group (`Client.Control`); a
+    /// method is reached by calling it.
+    fn yog_value(&mut self, type_name: &str, name: &str, at: Span) -> Type {
+        let surface = &*super::surface::SURFACE;
+        if let Some(s) = surface.structs.get(type_name) {
+            if let Some(f) = s
+                .fields
+                .iter()
+                .find(|f| yog_codegen::pascal(f.name) == name)
+            {
+                return Type::of_shape(&(f.shape)());
+            }
+        } else if let Some(e) = surface.enums.get(type_name) {
+            if e.variants
+                .iter()
+                .any(|v| yog_codegen::pascal(v.name) == name)
+            {
+                return Type::Yog(type_name.to_string());
+            }
+        } else {
+            let sub = super::surface::subgroup(type_name, name);
+            if surface.groups.contains_key(&sub) {
+                return Type::Yog(sub);
+            }
+            if surface
+                .groups
+                .get(type_name)
+                .is_some_and(|g| g.methods.contains_key(name))
+            {
+                return Type::Unknown;
+            }
+        }
+        self.unknown_member(&Type::Yog(type_name.to_string()), name, at);
+        Type::Unknown
+    }
+
     fn unknown_member(&mut self, on: &Type, name: &str, at: Span) {
         self.report.error(
             script_problem::UNKNOWN_MEMBER,
@@ -156,17 +200,7 @@ impl Checker<'_, '_, '_> {
                 let sigs: Vec<Signature> = methods.iter().map(|m| self.signature(m)).collect();
                 self.pick(&sigs, &given, args, callee.span)
             }
-            Callee::Game(sigs) => {
-                let sigs: Vec<Signature> = sigs
-                    .into_iter()
-                    .map(|(params, ret)| Signature {
-                        required: params.len(),
-                        params,
-                        ret,
-                    })
-                    .collect();
-                self.pick(&sigs, &given, args, callee.span)
-            }
+            Callee::Typed(sigs) => self.pick(&sigs, &given, args, callee.span),
             Callee::Unknown => Type::Unknown,
         }
     }
@@ -176,7 +210,7 @@ impl Checker<'_, '_, '_> {
         match &callee.kind {
             ExprKind::Ident(name) if self.local(name).is_none() => {
                 let in_this = self.this.clone().and_then(|t| match &t {
-                    Type::Game(class) => self.extension_methods(class, name),
+                    Type::Game(class) | Type::Yog(class) => self.extension_methods(class, name),
                     _ => self.own_methods(&t, name),
                 });
                 in_this
@@ -189,6 +223,10 @@ impl Checker<'_, '_, '_> {
                     Type::Own(_) => self
                         .own_methods(on.non_null(), &name.text)
                         .map_or(Callee::Unknown, Callee::Own),
+                    Type::Yog(group) => match self.extension_methods(group, &name.text) {
+                        Some(m) => Callee::Own(m),
+                        None => self.yog_methods(group, &name.text, name.span),
+                    },
                     Type::Game(class) => match self.extension_methods(class, &name.text) {
                         Some(m) => Callee::Own(m),
                         None if is_side_call(&name.text) => Callee::Unknown,
@@ -214,6 +252,32 @@ impl Checker<'_, '_, '_> {
         })
     }
 
+    /// Group `group`'s methods `name`: each one's parameters and answer.
+    fn yog_methods(&mut self, group: &str, name: &str, at: Span) -> Callee {
+        let surface = &*super::surface::SURFACE;
+        let Some(g) = surface.groups.get(group) else {
+            return Callee::Unknown;
+        };
+        let Some(methods) = g.methods.get(name) else {
+            self.unknown_member(&Type::Yog(group.to_string()), name, at);
+            return Callee::Unknown;
+        };
+        Callee::Typed(
+            methods
+                .iter()
+                .map(|m| Signature {
+                    params: m
+                        .params
+                        .iter()
+                        .map(|p| Type::of_shape(&(p.shape)()))
+                        .collect(),
+                    required: m.params.iter().take_while(|p| p.required).count(),
+                    ret: Type::of_shape(&m.reply),
+                })
+                .collect(),
+        )
+    }
+
     fn game_methods(&mut self, class: &str, name: &str, at: Span) -> Callee {
         let Some(lookup) = &self.lookup else {
             return Callee::Unknown;
@@ -222,7 +286,15 @@ impl Checker<'_, '_, '_> {
             return Callee::Unknown;
         };
         match game::member(lookup, c, name, true) {
-            Found::Methods(sigs) => Callee::Game(sigs),
+            Found::Methods(sigs) => Callee::Typed(
+                sigs.into_iter()
+                    .map(|(params, ret)| Signature {
+                        required: params.len(),
+                        params,
+                        ret,
+                    })
+                    .collect(),
+            ),
             Found::Nothing => {
                 self.unknown_member(&Type::Game(class.to_string()), name, at);
                 Callee::Unknown

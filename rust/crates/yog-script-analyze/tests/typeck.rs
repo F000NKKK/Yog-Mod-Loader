@@ -94,7 +94,9 @@ fn game() -> ClassIndex {
 fn the_games_classes_are_a_yns_files_only() {
     let index = game();
     let yns = |src: &str| {
-        let src = format!("targets mc 1.21.1..1.21.1;\n{src}");
+        let src = format!(
+            "targets mc 1.21.1..1.21.1;\nusing Game.World.Entity.Player;\nusing Game.Client;\n{src}"
+        );
         codes_of(check_with("a.yns", &src, Some(&index)).problems)
     };
     assert!(yns("float F(Player p) => p.Health;\nbool G(Player p) => p.IsAlive;\n").is_empty());
@@ -115,7 +117,54 @@ fn the_games_classes_are_a_yns_files_only() {
     assert!(
         yns("extend Player {\n    int Visits = 0;\n}\nint F(Player p) => p.Visits;\n").is_empty()
     );
-    // A `.ys` reaches Yog, not the game: the index isn't looked in.
+    // In full, or Yog's where a `using` brings in the game's of the name.
+    assert!(yns("float F(Game.World.Entity.Player.Player p) => p.Health;\n").is_empty());
+    assert_eq!(
+        yns("int F(Yog.Player p) => p.Health;\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+    // A `.ys` reaches Yog, not the game: `Player` is Yog's there.
     let ys = codes_of(check_with("a.ys", "int F(Player p) => p.Mana;\n", Some(&index)).problems);
+    assert_eq!(ys, [script_problem::UNKNOWN_MEMBER]);
+    // In a `.ys`, `Game` is Yog's `game` group: the game's classes aren't
+    // there (types no one declares aren't reported yet).
+    let ys = codes_of(
+        check_with(
+            "a.ys",
+            "void F(Game.Client.Minecraft mc) { }\n",
+            Some(&index),
+        )
+        .problems,
+    );
     assert!(ys.is_empty(), "{ys:?}");
+}
+
+/// A `.ys` reaches Yog: its handles' methods (each action whose first
+/// field is the handle's subject), its domains' groups, what they answer.
+#[test]
+fn yogs_surface_is_typed() {
+    let fine = "server void F(Player p, World w) {\n    bool given = p.GiveItem(\"minecraft:diamond\", 1);\n    \
+                var info = p.Info();\n    int level = info?.XpLevel ?? 0;\n    bool flies = info!.MayFly;\n    \
+                w.SetTime(6000);\n    Chat.Broadcast(\"hello\");\n    var online = Player.Online();\n}\n";
+    assert!(codes(fine).is_empty(), "{:?}", codes(fine));
+    assert_eq!(
+        codes("void F(Player p) {\n    p.GiveItem(1);\n}\n"),
+        [script_problem::WRONG_ARGS]
+    );
+    assert_eq!(
+        codes("void F(Player p) {\n    p.Fly();\n}\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+    assert_eq!(
+        codes("void F(Player p) {\n    int k = p.Kick(\"bye\");\n}\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+    assert_eq!(
+        codes("int F(Player p) => p.Info()!.Mana;\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+    assert_eq!(
+        codes("void F() {\n    Chat.Shout(\"hi\");\n}\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
 }

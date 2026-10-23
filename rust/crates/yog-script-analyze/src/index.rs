@@ -47,6 +47,7 @@ pub struct ClassIndex {
 }
 
 pub mod access;
+pub mod namespace;
 
 /// A [`ClassIndex`] ready to look things up in: classes by name, and by
 /// simple name (`LivingEntity`) for what a source writes unqualified.
@@ -89,16 +90,6 @@ impl<'i> Lookup<'i> {
             .get(name)
             .map(Vec::as_slice)
             .unwrap_or_default()
-    }
-
-    /// The top-level classes of unqualified `name`: a nested one is written
-    /// with the class it's in (`OutgoingChatMessage.Player`), as in C#.
-    pub fn top_level(&self, name: &str) -> Vec<&'i Class> {
-        self.simple(name)
-            .iter()
-            .copied()
-            .filter(|c| !c.name.contains(NESTED))
-            .collect()
     }
 
     /// `class` and every class it extends, nearest first (the index's).

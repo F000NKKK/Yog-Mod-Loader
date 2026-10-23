@@ -143,10 +143,10 @@ impl Checker<'_, '_, '_> {
         if let Some(t) = self.own.values.get(name).cloned() {
             return self.type_of(&t);
         }
-        if !self.own.types.contains_key(name) {
-            self.game_class(name, at);
+        if self.own.types.contains_key(name) {
+            return Type::Unknown;
         }
-        Type::Unknown
+        self.imported(name, at)
     }
 
     fn unary(&mut self, op: UnOp, expr: &Expr) -> Type {

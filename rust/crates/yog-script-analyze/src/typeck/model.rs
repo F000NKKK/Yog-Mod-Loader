@@ -26,8 +26,13 @@ pub enum Type {
     Tag,
     /// A type the source declares, by name.
     Own(String),
-    /// A game class, by its internal name.
+    /// A game class, by its internal name (`.yns` only).
     Game(String),
+    /// Yog's: a handle (`Player`), a domain's group (`Chat`), a struct or
+    /// an enum an action answers with — by name.
+    Yog(String),
+    /// A namespace (`Game.World`), on the way to what's in it.
+    Namespace(String),
     List(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Tuple(Vec<Type>),
@@ -133,7 +138,7 @@ impl fmt::Display for Type {
             Type::Void => write!(f, "void"),
             Type::Null => write!(f, "null"),
             Type::Text => write!(f, "Text"),
-            Type::Unit(u) | Type::Own(u) => write!(f, "{u}"),
+            Type::Unit(u) | Type::Own(u) | Type::Yog(u) | Type::Namespace(u) => write!(f, "{u}"),
             Type::Content(kind) => write!(f, "@{kind}"),
             Type::Tag => write!(f, "{}", yog_ids::kind::TAG),
             Type::Game(name) => write!(f, "{}", crate::index::simple_name(name)),

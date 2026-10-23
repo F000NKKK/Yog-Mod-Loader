@@ -21,7 +21,7 @@ pub use wire::address::{Address, Cached, NO_ADDRESS, resolve};
 pub use wire::arg::Arg;
 pub use wire::call::{Caller, call, set_caller};
 pub use wire::event::{Event, EventInfo, all};
-pub use wire::handles::{Entity, Player, World};
+pub use wire::handles::{Entity, Player, SUBJECTS, World};
 pub use wire::message::{Message, keyed};
 pub use wire::phase::EventPhase;
 pub use wire::service::{Service, ServiceInfo, services};

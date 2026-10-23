@@ -10,8 +10,11 @@ mod exprs;
 mod game;
 mod members;
 mod model;
+mod names;
 mod own;
+mod shapes;
 mod stmts;
+mod surface;
 mod written;
 
 use std::collections::HashMap;
@@ -35,11 +38,20 @@ pub(crate) struct Checker<'r, 's, 'i> {
     side: Side,
     /// What a `return` in the code must give (`None`: not in a method).
     returns: Option<Type>,
+    /// The namespaces the file's `using`s bring in, each by its segments.
+    usings: Vec<Vec<String>>,
+    /// A `.yns`: the game's classes reachable.
+    nanites: bool,
 }
 
 /// `file`'s types checked against `index` (a targeted version's), what
 /// doesn't fit reported.
-pub(crate) fn check(file: &File, index: Option<&ClassIndex>, report: &mut Report<'_>) {
+pub(crate) fn check(
+    file: &File,
+    nanites: bool,
+    index: Option<&ClassIndex>,
+    report: &mut Report<'_>,
+) {
     let mut own = OwnTypes::collect(&file.decls);
     own.extensions(&file.decls);
     let mut c = Checker {
@@ -50,6 +62,17 @@ pub(crate) fn check(file: &File, index: Option<&ClassIndex>, report: &mut Report
         this: None,
         side: Side::Shared,
         returns: None,
+        usings: file
+            .decls
+            .iter()
+            .filter_map(|d| match &d.kind {
+                crate::ast::DeclKind::Using(path) => {
+                    Some(path.iter().map(|n| n.text.clone()).collect())
+                }
+                _ => None,
+            })
+            .collect(),
+        nanites,
     };
     c.decls(&file.decls);
 }
