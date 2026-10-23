@@ -1,4 +1,0 @@
-# Cargo's output goes under the repository's obj/ (as .NET's), beside bin/
-# where build.sh puts what it makes.
-[build]
-target-dir = "../obj/target"

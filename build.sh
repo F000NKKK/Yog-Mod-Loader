@@ -3,8 +3,6 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Cargo's output under obj/ (rust/.cargo/config.toml says the same for cargo run in rust/).
-export CARGO_TARGET_DIR="$ROOT/obj/target"
 
 LOADERS=(fabric neoforge forge)
 
@@ -29,8 +27,8 @@ Commands:
   build [target]      Compile (default target: all)
   run <loader>        Build, then run that loader's dev server (--client for client)
   test                Run tests (cargo test)
-  clean               Remove build outputs (obj/, bin/)
-  publish <target>    Release build + assemble bin/<loader>/ (+ native/)
+  clean               Remove build outputs and artifacts
+  publish <target>    Release build + assemble artifacts/<loader>/ (+ native/)
   release <notes.md>  publish all, then the GitHub release of version.properties'
                       version: every jar and the runtime's debug info
                       (yog-runtime-symbols.zip, Yog Installer's symbols component)
@@ -191,10 +189,10 @@ runtime_lib_for_os() {
 cargo_builder() { command -v cargo-zigbuild >/dev/null 2>&1 && echo zigbuild || echo build; }
 
 # A release's runtime keeps its debug info only to split it out: the jars get
-# it stripped, bin/symbols/<tag>/ the rest (yog-symbols reads a
+# it stripped, artifacts/symbols/<tag>/ the rest (yog-symbols reads a
 # `<native>.debug` beside the native; Yog Installer's runtime symbols component).
-SYMBOLS_DIR="$ROOT/bin/symbols"
-SYMBOLS_ZIP="$ROOT/bin/yog-runtime-symbols.zip"
+SYMBOLS_DIR="$ROOT/artifacts/symbols"
+SYMBOLS_ZIP="$ROOT/artifacts/yog-runtime-symbols.zip"
 rust_objcopy() { find "$(rustc --print sysroot)/lib/rustlib" -path '*/bin/rust-objcopy*' -type f | head -1; }
 
 # Build the runtime for every available platform and embed each into the loader
@@ -228,13 +226,13 @@ build_rust() {
         fi
         if cargo "$builder" $profile $features --target "$triple" -p yog-runtime \
                 --manifest-path "$ROOT/rust/Cargo.toml" >/dev/null 2>&1; then
-            local src="$ROOT/obj/target/$triple/$(cargo_profile_dir)/$(runtime_lib_for_os "$os")"
+            local src="$ROOT/rust/target/$triple/$(cargo_profile_dir)/$(runtime_lib_for_os "$os")"
             if [ -f "$src" ] && [ "$split" = 1 ]; then
                 local lib; lib="$(basename "$src")"
-                mkdir -p "$SYMBOLS_DIR/$tag" "$ROOT/obj/target/$triple/stripped"
+                mkdir -p "$SYMBOLS_DIR/$tag" "$ROOT/rust/target/$triple/stripped"
                 "$oc" --only-keep-debug "$src" "$SYMBOLS_DIR/$tag/$lib.debug"
-                "$oc" --strip-debug "$src" "$ROOT/obj/target/$triple/stripped/$lib"
-                src="$ROOT/obj/target/$triple/stripped/$lib"
+                "$oc" --strip-debug "$src" "$ROOT/rust/target/$triple/stripped/$lib"
+                src="$ROOT/rust/target/$triple/stripped/$lib"
             fi
             if [ -f "$src" ]; then
                 for l in "${LOADERS[@]}"; do
@@ -342,8 +340,8 @@ cmd_clean() {
     cargo clean --manifest-path "$ROOT/rust/Cargo.toml" || true
     local l
     for l in "${LOADERS[@]}"; do gradle_in "$l" clean || true; done
-    rm -rf "$ROOT/bin" "$ROOT/obj"
-    echo "    removed obj/, <loader>/build, bin/"
+    rm -rf "$ROOT/artifacts"
+    echo "    removed rust/target, <loader>/build, artifacts/"
 }
 
 # Publish a single loader for a specific MC version.
@@ -354,18 +352,18 @@ publish_loader() {
     # The jars are where that platform's Gradle project builds them.
     local libs="$ROOT/$(MC_VERSION="$mc" gradle_dir "$loader")/build/libs"
     # Jars from previous mod versions linger in build/libs (Gradle never
-    # removes them) and would be copied into bin/ alongside the fresh
+    # removes them) and would be copied into artifacts/ alongside the fresh
     # one — always start from an empty libs dir.
     rm -f "$libs/"*.jar
     # Scaffold / unported platforms fail to compile — skip with a warning
     # rather than aborting the whole publish.
     if MC_VERSION="$mc" build_loader "$loader"; then
-        local out="$ROOT/bin/$loader/$mc"
+        local out="$ROOT/artifacts/$loader/$mc"
         rm -rf "$out"; mkdir -p "$out"
         local archive="$(grep '^archives_base_name=' "$ROOT/$loader/gradle.properties" | cut -d= -f2)"
         find "$libs" -maxdepth 1 -name "${archive}*${mc}*.jar" \
             ! -name '*-dev.jar' ! -name '*-sources.jar' ! -name '*-slim.jar' -exec cp {} "$out/" \; 2>/dev/null || true
-        echo "    bin/$loader/$mc/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
+        echo "    artifacts/$loader/$mc/ <- $(ls -1 "$out" 2>/dev/null | tr '\n' ' ')"
     else
         echo "    WARNING: $loader $mc build failed — skipping (scaffold / unported?)"
     fi
@@ -405,7 +403,7 @@ cmd_publish() {
         publish_loader "$1" "${MC_VERSION:-$(grep '^minecraft_version=' "$ROOT/$1/gradle.properties" | cut -d= -f2)}"
     fi
 
-    echo "==> published to bin/ (self-contained jars)"
+    echo "==> published to artifacts/ (self-contained jars)"
 }
 
 # The GitHub release of version.properties' version, `notes` its text: every
@@ -419,8 +417,8 @@ cmd_release() {
     local version; version="$(grep '^mod_version=' "$ROOT/version.properties" | cut -d= -f2)"
     cmd_publish all
     [ -f "$SYMBOLS_ZIP" ] || die "no ${SYMBOLS_ZIP#$ROOT/}: the release would lack the runtime's debug info"
-    local jars; mapfile -t jars < <(find "$ROOT/bin" -name '*.jar' | sort)
-    [ "${#jars[@]}" -gt 0 ] || die "no jars in bin/"
+    local jars; mapfile -t jars < <(find "$ROOT/artifacts" -name '*.jar' | sort)
+    [ "${#jars[@]}" -gt 0 ] || die "no jars in artifacts/"
     git -C "$ROOT" tag "$version"
     git -C "$ROOT" push origin "$version"
     # A version with a suffix (0.7.0-beta.1) is a pre-release.

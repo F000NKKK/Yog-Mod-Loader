@@ -458,7 +458,7 @@ flowchart TB
 ./build.sh run fabric --client            # собрать и запустить dev-клиент Fabric
 ./build.sh run neoforge --client --mc 1.21.1
 ./build.sh test                           # cargo test
-./build.sh publish fabric                 # релизный jar -> bin/fabric/
+./build.sh publish fabric                 # релизный jar -> artifacts/fabric/
 YOG_TARGETS=linux-x86_64 ./build.sh build # только текущая платформа, гораздо быстрее
 ```
 

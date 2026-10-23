@@ -454,7 +454,7 @@ JDK 17 and 21 for Gradle. `build.sh` picks the JDK from
 ./build.sh run fabric --client            # build and start the Fabric dev client
 ./build.sh run neoforge --client --mc 1.21.1
 ./build.sh test                           # cargo test
-./build.sh publish fabric                 # release jar -> bin/fabric/
+./build.sh publish fabric                 # release jar -> artifacts/fabric/
 YOG_TARGETS=linux-x86_64 ./build.sh build # host platform only, much faster
 ```
 
