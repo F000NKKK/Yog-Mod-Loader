@@ -12,6 +12,10 @@ yog-hot-reload = { workspace = true }
 serde_json = { workspace = true }
 yog-sync = { workspace = true }
 
+# Telling calls from other instructions (stepping over them).
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+iced-x86 = { workspace = true }
+
+# The Linux backend: ptrace.
 [target.'cfg(target_os = "linux")'.dependencies]
 nix = { workspace = true }
-iced-x86 = { workspace = true }

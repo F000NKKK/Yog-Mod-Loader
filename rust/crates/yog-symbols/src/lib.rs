@@ -30,6 +30,7 @@
 //! address -> line, and breakpoint placement needs the reverse (line ->
 //! address), which means walking the DWARF line program ourselves anyway.
 
+pub mod arch;
 mod eval;
 mod format;
 mod locals;
@@ -42,7 +43,8 @@ use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};
 
 pub use eval::{EvalError, ValueNode, ValueRef};
-pub use locals::{FrameRegs, LocalVar, TargetMemory, Value, VarKind, x86_64};
+pub use arch::{Arch, aarch64, x86_64};
+pub use locals::{FrameRegs, LocalVar, TargetMemory, Value, VarKind};
 
 // `Arc`, not `Rc`: a `SymbolTable` needs to be `Send + Sync` so host apps
 // (e.g. Yog-IDLE's Tauri backend) can hold one behind a `Mutex` in shared

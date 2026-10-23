@@ -1,34 +1,41 @@
 //! Source-level debugging: where the thread is in the source, steps by
 //! line (over, into, out — Just My Code), registers and backtraces.
 
-use nix::sys::ptrace;
-use nix::sys::signal::Signal;
 use yog_symbols::{FrameRegs, SourceLocation, SymbolTable, TargetMemory};
 
 use super::{
     CALLER_SEARCH_DEPTH, DebugError, Debugger, Landed, LineKey, MAX_SOURCE_STEPS, Position,
     StepKind, StopReason, is_terminal,
 };
+use crate::arch::{LONGEST, call_length};
+use crate::target::{Regs, Target};
 use crate::{is_library_source, user_location};
-use iced_x86::{Decoder, DecoderOptions, Mnemonic};
+
+/// Bytes of a pointer in the debugged process.
+const WORD: usize = 8;
 
 impl Debugger {
-    pub fn registers(&self) -> Result<nix::libc::user_regs_struct, DebugError> {
-        Ok(ptrace::getregs(self.current)?)
+    /// The current thread's registers.
+    pub fn registers(&self) -> Result<Regs, DebugError> {
+        Ok(self.process.regs(self.current)?)
     }
 
-    /// The source location `rip` currently maps to, or `None` if the current
+    /// The process's memory, for reading values (`yog-symbols`' locals).
+    pub fn memory(&self) -> impl TargetMemory + '_ {
+        ProcessMemory(self)
+    }
+
+    /// The source location the pc currently maps to, or `None` if the current
     /// instruction is in code with no line info (a library, or a
     /// compiler-generated stub). `base` is the mod native's load address —
     /// see `crate::maps::find_module_base_by_prefix`.
     pub fn source_location(&self, symbols: &SymbolTable, base: u64) -> Option<SourceLocation> {
-        let rip = self.registers().ok()?.rip;
-        let offset = rip.checked_sub(base)?;
+        let offset = self.registers().ok()?.pc().checked_sub(base)?;
         symbols.resolve_addr(offset)
     }
 
     /// A comparable (file, line) key for "are we still on the same source
-    /// line" checks during stepping: the innermost *user* line at `rip`
+    /// line" checks during stepping: the innermost *user* line at the pc
     /// (see [`user_location`]) — `None` in library code or code without
     /// lines, which stepping never stops in.
     pub(super) fn line_key(&self, symbols: &SymbolTable, base: u64) -> Option<LineKey> {
@@ -38,9 +45,9 @@ impl Debugger {
         }
     }
 
-    /// What kind of code `rip` is in, for stepping.
+    /// What kind of code the pc is in, for stepping.
     pub(super) fn position(&self, symbols: &SymbolTable, base: u64) -> Position {
-        let Some(offset) = self.registers().ok().and_then(|r| r.rip.checked_sub(base)) else {
+        let Some(offset) = self.registers().ok().and_then(|r| r.pc().checked_sub(base)) else {
             return Position::Foreign;
         };
         let chain = symbols.resolve_inlined(offset);
@@ -57,41 +64,36 @@ impl Debugger {
         }
     }
 
-    /// Reads `buf.len()` bytes of the tracee's memory at `addr`, substituting
-    /// back the original instruction bytes for any breakpoints armed within
-    /// the window — so a downstream `0xCC` never corrupts the decode of the
-    /// instruction we're actually looking at.
+    /// Reads `buf.len()` bytes of code at `addr`, the original instructions
+    /// put back for any breakpoints armed within the window — so a
+    /// breakpoint never corrupts the decode of the instruction looked at.
     pub(super) fn read_code(&self, addr: u64, buf: &mut [u8]) -> Result<(), DebugError> {
-        let mut i = 0;
-        while i < buf.len() {
-            let word = self.peek(addr + i as u64)?;
-            let bytes = word.to_ne_bytes();
-            let take = (buf.len() - i).min(bytes.len());
-            buf[i..i + take].copy_from_slice(&bytes[..take]);
-            i += bytes.len();
+        if !self.process.read(addr, buf) {
+            return Err(DebugError::UnexpectedStop(format!("{addr:#x} isn't readable")));
         }
-        for (&bp_addr, &orig) in &self.breakpoints {
-            if bp_addr >= addr && bp_addr < addr + buf.len() as u64 {
-                buf[(bp_addr - addr) as usize] = orig;
+        let end = addr + buf.len() as u64;
+        for (&bp, original) in &self.breakpoints {
+            for (i, &byte) in original.iter().enumerate() {
+                let at = bp + i as u64;
+                if (addr..end).contains(&at) {
+                    buf[(at - addr) as usize] = byte;
+                }
             }
         }
         Ok(())
     }
 
-    /// Decodes the instruction at `rip`, returning `(is_call, length)`.
-    /// Falls back to `(false, 1)` on unreadable/undecodable memory — a
-    /// caller then just single-steps a byte's worth conservatively.
-    pub(super) fn decode_at(&self, rip: u64) -> (bool, u64) {
-        let mut buf = [0u8; 16];
-        if self.read_code(rip, &mut buf).is_err() {
+    /// The instruction at `pc`: `(is_call, length)`. Falls back to
+    /// `(false, 1)` on unreadable memory — a caller then just single-steps.
+    pub(super) fn decode_at(&self, pc: u64) -> (bool, u64) {
+        let mut buf = [0u8; LONGEST];
+        if self.read_code(pc, &mut buf).is_err() {
             return (false, 1);
         }
-        let mut decoder = Decoder::with_ip(64, &buf, rip, DecoderOptions::NONE);
-        let insn = decoder.decode();
-        if insn.is_invalid() {
-            return (false, 1);
+        match call_length(&buf, pc) {
+            Some(len) => (true, len),
+            None => (false, 1),
         }
-        (matches!(insn.mnemonic(), Mnemonic::Call), insn.len() as u64)
     }
 
     /// Runs until `addr` is reached (via a temporary breakpoint) — used to
@@ -106,7 +108,7 @@ impl Debugger {
             self.set_breakpoint(addr)?;
         }
         let origin = self.current;
-        let origin_sp = self.registers()?.rsp;
+        let origin_sp = self.registers()?.sp();
         let result = loop {
             let reason = match self.continue_() {
                 Ok(r) => r,
@@ -123,9 +125,9 @@ impl Debugger {
                 }
                 StopReason::Interrupted => {}
                 StopReason::Breakpoint(hit) if hit == addr && !was_user_bp => {
-                    let here = self.registers().map(|r| r.rsp).unwrap_or(0);
+                    let here = self.registers().map(|r| r.sp()).unwrap_or(0);
                     if self.current == origin && here >= origin_sp {
-                        break Ok(StopReason::Signal(Signal::SIGTRAP));
+                        break Ok(StopReason::Step);
                     }
                 }
                 other => break Ok(other),
@@ -140,7 +142,7 @@ impl Debugger {
     /// A source-level step (F10/F11/Shift+F11) — see [`StepKind`]. Keeps
     /// executing single instructions (skipping over calls per `kind`) until
     /// the source line changes appropriately, a user breakpoint is hit, or
-    /// the tracee exits. `symbols`/`base` resolve `rip` to a source line.
+    /// the process exits. `symbols`/`base` resolve the pc to a source line.
     ///
     /// A step that leaves user code with no user caller to return to (a JNI
     /// entry point returning to Java) turns into a free run, like
@@ -175,7 +177,7 @@ impl Debugger {
             }
             let reason = self.step_instruction(kind, symbols, base)?;
             // Ended, a breakpoint, a pause, another signal: the step stops.
-            if reason != StopReason::Signal(Signal::SIGTRAP) {
+            if reason != StopReason::Step {
                 return Ok(reason);
             }
             match self.landed(symbols, base)? {
@@ -184,16 +186,16 @@ impl Debugger {
                     // compiler interleaving lines, not the code moving on.
                     let begins = self
                         .registers()
-                        .is_ok_and(|r| symbols.is_statement_start(r.rip.wrapping_sub(base)));
+                        .is_ok_and(|r| symbols.is_statement_start(r.pc().wrapping_sub(base)));
                     if cur != start && begins {
-                        return Ok(StopReason::Signal(Signal::SIGTRAP));
+                        return Ok(StopReason::Step);
                     }
                 }
                 Landed::Within => {}
                 Landed::Stop(reason) => return Ok(reason),
             }
         }
-        Ok(StopReason::Signal(Signal::SIGTRAP))
+        Ok(StopReason::Step)
     }
 
     /// One instruction of a source step: a call stepped over (`Over`) or
@@ -204,28 +206,28 @@ impl Debugger {
         symbols: &SymbolTable,
         base: u64,
     ) -> Result<StopReason, DebugError> {
-        let rip = self.registers()?.rip;
-        let (is_call, len) = self.decode_at(rip);
+        let pc = self.registers()?.pc();
+        let (is_call, len) = self.decode_at(pc);
         if !is_call {
             return self.single_step();
         }
         if kind == StepKind::Over {
-            return self.run_to(rip + len);
+            return self.run_to(pc + len);
         }
         let stepped = self.single_step()?;
         // Ended, or the thread exited and the process ran on.
-        if stepped != StopReason::Signal(Signal::SIGTRAP) || self.line_key(symbols, base).is_some()
+        if stepped != StopReason::Step || self.line_key(symbols, base).is_some()
         {
             return Ok(stepped);
         }
         // Into library code (std, a dependency, anything without lines):
         // run back to the instruction after the call.
-        let back = self.run_to(rip + len)?;
+        let back = self.run_to(pc + len)?;
         if is_terminal(&back) || matches!(back, StopReason::Breakpoint(_) | StopReason::Interrupted)
         {
             return Ok(back);
         }
-        Ok(StopReason::Signal(Signal::SIGTRAP))
+        Ok(StopReason::Step)
     }
 
     /// Where a step landed. Stepped off the end of user code — into the
@@ -246,7 +248,7 @@ impl Debugger {
                 // call), where stepping goes on as after any return.
                 let back = self.leave_foreign_code(symbols, base)?;
                 match self.line_key(symbols, base) {
-                    Some(key) if back == StopReason::Signal(Signal::SIGTRAP) => Landed::Line(key),
+                    Some(key) if back == StopReason::Step => Landed::Line(key),
                     _ => Landed::Stop(back),
                 }
             }
@@ -265,7 +267,7 @@ impl Debugger {
             return self.run_on();
         };
         let back = self.run_to(caller.pc().wrapping_add(1))?;
-        if back != StopReason::Signal(Signal::SIGTRAP) {
+        if back != StopReason::Step {
             return Ok(back);
         }
         if self.line_key(symbols, base).is_none() {
@@ -303,11 +305,7 @@ impl Debugger {
 
     /// The current thread's full register set as `yog-symbols` frame 0.
     pub fn frame_regs(&self) -> Result<FrameRegs, DebugError> {
-        let r = self.registers()?;
-        Ok(FrameRegs::from_dwarf_order([
-            r.rax, r.rdx, r.rcx, r.rbx, r.rsi, r.rdi, r.rbp, r.rsp, r.r8, r.r9, r.r10, r.r11,
-            r.r12, r.r13, r.r14, r.r15, r.rip,
-        ]))
+        Ok(self.registers()?.frame)
     }
 
     /// Backtrace of the current thread through the mod's call frame info
@@ -323,7 +321,7 @@ impl Debugger {
         max: usize,
     ) -> Result<Vec<FrameRegs>, DebugError> {
         let regs = self.frame_regs()?;
-        Ok(symbols.backtrace(&regs, base, &PeekMemory(self), max))
+        Ok(symbols.backtrace(&regs, base, &ProcessMemory(self), max))
     }
 
     /// Frame-pointer-walk backtrace: return addresses only, in innermost-
@@ -335,36 +333,35 @@ impl Debugger {
     /// prefer [`Self::backtrace_with`], which unwinds by CFI.
     pub fn backtrace(&self, max_frames: usize) -> Result<Vec<u64>, DebugError> {
         let regs = self.registers()?;
-        let mut frames = vec![regs.rip];
-        let mut bp = regs.rbp;
-
-        while bp != 0 && frames.len() < max_frames {
-            let Ok(saved_bp) = self.peek(bp) else { break };
-            let Ok(return_addr) = self.peek(bp.wrapping_add(8)) else {
+        let mut frames = vec![regs.pc()];
+        let mut fp = regs.fp();
+        let mem = ProcessMemory(self);
+        while fp != 0 && frames.len() < max_frames {
+            let (Some(saved_fp), Some(ret)) = (word(&mem, fp), word(&mem, fp.wrapping_add(WORD as u64)))
+            else {
                 break;
             };
-            if return_addr == 0 {
+            if ret == 0 {
                 break;
             }
-            frames.push(return_addr as u64);
-            bp = saved_bp as u64;
+            frames.push(ret);
+            fp = saved_fp;
         }
-
         Ok(frames)
     }
 }
 
-/// Tracee memory a word at a time through `PTRACE_PEEKDATA`.
-struct PeekMemory<'a>(&'a Debugger);
+/// The word at `addr`.
+fn word(mem: &dyn TargetMemory, addr: u64) -> Option<u64> {
+    let mut buf = [0u8; WORD];
+    mem.read(addr, &mut buf).then(|| u64::from_le_bytes(buf))
+}
 
-impl TargetMemory for PeekMemory<'_> {
+/// The debugged process's memory.
+struct ProcessMemory<'a>(&'a Debugger);
+
+impl TargetMemory for ProcessMemory<'_> {
     fn read(&self, addr: u64, buf: &mut [u8]) -> bool {
-        for (i, chunk) in buf.chunks_mut(8).enumerate() {
-            let Ok(word) = self.0.peek(addr.wrapping_add(i as u64 * 8)) else {
-                return false;
-            };
-            chunk.copy_from_slice(&word.to_ne_bytes()[..chunk.len()]);
-        }
-        true
+        self.0.process.read(addr, buf)
     }
 }

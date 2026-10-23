@@ -1,26 +1,23 @@
-//! `ptrace`-based native debugger for Yog mods, speaking a minimal subset
-//! of the Debug Adapter Protocol (see [`dap`]) so Yog-IDLE (or any DAP
-//! client) can drive it.
-//!
-//! Linux-only for this pass — `ptrace` is a Linux/BSD-specific syscall, and
-//! `[cfg(target_os = "linux")]` keeps this crate buildable (with the
-//! `ptrace_debugger`/`maps`/[`YogDebugSession`] pieces simply absent) on
-//! other host platforms in the meantime; a real Windows (debug API) or
-//! macOS (`task_for_pid`) backend is future work, not attempted here.
+//! Native debugger for Yog mods — breakpoints, source steps, threads,
+//! locals — on Linux (`ptrace`), Windows (the debug API) and macOS (Mach
+//! exception ports), x86-64 and AArch64; speaking a minimal subset of the
+//! Debug Adapter Protocol (see [`dap`]) so Yog-IDLE (or any DAP client) can
+//! drive it. [`target`] is what each system's backend offers, [`Debugger`]
+//! the debugging built on it.
 
+mod arch;
 pub mod dap;
-pub mod source_breakpoints;
-
+mod debugger;
 #[cfg(target_os = "linux")]
 pub mod discovery;
-#[cfg(target_os = "linux")]
-pub mod maps;
-#[cfg(target_os = "linux")]
-pub mod ptrace_debugger;
+mod platform;
+pub mod source_breakpoints;
+pub mod target;
 
-#[cfg(target_os = "linux")]
-pub use ptrace_debugger::{DebugError, Debugger, StepKind, StopReason, interrupt, thread_name};
+pub use debugger::{DebugError, Debugger, StepKind, StopReason};
+pub use platform::interrupt;
 pub use source_breakpoints::{LoadedMod, SourceBreakpoint, SourceBreakpoints};
+pub use target::{Module, Regs, Tid};
 
 use std::path::Path;
 
@@ -54,7 +51,6 @@ pub fn user_location(symbols: &SymbolTable, offset: u64) -> Option<SourceLocatio
         .find(|loc| loc.line != 0 && !is_library_source(&loc.file))
 }
 
-#[cfg(target_os = "linux")]
 mod session {
     use std::path::PathBuf;
 
@@ -62,9 +58,8 @@ mod session {
     use yog_hot_reload::ModuleGeneration;
     use yog_symbols::SymbolTable;
 
+    use crate::Debugger;
     use crate::dap::{DebugSession, StackFrameInfo};
-    use crate::maps::find_module_base;
-    use crate::ptrace_debugger::Debugger;
     use crate::source_breakpoints::{LoadedMod, SourceBreakpoints};
 
     const NOT_ATTACHED: &str = "not attached";
@@ -113,7 +108,8 @@ mod session {
         ) -> Result<(), String> {
             let debugger = self.debugger.as_mut().ok_or(NOT_ATTACHED)?;
             let new_symbols = SymbolTable::load(&new_native_path).map_err(|e| e.to_string())?;
-            let new_base = find_module_base(debugger.pid(), &new_native_path)
+            let new_base = debugger
+                .module_base(&new_native_path)
                 .ok_or("could not locate new native's load address")?;
             let m = LoadedMod {
                 id: &self.mod_id,
@@ -155,9 +151,9 @@ mod session {
             let pid = arguments
                 .get("pid")
                 .and_then(Value::as_i64)
-                .ok_or("attach requires an integer \"pid\"")? as i32;
+                .ok_or("attach requires an integer \"pid\"")? as u32;
             let debugger = Debugger::attach(pid).map_err(|e| e.to_string())?;
-            self.module_base = find_module_base(debugger.pid(), &self.native_path).ok_or("could not locate the mod's native in the target process's memory map — has it loaded yet?")?;
+            self.module_base = debugger.module_base(&self.native_path).ok_or("could not locate the mod's native in the target process's memory map — has it loaded yet?")?;
             self.debugger = Some(debugger);
             Ok(())
         }
@@ -228,7 +224,7 @@ mod session {
 
         fn threads(&self) -> Vec<(i64, String)> {
             match &self.debugger {
-                Some(debugger) => vec![(debugger.pid().as_raw() as i64, self.mod_id.clone())],
+                Some(debugger) => vec![(i64::from(debugger.pid()), self.mod_id.clone())],
                 None => Vec::new(),
             }
         }
@@ -251,5 +247,4 @@ mod session {
     }
 }
 
-#[cfg(target_os = "linux")]
 pub use session::YogDebugSession;

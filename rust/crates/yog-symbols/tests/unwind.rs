@@ -90,7 +90,7 @@ fn backtrace_walks_frames_without_frame_pointers() {
         other => panic!("expected the int3 stop, got {other:?}"),
     }
     let r = ptrace::getregs(pid).unwrap();
-    let regs = FrameRegs::from_dwarf_order([
+    let regs = FrameRegs::x86_64([
         r.rax, r.rdx, r.rcx, r.rbx, r.rsi, r.rdi, r.rbp, r.rsp, r.r8, r.r9, r.r10, r.r11, r.r12,
         r.r13, r.r14, r.r15, r.rip,
     ]);

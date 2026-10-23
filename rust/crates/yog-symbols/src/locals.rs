@@ -12,6 +12,7 @@ use yog_sync::{Mutex, OnceLock};
 
 use gimli::{AttributeValue, DebuggingInformationEntry, Reader as _, UnitOffset};
 
+use crate::arch::{Arch, SLOTS, aarch64, x86_64};
 use crate::{R, SymbolTable};
 
 mod location;
@@ -30,31 +31,6 @@ impl<T: TargetMemory + ?Sized> TargetMemory for &T {
     }
 }
 
-/// DWARF register numbers for x86_64 (System V psABI), as used by
-/// [`FrameRegs::set`] / [`FrameRegs::get`].
-pub mod x86_64 {
-    pub const RAX: u16 = 0;
-    pub const RDX: u16 = 1;
-    pub const RCX: u16 = 2;
-    pub const RBX: u16 = 3;
-    pub const RSI: u16 = 4;
-    pub const RDI: u16 = 5;
-    pub const RBP: u16 = 6;
-    pub const RSP: u16 = 7;
-    pub const R8: u16 = 8;
-    pub const R9: u16 = 9;
-    pub const R10: u16 = 10;
-    pub const R11: u16 = 11;
-    pub const R12: u16 = 12;
-    pub const R13: u16 = 13;
-    pub const R14: u16 = 14;
-    pub const R15: u16 = 15;
-    /// Return-address column; holds the frame's pc.
-    pub const RIP: u16 = 16;
-}
-
-const NUM_REGS: usize = 17;
-
 /// Bytes in a pointer / general-purpose register.
 pub(crate) const WORD_SIZE: usize = 8;
 /// Offset of the CFA from `rbp` in a `push rbp; mov rbp, rsp` frame: the
@@ -70,35 +46,66 @@ const MAX_EXPR_STEPS: u32 = 10_000;
 /// `DW_AT_abstract_origin` / `DW_AT_specification` links followed.
 const MAX_ORIGIN_CHAIN: usize = 4;
 
-/// Register state of one stopped frame, keyed by DWARF register number
-/// (see [`x86_64`]). Registers the caller doesn't know (e.g. caller-saved
-/// registers in an outer frame of a backtrace) stay `None`, and anything
-/// located in them reads back as `<unavailable>`.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+/// Register state of one stopped frame on machine `arch`, keyed by DWARF
+/// register number (see [`crate::arch`]). Registers the caller doesn't
+/// know (e.g. caller-saved registers in an outer frame of a backtrace) stay
+/// `None`, and anything located in them reads back as `<unavailable>`.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameRegs {
-    regs: [Option<u64>; NUM_REGS],
+    arch: Arch,
+    regs: [Option<u64>; SLOTS],
+}
+
+impl Default for FrameRegs {
+    /// A frame of the host's machine that knows no register yet.
+    fn default() -> Self {
+        FrameRegs::empty(Arch::host())
+    }
 }
 
 impl FrameRegs {
-    /// The minimum a frame needs: absolute pc, stack pointer (`rsp`) and
-    /// frame pointer (`rbp`).
-    pub fn new(pc: u64, sp: u64, fp: u64) -> Self {
-        FrameRegs::default()
-            .with(x86_64::RIP, pc)
-            .with(x86_64::RSP, sp)
-            .with(x86_64::RBP, fp)
+    /// The minimum a frame needs: absolute pc, stack pointer and frame pointer.
+    pub fn new(arch: Arch, pc: u64, sp: u64, fp: u64) -> Self {
+        FrameRegs::empty(arch)
+            .with(arch.pc(), pc)
+            .with(arch.sp(), sp)
+            .with(arch.fp(), fp)
+    }
+
+    /// A frame of `arch` that knows no register yet.
+    pub fn empty(arch: Arch) -> Self {
+        FrameRegs {
+            arch,
+            regs: [None; SLOTS],
+        }
     }
 
     /// All 17 x86_64 registers in DWARF order (`rax, rdx, rcx, rbx, rsi,
     /// rdi, rbp, rsp, r8..r15, rip`).
-    pub fn from_dwarf_order(values: [u64; NUM_REGS]) -> Self {
-        FrameRegs {
-            regs: values.map(Some),
+    pub fn x86_64(values: [u64; x86_64::COUNT]) -> Self {
+        let mut frame = FrameRegs::empty(Arch::X86_64);
+        for (slot, v) in frame.regs.iter_mut().zip(values) {
+            *slot = Some(v);
         }
+        frame
+    }
+
+    /// AArch64's `x0`..`x30`, stack pointer and pc.
+    pub fn aarch64(x: [u64; aarch64::GENERAL], sp: u64, pc: u64) -> Self {
+        let mut frame = FrameRegs::empty(Arch::Aarch64);
+        for (slot, v) in frame.regs.iter_mut().zip(x) {
+            *slot = Some(v);
+        }
+        frame.with(aarch64::SP, sp).with(aarch64::PC, pc)
+    }
+
+    /// The machine its registers are of.
+    pub fn arch(&self) -> Arch {
+        self.arch
     }
 
     /// Sets DWARF register `dwarf_reg`; numbers outside the supported set
-    /// (0..=16) are ignored.
+    /// are ignored.
     pub fn set(&mut self, dwarf_reg: u16, value: u64) {
         if let Some(slot) = self.regs.get_mut(dwarf_reg as usize) {
             *slot = Some(value);
@@ -115,17 +122,17 @@ impl FrameRegs {
         self.regs.get(dwarf_reg as usize).copied().flatten()
     }
 
-    /// Absolute pc (`rip`), or 0 if unset.
+    /// Absolute pc, or 0 if unset.
     pub fn pc(&self) -> u64 {
-        self.get(x86_64::RIP).unwrap_or(0)
+        self.get(self.arch.pc()).unwrap_or(0)
     }
 
     pub fn sp(&self) -> Option<u64> {
-        self.get(x86_64::RSP)
+        self.get(self.arch.sp())
     }
 
     pub fn fp(&self) -> Option<u64> {
-        self.get(x86_64::RBP)
+        self.get(self.arch.fp())
     }
 }
 

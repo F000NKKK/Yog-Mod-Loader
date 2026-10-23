@@ -9,18 +9,7 @@
 use gimli::{RegisterRule, UnwindSection as _};
 
 use crate::SymbolTable;
-use crate::locals::{FP_TO_CFA, FrameRegs, TargetMemory, WORD_SIZE, x86_64};
-
-/// Registers a callee must preserve (System V x86_64) — the only ones whose
-/// caller value CFI can recover besides `rsp`/`rip`.
-const CALLEE_SAVED: [u16; 6] = [
-    x86_64::RBX,
-    x86_64::RBP,
-    x86_64::R12,
-    x86_64::R13,
-    x86_64::R14,
-    x86_64::R15,
-];
+use crate::locals::{FP_TO_CFA, FrameRegs, TargetMemory, WORD_SIZE};
 
 impl SymbolTable {
     /// Unwinds one frame: the caller's registers given the callee's `regs`
@@ -155,17 +144,21 @@ fn apply_row(
             Some(_) => None,
         }
     };
-    let ret = match row.register(gimli::Register(x86_64::RIP)) {
+    let arch = regs.arch();
+    let ra = arch.return_address();
+    let ret = match row.register(gimli::Register(ra)) {
         // The return address column always has a rule in practice; without
-        // one, assume the plain `call` layout.
+        // one, assume the plain call layout: on the stack (x86-64's `call`)
+        // or still in the link register (an AArch64 leaf).
+        None if arch.return_in_register() => regs.get(ra)?,
         None => read_u64(mem, cfa.wrapping_sub(WORD_SIZE as u64))?,
-        Some(RegisterRule::SameValue) => return None,
-        Some(_) => recover(x86_64::RIP)?,
+        Some(RegisterRule::SameValue) if !arch.return_in_register() => return None,
+        Some(_) => recover(ra)?,
     };
-    let mut caller = FrameRegs::default()
-        .with(x86_64::RSP, cfa)
-        .with(x86_64::RIP, ret.wrapping_sub(1));
-    for reg in CALLEE_SAVED {
+    let mut caller = FrameRegs::empty(arch)
+        .with(arch.sp(), cfa)
+        .with(arch.pc(), ret.wrapping_sub(1));
+    for &reg in arch.callee_saved() {
         if let Some(value) = recover(reg) {
             caller.set(reg, value);
         }
@@ -173,8 +166,8 @@ fn apply_row(
     Some(caller)
 }
 
-/// `push rbp; mov rbp, rsp` frames: saved `rbp` at `[rbp]`, return address
-/// right above it.
+/// Frame-pointer frames (`push rbp; mov rbp, rsp`, AArch64's `stp x29,
+/// x30`): the saved frame pointer at `[fp]`, the return address right above it.
 fn unwind_frame_pointer(regs: &FrameRegs, mem: &dyn TargetMemory) -> Option<FrameRegs> {
     let fp = regs.fp()?;
     if fp == 0 || fp % WORD_SIZE as u64 != 0 {
@@ -183,6 +176,7 @@ fn unwind_frame_pointer(regs: &FrameRegs, mem: &dyn TargetMemory) -> Option<Fram
     let saved_fp = read_u64(mem, fp)?;
     let ret = read_u64(mem, fp.wrapping_add(WORD_SIZE as u64))?;
     Some(FrameRegs::new(
+        regs.arch(),
         ret.wrapping_sub(1),
         fp.wrapping_add(FP_TO_CFA),
         saved_fp,
@@ -192,4 +186,41 @@ fn unwind_frame_pointer(regs: &FrameRegs, mem: &dyn TargetMemory) -> Option<Fram
 fn read_u64(mem: &dyn TargetMemory, addr: u64) -> Option<u64> {
     let mut buf = [0u8; WORD_SIZE];
     mem.read(addr, &mut buf).then(|| u64::from_le_bytes(buf))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+    use crate::arch::{Arch, aarch64};
+
+    /// Words of memory at addresses.
+    struct Words(HashMap<u64, u64>);
+
+    impl TargetMemory for Words {
+        fn read(&self, addr: u64, buf: &mut [u8]) -> bool {
+            let Some(w) = self.0.get(&addr) else {
+                return false;
+            };
+            buf.copy_from_slice(&w.to_le_bytes()[..buf.len()]);
+            true
+        }
+    }
+
+    #[test]
+    fn an_aarch64_frame_pointer_chain_unwinds_like_x86_64s() {
+        let (fp, caller_fp, ret) = (0x1000, 0x2000, 0x4242);
+        let mem = Words(HashMap::from([
+            (fp, caller_fp),
+            (fp + WORD_SIZE as u64, ret),
+        ]));
+        let regs = FrameRegs::new(Arch::Aarch64, 0x9000, 0x0f00, fp);
+        let caller = unwind_frame_pointer(&regs, &mem).unwrap();
+        assert_eq!(caller.arch(), Arch::Aarch64);
+        assert_eq!(caller.pc(), ret - 1, "the call's own line");
+        assert_eq!(caller.sp(), Some(fp + FP_TO_CFA));
+        assert_eq!(caller.fp(), Some(caller_fp));
+        assert_eq!(caller.get(aarch64::FP), Some(caller_fp));
+    }
 }

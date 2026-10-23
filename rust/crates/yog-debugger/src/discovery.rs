@@ -7,6 +7,8 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
+use std::path::PathBuf;
+
 use nix::unistd::Pid;
 
 /// Parses `/proc/<pid>/stat`'s 4th whitespace-separated field (ppid).
@@ -34,7 +36,7 @@ fn all_pids() -> Vec<i32> {
 /// containing `needle` (e.g. `"yog_runtime"` to match `libyog_runtime.so`
 /// regardless of platform-specific prefix/extension).
 fn has_mapping_containing(pid: i32, needle: &str) -> bool {
-    crate::maps::file_mappings(pid)
+    file_mappings(pid)
         .into_iter()
         .any(|(_, path)| {
             path.file_name()
@@ -95,4 +97,22 @@ pub fn find_process_with_module(needle: &str) -> Option<Pid> {
         .into_iter()
         .find(|&pid| has_mapping_containing(pid, needle))
         .map(Pid::from_raw)
+}
+
+/// Every file-backed mapping in `/proc/<pid>/maps`, in address order, as
+/// `(start address, backing path)`. Empty if the file can't be read.
+fn file_mappings(pid: i32) -> Vec<(u64, PathBuf)> {
+    let maps = std::fs::read_to_string(format!("/proc/{pid}/maps")).unwrap_or_default();
+    maps.lines()
+        .filter_map(|line| {
+            // start-end perms offset dev inode [pathname]
+            let fields: Vec<&str> = line.split_whitespace().collect();
+            let path = fields.get(5..)?.join(" ");
+            if path.is_empty() {
+                return None;
+            }
+            let start = u64::from_str_radix(fields[0].split('-').next()?, 16).ok()?;
+            Some((start, PathBuf::from(path)))
+        })
+        .collect()
 }

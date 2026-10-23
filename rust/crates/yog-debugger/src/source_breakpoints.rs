@@ -8,14 +8,14 @@
 use yog_hot_reload::ModuleGeneration;
 use yog_symbols::SymbolTable;
 
-use crate::ptrace_debugger::{DebugError, Debugger};
+use crate::{DebugError, Debugger};
 
 pub struct SourceBreakpoint {
     pub mod_id: String,
     pub file: String,
     pub line: u32,
     pub generation: ModuleGeneration,
-    /// The real runtime address currently armed in the tracee, if
+    /// The real runtime address currently armed in the process, if
     /// resolution + arming succeeded (a reload can leave this `None`
     /// briefly if the new generation no longer has a matching line).
     pub addr: Option<u64>,

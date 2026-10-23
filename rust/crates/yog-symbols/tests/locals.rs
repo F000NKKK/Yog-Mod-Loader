@@ -178,7 +178,7 @@ fn lists_variables_declared_but_not_yet_live() {
         );
         let blind = table.read_local(
             &vars[3],
-            &yog_symbols::FrameRegs::new(addr, 0, 0),
+            &yog_symbols::FrameRegs::new(yog_symbols::Arch::host(), addr, 0, 0),
             0,
             &NoMem,
         );
@@ -354,7 +354,7 @@ mod live {
             offsets.contains(&(pc - base)),
             "stopped at unexpected {pc:#x}"
         );
-        let regs = FrameRegs::from_dwarf_order([
+        let regs = FrameRegs::x86_64([
             r.rax, r.rdx, r.rcx, r.rbx, r.rsi, r.rdi, r.rbp, r.rsp, r.r8, r.r9, r.r10, r.r11,
             r.r12, r.r13, r.r14, r.r15, pc,
         ]);

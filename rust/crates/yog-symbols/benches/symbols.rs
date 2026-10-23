@@ -185,7 +185,7 @@ mod live {
             WaitStatus::Stopped(_, Signal::SIGTRAP)
         ));
         let r = ptrace::getregs(pid).unwrap();
-        let regs = FrameRegs::from_dwarf_order([
+        let regs = FrameRegs::x86_64([
             r.rax,
             r.rdx,
             r.rcx,
