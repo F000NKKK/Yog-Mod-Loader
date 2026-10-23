@@ -2,7 +2,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{Expr, ExprKind, Name, StrSeg};
-use crate::token::{Punct, Span, StrPart, Tok, Token};
+use crate::source::token::{Punct, Span, StrPart, Tok, Token};
 
 impl Parser<'_, '_, '_> {
     pub(crate) fn primary(&mut self) -> PResult<Expr> {

@@ -3,13 +3,15 @@
 //! This crate reads a source into its syntax tree, resolves its names and
 //! says what's wrong with it, as Diagnostics placed in the source.
 
+mod source;
+
+pub use source::token;
+
 pub mod ast;
 pub mod index;
 mod lexer;
 pub mod parser;
-mod report;
 pub mod resolve;
-pub mod token;
 pub mod words;
 
 use std::path::Path;
@@ -36,7 +38,7 @@ pub struct Checked {
 /// a `.yns` file.
 #[must_use]
 pub fn parse(name: &str, src: &str) -> Parsed {
-    let mut report = report::Report::new(name, src);
+    let mut report = source::report::Report::new(name, src);
     let file = read(name, src, &mut report);
     Parsed {
         file,
@@ -48,7 +50,7 @@ pub fn parse(name: &str, src: &str) -> Parsed {
 /// `yog check` and the editors report.
 #[must_use]
 pub fn check(name: &str, src: &str) -> Checked {
-    let mut report = report::Report::new(name, src);
+    let mut report = source::report::Report::new(name, src);
     let file = read(name, src, &mut report);
     let symbols = resolve::resolve(&file, &mut report);
     Checked {
@@ -58,7 +60,7 @@ pub fn check(name: &str, src: &str) -> Checked {
     }
 }
 
-fn read(name: &str, src: &str, report: &mut report::Report<'_>) -> ast::File {
+fn read(name: &str, src: &str, report: &mut source::report::Report<'_>) -> ast::File {
     let nanites = Format::Nanites.is(Path::new(name));
     let tokens = lexer::lex(src, report);
     parser::Parser::new(&tokens, report, nanites).file()

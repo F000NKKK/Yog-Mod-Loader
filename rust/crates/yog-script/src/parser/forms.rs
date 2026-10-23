@@ -4,7 +4,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{DeclKind, Prop};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 
 impl Parser<'_, '_, '_> {
     pub(super) fn generic_decl(&mut self) -> PResult<DeclKind> {

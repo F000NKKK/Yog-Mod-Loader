@@ -4,7 +4,7 @@
 use yog_ids::script_problem;
 
 use super::{HEX, Lexer};
-use crate::token::{Span, StrPart, Tok, Token};
+use crate::source::token::{Span, StrPart, Tok, Token};
 
 const QUOTE: char = '"';
 const ESCAPE: char = '\\';

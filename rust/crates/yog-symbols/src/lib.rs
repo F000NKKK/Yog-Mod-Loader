@@ -30,12 +30,10 @@
 //! address -> line, and breakpoint placement needs the reverse (line ->
 //! address), which means walking the DWARF line program ourselves anyway.
 
-pub mod arch;
-mod eval;
-mod format;
-mod locals;
-mod pe_unwind;
-mod unwind;
+mod unwinding;
+mod values;
+
+pub use unwinding::arch;
 
 use std::path::{Path, PathBuf};
 use yog_sync::{Arc, OnceLock};
@@ -43,9 +41,9 @@ use yog_sync::{Arc, OnceLock};
 use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
 use object::{Object, ObjectSection, ObjectSegment, ObjectSymbol, SymbolKind};
 
-pub use arch::{Arch, aarch64, x86_64};
-pub use eval::{EvalError, ValueNode, ValueRef};
-pub use locals::{FrameRegs, LocalVar, TargetMemory, Value, VarKind};
+pub use unwinding::arch::{Arch, aarch64, x86_64};
+pub use values::eval::{EvalError, ValueNode, ValueRef};
+pub use values::locals::{FrameRegs, LocalVar, TargetMemory, Value, VarKind};
 
 // `Arc`, not `Rc`: a `SymbolTable` needs to be `Send + Sync` so host apps
 // (e.g. Yog-IDLE's Tauri backend) can hold one behind a `Mutex` in shared
@@ -119,10 +117,10 @@ pub struct SymbolTable {
     ctx: addr2line::Context<R>,
     functions: Vec<FunctionSymbol>,
     /// Parsed compilation units, built on the first locals lookup.
-    units: OnceLock<Vec<locals::UnitInfo>>,
+    units: OnceLock<Vec<values::locals::UnitInfo>>,
     /// Statics by qualified name, built on the first watch expression
     /// that isn't a local.
-    globals: OnceLock<Vec<eval::GlobalVar>>,
+    globals: OnceLock<Vec<values::eval::GlobalVar>>,
     /// Sorted addresses where a line-table row with `is_stmt` starts, built
     /// on the first [`Self::is_statement_start`].
     statements: OnceLock<Vec<u64>>,
@@ -136,7 +134,7 @@ pub struct SymbolTable {
     /// addresses count from there.
     image_base: u64,
     /// A Windows native's exception tables (it has no `.eh_frame`).
-    pe_unwind: Option<pe_unwind::PeUnwind>,
+    pe_unwind: Option<unwinding::pe_unwind::PeUnwind>,
 }
 
 /// The native's named code symbols.
@@ -310,7 +308,7 @@ impl SymbolTable {
         let image_base = link_base(&object);
         Ok(SymbolTable {
             image_base,
-            pe_unwind: pe_unwind::PeUnwind::of(&object),
+            pe_unwind: unwinding::pe_unwind::PeUnwind::of(&object),
             dwarf,
             ctx,
             functions,

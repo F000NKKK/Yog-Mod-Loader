@@ -3,7 +3,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{Arg, Expr, ExprKind};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 
 impl Parser<'_, '_, '_> {
     pub(crate) fn postfix(&mut self, mut expr: Expr) -> PResult<Expr> {

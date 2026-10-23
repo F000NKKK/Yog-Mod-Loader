@@ -2,7 +2,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{Expr, ExprKind, Pattern};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 use crate::words;
 
 const WILDCARD: &str = "_";

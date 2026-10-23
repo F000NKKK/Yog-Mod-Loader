@@ -14,7 +14,7 @@ mod stmts;
 pub use scope::{Def, DefKind, Symbols};
 
 use crate::ast;
-use crate::report::Report;
+use crate::source::report::Report;
 use scope::Scope;
 
 /// Where the code being walked is, as far as what it may say goes.

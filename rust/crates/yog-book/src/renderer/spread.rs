@@ -20,8 +20,8 @@ use super::names::{ordinal, word};
 use super::overlay::{BgSprite, OverlayCmd, SpriteSheet};
 use super::recipe::RecipeVis;
 use super::widgets::{Canvas, Nav, header_lbl, lbl, set_text_scale, text_scale, title_lbl};
+use crate::look::theme::BookTheme;
 use crate::state::{BookViewState, action};
-use crate::theme::BookTheme;
 
 /// What the open book shows, and what it's drawn with.
 pub(crate) struct Spread<'a> {

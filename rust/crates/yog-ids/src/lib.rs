@@ -4,6 +4,12 @@
 //! (composing its own constants with [`concatcp!`] / [`id!`]); the IDE
 //! (TypeScript) and the hosts (Java) get them generated ([`export`]).
 
+mod measures;
+mod tooling;
+
+pub use measures::{time, units};
+pub use tooling::{env, export, platform, versions};
+
 pub use const_format::concatcp;
 
 /// `id!(ns::YOG, "state")` → `"yog:state"`, at compile time.
@@ -24,7 +30,7 @@ macro_rules! names {
                 pub const ALL_VALUES: &[&str] = &[$($name),*];
             }
         )*
-        /// Every name of this file, by group — what [`crate::export`] writes.
+        /// Every name of this file, by group — what [`crate::tooling::export`] writes.
         pub const ALL: &[$crate::Group] = &[ $( (stringify!($group), &[ $( (stringify!($name), $group::$name) ),* ]) ),* ];
     };
 }
@@ -39,17 +45,9 @@ mod names {
     pub mod services;
     pub mod ui;
 }
-pub mod env;
-pub mod export;
-mod formats;
-pub mod platform;
 #[cfg(test)]
 mod tests;
-pub mod time;
-pub mod units;
-pub mod versions;
 
-pub use formats::*;
 pub use names::base::*;
 pub use names::bus::*;
 pub use names::content::*;
@@ -58,6 +56,7 @@ pub use names::mirror::*;
 pub use names::nanite::*;
 pub use names::services::*;
 pub use names::ui::*;
+pub use tooling::formats::*;
 
 /// A group of names: its name, and each name with its value.
 pub type Group = (&'static str, &'static [(&'static str, &'static str)]);

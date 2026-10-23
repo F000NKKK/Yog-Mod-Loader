@@ -3,7 +3,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{Decl, DeclKind, File};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 use crate::words::{ALL, Role};
 
 impl Parser<'_, '_, '_> {

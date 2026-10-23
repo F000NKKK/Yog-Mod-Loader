@@ -5,7 +5,11 @@
 //! drive it. [`target`] is what each system's backend offers, [`Debugger`]
 //! the debugging built on it.
 
-mod arch;
+pub use debugging::{dap, source_breakpoints};
+#[cfg(target_os = "linux")]
+pub use process::discovery;
+pub use process::target;
+
 /// Writes a backend's calls and events to stderr with the `event-log`
 /// feature; nothing without it.
 macro_rules! event_log {
@@ -15,18 +19,13 @@ macro_rules! event_log {
     };
 }
 
-pub mod dap;
-mod debugger;
-#[cfg(target_os = "linux")]
-pub mod discovery;
-mod platform;
-pub mod source_breakpoints;
-pub mod target;
+mod debugging;
+mod process;
 
-pub use debugger::{DebugError, Debugger, StepKind, StopReason};
-pub use platform::{interrupt, process_ended};
-pub use source_breakpoints::{LoadedMod, SourceBreakpoint, SourceBreakpoints};
-pub use target::{Module, Regs, Tid};
+pub use debugging::debugger::{DebugError, Debugger, StepKind, StopReason};
+pub use debugging::source_breakpoints::{LoadedMod, SourceBreakpoint, SourceBreakpoints};
+pub use process::platform::{interrupt, process_ended};
+pub use process::target::{Module, Regs, Tid};
 
 use std::path::Path;
 
@@ -68,8 +67,8 @@ mod session {
     use yog_symbols::SymbolTable;
 
     use crate::Debugger;
-    use crate::dap::{DebugSession, StackFrameInfo};
-    use crate::source_breakpoints::{LoadedMod, SourceBreakpoints};
+    use crate::debugging::dap::{DebugSession, StackFrameInfo};
+    use crate::debugging::source_breakpoints::{LoadedMod, SourceBreakpoints};
 
     const NOT_ATTACHED: &str = "not attached";
     /// How many frames a DAP `stackTrace` unwinds at most.

@@ -3,7 +3,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{BinOp, Block, Stmt};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 use crate::words::{ALL, Role};
 
 /// Assignments and the operator each applies first (`=` none).

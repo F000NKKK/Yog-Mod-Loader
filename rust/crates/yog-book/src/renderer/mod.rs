@@ -26,8 +26,8 @@ pub use overlay::PageDrawer;
 /// resolves them to the bytes).
 pub use yog_ids::yog::{BOOK_SHEET, CRAFTING_SHEET};
 
+use crate::look::theme::BookTheme;
 use crate::state::BookViewState;
-use crate::theme::BookTheme;
 use flow::{flow_traced, styled};
 use geometry::{BK_H, BK_W, MIN_SCALE, SCREEN_FILL, SCREEN_MARGIN};
 use overlay::{BgSprite, OverlayCmd};
@@ -128,7 +128,7 @@ impl BookRenderer {
         }
         let accent = src.accent.clone();
         self.written = src.localized(|k| {
-            crate::markup::resolve(&tr(k).unwrap_or_else(|| k.to_string()), &accent)
+            crate::look::markup::resolve(&tr(k).unwrap_or_else(|| k.to_string()), &accent)
         });
         (self.book, self.origins) = flow_traced(self.written.clone());
         self.probe = probe;

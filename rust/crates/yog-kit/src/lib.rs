@@ -26,19 +26,19 @@
 //! methods, and commands call its methods. [`testing::TestHost`] drives a
 //! screen without the game.
 
+mod screens;
+
+pub use screens::{bind, items};
+
 extern crate self as yog_kit;
 
-pub mod bind;
-mod host;
-pub mod items;
-mod screen;
 /// Driving a screen in unit tests: a mod's tests turn it on with the
 /// `testing` feature (`yog build` does, in their `[dev-dependencies]`).
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
-pub use host::{Update, Viewport};
-pub use screen::{Cx, Screen, ScreenHandle, handle_of, inventory_of};
+pub use screens::host::{Update, Viewport};
+pub use screens::screen::{Cx, Screen, ScreenHandle, handle_of, inventory_of};
 pub use yog_api::ui::{Action, StateFlags, Widget};
 
 /// Everything a code-behind file needs.

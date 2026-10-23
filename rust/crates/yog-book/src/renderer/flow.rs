@@ -51,9 +51,9 @@ fn page_text_mut(page: &mut BookPage) -> Option<&mut String> {
     }
 }
 
-/// `book` with its texts' own words (see [`crate::markup`]) as Yog text's.
+/// `book` with its texts' own words (see [`crate::look::markup`]) as Yog text's.
 pub(crate) fn styled(book: &Book) -> Book {
-    book.localized(|t| crate::markup::resolve(t, &book.accent))
+    book.localized(|t| crate::look::markup::resolve(t, &book.accent))
 }
 
 /// `book` flowed, and for each entry where each of its pages came from: the

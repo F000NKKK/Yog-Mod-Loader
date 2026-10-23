@@ -7,7 +7,7 @@ use yog_ids::script_problem;
 
 use super::Resolver;
 use crate::ast::Name;
-use crate::token::Span;
+use crate::source::token::Span;
 
 /// What a name stands for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

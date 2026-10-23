@@ -8,7 +8,7 @@ pub use expr::{
 };
 pub use patch::{Callee, Local, Method, Patch, PatchItem, Point, Selector};
 
-use crate::token::Span;
+use crate::source::token::Span;
 
 /// A name as written, and where.
 #[derive(Debug, Clone, PartialEq)]

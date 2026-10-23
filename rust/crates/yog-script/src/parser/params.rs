@@ -2,7 +2,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{Generic, Name, Param};
-use crate::token::{Punct, StrPart, Tok};
+use crate::source::token::{Punct, StrPart, Tok};
 use crate::words;
 
 impl Parser<'_, '_, '_> {

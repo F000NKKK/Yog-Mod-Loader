@@ -2,7 +2,7 @@
 
 use crate::ast::DeclKind;
 use crate::parser::{PResult, Parser};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 use crate::words::{Role, Word, r#fn};
 
 pub static WORD: Word = Word {

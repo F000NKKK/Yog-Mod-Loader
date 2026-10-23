@@ -2,20 +2,22 @@
 //! `yog_formats::book`) are drawn with, in the game and in Yog-IDLE
 //! ([`BookRenderer`], `draw2d` alone).
 
-pub mod layout_picture;
-pub mod markup;
-pub mod recipe_area;
+mod look;
+mod recipes;
+
+pub use look::{markup, theme};
+pub use recipes::{layout_picture, recipe_area};
+
 pub mod renderer;
 pub mod state;
-pub mod theme;
 
 use yog_formats::book::BookEntry;
 
+pub use look::theme::BookTheme;
 pub use renderer::{
     BOOK_PNG, BOOK_SHEET, BookRenderer, CRAFTING_PNG, CRAFTING_SHEET, LANG, PageDrawer,
 };
 pub use state::BookViewState;
-pub use theme::BookTheme;
 
 /// Whether the reader has advancement `id` — set by the host the book is
 /// read in (the runtime asks the game); everything is unlocked without one

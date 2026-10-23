@@ -14,7 +14,7 @@ use yog_api::ui::event::keys;
 use yog_api::ui::widget::WidgetKind;
 use yog_api::ui::{LayoutNode, Rect, StateFlags, UiRoot, Widget};
 
-use crate::host::{Host, LOG_CLOSE, find_path};
+use crate::screens::host::{Host, LOG_CLOSE, find_path};
 use crate::{ScreenHandle, View};
 
 /// A screen hosted for tests.

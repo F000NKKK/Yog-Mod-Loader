@@ -4,7 +4,7 @@
 use yog_ids::script_problem;
 
 use super::{HEX, Lexer, is_ident_char, is_ident_start};
-use crate::token::{Span, Tok};
+use crate::source::token::{Span, Tok};
 
 const HEX_PREFIX: &str = "0x";
 const BIN_PREFIX: &str = "0b";

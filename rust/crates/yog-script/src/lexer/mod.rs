@@ -5,8 +5,8 @@ mod string;
 
 use yog_ids::script_problem;
 
-use crate::report::Report;
-use crate::token::{Punct, Span, Tok, Token};
+use crate::source::report::Report;
+use crate::source::token::{Punct, Span, Tok, Token};
 use crate::words;
 
 /// `src` cut into tokens, ending with `Eof`; what doesn't lex is reported.

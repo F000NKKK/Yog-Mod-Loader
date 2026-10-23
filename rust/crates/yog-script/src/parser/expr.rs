@@ -4,7 +4,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{BinOp, Expr, ExprKind, UnOp};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 use crate::words::{ALL, Level, Role};
 
 /// An infix operator met here.

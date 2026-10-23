@@ -362,8 +362,8 @@ impl Place {
 
 /// The layout's own picture: its frames, items and blocks.
 fn layout_picture(c: &mut Canvas<'_>, place: &Place, layout: &RecipeLayout) {
-    use crate::layout_picture::Piece;
-    for piece in crate::layout_picture::pieces(layout) {
+    use crate::recipes::layout_picture::Piece;
+    for piece in crate::recipes::layout_picture::pieces(layout) {
         match piece {
             Piece::Image { source, uv, at: r } => {
                 let sheet = if source == CRAFTING_SHEET {

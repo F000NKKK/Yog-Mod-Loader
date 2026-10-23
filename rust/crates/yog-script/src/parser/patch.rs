@@ -4,7 +4,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{Callee, Method, PatchItem, Point, Selector};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 use crate::words::{self, ALL, Role};
 
 impl Parser<'_, '_, '_> {

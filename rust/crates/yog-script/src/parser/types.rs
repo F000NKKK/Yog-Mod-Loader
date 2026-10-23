@@ -3,7 +3,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{Type, TypeKind};
-use crate::token::{Punct, Tok};
+use crate::source::token::{Punct, Tok};
 use crate::words::{self, Level};
 
 impl Parser<'_, '_, '_> {

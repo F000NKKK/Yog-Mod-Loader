@@ -1,7 +1,7 @@
 //! Statements, expressions, patterns and types (`ys-grammar.md` §3, §4).
 
 use super::{Name, VersionCond};
-use crate::token::Span;
+use crate::source::token::Span;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Block {

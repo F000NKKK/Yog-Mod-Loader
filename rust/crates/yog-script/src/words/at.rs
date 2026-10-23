@@ -2,7 +2,7 @@
 
 use crate::ast::{Callee, Name, Point, TypeKind};
 use crate::parser::{PResult, Parser};
-use crate::token::Punct;
+use crate::source::token::Punct;
 use crate::words::{Role, Word, call, new, read, uses, write};
 
 pub static WORD: Word = Word {

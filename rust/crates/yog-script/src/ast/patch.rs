@@ -1,7 +1,7 @@
 //! Patches (`.yns`, `ys-grammar.md` §6): what reaches into others' classes.
 
 use super::{Block, Decl, Expr, Name, Param, Type};
-use crate::token::Span;
+use crate::source::token::Span;
 
 /// `patch LivingEntity { … }`.
 #[derive(Debug, Clone, PartialEq)]

@@ -2,7 +2,7 @@
 
 use crate::ast::{Expr, ExprKind};
 use crate::parser::{PResult, Parser};
-use crate::token::Tok;
+use crate::source::token::Tok;
 use crate::words::{Level, Role, Word};
 
 pub static WORD: Word = Word {

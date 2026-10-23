@@ -12,7 +12,7 @@ use super::geometry::{
     SEP_H, SEP_U, SEP_V, SEP_W, TITLE_INSET,
 };
 use super::overlay::{BgSprite, OverlayCmd, SpriteSheet};
-use crate::theme::BookTheme;
+use crate::look::theme::BookTheme;
 
 thread_local! {
     /// The scale the book is drawn at (≤ 1): its text is drawn at it too,
