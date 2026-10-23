@@ -8,7 +8,7 @@ use crate::words::{Role, Word, r#static};
 pub static WORD: Word = Word {
     text: "using",
     doc: "As in C#: `using Yog.Ui;` brings in the types of a namespace (not the namespaces in it); \
-          `using static Yog.Chat;` the static members of a type; `using Grid = Dictionary<Pos, int>;` \
+          `using static Yog.Chat;` the static members of a type; `using Grid = Dictionary<Pos, i32>;` \
           names a type or a namespace; `global using …;` is every file's. A name two `using`s bring \
           in is ambiguous: write it in full or alias it.",
     reserved: true,

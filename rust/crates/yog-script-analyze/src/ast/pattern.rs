@@ -49,12 +49,12 @@ pub struct Type {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeKind {
-    /// `int`, `List<T>`, `Mode.Charging`.
+    /// `i32`, `List<T>`, `Mode.Charging`.
     Path {
         path: Vec<Name>,
         args: Vec<Type>,
     },
-    /// `(int X, int Y)`.
+    /// `(i32 X, i32 Y)`.
     Tuple(Vec<(Type, Option<Name>)>),
     Nullable(Box<Type>),
     /// `Charge & Owned`.

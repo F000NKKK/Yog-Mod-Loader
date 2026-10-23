@@ -52,7 +52,7 @@ fn the_examples_resolve_cleanly() {
 
 #[test]
 fn a_name_declared_twice_is_found() {
-    let src = "int Charge() => 1;\nint Charge() => 2;\n";
+    let src = "i32 Charge() => 1;\nint Charge() => 2;\n";
     assert_eq!(codes("a.ys", src), [script_problem::DUPLICATE]);
     // A block may bind a name again: the later one hides the earlier.
     assert!(
@@ -79,31 +79,31 @@ fn break_belongs_in_a_loop() {
     );
     // A lambda's body is its own: the loop around it isn't.
     let src =
-        "void F(List<int> xs) {\n    while (true) {\n        xs.ForEach { break; };\n    }\n}\n";
+        "void F(List<i32> xs) {\n    while (true) {\n        xs.ForEach { break; };\n    }\n}\n";
     assert_eq!(codes("a.ys", src), [script_problem::OUTSIDE_LOOP]);
 }
 
 #[test]
 fn it_and_this_belong_where_they_mean_something() {
     assert_eq!(
-        codes("a.ys", "int F() => it;\n"),
+        codes("a.ys", "i32 F() => it;\n"),
         [script_problem::IT_OUTSIDE_LAMBDA]
     );
     assert!(
         codes(
             "a.ys",
-            "List<int> F(List<int> xs) => xs.Select { it * 2 };\n"
+            "List<i32> F(List<i32> xs) => xs.Select { it * 2 };\n"
         )
         .is_empty()
     );
     assert_eq!(
-        codes("a.ys", "int F() => this;\n"),
+        codes("a.ys", "i32 F() => this;\n"),
         [script_problem::THIS_OUTSIDE_MEMBER]
     );
     assert!(
         codes(
             "a.ys",
-            "record Pos(int X) {\n    int Twice() => this.X * 2;\n}\n"
+            "record Pos(i32 X) {\n    i32 Twice() => this.X * 2;\n}\n"
         )
         .is_empty()
     );
@@ -111,14 +111,14 @@ fn it_and_this_belong_where_they_mean_something() {
 
 #[test]
 fn only_what_can_change_is_assigned() {
-    let src = "const int Max = 3;\nvoid F() {\n    Max = 2;\n}\n";
+    let src = "const i32 Max = 3;\nvoid F() {\n    Max = 2;\n}\n";
     assert_eq!(codes("a.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
-    let src = "void F(List<int> xs) {\n    foreach (var x in xs) x = 1;\n}\n";
+    let src = "void F(List<i32> xs) {\n    foreach (var x in xs) x = 1;\n}\n";
     assert_eq!(codes("a.ys", src), [script_problem::ASSIGN_TO_CONSTANT]);
     assert!(
         codes(
             "a.ys",
-            "void F(int n) {\n    var a = 1;\n    a = 2;\n    n += 1;\n}\n"
+            "void F(i32 n) {\n    var a = 1;\n    a = 2;\n    n += 1;\n}\n"
         )
         .is_empty()
     );
@@ -146,7 +146,7 @@ fn await_belongs_in_async() {
 /// Names in C#'s case, warned otherwise.
 #[test]
 fn names_follow_csharps_style() {
-    let src = "int area(int W, int h) => W * h;\ninterface Chargeable { }\nclass Box<Item> { }\n";
+    let src = "i32 area(i32 W, i32 h) => W * h;\ninterface Chargeable { }\nclass Box<Item> { }\n";
     assert_eq!(
         codes("a.ys", src),
         [
@@ -156,14 +156,14 @@ fn names_follow_csharps_style() {
             script_problem::NAMING
         ]
     );
-    let fine = "int Area(int w, int h) => w * h;\ninterface IChargeable { }\nclass Box<TItem> { }\n\
-                record Pos(int X, int Y);\nvoid F() {\n    var _ = 1;\n    var chargeLevel = 2;\n}\n";
+    let fine = "i32 Area(i32 w, i32 h) => w * h;\ninterface IChargeable { }\nclass Box<TItem> { }\n\
+                record Pos(i32 X, i32 Y);\nvoid F() {\n    var _ = 1;\n    var chargeLevel = 2;\n}\n";
     assert!(codes("a.ys", fine).is_empty(), "{:?}", codes("a.ys", fine));
 }
 
 #[test]
 fn a_use_names_its_definition() {
-    let src = "int Area(int w, int h) => w * h;\nint Big() => Area(10, 20);\n";
+    let src = "i32 Area(i32 w, i32 h) => w * h;\nint Big() => Area(10, 20);\n";
     let checked = check("a.ys", src);
     let at = src.find("Area(10").unwrap() as u32;
     let def = checked.symbols.def_at(at).unwrap();

@@ -12,7 +12,7 @@ pub struct Patch {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PatchItem {
-    /// `add saved float Shield = 0;`, `add void Zap() { … }`.
+    /// `add saved f32 Shield = 0;`, `add void Zap() { … }`.
     Add(Box<Decl>),
     /// `add : IChargeable;`.
     AddBases(Vec<Type>),
@@ -47,7 +47,7 @@ pub enum PatchItem {
     Priority(i64, Span),
 }
 
-/// A target method by its signature: `bool Hurt(DamageSource source, float amount)`.
+/// A target method by its signature: `bool Hurt(DamageSource source, f32 amount)`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Target {
     pub ret: Option<Type>,
@@ -55,7 +55,7 @@ pub struct Target {
     pub params: Vec<Param>,
 }
 
-/// `var local long spent #1`.
+/// `var local i64 spent #1`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Local {
     pub write: bool,
@@ -116,7 +116,7 @@ pub enum Point {
 }
 
 /// A called method: `AiStep`, `Vec3.Add`, with argument types to tell
-/// overloads apart (`Vec3.Add(double, double, double)`).
+/// overloads apart (`Vec3.Add(f64, f64, f64)`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Callee {
     pub path: Vec<Name>,

@@ -67,6 +67,7 @@ impl Parser<'_, '_, '_> {
         let span = callee.span.to(lambda.span);
         let arg = Arg {
             name: None,
+            pass: None,
             value: lambda,
         };
         let kind = match callee.kind {

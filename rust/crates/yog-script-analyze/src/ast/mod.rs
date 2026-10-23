@@ -2,15 +2,19 @@
 
 mod decl;
 mod expr;
+mod generics;
+mod pass;
 mod patch;
 mod pattern;
 mod stmt;
 
 pub use decl::{
-    Accessor, Attribute, Ctor, Decl, DeclKind, Field, Method, MethodBody, Modifier, Param, Prop,
-    TypeHeader, Variant, VersionCond,
+    Accessor, Attribute, Chain, Ctor, Decl, DeclKind, Field, Method, MethodBody, Modifier, Param,
+    Prop, TypeHeader, Variant, VersionCond,
 };
 pub use expr::{Arg, Arm, BinOp, Element, Expr, ExprKind, LambdaBody, LambdaParam, StrSeg, UnOp};
+pub use generics::{Constraint, Generic, Variance, Where};
+pub use pass::Pass;
 pub use patch::{Callee, Local, Patch, PatchItem, Point, Selector, Target};
 pub use pattern::{Pattern, Type, TypeKind};
 pub use stmt::{Binding, Block, Stmt};

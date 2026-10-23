@@ -6,7 +6,7 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "event",
-    doc: "What an object announces, as in C#: `public event Action<Player, int> Charged;`. Subscribed to \
+    doc: "What an object announces, as in C#: `public event Action<Player, i32> Charged;`. Subscribed to \
           with `+=` (a lambda or a method: `Charged += (p, n) => …;`), left with `-=`, raised with \
           `Charged?.Invoke(player, 3);`. Yog's are its groups': `Player.Join += e => …;`.",
     reserved: true,

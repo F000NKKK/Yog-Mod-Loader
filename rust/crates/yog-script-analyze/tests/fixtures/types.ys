@@ -1,0 +1,53 @@
+// C#'s type system with Rust's enums, numbers and ownership.
+namespace Charge.Machines;
+
+public interface IChargeable<out T> where T : class {
+    T Holder { get; }
+    i32 Room() => 0;
+}
+
+public abstract class Machine(i32 capacity) : IChargeable<Machine> {
+    protected i32 Stored;
+    public Machine Holder => this;
+    public abstract void Tick();
+    public virtual i32 Rate() => 1;
+}
+
+public sealed class Battery : Machine {
+    public Battery() : base(1000) { }
+    public override void Tick() { Stored += Rate(); }
+    public override i32 Rate() => base.Rate() * 4u8;
+}
+
+public record struct Pos(i32 X, i32 Y, i32 Z);
+public struct Span(Pos from, Pos to) {
+    public Pos From = from;
+}
+public record class Link(Pos From, Pos To);
+
+public enum Tier : u8 { Wood = 1, Stone, Iron }
+public enum Mode<T> {
+    Idle,
+    Charging(T Rate),
+    Full;
+    public bool Busy() => true;
+}
+
+public static class Tools {
+    public static T Max<T>(T a, T b) where T : IComparable<T>, new() => a;
+    public static bool TryTake(ref i32 from, out i32 taken, in Pos at, move Battery b) {
+        taken = from;
+        from = 0;
+        return true;
+    }
+    public static void Use() {
+        let mut energy = 10;
+        let pos = new Pos(0, 0, 0);
+        let battery = new Battery();
+        TryTake(ref energy, out let taken, in pos, move battery);
+        let name = nameof(Tools.Use);
+        let kind = typeof(List<f64>);
+        object any = default(i64);
+        dynamic loose = 2.0f32;
+    }
+}

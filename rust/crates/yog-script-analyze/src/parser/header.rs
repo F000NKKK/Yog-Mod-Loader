@@ -2,9 +2,9 @@
 //! constraints and the components it has.
 
 use super::{PResult, Parser};
-use crate::ast::{Expr, ExprKind, Name, Type, TypeHeader};
+use crate::ast::{Constraint, Expr, ExprKind, Name, Type, TypeHeader, Where};
 use crate::source::token::Punct;
-use crate::words::{has, r#where};
+use crate::words::{class, has, new, r#struct, r#where};
 
 impl Parser<'_, '_, '_> {
     /// `<T>(params) : Bases where T : X has C(…), D` — the parts a type of
@@ -40,19 +40,35 @@ impl Parser<'_, '_, '_> {
         Ok(out)
     }
 
-    /// `where T : A, B where U : C`, or nothing.
-    pub(crate) fn constraints(&mut self) -> PResult<Vec<(Name, Vec<Type>)>> {
+    /// `where T : class, new(), IBase where U : struct`, or nothing.
+    pub(crate) fn constraints(&mut self) -> PResult<Vec<Where>> {
         let mut out = Vec::new();
         while self.eat_word(&r#where::WORD) {
             let name = self.name("a type parameter")?;
             self.need(Punct::Colon)?;
-            let mut bounds = vec![self.ty()?];
+            let mut bounds = vec![self.constraint()?];
             while self.eat(Punct::Comma) {
-                bounds.push(self.ty()?);
+                bounds.push(self.constraint()?);
             }
-            out.push((name, bounds));
+            out.push(Where { name, bounds });
         }
         Ok(out)
+    }
+
+    /// `class`, `struct`, `new()` or a type.
+    fn constraint(&mut self) -> PResult<Constraint> {
+        if self.eat_word(&class::WORD) {
+            return Ok(Constraint::Class);
+        }
+        if self.eat_word(&r#struct::WORD) {
+            return Ok(Constraint::Struct);
+        }
+        if self.eat_word(&new::WORD) {
+            self.need(Punct::LParen)?;
+            self.need(Punct::RParen)?;
+            return Ok(Constraint::New);
+        }
+        Ok(Constraint::Type(self.ty()?))
     }
 
     /// `has Charge(1000), Owned`, or nothing: each a component and its

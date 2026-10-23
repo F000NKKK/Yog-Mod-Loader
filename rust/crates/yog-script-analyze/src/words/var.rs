@@ -7,7 +7,7 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "var",
-    doc: "A local whose type is its value's: `var moved = Math.Min(Energy, into.Room);`; \
+    doc: "A local whose type is its value's, assignable again (as `let mut`): `var moved = Math.Min(Energy, into.Room);`; \
           `var (a, b) = pair;` takes a tuple apart. In a pattern, `var e` binds anything.",
     reserved: true,
     roles: &[Role::Stmt { parse }],
@@ -24,7 +24,7 @@ pub(crate) fn local(p: &mut Parser) -> PResult<Stmt> {
     p.need_word(&WORD)?;
     let binding = binding(p)?;
     let value = if p.eat(Punct::Eq) { Some(p.expr()?) } else { None };
-    Ok(Stmt::Local { ty: None, binding, value })
+    Ok(Stmt::Local { ty: None, binding, value, mutable: true })
 }
 
 /// `name` or `(a, b)`.

@@ -11,13 +11,13 @@ impl Type {
             Shape::Bool => Type::Bool,
             Shape::Int { min, max } => {
                 if *min >= i64::from(i32::MIN) && *max <= i64::from(i32::MAX) {
-                    Type::Int
+                    Type::I32
                 } else {
-                    Type::Long
+                    Type::I64
                 }
             }
-            Shape::Float { bits } if *bits <= u32::BITS => Type::Float,
-            Shape::Float { .. } => Type::Double,
+            Shape::Float { bits } if *bits <= u32::BITS => Type::F32,
+            Shape::Float { .. } => Type::F64,
             Shape::Str | Shape::Atom => Type::String,
             Shape::Text => Type::Text,
             Shape::Ref([kind]) => Type::Content((*kind).to_string()),

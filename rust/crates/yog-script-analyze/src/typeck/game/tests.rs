@@ -41,17 +41,17 @@ fn index() -> ClassIndex {
 
 #[test]
 fn descriptors_are_types() {
-    assert_eq!(parse_desc("I").map(|(t, _)| t), Some(Type::Int));
+    assert_eq!(parse_desc("I").map(|(t, _)| t), Some(Type::I32));
     assert_eq!(
         parse_desc("Ljava/lang/String;").map(|(t, _)| t),
         Some(Type::String)
     );
     assert_eq!(
         parse_desc("[F").map(|(t, _)| t),
-        Some(Type::List(Box::new(Type::Float)))
+        Some(Type::List(Box::new(Type::F32)))
     );
     let (params, ret) = method_types("(Lnet/minecraft/A;F)Z").unwrap();
-    assert_eq!(params, [Type::Game("net/minecraft/A".into()), Type::Float]);
+    assert_eq!(params, [Type::Game("net/minecraft/A".into()), Type::F32]);
     assert_eq!(ret, Type::Bool);
 }
 
@@ -64,7 +64,7 @@ fn members_are_found_by_csharp_names_through_the_hierarchy() {
         .unwrap();
     assert!(matches!(
         member(&lookup, player, "Health", false),
-        Found::Value(Type::Float)
+        Found::Value(Type::F32)
     ));
     assert!(matches!(
         member(&lookup, player, "IsAlive", false),
@@ -76,7 +76,7 @@ fn members_are_found_by_csharp_names_through_the_hierarchy() {
     ));
     assert!(matches!(
         member(&lookup, player, "NoActionTime", false),
-        Found::Value(Type::Int)
+        Found::Value(Type::I32)
     ));
     assert!(matches!(member(&lookup, player, "Hurt", true), Found::Methods(ref m) if m.len() == 1));
     assert!(matches!(

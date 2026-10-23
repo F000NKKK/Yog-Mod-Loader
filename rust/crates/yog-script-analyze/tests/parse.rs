@@ -69,20 +69,20 @@ fn a_patch_outside_a_yns_file_is_reported() {
 
 #[test]
 fn lexing_problems_are_found_where_they_are() {
-    let parsed = parse("a.ys", "const string A = \"open;\nconst int B = 1;\n");
+    let parsed = parse("a.ys", "const string A = \"open;\nconst i32 B = 1;\n");
     let first = &parsed.problems[0];
     assert_eq!(first.code.as_deref(), Some(script_problem::UNTERMINATED));
     assert_eq!((first.line, first.col), (Some(1), Some(18)));
     assert_eq!(
-        codes("a.ys", "const int A = @item:;\n"),
+        codes("a.ys", "const i32 A = @item:;\n"),
         [script_problem::BAD_REFERENCE]
     );
     assert_eq!(
-        codes("a.ys", "const int A = 0x;\n"),
+        codes("a.ys", "const i32 A = 0x;\n"),
         [script_problem::BAD_NUMBER]
     );
     assert_eq!(
-        codes("a.ys", "const int A = 1 $ 2;\n"),
+        codes("a.ys", "const i32 A = 1 $ 2;\n"),
         [script_problem::UNEXPECTED_CHAR, script_problem::EXPECTED]
     );
 }
@@ -184,7 +184,7 @@ fn operators_bind_by_level() {
         value("a > 1 ? b : c").kind,
         ExprKind::Conditional { .. }
     ));
-    assert!(matches!(value("(int)x").kind, ExprKind::Cast { .. }));
+    assert!(matches!(value("(i32)x").kind, ExprKind::Cast { .. }));
     assert!(matches!(value("(x)").kind, ExprKind::Ident(_)));
     assert!(matches!(value("x => x * 2").kind, ExprKind::Lambda { .. }));
     assert!(matches!(
@@ -225,8 +225,8 @@ fn operators_bind_by_level() {
 #[test]
 fn members_are_told_by_what_follows_their_name() {
     let src = "class Timer(Ticks every) {\n    Ticks Left = every;\n    public bool Done => Left <= 0t;\n    \
-               int Count { get; set; } = 0;\n    public Timer() : this(20t) { }\n    \
-               List<int> Ticks<T>(T x) where T : Entity { return []; }\n}\n";
+               i32 Count { get; set; } = 0;\n    public Timer() : this(20t) { }\n    \
+               List<i32> Ticks<T>(T x) where T : Entity { return []; }\n}\n";
     let parsed = parse("a.ys", src);
     assert!(parsed.problems.is_empty(), "{:#?}", parsed.problems);
     let DeclKind::Type { body, header, .. } = &parsed.file.decls[0].kind else {
@@ -243,4 +243,12 @@ fn members_are_told_by_what_follows_their_name() {
     assert!(matches!(body[2].kind, DeclKind::Property { .. }));
     assert!(matches!(body[3].kind, DeclKind::Ctor(_)));
     assert!(matches!(body[4].kind, DeclKind::Method(_)));
+}
+
+#[test]
+fn the_type_system_reads() {
+    let parsed = parse("types.ys", include_str!("fixtures/types.ys"));
+    assert!(parsed.problems.is_empty(), "{:#?}", parsed.problems);
+    let checked = yog_script_analyze::check("types.ys", include_str!("fixtures/types.ys"));
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
 }

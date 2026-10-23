@@ -24,7 +24,7 @@ have. The exact syntax is `ys-grammar.md`.
 | Harmony (C# games) | magic parameter names (`__instance`, `__result`); a prefix returns `bool` to say "skip the original"; transpilers are raw IL; overloads ambiguous | prefix/postfix are simple; several mods patch one method side by side |
 | KubeJS, Skript | dynamic types: errors only in game; little documentation; Skript slow, wordy | instant reload; readable; no build step |
 | Kotlin, C# | compile speed (Kotlin) | null safety, properties, extension members, lambdas, LINQ, pattern matching, attributes, string interpolation |
-| Rust | the borrow checker, lifetimes, compile times for a modder | enums with data, `match`, `Result`, great errors, one build tool |
+| Rust | lifetimes everywhere, compile times for a modder | enums with data, `match`, `Result`, great errors, one build tool |
 
 Sources: the Fabric wiki on clashing redirects and Mixin inheritance;
 Harmony's wiki and guides on `__instance`/`__result` and transpilers;
@@ -51,9 +51,10 @@ KubeJS/ProbeJS reviews; Skript forums.
 4. **State is declared, not plumbed.** Where it lives (block, item stack,
    entity, player, world, session), whether it's saved and whether a client
    sees it are modifiers; codecs, packets and mirrors are generated.
-5. **No memory management, no nulls by surprise, no exceptions in the
-   game loop.** A garbage collector owns memory; `T?` for absent;
-   failures are values (`Result`), bugs are panics — Rust's model.
+5. **Memory under control, no nulls by surprise, no exceptions in the
+   game loop.** Ownership, borrows and lifetimes checked as Rust's, a GC
+   beneath as the safety net; `T?` for absent; failures are values
+   (`Result`), bugs are panics — Rust's model.
 6. **Hot by default.** Everything can be reloaded in a running game; state
    survives because it's declared.
 7. **High level, never less capable.** Anything the Rust API or Mixin can
@@ -70,13 +71,13 @@ const string Name = "charger";
 var count = 0;
 count += 1;
 
-int Area(int w, int h) => w * h;
+i32 Area(i32 w, i32 h) => w * h;
 
 void Greet(Player player) {
     player.Say("Hello, {player.Name}!");    // interpolation: {expr}
 }
 
-List<int> numbers = [1, 2, 3];
+List<i32> numbers = [1, 2, 3];
 var doubled = numbers.Select { it * 2 }.Where(x => x > 2);
 var health = target?.Health ?? 0;           // ?. null-conditional, ?? otherwise
 
@@ -91,14 +92,14 @@ var tier = tool.Tier switch {
 
 | Kind | Examples |
 |---|---|
-| Numbers | `int` (32-bit), `long`, `float`, `double`, `byte` |
+| Numbers | `i32` (32-bit), `i64`, `f32`, `f64`, `u8` |
 | Text, truth | `string`, `char`, `bool`, `Text` (translatable: `t"charge.tooltip"`) |
 | Units | `Ticks` (`20t`), `Seconds` (`5s`, convertible to ticks), `Blocks` (`3b`), `Energy` (a mod declares its own units) |
-| Bounded | `int Level in 0..100` — a field's range: proven where it can be, clamped where it can't |
+| Bounded | `i32 Level in 0..100` — a field's range: proven where it can be, clamped where it can't |
 | Content | `ItemRef` (`@item:minecraft:stick`), `BlockRef`, `TagRef` (`#minecraft:logs`) — checked against the registries the mod targets |
 | Nullable | `Player?` — only nullable types can be `null` |
 | Results | `Result<T, E>`: `Ok(v)` / `Err(e)`; `try` passes an `Err` up, like Rust's `?` |
-| Records, enums | `record Pos(int X, int Y, int Z);`, `enum Shape { Circle(float R), Box(float W, float H) }` |
+| Records, enums | `record Pos(i32 X, i32 Y, i32 Z);`, `enum Shape { Circle(f32 R), Box(f32 W, f32 H) }` |
 | Collections | `List<T>`, `Dictionary<K, V>`, `HashSet<T>`; collection expressions `[1, 2, 3]` |
 
 Yog's objects (`Player`, `Level`, `Entity`, `ItemStack`, `Block`) are
@@ -115,7 +116,7 @@ Object initializers set members after the constructor; `new(…)` alone
 takes the type from where it goes.
 
 ```ys
-record Pos(int X, int Y, int Z);
+record Pos(i32 X, i32 Y, i32 Z);
 
 class Timer(Ticks every) {
     Ticks Left = every;
@@ -140,7 +141,7 @@ C#'s type system, with Rust's enums:
   (`class Machine : Block, ITickable, IChargeable`); members are
   `virtual`/`abstract` and `override`n, a class `sealed` or `abstract`;
   `base` reaches the base class (`base.Tick()`, `: base(…)`).
-- **Structs** (`struct Pos(int X, int Y, int Z)`) are values: copied, no
+- **Structs** (`struct Pos(i32 X, i32 Y, i32 Z)`) are values: copied, no
   inheritance, interfaces allowed.
 - **Interfaces** inherit interfaces (any number); members may have bodies
   (default implementations), as in C#.
@@ -163,16 +164,51 @@ Components stay the way content shares state and behaviour (3, below):
 inheritance is for a mod's own classes, components for what several
 objects carry.
 
-### Memory
+### Memory: ownership, borrows, lifetimes — and a GC beneath
 
-A tracing **garbage collector**, as C#'s and Java's: objects live while
-reachable, cycles included; no ownership, no lifetimes, no borrow
-checking — a runtime language for modders. On the JVM it's the JVM's
-collector; the native runtime brings its own. Structs and records structs
-are copied values. What holds something outside memory (a file, a
-native handle, a subscription) is `IDisposable`, released by `using`
-(`using var f = File.Open(…);`) when its scope ends — deterministic,
-where a finalizer would not be.
+Rust's guarantees with C#'s ways of writing them. Every value has one
+**owner**; the compiler checks who owns, who borrows and for how long, so a
+mod controls its memory and resources explicitly. A tracing **garbage
+collector** stays beneath as the safety net (the JVM's on the JVM, the
+native runtime's own): whatever the checks let through — a cycle of
+`Shared`s, a value a host still holds — is still collected, never leaked
+for good.
+
+- **Locals**: `let x = …` never changes; `let mut x = …` may (`var` is
+  `let mut`, for C#). Only a `mut` local is lent by `ref` or assigned.
+- **Moves are explicit**: handing an owned value on is written `move x`
+  (an argument, an assignment, a return of a local needs none); after it
+  `x` is gone — using it is a build error. Copies are implicit only for
+  `Copy` values: numbers, `bool`, `char`, enums without data, structs and
+  `record struct`s made of copies. Anything else is moved, borrowed or
+  `Clone()`d — never silently aliased.
+- **Passing**, written at both ends as C# does:
+
+  | Parameter | Call | Rust |
+  |---|---|---|
+  | `T x` | `F(x)` — a copy, or a `move x` | `T` |
+  | `in T x` | `F(in x)` or `F(x)` | `&T` |
+  | `ref T x` | `F(ref x)`, `x` a `let mut` | `&mut T` |
+  | `out T x` | `F(out let x)` | the method must assign it |
+  | `move T x` | `F(move x)` | `T`, ownership taken |
+
+- **The borrow rules**, Rust's, checked per path of the code
+  (non-lexical): any number of `in` borrows or one `ref` at a time; no
+  move or change of what's borrowed while a borrow lives; a borrow never
+  outlives its owner.
+- **Lifetimes** are inferred inside a method and elided at its signature
+  (one borrowed input, or `this`, gives the output's); written where it's
+  ambiguous or a type keeps a borrow, Rust's way: `in 'a Item First<'a>(in
+  'a List<Item> items)`, `ref struct Cursor<'a>(in 'a List<Item> items)`.
+  Only a `ref struct` (C#'s) holds borrows; it never goes to the heap.
+- **Dropping**: an owner leaving its scope drops its value at that point —
+  `IDisposable.Dispose()` runs, as Rust's `Drop` (C#'s `using` is
+  implicit). The GC frees the memory; the drop frees everything else.
+- **Shared ownership** is asked for: `Shared<T>` (several owners, cloned
+  cheaply — Rust's `Rc`/`Arc`, a cycle collected by the GC), `Weak<T>`
+  (doesn't keep it), `Cell<T>`/`Lock<T>` for changing what's shared. The
+  game's objects (players, entities, worlds) are handles: `Copy`, owned by
+  the game.
 
 ### Failures: Result and panics
 
@@ -186,7 +222,7 @@ Rust's model, not exceptions:
 - **Bugs panic**: `panic("…")`, `Unwrap()`/`Expect("…")` on an `Err` or a
   `null`, `unreachable()`, `todo()`, `assert(…)`, an index out of range,
   integer overflow in a checked build. A panic unwinds to the handler's
-  boundary (4.5), running `using` releases on the way; there's no
+  boundary (4.5), dropping what it owns on the way; there's no
   `try`/`catch`.
 - **Panic handlers**: `Panic.SetHook(info => …)` sees every panic of the
   mod (message, `.ys` location, trace) before the boundary reports it;
@@ -216,7 +252,7 @@ var label = mode switch {
 ### The System library
 
 What every C# program has, as Yog Script's own library: `System` (the
-built-in types — `int` is `System.Int32`, `string` `System.String` with its
+built-in types — `i32` is `System.Int32`, `string` `System.String` with its
 members — `Math`, `Action`, `Func`, `Nullable`, `Result`, `Error`,
 `Panic`, `IDisposable`), `System.Collections.Generic` (`List<T>`, `Dictionary<K, V>`,
 `HashSet<T>`, `Queue<T>`, …), `System.Linq` (LINQ over any `IEnumerable<T>`),
@@ -235,7 +271,7 @@ visible where the extension is used:
 ```ys
 extend Player {
     public bool IsCharged => Inventory.Any { it is Battery b && b.Charge.Energy > 0 };
-    public void Zap(int amount) => Hurt(Damage.Lightning, amount);
+    public void Zap(i32 amount) => Hurt(Damage.Lightning, amount);
 }
 ```
 
@@ -323,11 +359,11 @@ A call across sides is a **message**, generated: the compiler writes the
 packet, its codec and both handlers.
 
 ```ys
-client void ShowCharge(int level) {
+client void ShowCharge(i32 level) {
     Toast(t"charge.level"(level));
 }
 
-server void OnCharged(Player player, int level) {
+server void OnCharged(Player player, i32 level) {
     player.Client.ShowCharge(level);   // server → that player's client: a packet
 }
 
@@ -352,11 +388,11 @@ block Charger {
 }
 
 extend Player {                          // per player: state the game's object carries
-    saved int Visits = 0;
+    saved i32 Visits = 0;
 }
 
 extend World {                           // per world
-    saved Dictionary<Pos, int> Grid = [];
+    saved Dictionary<Pos, i32> Grid = [];
 }
 ```
 
@@ -371,7 +407,7 @@ components); a named `component` is the same, shared by several.
   says what it was, and old saves load.
 
 ```ys
-saved Energy Energy = 0 was Power: int;      // old saves' `Power` read as Energy
+saved Energy Energy = 0 was Power: i32;      // old saves' `Power` read as Energy
 ```
 
 ### 4.3 Time and searches are library, saved and indexed
@@ -391,7 +427,7 @@ block Charger {
     server async void Arm() {
         Glow();
         await Task.Delay(5s);            // still pending after a reload
-        Explode(power: 2.0f);
+        Explode(power: 2.0f32);
     }
 }
 
@@ -417,7 +453,7 @@ faulty, by policy), and the game goes on. A crash report names the
 
 ### 4.6 Live values and tests
 
-- `tune int SolarRate = 4;` — a value IDLE can change in a running game
+- `tune i32 SolarRate = 4;` — a value IDLE can change in a running game
   (it's read through a mirror while tuning, inlined in a release build).
 - `test` blocks run in a headless game (a GameTest-like world), on every
   targeted version, from `yog test`:
@@ -450,7 +486,7 @@ using Player = Game.World.Entity.Player.Player;
 
 patch Player {
 #if MC >= 1.21
-    after int GetArmorValue() { result += Bonus; }
+    after i32 GetArmorValue() { result += Bonus; }
 #else
     read ArmorValue { return proceed() + Bonus; }
 #endif
@@ -515,7 +551,7 @@ are live; actions are `server` methods (messages, 4.1):
 ```ys
 screen ChargerScreen(Charger block) : Ui("charger.yui") {
     Energy Energy => block.Charge.Energy;
-    float Fill => Energy / block.Charge.Capacity;
+    f32 Fill => Energy / block.Charge.Capacity;
     server void Dump() { block.Charge.Energy = 0; }
 }
 ```
@@ -530,11 +566,11 @@ nearest candidate.
 
 ```yns
 patch LivingEntity {
-    add saved float Shield = 0;              // added state (saved, synced work here too)
+    add saved f32 Shield = 0;              // added state (saved, synced work here too)
     add : IChargeable;                       // an added interface
 
     // Before the method. `skip` ends it with a value; nothing: it runs.
-    before bool Hurt(DamageSource source, float amount) {
+    before bool Hurt(DamageSource source, f32 amount) {
         if (Shield >= amount) {
             Shield -= amount;
             skip false;
@@ -542,7 +578,7 @@ patch LivingEntity {
     }
 
     // After it: `result` is its value, assignable.
-    after float GetMaxHealth() {
+    after f32 GetMaxHealth() {
         result += Shield / 2;
     }
 
@@ -554,7 +590,7 @@ patch LivingEntity {
     }
 
     // An argument of a call, by its name in the callee.
-    inside void Knockback(double strength, double x, double z) {
+    inside void Knockback(f64 strength, f64 x, f64 z) {
         at call Vec3.Add (x) { x * 0.5 }
     }
 }
@@ -562,7 +598,7 @@ patch LivingEntity {
 patch MinecraftServer {
     // Locals by name (the class index keeps local names where the game has them);
     // by type and order where it doesn't. `var` writes back.
-    after void TickServer(BooleanSupplier hasTime) uses local long start, var local long spent {
+    after void TickServer(BooleanSupplier hasTime) uses local i64 start, var local i64 spent {
         if (spent > Res.Limits.SlowTick) Log.Warn("slow tick: {spent} ns");
     }
 }
@@ -577,7 +613,7 @@ patch Player {
     }
 
     // A constant in a method.
-    inside float GetDigSpeed() { constant 5.0 => 3.0; }
+    inside f32 GetDigSpeed() { constant 5.0 => 3.0; }
 
     // The whole body. Exclusive: a second mod replacing it is a conflict
     // reported at launch with both mods' names.
@@ -613,7 +649,7 @@ required.
 
 ```ys
 native "charge_grid" {
-    List<int> Simulate(List<int> nodes, List<(int, int)> edges);
+    List<i32> Simulate(List<i32> nodes, List<(i32, i32)> edges);
 }
 ```
 

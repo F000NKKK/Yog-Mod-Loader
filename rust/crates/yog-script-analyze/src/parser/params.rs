@@ -2,8 +2,9 @@
 //! them.
 
 use super::{PResult, Parser};
-use crate::ast::{Arg, Name, Param};
+use crate::ast::{Arg, Expr, ExprKind, Generic, Name, Param, Pass, Variance};
 use crate::source::token::{Punct, StrPart, Tok};
+use crate::words::{r#in, r#let, r#move, r#mut, out, r#ref, var};
 
 impl Parser<'_, '_, '_> {
     /// A name (not a reserved word).
@@ -54,6 +55,7 @@ impl Parser<'_, '_, '_> {
     }
 
     fn param(&mut self) -> PResult<Param> {
+        let pass = self.pass();
         let ty = self.ty()?;
         let name = self.name("a parameter's name")?;
         let default = if self.eat(Punct::Eq) {
@@ -61,7 +63,12 @@ impl Parser<'_, '_, '_> {
         } else {
             None
         };
-        Ok(Param { ty, name, default })
+        Ok(Param {
+            pass,
+            ty,
+            name,
+            default,
+        })
     }
 
     /// `(a, name: b)`.
@@ -80,18 +87,65 @@ impl Parser<'_, '_, '_> {
         } else {
             None
         };
-        Ok(Arg {
-            name,
-            value: self.expr()?,
+        let pass = self.pass();
+        let value = if pass == Some(Pass::Out) {
+            self.declared()?
+        } else {
+            self.expr()?
+        };
+        Ok(Arg { name, pass, value })
+    }
+
+    /// `in`, `ref`, `out` or `move`, or nothing.
+    fn pass(&mut self) -> Option<Pass> {
+        let pass = [
+            (&r#in::WORD, Pass::In),
+            (&r#ref::WORD, Pass::Ref),
+            (&out::WORD, Pass::Out),
+            (&r#move::WORD, Pass::Move),
+        ]
+        .into_iter()
+        .find(|(w, _)| self.at_word(w))?;
+        self.bump();
+        Some(pass.1)
+    }
+
+    /// After `out`: `let x`, `let mut x`, `var x`, `i32 x` (a local declared
+    /// there) or a place.
+    fn declared(&mut self) -> PResult<Expr> {
+        let start = self.span();
+        let (ty, mutable) = if self.eat_word(&r#let::WORD) {
+            (None, self.eat_word(&r#mut::WORD))
+        } else if self.eat_word(&var::WORD) {
+            (None, true)
+        } else if self.typed_ahead().is_some() {
+            (Some(self.ty()?), true)
+        } else {
+            return self.expr();
+        };
+        let name = self.name("a name")?;
+        Ok(Expr {
+            kind: ExprKind::Declare { ty, name, mutable },
+            span: start.to(self.prev()),
         })
     }
 
     /// `<T, U>`, or nothing.
-    pub(crate) fn generics(&mut self) -> PResult<Vec<Name>> {
+    pub(crate) fn generics(&mut self) -> PResult<Vec<Generic>> {
         if !self.eat(Punct::Lt) {
             return Ok(Vec::new());
         }
-        self.list(Punct::Gt, |p| p.name("a type parameter"))
+        self.list(Punct::Gt, |p| {
+            let variance = if p.eat_word(&r#in::WORD) {
+                Some(Variance::In)
+            } else if p.eat_word(&out::WORD) {
+                Some(Variance::Out)
+            } else {
+                None
+            };
+            let name = p.name("a type parameter")?;
+            Ok(Generic { name, variance })
+        })
     }
 
     /// Items by `item`, separated by `,` (a trailing one allowed), up to

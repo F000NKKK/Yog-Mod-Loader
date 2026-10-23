@@ -18,16 +18,17 @@ fn codes_of(problems: Vec<yog_data::Diagnostic>) -> Vec<String> {
 #[test]
 fn values_fit_their_types() {
     assert_eq!(
-        codes("void F() {\n    int a = \"x\";\n}\n"),
+        codes("void F() {\n    i32 a = \"x\";\n}\n"),
         [script_problem::TYPE_MISMATCH]
     );
-    assert_eq!(codes("int F() => true;\n"), [script_problem::TYPE_MISMATCH]);
+    assert_eq!(codes("i32 F() => true;\n"), [script_problem::TYPE_MISMATCH]);
     assert_eq!(
         codes("void F(bool b) {\n    if (1 + 2) b = false;\n}\n"),
         [script_problem::TYPE_MISMATCH]
     );
     // Widening, literals of any number, units.
-    let fine = "double F(int a) {\n    long b = a;\n    float c = 2.0;\n    Ticks t = 5s;\n    return a;\n}\n";
+    let fine =
+        "f64 F(i32 a) {\n    i64 b = a;\n    f32 c = 2.0;\n    Ticks t = 5s;\n    return a;\n}\n";
     assert!(codes(fine).is_empty(), "{:?}", codes(fine));
     assert_eq!(
         codes("void F() {\n    Seconds s = 5t;\n}\n"),
@@ -38,25 +39,25 @@ fn values_fit_their_types() {
 #[test]
 fn null_needs_a_nullable() {
     assert_eq!(
-        codes("record Pos(int X);\nvoid F() {\n    Pos p = null;\n}\n"),
+        codes("record Pos(i32 X);\nvoid F() {\n    Pos p = null;\n}\n"),
         [script_problem::NULLABLE]
     );
-    assert!(codes("record Pos(int X);\nvoid F() {\n    Pos? p = null;\n}\n").is_empty());
-    let src = "record Pos(int X);\nint F(Pos? p) => p.X;\n";
+    assert!(codes("record Pos(i32 X);\nvoid F() {\n    Pos? p = null;\n}\n").is_empty());
+    let src = "record Pos(i32 X);\nint F(Pos? p) => p.X;\n";
     assert_eq!(codes(src), [script_problem::NULLABLE]);
-    assert!(codes("record Pos(int X);\nint F(Pos? p) => p?.X ?? 0;\n").is_empty());
+    assert!(codes("record Pos(i32 X);\nint F(Pos? p) => p?.X ?? 0;\n").is_empty());
 }
 
 #[test]
 fn members_and_calls_are_the_types() {
-    let src = "record Pos(int X) {\n    int Twice() => X * 2;\n}\nint F(Pos p) => p.Y;\n";
+    let src = "record Pos(i32 X) {\n    i32 Twice() => X * 2;\n}\nint F(Pos p) => p.Y;\n";
     assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
-    let src = "int Area(int w, int h) => w * h;\nint F() => Area(1);\n";
+    let src = "i32 Area(i32 w, i32 h) => w * h;\nint F() => Area(1);\n";
     assert_eq!(codes(src), [script_problem::WRONG_ARGS]);
-    let src = "int Area(int w, int h) => w * h;\nint F() => Area(1, \"2\");\n";
+    let src = "i32 Area(i32 w, i32 h) => w * h;\nint F() => Area(1, \"2\");\n";
     assert_eq!(codes(src), [script_problem::TYPE_MISMATCH]);
     // A component's members on its owner.
-    let src = "component Charge(int capacity) {\n    int Energy = 0;\n}\n\
+    let src = "component Charge(i32 capacity) {\n    i32 Energy = 0;\n}\n\
                block Charger has Charge(10) { }\nint F(Charger c) => c.Energy + c.Charge.Energy;\n";
     assert!(codes(src).is_empty(), "{:?}", codes(src));
 }
@@ -99,13 +100,13 @@ fn the_games_classes_are_a_yns_files_only() {
         );
         codes_of(check_with("a.yns", &src, Some(&index)).problems)
     };
-    assert!(yns("float F(Player p) => p.Health;\nbool G(Player p) => p.IsAlive;\n").is_empty());
+    assert!(yns("f32 F(Player p) => p.Health;\nbool G(Player p) => p.IsAlive;\n").is_empty());
     assert_eq!(
-        yns("int F(Player p) => p.Mana;\n"),
+        yns("i32 F(Player p) => p.Mana;\n"),
         [script_problem::UNKNOWN_MEMBER]
     );
     assert_eq!(
-        yns("int F(Player p) => p.Health;\n"),
+        yns("i32 F(Player p) => p.Health;\n"),
         [script_problem::TYPE_MISMATCH]
     );
     assert_eq!(
@@ -115,7 +116,7 @@ fn the_games_classes_are_a_yns_files_only() {
     assert!(yns("client void F(Minecraft mc) { }\n").is_empty());
     // What `extend` adds sits beside the game's members.
     assert!(
-        yns("extend Player {\n    int Visits = 0;\n}\nint F(Player p) => p.Visits;\n").is_empty()
+        yns("extend Player {\n    i32 Visits = 0;\n}\nint F(Player p) => p.Visits;\n").is_empty()
     );
     // As in C#, a name two `using`s bring in (`Yog`, every file's, among
     // them) is ambiguous: an alias, as above, or the full name settles it.
@@ -123,13 +124,13 @@ fn the_games_classes_are_a_yns_files_only() {
         "targets mc 1.21.1..1.21.1;\nusing Game.World.Entity.Player;\nfloat F(Player p) => 1;\n";
     let found = codes_of(check_with("a.yns", ambiguous, Some(&index)).problems);
     assert_eq!(found, [script_problem::AMBIGUOUS]);
-    assert!(yns("float F(Game.World.Entity.Player.Player p) => p.Health;\n").is_empty());
+    assert!(yns("f32 F(Game.World.Entity.Player.Player p) => p.Health;\n").is_empty());
     assert_eq!(
-        yns("int F(Yog.Player p) => p.Health;\n"),
+        yns("i32 F(Yog.Player p) => p.Health;\n"),
         [script_problem::UNKNOWN_MEMBER]
     );
     // A `.ys` reaches Yog, not the game: `Player` is Yog's there.
-    let ys = codes_of(check_with("a.ys", "int F(Player p) => p.Mana;\n", Some(&index)).problems);
+    let ys = codes_of(check_with("a.ys", "i32 F(Player p) => p.Mana;\n", Some(&index)).problems);
     assert_eq!(ys, [script_problem::UNKNOWN_MEMBER]);
     // In a `.ys`, `Game` is Yog's `game` group: the game's classes aren't
     // there (types no one declares aren't reported yet).
@@ -149,7 +150,7 @@ fn the_games_classes_are_a_yns_files_only() {
 #[test]
 fn yogs_surface_is_typed() {
     let fine = "server void F(Player p, World w) {\n    bool given = p.GiveItem(\"minecraft:diamond\", 1);\n    \
-                var info = p.Info();\n    int level = info?.XpLevel ?? 0;\n    bool flies = info!.MayFly;\n    \
+                var info = p.Info();\n    i32 level = info?.XpLevel ?? 0;\n    bool flies = info!.MayFly;\n    \
                 w.SetTime(6000);\n    Chat.Broadcast(\"hello\");\n    var online = Player.Online();\n}\n";
     assert!(codes(fine).is_empty(), "{:?}", codes(fine));
     assert_eq!(
@@ -161,11 +162,11 @@ fn yogs_surface_is_typed() {
         [script_problem::UNKNOWN_MEMBER]
     );
     assert_eq!(
-        codes("void F(Player p) {\n    int k = p.Kick(\"bye\");\n}\n"),
+        codes("void F(Player p) {\n    i32 k = p.Kick(\"bye\");\n}\n"),
         [script_problem::TYPE_MISMATCH]
     );
     assert_eq!(
-        codes("int F(Player p) => p.Info()!.Mana;\n"),
+        codes("i32 F(Player p) => p.Info()!.Mana;\n"),
         [script_problem::UNKNOWN_MEMBER]
     );
     assert_eq!(
@@ -177,9 +178,9 @@ fn yogs_surface_is_typed() {
 /// `namespace` and `using` as in C#.
 #[test]
 fn namespaces_and_usings_work_as_in_csharp() {
-    let src = "namespace Charge.Machines;\n\nrecord Pos(int X);\nint F(Pos p) => p.X;\nint G(Charge.Machines.Pos p) => p.Y;\n";
+    let src = "namespace Charge.Machines;\n\nrecord Pos(i32 X);\nint F(Pos p) => p.X;\nint G(Charge.Machines.Pos p) => p.Y;\n";
     assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
-    let src = "namespace Charge {\n    record Pos(int X);\n}\nnamespace Other {\n    using Charge;\n    int F(Pos p) => p.Y;\n}\n";
+    let src = "namespace Charge {\n    record Pos(i32 X);\n}\nnamespace Other {\n    using Charge;\n    i32 F(Pos p) => p.Y;\n}\n";
     assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
     // An alias of a namespace; the static members of a type.
     let src = "using Y = Yog;\nusing static Yog.Chat;\nvoid F(Y.Player p) {\n    bool sent = Broadcast(\"hi\");\n    Broadcast(1, 2);\n}\n";
@@ -202,7 +203,7 @@ fn events_work_as_in_csharp() {
     let src = "mod M {\n    M() {\n        Player.Join += OnBreak;\n    }\n    void OnBreak(Block.BreakArgs e) { }\n}\n";
     assert_eq!(codes(src), [script_problem::TYPE_MISMATCH]);
     // An event of one's own: declared, subscribed, raised.
-    let own = "class Battery {\n    public event Action<int> Charged;\n    void Fill() {\n        Charged += n => { int twice = n * 2; };\n        \
+    let own = "class Battery {\n    public event Action<i32> Charged;\n    void Fill() {\n        Charged += n => { i32 twice = n * 2; };\n        \
                Charged?.Invoke(3);\n        Charged(\"three\");\n    }\n}\n";
     assert_eq!(codes(own), [script_problem::TYPE_MISMATCH]);
 }

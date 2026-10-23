@@ -7,7 +7,7 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "add",
-    doc: "Adds to the patched class: state (`add saved float Shield = 0;`), methods (`add void Zap() { … }`), \
+    doc: "Adds to the patched class: state (`add saved f32 Shield = 0;`), methods (`add void Zap() { … }`), \
           interfaces (`add : IChargeable;`).",
     reserved: false,
     roles: &[Role::PatchItem { parse }],

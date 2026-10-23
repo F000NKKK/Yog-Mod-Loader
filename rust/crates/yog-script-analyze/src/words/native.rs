@@ -8,7 +8,7 @@ use crate::words::{Role, Word, void};
 pub static WORD: Word = Word {
     text: "native",
     doc: "Functions of the mod's own Rust library, by their signatures: \
-          `native \"charge_grid\" { List<int> Simulate(List<int> nodes); }`.",
+          `native \"charge_grid\" { List<i32> Simulate(List<i32> nodes); }`.",
     reserved: true,
     roles: &[Role::Decl { starts: None, parse }],
 };

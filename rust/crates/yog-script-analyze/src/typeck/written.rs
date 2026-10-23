@@ -19,7 +19,7 @@ const MAP: &str = "Dictionary";
 pub(super) const ACTION: &str = "Action";
 pub(super) const FUNC: &str = "Func";
 
-/// A plain one-name type's name (`Player`, not `List<int>` or `a.B`).
+/// A plain one-name type's name (`Player`, not `List<i32>` or `a.B`).
 pub(crate) fn simple_path(ty: &ast::Type) -> Option<&str> {
     match &ty.kind {
         TypeKind::Path { path, args } if args.is_empty() && path.len() == 1 => Some(&path[0].text),
@@ -48,7 +48,7 @@ impl Checker<'_, '_, '_> {
 
     /// A type by its one name.
     fn named(&mut self, name: &str, mut args: Vec<Type>, at: Span) -> Type {
-        if let Some(t) = builtin(name) {
+        if let Some(t) = super::builtin::by_word(name) {
             return t;
         }
         match name {
@@ -95,21 +95,4 @@ fn side_word(side: Side) -> &'static str {
         Side::Server => words::server::WORD.text,
         Side::Shared => words::shared::WORD.text,
     }
-}
-
-/// The built-in types by their keywords.
-fn builtin(name: &str) -> Option<Type> {
-    let t = match name {
-        _ if name == words::int::WORD.text => Type::Int,
-        _ if name == words::long::WORD.text => Type::Long,
-        _ if name == words::float::WORD.text => Type::Float,
-        _ if name == words::double::WORD.text => Type::Double,
-        _ if name == words::byte::WORD.text => Type::Byte,
-        _ if name == words::char::WORD.text => Type::Char,
-        _ if name == words::bool::WORD.text => Type::Bool,
-        _ if name == words::string::WORD.text => Type::String,
-        _ if name == words::void::WORD.text => Type::Void,
-        _ => return None,
-    };
-    Some(t)
 }

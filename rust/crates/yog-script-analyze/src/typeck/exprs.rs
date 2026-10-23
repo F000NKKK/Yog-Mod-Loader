@@ -16,9 +16,11 @@ const BLOCK_SUFFIX: &str = "b";
 impl Checker<'_, '_, '_> {
     pub(super) fn expr(&mut self, e: &Expr) -> Type {
         match &e.kind {
-            ExprKind::Int(_) => Type::Int,
-            ExprKind::Float(_) => Type::Double,
-            ExprKind::Unit { unit, .. } => Type::Unit(unit_of(unit)),
+            ExprKind::Int(_) => Type::I32,
+            ExprKind::Float(_) => Type::F64,
+            ExprKind::Unit { unit, .. } => super::builtin::by_word(unit)
+                .filter(super::builtin::is_number)
+                .unwrap_or_else(|| Type::Unit(unit_of(unit))),
             ExprKind::Str(segs) => {
                 for s in segs {
                     if let StrSeg::Expr(e) = s {
@@ -39,6 +41,9 @@ impl Checker<'_, '_, '_> {
             ExprKind::Null => Type::Null,
             ExprKind::Ident(name) => self.name(name, e.span),
             ExprKind::This => self.this.clone().unwrap_or(Type::Unknown),
+            ExprKind::Declare { ty, name, .. } => self.declare(ty.as_ref(), &name.text),
+            ExprKind::NameOf(expr) => self.name_of(expr),
+            ExprKind::Default(Some(ty)) => self.type_of(ty),
             ExprKind::Member { expr, name, safe } => {
                 let on = self.expr(expr);
                 self.member(&on, &name.text, *safe, name.span)
@@ -238,6 +243,21 @@ impl Checker<'_, '_, '_> {
 }
 
 /// The unit a suffix names: the game's, or a mod's own by its name.
+impl Checker<'_, '_, '_> {
+    /// `out let x`: `x` bound, of its written type (else unknown).
+    fn declare(&mut self, ty: Option<&crate::ast::Type>, name: &str) -> Type {
+        let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
+        self.bind(name, t.clone());
+        t
+    }
+
+    /// `nameof(x)`: a string, `x` checked.
+    fn name_of(&mut self, expr: &Expr) -> Type {
+        self.expr(expr);
+        Type::String
+    }
+}
+
 fn unit_of(suffix: &str) -> String {
     match suffix {
         TICK_SUFFIX => TICKS.to_string(),

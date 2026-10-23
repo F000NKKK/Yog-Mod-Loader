@@ -1,7 +1,7 @@
 //! Declarations (`ys-grammar.md` §2): the mod, types, members, content,
 //! components and systems, events.
 
-use super::{Block, Expr, Name, Patch, Type};
+use super::{Block, Expr, Generic, Name, Patch, Type, Where};
 use crate::source::token::Span;
 
 /// What a declaration is marked with.
@@ -20,6 +20,11 @@ pub enum Modifier {
     Saved,
     Synced,
     Tune,
+    Protected,
+    Abstract,
+    Virtual,
+    Override,
+    Sealed,
 }
 
 /// `[Obsolete("…")]`.
@@ -49,10 +54,10 @@ impl Decl {
 /// what it implements, the constraints, the components it has.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TypeHeader {
-    pub generics: Vec<Name>,
+    pub generics: Vec<Generic>,
     pub ctor: Option<Vec<Param>>,
     pub bases: Vec<Type>,
-    pub constraints: Vec<(Name, Vec<Type>)>,
+    pub constraints: Vec<Where>,
     pub has: Vec<Expr>,
 }
 
@@ -69,7 +74,7 @@ pub enum DeclKind {
         path: Vec<Name>,
         body: Option<Vec<Decl>>,
     },
-    /// `using Grid = Dictionary<Pos, int>;`.
+    /// `using Grid = Dictionary<Pos, i32>;`.
     Alias {
         name: Name,
         ty: Type,
@@ -95,22 +100,22 @@ pub enum DeclKind {
         value: Option<Expr>,
     },
     Ctor(Ctor),
-    /// `class`, `record`, `interface`: which is `word`.
+    /// `class`, `struct`, `record`, `interface`: which is `word`;
+    /// `value`: copied by value (a struct, a `record struct`).
     Type {
         word: Name,
         name: Name,
+        value: bool,
         header: TypeHeader,
         body: Vec<Decl>,
     },
-    Union {
-        name: Name,
-        generics: Vec<Name>,
-        variants: Vec<Variant>,
-        body: Vec<Decl>,
-    },
+    /// `enum Mode { Idle, Charging(i32 Rate) }`, `enum Tier : u8 { Wood = 1 }`.
     Enum {
         name: Name,
-        cases: Vec<Name>,
+        generics: Vec<Generic>,
+        base: Option<Type>,
+        variants: Vec<Variant>,
+        body: Vec<Decl>,
     },
     /// `unit Energy;` / `unit FE = Energy * 1;`.
     Unit {
@@ -174,14 +179,14 @@ pub struct Prop {
     pub value: Expr,
 }
 
-/// `int Area(int w, int h) => w * h;`; `ret` None: `void`.
+/// `i32 Area(i32 w, i32 h) => w * h;`; `ret` None: `void`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Method {
     pub ret: Option<Type>,
     pub name: Name,
-    pub generics: Vec<Name>,
+    pub generics: Vec<Generic>,
     pub params: Vec<Param>,
-    pub constraints: Vec<(Name, Vec<Type>)>,
+    pub constraints: Vec<Where>,
     pub requires: Option<Expr>,
     /// None: a signature only (`native`, an interface's).
     pub body: Option<MethodBody>,
@@ -193,7 +198,7 @@ pub enum MethodBody {
     Expr(Expr),
 }
 
-/// `saved synced Energy Energy in 0..capacity = 0 was Power: int;`.
+/// `saved synced Energy Energy in 0..capacity = 0 was Power: i32;`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Field {
     pub ty: Type,
@@ -216,13 +221,22 @@ pub struct Accessor {
 pub struct Ctor {
     pub name: Name,
     pub params: Vec<Param>,
-    pub this_args: Option<Vec<super::Arg>>,
+    /// `: this(…)` / `: base(…)`: the constructor run first.
+    pub chain: Option<(Chain, Vec<super::Arg>)>,
     pub body: Block,
+}
+
+/// Which constructor a constructor runs first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Chain {
+    This,
+    Base,
 }
 
 /// `Player target = source.Player`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Param {
+    pub pass: Option<super::Pass>,
     pub ty: Type,
     pub name: Name,
     pub default: Option<Expr>,
@@ -232,6 +246,8 @@ pub struct Param {
 pub struct Variant {
     pub name: Name,
     pub fields: Vec<Param>,
+    /// `Wood = 1`: its number.
+    pub value: Option<Expr>,
 }
 
 /// `mc >= 1.21`, `mc 1.20.1..1.21.4`.

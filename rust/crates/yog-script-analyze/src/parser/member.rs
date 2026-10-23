@@ -3,7 +3,7 @@
 //! a mod's own kinds: the kinds are open); `Name = value;` properties.
 
 use super::{PResult, Parser};
-use crate::ast::{Accessor, Ctor, DeclKind, Field, Method, MethodBody, Name, Prop, Type};
+use crate::ast::{Accessor, Chain, Ctor, DeclKind, Field, Method, MethodBody, Name, Prop, Type};
 use crate::source::token::{Punct, Tok};
 use crate::words::{get, has, r#in, init, requires, set, void, was};
 
@@ -165,9 +165,14 @@ impl Parser<'_, '_, '_> {
     fn ctor(&mut self) -> PResult<Ctor> {
         let name = self.name("a constructor")?;
         let params = self.params()?;
-        let this_args = if self.eat(Punct::Colon) {
-            self.need_word(&crate::words::this::WORD)?;
-            Some(self.args()?)
+        let chain = if self.eat(Punct::Colon) {
+            let chain = if self.eat_word(&crate::words::base::WORD) {
+                Chain::Base
+            } else {
+                self.need_word(&crate::words::this::WORD)?;
+                Chain::This
+            };
+            Some((chain, self.args()?))
         } else {
             None
         };
@@ -175,7 +180,7 @@ impl Parser<'_, '_, '_> {
         Ok(Ctor {
             name,
             params,
-            this_args,
+            chain,
             body,
         })
     }

@@ -5,6 +5,7 @@
 //! index of a targeted version (C#'s names over Java's); what neither the
 //! source nor the index knows (the library's) is not checked yet.
 
+mod builtin;
 mod decls;
 mod exprs;
 mod game;

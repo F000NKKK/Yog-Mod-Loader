@@ -20,7 +20,7 @@ Notation: EBNF. `a?` optional, `a*` zero or more, `a+` one or more,
 - Source is UTF-8. Whitespace separates tokens; newlines and indentation
   mean nothing.
 - `;` ends a statement and a member without a block body
-  (`int X = 0;`, `int Area(int w, int h) => w * h;`); a block (`{ … }`)
+  (`i32 X = 0;`, `i32 Area(i32 w, i32 h) => w * h;`); a block (`{ … }`)
   ends its own declaration or statement.
 - Comments: `// …` to the end of the line, `/* … */`, `/// …` a doc
   comment for the next declaration (shown by the LSP and IDLE).
@@ -55,7 +55,8 @@ Reserved everywhere:
 using mod class struct record enum interface component system extend unit
 public private internal protected static const readonly new this base
 abstract sealed virtual override typeof nameof default
-void var int long float double bool string byte char
+void var let mut i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 decimal bool char string object dynamic
+ref out move typeof nameof default
 if else switch foreach for in while do break continue return
 true false null is as and or not when
 async await try
@@ -112,7 +113,7 @@ Namespaces and `using`s work as in C#:
   `namespace Charge.Machines { … }` what's in its braces.
 - `using Yog.Ui;` brings in the types of a namespace (not the namespaces
   in it); `using static Yog.Chat;` the static members of a type
-  (`Broadcast(…)`); `using Grid = Dictionary<Pos, int>;` names a type or a
+  (`Broadcast(…)`); `using Grid = Dictionary<Pos, i32>;` names a type or a
   namespace; `global using …;` is every file's of the mod.
 - A simple name is, in turn: a type of the namespace the code is in (or
   one enclosing it); an alias; a type a `using` brings in — where two
@@ -168,13 +169,14 @@ method_decl = type_or_void IDENT generics? '(' params? ')' constraints? requires
 type_or_void = type | 'void' ;
 method_body = block | '=>' expr ';' ;
 params      = param (',' param)* ;
-param       = type IDENT ('=' expr)? ;
+param       = pass? type IDENT ('=' expr)? ;
+pass        = 'in' | 'ref' | 'out' | 'move' ;                       (* ys.md §3 Memory *)
 requires    = 'requires' expr ;                      (* a guard: commands, server methods called by clients *)
 generics    = '<' IDENT (',' IDENT)* '>' ;
 constraints = ('where' IDENT ':' type (',' type)*)+ ;
 
 field_decl  = type IDENT bound? ('=' expr)? migration? ';'          (* a field; with `const`, a constant *)
-bound       = 'in' range_expr ;                      (* int Level in 0..100: kept in range *)
+bound       = 'in' range_expr ;                      (* i32 Level in 0..100: kept in range *)
             | type IDENT '=>' expr ';'                               (* a computed property *)
             | type IDENT '{' accessor+ '}' ('=' expr ';')? ;          (* a property with accessors *)
 accessor    = ('get' | 'set' | 'init') (';' | method_body) ;
@@ -182,7 +184,7 @@ migration   = 'was' IDENT (':' type)? ;              (* an old save's name and t
 ```
 
 ```ys
-int Area(int w, int h) => w * h;
+i32 Area(i32 w, i32 h) => w * h;
 
 void Greet(Player player) {
     player.Say("Hello, {player.Name}!");
@@ -204,7 +206,7 @@ class_mod   = 'abstract' | 'sealed' | 'static' ;
 struct_decl = 'struct' IDENT generics? primary_ctor? bases? constraints? type_body ;
 record_decl = 'record' ('class' | 'struct')? IDENT generics? primary_ctor bases? constraints? (type_body | ';') ;
 enum_decl   = 'enum' IDENT generics? (':' type)? '{' variant (',' variant)* ','? (';' member*)? '}' ;
-variant     = IDENT (primary_ctor | '=' expr)? ;                     (* Idle, Charging(int Rate), Wood = 1 *)
+variant     = IDENT (primary_ctor | '=' expr)? ;                     (* Idle, Charging(i32 Rate), Wood = 1 *)
 generics    = '<' generic (',' generic)* '>' ;
 generic     = ('in' | 'out')? IDENT ;                                (* variance: interfaces, delegates *)
 constraints = ('where' IDENT ':' constraint (',' constraint)*)+ ;
@@ -220,14 +222,14 @@ ctor_decl   = IDENT '(' params? ')' (':' ('this' | 'base') call_args)? block ;  
 ```
 
 ```ys
-record Pos(int X, int Y, int Z);
+record Pos(i32 X, i32 Y, i32 Z);
 
 class Timer(Ticks every) {
     Ticks Left = every;
     public Timer() : this(20t) { }
 }
 
-enum Mode { Idle, Charging(int Rate), Full }
+enum Mode { Idle, Charging(i32 Rate), Full }
 
 interface IChargeable {
     Energy Room { get; }
@@ -247,7 +249,7 @@ content_decl = content_kind IDENT primary_ctor? bases? has? '{' content_item* '}
 content_kind = 'block' | 'item' | 'entity' | 'fluid' | 'recipe' | IDENT ;   (* open: a mod's own content kinds *)
 has          = 'has' component_use (',' component_use)* ;
 component_use = path call_args? ;                                    (* a component and its arguments *)
-content_item = IDENT '=' expr ';'                                    (* a property: Hardness = 2.0f; *)
+content_item = IDENT '=' expr ';'                                    (* a property: Hardness = 2.0f32; *)
              | member ;
 ```
 
@@ -324,7 +326,7 @@ mod Charge {
 ### 2.7 Events, tests, native
 
 ```ebnf
-event_member = modifiers? 'event' type IDENT ';' ;                    (* public event Action<Player, int> Charged; *)
+event_member = modifiers? 'event' type IDENT ';' ;                    (* public event Action<Player, i32> Charged; *)
 test_decl    = 'test' STRING block ;
 version_cond = 'mc' ( ('>=' | '<=' | '>' | '<' | '==') VERSION | VERSION '..' VERSION ) ;
 native_decl  = 'native' STRING '{' (type_or_void IDENT '(' params? ')' ';')* '}' ;
@@ -339,8 +341,10 @@ block       = '{' stmt* '}' ;
 stmt        = local_decl ';' | expr ';' | assign ';' | block
             | if_stmt | foreach_stmt | for_stmt | while_stmt | do_stmt
             | 'break' ';' | 'continue' ';' | 'return' expr? ';' | 'skip' expr? ';' ;
-local_decl  = ('var' | type) IDENT ('=' expr)?
-            | 'var' '(' IDENT (',' IDENT)+ ')' '=' expr ;            (* deconstruction *)
+local_decl  = 'let' 'mut'? binding (':' type)? ('=' expr)?
+            | ('var' | type) IDENT ('=' expr)?
+            | 'var' binding '=' expr ;
+binding     = IDENT | '(' IDENT (',' IDENT)+ ')' ;                   (* deconstruction *)
 assign      = place assign_op expr ;
 assign_op   = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '??=' ;
 place       = postfix ;                                              (* a name, a member, an index *)
@@ -388,7 +392,8 @@ lambda      = (IDENT | '(' (param_or_name (',' param_or_name)*)? ')') '=>' (expr
 param_or_name = type? IDENT ;
 block_lambda = '{' stmt* expr? '}' ;                               (* trailing lambda: `it` its parameter, the last expression its value *)
 call_args   = '(' (arg (',' arg)*)? ')' ;
-arg         = (IDENT ':')? expr ;                                  (* named arguments, as in C# *)
+arg         = (IDENT ':')? pass? (out_decl | expr) ;               (* named arguments, as in C# *)
+out_decl    = ('let' 'mut'? | 'var' | type) IDENT ;                  (* F(out let x) *)
 ```
 
 `list.Select(x => x * 2)` and `list.Select { it * 2 }` are the same call:
@@ -436,7 +441,7 @@ Waiting, periods and world searches are the standard library (`Task`,
 server async void Arm(Charger charger) {
     charger.Glow();
     await Task.Delay(5s);                // the game goes on meanwhile
-    charger.Explode(power: 2.0f);
+    charger.Explode(power: 2.0f32);
 }
 
 Task.Every(10s, () => { … });            // a period
@@ -466,12 +471,12 @@ type `Sender` receives the caller.
 
 ```ebnf
 type        = base_type ('&' base_type)* '?'? ;                     (* Charge & Owned: an object with both *)
-base_type   = path generic_args?                                     (* int, List<T>, LivingEntity, a component *)
+base_type   = path generic_args?                                     (* i32, List<T>, LivingEntity, a component *)
             | '(' type IDENT? (',' type IDENT?)+ ')' ;               (* a tuple *)
 generic_args = '<' type (',' type)* '>' ;
 ```
 
-Built in: `int` (32-bit) `long` `byte` `char` `float` `double` `bool`
+Built in, named as Rust's: `i8` `i16` `i32` `i64` `u8` `u16` `u32` `u64` `f32` `f64`, and `decimal` `char` `bool` `string` `object` `dynamic`; a literal takes one as a suffix (`5u8`, `2.0f32`)
 `string` `Text` `Ticks` `Seconds` `Blocks` `List<T>` `Dictionary<K, V>`
 `HashSet<T>` `Func<…>` `Action<…>` `Expression<…>` `Result<T, E>` `Task` `Sender`
 `Slots<T>`, content refs (`ItemRef`, `BlockRef`, `TagRef`, … one per
@@ -488,8 +493,8 @@ LINQ's names, on every collection and on the world's queries:
 var names = players.Where { it.Level > 10 }.Select { it.Name };
 foreach (var battery in Inventory.OfType<Battery>()) battery.Charge.Fill();
 var total = stacks.Sum(s => s.Count);
-List<int> empty = [];
-Dictionary<string, int> scores = ["alex" => 3, "sam" => 5];
+List<i32> empty = [];
+Dictionary<string, i32> scores = ["alex" => 3, "sam" => 5];
 ```
 
 ## 6. Patches (`.yns` only)
@@ -554,10 +559,10 @@ unit Energy;                                 // a mod's own unit: 100Energy
 
 record Link(Pos From, Pos To);
 
-enum Mode { Idle, Charging(int Rate), Full }
+enum Mode { Idle, Charging(i32 Rate), Full }
 
 component Charge(Energy capacity) {
-    saved synced Energy Energy in 0..capacity = 0 was Power: int;
+    saved synced Energy Energy in 0..capacity = 0 was Power: i32;
     public Energy Capacity => capacity;
     public Energy Room => capacity - Energy;
 
@@ -569,7 +574,7 @@ component Charge(Energy capacity) {
 }
 
 extend Player {
-    saved int Visits = 0;
+    saved i32 Visits = 0;
     public bool IsCharged => Inventory.Any { it is Battery b && b.Charge.Energy > 0 };
 }
 
@@ -579,7 +584,7 @@ block Charger has Charge(Res.Charger.Capacity) {
 
     saved Mode Mode = Mode.Idle;
     Slots<Battery> Inventory = new(4);
-    tune int Rate = 4;
+    tune i32 Rate = 4;
 
     Charger() {
         Tick += Charge;
@@ -610,7 +615,7 @@ recipe Battery : Shaped {
     Keys = ['R' => @item:minecraft:redstone, 'I' => @item:minecraft:iron_ingot, 'G' => @item:minecraft:gold_ingot];
 }
 
-client void Welcome(int times) {
+client void Welcome(i32 times) {
     Toast(t"charge.welcome"(times));
 }
 
@@ -630,7 +635,7 @@ server void Started(Server.StartedArgs e) {
 
 screen ChargerScreen(Charger block) : Ui("charger.yui") {
     Energy Energy => block.Charge.Energy;
-    float Fill => Energy / block.Charge.Capacity;
+    f32 Fill => Energy / block.Charge.Capacity;
     server void Dump() { block.Charge.Energy = 0; }
 }
 
@@ -658,30 +663,30 @@ using Game.Server;                           // MinecraftServer
 using Player = Game.World.Entity.Player.Player;   // the game's (Yog's Player is every file's)
 
 patch LivingEntity {
-    add saved float Shield = 0;
+    add saved f32 Shield = 0;
     add : IChargeable;
 
-    before bool Hurt(DamageSource source, float amount) {
+    before bool Hurt(DamageSource source, f32 amount) {
         if (Shield >= amount) {
             Shield -= amount;
             skip false;
         }
     }
 
-    after float GetMaxHealth() { result += Shield / 2; }
+    after f32 GetMaxHealth() { result += Shield / 2; }
 
     inside void Tick() {
         around call AiStep() { if (!Level.IsFrozen) proceed(); }
     }
 
-    inside void Knockback(double strength, double x, double z) {
+    inside void Knockback(f64 strength, f64 x, f64 z) {
         at call Vec3.Add first (x) { x * 0.5 }
         constant 0.4 => 0.2;
     }
 }
 
 patch MinecraftServer {
-    after void TickServer(BooleanSupplier hasTime) uses local long start, var local long spent #1 {
+    after void TickServer(BooleanSupplier hasTime) uses local i64 start, var local i64 spent #1 {
         if (spent > Res.Limits.SlowTick) Log.Warn("slow tick: {spent} ns");
     }
 }
@@ -717,11 +722,11 @@ lossy one is an explicit cast or call.
 | `Seconds` → `Ticks` | implicit (×20, exact) | |
 | `Ticks` → `Seconds` | explicit `t.Seconds` (fractional) | `7t` is 0.35 s |
 | `Ticks` ↔ `TimeSpan` | never implicit | game time vs wall time: `/tick rate` and lag make 20 t ≠ 1 s |
-| `Blocks` → `double` | implicit; back explicit | a bare number could be anything |
-| `int` → `long` / `float` / `double` | implicit (as C#) | widening |
-| `float` → `int` | `(int)x` truncates, or `Math.Floor`, `Math.Round` | coordinates need `Floor`: −0.5 is block −1 |
+| `Blocks` → `f64` | implicit; back explicit | a bare number could be anything |
+| `i32` → `i64` / `f32` / `f64` | implicit (as C#) | widening |
+| `f32` → `i32` | `(i32)x` truncates, or `Math.Floor`, `Math.Round` | coordinates need `Floor`: −0.5 is block −1 |
 | `Vec3` → `Pos` | explicit `v.BlockPos` (floor); `Pos` → `Vec3`: `pos.Center` | |
-| `int` → `int in a..b` | a literal checked at build; an expression: `Math.Clamp(…)` or `as` | a clamp is visible |
+| `i32` → `i32 in a..b` | a literal checked at build; an expression: `Math.Clamp(…)` or `as` | a clamp is visible |
 | `string` → `Text` | implicit (literal text) | |
 | `Text` → `string` | `text.Resolve()`, `client` only | it needs the client's language |
 | a mod's units | declared conversions only (`unit FE = Energy * 1;`); different quantities never mix | |

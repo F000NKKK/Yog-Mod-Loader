@@ -47,7 +47,7 @@ pub enum Role {
     },
     /// Marks the declaration after it.
     Modifier(Modifier),
-    /// A built-in type (`int`, `string`, `void`).
+    /// A built-in type (`i32`, `string`, `void`).
     BuiltinType,
     /// Starts an item of a patch (`before`, `add`, …).
     PatchItem {
@@ -121,19 +121,21 @@ macro_rules! words {
 
 words! {
     // Files and declarations. `mod.rs` can't name a module file: its says `_word`.
-    using, global, namespace, module = "words/mod_word.rs", class, record, interface, union, r#enum, unit,
+    using, global, namespace, module = "words/mod_word.rs", class, r#struct, record, interface, r#enum, unit,
     component, system, extend, event, test, native, screen, command, patch, targets,
     // Parts of declarations.
-    was, requires, every, has, r#where, when, get, set, init, mc,
+    was, requires, every, has, r#where, when, get, set, init, mc, out,
     // Modifiers.
-    public, private, internal, r#static, r#const, readonly, r#async,
+    public, private, internal, protected, r#static, r#const, readonly, r#async,
+    r#abstract, r#virtual, r#override, sealed,
     server, client, shared, saved, synced, tune,
     // Built-in types.
-    void, int, long, float, double, bool, string, byte, char,
+    void, i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, decimal, bool, char, string, object,
+    dynamic,
     // Statements.
-    var, r#if, r#else, foreach, r#for, r#while, r#do, r#break, r#continue, r#return, skip,
+    var, r#let, r#mut, r#if, r#else, foreach, r#for, r#while, r#do, r#break, r#continue, r#return, skip,
     // Expressions.
-    new, this, r#true, r#false, null, r#await, r#try, is, r#as, r#in, switch, and, or, not,
+    new, this, base, r#ref, r#move, r#typeof, nameof, default, r#true, r#false, null, r#await, r#try, is, r#as, r#in, switch, and, or, not,
     // Patches: items, points, selectors.
     add, before, after, inside, replace, read, write, priority, uses, local,
     around, at, call, constant, first, last,

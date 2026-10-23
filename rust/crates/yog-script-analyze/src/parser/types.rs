@@ -6,7 +6,7 @@ use crate::ast::{Name, Type, TypeKind};
 use crate::source::token::{Punct, Tok};
 
 impl Parser<'_, '_, '_> {
-    /// A type: `int`, `List<T>`, `(int X, int Y)`, `Player?`, `Charge & Owned`.
+    /// A type: `i32`, `List<T>`, `(i32 X, i32 Y)`, `Player?`, `Charge & Owned`.
     pub(crate) fn ty(&mut self) -> PResult<Type> {
         let start = self.span();
         let first = self.ty_one()?;
@@ -68,7 +68,7 @@ impl Parser<'_, '_, '_> {
         self.list(Punct::Gt, Self::ty)
     }
 
-    /// `(int X, int Y)`.
+    /// `(i32 X, i32 Y)`.
     fn ty_tuple(&mut self) -> PResult<Type> {
         let start = self.need(Punct::LParen)?;
         let items = self.list(Punct::RParen, |p| {

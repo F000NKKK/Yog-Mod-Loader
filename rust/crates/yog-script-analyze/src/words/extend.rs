@@ -8,7 +8,7 @@ use crate::words::{Role, Word};
 pub static WORD: Word = Word {
     text: "extend",
     doc: "Adds to a type, the game's included: members (`extend Player { public bool IsCharged => …; }`), \
-          state (`saved int Visits = 0;`: per player), interfaces (`: IName`) and components \
+          state (`saved i32 Visits = 0;`: per player), interfaces (`: IName`) and components \
           (`extend Player has Charge(500);`).",
     reserved: true,
     roles: &[Role::Decl { starts: None, parse }],

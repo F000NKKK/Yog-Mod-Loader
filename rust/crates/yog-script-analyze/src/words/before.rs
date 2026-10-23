@@ -6,7 +6,7 @@ use crate::words::{Role, Word, call, local};
 
 pub static WORD: Word = Word {
     text: "before",
-    doc: "Runs before the patched method; inside one, before a call in it (`before call Spawn() { … }`) (`@Inject` at its head): `before bool Hurt(DamageSource source, float amount) { … }`. `skip value;` ends the method with that value; falling through runs it.",
+    doc: "Runs before the patched method; inside one, before a call in it (`before call Spawn() { … }`) (`@Inject` at its head): `before bool Hurt(DamageSource source, f32 amount) { … }`. `skip value;` ends the method with that value; falling through runs it.",
     reserved: false,
     roles: &[Role::PatchItem { parse }, Role::Point { parse: point }],
 };

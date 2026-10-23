@@ -1,6 +1,6 @@
 //! The types a source declares, as the checker looks members up in them:
 //! fields and properties by type, methods by signature, the components an
-//! object has, an enum's or a union's cases.
+//! object has, an enum's cases.
 
 use std::collections::HashMap;
 
@@ -78,6 +78,7 @@ impl OwnTypes {
                 header,
                 body,
                 word,
+                ..
             } => {
                 // A record's constructor parameters are its properties.
                 let props = (word.text == crate::words::record::WORD.text)
@@ -99,14 +100,7 @@ impl OwnTypes {
             } => (name, body.as_slice(), header.has.as_slice(), None),
             // The mod is an object too: its members, its constructor.
             DeclKind::Mod { name, body } => (name, body.as_slice(), &[][..], None),
-            DeclKind::Enum { name, cases } => {
-                self.namespaces
-                    .insert(name.text.clone(), self.current.clone());
-                let t = self.types.entry(name.text.clone()).or_default();
-                t.cases = cases.iter().map(|c| c.text.clone()).collect();
-                return;
-            }
-            DeclKind::Union {
+            DeclKind::Enum {
                 name,
                 variants,
                 body,

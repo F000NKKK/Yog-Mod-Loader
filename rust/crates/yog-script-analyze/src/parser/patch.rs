@@ -7,7 +7,7 @@ use crate::source::token::{Punct, Tok};
 use crate::words::{self, ALL, Role};
 
 impl Parser<'_, '_, '_> {
-    /// `bool Hurt(DamageSource source, float amount)`, `void Tick()`.
+    /// `bool Hurt(DamageSource source, f32 amount)`, `void Tick()`.
     pub(crate) fn target(&mut self) -> PResult<Target> {
         let ret = if self.eat_word(&words::void::WORD) {
             None
@@ -19,7 +19,7 @@ impl Parser<'_, '_, '_> {
         Ok(Target { ret, name, params })
     }
 
-    /// `AiStep`, `Vec3.Add`, `Vec3.Add(double, double)`.
+    /// `AiStep`, `Vec3.Add`, `Vec3.Add(f64, f64)`.
     pub(crate) fn callee(&mut self) -> PResult<Callee> {
         let path = self.path("a method")?;
         let args = if self.at(Punct::LParen) && !self.lone_name_in_parens() {

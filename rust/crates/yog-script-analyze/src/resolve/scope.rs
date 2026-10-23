@@ -35,6 +35,15 @@ pub enum DefKind {
 }
 
 impl DefKind {
+    /// A local: `let mut`/`var` or `let`.
+    pub fn local(mutable: bool) -> Self {
+        if mutable {
+            DefKind::Variable
+        } else {
+            DefKind::ReadOnly
+        }
+    }
+
     /// Whether it may be assigned to.
     pub fn assignable(self) -> bool {
         matches!(self, DefKind::Variable | DefKind::Param | DefKind::Field)

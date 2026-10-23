@@ -8,8 +8,8 @@ use crate::words::{Role, Word, uses, var};
 pub static WORD: Word = Word {
     text: "local",
     doc: "A local of the patched method, by name (the class index keeps the game's local names) or by \
-          type and order (`#1`): `uses local long start` reads it, `var local` writes it back; inside a \
-          method, `local float speed = speed * 2;` changes it (`@ModifyVariable`).",
+          type and order (`#1`): `uses local i64 start` reads it, `var local` writes it back; inside a \
+          method, `local f32 speed = speed * 2;` changes it (`@ModifyVariable`).",
     reserved: false,
     roles: &[Role::Point { parse }],
 };

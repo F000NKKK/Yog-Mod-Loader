@@ -3,7 +3,9 @@
 
 use super::naming::Case;
 use super::{Context, DefKind, Resolver};
-use crate::ast::{Decl, DeclKind, Method, MethodBody, Modifier, Name, Param, TypeHeader};
+use crate::ast::{
+    Constraint, Decl, DeclKind, Generic, Method, MethodBody, Modifier, Param, TypeHeader, Where,
+};
 use crate::words::{interface, record};
 
 impl Resolver<'_, '_> {
@@ -28,9 +30,7 @@ impl Resolver<'_, '_> {
             // A `using` brings in a namespace's types, which aren't this
             // source's to know: it declares no name (an alias does).
             DeclKind::Alias { name, .. } => self.define(name, DefKind::Import, Case::Any, again),
-            DeclKind::Unit { name, .. }
-            | DeclKind::Union { name, .. }
-            | DeclKind::Enum { name, .. } => {
+            DeclKind::Unit { name, .. } | DeclKind::Enum { name, .. } => {
                 self.define(name, DefKind::Type, Case::Pascal, again);
             }
             DeclKind::Type { word, name, .. } => {
@@ -108,7 +108,10 @@ impl Resolver<'_, '_> {
             }
             DeclKind::Ctor(c) => self.scoped(|r| {
                 r.params(&c.params);
-                c.this_args.iter().flatten().for_each(|a| r.expr(&a.value));
+                c.chain
+                    .iter()
+                    .flat_map(|(_, args)| args)
+                    .for_each(|a| r.expr(&a.value));
                 r.block(&c.body);
             }),
             DeclKind::Type {
@@ -124,23 +127,21 @@ impl Resolver<'_, '_> {
                 r.header(header, false);
                 r.decls(body);
             }),
-            DeclKind::Union {
+            DeclKind::Enum {
                 generics,
+                base,
                 variants,
                 body,
                 ..
             } => self.members(|r| {
                 r.generics(generics);
+                r.opt_ty(base.as_ref());
                 for v in variants {
                     r.define(&v.name, DefKind::Case, Case::Pascal, false);
                     v.fields.iter().for_each(|f| r.ty(&f.ty));
+                    r.opt_expr(v.value.as_ref());
                 }
                 r.decls(body);
-            }),
-            DeclKind::Enum { cases, .. } => self.members(|r| {
-                for c in cases {
-                    r.define(c, DefKind::Case, Case::Pascal, false);
-                }
             }),
             DeclKind::Unit { value, .. } => self.opt_expr(value.as_ref()),
             _ => self.walk_rest(d),
@@ -205,9 +206,7 @@ impl Resolver<'_, '_> {
             self.define(&p.name, kind, case, false);
         }
         h.bases.iter().for_each(|b| self.ty(b));
-        for (_, bounds) in &h.constraints {
-            bounds.iter().for_each(|b| self.ty(b));
-        }
+        self.constraints(&h.constraints);
         h.has.iter().for_each(|c| self.expr(c));
     }
 
@@ -219,9 +218,7 @@ impl Resolver<'_, '_> {
                 r.generics(&m.generics);
                 r.params(&m.params);
                 r.opt_ty(m.ret.as_ref());
-                for (_, bounds) in &m.constraints {
-                    bounds.iter().for_each(|b| r.ty(b));
-                }
+                r.constraints(&m.constraints);
                 r.opt_expr(m.requires.as_ref());
                 r.body(m.body.as_ref(), awaits);
             });
@@ -266,9 +263,17 @@ impl Resolver<'_, '_> {
         }
     }
 
-    fn generics(&mut self, generics: &[Name]) {
+    fn generics(&mut self, generics: &[Generic]) {
         for g in generics {
-            self.define(g, DefKind::Type, Case::TypeParam, false);
+            self.define(&g.name, DefKind::Type, Case::TypeParam, false);
+        }
+    }
+
+    fn constraints(&mut self, constraints: &[Where]) {
+        for b in constraints.iter().flat_map(|w| &w.bounds) {
+            if let Constraint::Type(t) = b {
+                self.ty(t);
+            }
         }
     }
 }

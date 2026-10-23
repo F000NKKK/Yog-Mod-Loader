@@ -5,7 +5,7 @@ use yog_ids::script_problem;
 
 use super::{Context, DefKind, Resolver};
 use crate::ast::{
-    Element, Expr, ExprKind, IT, LambdaBody, LambdaParam, StrSeg, Type, TypeKind, UnOp,
+    Arg, Element, Expr, ExprKind, IT, LambdaBody, LambdaParam, Pass, StrSeg, Type, TypeKind, UnOp,
 };
 
 impl Resolver<'_, '_> {
@@ -23,6 +23,18 @@ impl Resolver<'_, '_> {
                 e.span,
                 "`this` is the object in a type's, a content's, a component's or a patch's members",
             ),
+            ExprKind::Base if !self.cx.member => self.report.error(
+                script_problem::THIS_OUTSIDE_MEMBER,
+                e.span,
+                "`base` is the object as its base class, in a class's members",
+            ),
+            ExprKind::TypeOf(ty) => self.ty(ty),
+            ExprKind::Declare { ty, name, mutable } => {
+                self.opt_ty(ty.as_ref());
+                self.bind(name, DefKind::local(*mutable));
+            }
+            ExprKind::NameOf(expr) => self.expr(expr),
+            ExprKind::Default(ty) => self.opt_ty(ty.as_ref()),
             ExprKind::Str(segs) => {
                 for s in segs {
                     if let StrSeg::Expr(e) = s {
@@ -55,6 +67,14 @@ impl Resolver<'_, '_> {
                 self.expr(expr);
             }
             _ => self.compound(e),
+        }
+    }
+
+    /// An argument: what `ref` or `out` lends must be assignable.
+    fn arg(&mut self, a: &Arg) {
+        match a.pass {
+            Some(Pass::Ref | Pass::Out) => self.assigned(&a.value),
+            _ => self.expr(&a.value),
         }
     }
 
@@ -114,7 +134,7 @@ impl Resolver<'_, '_> {
             }
             ExprKind::Call { callee, args } => {
                 self.expr(callee);
-                args.iter().for_each(|a| self.expr(&a.value));
+                args.iter().for_each(|a| self.arg(a));
             }
             ExprKind::Index { expr, index } => {
                 self.expr(expr);

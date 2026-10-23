@@ -1,10 +1,10 @@
-//! `long`.
+//! `i8`.
 
 use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
-    text: "long",
-    doc: "A 64-bit whole number.",
+    text: "i8",
+    doc: "A signed 8-bit whole number (System.SByte). A literal takes it as a suffix: `5i8`.",
     reserved: true,
     roles: &[Role::BuiltinType],
 };

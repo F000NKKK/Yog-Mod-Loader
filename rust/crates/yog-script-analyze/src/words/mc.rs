@@ -7,7 +7,7 @@ use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
     text: "mc",
-    doc: "The game's version, compared: `Targets = mc 1.20.1..26.2;`, `version (mc >= 1.21) { … }`.",
+    doc: "The game's version, compared: `Targets = mc 1.20.1..26.2;`, `targets mc >= 1.21;`.",
     reserved: false,
     roles: &[Role::Prefix { starts: Some(starts), parse }],
 };

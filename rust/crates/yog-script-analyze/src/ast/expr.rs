@@ -30,7 +30,21 @@ pub enum ExprKind {
     Null,
     Ident(String),
     This,
+    /// `base`: `this` as its base class (`base.Tick()`).
+    Base,
     It,
+    /// `out let x`, `out i32 x`: a local declared where a method gives it.
+    Declare {
+        ty: Option<Type>,
+        name: Name,
+        mutable: bool,
+    },
+    /// `typeof(T)`: its `System.Type`.
+    TypeOf(Type),
+    /// `nameof(x.Y)`: its last name, as a string.
+    NameOf(Box<Expr>),
+    /// `default`, `default(T)`: the type's zero value.
+    Default(Option<Type>),
     /// `mc >= 1.21`: the running game's version.
     Mc(VersionCond),
     Tuple(Vec<Expr>),
@@ -51,7 +65,7 @@ pub enum ExprKind {
         op: UnOp,
         expr: Box<Expr>,
     },
-    /// `(int)x`.
+    /// `(i32)x`.
     Cast {
         ty: Type,
         expr: Box<Expr>,
@@ -149,6 +163,7 @@ pub enum LambdaBody {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Arg {
     pub name: Option<Name>,
+    pub pass: Option<super::Pass>,
     pub value: Expr,
 }
 

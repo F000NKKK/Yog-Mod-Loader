@@ -105,6 +105,7 @@ impl Parser<'_, '_, '_> {
             ty: Some(ty),
             binding: Binding::One(name),
             value,
+            mutable: true,
         })
     }
 

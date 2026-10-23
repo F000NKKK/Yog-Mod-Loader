@@ -20,7 +20,7 @@ fn game(mc: &str) -> ClassIndex {
     }
 }
 
-const SRC: &str = "targets mc 1.20.1..26.2;\n\n#if MC >= 1.21\nint Armor() => 2;\n#else\nint Armor() => \"old\";\n#endif\n";
+const SRC: &str = "targets mc 1.20.1..26.2;\n\n#if MC >= 1.21\ni32 Armor() => 2;\n#else\ni32 Armor() => \"old\";\n#endif\n";
 
 #[test]
 fn each_version_reads_its_branch() {

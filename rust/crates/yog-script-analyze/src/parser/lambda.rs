@@ -1,4 +1,4 @@
-//! Lambdas: `x => …`, `(a, b) => …`, `(int a) => …`, and the block after a
+//! Lambdas: `x => …`, `(a, b) => …`, `(i32 a) => …`, and the block after a
 //! call (`list.Select { it * 2 }`), whose parameter is `it`.
 
 use super::{PResult, Parser};

@@ -19,11 +19,14 @@ pub enum Binding {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
-    /// `var x = …;`, `int x;`, `var (a, b) = …;`; `ty` None: `var`.
+    /// `let x = …;`, `let mut x = …;`, `var x = …;`, `i32 x;`,
+    /// `let (a, b) = …;`; `ty` None: its value's.
     Local {
         ty: Option<Type>,
         binding: Binding,
         value: Option<Expr>,
+        /// May be assigned again (`let mut`, `var`, a typed local).
+        mutable: bool,
     },
     /// `place op= value;`; `op` None for `=`.
     Assign {

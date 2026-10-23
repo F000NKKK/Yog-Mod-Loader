@@ -18,9 +18,9 @@ impl Checker<'_, '_, '_> {
 
     fn stmt(&mut self, s: &Stmt) {
         match s {
-            Stmt::Local { ty, binding, value } => {
-                self.local_decl(ty.as_ref(), binding, value.as_ref())
-            }
+            Stmt::Local {
+                ty, binding, value, ..
+            } => self.local_decl(ty.as_ref(), binding, value.as_ref()),
             Stmt::Assign { place, op, value } => {
                 let t = self.expr(place);
                 // `=`, and `+=`/`-=` on a delegate (an event's subscription):

@@ -6,7 +6,7 @@ use crate::words::{Role, Word, call, local};
 
 pub static WORD: Word = Word {
     text: "after",
-    doc: "Runs after the patched method (inside one, after a call in it: `after call Spawn() { … }`): `after float GetMaxHealth() { result += Shield / 2; }` — `result` is its value, assignable.",
+    doc: "Runs after the patched method (inside one, after a call in it: `after call Spawn() { … }`): `after f32 GetMaxHealth() { result += Shield / 2; }` — `result` is its value, assignable.",
     reserved: false,
     roles: &[Role::PatchItem { parse }, Role::Point { parse: point }],
 };

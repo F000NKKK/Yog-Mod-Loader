@@ -3,7 +3,7 @@
 use yog_ids::script_problem;
 
 use super::{Context, DefKind, Resolver};
-use crate::ast::{Binding, Block, Expr, ExprKind, Stmt};
+use crate::ast::{Binding, Block, Expr, ExprKind, Stmt, Type};
 
 impl Resolver<'_, '_> {
     /// A block in a scope of its own.
@@ -24,11 +24,12 @@ impl Resolver<'_, '_> {
 
     fn stmt(&mut self, s: &Stmt) {
         match s {
-            Stmt::Local { ty, binding, value } => {
-                self.opt_ty(ty.as_ref());
-                self.opt_expr(value.as_ref());
-                self.binding(binding, DefKind::Variable);
-            }
+            Stmt::Local {
+                ty,
+                binding,
+                value,
+                mutable,
+            } => self.local(ty.as_ref(), binding, value.as_ref(), *mutable),
             Stmt::Assign { place, value, .. } => {
                 self.assigned(place);
                 self.expr(value);
@@ -89,18 +90,21 @@ impl Resolver<'_, '_> {
             }
             Stmt::Break(_) | Stmt::Continue(_) => {}
             Stmt::Return(value, _) => self.opt_expr(value.as_ref()),
-            Stmt::Skip(value, at) => {
-                if !self.cx.before {
-                    self.report.error(
-                        script_problem::SKIP_OUTSIDE_BEFORE,
-                        *at,
-                        "`skip` ends the patched method: it goes in a patch's `before`",
-                    );
-                }
-                self.opt_expr(value.as_ref());
-            }
+            Stmt::Skip(value, at) => self.skip(value.as_ref(), *at),
             Stmt::Expr(e) | Stmt::Value(e) => self.expr(e),
         }
+    }
+
+    /// `skip value;`: only in a patch's `before`.
+    fn skip(&mut self, value: Option<&Expr>, at: crate::source::token::Span) {
+        if !self.cx.before {
+            self.report.error(
+                script_problem::SKIP_OUTSIDE_BEFORE,
+                at,
+                "`skip` ends the patched method: it goes in a patch's `before`",
+            );
+        }
+        self.opt_expr(value);
     }
 
     /// A loop's body: in a scope, `break` allowed.
@@ -113,6 +117,13 @@ impl Resolver<'_, '_> {
     }
 
     /// The names a local declaration or a `foreach` binds.
+    /// `let mut x: T = value;`: the value read before `x` is.
+    fn local(&mut self, ty: Option<&Type>, b: &Binding, value: Option<&Expr>, mutable: bool) {
+        self.opt_ty(ty);
+        self.opt_expr(value);
+        self.binding(b, DefKind::local(mutable));
+    }
+
     fn binding(&mut self, b: &Binding, kind: DefKind) {
         match b {
             Binding::One(n) => self.bind(n, kind),
@@ -122,7 +133,7 @@ impl Resolver<'_, '_> {
 
     /// The place an assignment writes: a name of the source's own must be
     /// assignable (members and the game's are checked with their types).
-    fn assigned(&mut self, place: &Expr) {
+    pub(super) fn assigned(&mut self, place: &Expr) {
         let ExprKind::Ident(name) = &place.kind else {
             self.expr(place);
             return;
