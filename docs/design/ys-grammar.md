@@ -52,8 +52,9 @@ the registries of every targeted version.
 Reserved everywhere:
 
 ```
-using mod class record union enum interface component system extend unit
-public private internal static const readonly new this
+using mod class struct record enum interface component system extend unit
+public private internal protected static const readonly new this base
+abstract sealed virtual override typeof nameof default
 void var int long float double bool string byte char
 if else switch foreach for in while do break continue return
 true false null is as and or not when
@@ -131,7 +132,9 @@ decl        = attributes? doc? modifiers? ( mod_decl | method_decl | field_decl
 
 modifiers   = modifier+ ;
 modifier    = 'public' | 'private' | 'internal'         (* access; members are private, types internal (the mod) *)
+            | 'protected'
             | 'static' | 'const' | 'readonly' | 'async'
+            | 'abstract' | 'virtual' | 'override' | 'sealed' | 'new'   (* inheritance, as C#'s *)
             | 'server' | 'client' | 'shared'          (* side, §4.1 of ys.md *)
             | 'saved' | 'synced' | 'tune' ;
 attributes  = ('[' attribute (',' attribute)* ']')+ ;   (* [Obsolete("…")] *)
@@ -141,7 +144,7 @@ attribute   = path call_args? ;
 ### 2.1 The mod
 
 ```ebnf
-mod_decl    = 'mod' IDENT '{' (IDENT '=' expr ';')* '}' ;
+mod_decl    = 'mod' IDENT '{' (IDENT '=' expr ';' | member)* '}' ;   (* settings, then members; its constructor runs on load *)
 ```
 
 ```ys
@@ -155,6 +158,8 @@ mod Charge {
 `Targets` takes a version range (`mc 1.20.1..26.2`, `mc >= 1.21`); a
 resource file's entries are reachable as `Res.<Path>`. The mod's id is its
 name in snake_case (`charge`) unless `Id = "…";` says otherwise.
+`panic`, `unreachable`, `todo` and `assert` are `System` functions (as
+Rust's macros), not keywords.
 
 ### 2.2 Methods, fields, properties
 
@@ -193,20 +198,25 @@ methods called on the other side are messages (`x.Client.F()`,
 ### 2.3 Types of one's own
 
 ```ebnf
-type_decl   = class_decl | record_decl | union_decl | enum_decl | interface_decl | unit_decl ;
-class_decl  = 'class' IDENT generics? primary_ctor? bases? constraints? type_body ;
-record_decl = 'record' IDENT generics? primary_ctor bases? (type_body | ';') ;
-union_decl  = 'union' IDENT generics? '{' variant (',' variant)* ','? member* '}' ;
-variant     = IDENT primary_ctor? ;
-enum_decl   = 'enum' IDENT '{' IDENT (',' IDENT)* ','? '}' ;
+type_decl   = class_decl | struct_decl | record_decl | enum_decl | interface_decl | unit_decl ;
+class_decl  = class_mod* 'class' IDENT generics? primary_ctor? bases? constraints? type_body ;
+class_mod   = 'abstract' | 'sealed' | 'static' ;
+struct_decl = 'struct' IDENT generics? primary_ctor? bases? constraints? type_body ;
+record_decl = 'record' ('class' | 'struct')? IDENT generics? primary_ctor bases? constraints? (type_body | ';') ;
+enum_decl   = 'enum' IDENT generics? (':' type)? '{' variant (',' variant)* ','? (';' member*)? '}' ;
+variant     = IDENT (primary_ctor | '=' expr)? ;                     (* Idle, Charging(int Rate), Wood = 1 *)
+generics    = '<' generic (',' generic)* '>' ;
+generic     = ('in' | 'out')? IDENT ;                                (* variance: interfaces, delegates *)
+constraints = ('where' IDENT ':' constraint (',' constraint)*)+ ;
+constraint  = 'class' | 'struct' | 'new' '(' ')' | type ;
 interface_decl = 'interface' IDENT generics? bases? '{' member* '}' ;
 unit_decl   = 'unit' IDENT ('=' expr)? ';' ;                         (* a mod's own unit; `= 20t` defines it by another *)
 
 primary_ctor = '(' params? ')' ;                                     (* the type's constructor, its parameters in scope *)
-bases       = ':' type (',' type)* ;                                 (* interfaces; content kinds (§2.4) *)
+bases       = ':' type (',' type)* ;                                 (* a base class, then interfaces; content kinds (§2.4) *)
 type_body   = '{' member* '}' ;
 member      = attributes? doc? modifiers? (method_decl | field_decl | ctor_decl | handler) ;
-ctor_decl   = IDENT '(' params? ')' (':' 'this' call_args)? block ;  (* another constructor; IDENT is the type's *)
+ctor_decl   = IDENT '(' params? ')' (':' ('this' | 'base') call_args)? block ;  (* IDENT is the type's *)
 ```
 
 ```ys
@@ -217,7 +227,7 @@ class Timer(Ticks every) {
     public Timer() : this(20t) { }
 }
 
-union Mode { Idle, Charging(int Rate), Full }
+enum Mode { Idle, Charging(int Rate), Full }
 
 interface IChargeable {
     Energy Room { get; }
@@ -400,18 +410,22 @@ property_pat = type? '{' IDENT ':' pattern (',' IDENT ':' pattern)* '}' ;   (* {
 is_expr     = expr 'is' pattern ;                                   (* if (target is Monster m && m.IsAlive) *)
 ```
 
-A `switch` over a union or enum must cover every case (or `_`).
+A `switch` over an enum or a sealed class's subclasses must cover every
+case (or `_`): a case left out is an error.
 
 ### 3.4 Nulls and failures
 
 - `T?` may be `null`; other types can't be. `a?.B` is `null` if `a` is;
   `a ?? b` the fallback; `a!` asserts it isn't (a build warning where it
   can't be proven); `is` patterns narrow (`if (target is Player p)`).
-- A method returning `Result<T>` (`Ok(v)` / `Fail(reason)`): `try F()` is
-  `v`, or returns the failure from the caller. There are no exceptions
-  to catch: in a handler (`on`, a task, a patch), an unhandled failure
-  stops that handler and is reported with its `.ys` line (ys.md §4.5);
-  the game goes on.
+- A method returning `Result<T, E>` (`Ok(v)` / `Err(e)`): `try F()` is
+  `v`, or returns the `Err` from the caller (converted to its `E`), as
+  Rust's `F()?`. A `Result` left unused is a warning.
+- A bug panics (`panic(…)`, `Unwrap()` of an `Err`/`null`, `unreachable()`,
+  an index out of range). There are no exceptions to catch: a panic
+  unwinds to its handler's boundary (an event handler, a task, a patch),
+  which reports it with its `.ys` line (ys.md §4.5); the game goes on.
+  `Panic.SetHook` sees panics, `Panic.Catch` turns one into a `Result`.
 
 ### 3.5 Time and queries are library
 
@@ -459,7 +473,7 @@ generic_args = '<' type (',' type)* '>' ;
 
 Built in: `int` (32-bit) `long` `byte` `char` `float` `double` `bool`
 `string` `Text` `Ticks` `Seconds` `Blocks` `List<T>` `Dictionary<K, V>`
-`HashSet<T>` `Func<…>` `Action<…>` `Result<T>` `Task` `Sender`
+`HashSet<T>` `Func<…>` `Action<…>` `Expression<…>` `Result<T, E>` `Task` `Sender`
 `Slots<T>`, content refs (`ItemRef`, `BlockRef`, `TagRef`, … one per
 kind), and Yog's objects (`Player`, `Level`, `Entity`, `Block`,
 `ItemStack`, …). In a `.yns` only, the game's classes are types by their
@@ -540,7 +554,7 @@ unit Energy;                                 // a mod's own unit: 100Energy
 
 record Link(Pos From, Pos To);
 
-union Mode { Idle, Charging(int Rate), Full }
+enum Mode { Idle, Charging(int Rate), Full }
 
 component Charge(Energy capacity) {
     saved synced Energy Energy in 0..capacity = 0 was Power: int;

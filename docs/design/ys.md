@@ -52,7 +52,8 @@ KubeJS/ProbeJS reviews; Skript forums.
    entity, player, world, session), whether it's saved and whether a client
    sees it are modifiers; codecs, packets and mirrors are generated.
 5. **No memory management, no nulls by surprise, no exceptions in the
-   game loop.** Values and objects; `T?` for absent; failures are values.
+   game loop.** A garbage collector owns memory; `T?` for absent;
+   failures are values (`Result`), bugs are panics — Rust's model.
 6. **Hot by default.** Everything can be reloaded in a running game; state
    survives because it's declared.
 7. **High level, never less capable.** Anything the Rust API or Mixin can
@@ -96,7 +97,7 @@ var tier = tool.Tier switch {
 | Bounded | `int Level in 0..100` — a field's range: proven where it can be, clamped where it can't |
 | Content | `ItemRef` (`@item:minecraft:stick`), `BlockRef`, `TagRef` (`#minecraft:logs`) — checked against the registries the mod targets |
 | Nullable | `Player?` — only nullable types can be `null` |
-| Results | `Ok` / `Fail(reason)`: `try` passes a failure up, like Rust's `?` |
+| Results | `Result<T, E>`: `Ok(v)` / `Err(e)`; `try` passes an `Err` up, like Rust's `?` |
 | Records, enums | `record Pos(int X, int Y, int Z);`, `enum Shape { Circle(float R), Box(float W, float H) }` |
 | Collections | `List<T>`, `Dictionary<K, V>`, `HashSet<T>`; collection expressions `[1, 2, 3]` |
 
@@ -162,6 +163,37 @@ Components stay the way content shares state and behaviour (3, below):
 inheritance is for a mod's own classes, components for what several
 objects carry.
 
+### Memory
+
+A tracing **garbage collector**, as C#'s and Java's: objects live while
+reachable, cycles included; no ownership, no lifetimes, no borrow
+checking — a runtime language for modders. On the JVM it's the JVM's
+collector; the native runtime brings its own. Structs and records structs
+are copied values. What holds something outside memory (a file, a
+native handle, a subscription) is `IDisposable`, released by `using`
+(`using var f = File.Open(…);`) when its scope ends — deterministic,
+where a finalizer would not be.
+
+### Failures: Result and panics
+
+Rust's model, not exceptions:
+
+- **Expected failures are values**: `Result<T, E>` (`Ok(v)` / `Err(e)`,
+  `E` by default `Error`), matched, mapped (`Map`, `MapErr`, `AndThen`,
+  `UnwrapOr`, `OkOr` on `T?`) or passed up by `try F()` (Rust's `F()?`) —
+  which converts the error when the caller's `E` has a conversion from it
+  (`From`). A `Result` dropped unused is a warning (`#[must_use]`).
+- **Bugs panic**: `panic("…")`, `Unwrap()`/`Expect("…")` on an `Err` or a
+  `null`, `unreachable()`, `todo()`, `assert(…)`, an index out of range,
+  integer overflow in a checked build. A panic unwinds to the handler's
+  boundary (4.5), running `using` releases on the way; there's no
+  `try`/`catch`.
+- **Panic handlers**: `Panic.SetHook(info => …)` sees every panic of the
+  mod (message, `.ys` location, trace) before the boundary reports it;
+  `Panic.Catch(() => …)` runs code and gives a `Result<T, PanicInfo>`
+  (Rust's `catch_unwind`) for the rare place that must survive a bug —
+  a mod's own plugin host, a test.
+
 ### Pattern matching
 
 `switch` and `is` match by shape, as in C# and as Rust's `match`:
@@ -185,8 +217,8 @@ var label = mode switch {
 
 What every C# program has, as Yog Script's own library: `System` (the
 built-in types — `int` is `System.Int32`, `string` `System.String` with its
-members — `Math`, `Action`, `Func`, `Nullable`, `Exception` types for
-failures), `System.Collections.Generic` (`List<T>`, `Dictionary<K, V>`,
+members — `Math`, `Action`, `Func`, `Nullable`, `Result`, `Error`,
+`Panic`, `IDisposable`), `System.Collections.Generic` (`List<T>`, `Dictionary<K, V>`,
 `HashSet<T>`, `Queue<T>`, …), `System.Linq` (LINQ over any `IEnumerable<T>`),
 `System.Linq.Expressions`, `System.Text`, `System.Reflection` (`Type`,
 `MethodInfo`, `PropertyInfo`, `FieldInfo`, attributes). It's declared in
@@ -377,8 +409,8 @@ var nearest = Level.Blocks.Near(pos, 8b).OfType<Charger>().OrderBy { it.Distance
 
 ### 4.5 Failures don't crash the world
 
-A failing handler (a `Fail`, an out-of-range proven at run time, a game
-exception thrown into it) is caught at its boundary: it is logged with the
+A panicking handler (a `panic`, an `Unwrap` of an `Err`, an index out of
+range, a game exception thrown into it) unwinds to its boundary: it is logged with the
 `.ys` line, the handler is disabled for that object (or the mod is marked
 faulty, by policy), and the game goes on. A crash report names the
 `.ys` file and line, never a generated method.
