@@ -267,6 +267,18 @@ names! {
         PATCH_OUTSIDE_NANITES = "YS0005",
         /// A content reference that isn't one (`@item`, `@:x`).
         BAD_REFERENCE = "YS0006",
+        /// A name declared twice in one place.
+        DUPLICATE = "YS0007",
+        /// `break` or `continue` outside a loop.
+        OUTSIDE_LOOP = "YS0008",
+        /// `skip` outside a patch's `before`.
+        SKIP_OUTSIDE_BEFORE = "YS0009",
+        /// `it` outside a lambda that has it.
+        IT_OUTSIDE_LAMBDA = "YS0010",
+        /// `self` outside a type's, a content's or a patch's members.
+        SELF_OUTSIDE_MEMBER = "YS0011",
+        /// A value (`let`, `const`, a parameter, a function) assigned to.
+        ASSIGN_TO_CONSTANT = "YS0012",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

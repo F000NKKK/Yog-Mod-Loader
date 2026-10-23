@@ -80,7 +80,11 @@ impl Process {
                 Some(Event::Gone(tid))
             }
             EXIT_PROCESS_DEBUG_EVENT => {
-                Some(Event::Exited(unsafe { ev.u.ExitProcess.dwExitCode } as i32))
+                let code = unsafe { ev.u.ExitProcess.dwExitCode } as i32;
+                // The process ends only once its exit is continued: a wait
+                // on it (its parent's) would hang till then.
+                self.release()?;
+                Some(Event::Exited(code))
             }
             LOAD_DLL_DEBUG_EVENT => {
                 let info = unsafe { ev.u.LoadDll };
