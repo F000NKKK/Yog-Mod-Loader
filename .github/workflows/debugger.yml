@@ -1,0 +1,52 @@
+# The native debugger and its symbols, tested on every system it drives:
+# each run spawns fixture programs, attaches to them and steps through them.
+name: Debugger
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "rust/crates/yog-debugger/**"
+      - "rust/crates/yog-symbols/**"
+      - ".github/workflows/debugger.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      # The natives Yog builds for Windows are windows-gnu (DWARF, not PDB).
+      - name: Windows host toolchain (gnu)
+        if: runner.os == 'Windows'
+        run: rustup set default-host x86_64-pc-windows-gnu
+
+      - name: Rust (the toolchain rust-toolchain.toml pins)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - name: Build the tests
+        run: cargo test -p yog-symbols -p yog-debugger --no-run
+
+      - name: Test (Linux, Windows)
+        if: runner.os != 'macOS'
+        timeout-minutes: 15
+        run: cargo test -p yog-symbols -p yog-debugger -- --test-threads=1
+
+      # task_for_pid needs root (or the debugger entitlement) on macOS; the
+      # fixtures are built by the toolchain's own rustc (root has no rustup).
+      - name: Test (macOS, as root)
+        if: runner.os == 'macOS'
+        timeout-minutes: 15
+        run: |
+          export RUSTC="$(rustup which rustc)"
+          cargo test -p yog-symbols -p yog-debugger --config "target.'cfg(target_os = \"macos\")'.runner = 'sudo -E'" -- --test-threads=1

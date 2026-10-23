@@ -161,6 +161,20 @@ const ADDRESS_32: u8 = 4;
 const DEBUG_INFO: &str = ".debug_info";
 /// A native's split debug info's extension (`libmod.so.debug`).
 const SPLIT_EXT: &str = yog_ids::symbols::EXT;
+/// Where macOS keeps a native's debug info apart from it (what `dsymutil`
+/// makes — rustc's default there): `<native>.dSYM/Contents/Resources/DWARF/<native's name>`.
+const DSYM_EXT: &str = "dSYM";
+const DSYM_DWARF: [&str; 3] = ["Contents", "Resources", "DWARF"];
+
+/// The files a native's debug info may have been split into, beside it.
+fn split_files(path: &Path) -> Vec<PathBuf> {
+    let mut dsym = path.with_added_extension(DSYM_EXT);
+    dsym.extend(DSYM_DWARF);
+    let dsym = path.file_name().map(|name| dsym.join(name));
+    std::iter::once(path.with_added_extension(SPLIT_EXT))
+        .chain(dsym)
+        .collect()
+}
 
 /// The unwind tables: `.eh_frame` (with the bases its pointers are
 /// relative to) and `.debug_frame`, those the native has.
@@ -218,14 +232,13 @@ impl SymbolTable {
 
     /// Loads a native's debug info: its own (built with `debug = true`,
     /// `strip = false`), or — a release's, stripped — the file split from it
-    /// beside it (`<native>.debug`, `yog build release`).
+    /// beside it (`<native>.debug`, `yog build release`; macOS's `.dSYM`).
     pub fn load(path: &Path) -> Result<Self, SymbolError> {
-        let beside = path.with_added_extension(SPLIT_EXT);
         let data = std::fs::read(path)?;
         let own = object::File::parse(&*data)?
             .section_by_name(DEBUG_INFO)
             .is_some();
-        if !own && beside.is_file() {
+        if !own && let Some(beside) = split_files(path).into_iter().find(|f| f.is_file()) {
             return Self::load_split(path, &beside);
         }
         Self::load_split(path, path)
