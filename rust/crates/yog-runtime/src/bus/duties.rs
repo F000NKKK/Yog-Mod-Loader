@@ -20,7 +20,7 @@ unsafe extern "C" fn run<E: Event>(
     let f: fn(&E) = unsafe { std::mem::transmute::<*mut c_void, fn(&E)>(ud) };
     match E::from_bytes(unsafe { payload.as_slice() }) {
         Some(e) => {
-            crate::jni_util::guard(std::any::type_name::<E>(), || f(&e));
+            crate::jni::util::guard(std::any::type_name::<E>(), || f(&e));
             status::OK
         }
         None => status::BAD_PAYLOAD,
@@ -39,7 +39,7 @@ unsafe extern "C" fn serve<S: Service>(
         return status::BAD_PAYLOAD;
     };
     let mut answer = None;
-    crate::jni_util::guard(std::any::type_name::<S>(), || answer = Some(f(&request)));
+    crate::jni::util::guard(std::any::type_name::<S>(), || answer = Some(f(&request)));
     match answer {
         Some(a) => {
             unsafe { YogReply::send(reply, &a.to_bytes()) };
@@ -72,7 +72,7 @@ unsafe extern "C" fn run_change<E: Event>(
     let Some(mut e) = E::from_bytes(unsafe { payload.as_slice() }) else {
         return status::BAD_PAYLOAD;
     };
-    crate::jni_util::guard(std::any::type_name::<E>(), || f(&mut e));
+    crate::jni::util::guard(std::any::type_name::<E>(), || f(&mut e));
     unsafe { YogReply::send(reply, &e.to_bytes()) };
     status::OK
 }
@@ -111,33 +111,38 @@ fn subscribe(address: &str, priority: i32, ud: usize, run: yog_abi::YogHandlerFn
 pub(crate) fn register() {
     // Grants pending for a previous world's players are void.
     after::<server::life::Started>(FIRST, |_| {
-        crate::handlers::handlers().pending_grants.lock().clear()
+        crate::mods::handlers::handlers()
+            .pending_grants
+            .lock()
+            .clear()
     });
     // Startup grants: giving items inside the join fails for the host of a
     // fresh world (not fully in it yet), so they're given a few ticks later.
     after::<player::session::Join>(LAST, |e| {
-        crate::ticks::queue_startup_grants(&e.player_name, &e.uuid)
+        crate::game::ticks::queue_startup_grants(&e.player_name, &e.uuid)
     });
     after::<server::game::Tick>(LAST, |_| {
-        crate::ticks::after_tick();
-        crate::mirrors::after_tick(yog_mirror::Clock::Server);
+        crate::game::ticks::after_tick();
+        crate::game::mirrors::after_tick(yog_mirror::Clock::Server);
     });
     // What a client sees is written after its own ticks (on any server).
     after::<client::game::Tick>(LAST, |_| {
-        crate::mirrors::after_tick(yog_mirror::Clock::Client);
+        crate::game::mirrors::after_tick(yog_mirror::Clock::Client);
         // Videos drawn as pictures no longer drawn stop (a screen closed).
         crate::video::ambient::sweep();
     });
-    after::<server::life::Stopping>(LAST, |_| crate::entity_data::server_stopped());
+    after::<server::life::Stopping>(LAST, |_| crate::game::entity_data::server_stopped());
     super::declared::register();
     super::describe::register();
     super::own::register();
-    crate::entity_data::register();
-    crate::mirrors::register();
+    crate::game::entity_data::register();
+    crate::game::mirrors::register();
     // The camera's changes start from none (the defaults live in yog-body).
     change::<client::render::Camera>(FIRST, |c| c.out = yog_body::CameraOut::default());
     // A body's frame carries what this client was told its entity keeps.
-    change::<client::render::Body>(FIRST, |b| crate::entity_data::fill_frame(&mut b.frame));
+    change::<client::render::Body>(FIRST, |b| {
+        crate::game::entity_data::fill_frame(&mut b.frame)
+    });
     // A body's meshes textured with a video get its frame, whoever drew them.
     change::<client::render::Body>(LAST, |b| {
         crate::video::ambient::body_textures(&mut b.ops.draws)
@@ -150,9 +155,9 @@ pub(crate) fn register() {
     listen::<client::net::Packet>(
         &keyed(
             client::net::Packet::ADDRESS,
-            crate::entity_data::ENTITY_DATA,
+            crate::game::entity_data::ENTITY_DATA,
         ),
         FIRST,
-        |p| crate::entity_data::receive(&p.payload),
+        |p| crate::game::entity_data::receive(&p.payload),
     );
 }

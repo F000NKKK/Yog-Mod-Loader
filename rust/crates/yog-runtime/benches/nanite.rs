@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use jni::objects::JString;
 
-#[path = "../src/test_jvm.rs"]
+#[path = "../src/testing/jvm.rs"]
 mod test_jvm;
 
 fn main() {

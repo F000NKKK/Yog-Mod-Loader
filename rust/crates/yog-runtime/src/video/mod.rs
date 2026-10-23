@@ -71,7 +71,7 @@ fn open(o: &video::Open) -> Option<u32> {
 }
 
 fn frame(f: &video::Frame) -> Option<video::Picture> {
-    let mut env = crate::jni_util::attached_env()?;
+    let mut env = crate::jni::util::attached_env()?;
     with_player(f.handle, |p| p.frame(&mut env)).flatten()
 }
 
@@ -79,7 +79,7 @@ fn close(c: &video::Close) -> bool {
     let Some(mut p) = with_players(|p| p.open.remove(&c.handle)) else {
         return false;
     };
-    if let Some(mut env) = crate::jni_util::attached_env() {
+    if let Some(mut env) = crate::jni::util::attached_env() {
         p.close(&mut env);
     }
     true

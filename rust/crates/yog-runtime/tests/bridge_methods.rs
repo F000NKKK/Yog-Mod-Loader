@@ -15,15 +15,20 @@ fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..")
 }
 
+/// Every source of the runtime (its folders' too), one after another.
 fn runtime_sources() -> String {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let mut out = String::new();
-    for e in fs::read_dir(dir).unwrap() {
-        let p = e.unwrap().path();
-        if p.extension().is_some_and(|x| x == "rs") {
-            out.push_str(&fs::read_to_string(p).unwrap());
+    fn walk(dir: &Path, out: &mut String) {
+        for e in fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                walk(&p, out);
+            } else if p.extension().is_some_and(|x| x == "rs") {
+                out.push_str(&fs::read_to_string(p).unwrap());
+            }
         }
     }
+    let mut out = String::new();
+    walk(&Path::new(env!("CARGO_MANIFEST_DIR")).join("src"), &mut out);
     out
 }
 

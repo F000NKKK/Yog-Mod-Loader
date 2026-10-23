@@ -7,7 +7,7 @@ use super::duties::provide;
 
 /// A Yog mod's `.yres` name or description in the player's language, else as written.
 fn localized(text: &str, key: Option<&str>) -> String {
-    key.and_then(crate::machine_api::translate)
+    key.and_then(crate::api::machine::translate)
         .unwrap_or_else(|| text.to_owned())
 }
 
@@ -32,8 +32,8 @@ fn mods() -> Vec<game::ModInfo> {
 /// The runtime's own services; once, at start.
 pub(crate) fn register() {
     provide::<content::Register>(|r| {
-        crate::api_fns::register_blob(
-            &mut crate::handlers::handlers_write(),
+        crate::api::fns::register_blob(
+            &mut crate::mods::handlers::handlers_write(),
             &r.kind,
             r.id.clone(),
             &r.data,
@@ -41,10 +41,11 @@ pub(crate) fn register() {
         true
     });
     provide::<game::Mods>(|_| mods());
-    provide::<game::ModLoaded>(|m| crate::machine_api::mod_loaded(&m.id));
+    provide::<game::ModLoaded>(|m| crate::api::machine::mod_loaded(&m.id));
     provide::<media::Png>(png);
     provide::<client::EntityData>(|d| {
-        crate::entity_data::client_get(&d.uuid, &d.key).map(|bytes| entity::DataValue { bytes })
+        crate::game::entity_data::client_get(&d.uuid, &d.key)
+            .map(|bytes| entity::DataValue { bytes })
     });
     crate::video::provide_services();
 }

@@ -2,7 +2,7 @@
 //! event over mods' handlers.
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use yog_runtime::bench_support;
+use yog_runtime::testing::bench_support;
 
 fn dispatch(c: &mut Criterion) {
     let mut g = c.benchmark_group("dispatch/bus_event");

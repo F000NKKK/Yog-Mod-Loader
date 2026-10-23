@@ -13,12 +13,12 @@ use jni::JNIEnv;
 use jni::objects::JValue;
 use yog_abi::YogStr;
 
-#[path = "../src/jcall.rs"]
+#[path = "../src/jni/call.rs"]
 #[allow(dead_code)]
 mod jcall;
 use jcall::jcall;
 
-#[path = "../src/test_jvm.rs"]
+#[path = "../src/testing/jvm.rs"]
 mod test_jvm;
 use test_jvm::jdk;
 

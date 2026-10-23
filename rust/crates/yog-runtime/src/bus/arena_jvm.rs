@@ -117,7 +117,7 @@ fn reversed(p: &[u8]) -> Vec<u8> {
 #[test]
 #[ignore = "needs a JDK; run with --ignored"]
 fn calls_cross_the_arena_both_ways() {
-    let Some(jvm) = crate::test_jvm_shared::shared() else {
+    let Some(jvm) = crate::testing::jvm_shared::shared() else {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));

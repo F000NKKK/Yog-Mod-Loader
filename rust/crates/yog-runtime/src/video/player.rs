@@ -66,7 +66,7 @@ impl Player {
         let target = self.tick();
         self.show(target)?;
         let (width, height) = (self.def.width, self.def.height);
-        if !crate::textures::update(env, &self.texture, width, height, &self.rgba) {
+        if !crate::gfx::textures::update(env, &self.texture, width, height, &self.rgba) {
             return None;
         }
         Some(video::Picture {
@@ -82,7 +82,7 @@ impl Player {
     /// Its picture and sound let go.
     pub(super) fn close(&mut self, env: &mut JNIEnv) {
         self.stop_sound();
-        crate::textures::release(env, &self.texture);
+        crate::gfx::textures::release(env, &self.texture);
     }
 
     /// The clock moved on to now: the frame it's on. A loop round starts

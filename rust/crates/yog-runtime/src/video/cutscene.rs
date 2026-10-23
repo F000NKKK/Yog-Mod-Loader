@@ -50,13 +50,13 @@ pub(crate) fn render(env: &mut JNIEnv, id: &str, (w, h): (f32, f32)) -> bool {
         return true;
     };
     // SAFETY: called while the screen draws, as every `draw2d_*` is.
-    unsafe { crate::gfx_table::gfx_draw2d_rect(0.0, 0.0, w, h, Color::BLACK.0) };
+    unsafe { crate::gfx::table::gfx_draw2d_rect(0.0, 0.0, w, h, Color::BLACK.0) };
     let Some(p) = super::with_player(handle, |p| p.frame(env)).flatten() else {
         return true;
     };
     let size = Vec2::new(p.width as f32, p.height as f32);
     let (dest, _) = fit(Stretch::Uniform, size, Rect::new(0.0, 0.0, w, h));
-    crate::textures::draw(env, &p.texture, (p.width, p.height), dest, Color::WHITE);
+    crate::gfx::textures::draw(env, &p.texture, (p.width, p.height), dest, Color::WHITE);
     if !p.playing && p.seconds >= p.length {
         crate::bus::call(&ui::Close {
             ui_id: CUTSCENE_SCREEN.to_owned(),

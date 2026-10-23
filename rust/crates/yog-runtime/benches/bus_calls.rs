@@ -19,7 +19,7 @@ use jni::objects::JValue;
 use yog_abi::{YogBytes, YogReply, YogStatus, status};
 use yog_core::{BlockArea, Point, SlotStack};
 use yog_data::frame::{read_frame, read_view, to_frame};
-use yog_runtime::bench_support::jvm;
+use yog_runtime::testing::bench_support::jvm;
 
 /// Calls before a path is measured: past HotSpot's compile thresholds.
 const WARM_CALLS: usize = 50_000;

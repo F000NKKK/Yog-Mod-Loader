@@ -1,8 +1,8 @@
 //! The runtime's static globals: the JVM, the mods, the tables.
 
-use crate::handlers::RuntimeHandlers;
-use crate::handlers::RuntimeModuleRegistry;
-use crate::intermod::build_api_table;
+use crate::mods::handlers::RuntimeHandlers;
+use crate::mods::handlers::RuntimeModuleRegistry;
+use crate::mods::intermod::build_api_table;
 use jni::JavaVM;
 use yog_abi::YogApi;
 use yog_hot_reload::HotReloader;

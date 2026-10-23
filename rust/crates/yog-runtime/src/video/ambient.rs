@@ -71,7 +71,7 @@ pub(crate) fn body_textures(draws: &mut [yog_body::wire::Draw]) {
     if !draws.iter().any(|d| video_of(&d.mesh.texture).is_some()) {
         return;
     }
-    let Some(mut env) = crate::jni_util::attached_env() else {
+    let Some(mut env) = crate::jni::util::attached_env() else {
         return;
     };
     for d in draws {
