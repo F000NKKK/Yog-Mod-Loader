@@ -36,7 +36,12 @@ impl Checker<'_, '_, '_> {
                     self.fits(v, &t);
                 }
             }
-            DeclKind::Method(m) => self.method(m, side),
+            DeclKind::Method(m) => {
+                let readonly = d.has(Modifier::Readonly) || self.this_readonly();
+                let outer = std::mem::replace(&mut self.readonly_this, readonly);
+                self.method(m, side);
+                self.readonly_this = outer;
+            }
             DeclKind::Ctor(c) => {
                 let this = self.this.clone();
                 self.within(this, side, Some(Type::Void), |ch| {
@@ -171,7 +176,7 @@ impl Checker<'_, '_, '_> {
             if let Some(d) = &p.default {
                 self.fits(d, &t);
             }
-            self.bind(&p.name.text, t);
+            self.bind_as(&p.name.text, t, p.pass == Some(crate::ast::Pass::In));
         }
     }
 

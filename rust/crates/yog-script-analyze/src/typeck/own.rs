@@ -23,6 +23,10 @@ pub(crate) struct OwnType {
     /// Its objects live on the heap (a class, a `record`, an interface):
     /// never `Copy`.
     pub heap: bool,
+    /// Its `readonly` methods (Rust's `&self`): the others change it.
+    pub readonly: Vec<String>,
+    /// A `readonly struct`: every member is.
+    pub readonly_all: bool,
     /// Its type parameters' names (`T` of `Box<T>`).
     pub generics: Vec<String>,
     /// An enum's cases that carry data, their fields by case.
@@ -102,6 +106,7 @@ impl OwnTypes {
                 t.interface = word.text == crate::words::interface::WORD.text;
                 t.is_abstract = d.has(ast::Modifier::Abstract);
                 t.heap = !value;
+                t.readonly_all = d.has(ast::Modifier::Readonly);
                 t.generics = type_params(&header.generics);
                 // A record's constructor parameters are its properties.
                 let props = (word.text == crate::words::record::WORD.text)
@@ -222,11 +227,15 @@ fn members(t: &mut OwnType, body: &[Decl]) {
             DeclKind::Event { ty, name } => {
                 t.values.insert(name.text.clone(), ty.clone());
             }
-            DeclKind::Method(m) => t
-                .methods
-                .entry(m.name.text.clone())
-                .or_default()
-                .push(m.clone()),
+            DeclKind::Method(m) => {
+                if d.has(ast::Modifier::Readonly) {
+                    t.readonly.push(m.name.text.clone());
+                }
+                t.methods
+                    .entry(m.name.text.clone())
+                    .or_default()
+                    .push(m.clone());
+            }
             _ => {}
         }
     }

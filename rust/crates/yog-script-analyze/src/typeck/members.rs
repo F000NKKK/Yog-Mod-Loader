@@ -256,6 +256,11 @@ impl Checker<'_, '_, '_> {
                 if methods.is_empty() {
                     self.static_import(name, callee.span)
                 } else {
+                    if let Some(Type::Own(of, _)) = self.this.clone()
+                        && self.own_methods(&Type::own(of.clone()), name).is_some()
+                    {
+                        self.called_on(None, &of, name, callee.span);
+                    }
                     Callee::Own(methods, super::generics::Bound::new())
                 }
             }
@@ -265,6 +270,9 @@ impl Checker<'_, '_, '_> {
                     Type::Own(of, _) | Type::Static(of) => {
                         match self.own_methods(&Type::own(of.clone()), &name.text) {
                             Some(methods) => {
+                                if matches!(on.non_null(), Type::Own(..)) {
+                                    self.called_on(Some(expr), of, &name.text, name.span);
+                                }
                                 Callee::Own(methods, self.bound_of(of, own_args(on.non_null())))
                             }
                             None => self.variant_ctor(&of.clone(), &name.text),

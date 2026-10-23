@@ -19,9 +19,13 @@ impl Checker<'_, '_, '_> {
     fn stmt(&mut self, s: &Stmt) {
         match s {
             Stmt::Local {
-                ty, binding, value, ..
-            } => self.local_decl(ty.as_ref(), binding, value.as_ref()),
+                ty,
+                binding,
+                value,
+                mutable,
+            } => self.local_decl(ty.as_ref(), binding, value.as_ref(), *mutable),
             Stmt::Assign { place, op, value } => {
+                self.written(place);
                 let t = self.expr(place);
                 // `=`, and `+=`/`-=` on a delegate (an event's subscription):
                 // the value must be one.
@@ -88,7 +92,13 @@ impl Checker<'_, '_, '_> {
     }
 
     /// `T x = v;` / `let x = v;`: the value fits the type written, or gives it.
-    fn local_decl(&mut self, ty: Option<&ast::Type>, binding: &Binding, value: Option<&Expr>) {
+    fn local_decl(
+        &mut self,
+        ty: Option<&ast::Type>,
+        binding: &Binding,
+        value: Option<&Expr>,
+        mutable: bool,
+    ) {
         let declared = ty.map(|t| self.type_of(t));
         let t = match (declared, value) {
             (Some(d), Some(v)) => {
@@ -102,7 +112,7 @@ impl Checker<'_, '_, '_> {
         if let Some(v) = value {
             self.handed(v, &t);
         }
-        self.bind_binding(binding, &t);
+        self.bind_binding(binding, &t, !mutable);
     }
 
     /// `foreach (T x in items)`: `x` an item of the list, or of the type written.
@@ -113,7 +123,7 @@ impl Checker<'_, '_, '_> {
         };
         let t = ty.map_or(item, |t| self.type_of(t));
         self.scoped(|c| {
-            c.bind_binding(binding, &t);
+            c.bind_binding(binding, &t, true);
             c.branch(body);
         });
     }
@@ -122,17 +132,17 @@ impl Checker<'_, '_, '_> {
         self.scoped(|c| c.stmt(s));
     }
 
-    fn bind_binding(&mut self, b: &Binding, t: &Type) {
+    fn bind_binding(&mut self, b: &Binding, t: &Type, fixed: bool) {
         match (b, t) {
-            (Binding::One(n), _) => self.bind(&n.text, t.clone()),
+            (Binding::One(n), _) => self.bind_as(&n.text, t.clone(), fixed),
             (Binding::Tuple(names), Type::Tuple(items)) if names.len() == items.len() => {
                 for (n, item) in names.iter().zip(items) {
-                    self.bind(&n.text, item.clone());
+                    self.bind_as(&n.text, item.clone(), fixed);
                 }
             }
-            (Binding::Tuple(names), _) => {
-                names.iter().for_each(|n| self.bind(&n.text, Type::Unknown))
-            }
+            (Binding::Tuple(names), _) => names
+                .iter()
+                .for_each(|n| self.bind_as(&n.text, Type::Unknown, fixed)),
         }
     }
 
@@ -153,9 +163,9 @@ impl Checker<'_, '_, '_> {
         match p {
             Pattern::Type { ty, bind: Some(n) } => {
                 let t = self.type_of(ty);
-                self.bind(&n.text, t);
+                self.bind_as(&n.text, t, true);
             }
-            Pattern::Let(n) => self.bind(&n.text, Type::Unknown),
+            Pattern::Let(n) => self.bind_as(&n.text, Type::Unknown, true),
             Pattern::And(a, b) | Pattern::Or(a, b) => {
                 self.bind_pattern(a);
                 self.bind_pattern(b);

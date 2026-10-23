@@ -214,7 +214,7 @@ fn classes_inherit_as_in_csharp() {
                  class Battery : Machine { public i32 Boost() => base.Rate + Rate; }\nclass Other {}\n";
     // Members come from the base class; a derived object goes where its base is wanted.
     let ok = format!(
-        "{types}void F() {{ let b = new Battery(); i32 r = b.Rate; b.Tick(); Machine m = move b; ITick t = new Battery(); }}\n"
+        "{types}void F() {{ let mut b = new Battery(); i32 r = b.Rate; b.Tick(); Machine m = move b; ITick t = new Battery(); }}\n"
     );
     assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
     // Not the other way, nor an unrelated type.
@@ -332,4 +332,29 @@ fn values_copy_and_objects_move() {
     assert_eq!(codes(&bad), vec![script_problem::PASS; 4]);
     let ok = format!("{types}void F(Box b, Box c) {{ let d = move b; Keep(move c); }}\n");
     assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+}
+
+#[test]
+fn what_is_lent_read_only_isnt_changed() {
+    let types = "class Box { public i32 N; public readonly i32 Get() => N; public void Bump() { N += 1; } \
+                 public readonly void Peek() { Bump(); } }\nreadonly struct P(i32 x) { public i32 X = x; public void M() { X = 1; } }\n";
+    let bad = format!(
+        "{types}void F(in Box i) {{ let b = new Box(); b.N = 1; b.Bump(); i.Bump(); i.N = 2; }}\n"
+    );
+    // A readonly member's `this` (Peek, P.M) and each write through a let or an in.
+    assert_eq!(
+        codes(&bad),
+        vec![script_problem::BORROW; 6],
+        "{:?}",
+        codes(&bad)
+    );
+    let ok = format!(
+        "{types}void F(in Box i, ref Box r) {{ let mut b = new Box(); b.N = 1; b.Bump(); i32 n = i.Get(); r.Bump(); }}\n"
+    );
+    assert_eq!(
+        codes(&ok),
+        vec![script_problem::BORROW; 2],
+        "{:?}",
+        codes(&ok)
+    );
 }

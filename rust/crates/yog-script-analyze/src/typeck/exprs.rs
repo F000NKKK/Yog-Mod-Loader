@@ -34,7 +34,9 @@ impl Checker<'_, '_, '_> {
             ExprKind::Ident(name) => self.name(name, e.span),
             ExprKind::This => self.this.clone().unwrap_or(Type::Unknown),
             ExprKind::Base => self.base(),
-            ExprKind::Declare { ty, name, .. } => self.declare(ty.as_ref(), &name.text),
+            ExprKind::Declare { ty, name, mutable } => {
+                self.declare(ty.as_ref(), &name.text, *mutable)
+            }
             ExprKind::NameOf(expr) => self.name_of(expr),
             ExprKind::Move(expr) => self.expr(expr),
             ExprKind::Default(Some(ty)) => self.type_of(ty),
@@ -231,9 +233,9 @@ impl Checker<'_, '_, '_> {
 /// The unit a suffix names: the game's, or a mod's own by its name.
 impl Checker<'_, '_, '_> {
     /// `out let x`: `x` bound, of its written type (else unknown).
-    fn declare(&mut self, ty: Option<&crate::ast::Type>, name: &str) -> Type {
+    fn declare(&mut self, ty: Option<&crate::ast::Type>, name: &str, mutable: bool) -> Type {
         let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
-        self.bind(name, t.clone());
+        self.bind_as(name, t.clone(), !mutable);
         t
     }
 

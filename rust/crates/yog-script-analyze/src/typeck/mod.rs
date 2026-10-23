@@ -15,6 +15,7 @@ mod inherit;
 mod lambdas;
 mod members;
 mod model;
+mod mutation;
 mod names;
 mod own;
 mod passing;
@@ -33,12 +34,20 @@ use crate::index::{ClassIndex, Lookup, Side};
 use own::OwnTypes;
 use yog_analysis::Report;
 
+/// A local or a parameter: its type, and whether it's read-only.
+struct Slot {
+    ty: Type,
+    fixed: bool,
+}
+
 pub(crate) struct Checker<'r, 's, 'i> {
     report: &'r mut Report<'s>,
     lookup: Option<Lookup<'i>>,
     own: OwnTypes,
     /// Locals and parameters, innermost scope last.
-    scopes: Vec<HashMap<String, Type>>,
+    scopes: Vec<HashMap<String, Slot>>,
+    /// The code is a `readonly` member's: `this` is lent read-only.
+    readonly_this: bool,
     /// The type whose members the code is in (`this`).
     this: Option<Type>,
     /// The side the code runs on.
@@ -77,6 +86,7 @@ pub(crate) fn check(
         ns: Vec::new(),
         nanites,
         type_params: Vec::new(),
+        readonly_this: false,
     };
     c.decls(&file.decls);
     inherit::check(&file.decls, c.report);
@@ -92,12 +102,22 @@ impl Checker<'_, '_, '_> {
     }
 
     fn bind(&mut self, name: &str, t: Type) {
+        self.bind_as(name, t, false);
+    }
+
+    /// `name` bound to a `t`; `fixed`: what it holds is read-only here (a
+    /// `let`, an `in` parameter, a `foreach` item, a pattern's name).
+    fn bind_as(&mut self, name: &str, ty: Type, fixed: bool) {
         if let Some(s) = self.scopes.last_mut() {
-            s.insert(name.to_string(), t);
+            s.insert(name.to_string(), Slot { ty, fixed });
         }
     }
 
     fn local(&self, name: &str) -> Option<&Type> {
+        self.slot(name).map(|s| &s.ty)
+    }
+
+    fn slot(&self, name: &str) -> Option<&Slot> {
         self.scopes.iter().rev().find_map(|s| s.get(name))
     }
 

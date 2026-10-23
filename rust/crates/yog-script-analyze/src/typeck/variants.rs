@@ -56,7 +56,7 @@ impl Checker<'_, '_, '_> {
     /// The names an arm's pattern binds, typed by the value it matches.
     fn bind_arm(&mut self, p: &Pattern, on: &Type) {
         match p {
-            Pattern::Let(n) => self.bind(&n.text, on.clone()),
+            Pattern::Let(n) => self.bind_as(&n.text, on.clone(), true),
             Pattern::Variant { path, args } => {
                 let fields = match (on.non_null(), path.last()) {
                     (Type::Own(of, _), Some(case)) => self
