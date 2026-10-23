@@ -17,6 +17,7 @@ pub mod atlases;
 pub mod effects;
 pub mod item_looks;
 pub mod loot;
+pub mod particles;
 pub mod recipe_kinds;
 pub mod tool_levels;
 
@@ -66,6 +67,7 @@ pub use effects::{
 };
 pub use item_looks::{ItemLooks, ItemTint, LookModels};
 pub use loot::{Loot, LootAdd, LootModifier, LootScale, LootStack};
+pub use particles::{Blend, Frames, Lifetime, Particle, ParticleDef, ParticleRender};
 pub use tool_levels::{LevelTag, ToolLadder, ToolLevel};
 
 mod blocks;

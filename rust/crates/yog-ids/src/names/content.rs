@@ -170,6 +170,8 @@ names! {
         SOUNDS = crate::concatcp!(SOUNDS_WORD, crate::sep::PATH),
         SOUNDS_JSON = crate::concatcp!(SOUNDS_WORD, JSON),
         SOUNDS_WORD = "sounds",
+        /// Particles' pictures: `<ns>:particles/<name>.json`.
+        PARTICLES = crate::concatcp!("particles", crate::sep::PATH),
         OGG = ".ogg",
         PNG = crate::concatcp!(crate::sep::DOT, crate::word::PNG),
         SVG = ".svg",

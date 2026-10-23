@@ -25,7 +25,7 @@ use crate::content::recipe::registration::Recipe;
 use crate::content::recipe::{Against, compile_recipe};
 use crate::content::source::{Content, mentions_content_macro, registrations, rust_source};
 use crate::content::{
-    CONTENT_DIR, Compiled, content_format, datapack, find, looks, refs, sounds, textures,
+    CONTENT_DIR, Compiled, content_format, datapack, find, looks, particles, refs, sounds, textures,
     valid_namespace,
 };
 use crate::diagnostics::Diagnostic;
@@ -85,7 +85,8 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let mut sink = Sink::default();
     let own = textures::compile(root, mod_id, refs, &mut sink.errors);
     let sounds = sounds::compile(root, mod_id, refs, &mut sink.errors);
-    if files.is_empty() {
+    let particles = particles::compile(root, mod_id, &own.ids, &mut sink.errors);
+    if files.is_empty() && particles.is_empty() {
         return media_only(own, sounds, sink);
     }
     let mod_ns = valid_namespace(mod_id).then_some(mod_id);
@@ -101,7 +102,8 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     }
     let mut known = b.known();
     let mut defs = read_defs(&b.pending.defs, b.shared.ns, &mut b.sink.errors);
-    let made = b.defs(&known);
+    let mut made = b.defs(&known);
+    made.definitions.extend(particles.definitions);
     let layouts = b.recipes(&mut known, &made);
     b.check_deferred(&defs, &known);
     b.tool_levels(&defs);
@@ -110,6 +112,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     b.out.packed = own.packed_but(&b.out.loose);
     b.out.outputs.extend(own.outputs);
     b.out.outputs.extend(sounds.output);
+    b.out.outputs.extend(particles.outputs);
     b.finish(&mut defs, made, &known)
 }
 

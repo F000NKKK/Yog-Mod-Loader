@@ -29,6 +29,9 @@ Commands:
   test                Run tests (cargo test)
   clean               Remove build outputs and artifacts
   publish <target>    Release build + assemble artifacts/<loader>/ (+ native/)
+  release <notes.md>  publish all, then the GitHub release of version.properties'
+                      version: every jar and the runtime's debug info
+                      (yog-runtime-symbols.zip, Yog Installer's symbols component)
 
 Targets:
   rust                Rust runtime (native lib)
@@ -403,6 +406,26 @@ cmd_publish() {
     echo "==> published to artifacts/ (self-contained jars)"
 }
 
+# The GitHub release of version.properties' version, `notes` its text: every
+# loader's jars and the runtime's debug info — a release without it can't
+# give Yog Installer's runtime symbols component, so there's none.
+cmd_release() {
+    local notes="${1:-}"
+    [ -f "$notes" ] || die "release needs its notes: ./build.sh release <notes.md>"
+    command -v gh >/dev/null 2>&1 || die "releasing needs gh (the GitHub CLI)"
+    [ -z "$(git -C "$ROOT" status --porcelain)" ] || die "uncommitted changes: commit before releasing"
+    local version; version="$(grep '^mod_version=' "$ROOT/version.properties" | cut -d= -f2)"
+    cmd_publish all
+    [ -f "$SYMBOLS_ZIP" ] || die "no ${SYMBOLS_ZIP#$ROOT/}: the release would lack the runtime's debug info"
+    local jars; mapfile -t jars < <(find "$ROOT/artifacts" -name '*.jar' | sort)
+    [ "${#jars[@]}" -gt 0 ] || die "no jars in artifacts/"
+    git -C "$ROOT" tag "$version"
+    git -C "$ROOT" push origin "$version"
+    (cd "$ROOT" && gh release create "$version" "${jars[@]}" "$SYMBOLS_ZIP" \
+        --title "Yog $version" --notes-file "$notes")
+    echo "==> released $version: ${#jars[@]} jar(s) and ${SYMBOLS_ZIP#$ROOT/}"
+}
+
 # ── dispatch ─────────────────────────────────────────────────────────────────
 
 [ $# -eq 0 ] && { usage; exit 0; }
@@ -439,6 +462,7 @@ case "$cmd" in
     test)           cmd_test ;;
     clean)          cmd_clean ;;
     publish)        cmd_publish "$target" ;;
+    release)        cmd_release "$target" ;;
     -h|--help|help) usage ;;
     *) echo "unknown command: $cmd" >&2; usage; exit 2 ;;
 esac

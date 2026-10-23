@@ -53,15 +53,7 @@ pub struct Variant {
 /// and the mod's id; none for a file outside `resources/sound/`.
 #[must_use]
 pub fn id_of(mod_id: &str, rel: &str) -> Option<String> {
-    let path = rel
-        .strip_suffix(yog_ids::Format::Sound.ext())?
-        .strip_suffix(yog_ids::sep::DOT)?
-        .strip_prefix(DIR)?
-        .strip_prefix(yog_ids::sep::PATH)?;
-    Some(yog_ids::join(
-        mod_id,
-        &path.replace(yog_ids::sep::PATH, yog_ids::sep::DOT),
-    ))
+    crate::resource_id(mod_id, rel, DIR, yog_ids::Format::Sound)
 }
 
 #[cfg(test)]

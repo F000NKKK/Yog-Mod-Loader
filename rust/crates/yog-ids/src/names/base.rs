@@ -175,6 +175,7 @@ names! {
         TEXTURE = crate::word::TEXTURE,
         MATERIAL = "material",
         SOUND = crate::word::SOUND,
+        PARTICLE = "particle",
     }
 
     /// What a reference to content of a kind starts with: `@item:`.

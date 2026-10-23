@@ -35,6 +35,7 @@ mod looks;
 pub(crate) mod material;
 mod model;
 mod outputs;
+mod particles;
 mod recipe;
 pub(crate) mod refs;
 mod sounds;

@@ -47,6 +47,8 @@ formats! {
     Texture = "ytexture", kind::TEXTURE;
     /// A sound event: the sounds it plays, and how.
     Sound = "ysound", kind::SOUND;
+    /// A particle: its pictures, how it moves and how it's drawn.
+    Particle = "yparticle", kind::PARTICLE;
     /// A material: the textures a surface is drawn with, and how.
     Material = "ymaterial", kind::MATERIAL;
     /// Compiled Yog Data.

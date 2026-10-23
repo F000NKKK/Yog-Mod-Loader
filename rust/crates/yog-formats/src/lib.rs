@@ -8,6 +8,7 @@ pub mod content;
 pub mod def;
 pub mod manifest;
 pub mod material;
+pub mod particle;
 pub mod recipe;
 pub mod sound;
 pub mod tags;
@@ -19,6 +20,20 @@ use yog_data::Diagnostic;
 use yog_data::{Schema, Shape, Value};
 
 use yog_ids::{Format, file};
+
+/// The id of a resource of `format` living in `dir` under `resources/`,
+/// from its file's path there (`sound/casting/cast.ysound`) and the mod's
+/// id: its path under `dir` with `/` as `.` (`<mod id>:casting.cast`);
+/// none for a file elsewhere or of another format.
+#[must_use]
+pub fn resource_id(mod_id: &str, rel: &str, dir: &str, format: Format) -> Option<String> {
+    let path = rel
+        .strip_suffix(format.ext())?
+        .strip_suffix(yog_ids::sep::DOT)?
+        .strip_prefix(dir)?
+        .strip_prefix(yog_ids::sep::PATH)?;
+    Some(yog_ids::join(mod_id, &path.replace(yog_ids::sep::PATH, yog_ids::sep::DOT)))
+}
 
 /// `$body` with `$t` the type files of `$format` read as; `$none` for a
 /// format that isn't Yog Data written by hand (screens, compiled data,
@@ -44,6 +59,10 @@ macro_rules! with_type {
             }
             Format::Sound => {
                 type $t = sound::SoundFile;
+                $body
+            }
+            Format::Particle => {
+                type $t = yog_registry::Particle;
                 $body
             }
             Format::Book => {
