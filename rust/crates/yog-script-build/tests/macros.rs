@@ -10,6 +10,10 @@ const LIBRARY: &str = "using System.Meta;\n\
         let mut names = \"\";\n\
         foreach (let f in item.Fields) { names = names + f.Name + \" \"; }\n\
         return \"string \" + item.Name + \"Fields() => \\\"\" + names.Trim() + \"\\\";\";\n\
+    }\n\
+    [Macro]\nclass Logged : Attribute {\n\
+        public static string Expand(string args, Item item) =>\n\
+            item.Source + \" string \" + item.Name + \"Log() => \\\"\" + args + \"\\\";\";\n\
     }\n";
 
 fn library() -> MacroLibrary {
@@ -45,4 +49,11 @@ fn a_derive_adds_after_its_type() {
         codes("[Derive(Nope)]\nrecord Pos(i32 X);\n"),
         [script_problem::MACRO]
     );
+}
+
+#[test]
+fn an_attribute_macro_rewrites_its_declaration() {
+    let src =
+        "[Logged(hello)]\nrecord Pos(i32 X);\nstring F() => PosLog();\ni32 G() => new Pos(1).X;\n";
+    assert!(codes(src).is_empty(), "{:?}", codes(src));
 }

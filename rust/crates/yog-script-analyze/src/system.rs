@@ -20,6 +20,9 @@ pub const FIELD: &str = "Field";
 pub const PROC_MACRO: &str = "ProcMacro";
 pub const DERIVE_MACRO: &str = "DeriveMacro";
 
+/// The attribute marking an attribute class as an attribute macro (`System`).
+pub const MACRO: &str = "Macro";
+
 /// The System library's sources, by file name.
 const SOURCES: &[(&str, &str)] = &[
     ("System.ys", include_str!("system/System.ys")),

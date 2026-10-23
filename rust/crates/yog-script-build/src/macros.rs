@@ -1,5 +1,6 @@
 //! The procedural macros a build has: Yog Script sources whose methods are
 //! marked `[ProcMacro]` (`Name!(…)`) or `[DeriveMacro]` (`[Derive(Name)]`),
+//! and attribute classes marked `[Macro]` (`[Name(…)]`, their `Expand`),
 //! checked first, then run by the interpreter when a source calls them.
 
 use std::collections::HashSet;
@@ -7,7 +8,7 @@ use std::collections::HashSet;
 use yog_data::Diagnostic;
 use yog_script_analyze::ast::{Decl, DeclKind, File, TypeKind};
 use yog_script_analyze::macros::ProcMacros;
-use yog_script_analyze::system::{self, DERIVE_MACRO, FIELD, ITEM, PROC_MACRO};
+use yog_script_analyze::system::{self, DERIVE_MACRO, FIELD, ITEM, MACRO, PROC_MACRO};
 use yog_script_run::{Interp, Panic, Program, Value};
 
 /// A build's macros, loaded from their sources.
@@ -15,6 +16,8 @@ pub struct MacroLibrary {
     files: Vec<File>,
     calls: HashSet<String>,
     derives: HashSet<String>,
+    /// Attribute classes marked `[Macro]`: their `Expand` runs.
+    attributes: HashSet<String>,
 }
 
 impl MacroLibrary {
@@ -24,6 +27,7 @@ impl MacroLibrary {
             files: Vec::new(),
             calls: HashSet::new(),
             derives: HashSet::new(),
+            attributes: HashSet::new(),
         };
         let mut problems = Vec::new();
         for (name, text) in sources {
@@ -35,13 +39,17 @@ impl MacroLibrary {
             return Err(problems);
         }
         for d in lib.files.iter().flat_map(|f| &f.decls) {
-            if let DeclKind::Method(m) = &d.kind {
-                let name = m.name.text.clone();
-                if marked(d, PROC_MACRO) {
-                    lib.calls.insert(name);
-                } else if marked(d, DERIVE_MACRO) {
-                    lib.derives.insert(name);
+            match &d.kind {
+                DeclKind::Method(m) if marked(d, PROC_MACRO) => {
+                    lib.calls.insert(m.name.text.clone());
                 }
+                DeclKind::Method(m) if marked(d, DERIVE_MACRO) => {
+                    lib.derives.insert(m.name.text.clone());
+                }
+                DeclKind::Type { name, .. } if marked(d, MACRO) => {
+                    lib.attributes.insert(name.text.clone());
+                }
+                _ => {}
             }
         }
         Ok(lib)
@@ -72,7 +80,21 @@ impl ProcMacros for MacroLibrary {
             code(i.call(name, vec![item]))
         }))
     }
+
+    fn attribute(&self, name: &str, args: &str, item: &str) -> Option<Result<String, String>> {
+        if !self.attributes.contains(name) {
+            return None;
+        }
+        Some(self.run(|i| {
+            let item = item_value(i, item)?;
+            code(i.call_static(name, EXPAND, vec![Value::str(args), item]))
+        }))
+    }
 }
+
+/// What an attribute macro's class runs: `static string Expand(string
+/// args, Item item)`.
+const EXPAND: &str = "Expand";
 
 /// Whether `d` carries attribute `name`.
 fn marked(d: &Decl, name: &str) -> bool {

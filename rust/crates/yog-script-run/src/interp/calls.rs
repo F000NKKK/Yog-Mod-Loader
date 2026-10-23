@@ -33,6 +33,29 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// Type `of`'s static method `name` called with `args`.
+    pub fn call_static(
+        &mut self,
+        of: &str,
+        name: &str,
+        args: Vec<Value>,
+    ) -> Result<Value, super::Panic> {
+        let Some(m) = self.method_of(of, name, args.len()) else {
+            return Err(super::Panic {
+                message: format!(
+                    "`{of}` has no method `{name}` taking {} arguments",
+                    args.len()
+                ),
+                span: Span::default(),
+            });
+        };
+        match self.run_member(m, None, &[], args, m.method.name.span) {
+            Err(Stop::Panic(p)) => Err(p),
+            Err(_) => Ok(Value::Void),
+            Ok(v) => Ok(v),
+        }
+    }
+
     /// `name(…)`: a local lambda, a method of `this`, the file's, a case of
     /// the prelude's `Result`.
     fn call_name(&mut self, name: &str, args: &[Arg], given: Vec<Value>, at: Span) -> Run<Value> {

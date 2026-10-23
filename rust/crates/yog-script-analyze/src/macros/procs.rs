@@ -1,7 +1,8 @@
 //! Procedural macros (`ys.md` §3, Attributes and macros): written in Yog
 //! Script and run by whoever builds — this crate only asks. A call
-//! `Name!(…)` no declared macro takes, and each `[Derive(Name)]` on a type,
-//! are handed over as text; the code given back is read in their place.
+//! `Name!(…)` no declared macro takes, each `[Derive(Name)]` on a type and
+//! each attribute macro's `[Name(…)]` are handed over as text; the code
+//! given back is read in their place.
 
 /// What runs the procedural macros a build has.
 pub trait ProcMacros {
@@ -12,4 +13,8 @@ pub trait ProcMacros {
     /// `[Derive(name)]` on the declaration written `item`: the code added
     /// after it.
     fn derive(&self, name: &str, item: &str) -> Option<Result<String, String>>;
+
+    /// `[name(args)]`, an attribute macro, on the declaration written
+    /// `item`: the code that takes the declaration's place.
+    fn attribute(&self, name: &str, args: &str, item: &str) -> Option<Result<String, String>>;
 }

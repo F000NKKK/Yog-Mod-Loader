@@ -42,6 +42,11 @@ pub(super) fn expand(
             }
             continue;
         }
+        if let Some((end, code)) = attribute_macro(&tokens, i, text, procs, report) {
+            tokens.splice(i..end, code);
+            made += 1;
+            continue;
+        }
         if let Some((names, after)) = derive_at(&tokens, i) {
             let end = decl_end(&tokens, after);
             let item = slice(
@@ -116,6 +121,55 @@ fn derive_at(tokens: &[Token], i: usize) -> Option<(Vec<(String, Span)>, usize)>
         })
         .collect();
     Some((names, after))
+}
+
+/// An attribute macro's `[Name(args)]` at `i`: where its declaration ends
+/// and the code that takes their place.
+fn attribute_macro(
+    tokens: &[Token],
+    i: usize,
+    text: &str,
+    procs: &dyn ProcMacros,
+    report: &mut Report<'_>,
+) -> Option<(usize, Vec<Token>)> {
+    if tokens[i].tok != Tok::Punct(Punct::LBracket) {
+        return None;
+    }
+    let (attr, after) = tree_at(tokens, i);
+    let Tree::Group { inner, .. } = &attr else {
+        return None;
+    };
+    let (
+        Some(Tree::Leaf(Token {
+            tok: Tok::Ident(name),
+            span,
+        })),
+        args,
+    ) = (inner.first(), inner.get(1))
+    else {
+        return None;
+    };
+    if name == DERIVE {
+        return None;
+    }
+    let end = decl_end(tokens, after);
+    let item = slice(
+        text,
+        tokens.get(after).map(|t| t.span),
+        tokens.get(end - 1).map(|t| t.span),
+    );
+    let args = args.map_or("", |a| inside(a, text));
+    match procs.attribute(name, args, item)? {
+        Ok(code) => Some((end, read(&code, *span, report))),
+        Err(why) => {
+            report.error(
+                script_problem::MACRO,
+                *span,
+                format!("`[{name}]` failed: {why}"),
+            );
+            None
+        }
+    }
 }
 
 /// Where the declaration starting at `from` ends: after its body (`{ … }`)
