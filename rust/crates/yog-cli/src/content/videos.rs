@@ -12,7 +12,7 @@ use yog_ids::Format;
 use super::Output;
 use crate::content::ctx::problem;
 use crate::diagnostics::Diagnostic;
-use crate::yres::{RESOURCES_DIR, Refs};
+use crate::yres::RESOURCES_DIR;
 
 /// The mod's videos: their sounds' files and events, and their definitions.
 #[derive(Default)]
@@ -29,14 +29,9 @@ impl Videos {
     }
 }
 
-/// Every `.yvideo` under `resources/video/` of the mod at `root`; their
-/// sources are `refs`' videos; problems go to `errors`.
-pub(crate) fn compile(
-    root: &Path,
-    mod_id: &str,
-    refs: &Refs,
-    errors: &mut Vec<Diagnostic>,
-) -> Videos {
+/// Every `.yvideo` under `resources/video/` of the mod at `root` (made of
+/// its `.yres` videos, pictures and sounds); problems go to `errors`.
+pub(crate) fn compile(root: &Path, mod_id: &str, errors: &mut Vec<Diagnostic>) -> Videos {
     let resources = root.join(RESOURCES_DIR);
     let mut out = Videos::default();
     for file in crate::files::with_ext(&resources, Format::Video.ext()) {
@@ -53,7 +48,7 @@ pub(crate) fn compile(
             );
             continue;
         };
-        if let Err(e) = out.add(&file, refs, id) {
+        if let Err(e) = out.add(&file, root, id) {
             errors.push(problem(e).in_file(&shown));
         }
     }
@@ -62,13 +57,12 @@ pub(crate) fn compile(
 
 impl Videos {
     /// The `.yvideo` at `file` (video `id`), rendered.
-    fn add(&mut self, file: &Path, refs: &Refs, id: String) -> Result<(), String> {
+    fn add(&mut self, file: &Path, root: &Path, id: String) -> Result<(), String> {
         let text = crate::files::read_source(file).map_err(|e| e.to_string())?;
         let video = yog_data::from_text::<Video>(&text)
             .map_err(|e| e.to_string())?
             .value;
-        let source = refs.video(&video.source)?;
-        let mut r = crate::video::render(&video, source)?;
+        let mut r = crate::video::render(&video, root)?;
         let (ns, name) = yog_ids::split(&id);
         let sound = r.sound.take().map(|ogg| {
             let event = yog_formats::video::sound_event(name);
@@ -107,7 +101,7 @@ mod tests {
         )
         .unwrap();
         let mut errors = Vec::new();
-        let v = compile(&dir, "m", &Refs::default(), &mut errors);
+        let v = compile(&dir, "m", &mut errors);
         assert!(v.is_empty());
         assert_eq!(errors.len(), 2, "{errors:?}");
         let _ = std::fs::remove_dir_all(&dir);
@@ -121,14 +115,12 @@ mod tests {
         std::fs::create_dir_all(videos.join("cut")).unwrap();
         std::fs::write(
             videos.join("cut/intro.yvideo"),
-            r#"{ source: "@Videos.intro", width: 64, looping: true }"#,
+            r#"{ source: "@Media.intro", width: 64, looping: true }"#,
         )
         .unwrap();
-        let mut refs = Refs::default();
-        refs.videos
-            .insert("Videos.intro".into(), crate::video::tests::source());
+        crate::video::tests::put_source(&dir, "intro");
         let mut errors = Vec::new();
-        let v = compile(&dir, "m", &refs, &mut errors);
+        let v = compile(&dir, "m", &mut errors);
         assert!(errors.is_empty(), "{errors:?}");
         let (kind, id, bytes) = &v.definitions[0];
         assert_eq!((*kind, id.as_str()), (yog_ids::kind::VIDEO, "m:cut.intro"));

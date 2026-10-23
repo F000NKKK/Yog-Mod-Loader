@@ -111,6 +111,17 @@ pub(crate) fn graph(mix: &Mix) -> String {
     g.join(";")
 }
 
+/// Clip `c`'s sound, as stored: the mod's at `root` (its `.yres`), or the game's.
+pub(crate) fn clip_source(root: &std::path::Path, c: &SoundClip) -> Result<Vec<u8>, String> {
+    match (&c.sound, &c.file) {
+        (Some(r), None) => crate::media::sound(root, &r.set, &r.key)
+            .ok_or_else(|| format!("no sound `{r}` in the mod's .yres")),
+        (None, Some(f)) => crate::media::game_sound(f)
+            .ok_or_else(|| format!("the game's sound {f}: no assets found on this machine")),
+        _ => Err("a clip plays the mod's sound (`sound`) or a file the game has (`file`)".into()),
+    }
+}
+
 /// `mix` rendered, its clips' sounds `sources` (in order, any format ffmpeg reads).
 pub(crate) fn render(mix: &Mix, sources: &[Vec<u8>]) -> Result<Vec<u8>, String> {
     if !mix.clips.iter().any(|c| mix.heard(c.track)) {

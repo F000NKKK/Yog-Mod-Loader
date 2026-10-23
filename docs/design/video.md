@@ -14,6 +14,18 @@ entities and models, full-screen cutscenes.
   video tracks); its size, frame rate and quality; whether it loops and keeps
   its sound.
 
+## Montage
+
+A `.yvideo`'s `montage` (`yog_formats::video::Montage`) lays videos and
+pictures on picture tracks — a higher track over a lower, each clip cut
+(`from`/`to`), sped up, faded, made see-through and fitted into the
+video's frame (its proportions kept) — and its sound as a `.ysound`'s
+`Mix`, the videos' own sound laid in on a track of its own (each clip's
+`gain`). The montage's size is the `.yvideo`'s `width` and `height` (both
+needed), its rate `fps` (30 by default). The build renders it with one
+ffmpeg graph: a black frame its length, each shown clip overlaid at its
+time.
+
 ## Build
 
 ffmpeg renders the `.yvideo` (its source, or its montage's graph) twice:
@@ -73,7 +85,7 @@ the stream the game opens for it (`YogSounds`), and a mixin on
 ## Stages
 
 1. Names, formats, the definition (`yog-ids`, `yog-formats`, `yog-registry`).
-2. The build: `.yres` videos, `.yvideo` compiled (source first, montage after).
+2. The build: `.yres` videos, `.yvideo` compiled — a source, or a montage.
 3. The decoder (`yog-media`) and the clock (`yog-registry`), tested on built videos.
 4. The runtime's players, the texture, the sound; the API.
 5. `<Video>` and `video:` images, cutscenes (done); entities' and models' textures.

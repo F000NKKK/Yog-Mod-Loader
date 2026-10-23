@@ -60,8 +60,6 @@ pub struct Refs {
     pub(crate) pictures: HashMap<String, Picture>,
     /// `Set.name` → a sound's file as `sounds.json` names it (`<mod id>:<path>`).
     pub(crate) sounds: HashMap<String, String>,
-    /// `Set.name` → a video's source bytes, which `.yvideo` files render.
-    pub(crate) videos: HashMap<String, Vec<u8>>,
 }
 
 impl Refs {
@@ -78,14 +76,6 @@ impl Refs {
             .get(&r.name())
             .map(String::as_str)
             .ok_or_else(|| format!("`{r}`: no sound `{}` in resources/*.yres", r.name()))
-    }
-
-    /// Video `r`: its source's bytes.
-    pub(crate) fn video(&self, r: &yog_data::Res) -> Result<&[u8], String> {
-        self.videos
-            .get(&r.name())
-            .map(Vec::as_slice)
-            .ok_or_else(|| format!("`{r}`: no video `{}` in resources/*.yres", r.name()))
     }
 
     /// Color `r` (`0xAARRGGBB`).

@@ -2,8 +2,8 @@
 //! sounds laid on a timeline, each cut, moved, faded, sped up or reversed
 //! and given effects, then effects over the whole. Its sources stay as
 //! they are; the build renders it (ffmpeg) into the one sound the game
-//! plays, and the designers play the same description. (Video montages
-//! will lay clips the same way.)
+//! plays, and the designers play the same description. A video's
+//! montage (`crate::video::Montage`) has one for its sound.
 
 use yog_data::{Res, Schema};
 
@@ -113,6 +113,20 @@ fn tempo() -> f32 {
 
 fn beats_per_bar() -> u32 {
     BEATS_PER_BAR
+}
+
+impl Default for Mix {
+    /// An empty mix on the designer's default grid.
+    fn default() -> Self {
+        Mix {
+            tempo: TEMPO,
+            beats_per_bar: BEATS_PER_BAR,
+            tracks: Vec::new(),
+            clips: Vec::new(),
+            gain: one(),
+            effects: Vec::new(),
+        }
+    }
 }
 
 impl Mix {

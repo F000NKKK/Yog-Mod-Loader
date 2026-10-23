@@ -84,7 +84,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     let files = find(root);
     let mut sink = Sink::default();
     let own = textures::compile(root, mod_id, refs, &mut sink.errors);
-    let mut videos = videos::compile(root, mod_id, refs, &mut sink.errors);
+    let mut videos = videos::compile(root, mod_id, &mut sink.errors);
     let events = std::mem::take(&mut videos.events);
     let sounds = sounds::compile(root, mod_id, refs, events, &mut sink.errors);
     let particles = particles::compile(root, mod_id, &own.ids, &mut sink.errors);

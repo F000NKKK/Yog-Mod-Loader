@@ -34,6 +34,11 @@ pub(super) fn shown(v: &Video, (sw, sh): (u32, u32)) -> (u32, u32) {
     (even(w), even(h))
 }
 
+/// The size `v` gives, both sides (even); none when it doesn't give both.
+pub(super) fn exact(v: &Video) -> Option<(u32, u32)> {
+    Some((even(v.width?), even(v.height?)))
+}
+
 /// `v`'s picture filters, shown at `(w, h)`: its frame rate, its size, its padding.
 pub(super) fn filters(v: &Video, (w, h): (u32, u32)) -> String {
     let mut f = v.fps.map(|fps| format!("fps={fps},")).unwrap_or_default();

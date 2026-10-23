@@ -220,10 +220,6 @@ impl Build<'_> {
         let id = yog_ids::join(self.mod_id, &path);
         if e.kind == Kind::Video {
             // Not bundled: `.yvideo` files render it.
-            self.c
-                .refs
-                .videos
-                .insert(a.reference.clone(), bytes.clone());
             return Some(accessors::medium(&a.acc, &id, &a.doc));
         }
         let (target, id, data) = match e.kind {

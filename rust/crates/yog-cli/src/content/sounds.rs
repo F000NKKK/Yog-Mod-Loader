@@ -164,7 +164,7 @@ impl Mixes<'_> {
         let sources = mix
             .clips
             .iter()
-            .map(|c| self.source(c))
+            .map(|c| crate::mix::clip_source(self.root, c))
             .collect::<Result<Vec<_>, _>>()?;
         let ogg = crate::mix::render(mix, &sources)?;
         let path = format!("{MIX_DIR}{}{slot}", yog_ids::sep::PATH);
@@ -172,19 +172,6 @@ impl Mixes<'_> {
         self.rendered
             .push((yog_ids::asset_file(self.mod_id, &file), ogg));
         Ok(yog_ids::join(self.mod_id, &path))
-    }
-
-    /// Clip `c`'s sound, as stored.
-    fn source(&self, c: &yog_formats::montage::SoundClip) -> Result<Vec<u8>, String> {
-        match (&c.sound, &c.file) {
-            (Some(r), None) => crate::media::sound(self.root, &r.set, &r.key)
-                .ok_or_else(|| format!("no sound `{r}` in the mod's .yres")),
-            (None, Some(f)) => crate::media::game_sound(f)
-                .ok_or_else(|| format!("the game's sound {f}: no assets found on this machine")),
-            _ => {
-                Err("a clip plays the mod's sound (`sound`) or a file the game has (`file`)".into())
-            }
-        }
     }
 }
 

@@ -2,8 +2,6 @@
 //! build renders it, its frames decoded as the game decodes them — the
 //! preview is what the game will show. The last renders are kept, by key.
 
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::path::Path;
 use yog_sync::{Arc, Mutex};
 
@@ -67,14 +65,12 @@ pub(crate) fn video_list(file: &Path) -> Result<VideoList, ServiceError> {
 /// Video `video` (as edited) of the mod at `file`, rendered.
 pub(crate) fn preview(file: &Path, video: &Video) -> Result<Preview, ServiceError> {
     let root = mod_root(file).ok_or("not in a mod")?;
-    let r = &video.source;
-    let source = crate::media::video(&root, &r.set, &r.key)
-        .ok_or_else(|| ServiceError::not_found(format!("no video `{r}` in the mod's .yres")))?;
-    let mut h = DefaultHasher::new();
-    source.hash(&mut h);
-    format!("{video:?}").hash(&mut h);
-    let key = format!("{:016x}", h.finish());
-    let mut rendered = crate::video::render(video, &source)?;
+    let mut rendered = crate::video::render(video, &root)?;
+    // Each render its own key: the decoder never mistakes one for another.
+    static MADE: yog_sync::atomic::AtomicU64 = yog_sync::atomic::AtomicU64::new(0);
+    let key = MADE
+        .fetch_add(1, yog_sync::atomic::Ordering::Relaxed)
+        .to_string();
     let sound = rendered
         .sound
         .take()

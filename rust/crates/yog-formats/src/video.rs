@@ -6,8 +6,15 @@
 
 use yog_data::{Res, Schema};
 
+mod montage;
+
+pub use montage::{Montage, PICTURE_SECONDS, PictureClip, PictureTrack};
+
 /// Where `.yvideo` files live, under `resources/`.
 pub const DIR: &str = yog_ids::kind::VIDEO;
+
+/// A montage's frame rate when the file doesn't say.
+pub const MONTAGE_FPS: f32 = 30.0;
 
 /// The best quality asked for and the worst: AV1's constant rate factor
 /// (lower is better and bigger).
@@ -19,13 +26,16 @@ const QUALITY: u32 = 35;
 /// A video (a `.yvideo` file).
 #[derive(Schema, Debug, Clone, PartialEq)]
 pub struct Video {
-    /// The `.yres` video it shows.
-    pub source: Res,
-    /// Its size, pixels: the source's when not given (one given, the other
-    /// keeps the source's proportions).
+    /// The `.yres` video it shows…
+    pub source: Option<Res>,
+    /// …or a montage of videos, pictures and sounds.
+    pub montage: Option<Montage>,
+    /// Its size, pixels: a source's when not given (one given, the other
+    /// keeps the source's proportions); a montage needs both.
     pub width: Option<u32>,
     pub height: Option<u32>,
-    /// Frames a second: the source's when not given.
+    /// Frames a second: a source's when not given, a montage's
+    /// [`MONTAGE_FPS`].
     pub fps: Option<f32>,
     /// AV1's rate factor, [`BEST_QUALITY`]..=[`WORST_QUALITY`].
     #[data(default = "quality")]
