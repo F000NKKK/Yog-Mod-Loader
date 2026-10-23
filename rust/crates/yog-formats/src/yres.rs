@@ -255,9 +255,7 @@ impl Schema for YresFile {
                 Value::Bool(b) => yog_data::Value::Bool(*b),
                 Value::Bytes(b) => yog_data::Value::Bytes(b.clone()),
             };
-            let plain = e.kind == kind_of(&e.value)
-                && e.comment.is_none()
-                && e.key.is_none();
+            let plain = e.kind == kind_of(&e.value) && e.comment.is_none() && e.key.is_none();
             if plain {
                 map.insert(e.name.clone(), value);
                 continue;
