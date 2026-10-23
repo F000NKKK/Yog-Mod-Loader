@@ -41,7 +41,7 @@ use std::path::{Path, PathBuf};
 use yog_sync::{Arc, OnceLock};
 
 use gimli::{EndianArcSlice, Reader as _, RunTimeEndian};
-use object::{Object, ObjectSection, ObjectSymbol, SymbolKind};
+use object::{Object, ObjectSection, ObjectSegment, ObjectSymbol, SymbolKind};
 
 pub use arch::{Arch, aarch64, x86_64};
 pub use eval::{EvalError, ValueNode, ValueRef};
@@ -165,6 +165,20 @@ const SPLIT_EXT: &str = yog_ids::symbols::EXT;
 /// makes — rustc's default there): `<native>.dSYM/Contents/Resources/DWARF/<native's name>`.
 const DSYM_EXT: &str = "dSYM";
 const DSYM_DWARF: [&str; 3] = ["Contents", "Resources", "DWARF"];
+
+/// The address a native was linked to load its first byte (its header) at
+/// — what the system reports a loaded module's base as. A Mach-O's is its
+/// `__TEXT` segment's (`0x100000000` for an executable), which `object`
+/// doesn't count addresses from; the others' is what it does.
+fn link_base(object: &object::File<'_>) -> u64 {
+    if object.format() != object::BinaryFormat::MachO {
+        return object.relative_address_base();
+    }
+    object
+        .segments()
+        .find(|s| matches!(s.file_range(), (0, size) if size > 0))
+        .map_or(0, |s| s.address())
+}
 
 /// The files a native's debug info may have been split into, beside it.
 fn split_files(path: &Path) -> Vec<PathBuf> {
@@ -293,7 +307,7 @@ impl SymbolTable {
             .map(|s| (s.address(), s.address() + s.size()))
             .collect();
 
-        let image_base = object.relative_address_base();
+        let image_base = link_base(&object);
         Ok(SymbolTable {
             image_base,
             pe_unwind: pe_unwind::PeUnwind::of(&object),

@@ -31,7 +31,10 @@ fn build_as(name: &str, tag: &str) -> PathBuf {
     }
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let src = manifest_dir.join(format!("tests/fixtures/{name}.rs"));
-    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("yog_debugger_{tag}_bin"));
+    let out = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
+        "yog_debugger_{tag}_bin{}",
+        std::env::consts::EXE_SUFFIX
+    ));
 
     let status = Command::new(std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into()))
         .args([
