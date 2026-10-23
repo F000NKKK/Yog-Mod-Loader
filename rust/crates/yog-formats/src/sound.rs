@@ -24,8 +24,9 @@ pub struct SoundFile {
     pub replace: bool,
 }
 
-/// One sound an event may play: the mod's own (`sound`) or one of the
-/// game's (or another mod's) sound files (`file`) — one of them.
+/// One sound an event may play: the mod's own (`sound`), one of the
+/// game's (or another mod's) sound files (`file`), or a montage of them
+/// (`mix`, rendered by the build) — one of them.
 #[derive(Schema, Debug, Clone, PartialEq)]
 pub struct Variant {
     /// The mod's sound: a `.yres` sound.
@@ -33,6 +34,8 @@ pub struct Variant {
     /// A sound file the game has (`minecraft:dig/sand1`, under its
     /// `sounds/`; no namespace: the game's).
     pub file: Option<String>,
+    /// A sound made of others: clips on a timeline, with effects.
+    pub mix: Option<crate::montage::Mix>,
     /// 1 if not given.
     pub volume: Option<f32>,
     /// 1 if not given.

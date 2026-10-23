@@ -136,6 +136,19 @@ pub(crate) fn sound(root: &Path, set: &str, name: &str) -> Option<Vec<u8>> {
         })
 }
 
+/// The game's sound file `id` (`minecraft:dig/sand1`, no namespace: the
+/// game's), from its assets on this machine.
+pub(crate) fn game_sound(id: &str) -> Option<Vec<u8>> {
+    let (ns, path) = yog_ids::split(id);
+    let key = format!(
+        "{ns}{}{}{path}{}",
+        yog_ids::sep::PATH,
+        yog_ids::res::SOUNDS,
+        yog_ids::res::OGG
+    );
+    crate::design::assets::vanilla(&[]).and_then(|v| v.read_all(&key).pop())
+}
+
 /// Writes `bytes` as picture `@<set>.<name>` of the mod at `root` (the
 /// set's file made when there's none); the file written.
 pub(crate) fn save_picture(

@@ -27,10 +27,22 @@ mod field {
     pub const ATTENUATION_DISTANCE: &str = "attenuation_distance";
 }
 
-/// The mod's sound events: the `sounds.json` they make (none without any).
+/// The mod's sound events: the `sounds.json` they make (none without any),
+/// and the sounds their mixes render into.
 #[derive(Default)]
 pub(crate) struct Sounds {
     pub(crate) output: Option<Output>,
+    pub(crate) rendered: Vec<Output>,
+}
+
+/// Where a mix renders: the mod's sounds' folder `mix/<event>/<n>`.
+const MIX_DIR: &str = "mix";
+
+/// What the events' mixes render, and where their sounds come from.
+struct Mixes<'a> {
+    root: &'a Path,
+    mod_id: &'a str,
+    rendered: Vec<Output>,
 }
 
 /// Every `.ysound` under `resources/sound/` of the mod at `root`; problems go to `errors`.
@@ -42,6 +54,11 @@ pub(crate) fn compile(
 ) -> Sounds {
     let resources = root.join(RESOURCES_DIR);
     let mut events = Map::new();
+    let mut mixes = Mixes {
+        root,
+        mod_id,
+        rendered: Vec::new(),
+    };
     for file in crate::files::with_ext(&resources, Format::Sound.ext()) {
         let shown = crate::shown_path(root, &file);
         let rel = file
@@ -57,9 +74,9 @@ pub(crate) fn compile(
             );
             continue;
         };
-        match event(&file, refs) {
+        let (_, name) = yog_ids::split(&id);
+        match event(&file, refs, &mut mixes, name) {
             Ok(def) => {
-                let (_, name) = yog_ids::split(&id);
                 events.insert(name.to_owned(), def);
             }
             Err(e) => errors.push(problem(e).in_file(&shown)),
@@ -72,11 +89,12 @@ pub(crate) fn compile(
     let text = serde_json::to_string_pretty(&Value::Object(events)).unwrap_or_default();
     Sounds {
         output: Some((path, format!("{text}\n").into_bytes())),
+        rendered: mixes.rendered,
     }
 }
 
-/// The `.ysound` at `file` as its `sounds.json` entry.
-fn event(file: &Path, refs: &Refs) -> Result<Value, String> {
+/// The `.ysound` at `file` (event `name`) as its `sounds.json` entry; its mixes rendered into `mixes`.
+fn event(file: &Path, refs: &Refs, mixes: &mut Mixes, name: &str) -> Result<Value, String> {
     let text = crate::files::read_source(file).map_err(|e| e.to_string())?;
     let sound = yog_data::from_text::<SoundFile>(&text)
         .map_err(|e| e.to_string())?
@@ -87,7 +105,8 @@ fn event(file: &Path, refs: &Refs) -> Result<Value, String> {
     let sounds = sound
         .sounds
         .iter()
-        .map(|v| variant(v, refs))
+        .enumerate()
+        .map(|(i, v)| variant(v, refs, mixes, &format!("{name}{}{i}", yog_ids::sep::PATH)))
         .collect::<Result<Vec<_>, _>>()?;
     let mut def = Map::new();
     def.insert(yog_ids::res::SOUNDS_WORD.into(), Value::Array(sounds));
@@ -103,15 +122,15 @@ fn event(file: &Path, refs: &Refs) -> Result<Value, String> {
     Ok(Value::Object(def))
 }
 
-/// One of the sounds an event plays: its file's name, and what's said of it.
-fn variant(v: &Variant, refs: &Refs) -> Result<Value, String> {
-    let name = match (&v.sound, &v.file) {
-        (Some(own), None) => refs.sound(own)?.to_owned(),
-        (None, Some(file)) => yog_ids::qualify(file),
+/// One of the sounds an event plays (`slot`: where its mix renders, `<event>/<n>`):
+/// its file's name, and what's said of it.
+fn variant(v: &Variant, refs: &Refs, mixes: &mut Mixes, slot: &str) -> Result<Value, String> {
+    let name = match (&v.sound, &v.file, &v.mix) {
+        (Some(own), None, None) => refs.sound(own)?.to_owned(),
+        (None, Some(file), None) => yog_ids::qualify(file),
+        (None, None, Some(mix)) => mixes.render(mix, slot)?,
         _ => {
-            return Err(
-                "a sound is either the mod's (`sound`) or a file the game has (`file`)".into(),
-            );
+            return Err("a sound is the mod's (`sound`), a file the game has (`file`), or a mix of them (`mix`)".into());
         }
     };
     let mut out = Map::new();
@@ -131,6 +150,36 @@ fn variant(v: &Variant, refs: &Refs) -> Result<Value, String> {
         v.attenuation_distance.map(|x| json!(x)),
     );
     Ok(Value::Object(out))
+}
+
+impl Mixes<'_> {
+    /// `mix` rendered as the mod's sound `mix/<slot>`: its name.
+    fn render(&mut self, mix: &yog_formats::montage::Mix, slot: &str) -> Result<String, String> {
+        let sources = mix
+            .clips
+            .iter()
+            .map(|c| self.source(c))
+            .collect::<Result<Vec<_>, _>>()?;
+        let ogg = crate::mix::render(mix, &sources)?;
+        let path = format!("{MIX_DIR}{}{slot}", yog_ids::sep::PATH);
+        let file = format!("{}{path}{}", yog_ids::res::SOUNDS, yog_ids::res::OGG);
+        self.rendered
+            .push((yog_ids::asset_file(self.mod_id, &file), ogg));
+        Ok(yog_ids::join(self.mod_id, &path))
+    }
+
+    /// Clip `c`'s sound, as stored.
+    fn source(&self, c: &yog_formats::montage::SoundClip) -> Result<Vec<u8>, String> {
+        match (&c.sound, &c.file) {
+            (Some(r), None) => crate::media::sound(self.root, &r.set, &r.key)
+                .ok_or_else(|| format!("no sound `{r}` in the mod's .yres")),
+            (None, Some(f)) => crate::media::game_sound(f)
+                .ok_or_else(|| format!("the game's sound {f}: no assets found on this machine")),
+            _ => {
+                Err("a clip plays the mod's sound (`sound`) or a file the game has (`file`)".into())
+            }
+        }
+    }
 }
 
 #[cfg(test)]

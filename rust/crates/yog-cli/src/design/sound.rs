@@ -56,20 +56,11 @@ fn own(file: &Path, res: &str) -> Result<Vec<u8>, ServiceError> {
 
 /// The game's sound file `id`, from its assets.
 fn game(id: &str) -> Result<Vec<u8>, ServiceError> {
-    let (ns, path) = yog_ids::split(id);
-    let key = format!(
-        "{ns}{}{}{path}{}",
-        yog_ids::sep::PATH,
-        yog_ids::res::SOUNDS,
-        yog_ids::res::OGG
-    );
-    super::assets::vanilla(&[])
-        .and_then(|v| v.read_all(&key).pop())
-        .ok_or_else(|| {
-            ServiceError::not_found(format!(
-                "the game's sound {id}: no assets found on this machine"
-            ))
-        })
+    crate::media::game_sound(id).ok_or_else(|| {
+        ServiceError::not_found(format!(
+            "the game's sound {id}: no assets found on this machine"
+        ))
+    })
 }
 
 #[cfg(test)]
@@ -90,7 +81,10 @@ mod tests {
         .unwrap();
         let file = dir.join("resources/click.ysound");
         let s = super::sound_data(&file, "@Sounds.click").unwrap();
-        assert_eq!((s.mime.as_str(), s.data.as_str()), ("audio/ogg", ogg.as_str()));
+        assert_eq!(
+            (s.mime.as_str(), s.data.as_str()),
+            ("audio/ogg", ogg.as_str())
+        );
         assert!(super::sound_data(&file, "@Sounds.nope").is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }

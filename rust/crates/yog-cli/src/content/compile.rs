@@ -112,6 +112,7 @@ pub fn compile(root: &Path, mod_id: &str, refs: &yres::Refs) -> Result<Compiled,
     b.out.packed = own.packed_but(&b.out.loose);
     b.out.outputs.extend(own.outputs);
     b.out.outputs.extend(sounds.output);
+    b.out.outputs.extend(sounds.rendered);
     b.out.outputs.extend(particles.outputs);
     b.finish(&mut defs, made, &known)
 }
@@ -134,6 +135,7 @@ fn media_only(
     let mut out = Compiled::default();
     out.outputs.extend(own.outputs);
     out.outputs.extend(sounds.output);
+    out.outputs.extend(sounds.rendered);
     out.packed = own.packed;
     Ok(out)
 }

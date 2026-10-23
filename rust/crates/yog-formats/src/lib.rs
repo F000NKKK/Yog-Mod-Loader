@@ -8,6 +8,7 @@ pub mod content;
 pub mod def;
 pub mod manifest;
 pub mod material;
+pub mod montage;
 pub mod particle;
 pub mod recipe;
 pub mod sound;

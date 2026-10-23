@@ -1,0 +1,169 @@
+//! A `.ysound` montage (`yog_formats::montage::Mix`) rendered into the one
+//! sound the game plays: each clip's sound cut, reversed, sped up, made
+//! louder or quieter, faded and given its effects, then placed; all mixed,
+//! the mix's effects over it; Ogg Vorbis out — one ffmpeg run.
+
+use std::fmt::Write as _;
+use std::io::Read;
+use std::process::{Command, Stdio};
+
+use yog_formats::montage::{Mix, SoundClip, SoundEffect};
+
+/// The program that renders, as found on `PATH`.
+const FFMPEG: &str = "ffmpeg";
+/// The rate every clip is brought to before it's sped up (its pitch with it).
+const RATE: u32 = 48_000;
+/// An echo's loudness in and out (ffmpeg's `aecho` gains).
+const ECHO_IN: f32 = 0.8;
+const ECHO_OUT: f32 = 0.9;
+const MS: f32 = 1000.0;
+/// What the mix is written as: Ogg Vorbis at a good quality, on stdout.
+const OUT: &[&str] = &["-c:a", "libvorbis", "-q:a", "6", "-f", "ogg", "pipe:1"];
+
+/// `effect` as an ffmpeg audio filter.
+fn filter(effect: &SoundEffect) -> String {
+    match effect {
+        SoundEffect::Echo { delay, decay } => {
+            format!("aecho={ECHO_IN}:{ECHO_OUT}:{}:{decay}", delay * MS)
+        }
+        SoundEffect::LowPass { hz } => format!("lowpass=f={hz}"),
+        SoundEffect::HighPass { hz } => format!("highpass=f={hz}"),
+    }
+}
+
+/// Clip `c` (input `i`) as a chain of filters ending in `[c<i>]`.
+fn clip_chain(i: usize, c: &SoundClip) -> String {
+    let mut f = format!("[{i}:a]aresample={RATE},atrim=start={}", c.from);
+    if let Some(to) = c.to {
+        let _ = write!(f, ":end={to}");
+    }
+    f.push_str(",asetpts=PTS-STARTPTS");
+    if c.reverse {
+        f.push_str(",areverse");
+    }
+    if c.speed != 1.0 {
+        let _ = write!(
+            f,
+            ",asetrate={},aresample={RATE}",
+            (RATE as f32 * c.speed).round()
+        );
+    }
+    if c.gain != 1.0 {
+        let _ = write!(f, ",volume={}", c.gain);
+    }
+    if c.fade_in > 0.0 {
+        let _ = write!(f, ",afade=t=in:d={}", c.fade_in);
+    }
+    if c.fade_out > 0.0 {
+        // Faded in backwards: out at its end, whatever its length.
+        let _ = write!(f, ",areverse,afade=t=in:d={},areverse", c.fade_out);
+    }
+    for e in &c.effects {
+        let _ = write!(f, ",{}", filter(e));
+    }
+    let _ = write!(f, ",adelay={}:all=1[c{i}]", (c.at * MS).round());
+    f
+}
+
+/// The whole graph: every clip, mixed, the mix's effects; out as `[out]`.
+pub(crate) fn graph(mix: &Mix) -> String {
+    let mut g: Vec<String> = mix
+        .clips
+        .iter()
+        .enumerate()
+        .map(|(i, c)| clip_chain(i, c))
+        .collect();
+    let inputs: String = (0..mix.clips.len()).map(|i| format!("[c{i}]")).collect();
+    let mut all = format!(
+        "{inputs}amix=inputs={}:normalize=0:duration=longest",
+        mix.clips.len()
+    );
+    for e in &mix.effects {
+        let _ = write!(all, ",{}", filter(e));
+    }
+    all.push_str("[out]");
+    g.push(all);
+    g.join(";")
+}
+
+/// A folder of its own for a render's inputs, gone when dropped.
+struct Scratch(std::path::PathBuf);
+
+impl Scratch {
+    fn new() -> Result<Scratch, String> {
+        static NEXT: yog_sync::atomic::AtomicU64 = yog_sync::atomic::AtomicU64::new(0);
+        let n = NEXT.fetch_add(1, yog_sync::atomic::Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("yog-mix-{}-{n}", std::process::id()));
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        Ok(Scratch(dir))
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// `mix` rendered, its clips' sounds `sources` (in order, any format ffmpeg reads).
+pub(crate) fn render(mix: &Mix, sources: &[Vec<u8>]) -> Result<Vec<u8>, String> {
+    if mix.clips.is_empty() {
+        return Err("a mix has at least one clip".into());
+    }
+    let dir = Scratch::new()?;
+    let mut cmd = Command::new(FFMPEG);
+    cmd.args(["-hide_banner", "-loglevel", "error"]);
+    for (i, bytes) in sources.iter().enumerate() {
+        let path = dir.0.join(i.to_string());
+        std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+        cmd.arg("-i").arg(path);
+    }
+    cmd.args(["-filter_complex", &graph(mix), "-map", "[out]"])
+        .args(OUT);
+    let mut child = cmd
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("a mix needs {FFMPEG}, which can't be run: {e}"))?;
+    let mut out = Vec::new();
+    child
+        .stdout
+        .take()
+        .ok_or("ffmpeg's output")?
+        .read_to_end(&mut out)
+        .map_err(|e| e.to_string())?;
+    let mut err = String::new();
+    if let Some(mut s) = child.stderr.take() {
+        let _ = s.read_to_string(&mut err);
+    }
+    let status = child.wait().map_err(|e| e.to_string())?;
+    if !status.success() || out.is_empty() {
+        return Err(format!("{FFMPEG} couldn't render the mix: {}", err.trim()));
+    }
+    Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_mix_is_one_ffmpeg_graph() {
+        let text = r#"{ clips: [{ sound: "@S.a", at: 0.5, to: 1, speed: 2, fade_out: 0.1, effects: [{ effect: "low_pass", hz: 800 }] },
+            { file: "dig/sand1" }], effects: [{ effect: "echo", delay: 0.2, decay: 0.4 }] }"#;
+        let g = graph(&yog_data::from_text::<Mix>(text).unwrap().value);
+        assert!(
+            g.starts_with(
+                "[0:a]aresample=48000,atrim=start=0:end=1,asetpts=PTS-STARTPTS,asetrate=96000"
+            ),
+            "{g}"
+        );
+        assert!(g.contains("lowpass=f=800,adelay=500:all=1[c0]"), "{g}");
+        assert!(
+            g.ends_with(
+                "[c0][c1]amix=inputs=2:normalize=0:duration=longest,aecho=0.8:0.9:200:0.4[out]"
+            ),
+            "{g}"
+        );
+    }
+}
