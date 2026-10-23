@@ -511,7 +511,7 @@ impl<'a> Build<'a> {
         if content.registers_anything()
             && !mentions_content_macro(&self.shared.root.join(yog_ids::project::SRC))
         {
-            self.out.warnings.push(caveat(format!("{CONTENT_DIR} has blocks/items, but src/ never calls `yog_api::content!();` — they get models but aren't registered")));
+            self.out.warnings.push(caveat("the mod has content (blocks, items, particles, videos, …), but src/ never calls `yog_api::content!();` — it isn't registered"));
         }
         self.out.source = Some(rust_source(&content));
         version_overlays(&mut self.out, &known.datapack);
