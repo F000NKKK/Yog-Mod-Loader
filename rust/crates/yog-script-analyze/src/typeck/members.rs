@@ -213,9 +213,10 @@ impl Checker<'_, '_, '_> {
                     Type::Game(class) | Type::Yog(class) => self.extension_methods(class, name),
                     _ => self.own_methods(&t, name),
                 });
-                in_this
-                    .or_else(|| self.own.methods.get(name).cloned())
-                    .map_or(Callee::Unknown, Callee::Own)
+                match in_this.or_else(|| self.own.methods.get(name).cloned()) {
+                    Some(methods) => Callee::Own(methods),
+                    None => self.static_import(name, callee.span),
+                }
             }
             ExprKind::Member { expr, name, .. } => {
                 let on = self.expr(expr);
@@ -250,6 +251,30 @@ impl Checker<'_, '_, '_> {
                 .iter()
                 .find_map(|c| self.own_methods(&Type::Own(c.clone()), name))
         })
+    }
+
+    /// Method `name` a `using static` brings in (`using static Yog.Chat;`
+    /// → `Broadcast(…)`).
+    fn static_import(&mut self, name: &str, at: Span) -> Callee {
+        let statics = self.directives.statics.clone();
+        for path in statics {
+            let names: Vec<crate::ast::Name> = path
+                .iter()
+                .map(|text| crate::ast::Name {
+                    text: text.clone(),
+                    span: at,
+                })
+                .collect();
+            if let Type::Yog(group) = self.qualified(&names, at)
+                && super::surface::SURFACE
+                    .groups
+                    .get(&group)
+                    .is_some_and(|g| g.methods.contains_key(name))
+            {
+                return self.yog_methods(&group, name, at);
+            }
+        }
+        Callee::Unknown
     }
 
     /// Group `group`'s methods `name`: each one's parameters and answer.

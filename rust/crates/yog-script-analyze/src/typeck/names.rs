@@ -1,23 +1,24 @@
-//! Names by namespace, as in C#: the source's own first, then what its
-//! `using`s bring in, then `Yog` (every file's, as `System` is in C#).
-//! The game's classes are namespace `Game` (a `.yns` file's only): `using
-//! Game.World.Entity;` or written in full, `Game.World.Entity.LivingEntity`.
-//! Yog's are `Yog.Player` in full, where a `using` brings in a `Player` too
-//! (and Yog's `game` group is `Yog.Game` in a `.yns`).
+//! Names by namespace, as in C#. A simple name is, in turn: a type of the
+//! namespace the code is in (or one enclosing it); a `using` alias; a type
+//! one of the `using`s brings in — `Yog` among them, every file's, as .NET's
+//! implicit usings — where two bringing one in is an ambiguity; a namespace.
+//! The game's classes are namespace `Game`, a `.yns` file's only
+//! (`using Game.World.Entity;`); there Yog's `game` group is `Yog.Game`.
+
+use std::collections::HashMap;
 
 use yog_ids::script_problem;
 
 use super::Checker;
 use super::model::Type;
 use super::surface::SURFACE;
-use crate::ast::Name;
+use crate::ast::{self, Decl, DeclKind, Name};
 use crate::index::namespace;
 use crate::source::token::Span;
 
 /// What a namespace's segments are joined with.
 const SEP: &str = ".";
 
-/// The root namespaces: Yog's surface, and the game's classes.
 pub(super) fn yog_root() -> String {
     yog_codegen::pascal(yog_ids::ns::YOG)
 }
@@ -26,38 +27,113 @@ pub(super) fn game_root() -> String {
     yog_codegen::pascal(yog_ids::bus_word::GAME)
 }
 
-impl Checker<'_, '_, '_> {
-    /// A name not the source's own: what a `using` brings in, Yog's, or a
-    /// root namespace.
-    pub(super) fn imported(&mut self, name: &str, at: Span) -> Type {
-        let usings = self.usings.clone();
-        for using in &usings {
-            // A `using` brings in what's in a namespace, not namespaces.
-            let found = self.in_namespace(using, name, at);
-            if found.known() && !matches!(found, Type::Namespace(_)) {
-                return found;
-            }
-        }
-        // In a `.yns`, `Game` is the game's classes (Yog's `game` group is
-        // then `Yog.Game`); a `.ys` has no game classes: `Game` is Yog's.
-        if self.nanites && name == game_root() {
-            return Type::Namespace(name.to_string());
-        }
-        if SURFACE.knows(name) {
-            return Type::Yog(name.to_string());
-        }
-        if name == yog_root() {
-            return Type::Namespace(name.to_string());
-        }
-        Type::Unknown
+/// A file's `using` directives (its `global` ones too: a file is checked
+/// on its own here).
+#[derive(Default)]
+pub(super) struct Directives {
+    pub usings: Vec<Vec<String>>,
+    pub statics: Vec<Vec<String>>,
+    pub aliases: HashMap<String, ast::Type>,
+}
+
+impl Directives {
+    pub fn collect(decls: &[Decl]) -> Self {
+        let mut out = Directives {
+            usings: vec![vec![yog_root()]],
+            ..Directives::default()
+        };
+        out.add(decls);
+        out
     }
 
-    /// `A.B.C` written as a type: the namespace walked from its root.
+    fn add(&mut self, decls: &[Decl]) {
+        for d in decls {
+            match &d.kind {
+                DeclKind::Using { path, statics, .. } => {
+                    let path = path.iter().map(|n| n.text.clone()).collect();
+                    if *statics {
+                        self.statics.push(path)
+                    } else {
+                        self.usings.push(path)
+                    }
+                }
+                DeclKind::Alias { name, ty } => {
+                    self.aliases.insert(name.text.clone(), ty.clone());
+                }
+                DeclKind::Namespace {
+                    body: Some(body), ..
+                } => self.add(body),
+                _ => {}
+            }
+        }
+    }
+}
+
+impl Checker<'_, '_, '_> {
+    /// A simple name that isn't a local or a built-in type.
+    pub(super) fn imported(&mut self, name: &str, at: Span) -> Type {
+        if let Some(t) = self.own_visible(name) {
+            return t;
+        }
+        if let Some(alias) = self.directives.aliases.get(name).cloned() {
+            return self.type_of(&alias);
+        }
+        let usings = self.directives.usings.clone();
+        let mut found: Vec<(String, Type)> = Vec::new();
+        for using in &usings {
+            let t = self.in_namespace(using, name, at);
+            if t.known() && !matches!(t, Type::Namespace(_)) && !found.iter().any(|(_, f)| *f == t)
+            {
+                found.push((using.join(SEP), t));
+            }
+        }
+        match found.as_slice() {
+            [] => self.root(name),
+            [(_, one)] => one.clone(),
+            [(a, first), (b, _), ..] => {
+                self.report.error(
+                    script_problem::AMBIGUOUS,
+                    at,
+                    format!("`{name}` is both `{a}.{name}` and `{b}.{name}`: write it in full, or alias one (`using {name} = {a}.{name};`)"),
+                );
+                first.clone()
+            }
+        }
+    }
+
+    /// The source's own type `name`, when its namespace is the code's or
+    /// one enclosing it.
+    fn own_visible(&self, name: &str) -> Option<Type> {
+        let ns = self.own.namespaces.get(name)?;
+        self.ns.starts_with(ns).then(|| Type::Own(name.to_string()))
+    }
+
+    /// A namespace `name` starts: Yog's, the game's (a `.yns`), or the source's.
+    fn root(&self, name: &str) -> Type {
+        let own_root = self
+            .own
+            .namespaces
+            .values()
+            .any(|ns| ns.first().is_some_and(|f| f == name));
+        let game = self.nanites && name == game_root();
+        if game || name == yog_root() || own_root {
+            Type::Namespace(name.to_string())
+        } else {
+            Type::Unknown
+        }
+    }
+
+    /// `A.B.C` written as a type: walked from its first name.
     pub(super) fn qualified(&mut self, path: &[Name], at: Span) -> Type {
         let Some((first, rest)) = path.split_first() else {
             return Type::Unknown;
         };
-        let mut t = self.imported(&first.text, at);
+        // In a `.yns`, `Game` and `Yog` are the roots before anything else.
+        let mut t = if first.text == game_root() && self.nanites || first.text == yog_root() {
+            Type::Namespace(first.text.clone())
+        } else {
+            self.imported(&first.text, at)
+        };
         for n in rest {
             t = match &t {
                 Type::Namespace(ns) => self.in_namespace(&split(ns), &n.text, n.span),
@@ -75,7 +151,7 @@ impl Checker<'_, '_, '_> {
         t
     }
 
-    /// `name` in namespace `ns`: a class, Yog's type, or a namespace inside it.
+    /// `name` in namespace `ns`: a type, or a namespace inside it.
     pub(super) fn in_namespace(&mut self, ns: &[String], name: &str, at: Span) -> Type {
         let Some((root, under)) = ns.split_first() else {
             return Type::Unknown;
@@ -87,9 +163,27 @@ impl Checker<'_, '_, '_> {
                 Type::Unknown
             };
         }
-        if *root != game_root() {
-            return Type::Unknown;
+        if *root == game_root() && (self.nanites || !SURFACE.knows(root)) {
+            return self.in_game(ns, name, at);
         }
+        if self.own.namespaces.get(name).is_some_and(|own| own == ns) {
+            return Type::Own(name.to_string());
+        }
+        let deeper: Vec<String> = [ns, &[name.to_string()]].concat();
+        let is_own_ns = self
+            .own
+            .namespaces
+            .values()
+            .any(|own| own.starts_with(&deeper));
+        if is_own_ns {
+            Type::Namespace(deeper.join(SEP))
+        } else {
+            Type::Unknown
+        }
+    }
+
+    /// `name` in the game's namespace `ns` (`Game`, `Game.World`, …).
+    fn in_game(&mut self, ns: &[String], name: &str, at: Span) -> Type {
         if !self.nanites {
             self.report.error(
                 script_problem::TARGETS,
@@ -98,19 +192,19 @@ impl Checker<'_, '_, '_> {
             );
             return Type::Unknown;
         }
-        let class = namespace::class_of(under, name);
-        let Some(found) = self
+        let class = namespace::class_of(&ns[1..], name);
+        match self
             .lookup
             .as_ref()
             .and_then(|l| l.class(&class))
             .map(|c| c.side)
-        else {
-            let mut deeper = ns.to_vec();
-            deeper.push(name.to_string());
-            return Type::Namespace(deeper.join(SEP));
-        };
-        self.check_side(found, name, at);
-        Type::Game(class)
+        {
+            Some(side) => {
+                self.check_side(side, name, at);
+                Type::Game(class)
+            }
+            None => Type::Namespace([ns, &[name.to_string()]].concat().join(SEP)),
+        }
     }
 }
 

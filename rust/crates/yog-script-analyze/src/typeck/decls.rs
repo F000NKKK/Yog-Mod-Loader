@@ -65,6 +65,18 @@ impl Checker<'_, '_, '_> {
                 let target = self.type_of(&p.target);
                 self.within(Some(target), side, None, |c| c.patch(&p.items));
             }
+            DeclKind::Namespace { path, body } => {
+                let path: Vec<String> = path.iter().map(|n| n.text.clone()).collect();
+                match body {
+                    None => self.ns = [self.ns.clone(), path].concat(),
+                    Some(body) => {
+                        let inner = [self.ns.clone(), path].concat();
+                        let outer = std::mem::replace(&mut self.ns, inner);
+                        self.decls(body);
+                        self.ns = outer;
+                    }
+                }
+            }
             DeclKind::Prop(p) => {
                 self.expr(&p.value);
             }

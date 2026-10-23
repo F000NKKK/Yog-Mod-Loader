@@ -38,8 +38,10 @@ pub(crate) struct Checker<'r, 's, 'i> {
     side: Side,
     /// What a `return` in the code must give (`None`: not in a method).
     returns: Option<Type>,
-    /// The namespaces the file's `using`s bring in, each by its segments.
-    usings: Vec<Vec<String>>,
+    /// The file's `using` directives.
+    directives: names::Directives,
+    /// The namespace the code is in.
+    ns: Vec<String>,
     /// A `.yns`: the game's classes reachable.
     nanites: bool,
 }
@@ -62,16 +64,8 @@ pub(crate) fn check(
         this: None,
         side: Side::Shared,
         returns: None,
-        usings: file
-            .decls
-            .iter()
-            .filter_map(|d| match &d.kind {
-                crate::ast::DeclKind::Using(path) => {
-                    Some(path.iter().map(|n| n.text.clone()).collect())
-                }
-                _ => None,
-            })
-            .collect(),
+        directives: names::Directives::collect(&file.decls),
+        ns: Vec::new(),
         nanites,
     };
     c.decls(&file.decls);

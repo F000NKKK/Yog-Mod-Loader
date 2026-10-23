@@ -87,10 +87,31 @@ is PascalCase (`hurt()` → `Hurt()`), a field PascalCase (`foodData` →
 ## 2. Files and declarations
 
 ```ebnf
-file        = using* decl* ;
+file        = using* namespace_decl? decl* ;
 
-using       = 'using' path ';' ;
+using       = 'global'? 'using' ('static'? path | IDENT '=' type) ';' ;
+namespace_decl = 'namespace' path (';' | '{' using* decl* '}') ;
 path        = IDENT ('.' IDENT)* ;
+```
+
+Namespaces and `using`s work as in C#:
+
+- `namespace Charge.Machines;` puts the rest of the file in a namespace;
+  `namespace Charge.Machines { … }` what's in its braces.
+- `using Yog.Ui;` brings in the types of a namespace (not the namespaces
+  in it); `using static Yog.Chat;` the static members of a type
+  (`Broadcast(…)`); `using Grid = Dictionary<Pos, int>;` names a type or a
+  namespace; `global using …;` is every file's of the mod.
+- A simple name is, in turn: a type of the namespace the code is in (or
+  one enclosing it); an alias; a type a `using` brings in — where two
+  bring one in, it's ambiguous (YS0022, C#'s CS0104): write it in full or
+  alias it; then a namespace.
+- `Yog` is every file's `using` (as .NET's implicit usings): Yog's objects
+  need none. The game's classes are namespace `Game`, a `.yns` file's
+  only: `using Game.World.Entity;`, or `Game.World.Entity.LivingEntity` in
+  full. In a `.yns`, Yog's `game` group is `Yog.Game`.
+
+```ebnf
 
 decl        = attributes? doc? modifiers? ( mod_decl | method_decl | field_decl
             | type_decl | content_decl | component_decl | system_decl | extend_decl
@@ -161,14 +182,13 @@ methods called on the other side are messages (`x.Client.F()`,
 ### 2.3 Types of one's own
 
 ```ebnf
-type_decl   = class_decl | record_decl | union_decl | enum_decl | interface_decl | alias_decl | unit_decl ;
+type_decl   = class_decl | record_decl | union_decl | enum_decl | interface_decl | unit_decl ;
 class_decl  = 'class' IDENT generics? primary_ctor? bases? constraints? type_body ;
 record_decl = 'record' IDENT generics? primary_ctor bases? (type_body | ';') ;
 union_decl  = 'union' IDENT generics? '{' variant (',' variant)* ','? member* '}' ;
 variant     = IDENT primary_ctor? ;
 enum_decl   = 'enum' IDENT '{' IDENT (',' IDENT)* ','? '}' ;
 interface_decl = 'interface' IDENT generics? bases? '{' member* '}' ;
-alias_decl  = 'using' IDENT '=' type ';' ;                          (* an alias *)
 unit_decl   = 'unit' IDENT ('=' expr)? ';' ;                         (* a mod's own unit; `= 20t` defines it by another *)
 
 primary_ctor = '(' params? ')' ;                                     (* the type's constructor, its parameters in scope *)
@@ -578,8 +598,8 @@ test "a charger fills a battery" {
 targets mc 1.20.1..26.2;
 
 using Game.World.Entity;                     // LivingEntity
-using Game.World.Entity.Player;              // the game's Player (Yog's is then Yog.Player)
 using Game.Server;                           // MinecraftServer
+using Player = Game.World.Entity.Player.Player;   // the game's (Yog's Player is every file's)
 
 patch LivingEntity {
     add saved float Shield = 0;

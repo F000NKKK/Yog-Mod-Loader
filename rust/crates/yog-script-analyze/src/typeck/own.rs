@@ -26,6 +26,10 @@ pub(crate) struct OwnTypes {
     pub values: HashMap<String, ast::Type>,
     /// What `extend` adds to the game's types, by their names.
     pub extended: HashMap<String, OwnType>,
+    /// Each type's namespace (`namespace A.B;`), by its name.
+    pub namespaces: HashMap<String, Vec<String>>,
+    /// The namespace the declarations being collected are in.
+    current: Vec<String>,
 }
 
 impl OwnTypes {
@@ -50,6 +54,18 @@ impl OwnTypes {
                     self.values.insert(name.text.clone(), ty.clone());
                 }
                 DeclKind::Unit { name, .. } => self.units.push(name.text.clone()),
+                DeclKind::Namespace { path, body } => {
+                    let path: Vec<String> = path.iter().map(|n| n.text.clone()).collect();
+                    match body {
+                        None => self.current = path,
+                        Some(body) => {
+                            let inner = [self.current.clone(), path].concat();
+                            let outer = std::mem::replace(&mut self.current, inner);
+                            self.file(body);
+                            self.current = outer;
+                        }
+                    }
+                }
                 DeclKind::Version {
                     then, otherwise, ..
                 } => {
@@ -90,6 +106,8 @@ impl OwnTypes {
                 name, header, body, ..
             } => (name, body.as_slice(), header.has.as_slice(), None),
             DeclKind::Enum { name, cases } => {
+                self.namespaces
+                    .insert(name.text.clone(), self.current.clone());
                 let t = self.types.entry(name.text.clone()).or_default();
                 t.cases = cases.iter().map(|c| c.text.clone()).collect();
                 return;
@@ -100,14 +118,17 @@ impl OwnTypes {
                 body,
                 ..
             } => {
+                self.namespaces
+                    .insert(name.text.clone(), self.current.clone());
                 let t = self.types.entry(name.text.clone()).or_default();
                 t.cases = variants.iter().map(|v| v.name.text.clone()).collect();
                 members(t, body);
                 return;
             }
-            DeclKind::Alias { .. } | DeclKind::Extend { .. } => return,
             _ => return,
         };
+        self.namespaces
+            .insert(name.text.clone(), self.current.clone());
         let t = self.types.entry(name.text.clone()).or_default();
         for p in ctor.into_iter().flatten() {
             t.values.insert(p.name.text.clone(), p.ty.clone());

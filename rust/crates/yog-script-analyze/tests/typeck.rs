@@ -95,7 +95,7 @@ fn the_games_classes_are_a_yns_files_only() {
     let index = game();
     let yns = |src: &str| {
         let src = format!(
-            "targets mc 1.21.1..1.21.1;\nusing Game.World.Entity.Player;\nusing Game.Client;\n{src}"
+            "targets mc 1.21.1..1.21.1;\nusing Player = Game.World.Entity.Player.Player;\nusing Game.Client;\n{src}"
         );
         codes_of(check_with("a.yns", &src, Some(&index)).problems)
     };
@@ -117,7 +117,12 @@ fn the_games_classes_are_a_yns_files_only() {
     assert!(
         yns("extend Player {\n    int Visits = 0;\n}\nint F(Player p) => p.Visits;\n").is_empty()
     );
-    // In full, or Yog's where a `using` brings in the game's of the name.
+    // As in C#, a name two `using`s bring in (`Yog`, every file's, among
+    // them) is ambiguous: an alias, as above, or the full name settles it.
+    let ambiguous =
+        "targets mc 1.21.1..1.21.1;\nusing Game.World.Entity.Player;\nfloat F(Player p) => 1;\n";
+    let found = codes_of(check_with("a.yns", ambiguous, Some(&index)).problems);
+    assert_eq!(found, [script_problem::AMBIGUOUS]);
     assert!(yns("float F(Game.World.Entity.Player.Player p) => p.Health;\n").is_empty());
     assert_eq!(
         yns("int F(Yog.Player p) => p.Health;\n"),
@@ -167,4 +172,16 @@ fn yogs_surface_is_typed() {
         codes("void F() {\n    Chat.Shout(\"hi\");\n}\n"),
         [script_problem::UNKNOWN_MEMBER]
     );
+}
+
+/// `namespace` and `using` as in C#.
+#[test]
+fn namespaces_and_usings_work_as_in_csharp() {
+    let src = "namespace Charge.Machines;\n\nrecord Pos(int X);\nint F(Pos p) => p.X;\nint G(Charge.Machines.Pos p) => p.Y;\n";
+    assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
+    let src = "namespace Charge {\n    record Pos(int X);\n}\nnamespace Other {\n    using Charge;\n    int F(Pos p) => p.Y;\n}\n";
+    assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
+    // An alias of a namespace; the static members of a type.
+    let src = "using Y = Yog;\nusing static Yog.Chat;\nvoid F(Y.Player p) {\n    bool sent = Broadcast(\"hi\");\n    Broadcast(1, 2);\n}\n";
+    assert_eq!(codes(src), [script_problem::WRONG_ARGS]);
 }

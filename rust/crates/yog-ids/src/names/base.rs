@@ -297,6 +297,8 @@ names! {
         TARGETS = "YS0020",
         /// `targets` naming no version Yog runs on.
         NO_VERSION = "YS0021",
+        /// A name two `using`s bring in (C#'s CS0104).
+        AMBIGUOUS = "YS0022",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

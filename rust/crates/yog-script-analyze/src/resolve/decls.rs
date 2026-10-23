@@ -25,13 +25,10 @@ impl Resolver<'_, '_> {
 
     fn declare(&mut self, d: &Decl, again: bool) {
         match &d.kind {
-            DeclKind::Using(path) => {
-                if let Some(last) = path.last() {
-                    self.define(last, DefKind::Import, Case::Any, again);
-                }
-            }
-            DeclKind::Alias { name, .. }
-            | DeclKind::Unit { name, .. }
+            // A `using` brings in a namespace's types, which aren't this
+            // source's to know: it declares no name (an alias does).
+            DeclKind::Alias { name, .. } => self.define(name, DefKind::Import, Case::Any, again),
+            DeclKind::Unit { name, .. }
             | DeclKind::Union { name, .. }
             | DeclKind::Enum { name, .. } => {
                 self.define(name, DefKind::Type, Case::Pascal, again);
@@ -187,6 +184,9 @@ impl Resolver<'_, '_> {
                     });
                 });
             }
+            DeclKind::Namespace {
+                body: Some(body), ..
+            } => self.scoped(|r| r.decls(body)),
             DeclKind::Prop(p) => self.expr(&p.value),
             DeclKind::Command { body, .. } => self.scoped(|r| r.decls(body)),
             DeclKind::On { params, body, .. } => {

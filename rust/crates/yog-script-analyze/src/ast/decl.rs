@@ -58,8 +58,17 @@ pub struct TypeHeader {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum DeclKind {
-    /// `using Yog.Ui;`.
-    Using(Vec<Name>),
+    /// `using Yog.Ui;`, `using static Yog.Chat;`, `global using …;`.
+    Using {
+        path: Vec<Name>,
+        global: bool,
+        statics: bool,
+    },
+    /// `namespace A.B;` (the rest of the file: `body` None) or `namespace A.B { … }`.
+    Namespace {
+        path: Vec<Name>,
+        body: Option<Vec<Decl>>,
+    },
     /// `using Grid = Dictionary<Pos, int>;`.
     Alias {
         name: Name,
