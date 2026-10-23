@@ -1,0 +1,51 @@
+package dev.yog.content;
+
+import dev.yog.YogTools;
+import dev.yog.client.YogTooltipData;
+
+import java.util.List;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import org.jetbrains.annotations.Nullable;
+
+/** A block's item form whose display name and tooltip come from a Yog mod. */
+public class YogBlockItem extends BlockItem {
+    private final String displayName;
+    private final String tooltip;
+
+    public YogBlockItem(Block block, Properties properties, String displayName, String tooltip) {
+        super(block, properties);
+        this.displayName = displayName;
+        this.tooltip = tooltip;
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        return displayName == null || displayName.isEmpty()
+                ? super.getName(stack)
+                : Component.literal(displayName);
+    }
+
+    @Override
+    public Component getDescription() {
+        return displayName == null || displayName.isEmpty()
+                ? super.getDescription()
+                : Component.literal(displayName);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+        super.appendHoverText(stack, level, lines, flag);
+        YogTools.hover(this, tooltip, lines);
+    }
+
+    /** A Yog mod's picture under the tooltip, if it gives this stack one. */
+    @Override
+    public java.util.Optional<net.minecraft.world.inventory.tooltip.TooltipComponent> getTooltipImage(net.minecraft.world.item.ItemStack stack) {
+        return YogTooltipData.of(stack);
+    }
+}

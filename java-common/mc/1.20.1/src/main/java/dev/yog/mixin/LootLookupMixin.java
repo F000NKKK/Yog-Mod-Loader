@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogLootTableId;
+import dev.yog.content.YogLootTableId;
 import net.minecraft.world.level.storage.loot.LootDataId;
 import net.minecraft.world.level.storage.loot.LootDataManager;
 import org.spongepowered.asm.mixin.Mixin;

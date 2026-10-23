@@ -1,7 +1,7 @@
 package dev.yog.mixin;
 
-import dev.yog.YogLootHook;
-import dev.yog.YogLootTableId;
+import dev.yog.content.YogLootHook;
+import dev.yog.content.YogLootTableId;
 import java.util.function.Consumer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;

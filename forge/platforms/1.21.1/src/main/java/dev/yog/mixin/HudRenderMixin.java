@@ -1,7 +1,7 @@
 package dev.yog.mixin;
 
 import dev.yog.NativeBridge;
-import dev.yog.NativeDraw;
+import dev.yog.render.NativeDraw;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -21,6 +21,6 @@ public abstract class HudRenderMixin {
 
     @Inject(method = "render", at = @At("TAIL"))
     private void yog$onHudRender(GuiGraphics ctx, DeltaTracker delta, CallbackInfo ci) {
-        dev.yog.YogClientEvents.hud(ctx, delta.getGameTimeDeltaPartialTick(false));
+        dev.yog.client.YogClientEvents.hud(ctx, delta.getGameTimeDeltaPartialTick(false));
     }
 }

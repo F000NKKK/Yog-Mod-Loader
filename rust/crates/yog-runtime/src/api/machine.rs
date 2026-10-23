@@ -167,7 +167,7 @@ pub(crate) fn key_name(binding: &str) -> Option<String> {
     // SAFETY: a host call with a string argument, on the calling thread.
     unsafe {
         host!(
-            "dev/yog/YogClientApi",
+            "dev/yog/client/YogClientApi",
             "keyName",
             [S(YogStr::from_str(binding))]
         )
@@ -182,7 +182,7 @@ pub(crate) fn translate(key: &str) -> Option<String> {
     }
     unsafe {
         host!(
-            "dev/yog/YogGameActions",
+            "dev/yog/actions/YogGameActions",
             "translate",
             [S(YogStr::from_str(key))]
         )

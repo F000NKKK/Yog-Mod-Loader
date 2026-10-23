@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogBodyState;
+import dev.yog.body.YogBodyState;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;

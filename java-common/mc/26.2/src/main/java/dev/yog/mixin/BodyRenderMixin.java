@@ -1,7 +1,7 @@
 package dev.yog.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import dev.yog.YogBody;
+import dev.yog.body.YogBody;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;

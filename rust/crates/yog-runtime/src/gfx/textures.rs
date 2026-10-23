@@ -12,7 +12,7 @@ pub(crate) fn register(env: &mut JNIEnv, id: &str, w: u32, h: u32, rgba: &[u8]) 
     let ok: Option<bool> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "registerTexture",
             [
                 S(YogStr::from_str(id)),
@@ -31,7 +31,7 @@ pub(crate) fn update(env: &mut JNIEnv, id: &str, w: u32, h: u32, rgba: &[u8]) ->
     let ok: Option<bool> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "updateTexture",
             [
                 S(YogStr::from_str(id)),
@@ -49,7 +49,7 @@ pub(crate) fn release(env: &mut JNIEnv, id: &str) {
     let _: Option<()> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "releaseTexture",
             [S(YogStr::from_str(id))]
         )
@@ -63,7 +63,7 @@ pub(crate) fn draw(env: &mut JNIEnv, id: &str, size: (u32, u32), dest: Rect, tin
     let _: Option<()> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "drawImage",
             [
                 S(YogStr::from_str(id)),

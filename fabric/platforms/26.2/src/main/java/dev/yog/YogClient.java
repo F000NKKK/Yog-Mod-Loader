@@ -1,5 +1,15 @@
 package dev.yog;
 
+import dev.yog.client.YogClientApi;
+import dev.yog.client.YogClientEvents;
+import dev.yog.client.YogClientTooltip;
+import dev.yog.client.YogInventoryScreen;
+import dev.yog.client.YogParticleClient;
+import dev.yog.client.YogTooltipData;
+import dev.yog.content.YogContentRegistry;
+import dev.yog.render.YogBlocksPip;
+import dev.yog.render.YogGlPip;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;

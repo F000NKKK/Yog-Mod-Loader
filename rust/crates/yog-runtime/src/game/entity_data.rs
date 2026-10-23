@@ -356,7 +356,7 @@ pub(crate) fn receive(payload: &[u8]) {
         let [w, h, e] = d.unwrap_or([-1.0, 0.0, 0.0]);
         unsafe {
             let _: Option<()> = host!(
-                "dev/yog/YogClientApi",
+                "dev/yog/client/YogClientApi",
                 "setDimensions",
                 [S(YogStr::from_str(&uuid)), F(w), F(h), F(e)]
             );

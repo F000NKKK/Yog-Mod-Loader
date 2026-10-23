@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.content.YogInventoryMenu;
+
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
@@ -86,13 +88,13 @@ import com.mojang.brigadier.StringReader;
  */
 public final class NativeBridge {
     private static boolean loaded = false;
-    static volatile MinecraftServer server;
+    public static volatile MinecraftServer server;
 
     private NativeBridge() {
     }
 
     /** The running server, or null. */
-    static MinecraftServer currentServer() {
+    public static MinecraftServer currentServer() {
         return server;
     }
 
@@ -121,13 +123,13 @@ public final class NativeBridge {
         return true;
     }
 
-    static ServerPlayer playerByName(String name) {
+    public static ServerPlayer playerByName(String name) {
         MinecraftServer s = server;
         return s == null ? null : s.getPlayerList().getPlayerByName(name);
     }
 
     /** The block container at (dimension, x, y, z) — a chest, a Yog inventory block — or null. */
-    static net.minecraft.world.Container containerAt(String dimension, int x, int y, int z) {
+    public static net.minecraft.world.Container containerAt(String dimension, int x, int y, int z) {
         ServerLevel w = worldFor(dimension);
         if (w == null) return null;
         return w.getBlockEntity(new net.minecraft.core.BlockPos(x, y, z)) instanceof net.minecraft.world.Container c ? c : null;
@@ -136,12 +138,12 @@ public final class NativeBridge {
     // ── world / entity queries & actions ────────────────────────────────────
 
     /** Entity by uuid, or null for null / "" / unknown. */
-    static Entity optionalEntity(String uuid) {
+    public static Entity optionalEntity(String uuid) {
         return uuid == null || uuid.isEmpty() ? null : entityByUuid(uuid);
     }
 
     /** Item stack from id + count + optional custom-data snbt; null if the id is unknown. */
-    static ItemStack buildStack(String itemId, int count, String snbt) {
+    public static ItemStack buildStack(String itemId, int count, String snbt) {
         Identifier id = Identifier.tryParse(itemId);
         if (id == null || count <= 0 || !BuiltInRegistries.ITEM.containsKey(id)) return null;
         ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.getValue(id), count);
@@ -160,7 +162,7 @@ public final class NativeBridge {
     }
 
     /** Custom-data snbt of a stack, same format as getSlotItem ("{}" if none). */
-    static String stackSnbt(ItemStack stack) {
+    public static String stackSnbt(ItemStack stack) {
         return stack.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
                 net.minecraft.world.item.component.CustomData.EMPTY).copyTag().toString();
     }
@@ -187,7 +189,7 @@ public final class NativeBridge {
         return flags;
     }
 
-    static Entity entityByUuid(String uuidStr) {
+    public static Entity entityByUuid(String uuidStr) {
         MinecraftServer s = server;
         if (s == null) {
             return null;
@@ -207,7 +209,7 @@ public final class NativeBridge {
         return null;
     }
 
-    static ServerLevel worldFor(String dimension) {
+    public static ServerLevel worldFor(String dimension) {
         MinecraftServer s = server;
         Identifier id = Identifier.tryParse(dimension);
         if (s == null || id == null) {

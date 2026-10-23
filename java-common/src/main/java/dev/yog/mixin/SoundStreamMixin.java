@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogSounds;
+import dev.yog.client.YogSounds;
 import java.util.concurrent.CompletableFuture;
 import net.minecraft.client.sounds.AudioStream;
 import net.minecraft.client.sounds.SoundBufferLibrary;

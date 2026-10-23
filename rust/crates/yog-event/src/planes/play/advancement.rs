@@ -4,7 +4,7 @@ use yog_ids as ids;
 
 actions! {
     /// Grants advancement `id` to a player.
-    Grant { uuid: String, id: String } -> bool = ids::service_advancement::GRANT, "YogAdvancementActions.advancementGrant";
+    Grant { uuid: String, id: String } -> bool = ids::service_advancement::GRANT, "actions.YogAdvancementActions.advancementGrant";
     /// Whether a player has advancement `id`.
-    Done { uuid: String, id: String } -> bool = ids::service_advancement::DONE, "YogAdvancementActions.advancementDone";
+    Done { uuid: String, id: String } -> bool = ids::service_advancement::DONE, "actions.YogAdvancementActions.advancementDone";
 }

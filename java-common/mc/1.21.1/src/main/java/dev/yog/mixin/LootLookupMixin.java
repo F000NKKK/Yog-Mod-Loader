@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogLootTableId;
+import dev.yog.content.YogLootTableId;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.ReloadableServerRegistries;
 import net.minecraft.world.level.storage.loot.LootTable;

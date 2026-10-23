@@ -4,13 +4,13 @@ use yog_ids as ids;
 
 actions! {
     /// Sends `message` to every player.
-    Broadcast { message: String } -> bool = ids::service_chat::BROADCAST, "YogChatActions.broadcast";
+    Broadcast { message: String } -> bool = ids::service_chat::BROADCAST, "actions.YogChatActions.broadcast";
     /// Sends `json` (a text component) to `player`'s chat.
-    Tellraw { player: String, json: String } -> bool = ids::service_chat::TELLRAW, "YogChatActions.tellraw";
+    Tellraw { player: String, json: String } -> bool = ids::service_chat::TELLRAW, "actions.YogChatActions.tellraw";
     /// Shows a title (and subtitle) to `player`; times in ticks.
-    Title { player: String, title: String, subtitle: String, fade_in: i32, stay: i32, fade_out: i32 } -> bool = ids::service_chat::TITLE, "YogChatActions.sendTitle";
+    Title { player: String, title: String, subtitle: String, fade_in: i32, stay: i32, fade_out: i32 } -> bool = ids::service_chat::TITLE, "actions.YogChatActions.sendTitle";
     /// Shows `message` above `player`'s hotbar.
-    Actionbar { player: String, message: String } -> bool = ids::service_chat::ACTIONBAR, "YogChatActions.sendActionbar";
+    Actionbar { player: String, message: String } -> bool = ids::service_chat::ACTIONBAR, "actions.YogChatActions.sendActionbar";
     /// Shows a text component above `player`'s hotbar.
-    ActionbarJson { player: String, json: String } -> bool = ids::service_chat::ACTIONBAR_JSON, "YogChatActions.actionbarJson";
+    ActionbarJson { player: String, json: String } -> bool = ids::service_chat::ACTIONBAR_JSON, "actions.YogChatActions.actionbarJson";
 }

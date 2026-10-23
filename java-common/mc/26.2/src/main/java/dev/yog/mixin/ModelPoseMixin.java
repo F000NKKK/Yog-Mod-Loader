@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogBody;
+import dev.yog.body.YogBody;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import org.spongepowered.asm.mixin.Mixin;

@@ -1,5 +1,9 @@
 package dev.yog;
 
+import dev.yog.actions.YogQueries;
+import dev.yog.client.YogClientMirrors;
+import dev.yog.content.YogHostBlocks;
+
 import dev.yog.bus.YogMirrors;
 import dev.yog.bus.YogServices;
 import dev.yog.bus.YogTypes;
@@ -84,7 +88,7 @@ public final class YogHostMirrors {
     }
 
     /** The server, the keys started over when it's another one (a new world). */
-    static MinecraftServer server() {
+    public static MinecraftServer server() {
         MinecraftServer s = NativeBridge.currentServer();
         if (s != keyed) {
             forget(YogMirrors.Entity.SPACE, ENTITY_ROWS);
@@ -95,7 +99,7 @@ public final class YogHostMirrors {
         return s;
     }
 
-    static void forget(String space, Map<Long, Integer> rows) {
+    public static void forget(String space, Map<Long, Integer> rows) {
         if (rows.isEmpty()) return;
         long[] take = rows.keySet().stream().mapToLong(Long::longValue).toArray();
         new YogServices.Mirror.Keys(space, List.of(), take).call();
@@ -107,7 +111,7 @@ public final class YogHostMirrors {
      * key its entity's, the same id), gone ones taken; the mirror's rows
      * marked alike.
      */
-    static void keep(String space, Map<Long, Integer> rows, Set<Long> live, boolean parented, long rowsAt) {
+    public static void keep(String space, Map<Long, Integer> rows, Set<Long> live, boolean parented, long rowsAt) {
         List<YogTypes.Key> put = new ArrayList<>();
         for (Long k : live) {
             if (!rows.containsKey(k)) put.add(new YogTypes.Key(k, parented ? k : null));
@@ -156,10 +160,10 @@ public final class YogHostMirrors {
     }
 
     /** A turn's due fields: their columns, open for writing, by field index. */
-    static final class Due {
+    public static final class Due {
         private final YogColumn[] columns = new YogColumn[Long.SIZE];
 
-        Due(YogTypes.Write w) {
+        public Due(YogTypes.Write w) {
             int next = 0;
             for (int i = 0; i < Long.SIZE && next < w.columns().length; i++) {
                 if ((w.fields() >>> i & 1) == 0) continue;
@@ -169,11 +173,11 @@ public final class YogHostMirrors {
             }
         }
 
-        YogColumn column(int field) {
+        public YogColumn column(int field) {
             return columns[field];
         }
 
-        void end() {
+        public void end() {
             for (YogColumn c : columns) {
                 if (c != null) c.end();
             }

@@ -1,5 +1,8 @@
 package dev.yog;
 
+import dev.yog.client.YogTooltipData;
+import dev.yog.content.YogContentRegistry;
+
 import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
@@ -120,7 +123,7 @@ public final class YogTools {
     }
 
     /** The item's tooltip lines: its {@code .desc} translation, else the mod's tooltip. */
-    static void hover(Item item, String tip, List<Component> lines) {
+    public static void hover(Item item, String tip, List<Component> lines) {
         String descKey = item.getDescriptionId() + ".desc";
         // The game's own language (both sides; on a client the player's).
         net.minecraft.locale.Language language = net.minecraft.locale.Language.getInstance();

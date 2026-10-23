@@ -1,5 +1,7 @@
 package dev.yog;
 
+import dev.yog.content.YogEntityTypes;
+
 import dev.yog.bus.YogTypes;
 import dev.yog.data.YogContent;
 import net.minecraft.nbt.CompoundTag;

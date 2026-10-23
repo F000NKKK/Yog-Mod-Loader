@@ -111,7 +111,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogAdvancementActions.advancementGrant";
+            public static final String HOST = "actions.YogAdvancementActions.advancementGrant";
             public static final String ADDRESS = YogNames.ServiceAdvancement.GRANT;
 
             public boolean call() {
@@ -258,7 +258,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogAdvancementActions.advancementDone";
+            public static final String HOST = "actions.YogAdvancementActions.advancementDone";
             public static final String ADDRESS = YogNames.ServiceAdvancement.DONE;
 
             public boolean call() {
@@ -579,7 +579,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.getBlockNbt";
+            public static final String HOST = "actions.YogBlockActions.getBlockNbt";
             public static final String ADDRESS = YogNames.ServiceBlock.NBT;
 
             public String call() {
@@ -737,7 +737,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.setBlockNbt";
+            public static final String HOST = "actions.YogBlockActions.setBlockNbt";
             public static final String ADDRESS = YogNames.ServiceBlock.SET_NBT;
 
             public boolean call() {
@@ -884,7 +884,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.getBlockState";
+            public static final String HOST = "actions.YogBlockActions.getBlockState";
             public static final String ADDRESS = YogNames.ServiceBlock.STATE;
 
             public String call() {
@@ -1042,7 +1042,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.setBlockState";
+            public static final String HOST = "actions.YogBlockActions.setBlockState";
             public static final String ADDRESS = YogNames.ServiceBlock.SET_STATE;
 
             public boolean call() {
@@ -1189,7 +1189,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.blockInfo";
+            public static final String HOST = "actions.YogQueries.blockInfo";
             public static final String ADDRESS = YogNames.ServiceBlock.INFO;
 
             public YogTypes.BlockInfo call() {
@@ -1358,7 +1358,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.breakBlock";
+            public static final String HOST = "actions.YogBlockActions.breakBlock";
             public static final String ADDRESS = YogNames.ServiceBlock.DESTROY;
 
             public boolean call() {
@@ -1505,7 +1505,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.bonemeal";
+            public static final String HOST = "actions.YogBlockActions.bonemeal";
             public static final String ADDRESS = YogNames.ServiceBlock.BONEMEAL;
 
             public boolean call() {
@@ -1685,7 +1685,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.useItemOnBlock";
+            public static final String HOST = "actions.YogBlockActions.useItemOnBlock";
             public static final String ADDRESS = YogNames.ServiceBlock.USE_ITEM;
 
             public boolean call() {
@@ -1843,7 +1843,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.pourFluid";
+            public static final String HOST = "actions.YogBlockActions.pourFluid";
             public static final String ADDRESS = YogNames.ServiceBlock.POUR_FLUID;
 
             public boolean call() {
@@ -1990,7 +1990,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.redstonePower";
+            public static final String HOST = "actions.YogQueries.redstonePower";
             public static final String ADDRESS = YogNames.ServiceBlock.REDSTONE_POWER;
 
             public Integer call() {
@@ -2137,7 +2137,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.redstoneSignal";
+            public static final String HOST = "actions.YogQueries.redstoneSignal";
             public static final String ADDRESS = YogNames.ServiceBlock.REDSTONE_SIGNAL;
 
             public Integer call() {
@@ -2295,7 +2295,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.setRedstoneOutput";
+            public static final String HOST = "actions.YogBlockActions.setRedstoneOutput";
             public static final String ADDRESS = YogNames.ServiceBlock.SET_REDSTONE_OUTPUT;
 
             public boolean call() {
@@ -2453,7 +2453,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.getInventorySlot";
+            public static final String HOST = "actions.YogQueries.getInventorySlot";
             public static final String ADDRESS = YogNames.ServiceBlock.INVENTORY_SLOT;
 
             public YogTypes.Stack call() {
@@ -2644,7 +2644,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBlockActions.setInventorySlot";
+            public static final String HOST = "actions.YogBlockActions.setInventorySlot";
             public static final String ADDRESS = YogNames.ServiceBlock.SET_INVENTORY_SLOT;
 
             public boolean call() {
@@ -2818,7 +2818,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBossbarActions.bossbarCreate";
+            public static final String HOST = "actions.YogBossbarActions.bossbarCreate";
             public static final String ADDRESS = YogNames.ServiceBossbar.CREATE;
 
             public boolean call() {
@@ -2954,7 +2954,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBossbarActions.bossbarRemove";
+            public static final String HOST = "actions.YogBossbarActions.bossbarRemove";
             public static final String ADDRESS = YogNames.ServiceBossbar.REMOVE;
 
             public boolean call() {
@@ -3101,7 +3101,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBossbarActions.bossbarSetTitle";
+            public static final String HOST = "actions.YogBossbarActions.bossbarSetTitle";
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_TITLE;
 
             public boolean call() {
@@ -3248,7 +3248,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBossbarActions.bossbarSetProgress";
+            public static final String HOST = "actions.YogBossbarActions.bossbarSetProgress";
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_PROGRESS;
 
             public boolean call() {
@@ -3395,7 +3395,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBossbarActions.bossbarSetColor";
+            public static final String HOST = "actions.YogBossbarActions.bossbarSetColor";
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_COLOR;
 
             public boolean call() {
@@ -3542,7 +3542,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBossbarActions.bossbarAddPlayer";
+            public static final String HOST = "actions.YogBossbarActions.bossbarAddPlayer";
             public static final String ADDRESS = YogNames.ServiceBossbar.ADD_PLAYER;
 
             public boolean call() {
@@ -3689,7 +3689,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBossbarActions.bossbarRemovePlayer";
+            public static final String HOST = "actions.YogBossbarActions.bossbarRemovePlayer";
             public static final String ADDRESS = YogNames.ServiceBossbar.REMOVE_PLAYER;
 
             public boolean call() {
@@ -3836,7 +3836,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogBossbarActions.bossbarSetVisible";
+            public static final String HOST = "actions.YogBossbarActions.bossbarSetVisible";
             public static final String ADDRESS = YogNames.ServiceBossbar.SET_VISIBLE;
 
             public boolean call() {
@@ -4465,7 +4465,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogChatActions.broadcast";
+            public static final String HOST = "actions.YogChatActions.broadcast";
             public static final String ADDRESS = YogNames.ServiceChat.BROADCAST;
 
             public boolean call() {
@@ -4612,7 +4612,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogChatActions.tellraw";
+            public static final String HOST = "actions.YogChatActions.tellraw";
             public static final String ADDRESS = YogNames.ServiceChat.TELLRAW;
 
             public boolean call() {
@@ -4803,7 +4803,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogChatActions.sendTitle";
+            public static final String HOST = "actions.YogChatActions.sendTitle";
             public static final String ADDRESS = YogNames.ServiceChat.TITLE;
 
             public boolean call() {
@@ -4950,7 +4950,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogChatActions.sendActionbar";
+            public static final String HOST = "actions.YogChatActions.sendActionbar";
             public static final String ADDRESS = YogNames.ServiceChat.ACTIONBAR;
 
             public boolean call() {
@@ -5097,7 +5097,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogChatActions.actionbarJson";
+            public static final String HOST = "actions.YogChatActions.actionbarJson";
             public static final String ADDRESS = YogNames.ServiceChat.ACTIONBAR_JSON;
 
             public boolean call() {
@@ -5400,7 +5400,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.playSound";
+            public static final String HOST = "client.YogClientApi.playSound";
             public static final String ADDRESS = YogNames.ServiceClient.PLAY_SOUND;
 
             public Integer call() {
@@ -5536,7 +5536,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.stopSound";
+            public static final String HOST = "client.YogClientApi.stopSound";
             public static final String ADDRESS = YogNames.ServiceClient.STOP_SOUND;
 
             public boolean call() {
@@ -5672,7 +5672,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.heldItem";
+            public static final String HOST = "client.YogClientApi.heldItem";
             public static final String ADDRESS = YogNames.ServiceClient.HELD_ITEM;
 
             public YogTypes.Stack call() {
@@ -5830,7 +5830,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.setBlockTint";
+            public static final String HOST = "client.YogClientApi.setBlockTint";
             public static final String ADDRESS = YogNames.ServiceClient.SET_BLOCK_TINT;
 
             public boolean call() {
@@ -5955,7 +5955,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.screenSlots";
+            public static final String HOST = "actions.YogQueries.screenSlots";
             public static final String ADDRESS = YogNames.ServiceClient.SCREEN_SLOTS;
 
             public java.util.List<YogTypes.ScreenSlot> call() {
@@ -6091,7 +6091,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.keyDown";
+            public static final String HOST = "client.YogClientApi.keyDown";
             public static final String ADDRESS = YogNames.ServiceClient.KEY_DOWN;
 
             public boolean call() {
@@ -6227,7 +6227,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.keyName";
+            public static final String HOST = "client.YogClientApi.keyName";
             public static final String ADDRESS = YogNames.ServiceClient.KEY_NAME;
 
             public String call() {
@@ -6363,7 +6363,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.attributeValue";
+            public static final String HOST = "client.YogClientApi.attributeValue";
             public static final String ADDRESS = YogNames.ServiceClient.ATTRIBUTE_VALUE;
 
             public Double call() {
@@ -6499,7 +6499,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.advancementDone";
+            public static final String HOST = "client.YogClientApi.advancementDone";
             public static final String ADDRESS = YogNames.ServiceClient.ADVANCEMENT_DONE;
 
             public boolean call() {
@@ -6646,7 +6646,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.bodyTrack";
+            public static final String HOST = "client.YogClientApi.bodyTrack";
             public static final String ADDRESS = YogNames.ServiceClient.BODY_TRACK;
 
             public boolean call() {
@@ -6793,7 +6793,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.bodyTrackType";
+            public static final String HOST = "client.YogClientApi.bodyTrackType";
             public static final String ADDRESS = YogNames.ServiceClient.BODY_TRACK_TYPE;
 
             public boolean call() {
@@ -6962,7 +6962,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.setDimensions";
+            public static final String HOST = "client.YogClientApi.setDimensions";
             public static final String ADDRESS = YogNames.ServiceClient.SET_DIMENSIONS;
 
             public boolean call() {
@@ -7157,7 +7157,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.drive";
+                public static final String HOST = "client.YogClientOps.drive";
                 public static final String ADDRESS = YogNames.ServiceClientControl.DRIVE;
 
                 public boolean call() {
@@ -7282,7 +7282,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.release";
+                public static final String HOST = "client.YogClientOps.release";
                 public static final String ADDRESS = YogNames.ServiceClientControl.RELEASE;
 
                 public boolean call() {
@@ -7429,7 +7429,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.look";
+                public static final String HOST = "client.YogClientOps.look";
                 public static final String ADDRESS = YogNames.ServiceClientControl.LOOK;
 
                 public boolean call() {
@@ -7565,7 +7565,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.attack";
+                public static final String HOST = "client.YogClientOps.attack";
                 public static final String ADDRESS = YogNames.ServiceClientControl.ATTACK;
 
                 public boolean call() {
@@ -7701,7 +7701,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.useItem";
+                public static final String HOST = "client.YogClientOps.useItem";
                 public static final String ADDRESS = YogNames.ServiceClientControl.USE_ITEM;
 
                 public boolean call() {
@@ -7848,7 +7848,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.mine";
+                public static final String HOST = "client.YogClientOps.mine";
                 public static final String ADDRESS = YogNames.ServiceClientControl.MINE;
 
                 public boolean call() {
@@ -7973,7 +7973,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.stopMining";
+                public static final String HOST = "client.YogClientOps.stopMining";
                 public static final String ADDRESS = YogNames.ServiceClientControl.STOP_MINING;
 
                 public boolean call() {
@@ -8120,7 +8120,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.place";
+                public static final String HOST = "client.YogClientOps.place";
                 public static final String ADDRESS = YogNames.ServiceClientControl.PLACE;
 
                 public boolean call() {
@@ -8256,7 +8256,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.selectSlot";
+                public static final String HOST = "client.YogClientOps.selectSlot";
                 public static final String ADDRESS = YogNames.ServiceClientControl.SELECT_SLOT;
 
                 public boolean call() {
@@ -8414,7 +8414,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.click";
+                public static final String HOST = "client.YogClientOps.click";
                 public static final String ADDRESS = YogNames.ServiceClientControl.CLICK;
 
                 public boolean call() {
@@ -8550,7 +8550,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.chat";
+                public static final String HOST = "client.YogClientOps.chat";
                 public static final String ADDRESS = YogNames.ServiceClientControl.CHAT;
 
                 public boolean call() {
@@ -8680,7 +8680,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.state";
+                public static final String HOST = "client.YogClientOps.state";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.STATE;
 
                 public YogTypes.LocalState call() {
@@ -8805,7 +8805,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.inventory";
+                public static final String HOST = "client.YogClientOps.inventory";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.INVENTORY;
 
                 public java.util.List<YogTypes.SlotStack> call() {
@@ -8963,7 +8963,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.scan";
+                public static final String HOST = "client.YogClientOps.scan";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.SCAN;
 
                 public java.util.List<YogTypes.PlacedBlock> call() {
@@ -9110,7 +9110,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.area";
+                public static final String HOST = "client.YogClientOps.area";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.AREA;
 
                 public YogTypes.BlockArea call() {
@@ -9246,7 +9246,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.entities";
+                public static final String HOST = "client.YogClientOps.entities";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.ENTITIES;
 
                 public java.util.List<YogTypes.NearbyEntity> call() {
@@ -9382,7 +9382,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogDigSpeeds.of";
+                public static final String HOST = "server.YogDigSpeeds.of";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.DIG_SPEEDS;
 
                 public java.util.List<YogTypes.DigSpeed> call() {
@@ -9529,7 +9529,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.raycast";
+                public static final String HOST = "client.YogClientOps.raycast";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.RAYCAST;
 
                 public YogTypes.BlockHit call() {
@@ -9654,7 +9654,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientOps.target";
+                public static final String HOST = "client.YogClientOps.target";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.TARGET;
 
                 public YogTypes.BlockHit call() {
@@ -9790,7 +9790,7 @@ public final class YogServices {
                 }
 
                 /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-                public static final String HOST = "YogClientChat.message";
+                public static final String HOST = "client.YogClientChat.message";
                 public static final String ADDRESS = YogNames.ServiceClientLocal.MESSAGE;
 
                 public boolean call() {
@@ -10672,7 +10672,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityTeleport";
+            public static final String HOST = "actions.YogEntityActions.entityTeleport";
             public static final String ADDRESS = YogNames.ServiceEntity.TELEPORT;
 
             public boolean call() {
@@ -10830,7 +10830,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityTeleportToDim";
+            public static final String HOST = "actions.YogEntityActions.entityTeleportToDim";
             public static final String ADDRESS = YogNames.ServiceEntity.TELEPORT_TO_DIM;
 
             public boolean call() {
@@ -10966,7 +10966,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.entityPosition";
+            public static final String HOST = "actions.YogQueries.entityPosition";
             public static final String ADDRESS = YogNames.ServiceEntity.POSITION;
 
             public YogTypes.Point call() {
@@ -11102,7 +11102,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.entityRotation";
+            public static final String HOST = "actions.YogQueries.entityRotation";
             public static final String ADDRESS = YogNames.ServiceEntity.ROTATION;
 
             public YogTypes.Rotation call() {
@@ -11238,7 +11238,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.entityVelocity";
+            public static final String HOST = "actions.YogQueries.entityVelocity";
             public static final String ADDRESS = YogNames.ServiceEntity.VELOCITY;
 
             public YogTypes.Point call() {
@@ -11385,7 +11385,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entitySetVelocity";
+            public static final String HOST = "actions.YogEntityActions.entitySetVelocity";
             public static final String ADDRESS = YogNames.ServiceEntity.SET_VELOCITY;
 
             public boolean call() {
@@ -11532,7 +11532,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityAddVelocity";
+            public static final String HOST = "actions.YogEntityActions.entityAddVelocity";
             public static final String ADDRESS = YogNames.ServiceEntity.ADD_VELOCITY;
 
             public boolean call() {
@@ -11668,7 +11668,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityHealth";
+            public static final String HOST = "actions.YogEntityActions.entityHealth";
             public static final String ADDRESS = YogNames.ServiceEntity.HEALTH;
 
             public Double call() {
@@ -11815,7 +11815,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entitySetHealth";
+            public static final String HOST = "actions.YogEntityActions.entitySetHealth";
             public static final String ADDRESS = YogNames.ServiceEntity.SET_HEALTH;
 
             public boolean call() {
@@ -11951,7 +11951,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityKill";
+            public static final String HOST = "actions.YogEntityActions.entityKill";
             public static final String ADDRESS = YogNames.ServiceEntity.KILL;
 
             public boolean call() {
@@ -12109,7 +12109,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.spawnEntity";
+            public static final String HOST = "actions.YogEntityActions.spawnEntity";
             public static final String ADDRESS = YogNames.ServiceEntity.SPAWN;
 
             public String call() {
@@ -12289,7 +12289,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityAddEffect";
+            public static final String HOST = "actions.YogEntityActions.entityAddEffect";
             public static final String ADDRESS = YogNames.ServiceEntity.ADD_EFFECT;
 
             public boolean call() {
@@ -12436,7 +12436,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityRemoveEffect";
+            public static final String HOST = "actions.YogEntityActions.entityRemoveEffect";
             public static final String ADDRESS = YogNames.ServiceEntity.REMOVE_EFFECT;
 
             public boolean call() {
@@ -12572,7 +12572,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityClearEffects";
+            public static final String HOST = "actions.YogEntityActions.entityClearEffects";
             public static final String ADDRESS = YogNames.ServiceEntity.CLEAR_EFFECTS;
 
             public boolean call() {
@@ -12708,7 +12708,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityGetNbt";
+            public static final String HOST = "actions.YogEntityActions.entityGetNbt";
             public static final String ADDRESS = YogNames.ServiceEntity.NBT;
 
             public String call() {
@@ -12855,7 +12855,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entitySetNbt";
+            public static final String HOST = "actions.YogEntityActions.entitySetNbt";
             public static final String ADDRESS = YogNames.ServiceEntity.SET_NBT;
 
             public boolean call() {
@@ -13002,7 +13002,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityAttributeGet";
+            public static final String HOST = "actions.YogEntityActions.entityAttributeGet";
             public static final String ADDRESS = YogNames.ServiceEntity.ATTRIBUTE_BASE;
 
             public Double call() {
@@ -13160,7 +13160,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityAttributeSet";
+            public static final String HOST = "actions.YogEntityActions.entityAttributeSet";
             public static final String ADDRESS = YogNames.ServiceEntity.SET_ATTRIBUTE_BASE;
 
             public boolean call() {
@@ -13307,7 +13307,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityAttributeValue";
+            public static final String HOST = "actions.YogEntityActions.entityAttributeValue";
             public static final String ADDRESS = YogNames.ServiceEntity.ATTRIBUTE_VALUE;
 
             public Double call() {
@@ -13443,7 +13443,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.entityInfo";
+            public static final String HOST = "actions.YogQueries.entityInfo";
             public static final String ADDRESS = YogNames.ServiceEntity.INFO;
 
             public YogTypes.EntityInfo call() {
@@ -13612,7 +13612,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityDamage";
+            public static final String HOST = "actions.YogEntityActions.entityDamage";
             public static final String ADDRESS = YogNames.ServiceEntity.DAMAGE;
 
             public boolean call() {
@@ -13759,7 +13759,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entitySetFireTicks";
+            public static final String HOST = "actions.YogEntityActions.entitySetFireTicks";
             public static final String ADDRESS = YogNames.ServiceEntity.SET_FIRE_TICKS;
 
             public boolean call() {
@@ -13895,7 +13895,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityVehicle";
+            public static final String HOST = "actions.YogEntityActions.entityVehicle";
             public static final String ADDRESS = YogNames.ServiceEntity.VEHICLE;
 
             public String call() {
@@ -14031,7 +14031,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.entityPassengers";
+            public static final String HOST = "actions.YogQueries.entityPassengers";
             public static final String ADDRESS = YogNames.ServiceEntity.PASSENGERS;
 
             public java.util.List<String> call() {
@@ -14189,7 +14189,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityMount";
+            public static final String HOST = "actions.YogEntityActions.entityMount";
             public static final String ADDRESS = YogNames.ServiceEntity.MOUNT;
 
             public boolean call() {
@@ -14325,7 +14325,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entityDismount";
+            public static final String HOST = "actions.YogEntityActions.entityDismount";
             public static final String ADDRESS = YogNames.ServiceEntity.DISMOUNT;
 
             public boolean call() {
@@ -14472,7 +14472,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogEntityActions.entitySetFallDistance";
+            public static final String HOST = "actions.YogEntityActions.entitySetFallDistance";
             public static final String ADDRESS = YogNames.ServiceEntity.SET_FALL_DISTANCE;
 
             public boolean call() {
@@ -14805,7 +14805,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogGameActions.gameDir";
+            public static final String HOST = "actions.YogGameActions.gameDir";
             public static final String ADDRESS = YogNames.ServiceGame.DIR;
 
             public String call() {
@@ -14930,7 +14930,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogGameActions.worldDir";
+            public static final String HOST = "actions.YogGameActions.worldDir";
             public static final String ADDRESS = YogNames.ServiceGame.WORLD_DIR;
 
             public String call() {
@@ -15066,7 +15066,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogGameActions.translate";
+            public static final String HOST = "actions.YogGameActions.translate";
             public static final String ADDRESS = YogNames.ServiceGame.TRANSLATE;
 
             public String call() {
@@ -15615,7 +15615,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogItemActions.spawnItem";
+            public static final String HOST = "actions.YogItemActions.spawnItem";
             public static final String ADDRESS = YogNames.ServiceItem.SPAWN;
 
             public String call() {
@@ -15751,7 +15751,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.itemEntityStack";
+            public static final String HOST = "actions.YogQueries.itemEntityStack";
             public static final String ADDRESS = YogNames.ServiceItem.ENTITY_STACK;
 
             public YogTypes.Stack call() {
@@ -15920,7 +15920,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogItemActions.itemEntitySetStack";
+            public static final String HOST = "actions.YogItemActions.itemEntitySetStack";
             public static final String ADDRESS = YogNames.ServiceItem.SET_ENTITY_STACK;
 
             public boolean call() {
@@ -16056,7 +16056,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogItemActions.itemBlock";
+            public static final String HOST = "actions.YogItemActions.itemBlock";
             public static final String ADDRESS = YogNames.ServiceItem.BLOCK;
 
             public String call() {
@@ -18371,7 +18371,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogNetActions.sendToPlayer";
+            public static final String HOST = "actions.YogNetActions.sendToPlayer";
             public static final String ADDRESS = YogNames.ServiceNet.SEND_TO_PLAYER;
 
             public boolean call() {
@@ -18714,7 +18714,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogParticleActions.spawnParticles";
+            public static final String HOST = "actions.YogParticleActions.spawnParticles";
             public static final String ADDRESS = YogNames.ServiceParticle.SPAWN;
 
             public boolean call() {
@@ -18877,7 +18877,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.giveItem";
+            public static final String HOST = "actions.YogPlayerActions.giveItem";
             public static final String ADDRESS = YogNames.ServicePlayer.GIVE_ITEM;
 
             public boolean call() {
@@ -19024,7 +19024,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.teleport";
+            public static final String HOST = "actions.YogPlayerActions.teleport";
             public static final String ADDRESS = YogNames.ServicePlayer.TELEPORT;
 
             public boolean call() {
@@ -19182,7 +19182,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.teleportToDim";
+            public static final String HOST = "actions.YogPlayerActions.teleportToDim";
             public static final String ADDRESS = YogNames.ServicePlayer.TELEPORT_TO_DIM;
 
             public boolean call() {
@@ -19329,7 +19329,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.kickPlayer";
+            public static final String HOST = "actions.YogPlayerActions.kickPlayer";
             public static final String ADDRESS = YogNames.ServicePlayer.KICK;
 
             public boolean call() {
@@ -19476,7 +19476,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.setGamemode";
+            public static final String HOST = "actions.YogPlayerActions.setGamemode";
             public static final String ADDRESS = YogNames.ServicePlayer.SET_GAMEMODE;
 
             public boolean call() {
@@ -19612,7 +19612,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.playerInventory";
+            public static final String HOST = "actions.YogQueries.playerInventory";
             public static final String ADDRESS = YogNames.ServicePlayer.INVENTORY;
 
             public java.util.List<YogTypes.SlotStack> call() {
@@ -19781,7 +19781,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.playerSetSlot";
+            public static final String HOST = "actions.YogPlayerActions.playerSetSlot";
             public static final String ADDRESS = YogNames.ServicePlayer.SET_SLOT;
 
             public boolean call() {
@@ -19917,7 +19917,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.getHeldItemNbt";
+            public static final String HOST = "actions.YogPlayerActions.getHeldItemNbt";
             public static final String ADDRESS = YogNames.ServicePlayer.HELD_ITEM_NBT;
 
             public String call() {
@@ -20064,7 +20064,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.setHeldItemNbt";
+            public static final String HOST = "actions.YogPlayerActions.setHeldItemNbt";
             public static final String ADDRESS = YogNames.ServicePlayer.SET_HELD_ITEM_NBT;
 
             public boolean call() {
@@ -20200,7 +20200,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.getOffhandItemNbt";
+            public static final String HOST = "actions.YogPlayerActions.getOffhandItemNbt";
             public static final String ADDRESS = YogNames.ServicePlayer.OFFHAND_ITEM_NBT;
 
             public String call() {
@@ -20347,7 +20347,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.setOffhandItemNbt";
+            public static final String HOST = "actions.YogPlayerActions.setOffhandItemNbt";
             public static final String ADDRESS = YogNames.ServicePlayer.SET_OFFHAND_ITEM_NBT;
 
             public boolean call() {
@@ -20494,7 +20494,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.getSlotItem";
+            public static final String HOST = "actions.YogQueries.getSlotItem";
             public static final String ADDRESS = YogNames.ServicePlayer.SLOT_ITEM;
 
             public YogTypes.Stack call() {
@@ -20674,7 +20674,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.setSlotItem";
+            public static final String HOST = "actions.YogPlayerActions.setSlotItem";
             public static final String ADDRESS = YogNames.ServicePlayer.SET_SLOT_ITEM;
 
             public boolean call() {
@@ -20821,7 +20821,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.playerAddXp";
+            public static final String HOST = "actions.YogPlayerActions.playerAddXp";
             public static final String ADDRESS = YogNames.ServicePlayer.ADD_XP;
 
             public boolean call() {
@@ -20968,7 +20968,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.playerSetMayFly";
+            public static final String HOST = "actions.YogPlayerActions.playerSetMayFly";
             public static final String ADDRESS = YogNames.ServicePlayer.SET_MAY_FLY;
 
             public boolean call() {
@@ -21104,7 +21104,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.playerInfo";
+            public static final String HOST = "actions.YogQueries.playerInfo";
             public static final String ADDRESS = YogNames.ServicePlayer.INFO;
 
             public YogTypes.PlayerInfo call() {
@@ -21262,7 +21262,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.setItemCooldown";
+            public static final String HOST = "actions.YogPlayerActions.setItemCooldown";
             public static final String ADDRESS = YogNames.ServicePlayer.SET_ITEM_COOLDOWN;
 
             public boolean call() {
@@ -21431,7 +21431,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogPlayerActions.placeBlockFromSlot";
+            public static final String HOST = "actions.YogPlayerActions.placeBlockFromSlot";
             public static final String ADDRESS = YogNames.ServicePlayer.PLACE_BLOCK_FROM_SLOT;
 
             public boolean call() {
@@ -21556,7 +21556,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.onlinePlayers";
+            public static final String HOST = "actions.YogQueries.onlinePlayers";
             public static final String ADDRESS = YogNames.ServicePlayer.ONLINE;
 
             public java.util.List<String> call() {
@@ -21708,7 +21708,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogScoreboardActions.scoreboardGet";
+            public static final String HOST = "actions.YogScoreboardActions.scoreboardGet";
             public static final String ADDRESS = YogNames.ServiceScoreboard.GET;
 
             public Integer call() {
@@ -21866,7 +21866,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogScoreboardActions.scoreboardSet";
+            public static final String HOST = "actions.YogScoreboardActions.scoreboardSet";
             public static final String ADDRESS = YogNames.ServiceScoreboard.SET;
 
             public boolean call() {
@@ -22024,7 +22024,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogScoreboardActions.scoreboardAdd";
+            public static final String HOST = "actions.YogScoreboardActions.scoreboardAdd";
             public static final String ADDRESS = YogNames.ServiceScoreboard.ADD;
 
             public Integer call() {
@@ -22209,7 +22209,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogSoundActions.playSound";
+            public static final String HOST = "actions.YogSoundActions.playSound";
             public static final String ADDRESS = YogNames.ServiceSound.PLAY;
 
             public boolean call() {
@@ -22378,7 +22378,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogSoundActions.playSoundToPlayer";
+            public static final String HOST = "actions.YogSoundActions.playSoundToPlayer";
             public static final String ADDRESS = YogNames.ServiceSound.PLAY_TO_PLAYER;
 
             public boolean call() {
@@ -22530,7 +22530,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogTagActions.hasItemTag";
+            public static final String HOST = "actions.YogTagActions.hasItemTag";
             public static final String ADDRESS = YogNames.ServiceTag.HAS_ITEM;
 
             public boolean call() {
@@ -22677,7 +22677,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogTagActions.hasBlockTag";
+            public static final String HOST = "actions.YogTagActions.hasBlockTag";
             public static final String ADDRESS = YogNames.ServiceTag.HAS_BLOCK;
 
             public boolean call() {
@@ -22824,7 +22824,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogTagActions.hasEntityTag";
+            public static final String HOST = "actions.YogTagActions.hasEntityTag";
             public static final String ADDRESS = YogNames.ServiceTag.HAS_ENTITY;
 
             public boolean call() {
@@ -22960,7 +22960,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.tagItems";
+            public static final String HOST = "client.YogClientApi.tagItems";
             public static final String ADDRESS = YogNames.ServiceTag.ITEMS;
 
             public java.util.List<String> call() {
@@ -23123,7 +23123,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogUiActions.openUI";
+            public static final String HOST = "actions.YogUiActions.openUI";
             public static final String ADDRESS = YogNames.ServiceUi.OPEN;
 
             public boolean call() {
@@ -23270,7 +23270,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogClientApi.openUI";
+            public static final String HOST = "client.YogClientApi.openUI";
             public static final String ADDRESS = YogNames.ServiceUi.OPEN_WITH_FLAGS;
 
             public boolean call() {
@@ -23406,7 +23406,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogUiActions.closeUI";
+            public static final String HOST = "actions.YogUiActions.closeUI";
             public static final String ADDRESS = YogNames.ServiceUi.CLOSE;
 
             public boolean call() {
@@ -24238,7 +24238,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.getBlock";
+            public static final String HOST = "actions.YogWorldActions.getBlock";
             public static final String ADDRESS = YogNames.ServiceWorld.GET_BLOCK;
 
             public String call() {
@@ -24396,7 +24396,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.setBlock";
+            public static final String HOST = "actions.YogWorldActions.setBlock";
             public static final String ADDRESS = YogNames.ServiceWorld.SET_BLOCK;
 
             public boolean call() {
@@ -24532,7 +24532,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.worldTime";
+            public static final String HOST = "actions.YogWorldActions.worldTime";
             public static final String ADDRESS = YogNames.ServiceWorld.TIME;
 
             public Long call() {
@@ -24679,7 +24679,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.worldSetTime";
+            public static final String HOST = "actions.YogWorldActions.worldSetTime";
             public static final String ADDRESS = YogNames.ServiceWorld.SET_TIME;
 
             public boolean call() {
@@ -24815,7 +24815,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.worldIsRaining";
+            public static final String HOST = "actions.YogWorldActions.worldIsRaining";
             public static final String ADDRESS = YogNames.ServiceWorld.IS_RAINING;
 
             public boolean call() {
@@ -24973,7 +24973,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.worldSetWeather";
+            public static final String HOST = "actions.YogWorldActions.worldSetWeather";
             public static final String ADDRESS = YogNames.ServiceWorld.SET_WEATHER;
 
             public boolean call() {
@@ -25109,7 +25109,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.worldIsThundering";
+            public static final String HOST = "actions.YogWorldActions.worldIsThundering";
             public static final String ADDRESS = YogNames.ServiceWorld.IS_THUNDERING;
 
             public boolean call() {
@@ -25267,7 +25267,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.worldSetThunder";
+            public static final String HOST = "actions.YogWorldActions.worldSetThunder";
             public static final String ADDRESS = YogNames.ServiceWorld.SET_THUNDER;
 
             public boolean call() {
@@ -25436,7 +25436,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.fillRegion";
+            public static final String HOST = "actions.YogQueries.fillRegion";
             public static final String ADDRESS = YogNames.ServiceWorld.FILL_REGION;
 
             public Long call() {
@@ -25594,7 +25594,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.scanRegion";
+            public static final String HOST = "actions.YogQueries.scanRegion";
             public static final String ADDRESS = YogNames.ServiceWorld.SCAN_REGION;
 
             public java.util.List<YogTypes.PlacedBlock> call() {
@@ -25752,7 +25752,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.placeFeature";
+            public static final String HOST = "actions.YogWorldActions.placeFeature";
             public static final String ADDRESS = YogNames.ServiceWorld.PLACE_FEATURE;
 
             public boolean call() {
@@ -25932,7 +25932,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.explode";
+            public static final String HOST = "actions.YogWorldActions.explode";
             public static final String ADDRESS = YogNames.ServiceWorld.EXPLODE;
 
             public boolean call() {
@@ -26090,7 +26090,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.dropLoot";
+            public static final String HOST = "actions.YogWorldActions.dropLoot";
             public static final String ADDRESS = YogNames.ServiceWorld.DROP_LOOT;
 
             public boolean call() {
@@ -26237,7 +26237,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.worldEntityCount";
+            public static final String HOST = "actions.YogQueries.worldEntityCount";
             public static final String ADDRESS = YogNames.ServiceWorld.ENTITY_COUNT;
 
             public Long call() {
@@ -26395,7 +26395,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.entitiesInBox";
+            public static final String HOST = "actions.YogQueries.entitiesInBox";
             public static final String ADDRESS = YogNames.ServiceWorld.ENTITIES_IN_BOX;
 
             public java.util.List<String> call() {
@@ -26553,7 +26553,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogQueries.raycastBlock";
+            public static final String HOST = "actions.YogQueries.raycastBlock";
             public static final String ADDRESS = YogNames.ServiceWorld.RAYCAST_BLOCK;
 
             public YogTypes.BlockHit call() {
@@ -26722,7 +26722,7 @@ public final class YogServices {
             }
 
             /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
-            public static final String HOST = "YogWorldActions.raycastEntity";
+            public static final String HOST = "actions.YogWorldActions.raycastEntity";
             public static final String ADDRESS = YogNames.ServiceWorld.RAYCAST_ENTITY;
 
             public String call() {

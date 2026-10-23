@@ -37,5 +37,5 @@ impl ParticleOptions {
 
 actions! {
     /// Spawns `count` particles around `pos` (none: one, `spread` its motion).
-    SpawnParticles { dim: String, pos: Point, particle: ParticleOptions, count: i32, spread: Point, speed: f64 } -> bool = ids::service_particle::SPAWN, "YogParticleActions.spawnParticles";
+    SpawnParticles { dim: String, pos: Point, particle: ParticleOptions, count: i32, spread: Point, speed: f64 } -> bool = ids::service_particle::SPAWN, "actions.YogParticleActions.spawnParticles";
 }

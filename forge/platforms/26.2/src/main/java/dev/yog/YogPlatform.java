@@ -1,5 +1,8 @@
 package dev.yog;
 
+import dev.yog.content.YogInventoryBlockEntity;
+import dev.yog.content.YogInventoryMenu;
+
 import dev.yog.util.YogModInfo;
 
 import io.netty.buffer.Unpooled;

@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogBody;
+import dev.yog.body.YogBody;
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;

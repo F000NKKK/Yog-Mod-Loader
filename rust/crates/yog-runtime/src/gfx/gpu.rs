@@ -544,7 +544,7 @@ pub(crate) unsafe extern "C" fn gfx_tex_bind(unit: u32, handle: u32) {
 
 pub(crate) unsafe extern "C" fn gfx_tex_from_mc(id: YogStr) -> u32 {
     crate::jni::util::guarded("gfx_tex_from_mc", 0, || unsafe {
-        host!("dev/yog/NativeDraw", "getMcTextureId", [S(id)]).map_or(0, |id: i32| id as u32)
+        host!("dev/yog/render/NativeDraw", "getMcTextureId", [S(id)]).map_or(0, |id: i32| id as u32)
     })
 }
 

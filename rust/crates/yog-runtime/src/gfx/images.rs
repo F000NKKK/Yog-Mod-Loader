@@ -43,7 +43,7 @@ fn has_gui_sprite(env: &mut JNIEnv, id: &str) -> bool {
     unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "hasGuiSprite",
             [S(YogStr::from_str(id))]
         )
@@ -92,7 +92,7 @@ fn texture_size(env: &mut JNIEnv, id: &str) -> Option<Vec2> {
         let packed: i32 = unsafe {
             jcall!(
                 env,
-                "dev/yog/NativeDraw",
+                "dev/yog/render/NativeDraw",
                 "textureSize",
                 [S(YogStr::from_str(id))]
             )
@@ -127,7 +127,7 @@ fn draw_texture(env: &mut JNIEnv, id: &str, dest: Rect, region: Region, tint: Co
     let _: Option<()> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "drawImage",
             [
                 S(YogStr::from_str(id)),
@@ -152,7 +152,7 @@ fn draw_item(env: &mut JNIEnv, id: &str, block: bool, dest: Rect) {
     let _: Option<()> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "drawItemRect",
             [S(YogStr::from_str(id)), Z(block), F(x), F(y), F(w), F(h)]
         )
@@ -164,7 +164,7 @@ fn draw_atlas_sprite(env: &mut JNIEnv, id: &str, dest: Rect, tint: Color) {
     let _: Option<()> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "drawGuiSprite",
             [
                 S(YogStr::from_str(id)),
@@ -184,7 +184,7 @@ fn rect(env: &mut JNIEnv, area: Rect, color: Color) {
     let _: Option<()> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "drawRect",
             [F(x1), F(y1), F(x2), F(y2), I(color.0 as i32)]
         )

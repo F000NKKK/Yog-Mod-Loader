@@ -15,7 +15,7 @@ use yog_abi::YogStr;
 fn place_block(x: i32, y: i32, z: i32, block_id: &str) -> bool {
     unsafe {
         host!(
-            "dev/yog/YogCallbackChunkGenerator",
+            "dev/yog/content/YogCallbackChunkGenerator",
             "setBlockInGeneratingChunk",
             [I(x), I(y), I(z), S(YogStr::from_str(block_id))]
         )

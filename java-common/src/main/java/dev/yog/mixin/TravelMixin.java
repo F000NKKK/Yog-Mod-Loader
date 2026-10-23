@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogBody;
+import dev.yog.body.YogBody;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;

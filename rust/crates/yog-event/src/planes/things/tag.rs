@@ -4,11 +4,11 @@ use yog_ids as ids;
 
 actions! {
     /// Whether `item` is in item tag `tag`.
-    HasItem { item: String, tag: String } -> bool = ids::service_tag::HAS_ITEM, "YogTagActions.hasItemTag";
+    HasItem { item: String, tag: String } -> bool = ids::service_tag::HAS_ITEM, "actions.YogTagActions.hasItemTag";
     /// Whether `block` is in block tag `tag`.
-    HasBlock { block: String, tag: String } -> bool = ids::service_tag::HAS_BLOCK, "YogTagActions.hasBlockTag";
+    HasBlock { block: String, tag: String } -> bool = ids::service_tag::HAS_BLOCK, "actions.YogTagActions.hasBlockTag";
     /// Whether `entity_type` is in entity type tag `tag`.
-    HasEntity { entity_type: String, tag: String } -> bool = ids::service_tag::HAS_ENTITY, "YogTagActions.hasEntityTag";
+    HasEntity { entity_type: String, tag: String } -> bool = ids::service_tag::HAS_ENTITY, "actions.YogTagActions.hasEntityTag";
     /// The items of item tag `tag`.
-    Items { tag: String } -> Vec<String> = ids::service_tag::ITEMS, "YogClientApi.tagItems";
+    Items { tag: String } -> Vec<String> = ids::service_tag::ITEMS, "client.YogClientApi.tagItems";
 }

@@ -1,5 +1,12 @@
 package dev.yog;
 
+import dev.yog.client.YogClientEvents;
+import dev.yog.client.YogClientTooltip;
+import dev.yog.client.YogInventoryScreen;
+import dev.yog.client.YogParticleClient;
+import dev.yog.client.YogTooltipData;
+import dev.yog.content.YogContentRegistry;
+
 import net.minecraft.client.KeyMapping;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.IEventBus;

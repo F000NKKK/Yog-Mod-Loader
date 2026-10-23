@@ -52,7 +52,7 @@ pub fn file(env: &mut JNIEnv, id: &str) -> Option<String> {
     let text: Option<String> = unsafe {
         jcall!(
             env,
-            "dev/yog/NativeDraw",
+            "dev/yog/render/NativeDraw",
             "readResourceText",
             [S(YogStr::from_str(id))]
         )
@@ -126,7 +126,7 @@ pub(crate) unsafe extern "C" fn gfx_draw2d_entity(
             let _: Option<()> = unsafe {
                 jcall!(
                     &mut env,
-                    "dev/yog/NativeDraw",
+                    "dev/yog/render/NativeDraw",
                     "drawEntity",
                     [S(entity), F(x), F(y), F(w), F(h), F(yaw), F(pitch)]
                 )

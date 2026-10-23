@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogParticleLayers;
+import dev.yog.content.YogParticleLayers;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.particle.ParticleEngine;

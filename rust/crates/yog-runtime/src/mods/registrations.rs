@@ -53,7 +53,7 @@ pub(crate) fn changes(mod_id: &str, new_yog: &Path) -> yog_hot_reload::control::
 pub(crate) fn reload_game_resources() {
     // SAFETY: static host methods taking nothing; the JVM env is this thread's.
     unsafe {
-        let _: Option<()> = host!("dev/yog/YogDevReload", "reloadData", []);
-        let _: Option<()> = host!("dev/yog/YogDevReloadClient", "reloadResources", []);
+        let _: Option<()> = host!("dev/yog/server/YogDevReload", "reloadData", []);
+        let _: Option<()> = host!("dev/yog/client/YogDevReloadClient", "reloadResources", []);
     }
 }

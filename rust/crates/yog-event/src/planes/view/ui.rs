@@ -4,11 +4,11 @@ use yog_ids as ids;
 
 actions! {
     /// Opens screen `ui_id`; `modal` blocks the game's input, `pause` pauses singleplayer.
-    Open { ui_id: String, modal: bool, pause: bool } -> bool = ids::service_ui::OPEN, "YogUiActions.openUI";
+    Open { ui_id: String, modal: bool, pause: bool } -> bool = ids::service_ui::OPEN, "actions.YogUiActions.openUI";
     /// Opens screen `ui_id` with [`flags`] bits.
-    OpenWithFlags { ui_id: String, flags: i32 } -> bool = ids::service_ui::OPEN_WITH_FLAGS, "YogClientApi.openUI";
+    OpenWithFlags { ui_id: String, flags: i32 } -> bool = ids::service_ui::OPEN_WITH_FLAGS, "client.YogClientApi.openUI";
     /// Closes screen `ui_id` if it's the one open.
-    Close { ui_id: String } -> bool = ids::service_ui::CLOSE, "YogUiActions.closeUI";
+    Close { ui_id: String } -> bool = ids::service_ui::CLOSE, "actions.YogUiActions.closeUI";
 }
 
 /// Flag bits for [`OpenWithFlags`].

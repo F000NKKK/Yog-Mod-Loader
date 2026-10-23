@@ -26,7 +26,7 @@ use test_jvm::jdk;
 fn compile_stubs(jdk: &Path) -> PathBuf {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("benches/java");
     let out = Path::new(env!("CARGO_TARGET_TMPDIR")).join("jni-bench-classes");
-    let sources: Vec<PathBuf> = ["NativeBridge.java", "NativeDraw.java"]
+    let sources: Vec<PathBuf> = ["NativeBridge.java", "render/NativeDraw.java"]
         .iter()
         .map(|f| src.join("dev/yog").join(f))
         .collect();
@@ -37,7 +37,7 @@ fn compile_stubs(jdk: &Path) -> PathBuf {
 /// What every host call used to do: look up by name, then call.
 fn by_name_rect(env: &mut JNIEnv) {
     let _ = env.call_static_method(
-        "dev/yog/NativeDraw",
+        "dev/yog/render/NativeDraw",
         "drawRect",
         "(FFFFI)V",
         &[
@@ -53,7 +53,7 @@ fn by_name_rect(env: &mut JNIEnv) {
 fn by_name_text(env: &mut JNIEnv, text: &str) {
     let jt = env.new_string(text).unwrap();
     let _ = env.call_static_method(
-        "dev/yog/NativeDraw",
+        "dev/yog/render/NativeDraw",
         "drawText",
         "(Ljava/lang/String;FFIZ)V",
         &[
@@ -146,7 +146,7 @@ fn bench(c: &mut Criterion) {
         b.iter(|| unsafe {
             let _: Option<()> = jcall!(
                 &mut env,
-                "dev/yog/NativeDraw",
+                "dev/yog/render/NativeDraw",
                 "drawRect",
                 [F(1.0), F(2.0), F(30.0), F(40.0), I(-1)]
             );
@@ -159,7 +159,7 @@ fn bench(c: &mut Criterion) {
         b.iter(|| unsafe {
             let _: Option<()> = jcall!(
                 &mut env,
-                "dev/yog/NativeDraw",
+                "dev/yog/render/NativeDraw",
                 "drawText",
                 [S(text), F(4.0), F(8.0), I(-1), Z(true)]
             );

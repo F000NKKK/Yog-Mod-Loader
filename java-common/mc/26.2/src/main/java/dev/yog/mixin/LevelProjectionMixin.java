@@ -1,6 +1,6 @@
 package dev.yog.mixin;
 
-import dev.yog.YogClientEvents;
+import dev.yog.client.YogClientEvents;
 import net.minecraft.client.renderer.GameRenderer;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
