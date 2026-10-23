@@ -120,6 +120,22 @@ pub(crate) fn picture(root: &Path, set: &str, name: &str) -> Option<Picture> {
         .cloned()
 }
 
+/// Sound `@<set>.<name>` of the mod at `root`, as stored (any format the build converts).
+pub(crate) fn sound(root: &Path, set: &str, name: &str) -> Option<Vec<u8>> {
+    let file = root
+        .join(yog_ids::project::RESOURCES)
+        .join(Format::Res.file(set));
+    let text = crate::files::read_source(&file).ok()?;
+    yog_formats::yres::parse(&text)
+        .ok()?
+        .into_iter()
+        .find(|e| e.name == name && e.kind == Kind::Sound)
+        .and_then(|e| match e.value {
+            Value::Bytes(b) => Some(b),
+            _ => None,
+        })
+}
+
 /// Writes `bytes` as picture `@<set>.<name>` of the mod at `root` (the
 /// set's file made when there's none); the file written.
 pub(crate) fn save_picture(
