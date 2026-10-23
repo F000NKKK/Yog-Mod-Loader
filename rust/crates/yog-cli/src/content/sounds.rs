@@ -148,19 +148,35 @@ mod tests {
             r#"{ sounds: [{ sound: "@Sounds.abacus1", pitch: 0.8 }], subtitle: "@Lang.abacus" }"#,
         )
         .unwrap();
-        std::fs::write(sound.join("scroll/dust.ysound"), r#"{ sounds: [{ file: "dig/sand1" }] }"#).unwrap();
+        std::fs::write(
+            sound.join("scroll/dust.ysound"),
+            r#"{ sounds: [{ file: "dig/sand1" }] }"#,
+        )
+        .unwrap();
         std::fs::write(sound.join("bad.ysound"), r#"{ sounds: [{}] }"#).unwrap();
         let mut refs = Refs::default();
-        refs.sounds.insert("Sounds.abacus1".into(), "m:abacus1".into());
-        refs.texts.insert("Lang.abacus".into(), ("m.abacus".into(), "Abacus".into()));
+        refs.sounds
+            .insert("Sounds.abacus1".into(), "m:abacus1".into());
+        refs.texts
+            .insert("Lang.abacus".into(), ("m.abacus".into(), "Abacus".into()));
         let mut errors = Vec::new();
         let out = compile(&dir, "m", &refs, &mut errors).output.unwrap();
-        assert_eq!(errors.len(), 1, "only the event playing nothing: {errors:?}");
+        assert_eq!(
+            errors.len(),
+            1,
+            "only the event playing nothing: {errors:?}"
+        );
         let json: Value = serde_json::from_slice(&out.1).unwrap();
         assert_eq!(json["abacus"]["sounds"][0]["name"], "m:abacus1");
-        assert_eq!(json["abacus"]["sounds"][0]["pitch"].as_f64(), Some(f64::from(0.8f32)));
+        assert_eq!(
+            json["abacus"]["sounds"][0]["pitch"].as_f64(),
+            Some(f64::from(0.8f32))
+        );
         assert_eq!(json["abacus"]["subtitle"], "m.abacus");
-        assert_eq!(json["scroll.dust"]["sounds"][0]["name"], "minecraft:dig/sand1");
+        assert_eq!(
+            json["scroll.dust"]["sounds"][0]["name"],
+            "minecraft:dig/sand1"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

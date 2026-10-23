@@ -87,6 +87,16 @@ pub fn compile(root: &Path, mod_id: &str) -> Result<Compiled, String> {
         let texts = b.set(set);
         b.cultures(set, &texts);
     }
+    if let Some(code) = super::sound_events::source(root, mod_id) {
+        if sets.contains_key(super::sound_events::SET) {
+            let set = super::sound_events::SET;
+            b.errors.push(problem(format!(
+                "a set can't be named {set}: the sound events' type is"
+            )));
+        }
+        b.c.sources
+            .insert(super::sound_events::SET.to_owned(), code);
+    }
     b.finish()
 }
 
