@@ -258,3 +258,37 @@ fn inheritance_follows_csharps_rules() {
         [script_problem::INHERIT]
     );
 }
+
+#[test]
+fn enums_are_rusts() {
+    let mode = "enum Mode { Idle, Charging(i32 Rate), Full }\n";
+    let ok = format!(
+        "{mode}string F(Mode m) => m switch {{ Mode.Idle => \"idle\", Mode.Charging(let r) when r > 3 => \"fast\", \
+         Mode.Charging(let r) => \"slow\", Mode.Full => \"full\" }};\nMode G() => Mode.Charging(4);\n"
+    );
+    assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+    // A case's data has its type; a case left out is an error.
+    assert_eq!(
+        codes(&format!("{mode}Mode G() => Mode.Charging(\"x\");\n")),
+        [script_problem::TYPE_MISMATCH]
+    );
+    assert_eq!(
+        codes(&format!(
+            "{mode}string F(Mode m) => m switch {{ Mode.Idle => \"a\", Mode.Charging(let r) when r > 3 => \"b\", Mode.Full => \"c\" }};\n"
+        )),
+        [script_problem::NOT_EXHAUSTIVE]
+    );
+    assert!(
+        codes(&format!(
+            "{mode}string F(Mode m) => m switch {{ Mode.Idle => \"a\", _ => \"b\" }};\n"
+        ))
+        .is_empty()
+    );
+    // What a case's pattern binds is typed.
+    assert_eq!(
+        codes(&format!(
+            "{mode}string F(Mode m) => m switch {{ Mode.Charging(let r) => r, _ => \"b\" }};\n"
+        )),
+        [script_problem::TYPE_MISMATCH]
+    );
+}

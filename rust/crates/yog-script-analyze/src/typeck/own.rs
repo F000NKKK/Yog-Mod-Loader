@@ -20,6 +20,8 @@ pub(crate) struct OwnType {
     pub interface: bool,
     /// An `abstract class`: inherited, never made.
     pub is_abstract: bool,
+    /// An enum's cases that carry data, their fields by case.
+    pub variants: HashMap<String, Vec<ast::Param>>,
 }
 
 /// Every type the source declares, by name; the units it declares.
@@ -124,6 +126,11 @@ impl OwnTypes {
                     .insert(name.text.clone(), self.current.clone());
                 let t = self.types.entry(name.text.clone()).or_default();
                 t.cases = variants.iter().map(|v| v.name.text.clone()).collect();
+                t.variants = variants
+                    .iter()
+                    .filter(|v| !v.fields.is_empty())
+                    .map(|v| (v.name.text.clone(), v.fields.clone()))
+                    .collect();
                 members(t, body);
                 return;
             }

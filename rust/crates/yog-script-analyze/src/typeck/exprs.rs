@@ -43,6 +43,7 @@ impl Checker<'_, '_, '_> {
                 self.member(&on, &name.text, *safe, name.span)
             }
             ExprKind::Call { callee, args } => self.call(callee, args),
+            ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
             ExprKind::Unary { op, expr } => self.unary(*op, expr),
             ExprKind::Binary { op, left, right } => self.binary(*op, left, right, e.span),
             ExprKind::Conditional {
@@ -114,17 +115,6 @@ impl Checker<'_, '_, '_> {
                 self.expr(from);
                 self.expr(to);
             }
-            ExprKind::Switch { expr, arms } => {
-                self.expr(expr);
-                for a in arms {
-                    self.scoped(|c| {
-                        if let Some(g) = &a.guard {
-                            c.condition(g);
-                        }
-                        c.expr(&a.value);
-                    });
-                }
-            }
             ExprKind::Lambda { body, .. } => self.scoped(|c| c.lambda_body(body)),
             _ => {}
         }
@@ -145,7 +135,7 @@ impl Checker<'_, '_, '_> {
             return self.type_of(&t);
         }
         if self.own.types.contains_key(name) {
-            return Type::Unknown;
+            return Type::Static(name.to_string());
         }
         self.imported(name, at)
     }

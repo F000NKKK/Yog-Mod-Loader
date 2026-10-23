@@ -322,6 +322,8 @@ names! {
         /// one inherited, an abstract member left unimplemented, an
         /// `override` of nothing, an abstract class made with `new`.
         INHERIT = "YS0028",
+        /// A `switch` over an enum leaving a case out, with no `_`.
+        NOT_EXHAUSTIVE = "YS0029",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

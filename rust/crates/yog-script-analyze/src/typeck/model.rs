@@ -38,6 +38,9 @@ pub enum Type {
     Tag,
     /// A type the source declares, by name.
     Own(String),
+    /// An own type named where a value goes (`Mode` in `Mode.Idle`): its
+    /// static members and its cases.
+    Static(String),
     /// A game class, by its internal name (`.yns` only).
     Game(String),
     /// Yog's: a handle (`Player`), a domain's group (`Chat`), a struct or
@@ -145,7 +148,9 @@ impl fmt::Display for Type {
             | Type::Void => write!(f, "{}", builtin::word(self).unwrap_or_default()),
             Type::Null => write!(f, "{}", crate::words::null::WORD.text),
             Type::Text => write!(f, "Text"),
-            Type::Unit(u) | Type::Own(u) | Type::Yog(u) | Type::Namespace(u) => write!(f, "{u}"),
+            Type::Unit(u) | Type::Own(u) | Type::Static(u) | Type::Yog(u) | Type::Namespace(u) => {
+                write!(f, "{u}")
+            }
             Type::Content(kind) => write!(f, "@{kind}"),
             Type::Tag => write!(f, "{}", yog_ids::kind::TAG),
             Type::Game(name) => write!(f, "{}", crate::index::simple_name(name)),

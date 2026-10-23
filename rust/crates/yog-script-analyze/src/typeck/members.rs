@@ -11,7 +11,7 @@ use crate::ast::{Arg, Expr, ExprKind, LambdaBody, Method, Pass};
 use crate::source::token::Span;
 
 /// What a call's callee stands for.
-enum Callee {
+pub(super) enum Callee {
     /// The source's own methods.
     Own(Vec<Method>),
     /// Methods typed already: a game class's, Yog's.
@@ -20,13 +20,13 @@ enum Callee {
 }
 
 /// What a call is matched against.
-struct Signature {
-    params: Vec<Type>,
+pub(super) struct Signature {
+    pub params: Vec<Type>,
     /// How each parameter takes its argument (`in`, `ref`, …): only the
     /// source's own methods say.
-    passes: Vec<Option<Pass>>,
-    required: usize,
-    ret: Type,
+    pub passes: Vec<Option<Pass>>,
+    pub required: usize,
+    pub ret: Type,
 }
 
 impl Checker<'_, '_, '_> {
@@ -43,6 +43,7 @@ impl Checker<'_, '_, '_> {
             );
         }
         let t = match on.non_null() {
+            Type::Static(of) => self.own_member(&Type::Own(of.clone()), name),
             Type::Own(_) => {
                 let t = self.own_member(on.non_null(), name);
                 if !t.known() && !self.own_has_method(on.non_null(), name) {
@@ -77,14 +78,14 @@ impl Checker<'_, '_, '_> {
         self.own
             .lineage(type_name)
             .iter()
-            .map(|of| self.own_member_of(of, t, name))
+            .map(|of| self.own_member_of(of, name))
             .find(Type::known)
             .unwrap_or(Type::Unknown)
     }
 
     /// Member `name` declared by own type `of` itself (or by a component
-    /// it has); `t` is the type it's read on.
-    fn own_member_of(&mut self, of: &str, t: &Type, name: &str) -> Type {
+    /// it has); a case is a value of the enum.
+    fn own_member_of(&mut self, of: &str, name: &str) -> Type {
         let Some(own) = self.own.types.get(of) else {
             return Type::Unknown;
         };
@@ -92,7 +93,7 @@ impl Checker<'_, '_, '_> {
             return self.type_of(&written);
         }
         if own.cases.iter().any(|c| c == name) {
-            return t.clone();
+            return Type::Own(of.to_string());
         }
         let components = own.components.clone();
         if components.iter().any(|c| c == name) {
@@ -254,9 +255,12 @@ impl Checker<'_, '_, '_> {
             ExprKind::Member { expr, name, .. } => {
                 let on = self.expr(expr);
                 match on.non_null() {
-                    Type::Own(_) => self
-                        .own_methods(on.non_null(), &name.text)
-                        .map_or(Callee::Unknown, Callee::Own),
+                    Type::Own(of) | Type::Static(of) => {
+                        match self.own_methods(&Type::Own(of.clone()), &name.text) {
+                            Some(methods) => Callee::Own(methods),
+                            None => self.variant_ctor(&of.clone(), &name.text),
+                        }
+                    }
                     Type::Yog(group) => match self.extension_methods(group, &name.text) {
                         Some(m) => Callee::Own(m),
                         None => self.yog_methods(group, &name.text, name.span),

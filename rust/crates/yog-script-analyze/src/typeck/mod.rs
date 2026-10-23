@@ -19,6 +19,7 @@ mod passing;
 mod shapes;
 mod stmts;
 mod surface;
+mod variants;
 mod written;
 
 use std::collections::HashMap;
