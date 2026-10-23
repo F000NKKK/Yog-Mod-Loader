@@ -23,3 +23,8 @@ windows-sys = { workspace = true }
 # The Linux backend: ptrace.
 [target.'cfg(target_os = "linux")'.dependencies]
 nix = { workspace = true }
+
+# The macOS backend: Mach exception ports; kqueue for the process's end.
+[target.'cfg(target_os = "macos")'.dependencies]
+mach2 = { workspace = true }
+libc = { workspace = true }

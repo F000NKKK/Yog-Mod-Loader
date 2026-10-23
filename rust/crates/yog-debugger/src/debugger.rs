@@ -217,7 +217,10 @@ impl Debugger {
         let name = path.file_name();
         self.modules()
             .into_iter()
-            .find(|m| canonical.as_deref() == Some(&m.path) || name.is_some_and(|n| m.path.file_name() == Some(n)))
+            .find(|m| {
+                canonical.as_deref() == Some(&m.path)
+                    || name.is_some_and(|n| m.path.file_name() == Some(n))
+            })
             .map(|m| m.base)
     }
 

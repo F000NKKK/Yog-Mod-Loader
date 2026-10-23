@@ -36,13 +36,11 @@ fn all_pids() -> Vec<i32> {
 /// containing `needle` (e.g. `"yog_runtime"` to match `libyog_runtime.so`
 /// regardless of platform-specific prefix/extension).
 fn has_mapping_containing(pid: i32, needle: &str) -> bool {
-    file_mappings(pid)
-        .into_iter()
-        .any(|(_, path)| {
-            path.file_name()
-                .and_then(|f| f.to_str())
-                .is_some_and(|f| f.contains(needle))
-        })
+    file_mappings(pid).into_iter().any(|(_, path)| {
+        path.file_name()
+            .and_then(|f| f.to_str())
+            .is_some_and(|f| f.contains(needle))
+    })
 }
 
 /// Breadth-first search over every descendant of `root_pid` (however many

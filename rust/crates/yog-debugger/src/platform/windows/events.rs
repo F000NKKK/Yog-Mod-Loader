@@ -8,7 +8,7 @@ use windows_sys::Win32::Foundation::{
     EXCEPTION_SINGLE_STEP, NTSTATUS,
 };
 use windows_sys::Win32::System::Diagnostics::Debug::{
-    ContinueDebugEvent, CREATE_PROCESS_DEBUG_EVENT, CREATE_THREAD_DEBUG_EVENT, DEBUG_EVENT,
+    CREATE_PROCESS_DEBUG_EVENT, CREATE_THREAD_DEBUG_EVENT, ContinueDebugEvent, DEBUG_EVENT,
     EXCEPTION_DEBUG_EVENT, EXCEPTION_RECORD, EXIT_PROCESS_DEBUG_EVENT, EXIT_THREAD_DEBUG_EVENT,
     LOAD_DLL_DEBUG_EVENT, UNLOAD_DLL_DEBUG_EVENT, WaitForDebugEvent,
 };
@@ -61,11 +61,18 @@ impl Process {
                 self.leader.get_or_insert(tid);
                 self.threads.insert(tid, info.hThread);
                 self.loaded(info.hFile, info.lpBaseOfImage as u64);
-                Some(Event::Spawned { child: tid, parent: None })
+                Some(Event::Spawned {
+                    child: tid,
+                    parent: None,
+                })
             }
             CREATE_THREAD_DEBUG_EVENT => {
-                self.threads.insert(tid, unsafe { ev.u.CreateThread.hThread });
-                Some(Event::Spawned { child: tid, parent: None })
+                self.threads
+                    .insert(tid, unsafe { ev.u.CreateThread.hThread });
+                Some(Event::Spawned {
+                    child: tid,
+                    parent: None,
+                })
             }
             EXIT_THREAD_DEBUG_EVENT => {
                 self.forget(tid);
@@ -84,7 +91,9 @@ impl Process {
                 self.modules.retain(|m| m.base != base);
                 None
             }
-            EXCEPTION_DEBUG_EVENT => self.exception(tid, &unsafe { ev.u.Exception }.ExceptionRecord),
+            EXCEPTION_DEBUG_EVENT => {
+                self.exception(tid, &unsafe { ev.u.Exception }.ExceptionRecord)
+            }
             _ => None,
         })
     }
@@ -114,7 +123,9 @@ impl Process {
                 self.hold(tid);
                 Some(Event::Trap(tid))
             }
-            EXCEPTION_BREAKPOINT if super::take_interrupt(self.pid) => Some(Event::Interrupted(None)),
+            EXCEPTION_BREAKPOINT if super::take_interrupt(self.pid) => {
+                Some(Event::Interrupted(None))
+            }
             // The breakpoint Windows raises right after attaching.
             EXCEPTION_BREAKPOINT if !self.attached => {
                 self.attached = true;

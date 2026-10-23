@@ -72,10 +72,12 @@ pub(super) fn write(process: HANDLE, addr: u64, bytes: &[u8]) -> Result<(), OsEr
     let mut old = 0;
     // SAFETY: the process handle is live; `at` is in its address space.
     let unprotected =
-        unsafe { VirtualProtectEx(process, at, bytes.len(), PAGE_EXECUTE_READWRITE, &mut old) } != 0;
+        unsafe { VirtualProtectEx(process, at, bytes.len(), PAGE_EXECUTE_READWRITE, &mut old) }
+            != 0;
     let mut done = 0usize;
     // SAFETY: `bytes` is readable for its length.
-    let ok = unsafe { WriteProcessMemory(process, at, bytes.as_ptr().cast(), bytes.len(), &mut done) };
+    let ok =
+        unsafe { WriteProcessMemory(process, at, bytes.as_ptr().cast(), bytes.len(), &mut done) };
     let failed = (ok == 0 || done != bytes.len()).then(|| last_error("writing its memory"));
     if unprotected {
         let mut ignored = 0;

@@ -69,7 +69,9 @@ impl Debugger {
     /// breakpoint never corrupts the decode of the instruction looked at.
     pub(super) fn read_code(&self, addr: u64, buf: &mut [u8]) -> Result<(), DebugError> {
         if !self.process.read(addr, buf) {
-            return Err(DebugError::UnexpectedStop(format!("{addr:#x} isn't readable")));
+            return Err(DebugError::UnexpectedStop(format!(
+                "{addr:#x} isn't readable"
+            )));
         }
         let end = addr + buf.len() as u64;
         for (&bp, original) in &self.breakpoints {
@@ -216,8 +218,7 @@ impl Debugger {
         }
         let stepped = self.single_step()?;
         // Ended, or the thread exited and the process ran on.
-        if stepped != StopReason::Step || self.line_key(symbols, base).is_some()
-        {
+        if stepped != StopReason::Step || self.line_key(symbols, base).is_some() {
             return Ok(stepped);
         }
         // Into library code (std, a dependency, anything without lines):
@@ -337,7 +338,8 @@ impl Debugger {
         let mut fp = regs.fp();
         let mem = ProcessMemory(self);
         while fp != 0 && frames.len() < max_frames {
-            let (Some(saved_fp), Some(ret)) = (word(&mem, fp), word(&mem, fp.wrapping_add(WORD as u64)))
+            let (Some(saved_fp), Some(ret)) =
+                (word(&mem, fp), word(&mem, fp.wrapping_add(WORD as u64)))
             else {
                 break;
             };

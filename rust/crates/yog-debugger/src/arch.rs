@@ -13,6 +13,10 @@ mod machine {
     pub const TRAP_ADVANCE: u64 = 1;
     /// The longest instruction there is.
     pub const LONGEST: usize = 15;
+    /// The trap flag in the flags register: one instruction, then a trap
+    /// (`ptrace` sets it by itself).
+    #[cfg(not(target_os = "linux"))]
+    pub const TRAP_FLAG: u64 = 0x100;
     const BITS: u32 = 64;
 
     /// The length of the instruction at `pc` (its bytes `code`) if it's a call.

@@ -13,16 +13,15 @@ use windows_sys::Win32::System::Diagnostics::Debug::{
 use windows_sys::Win32::System::Threading::{
     OpenProcess, PROCESS_ALL_ACCESS, ResumeThread, SuspendThread, WaitForSingleObject,
 };
-use yog_sync::Mutex;
 use yog_symbols::FrameRegs;
+use yog_sync::Mutex;
 
+use crate::arch::TRAP_FLAG;
 use crate::target::{Event, Module, OsError, Regs, Target, Tid};
 
 mod events;
 mod sys;
 
-/// The trap flag in `EFlags`: one instruction, then a single-step exception.
-const TRAP_FLAG: u32 = 0x100;
 /// What `SuspendThread` returns when it fails.
 const SUSPEND_FAILED: u32 = u32::MAX;
 
@@ -116,16 +115,6 @@ impl Process {
         self.held.remove(&tid);
         self.stepping.remove(&tid);
     }
-
-    /// Whether `event` answers a wait on `only`.
-    fn answers(only: Option<Tid>, event: &Event) -> bool {
-        let Some(t) = only else { return true };
-        match *event {
-            Event::Trap(e) | Event::Stopped(e) | Event::Gone(e) => e == t,
-            Event::Exited(_) | Event::Killed(_) => true,
-            _ => false,
-        }
-    }
 }
 
 impl Target for Process {
@@ -201,7 +190,7 @@ impl Target for Process {
     fn step(&mut self, tid: Tid) -> Result<(), OsError> {
         let thread = self.thread(tid)?;
         let mut ctx = sys::context(thread).map_err(|e| self.or_gone(e))?;
-        ctx.EFlags |= TRAP_FLAG;
+        ctx.EFlags |= TRAP_FLAG as u32;
         sys::set_context(thread, &ctx).map_err(|e| self.or_gone(e))?;
         self.stepping.insert(tid);
         self.resume(tid)
@@ -209,13 +198,13 @@ impl Target for Process {
 
     fn wait(&mut self, only: Option<Tid>) -> Result<Event, OsError> {
         loop {
-            if let Some(i) = self.queue.iter().position(|e| Process::answers(only, e))
+            if let Some(i) = self.queue.iter().position(|e| e.answers(only))
                 && let Some(event) = self.queue.remove(i)
             {
                 return Ok(event);
             }
             if let Some(event) = self.pump()? {
-                if Process::answers(only, &event) {
+                if event.answers(only) {
                     return Ok(event);
                 }
                 self.queue.push_back(event);

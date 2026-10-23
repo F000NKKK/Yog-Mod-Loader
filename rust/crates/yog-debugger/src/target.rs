@@ -61,7 +61,10 @@ pub enum Event {
     Interrupted(Option<Tid>),
     /// A new thread; `stopped` when it starts stopped (Linux's clone event
     /// stops the parent — `parent` — which is resumed or stepped as it was).
-    Spawned { child: Tid, parent: Option<Tid> },
+    Spawned {
+        child: Tid,
+        parent: Option<Tid>,
+    },
     /// A thread ended.
     Gone(Tid),
     /// A thread that can't be waited on any more: the process is ending.
@@ -69,6 +72,21 @@ pub enum Event {
     /// The process ended with this code, or was killed by this signal.
     Exited(i32),
     Killed(i32),
+}
+
+impl Event {
+    /// Whether it answers a [`wait`](Target::wait) on `only`: an event of
+    /// that thread, or the process's end (any event, when `None`). Linux
+    /// asks the system for one thread's events instead.
+    #[cfg(not(target_os = "linux"))]
+    pub(crate) fn answers(&self, only: Option<Tid>) -> bool {
+        let Some(t) = only else { return true };
+        match *self {
+            Event::Trap(e) | Event::Stopped(e) | Event::Gone(e) => e == t,
+            Event::Exited(_) | Event::Killed(_) => true,
+            _ => false,
+        }
+    }
 }
 
 /// Why something the system was asked failed.
