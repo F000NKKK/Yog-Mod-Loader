@@ -8,7 +8,7 @@ use std::collections::{BTreeSet, HashMap};
 use yog_sync::LazyLock;
 
 /// The table, as generated.
-pub const TABLE: &str = include_str!("../data/tags.txt");
+pub const TABLE: &str = include_str!("../../data/tags.txt");
 
 /// Where a tag is: every Minecraft version and loader (`None`), or these
 /// hosts (`<loader>/<version>`).

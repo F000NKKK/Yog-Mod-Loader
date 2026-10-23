@@ -2,21 +2,15 @@
 //! `yog build` reads and checks, and what Yog-IDLE's editors are generated
 //! from (`shape`). Books too (`book`); `yog-book` draws them.
 
-pub mod binding;
+mod definitions;
+mod media;
+mod screens;
+
+pub use definitions::{def, manifest, recipe, tags, yres};
+pub use media::{material, montage, particle, sound, texture, video};
+pub use screens::{binding, yui};
 pub mod book;
 pub mod content;
-pub mod def;
-pub mod manifest;
-pub mod material;
-pub mod montage;
-pub mod particle;
-pub mod recipe;
-pub mod sound;
-pub mod tags;
-pub mod texture;
-pub mod video;
-pub mod yres;
-pub mod yui;
 
 use yog_data::Diagnostic;
 use yog_data::{Schema, Shape, Value};
