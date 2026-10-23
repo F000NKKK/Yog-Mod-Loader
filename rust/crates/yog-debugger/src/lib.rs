@@ -15,7 +15,7 @@ pub mod source_breakpoints;
 pub mod target;
 
 pub use debugger::{DebugError, Debugger, StepKind, StopReason};
-pub use platform::interrupt;
+pub use platform::{interrupt, process_ended};
 pub use source_breakpoints::{LoadedMod, SourceBreakpoint, SourceBreakpoints};
 pub use target::{Module, Regs, Tid};
 

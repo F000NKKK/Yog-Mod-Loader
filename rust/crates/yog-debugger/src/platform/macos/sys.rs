@@ -20,6 +20,7 @@ use mach2::vm_region::{
 };
 use mach2::vm_types::{mach_vm_address_t, mach_vm_size_t};
 
+use super::process_ended;
 use crate::target::{OsError, Tid};
 
 unsafe extern "C" {
@@ -50,6 +51,7 @@ pub(super) fn check(what: &'static str, kr: kern_return_t) -> Result<(), OsError
         what,
         message: format!("kern_return_t {kr}"),
         gone: GONE.contains(&kr),
+        denied: false,
     })
 }
 
@@ -69,8 +71,11 @@ pub(super) fn release(name: mach_port_t) {
 pub(super) fn task_of(pid: u32) -> Result<task_t, OsError> {
     let mut task: mach_port_name_t = MACH_PORT_NULL;
     // SAFETY: plain call filling `task`.
-    check("getting its task (task_for_pid)", unsafe {
-        task_for_pid(this_task(), pid as i32, &mut task)
+    let kr = unsafe { task_for_pid(this_task(), pid as i32, &mut task) };
+    // It fails alike for every refusal; a process that's there was refused.
+    check("getting its task (task_for_pid)", kr).map_err(|e| OsError {
+        denied: !process_ended(pid),
+        ..e
     })?;
     Ok(task)
 }

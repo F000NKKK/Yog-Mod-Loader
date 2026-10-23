@@ -96,6 +96,8 @@ pub struct OsError {
     pub message: String,
     /// The thread (or process) it named isn't there any more.
     pub gone: bool,
+    /// The system refused us the process (permissions, its protection).
+    pub denied: bool,
 }
 
 impl std::fmt::Display for OsError {

@@ -50,6 +50,24 @@ pub fn interrupt(pid: u32) {
     }
 }
 
+/// Whether process `pid` has ended: a zombie, or not there at all.
+pub fn process_ended(pid: u32) -> bool {
+    // SAFETY: a zeroed info struct is valid for the call to fill.
+    let mut info: libc::proc_bsdinfo = unsafe { std::mem::zeroed() };
+    let size = std::mem::size_of::<libc::proc_bsdinfo>() as i32;
+    // SAFETY: `info` is the flavor's struct, `size` its size.
+    let filled = unsafe {
+        libc::proc_pidinfo(
+            pid as i32,
+            libc::PROC_PIDTBSDINFO,
+            0,
+            (&mut info as *mut libc::proc_bsdinfo).cast(),
+            size,
+        )
+    };
+    filled < size || info.pbi_status == libc::SZOMB
+}
+
 /// The task's breakpoint handlers before ours, put back on detaching.
 struct Handlers {
     masks: Vec<exception_mask_t>,
@@ -145,6 +163,7 @@ impl Process {
             what: "finding a thread",
             message: format!("thread {tid} isn't there"),
             gone: true,
+            denied: false,
         })
     }
 

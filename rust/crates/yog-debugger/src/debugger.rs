@@ -84,6 +84,15 @@ impl From<OsError> for DebugError {
     }
 }
 
+impl DebugError {
+    /// Whether the system refused us the process — attaching needs a right
+    /// we haven't got (each system its own: Linux's ptrace scope, macOS's
+    /// debugger entitlement and the target's `get-task-allow`).
+    pub fn denied(&self) -> bool {
+        matches!(self, DebugError::Os(OsError { denied: true, .. }))
+    }
+}
+
 /// Whether `e` says the thread it named is gone (killed while stopped):
 /// one such thread mustn't end the whole session — its end is reported later.
 fn vanished(e: &DebugError) -> bool {

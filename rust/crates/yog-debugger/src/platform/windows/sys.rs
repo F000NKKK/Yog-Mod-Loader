@@ -22,10 +22,12 @@ const VERBATIM: &str = r"\\?\";
 
 /// The system's last error, as `what` failing.
 pub(super) fn last_error(what: &'static str) -> OsError {
+    let error = std::io::Error::last_os_error();
     OsError {
         what,
-        message: std::io::Error::last_os_error().to_string(),
+        message: error.to_string(),
         gone: false,
+        denied: error.kind() == std::io::ErrorKind::PermissionDenied,
     }
 }
 

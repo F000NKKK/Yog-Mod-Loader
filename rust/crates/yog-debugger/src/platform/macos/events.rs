@@ -233,6 +233,7 @@ impl ExitWatch {
                 what: "watching for its end",
                 message: std::io::Error::last_os_error().to_string(),
                 gone: false,
+                denied: false,
             });
         }
         // SAFETY: a fresh descriptor nothing else owns.
@@ -245,6 +246,7 @@ impl ExitWatch {
                 what: "watching for its end",
                 message: std::io::Error::last_os_error().to_string(),
                 gone: true,
+                denied: false,
             });
         }
         Ok(watch)

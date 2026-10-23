@@ -11,7 +11,8 @@ use windows_sys::Win32::System::Diagnostics::Debug::{
     DebugActiveProcess, DebugActiveProcessStop, DebugBreakProcess, DebugSetProcessKillOnExit,
 };
 use windows_sys::Win32::System::Threading::{
-    OpenProcess, PROCESS_ALL_ACCESS, ResumeThread, SuspendThread, WaitForSingleObject,
+    OpenProcess, PROCESS_ALL_ACCESS, PROCESS_SYNCHRONIZE, ResumeThread, SuspendThread,
+    WaitForSingleObject,
 };
 use yog_symbols::FrameRegs;
 use yog_sync::Mutex;
@@ -40,6 +41,21 @@ pub fn interrupt(pid: u32) {
             DebugBreakProcess(process);
             CloseHandle(process);
         }
+    }
+}
+
+/// Whether process `pid` has ended (or isn't there at all).
+pub fn process_ended(pid: u32) -> bool {
+    // SAFETY: a handle opened here and closed right after; a zero timeout
+    // only polls.
+    unsafe {
+        let process = OpenProcess(PROCESS_SYNCHRONIZE, 0, pid);
+        if process.is_null() {
+            return true;
+        }
+        let ended = WaitForSingleObject(process, 0) == WAIT_OBJECT_0;
+        CloseHandle(process);
+        ended
     }
 }
 
@@ -83,6 +99,7 @@ impl Process {
             what: "finding a thread",
             message: format!("thread {tid} isn't there"),
             gone: true,
+            denied: false,
         })
     }
 

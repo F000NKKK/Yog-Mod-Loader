@@ -38,6 +38,7 @@ fn os(what: &'static str) -> impl Fn(nix::Error) -> OsError {
         message: e.to_string(),
         // ESRCH: the thread isn't in a ptrace-stop any more (killed).
         gone: e == nix::errno::Errno::ESRCH,
+        denied: e == nix::errno::Errno::EPERM,
     }
 }
 
@@ -60,9 +61,9 @@ fn task_ids(pid: Pid) -> Vec<Tid> {
         .collect()
 }
 
-/// Whether `pid`'s process is on its way out: its leader a zombie (it is
-/// one until every other thread has been reaped) or gone altogether.
-fn process_exiting(pid: Pid) -> bool {
+/// Whether process `pid` has ended (or is ending): its leader a zombie (it
+/// is one until every other thread has been reaped) or gone altogether.
+pub fn process_ended(pid: u32) -> bool {
     let Ok(stat) = std::fs::read_to_string(format!("/proc/{pid}/stat")) else {
         return true;
     };
@@ -113,7 +114,7 @@ impl Process {
         loop {
             match waitpid(self.pid, wait_flags().map(|f| f | WaitPidFlag::WNOHANG))? {
                 WaitStatus::StillAlive => {
-                    if process_exiting(self.pid) {
+                    if process_ended(self.pid()) {
                         return Ok(None);
                     }
                     std::thread::sleep(LEADER_POLL);
@@ -167,6 +168,7 @@ impl Target for Process {
             what: "opening its memory",
             message: e.to_string(),
             gone: false,
+            denied: false,
         })?;
         let process = Process {
             pid: Pid::from_raw(pid as i32),
@@ -257,7 +259,8 @@ impl Target for Process {
             message: e.to_string(),
             // Killed: its memory is torn down (a write then takes nothing)
             // before its end is reported.
-            gone: e.kind() == std::io::ErrorKind::WriteZero || process_exiting(self.pid),
+            gone: e.kind() == std::io::ErrorKind::WriteZero || process_ended(self.pid()),
+            denied: false,
         })
     }
 

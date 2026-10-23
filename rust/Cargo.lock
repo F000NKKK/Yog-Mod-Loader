@@ -2377,7 +2377,7 @@ dependencies = [
 
 [[package]]
 name = "yog-debugger"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "iced-x86",
  "libc",
@@ -2610,7 +2610,7 @@ dependencies = [
 
 [[package]]
 name = "yog-symbols"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "addr2line",
  "criterion",

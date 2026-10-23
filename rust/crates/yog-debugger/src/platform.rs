@@ -4,17 +4,17 @@
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "linux")]
-pub use linux::{Process, interrupt};
+pub use linux::{Process, interrupt, process_ended};
 
 #[cfg(windows)]
 mod windows;
 #[cfg(windows)]
-pub use self::windows::{Process, interrupt};
+pub use self::windows::{Process, interrupt, process_ended};
 
 #[cfg(target_os = "macos")]
 mod macos;
 #[cfg(target_os = "macos")]
-pub use macos::{Process, interrupt};
+pub use macos::{Process, interrupt, process_ended};
 
 /// AArch64's general registers by name, as the debugger shows them.
 #[cfg(target_arch = "aarch64")]
