@@ -23,17 +23,24 @@ fn an_event_round_trips_through_its_bytes() {
 
 #[test]
 fn the_java_messages_are_current() {
-    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../java-common/src/main/java/dev/yog/bus");
-    for (class, text) in java::files(java::PACKAGE) {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let api = root.join("java-api/src/main/java/dev/yog/bus");
+    let host = root.join("java-common/src/main/java/dev/yog/bus");
+    for (side, class, text) in java::files(java::PACKAGE) {
+        let dir = match side {
+            java::Side::Api => &api,
+            java::Side::Host => &host,
+        };
         let Ok(on_disk) = std::fs::read_to_string(dir.join(format!("{class}.java"))) else {
             return;
         };
         assert!(
             on_disk == text,
-            "{}/{class}.java is stale: cargo run -p yog-event --bin yog-event-export -- {} dev.yog.bus",
+            "{}/{class}.java is stale: cargo run -p yog-event --bin yog-event-export -- {} {} {}",
             dir.display(),
-            dir.display()
+            api.display(),
+            host.display(),
+            java::PACKAGE
         );
     }
 }

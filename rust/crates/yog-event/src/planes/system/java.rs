@@ -5,6 +5,7 @@
 
 mod events;
 mod frames;
+mod hosted;
 mod mirrors;
 mod services;
 mod types;
@@ -312,8 +313,16 @@ const PAYLOADS: &[fn() -> Shape] = &[
     <crate::nanite::Nanites as yog_data::Schema>::shape,
 ];
 
-/// Every generated class: its name and text.
-pub fn files(package: &str) -> [(&'static str, String); 4] {
+/// Which code a generated class belongs to: the API's (any Java's, the
+/// scripts' too: `java-api`) or the host's (`java-common`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Side {
+    Api,
+    Host,
+}
+
+/// Every generated class: its side, name and text.
+pub fn files(package: &str) -> [(Side, &'static str, String); 5] {
     let (events, mut records) = events::events(package);
     let (services, more) = services::services(package);
     for r in more {
@@ -331,10 +340,11 @@ pub fn files(package: &str) -> [(&'static str, String); 4] {
     }
     unique(&records);
     [
-        (events::CLASS, events),
-        (services::CLASS, services),
-        (TYPES, types_file(package, records)),
-        (mirrors::CLASS, mirrors::file(package)),
+        (Side::Api, events::CLASS, events),
+        (Side::Api, services::CLASS, services),
+        (Side::Api, TYPES, types_file(package, records)),
+        (Side::Api, mirrors::CLASS, mirrors::file(package)),
+        (Side::Host, hosted::CLASS, hosted::file(package)),
     ]
 }
 

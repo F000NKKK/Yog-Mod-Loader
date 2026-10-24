@@ -35,6 +35,7 @@ Commands:
 
 Targets:
   rust                Rust runtime (native lib)
+  api                 java-api's jar (what compiled Yog Script is checked against)
   <loader>            One of the implemented loaders (fabric, neoforge, forge)
   all                 rust + every implemented loader
 
@@ -283,6 +284,17 @@ ensure_platform_clean() {
     printf '%s' "$mc" > "$marker"
 }
 
+# java-api's jar: what compiled Yog Script is checked against. Its bytecode
+# is the oldest Java any loader version runs (versions/*.properties), so
+# javac of every newer release reads it; built by a loader's Gradle wrapper.
+build_api() {
+    echo "==> build java-api"
+    local jv jh
+    jv="$(grep -h '^java_version=' "$ROOT"/*/versions/*.properties | cut -d= -f2 | sort -n | head -1)"
+    jh="$(find_java "$jv")" || die "JDK $jv not found (set YOG_JAVA${jv}_HOME=/path/to/jdk$jv)"
+    ( cd "$ROOT/${LOADERS[0]}" && JAVA_HOME="$jh" ./gradlew -p "$ROOT/java-api" -Pjava_release="$jv" jar )
+}
+
 build_loader() {
     echo "==> build $1"
     ensure_platform_clean "$1"
@@ -292,7 +304,8 @@ build_loader() {
 build_target() {
     case "$1" in
         rust) build_rust ;;
-        all)  build_rust; local l; for l in "${LOADERS[@]}"; do build_loader "$l"; done ;;
+        api)  build_api ;;
+        all)  build_rust; build_api; local l; for l in "${LOADERS[@]}"; do build_loader "$l"; done ;;
         *)    require_loader "$1"; build_rust; build_loader "$1" ;;
     esac
 }

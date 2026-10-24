@@ -1,5 +1,7 @@
-// The Java the hosts share, for Minecraft version `mc`: what every version
-// shares (src/main/java), then each java-common/mc/<range> whose range holds
+// The Java the hosts share, for Minecraft version `mc`: the API any Java
+// (and compiled Yog Script) is built against (../java-api, no Minecraft in
+// it), what every version shares (src/main/java), then each
+// java-common/mc/<range> whose range holds
 // it — `1.21.1` (that version), `1.20-1.21` (every 1.20.x and 1.21.x). A
 // directory's name is the one place its versions are said. Applied by every
 // loader's build: `yogSharedSources(project.minecraft_version)`.
@@ -22,7 +24,7 @@ def inRange = { List<Integer> v, List<Integer> lo, List<Integer> hi ->
 
 ext.yogSharedSources = { String mc ->
     def v = parts(mc)
-    def dirs = [new File(commonDir, 'src/main/java')]
+    def dirs = [new File(commonDir.parentFile, 'java-api/src/main/java'), new File(commonDir, 'src/main/java')]
     new File(commonDir, 'mc').listFiles().findAll { it.isDirectory() }.sort { it.name }.each { d ->
         def range = d.name.split('-', 2)
         if (inRange(v, parts(range[0]), parts(range.length > 1 ? range[1] : range[0]))) dirs << new File(d, 'src/main/java')

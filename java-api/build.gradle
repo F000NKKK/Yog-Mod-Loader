@@ -1,0 +1,32 @@
+// java-api: Yog's Java API without Minecraft — the bus (dev.yog.api,
+// dev.yog.bus's records, its frames), Yog's names, and Yog Script's
+// runtime (dev.yog.script). The loaders compile these sources into their
+// jars (java-common/sources.gradle); this build makes the jar compiled Yog
+// Script is checked against by javac. Bytecode for the oldest Java a host
+// runs (`-Pjava_release`, build.sh's): javac of any newer release reads it.
+
+plugins {
+    id 'java-library'
+}
+
+group = 'dev.yog'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // The game's own logger: the hosts' log, given by every loader.
+    compileOnly 'org.slf4j:slf4j-api:2.0.9'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    // The oldest Java a loader version runs: build.sh passes it.
+    options.release = Integer.parseInt(project.property('java_release') as String)
+    options.encoding = 'UTF-8'
+}
+
+jar {
+    archiveBaseName = 'yog-java-api'
+    archiveVersion = ''
+}

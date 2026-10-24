@@ -1,0 +1,3 @@
+// The API any Java code reaches Yog through — Java mods, the hosts, and
+// compiled Yog Script, which is built against this jar alone.
+rootProject.name = 'yog-java-api'
