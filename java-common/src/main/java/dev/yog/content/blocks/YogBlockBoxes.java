@@ -47,9 +47,11 @@ public final class YogBlockBoxes {
         collect(now);
         Set<Long> live = new HashSet<>(positions.length * 2);
         for (long p : positions) live.add(p);
-        YogHostMirrors.keep(w.spaceName(), byKey, live, false, w.rows());
+        boolean all = YogHostMirrors.keep(w.spaceName(), byKey, live, false, w.rows());
         rows = new int[positions.length];
         for (int i = 0; i < positions.length; i++) rows[i] = byKey.getOrDefault(positions[i], NO_ROW);
+        // Keys the runtime gave no row: these boxes are taken again next turn.
+        if (!all) scopes = List.of();
     }
 
     /** The boxes' positions, packed ({@link BlockPos#asLong}). */

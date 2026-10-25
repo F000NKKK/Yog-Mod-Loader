@@ -106,32 +106,53 @@ public final class YogHostMirrors {
     }
 
     /**
+     * Keys asked of the runtime in one call at most: a call and its reply
+     * then fit the bus's arena (a box of blocks puts tens of thousands).
+     */
+    private static final int KEYS_A_CALL = 4096;
+
+    /**
      * The space's keys made {@code live}'s: new ones put (a player's parent
      * key its entity's, the same id), gone ones taken; the mirror's rows
-     * marked alike.
+     * marked alike. Whether every live key has its row (one the runtime
+     * didn't give is asked for again the next time).
      */
-    public static void keep(String space, Map<Long, Integer> rows, Set<Long> live, boolean parented, long rowsAt) {
+    public static boolean keep(String space, Map<Long, Integer> rows, Set<Long> live, boolean parented, long rowsAt) {
         List<YogTypes.Key> put = new ArrayList<>();
         for (Long k : live) {
             if (!rows.containsKey(k)) put.add(new YogTypes.Key(k, parented ? k : null));
         }
         Set<Long> gone = new HashSet<>(rows.keySet());
         gone.removeAll(live);
-        if (put.isEmpty() && gone.isEmpty()) return;
-        long[] take = gone.stream().mapToLong(Long::longValue).toArray();
-        long[] given = new YogServices.Mirror.Keys(space, put, take).call();
+        if (put.isEmpty() && gone.isEmpty()) return true;
         YogColumn marked = columnAt(rowsAt);
-        if (marked != null) marked.begin();
-        for (Long k : gone) {
-            Integer row = rows.remove(k);
-            if (row != null && marked != null) marked.putBit(row, false);
+        List<Long> taken = new ArrayList<>(gone);
+        for (int from = 0; from < taken.size(); from += KEYS_A_CALL) {
+            List<Long> part = taken.subList(from, Math.min(taken.size(), from + KEYS_A_CALL));
+            new YogServices.Mirror.Keys(space, List.of(), part.stream().mapToLong(Long::longValue).toArray()).call();
+            if (marked != null) marked.begin();
+            for (Long k : part) {
+                Integer row = rows.remove(k);
+                if (row != null && marked != null) marked.putBit(row, false);
+            }
+            if (marked != null) marked.end();
         }
-        for (int i = 0; i < put.size() && given != null && i < given.length; i++) {
-            int row = (int) given[i];
-            rows.put(put.get(i).key(), row);
-            if (marked != null) marked.putBit(row, true);
+        int missing = 0;
+        for (int from = 0; from < put.size(); from += KEYS_A_CALL) {
+            List<YogTypes.Key> part = put.subList(from, Math.min(put.size(), from + KEYS_A_CALL));
+            long[] given = new YogServices.Mirror.Keys(space, part, new long[0]).call();
+            int got = given == null ? 0 : Math.min(given.length, part.size());
+            missing += part.size() - got;
+            if (marked != null) marked.begin();
+            for (int i = 0; i < got; i++) {
+                int row = (int) given[i];
+                rows.put(part.get(i).key(), row);
+                if (marked != null) marked.putBit(row, true);
+            }
+            if (marked != null) marked.end();
         }
-        if (marked != null) marked.end();
+        if (missing > 0) YogLog.warn("mirror space " + space + ": " + missing + " of " + put.size() + " keys got no row; asked again next turn");
+        return missing == 0;
     }
 
     /** Entity {@code e}'s due fields at {@code row}. */
