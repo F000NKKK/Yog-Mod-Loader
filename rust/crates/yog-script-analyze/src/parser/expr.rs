@@ -16,6 +16,8 @@ enum Infix {
     Range {
         inclusive: bool,
     },
+    /// `>>`: two `>` side by side (one token each, for `List<List<T>>`).
+    ShiftRight,
     Word {
         level: Level,
         parse: fn(&mut Parser, Expr) -> PResult<Expr>,
@@ -27,6 +29,7 @@ impl Infix {
         match self {
             Infix::Sign { level, .. } | Infix::Word { level, .. } => *level,
             Infix::Range { .. } => Level::Range,
+            Infix::ShiftRight => Level::Shift,
         }
     }
 }
@@ -35,12 +38,16 @@ const SIGNS: &[(Punct, BinOp, Level)] = &[
     (Punct::Coalesce, BinOp::Coalesce, Level::Coalesce),
     (Punct::OrOr, BinOp::Or, Level::Or),
     (Punct::AndAnd, BinOp::And, Level::And),
+    (Punct::Pipe, BinOp::BitOr, Level::BitOr),
+    (Punct::Caret, BinOp::BitXor, Level::BitXor),
+    (Punct::Amp, BinOp::BitAnd, Level::BitAnd),
     (Punct::EqEq, BinOp::Eq, Level::Equality),
     (Punct::NotEq, BinOp::NotEq, Level::Equality),
     (Punct::Lt, BinOp::Lt, Level::Compare),
     (Punct::LtEq, BinOp::LtEq, Level::Compare),
     (Punct::Gt, BinOp::Gt, Level::Compare),
     (Punct::GtEq, BinOp::GtEq, Level::Compare),
+    (Punct::Shl, BinOp::Shl, Level::Shift),
     (Punct::Plus, BinOp::Add, Level::Sum),
     (Punct::Minus, BinOp::Sub, Level::Sum),
     (Punct::Star, BinOp::Mul, Level::Product),
@@ -48,7 +55,22 @@ const SIGNS: &[(Punct, BinOp, Level)] = &[
     (Punct::Percent, BinOp::Rem, Level::Product),
 ];
 
-const PREFIXES: &[(Punct, UnOp)] = &[(Punct::Minus, UnOp::Neg), (Punct::Bang, UnOp::Not)];
+const PREFIXES: &[(Punct, UnOp)] = &[
+    (Punct::Minus, UnOp::Neg),
+    (Punct::Bang, UnOp::Not),
+    (Punct::Tilde, UnOp::BitNot),
+    (Punct::PlusPlus, UnOp::Increment),
+    (Punct::MinusMinus, UnOp::Decrement),
+];
+
+/// The postfix steps: `x++`, `x--`.
+pub(crate) const POSTFIXES: &[(Punct, UnOp)] = &[
+    (Punct::PlusPlus, UnOp::PostIncrement),
+    (Punct::MinusMinus, UnOp::PostDecrement),
+];
+
+/// How `>>` is written: it's two tokens.
+const SHIFT_RIGHT: &str = ">>";
 
 /// The binary operator sign `p` is.
 pub(crate) fn binary_of(p: Punct) -> Option<BinOp> {
@@ -57,6 +79,9 @@ pub(crate) fn binary_of(p: Punct) -> Option<BinOp> {
 
 /// How binary operator `op` is written.
 pub(crate) fn sign_of(op: BinOp) -> &'static str {
+    if op == BinOp::Shr {
+        return SHIFT_RIGHT;
+    }
     SIGNS
         .iter()
         .find(|(_, o, _)| *o == op)
@@ -74,10 +99,14 @@ impl Level {
         match self {
             Level::Coalesce => Level::Or,
             Level::Or => Level::And,
-            Level::And => Level::Equality,
+            Level::And => Level::BitOr,
+            Level::BitOr => Level::BitXor,
+            Level::BitXor => Level::BitAnd,
+            Level::BitAnd => Level::Equality,
             Level::Equality => Level::Compare,
             Level::Compare => Level::Range,
-            Level::Range => Level::Sum,
+            Level::Range => Level::Shift,
+            Level::Shift => Level::Sum,
             Level::Sum => Level::Product,
             Level::Product | Level::Switch => Level::Switch,
         }
@@ -130,7 +159,7 @@ impl Parser<'_, '_, '_> {
             Infix::Word { parse, .. } => parse(self, left),
             Infix::Range { inclusive } => {
                 self.bump();
-                let right = self.binary(Level::Sum)?;
+                let right = self.binary(Level::Shift)?;
                 let span = left.span.to(right.span);
                 let kind = ExprKind::Range {
                     from: Box::new(left),
@@ -138,6 +167,12 @@ impl Parser<'_, '_, '_> {
                     inclusive,
                 };
                 Ok(Expr { kind, span })
+            }
+            Infix::ShiftRight => {
+                self.bump();
+                self.bump();
+                let right = self.binary(Level::Shift.tighter())?;
+                Ok(Self::binary_node(BinOp::Shr, left, right))
             }
             Infix::Sign { op, level } => {
                 self.bump();
@@ -170,6 +205,9 @@ impl Parser<'_, '_, '_> {
             match p {
                 Punct::Range => return Some(Infix::Range { inclusive: true }),
                 Punct::RangeExcl => return Some(Infix::Range { inclusive: false }),
+                Punct::Gt if self.joined(Punct::Gt) => return Some(Infix::ShiftRight),
+                // `>>=`: an assignment, the statement's.
+                Punct::Gt if self.joined(Punct::GtEq) => return None,
                 _ => {}
             }
             return SIGNS

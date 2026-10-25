@@ -122,3 +122,28 @@ fn a_types_operators_are_static_methods() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn bits_and_steps_are_javas() {
+    let src = "i32 F(i32 a, i32 b) => (a & b) | (a ^ ~b) << 2 >> 1;\n\
+               u64 G(u64 x) => x >> 3;\n\
+               i32 H() {\n    let mut i = 0;\n    i++;\n    --i;\n    i <<= 2;\n    return i++;\n}\n\
+               public struct Mask(i32 bits) {\n    public i32 Bits = bits;\n\
+               public static Mask operator &(Mask a, Mask b) => new Mask(a.Bits & b.Bits);\n\
+               public static Mask operator ++(Mask a) => new Mask(a.Bits + 1);\n}\n\
+               Mask K(Mask a) {\n    let mut m = a;\n    m++;\n    m &= a;\n    return ++m;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "return ((a & b) | (((a ^ (~b)) << 2) >> 1));",
+        "return (x >>> 3);",
+        "i++;",
+        "--i;",
+        "i <<= 2;",
+        "return i++;",
+        "m = Mask.op_Increment(m);",
+        "m = Mask.op_BitwiseAnd(m, a.copy());",
+        "return (m = Mask.op_Increment(m));",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

@@ -192,7 +192,8 @@ bound       = 'in' range_expr ;                      (* i32 Level in 0..100: kep
             | type 'this' '[' params ']' '{' accessor+ '}'            (* an indexer: what `x[i]` reads and writes *)
             | type 'operator' op_sign '(' params ')' method_body      (* `public static` and of its own type, as C#'s *)
             | ('implicit' | 'explicit') 'operator' type '(' param ')' method_body ;  (* a conversion *)
-op_sign     = '+' | '-' | '*' | '/' | '%' | '==' | '!=' | '<' | '>' | '<=' | '>=' | '!' ;  (* `-` of one parameter is negation *)
+op_sign     = '+' | '-' | '*' | '/' | '%' | '&' | '|' | '^' | '<<' | '>>'
+            | '==' | '!=' | '<' | '>' | '<=' | '>=' | '!' | '~' | '++' | '--' ;  (* `-` of one parameter is negation *)
 accessor    = ('get' | 'set' | 'init') (';' | method_body) ;
 migration   = 'was' IDENT (':' type)? ;              (* an old save's name and type *)
 ```
@@ -360,7 +361,8 @@ local_decl  = 'let' 'mut'? binding (':' type)? ('=' expr)?
             | type IDENT ('=' expr)? ;                               (* C#'s typed local: assignable *)
 binding     = IDENT | '(' IDENT (',' IDENT)+ ')' ;                   (* deconstruction *)
 assign      = place assign_op expr ;
-assign_op   = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '??=' ;
+assign_op   = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '??=' ;
+                                                                     (* `x op= y` is `x = x op y`, a type's operator too *)
 place       = postfix ;                                              (* a name, a member, an index *)
 
 if_stmt     = 'if' '(' expr ')' stmt ('else' stmt)? ;
@@ -383,14 +385,18 @@ The conditional expression is `c ? a : b`; `switch` is an expression
 | 3 | `x ?? y` | right |
 | 4 | `\|\|` | left |
 | 5 | `&&` | left |
-| 6 | `==` `!=` | left |
-| 7 | `<` `<=` `>` `>=` `is` `as` `has` `in` | left |
-| 8 | `..` `..<` (ranges) | none |
-| 9 | `+` `-` | left |
-| 10 | `*` `/` `%` | left |
-| 11 | `switch` (`x switch { … }`) | left |
-| 12 | prefix `-` `!` `await` `try` `(T)` cast | right |
-| 13 | postfix: call `f(…)`, index `a[i]`, member `.M`, null-conditional `?.M`, `!` (not null), trailing lambda `{ … }`, side `.Server` / `.Client` | left |
+| 6 | `\|` (bits; two `bool`s, both evaluated) | left |
+| 7 | `^` | left |
+| 8 | `&` | left |
+| 9 | `==` `!=` | left |
+| 10 | `<` `<=` `>` `>=` `is` `as` `has` `in` | left |
+| 11 | `..` `..<` (ranges) | none |
+| 12 | `<<` `>>` (`>>` is two `>` side by side, as C#'s: `List<List<T>>` stays) | left |
+| 13 | `+` `-` | left |
+| 14 | `*` `/` `%` | left |
+| 15 | `switch` (`x switch { … }`) | left |
+| 16 | prefix `-` `!` `~` `++` `--` `await` `try` `(T)` cast | right |
+| 17 | postfix: call `f(…)`, index `a[i]`, member `.M`, null-conditional `?.M`, `!` (not null), `++` `--`, trailing lambda `{ … }`, side `.Server` / `.Client` | left |
 
 ```ebnf
 expr        = lambda | conditional ;

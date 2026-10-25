@@ -67,7 +67,11 @@ impl Resolver<'_, '_> {
                         "`await` waits in an `async` method: `async void Arm() { await Task.Delay(5s); }`",
                     );
                 }
-                self.expr(expr);
+                if op.steps() {
+                    self.assigned(expr);
+                } else {
+                    self.expr(expr);
+                }
             }
             _ => self.compound(e),
         }

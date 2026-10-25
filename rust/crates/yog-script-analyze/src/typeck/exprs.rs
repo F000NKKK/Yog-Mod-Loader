@@ -151,6 +151,9 @@ impl Checker<'_, '_, '_> {
 
     fn unary(&mut self, e: &Expr, op: UnOp, expr: &Expr) -> Type {
         let t = self.expr(expr);
+        if op.steps() {
+            self.written(expr);
+        }
         if let Some(declared) = self.declared_unary(e, op, &t) {
             return declared;
         }
@@ -160,6 +163,10 @@ impl Checker<'_, '_, '_> {
                 Type::Bool
             }
             UnOp::Neg => t,
+            UnOp::BitNot => self.flipped(&t, expr.span),
+            UnOp::Increment | UnOp::Decrement | UnOp::PostIncrement | UnOp::PostDecrement => {
+                self.stepped(&t, expr.span)
+            }
             // `try r`: a `Result<T, E>`'s `T`.
             UnOp::Try => match t.non_null() {
                 Type::Own(name, args) if name == crate::system::RESULT => {
@@ -173,15 +180,29 @@ impl Checker<'_, '_, '_> {
 
     fn binary(&mut self, e: &Expr, op: BinOp, left: &Expr, right: &Expr) -> Type {
         let (a, b) = (self.expr(left), self.expr(right));
-        if let Some(declared) = self.declared_binary(e, op, &a, &b) {
-            return declared;
+        if let Some((used, ret)) = self.declared_binary(op, &a, &b) {
+            self.types.set_operator(e, used);
+            return ret;
         }
-        let at = e.span;
+        self.combined(op, (a, b), (left.span, right.span))
+    }
+
+    /// `a op b` as the language has it (no type declaring it): its type.
+    pub(super) fn combined(
+        &mut self,
+        op: BinOp,
+        (a, b): (Type, Type),
+        (left, right): (Span, Span),
+    ) -> Type {
+        let at = left.to(right);
         match op {
             BinOp::And | BinOp::Or => {
-                self.want(&a, &Type::Bool, left.span);
-                self.want(&b, &Type::Bool, right.span);
+                self.want(&a, &Type::Bool, left);
+                self.want(&b, &Type::Bool, right);
                 Type::Bool
+            }
+            BinOp::BitAnd | BinOp::BitOr | BinOp::BitXor | BinOp::Shl | BinOp::Shr => {
+                self.bitwise(op, (&a, &b), at)
             }
             BinOp::Eq
             | BinOp::NotEq
@@ -297,7 +318,7 @@ fn unit_of(suffix: &str) -> String {
 }
 
 /// `3`, `-0.5`: a number as written.
-fn is_number_literal(e: &Expr) -> bool {
+pub(super) fn is_number_literal(e: &Expr) -> bool {
     match &e.kind {
         ExprKind::Int(_) | ExprKind::Float(_) => true,
         ExprKind::Unary {

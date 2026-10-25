@@ -74,14 +74,16 @@ macro_rules! puncts {
 puncts! {
     /// Punctuation and operators, longest first where one starts another.
     Punct {
-        RangeExcl = "..<", NullAssign = "??=",
+        RangeExcl = "..<", NullAssign = "??=", ShlEq = "<<=",
         FatArrow = "=>", SafeDot = "?.", Coalesce = "??",
-        EqEq = "==", NotEq = "!=", LtEq = "<=", GtEq = ">=", AndAnd = "&&", OrOr = "||",
+        EqEq = "==", NotEq = "!=", Shl = "<<", LtEq = "<=", GtEq = ">=", AndAnd = "&&", OrOr = "||",
         PlusEq = "+=", MinusEq = "-=", StarEq = "*=", SlashEq = "/=", PercentEq = "%=",
+        AmpEq = "&=", PipeEq = "|=", CaretEq = "^=", PlusPlus = "++", MinusMinus = "--",
         Range = "..",
         LBrace = "{", RBrace = "}", LParen = "(", RParen = ")", LBracket = "[", RBracket = "]",
         Comma = ",", Dot = ".", Colon = ":", Semi = ";", Question = "?",
         Eq = "=", Lt = "<", Gt = ">", Plus = "+", Minus = "-", Star = "*", Slash = "/",
         Percent = "%", Bang = "!", Amp = "&", Hash = "#", Dollar = "$",
+        Pipe = "|", Caret = "^", Tilde = "~",
     }
 }

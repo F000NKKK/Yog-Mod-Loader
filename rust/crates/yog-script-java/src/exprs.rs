@@ -136,6 +136,12 @@ impl Gen<'_> {
         match op {
             UnOp::Neg => format!("(-{})", self.expr(expr)),
             UnOp::Not => format!("(!{})", self.expr(expr)),
+            UnOp::BitNot => format!("(~{})", self.expr(expr)),
+            // Steps bind tightest: bare, so one stands as a statement.
+            UnOp::Increment => format!("++{}", self.expr(expr)),
+            UnOp::Decrement => format!("--{}", self.expr(expr)),
+            UnOp::PostIncrement => format!("{}++", self.expr(expr)),
+            UnOp::PostDecrement => format!("{}--", self.expr(expr)),
             UnOp::Try => self.try_value(expr),
             UnOp::Await => {
                 self.not_yet("`await`", expr.span);
@@ -162,6 +168,10 @@ impl Gen<'_> {
             BinOp::NotEq if objects => format!("!java.util.Objects.equals({l}, {r})"),
             BinOp::Coalesce => format!("java.util.Objects.requireNonNullElse({l}, {r})"),
             BinOp::In => self.contains(right, &l, &r),
+            // A `u64`'s bits shift in zeros: Java's unsigned shift.
+            BinOp::Shr if self.types.of(left).map(Type::non_null) == Some(&Type::U64) => {
+                format!("({l} {UNSIGNED_SHR} {r})")
+            }
             _ => format!("({l} {} {r})", op_text(op)),
         }
     }
@@ -237,6 +247,9 @@ impl Gen<'_> {
     }
 }
 
+/// Java's shift that fills with zeros.
+const UNSIGNED_SHR: &str = ">>>";
+
 pub(crate) fn op_text(op: BinOp) -> &'static str {
     match op {
         BinOp::Or => "||",
@@ -252,6 +265,11 @@ pub(crate) fn op_text(op: BinOp) -> &'static str {
         BinOp::Mul => "*",
         BinOp::Div => "/",
         BinOp::Rem => "%",
+        BinOp::BitAnd => "&",
+        BinOp::BitOr => "|",
+        BinOp::BitXor => "^",
+        BinOp::Shl => "<<",
+        BinOp::Shr => ">>",
         BinOp::Coalesce | BinOp::In => "",
     }
 }

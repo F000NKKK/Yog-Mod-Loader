@@ -2,7 +2,7 @@
 //! `switch`'s, a `try`'s) written on the lines before it.
 
 use yog_script_analyze::Type;
-use yog_script_analyze::ast::{Binding, Block, Expr, ExprKind, Stmt};
+use yog_script_analyze::ast::{BinOp, Binding, Block, Expr, ExprKind, Stmt};
 
 use super::Gen;
 
@@ -123,6 +123,16 @@ impl Gen<'_> {
     /// An expression standing as a statement: a call as it is; any other
     /// value kept in a temporary (Java takes only calls and assignments).
     fn expr_stmt(&mut self, e: &Expr) {
+        if let ExprKind::Unary { op, .. } = &e.kind
+            && op.steps()
+        {
+            let v = match self.types.operator(e).cloned() {
+                Some(used) => self.declared_step(e, &used, true),
+                None => self.expr(e),
+            };
+            self.code.line(format!("{v};"));
+            return;
+        }
         let v = self.expr(e);
         if matches!(
             e.kind,
@@ -136,9 +146,8 @@ impl Gen<'_> {
         }
     }
 
-    fn assign(&mut self, place: &Expr, op: Option<&yog_script_analyze::ast::BinOp>, value: &Expr) {
-        if let (Some(yog_script_analyze::ast::BinOp::Add), ExprKind::Member { expr, name, .. }) =
-            (op, &place.kind)
+    fn assign(&mut self, place: &Expr, op: Option<&BinOp>, value: &Expr) {
+        if let (Some(BinOp::Add), ExprKind::Member { expr, name, .. }) = (op, &place.kind)
             && let Some(Type::Yog(group)) = self.types.of(expr)
             && let Some(event) = yog_script_analyze::yog::event(group, &name.text)
         {
@@ -149,30 +158,43 @@ impl Gen<'_> {
             let (list, at) = (self.expr(expr), self.expr(index));
             if self.has_indexer(expr) {
                 let v = match op {
-                    Some(op) => format!(
-                        "{} {} {v}",
-                        Self::index_read(&list, &at),
-                        crate::exprs::op_text(*op)
-                    ),
+                    Some(op) => self.op_value(place, *op, &Self::index_read(&list, &at), &v),
                     None => v,
                 };
                 self.code.line(Self::index_write(&list, &at, &v));
                 return;
             }
             let v = match op {
-                Some(op) => format!("{list}.get({at}) {} {v}", crate::exprs::op_text(*op)),
+                Some(op) => self.op_value(place, *op, &format!("{list}.get({at})"), &v),
                 None => v,
             };
             self.code.line(format!("{list}.set({at}, {v});"));
             return;
         }
         let p = self.expr(place);
+        let set = self.set(place, op.copied(), &p, &v);
+        self.code.line(format!("{set};"));
+    }
+
+    /// `p op= v` (`p` the place written): Java's, or — when the place's type
+    /// declares the operator — `p = T.op_X(p, v)`.
+    fn set(&self, place: &Expr, op: Option<BinOp>, p: &str, v: &str) -> String {
         match op {
-            Some(op) => self
-                .code
-                .line(format!("{p} {}= {v};", crate::exprs::op_text(*op))),
-            None => self.code.line(format!("{p} = {v};")),
-        };
+            Some(op) if self.types.assigned(place).is_some() => {
+                format!("{p} = {}", self.op_value(place, op, p, v))
+            }
+            Some(op) => format!("{p} {}= {v}", crate::exprs::op_text(op)),
+            None => format!("{p} = {v}"),
+        }
+    }
+
+    /// What `place op= v` puts in `place` (read as `read`): its type's
+    /// operator's value, or Java's `read op v`.
+    fn op_value(&self, place: &Expr, op: BinOp, read: &str, v: &str) -> String {
+        match self.types.assigned(place) {
+            Some(used) => self.applied(used, &[read.to_string(), v.to_string()]),
+            None => format!("{read} {} {v}", crate::exprs::op_text(op)),
+        }
     }
 
     fn for_loop(
@@ -198,8 +220,7 @@ impl Gen<'_> {
         let step = match step {
             Some(Stmt::Assign { place, op, value }) if !crate::switch::hoists(value) => {
                 let (p, v) = (self.expr(place), self.expr(value));
-                let op = op.map(crate::exprs::op_text).unwrap_or_default();
-                format!("{p} {op}= {v}")
+                self.set(place, *op, &p, &v)
             }
             Some(Stmt::Expr(e)) if !crate::switch::hoists(e) => self.expr(e),
             Some(other) => return self.not_yet("this `for` step", step_span(other)),

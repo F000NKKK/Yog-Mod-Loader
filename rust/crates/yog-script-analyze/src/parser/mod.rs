@@ -93,6 +93,12 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
         *self.tok() == Tok::Punct(p)
     }
 
+    /// Whether `p` comes next, right against the token here (`>>` is two
+    /// `>` with nothing between).
+    pub(crate) fn joined(&self, p: Punct) -> bool {
+        self.nth_is(1, p) && self.span_at(0).end == self.span_at(1).start
+    }
+
     pub(crate) fn nth_is(&self, n: usize, p: Punct) -> bool {
         *self.nth(n) == Tok::Punct(p)
     }

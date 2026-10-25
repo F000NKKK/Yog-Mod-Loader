@@ -15,6 +15,10 @@ const ASSIGN: &[(Punct, Option<BinOp>)] = &[
     (Punct::SlashEq, Some(BinOp::Div)),
     (Punct::PercentEq, Some(BinOp::Rem)),
     (Punct::NullAssign, Some(BinOp::Coalesce)),
+    (Punct::AmpEq, Some(BinOp::BitAnd)),
+    (Punct::PipeEq, Some(BinOp::BitOr)),
+    (Punct::CaretEq, Some(BinOp::BitXor)),
+    (Punct::ShlEq, Some(BinOp::Shl)),
 ];
 
 impl Parser<'_, '_, '_> {
@@ -119,9 +123,16 @@ impl Parser<'_, '_, '_> {
 
     /// An expression, or an assignment to it when one follows; no `;`.
     pub(crate) fn assign_or(&mut self, expr: Expr) -> PResult<Stmt> {
-        let assign = ASSIGN.iter().find(|(p, _)| self.at(*p));
-        let Some(&(_, op)) = assign else {
-            return Ok(Stmt::Expr(expr));
+        // `>>=`: `>` and `>=` side by side.
+        let op = if self.at(Punct::Gt) && self.joined(Punct::GtEq) {
+            self.bump();
+            Some(BinOp::Shr)
+        } else {
+            let assign = ASSIGN.iter().find(|(p, _)| self.at(*p));
+            let Some(&(_, op)) = assign else {
+                return Ok(Stmt::Expr(expr));
+            };
+            op
         };
         self.bump();
         let value = self.expr()?;

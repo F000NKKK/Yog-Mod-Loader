@@ -6,6 +6,7 @@
 //! source nor the index knows (the library's) is not checked yet.
 
 mod attributes;
+mod bits;
 mod builtin;
 mod context;
 mod copy;

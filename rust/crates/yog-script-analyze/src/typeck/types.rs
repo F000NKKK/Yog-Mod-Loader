@@ -19,6 +19,9 @@ pub struct Types {
     /// The implicit conversions values go through where they're handed
     /// on, by expression.
     conversions: HashMap<usize, OperatorUse>,
+    /// The operators `op=` applies (`v += w` on a `Vec`), by the place it
+    /// writes.
+    assigned: HashMap<usize, OperatorUse>,
 }
 
 /// An operator or a conversion a type declares, as used: the type, its
@@ -45,12 +48,21 @@ impl Types {
         self.conversions.get(&key(e))
     }
 
+    /// The declared operator `place op= …` applies, if it's one.
+    pub fn assigned(&self, place: &Expr) -> Option<&OperatorUse> {
+        self.assigned.get(&key(place))
+    }
+
     pub(super) fn set(&mut self, e: &Expr, t: Type) {
         self.types.insert(key(e), t);
     }
 
     pub(super) fn set_operator(&mut self, e: &Expr, used: OperatorUse) {
         self.operators.insert(key(e), used);
+    }
+
+    pub(super) fn set_assigned(&mut self, place: &Expr, used: OperatorUse) {
+        self.assigned.insert(key(place), used);
     }
 
     pub(super) fn set_conversion(&mut self, e: &Expr, used: OperatorUse) {

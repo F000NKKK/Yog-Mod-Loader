@@ -101,6 +101,10 @@ impl Type {
         builtin::is_number(self) || matches!(self, Type::Unit(_))
     }
 
+    pub fn is_integer(&self) -> bool {
+        builtin::is_integer(self)
+    }
+
     /// Whether a value of `self` goes where `to` is wanted without a cast.
     pub fn converts_to(&self, to: &Type) -> bool {
         if self == to || !self.known() || !to.known() {

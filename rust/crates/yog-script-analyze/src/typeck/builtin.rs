@@ -83,6 +83,11 @@ pub(super) fn is_number(t: &Type) -> bool {
     t == &Type::F64 || t == &Type::Decimal || !widens_to(t).is_empty()
 }
 
+/// Whether `t` is a whole number (`char` among them, as C#'s).
+pub(super) fn is_integer(t: &Type) -> bool {
+    is_number(t) && !matches!(t, Type::F32 | Type::F64 | Type::Decimal)
+}
+
 /// Whether number `from` goes where number `to` is wanted.
 pub(super) fn widens(from: &Type, to: &Type) -> bool {
     from == to || widens_to(from).contains(to)

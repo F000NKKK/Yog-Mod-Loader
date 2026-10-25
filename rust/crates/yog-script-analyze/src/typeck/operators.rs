@@ -101,22 +101,20 @@ impl Checker<'_, '_, '_> {
             .map(|(used, (_, ret))| (used, ret))
     }
 
-    /// `left op right` as an own type declares it, noted on `e`: its result.
+    /// `a op b` as an own type declares it: the operator, its result.
     pub(super) fn declared_binary(
-        &mut self,
-        e: &Expr,
+        &self,
         op: BinOp,
         a: &Type,
         b: &Type,
-    ) -> Option<Type> {
-        let (used, ret) = self.chosen(OperatorKind::Binary(op), &[a.clone(), b.clone()])?;
-        self.types.set_operator(e, used);
-        Some(ret)
+    ) -> Option<(OperatorUse, Type)> {
+        self.chosen(OperatorKind::Binary(op), &[a.clone(), b.clone()])
     }
 
     /// `op x` as an own type declares it, noted on `e`: its result.
     pub(super) fn declared_unary(&mut self, e: &Expr, op: UnOp, t: &Type) -> Option<Type> {
-        let (used, ret) = self.chosen(OperatorKind::Unary(op), std::slice::from_ref(t))?;
+        let declared = OperatorKind::Unary(op.declared());
+        let (used, ret) = self.chosen(declared, std::slice::from_ref(t))?;
         self.types.set_operator(e, used);
         Some(ret)
     }

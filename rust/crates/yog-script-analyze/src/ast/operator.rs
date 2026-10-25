@@ -34,6 +34,11 @@ impl OperatorKind {
                 BinOp::Mul => "op_Multiply",
                 BinOp::Div => "op_Division",
                 BinOp::Rem => "op_Modulus",
+                BinOp::BitAnd => "op_BitwiseAnd",
+                BinOp::BitOr => "op_BitwiseOr",
+                BinOp::BitXor => "op_ExclusiveOr",
+                BinOp::Shl => "op_LeftShift",
+                BinOp::Shr => "op_RightShift",
                 BinOp::Eq => "op_Equality",
                 BinOp::NotEq => "op_Inequality",
                 BinOp::Lt => "op_LessThan",
@@ -45,7 +50,12 @@ impl OperatorKind {
             OperatorKind::Unary(op) => match op {
                 UnOp::Neg => "op_UnaryNegation",
                 UnOp::Not => "op_LogicalNot",
-                UnOp::Try | UnOp::Await => return None,
+                UnOp::BitNot => "op_OnesComplement",
+                UnOp::Increment => "op_Increment",
+                UnOp::Decrement => "op_Decrement",
+                UnOp::PostIncrement | UnOp::PostDecrement | UnOp::Try | UnOp::Await => {
+                    return None;
+                }
             },
             OperatorKind::Implicit => "op_Implicit",
             OperatorKind::Explicit => "op_Explicit",

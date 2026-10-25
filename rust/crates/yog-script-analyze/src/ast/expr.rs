@@ -187,8 +187,35 @@ pub struct Arm {
 pub enum UnOp {
     Neg,
     Not,
+    /// `~x`: an integer's bits flipped.
+    BitNot,
+    /// `++x` / `--x`: the place stepped, its new value.
+    Increment,
+    Decrement,
+    /// `x++` / `x--`: the place stepped, its old value.
+    PostIncrement,
+    PostDecrement,
     Try,
     Await,
+}
+
+impl UnOp {
+    /// Whether it steps a place (`++`, `--`, either side).
+    pub fn steps(self) -> bool {
+        matches!(
+            self,
+            UnOp::Increment | UnOp::Decrement | UnOp::PostIncrement | UnOp::PostDecrement
+        )
+    }
+
+    /// The operator a type declares for it: `x++` is `operator ++`, as `++x`.
+    pub fn declared(self) -> UnOp {
+        match self {
+            UnOp::PostIncrement => UnOp::Increment,
+            UnOp::PostDecrement => UnOp::Decrement,
+            op => op,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -208,4 +235,11 @@ pub enum BinOp {
     Mul,
     Div,
     Rem,
+    /// `&`, `|`, `^`: an integer's bits, or two `bool`s both evaluated.
+    BitAnd,
+    BitOr,
+    BitXor,
+    /// `<<`, `>>`: an integer's bits shifted by a count.
+    Shl,
+    Shr,
 }

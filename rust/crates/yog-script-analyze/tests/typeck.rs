@@ -526,3 +526,58 @@ fn methods_overload_by_their_parameters() {
         assert_eq!(codes(bad), [script_problem::DUPLICATE], "{bad}");
     }
 }
+
+#[test]
+fn bits_and_shifts_are_csharps() {
+    let ok = "i32 F(i32 a, i32 b) => (a & b) | (a ^ ~b) << 2 >> 1;\n\
+              bool G(bool a, bool b) => a & b | a ^ b;\n\
+              i64 H(u8 x, i64 y) => x & 0xF | y;\n\
+              void N(List<List<i32>> xs) {}\n\
+              void S() {\n    let mut x = 8;\n    x >>= 1;\n    x <<= 2;\n    x &= 3;\n    x |= 4;\n    x ^= 5;\n}\n\
+              void T(u8 m) {\n    let mut b = 0u8;\n    b |= m;\n    b &= 1;\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    for bad in [
+        "f64 F(f64 a) => a & 1;\n",
+        "i32 G(i32 a, i64 n) => a << n;\n",
+        "bool H(bool b) => ~b;\n",
+        "i32 K(i32 a, bool b) => a | b;\n",
+    ] {
+        assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH], "{bad}");
+    }
+}
+
+#[test]
+fn steps_change_a_place_that_may_change() {
+    let ok =
+        "void F() {\n    let mut i = 0;\n    i++;\n    ++i;\n    i--;\n    let j = i++ + --i;\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    assert_eq!(
+        codes("void G() {\n    let i = 0;\n    i++;\n}\n"),
+        [script_problem::ASSIGN_TO_CONSTANT]
+    );
+    assert_eq!(
+        codes("void H(string s) {\n    s++;\n}\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn bits_steps_and_assignments_use_a_types_operators() {
+    let src = "public struct Mask(i32 bits) {\n    public i32 Bits = bits;\n\
+               public static Mask operator &(Mask a, Mask b) => new Mask(a.Bits & b.Bits);\n\
+               public static Mask operator <<(Mask a, i32 n) => new Mask(a.Bits << n);\n\
+               public static Mask operator >>(Mask a, i32 n) => new Mask(a.Bits >> n);\n\
+               public static Mask operator ~(Mask a) => new Mask(~a.Bits);\n\
+               public static Mask operator ++(Mask a) => new Mask(a.Bits + 1);\n}\n\
+               Mask F(Mask a, Mask b) {\n    let mut m = ~(a & b) << 1 >> 2;\n    m++;\n    m &= a;\n    return m;\n}\n";
+    assert!(codes(src).is_empty(), "{:?}", codes(src));
+    // No `operator |`: two masks don't `|`; nor `+=`.
+    let mask = &src[..src.find("Mask F").unwrap()];
+    let bad = format!(
+        "{mask}Mask G(Mask a) => a | a;\nvoid H(Mask a) {{\n    let mut m = a;\n    m += a;\n}}\n"
+    );
+    assert_eq!(
+        codes(&bad),
+        [script_problem::TYPE_MISMATCH, script_problem::TYPE_MISMATCH]
+    );
+}

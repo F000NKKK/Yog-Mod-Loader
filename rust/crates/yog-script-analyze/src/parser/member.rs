@@ -4,7 +4,7 @@
 
 use super::{PResult, Parser};
 use crate::ast::{
-    Accessor, Chain, Ctor, DeclKind, Field, Indexer, Method, MethodBody, Name, Operator,
+    Accessor, BinOp, Chain, Ctor, DeclKind, Field, Indexer, Method, MethodBody, Name, Operator,
     OperatorKind, Prop, Type,
 };
 use crate::source::token::{Punct, Tok};
@@ -86,18 +86,25 @@ impl Parser<'_, '_, '_> {
         let Tok::Punct(p) = self.tok().clone() else {
             return Err(self.expected("an operator's sign"));
         };
+        // `>>`: two `>` side by side.
+        let shift_right = p == Punct::Gt && self.joined(Punct::Gt);
+        let mut span = self.bump().span;
+        if shift_right {
+            span = span.to(self.bump().span);
+        }
         let name = Name {
             text: String::new(),
-            span: self.bump().span,
+            span,
         };
         let mut method = self.method_rest(Some(ret), name)?;
         let kind = match method.params.len() {
+            _ if shift_right => Some(OperatorKind::Binary(BinOp::Shr)),
             1 => super::expr::prefix_of(p).map(OperatorKind::Unary),
             _ => super::expr::binary_of(p).map(OperatorKind::Binary),
         };
         let Some((kind, named)) = kind.and_then(|k| Some((k, k.method_name()?))) else {
             return Err(self.expected(
-                "an operator a type may declare (`+ - * / % == != < > <= >=`, unary `-` `!`)",
+                "an operator a type may declare (`+ - * / % & | ^ << >> == != < > <= >=`, unary `-` `!` `~` `++` `--`)",
             ));
         };
         method.name.text = named.to_string();

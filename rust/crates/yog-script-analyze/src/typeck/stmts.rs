@@ -3,7 +3,7 @@
 
 use super::Checker;
 use super::model::Type;
-use crate::ast::{self, Binding, Block, Expr, ExprKind, Pattern, Stmt};
+use crate::ast::{self, BinOp, Binding, Block, Expr, ExprKind, Pattern, Stmt};
 
 impl Checker<'_, '_, '_> {
     pub(super) fn block(&mut self, b: &Block) {
@@ -29,11 +29,14 @@ impl Checker<'_, '_, '_> {
                 self.written(place);
                 // `=`, and `+=`/`-=` on a delegate (an event's subscription):
                 // the value must be one.
-                if op.is_none() || self.delegate_sig(&t).is_some() {
-                    self.fits(value, &t);
-                    self.handed(value, &t);
-                } else {
-                    self.expr(value);
+                match op {
+                    Some(op) if self.delegate_sig(&t).is_none() => {
+                        self.compound(place, *op, &t, value);
+                    }
+                    _ => {
+                        self.fits(value, &t);
+                        self.handed(value, &t);
+                    }
                 }
             }
             Stmt::If {
@@ -171,6 +174,26 @@ impl Checker<'_, '_, '_> {
                 self.bind_pattern(b);
             }
             _ => {}
+        }
+    }
+
+    /// `place op= value` (`place` of `t`): `place op value` typed, as C#'s,
+    /// its result going back into `place` — a number's narrowed when
+    /// `value` itself fits there (`b &= mask` on a `u8`), as a literal does.
+    fn compound(&mut self, place: &Expr, op: BinOp, t: &Type, value: &Expr) {
+        let v = self.expr(value);
+        let r = match self.declared_binary(op, t, &v) {
+            Some((used, ret)) => {
+                self.types.set_assigned(place, used);
+                ret
+            }
+            None => self.combined(op, (t.clone(), v.clone()), (place.span, value.span)),
+        };
+        let narrowed = r.is_numeric()
+            && t.is_numeric()
+            && (super::exprs::is_number_literal(value) || self.converts(&v, t));
+        if !narrowed {
+            self.want(&r, t, value.span);
         }
     }
 }

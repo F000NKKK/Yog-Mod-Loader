@@ -1,6 +1,7 @@
 //! What follows a primary: calls, trailing lambdas, indexing, members,
 //! type arguments, `!`.
 
+use super::expr::POSTFIXES;
 use super::{PResult, Parser};
 use crate::ast::{Arg, Expr, ExprKind};
 use crate::source::token::{Punct, Tok};
@@ -40,6 +41,16 @@ impl Parser<'_, '_, '_> {
                         kind: ExprKind::TypeArgs {
                             expr: Box::new(expr),
                             args,
+                        },
+                        span,
+                    }
+                }
+                Tok::Punct(p) if let Some(&(_, op)) = POSTFIXES.iter().find(|(s, _)| s == p) => {
+                    let span = expr.span.to(self.bump().span);
+                    Expr {
+                        kind: ExprKind::Unary {
+                            op,
+                            expr: Box::new(expr),
                         },
                         span,
                     }
