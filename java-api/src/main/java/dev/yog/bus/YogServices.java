@@ -14399,6 +14399,123 @@ public final class YogServices {
                 p.putBool(v != null); if (v != null) { p.putStr(v); }
             }
         }
+
+        /** What eating `item` gives, as this game says; none when it isn't food. */
+        public record Food(String item) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("item", item);
+                return m;
+            }
+
+            public static Food fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Food(YogData.str(m.get("item"), ""));
+            }
+
+            public static Food fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.item);
+                p.end(at);
+            }
+
+            public static Food unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_item = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Food(f_item);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Food fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Food fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Food readFrame(YogFrame.Unpacker u) {
+                Food v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Food} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public String item() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceItem.FOOD);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "actions.YogItemActions.itemFood";
+            public static final String ADDRESS = YogNames.ServiceItem.FOOD;
+
+            public YogTypes.Food call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        YogTypes.Food v = (u.getBool() ? YogTypes.Food.unpack(u) : null);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<Food, YogTypes.Food> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    YogTypes.Food v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                YogTypes.Food v = (out == null ? null : (YogTypes.Food) out);
+                p.putBool(v != null); if (v != null) { v.pack(p); }
+            }
+        }
     }
 
     /** `jvm`. */

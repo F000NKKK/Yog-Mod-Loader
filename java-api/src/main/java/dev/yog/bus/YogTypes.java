@@ -3326,6 +3326,144 @@ public final class YogTypes {
         }
     }
 
+    /** An item's food: what it fills, how long it holds off hunger, what it does. */
+    public record Food(int nutrition, float saturation, boolean alwaysEdible, boolean fast, java.util.List<YogTypes.FoodEffect> effects) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("nutrition", nutrition);
+            m.put("saturation", saturation);
+            m.put("always_edible", alwaysEdible);
+            m.put("fast", fast);
+            m.put("effects", effects.stream().map(e0 -> e0.toData()).toList());
+            return m;
+        }
+
+        public static Food fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Food((int) YogData.integer(m.get("nutrition"), 0), (float) YogData.number(m.get("saturation"), 0), YogData.bool(m.get("always_edible"), false), YogData.bool(m.get("fast"), false), YogData.list(m.get("effects")).stream().map(e0 -> YogTypes.FoodEffect.fromData(e0)).toList());
+        }
+
+        public static Food fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putI(this.nutrition);
+            p.putF32(this.saturation);
+            p.putBool(this.alwaysEdible);
+            p.putBool(this.fast);
+            { int l0 = p.beginList(this.effects.size()); for (var e0 : this.effects) { e0.pack(p); } p.end(l0); }
+            p.end(at);
+        }
+
+        public static Food unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            int f_nutrition = u.more(end) ? (int) u.getI() : 0;
+            float f_saturation = u.more(end) ? u.getF32() : 0.0f;
+            boolean f_alwaysEdible = u.more(end) ? u.getBool() : false;
+            boolean f_fast = u.more(end) ? u.getBool() : false;
+            java.util.List<YogTypes.FoodEffect> f_effects = u.more(end) ? YogFrame.list(u, () -> YogTypes.FoodEffect.unpack(u)) : java.util.List.of();
+            u.leave(end);
+            return new Food(f_nutrition, f_saturation, f_alwaysEdible, f_fast, f_effects);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Food fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Food fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Food readFrame(YogFrame.Unpacker u) {
+            Food v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Food} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+            private final int o3;
+            private final int o4;
+            private final int h4, n4, b4;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                if (u.more(end)) { o3 = u.position(); u.skip(1); } else { o3 = -1; }
+                if (u.more(end)) { h4 = u.position(); n4 = u.count(); int e4 = u.listEnd(); b4 = 0; o4 = u.position(); u.skipTo(e4); } else { h4 = n4 = b4 = 0; o4 = -1; }
+                u.leave(end);
+            }
+
+            public int nutrition() {
+                if (o0 < 0) return 0;
+                u.seek(o0);
+                return (int) u.getI();
+            }
+
+            public float saturation() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+
+            public boolean alwaysEdible() {
+                if (o2 < 0) return false;
+                u.seek(o2);
+                return u.getBool();
+            }
+
+            public boolean fast() {
+                if (o3 < 0) return false;
+                u.seek(o3);
+                return u.getBool();
+            }
+
+            public java.util.List<YogTypes.FoodEffect> effects() {
+                if (o4 < 0) return java.util.List.of();
+                u.seek(h4);
+                return YogFrame.list(u, () -> YogTypes.FoodEffect.unpack(u));
+            }
+
+            public int effectsLength() {
+                return n4;
+            }
+
+            /** Each item, viewed in turn. */
+            public void forEachEffects(java.util.function.Consumer<YogTypes.FoodEffect.View> each) {
+                int at = o4;
+                for (int j = 0; j < n4; j++) {
+                    u.seek(at);
+                    YogTypes.FoodEffect.View v = new YogTypes.FoodEffect.View(u);
+                    at = u.position();
+                    each.accept(v);
+                }
+            }
+        }
+    }
+
     /** A declared key binding as the host registers it: under its mod's category. */
     public record CategorizedBinding(String id, String name, int defaultKey, String category) {
         public java.util.Map<String, Object> toData() {
@@ -6079,6 +6217,106 @@ public final class YogTypes {
             public boolean harmful() {
                 if (o4 < 0) return false;
                 u.seek(o4);
+                return u.getBool();
+            }
+        }
+    }
+
+    /** An effect eating may give. */
+    public record FoodEffect(String effect, float chance, boolean beneficial) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("effect", effect);
+            m.put("chance", chance);
+            m.put("beneficial", beneficial);
+            return m;
+        }
+
+        public static FoodEffect fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new FoodEffect(YogData.str(m.get("effect"), ""), (float) YogData.number(m.get("chance"), 0), YogData.bool(m.get("beneficial"), false));
+        }
+
+        public static FoodEffect fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putAtom(this.effect);
+            p.putF32(this.chance);
+            p.putBool(this.beneficial);
+            p.end(at);
+        }
+
+        public static FoodEffect unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_effect = u.more(end) ? u.getAtom() : "";
+            float f_chance = u.more(end) ? u.getF32() : 0.0f;
+            boolean f_beneficial = u.more(end) ? u.getBool() : false;
+            u.leave(end);
+            return new FoodEffect(f_effect, f_chance, f_beneficial);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static FoodEffect fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static FoodEffect fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static FoodEffect readFrame(YogFrame.Unpacker u) {
+            FoodEffect v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code FoodEffect} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+            private final int o2;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.skip(4); } else { o1 = -1; }
+                if (u.more(end)) { o2 = u.position(); u.skip(1); } else { o2 = -1; }
+                u.leave(end);
+            }
+
+            public String effect() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getAtom();
+            }
+
+            public float chance() {
+                if (o1 < 0) return 0.0f;
+                u.seek(o1);
+                return u.getF32();
+            }
+
+            public boolean beneficial() {
+                if (o2 < 0) return false;
+                u.seek(o2);
                 return u.getBool();
             }
         }

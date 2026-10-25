@@ -2,6 +2,7 @@ package dev.yog.actions;
 
 import dev.yog.NativeBridge;
 import dev.yog.YogServiceHost;
+import dev.yog.bus.YogTypes;
 
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -57,5 +58,23 @@ public final class YogItemActions {
         if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return null;
         if (!(BuiltInRegistries.ITEM.get(id) instanceof BlockItem bi)) return null;
         return BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
+    }
+
+    /** How long eating takes when an item doesn't say: the game's own default. */
+    private static final float DEFAULT_EAT_SECONDS = new net.minecraft.world.food.FoodProperties.Builder().build().eatSeconds();
+
+    /** What eating {@code itemId} gives ({@code item::Food}); null when it isn't food. */
+    @YogServiceHost
+    public static YogTypes.Food itemFood(String itemId) {
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return null;
+        var f = BuiltInRegistries.ITEM.get(id).components().get(net.minecraft.core.component.DataComponents.FOOD);
+        if (f == null) return null;
+        java.util.List<YogTypes.FoodEffect> effects = new java.util.ArrayList<>();
+        for (var e : f.effects()) {
+            net.minecraft.world.effect.MobEffect m = e.effect().getEffect().value();
+            effects.add(new YogTypes.FoodEffect(BuiltInRegistries.MOB_EFFECT.getKey(m).toString(), e.probability(), m.isBeneficial()));
+        }
+        return new YogTypes.Food(f.nutrition(), f.saturation(), f.canAlwaysEat(), f.eatSeconds() < DEFAULT_EAT_SECONDS, effects);
     }
 }

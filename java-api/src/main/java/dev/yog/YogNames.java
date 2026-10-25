@@ -738,9 +738,10 @@ public final class YogNames {
         public static final String ENTITY_STACK = "yog:item/entity_stack";
         public static final String SET_ENTITY_STACK = "yog:item/set_entity_stack";
         public static final String BLOCK = "yog:item/block";
+        public static final String FOOD = "yog:item/food";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, TEXT, PICTURE, SPAWN, ENTITY_STACK, SET_ENTITY_STACK, BLOCK);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, TEXT, PICTURE, SPAWN, ENTITY_STACK, SET_ENTITY_STACK, BLOCK, FOOD);
     }
 
     public static final class ServiceWorld {

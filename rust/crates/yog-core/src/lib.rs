@@ -5,10 +5,12 @@
 //! [`yog-api`] re-exports it.
 
 mod cells;
+mod food;
 mod local;
 mod query;
 mod state;
 
+pub use food::{Food, FoodEffect};
 pub use local::{BlockArea, BlockKind, ClickMode, LocalState, NearbyEntity};
 pub use query::{
     BlockHit, BlockInfo, DigSpeed, EntityInfo, Face, PlacedBlock, PlayerInfo, Rotation, ScreenSlot,

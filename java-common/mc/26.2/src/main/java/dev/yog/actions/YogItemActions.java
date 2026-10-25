@@ -2,6 +2,7 @@ package dev.yog.actions;
 
 import dev.yog.NativeBridge;
 import dev.yog.YogServiceHost;
+import dev.yog.bus.YogTypes;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -57,5 +58,29 @@ public final class YogItemActions {
         if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return null;
         if (!(BuiltInRegistries.ITEM.getValue(id) instanceof BlockItem bi)) return null;
         return BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
+    }
+
+    /** What eating {@code itemId} gives ({@code item::Food}); null when it isn't food. */
+    @YogServiceHost
+    public static YogTypes.Food itemFood(String itemId) {
+        Identifier id = Identifier.tryParse(itemId);
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return null;
+        var components = BuiltInRegistries.ITEM.getValue(id).components();
+        var f = components.get(net.minecraft.core.component.DataComponents.FOOD);
+        if (f == null) return null;
+        var consumed = components.get(net.minecraft.core.component.DataComponents.CONSUMABLE);
+        java.util.List<YogTypes.FoodEffect> effects = new java.util.ArrayList<>();
+        boolean fast = false;
+        if (consumed != null) {
+            fast = consumed.consumeSeconds() < net.minecraft.world.item.component.Consumable.DEFAULT_CONSUME_SECONDS;
+            for (var c : consumed.onConsumeEffects()) {
+                if (!(c instanceof net.minecraft.world.item.consume_effects.ApplyStatusEffectsConsumeEffect apply)) continue;
+                for (var e : apply.effects()) {
+                    net.minecraft.world.effect.MobEffect m = e.getEffect().value();
+                    effects.add(new YogTypes.FoodEffect(BuiltInRegistries.MOB_EFFECT.getKey(m).toString(), apply.probability(), m.isBeneficial()));
+                }
+            }
+        }
+        return new YogTypes.Food(f.nutrition(), f.saturation(), f.canAlwaysEat(), fast, effects);
     }
 }

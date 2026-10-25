@@ -37,6 +37,7 @@ names! {
         ENTITY_STACK = crate::concatcp!(DOMAIN, "entity_stack"),
         SET_ENTITY_STACK = crate::concatcp!(DOMAIN, "set_entity_stack"),
         BLOCK = crate::concatcp!(DOMAIN, crate::word::BLOCK),
+        FOOD = crate::concatcp!(DOMAIN, "food"),
     }
 
     /// `yog:world/…`: a world.

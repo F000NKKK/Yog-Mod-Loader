@@ -2,6 +2,7 @@ package dev.yog.actions;
 
 import dev.yog.NativeBridge;
 import dev.yog.YogServiceHost;
+import dev.yog.bus.YogTypes;
 
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -57,5 +58,24 @@ public final class YogItemActions {
         if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return null;
         if (!(BuiltInRegistries.ITEM.get(id) instanceof BlockItem bi)) return null;
         return BuiltInRegistries.BLOCK.getKey(bi.getBlock()).toString();
+    }
+
+    /** {@code FoodData.eat}'s saturation: a hunger point's worth of the modifier, twice. */
+    private static final float SATURATION_PER_POINT = 2.0f;
+
+    /** What eating {@code itemId} gives ({@code item::Food}); null when it isn't food. */
+    @YogServiceHost
+    public static YogTypes.Food itemFood(String itemId) {
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) return null;
+        net.minecraft.world.food.FoodProperties f = BuiltInRegistries.ITEM.get(id).getFoodProperties();
+        if (f == null) return null;
+        java.util.List<YogTypes.FoodEffect> effects = new java.util.ArrayList<>();
+        for (var e : f.getEffects()) {
+            net.minecraft.world.effect.MobEffect m = e.getFirst().getEffect();
+            effects.add(new YogTypes.FoodEffect(BuiltInRegistries.MOB_EFFECT.getKey(m).toString(), e.getSecond(), m.isBeneficial()));
+        }
+        float saturation = f.getNutrition() * f.getSaturationModifier() * SATURATION_PER_POINT;
+        return new YogTypes.Food(f.getNutrition(), saturation, f.canAlwaysEat(), f.isFastFood(), effects);
     }
 }
