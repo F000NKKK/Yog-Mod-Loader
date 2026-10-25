@@ -50,8 +50,23 @@ impl Schema for bool {
     }
 }
 
+/// A number as carried (an `i64`) back to `T`: out of `T`'s range, none.
+fn narrowed<T: TryFrom<i64>>(n: i64) -> Option<T> {
+    T::try_from(n).ok()
+}
+
+/// A 64-bit unsigned number carried as the `i64` of its bits: its bits back.
+fn unsigned64<T: From<u64>>(n: i64) -> Option<T> {
+    Some(T::from(n as u64))
+}
+
+/// `usize` as [`unsigned64`]: the bits back, when they fit.
+fn unsigned_size(n: i64) -> Option<usize> {
+    usize::try_from(n as u64).ok()
+}
+
 macro_rules! int_schema {
-    ($($t:ty => $to_bits:ident, $of_bits:ident);*) => {$(
+    ($($t:ty => $to_bits:ident, $of_bits:ident, $of_i64:path);*) => {$(
         impl Schema for $t {
             fn shape() -> Shape {
                 Shape::Int { min: <$t>::MIN as i64, max: (<$t>::MAX as u64).min(i64::MAX as u64) as i64 }
@@ -61,7 +76,7 @@ macro_rules! int_schema {
                     cx.expected("an integer", v);
                     return None;
                 };
-                <$t>::try_from(n).ok().or_else(|| {
+                $of_i64(n).or_else(|| {
                     cx.problem(format!("{n} is out of range ({}..={})", <$t>::MIN, <$t>::MAX));
                     None
                 })
@@ -73,13 +88,13 @@ macro_rules! int_schema {
                 w.int(*self as i64);
             }
             fn decode(d: &mut Decoder<'_>) -> Option<Self> {
-                d.int().and_then(|n| <$t>::try_from(n).ok())
+                d.int().and_then($of_i64)
             }
             fn pack(&self, p: &mut Packer) {
                 p.put_i(*self as i64);
             }
             fn unpack(u: &mut Unpacker<'_>) -> Option<Self> {
-                u.get_i().and_then(|n| <$t>::try_from(n).ok())
+                u.get_i().and_then($of_i64)
             }
             fn pack_list(items: &[Self], p: &mut Packer) {
                 p.put_uints(items.len(), items.iter().map(|&n| $to_bits(n as i128)));
@@ -94,7 +109,7 @@ macro_rules! int_schema {
                 let n = d.ints()?;
                 let mut out = Vec::with_capacity(n);
                 for _ in 0..n {
-                    out.push(<$t>::try_from(d.packed_int()?).ok()?);
+                    out.push($of_i64(d.packed_int()?)?);
                 }
                 Some(out)
             }
@@ -102,9 +117,11 @@ macro_rules! int_schema {
     )*};
 }
 int_schema!(
-    i8 => signed_bits, signed_of; i16 => signed_bits, signed_of; i32 => signed_bits, signed_of; i64 => signed_bits, signed_of;
-    u8 => unsigned_bits, unsigned_of; u16 => unsigned_bits, unsigned_of; u32 => unsigned_bits, unsigned_of;
-    u64 => unsigned_bits, unsigned_of; usize => unsigned_bits, unsigned_of
+    i8 => signed_bits, signed_of, narrowed; i16 => signed_bits, signed_of, narrowed;
+    i32 => signed_bits, signed_of, narrowed; i64 => signed_bits, signed_of, narrowed;
+    u8 => unsigned_bits, unsigned_of, narrowed; u16 => unsigned_bits, unsigned_of, narrowed;
+    u32 => unsigned_bits, unsigned_of, narrowed;
+    u64 => unsigned_bits, unsigned_of, unsigned64; usize => unsigned_bits, unsigned_of, unsigned_size
 );
 
 /// A signed number as a bit-packed list's bits: zigzagged, small either way.

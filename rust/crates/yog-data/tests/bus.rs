@@ -174,6 +174,31 @@ mod frames {
 
     use super::{Area, Compact, Message, Mode, Placed};
 
+    /// 64-bit unsigned numbers, every bit used (a block's packed position).
+    #[derive(Schema, Debug, Clone, PartialEq)]
+    struct Wide {
+        key: u64,
+        size: usize,
+        parent: Option<u64>,
+        keys: Vec<u64>,
+    }
+
+    #[test]
+    fn unsigned_numbers_keep_all_64_bits() {
+        for top in [0, 1u64 << 62, 1 << 63, u64::MAX] {
+            let w = Wide {
+                key: top,
+                size: top as usize,
+                parent: Some(top ^ 1),
+                keys: vec![top, 0, top >> 1],
+            };
+            assert_eq!(read_frame::<Wide>(&to_frame(&w)), Some(w.clone()), "frame {top:#x}");
+            let bytes = yog_data::to_bytes(&w);
+            assert_eq!(yog_data::read_bytes::<Wide>(&bytes).ok(), Some(w.clone()), "binary {top:#x}");
+            assert_eq!(yog_data::from_value::<Wide>(&w.write()).ok().map(|r| r.value), Some(w), "value {top:#x}");
+        }
+    }
+
     #[test]
     fn every_kind_of_field_round_trips() {
         let m = Message {

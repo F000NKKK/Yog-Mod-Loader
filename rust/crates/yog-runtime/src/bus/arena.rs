@@ -24,8 +24,9 @@ use yog_abi::{YogReply, YogStatus, status};
 use super::ROUTER;
 use crate::jni::call::jcall;
 
-/// The arena's size: most calls' payload and reply, nested a few deep.
-pub(crate) const BYTES: usize = 1 << 16;
+/// The arena's size: calls' payloads and replies, nested a few deep — a
+/// block box's keys and their rows (tens of thousands) among them.
+pub(crate) const BYTES: usize = 1 << 22;
 /// Bytes before the first frame (`YogBus.ARENA_HEADER`).
 pub(crate) const HEADER: usize = 16;
 /// Where the top (a little-endian `u32`, from `HEADER`) is (`YogBus.ARENA_TOP`).
