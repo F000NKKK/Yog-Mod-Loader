@@ -450,10 +450,11 @@ yog add --mod yog-pipes        # adds it under [dependencies.exports]
 ```rust
 use yog_pipes::{broadcast, PipePayload, PipePos};
 
-broadcast(
+let reached = broadcast(
+    "mymod:bus".into(),
     PipePos { dim: "minecraft:overworld".into(), x: 0, y: 64, z: 0 },
     PipePayload { data: vec![15], metadata: vec![] },
-).unwrap();
+); // Option<Result<u32, String>>: None when Yog Pipes isn't loaded
 ```
 
 The call is serialized as Yog Data and dispatched by the runtime, so the two
