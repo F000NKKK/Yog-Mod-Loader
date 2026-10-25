@@ -10,9 +10,11 @@ Add a version or loader to HOSTS when Yog starts supporting it."""
 import collections, glob, json, os, re, sys, zipfile
 
 CACHE = os.path.expanduser("~/.gradle/caches")
-VERSIONS = ["1.20.1", "1.21.1", "26.2"]
+VERSIONS = ["1.19.2", "1.20.1", "1.21.1", "26.2"]
 # loader/version → the jars whose data/ has its tags (beside the game's).
 HOSTS = {
+    "fabric/1.19.2": ["modules-2/files-2.1/net.fabricmc.fabric-api/fabric-convention-tags-v1/1.3.0+*/*/fabric-convention-tags-v1-1.3.0+*[0-9a-f].jar"],
+    "forge/1.19.2": ["forge_gradle/maven_downloader/net/minecraftforge/forge/1.19.2-43.5.2/forge-1.19.2-43.5.2-universal.jar"],
     "fabric/1.20.1": ["modules-2/files-2.1/net.fabricmc.fabric-api/fabric-convention-tags-v1/1.5.5+*/*/fabric-convention-tags-v1-1.5.5+*[0-9a-f].jar"],
     "fabric/1.21.1": ["modules-2/files-2.1/net.fabricmc.fabric-api/fabric-convention-tags-v2/2.11.0+*/*/fabric-convention-tags-v2-2.11.0+*[0-9a-f].jar"],
     "forge/1.20.1": ["forge_gradle/maven_downloader/net/minecraftforge/forge/1.20.1-47.3.0/forge-1.20.1-47.3.0-universal.jar"],
@@ -118,7 +120,7 @@ def modern(ns, path, hosts):
             return FORGE_1_20[path]
         head, _, rest = path.partition("/")
         return f"{FORGE_1_20[head]}/{rest}" if rest and head in FORGE_1_20 and head in ("cobblestone", "sand") else path
-    if ns == "c" and all(h.endswith("/1.20.1") for h in hosts):
+    if ns == "c" and all(h.endswith(("/1.19.2", "/1.20.1")) for h in hosts):
         if path in FABRIC_1_20:
             return FABRIC_1_20[path]
         # Fabric 1.20's `iron_ingots`, `brown_dyes`: `ingots/iron`, `dyes/brown`.
