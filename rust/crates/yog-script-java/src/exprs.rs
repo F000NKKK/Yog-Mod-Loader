@@ -5,7 +5,7 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
-use yog_script_ids::jvm::HELPERS;
+use yog_script_ids::jvm::{HELPERS, OBJECT};
 
 use super::Gen;
 use crate::index::Kind;
@@ -30,8 +30,13 @@ impl Gen<'_> {
             return self.operator_call(e, &used);
         }
         let v = self.expr_kind(e);
-        match self.types.conversion(e).cloned() {
+        let v = match self.types.conversion(e).cloned() {
             Some(used) => self.converted(&used, &v),
+            None => v,
+        };
+        // Gone where it's wanted by variance: Java's generics have none.
+        match self.types.recast(e) {
+            Some(to) => format!("(({}) ({OBJECT}) {v})", self.java(to, false)),
             None => v,
         }
     }

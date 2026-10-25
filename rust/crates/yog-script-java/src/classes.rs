@@ -69,6 +69,9 @@ impl Gen<'_> {
         }
         self.constructors(name, header, body);
         self.members(body, Place::Class);
+        self.inherited_getters(name, body);
+        let stored: Vec<&str> = fields(body).into_iter().map(|(_, f)| f).collect();
+        self.identity(name, body, struct_.then_some(stored.as_slice()));
         if struct_ {
             self.code.open(format!("public {name} {COPY}()"));
             self.code.line(format!("try {{ return ({name}) clone(); }} catch (CloneNotSupportedException e) {{ throw new AssertionError(e); }}"));
@@ -174,6 +177,19 @@ impl Gen<'_> {
             if let Some(v) = value {
                 let v = self.handed_expr(v);
                 self.code.line(format!("this.{} = {v};", Self::ident(name)));
+            }
+        }
+    }
+
+    /// A stored property an interface it implements reads by a getter
+    /// (`ICollection<T>.Count`): that getter, beside its field.
+    fn inherited_getters(&mut self, name: &str, body: &[Decl]) {
+        for (ty, field) in fields(body) {
+            if self.index.inherited_call(name, field) {
+                let (t, f) = (self.written(ty, false), Self::ident(field));
+                self.code.open(format!("public {t} {f}()"));
+                self.code.line(format!("return this.{f};"));
+                self.code.close("");
             }
         }
     }

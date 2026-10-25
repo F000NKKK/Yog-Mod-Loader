@@ -79,6 +79,14 @@ public final class Vector3 implements dev.yog.script.IEquatable<dev.yog.script.n
     public static boolean op_Inequality(dev.yog.script.numerics.Vector3 a, dev.yog.script.numerics.Vector3 b) {
         return (!dev.yog.script.numerics.Vector3.op_Equality(a.copy(), b.copy()));
     }
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof Vector3 that && Equals(that);
+    }
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(X, Y, Z);
+    }
     public Vector3 copy() {
         try { return (Vector3) clone(); } catch (CloneNotSupportedException e) { throw new AssertionError(e); }
     }

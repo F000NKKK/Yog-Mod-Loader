@@ -490,7 +490,16 @@ impl Checker<'_, '_, '_> {
             Type::Array(..) => yog_script_ids::system::ARRAY,
             _ => super::builtin::system_name(t)?,
         };
-        let declared = self.own.namespaces.get(name)? == &[yog_script_ids::system::ROOT];
-        declared.then(|| Type::own(name.to_string()))
+        // A built-in type the library gives no members of its own has
+        // `object`'s.
+        [name, yog_script_ids::clr::OBJECT]
+            .into_iter()
+            .find(|n| {
+                self.own
+                    .namespaces
+                    .get(*n)
+                    .is_some_and(|ns| *ns == [yog_script_ids::system::ROOT])
+            })
+            .map(|n| Type::own(n.to_string()))
     }
 }

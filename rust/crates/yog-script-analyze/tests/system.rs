@@ -205,3 +205,40 @@ fn arrays_are_csharps() {
         [script_problem::UNKNOWN_MEMBER]
     );
 }
+
+#[test]
+fn variance_is_csharps() {
+    let ok = "IEnumerable<object> Out(List<string> xs) => xs;\n\
+              IReadOnlyList<object> Read(List<string> xs) => xs;\n\
+              Predicate<string> In(Predicate<object> p) => p;\n\
+              Func<string, object> Both(Func<object, string> f) => f;\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    for bad in [
+        // `List<T>` doesn't vary; a value type doesn't either.
+        "List<object> F(List<string> xs) => xs;\n",
+        "IEnumerable<object> G(List<i32> xs) => xs;\n",
+        // `in` the other way only.
+        "Predicate<object> H(Predicate<string> p) => p;\n",
+    ] {
+        assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH], "{bad}");
+    }
+}
+
+#[test]
+fn every_type_is_an_object() {
+    let ok = "class Tag(string name) {\n    public string Name = name;\n\
+              public override string ToString() => Name;\n    public override i32 GetHashCode() => 7;\n}\n\
+              struct Pos(i32 x) {\n    public i32 X = x;\n}\n\
+              string F(Tag t, Pos p) => t.ToString() + p.ToString() + 5.ToString();\n\
+              bool G(Pos a, Pos b) => a.Equals(b) && a.GetHashCode() == b.GetHashCode();\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert_eq!(
+        codes("class Tag {\n    public override string Name() => \"\";\n}\n"),
+        [script_problem::INHERIT]
+    );
+    // A class made implements its interfaces' members, the library's too.
+    assert_eq!(
+        codes("class Bag : IEnumerable<i32> {}\n"),
+        [script_problem::INHERIT]
+    );
+}

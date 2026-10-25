@@ -135,6 +135,14 @@ public final class TimeSpan implements dev.yog.script.IEquatable<dev.yog.script.
     public static boolean op_GreaterThanOrEqual(dev.yog.script.TimeSpan t1, dev.yog.script.TimeSpan t2) {
         return (t1.Ticks >= t2.Ticks);
     }
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof TimeSpan that && Equals(that);
+    }
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(Ticks);
+    }
     public TimeSpan copy() {
         try { return (TimeSpan) clone(); } catch (CloneNotSupportedException e) { throw new AssertionError(e); }
     }

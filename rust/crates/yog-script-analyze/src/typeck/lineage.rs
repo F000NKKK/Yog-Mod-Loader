@@ -53,6 +53,11 @@ impl Checker<'_, '_, '_> {
             }
             i += 1;
         }
+        // `object` last: every type's base.
+        let object = TypeKey::new(yog_script_ids::clr::OBJECT, 0);
+        if self.own.of_key(&object).is_some() && !out.iter().any(|(k, _)| *k == object) {
+            out.push((object, Vec::new()));
+        }
         out
     }
 

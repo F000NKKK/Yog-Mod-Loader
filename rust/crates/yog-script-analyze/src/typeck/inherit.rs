@@ -12,10 +12,13 @@ use crate::ast::Decl;
 use index::{Index, Info};
 use yog_analysis::Report;
 
-/// Every rule checked over the source's own types.
-pub(super) fn check(decls: &[Decl], report: &mut Report<'_>) {
-    let index = Index::collect(decls);
-    for info in index.types.values() {
+/// Every rule checked over the source's own types (`decls`), what they
+/// inherit from the library's (`library`) too.
+pub(super) fn check(library: &[Decl], decls: &[Decl], report: &mut Report<'_>) {
+    let mut index = Index::collect(library);
+    index.mark_library();
+    index.add(decls);
+    for info in index.types.values().filter(|i| !i.library) {
         bases(&index, info, report);
         overrides(&index, info, report);
         if info.class && !info.is_abstract {
@@ -92,8 +95,9 @@ fn implemented(index: &Index, info: &Info, report: &mut Report<'_>) {
         lineage
             .iter()
             .filter(|i| i.class)
-            .flat_map(|i| &i.members)
-            .any(|m| m.name == name && m.body)
+            .flat_map(|i| i.members.iter().map(move |m| (i, m)))
+            // The runtime's class implements what it declares, bodies or not.
+            .any(|(i, m)| m.name == name && (m.body || i.intrinsic))
     };
     for owner in &lineage {
         for m in owner

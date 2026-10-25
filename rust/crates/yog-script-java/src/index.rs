@@ -245,6 +245,19 @@ impl Index {
         self.hosts.contains(name).then(|| self.place(name, 0))
     }
 
+    /// Whether `name` of type `of` is read by calling it in what `of`
+    /// inherits (an interface's property `of` stores in a field).
+    pub fn inherited_call(&self, of: &str, name: &str) -> bool {
+        self.types
+            .get(of)
+            .is_some_and(|i| i.bases.iter().any(|b| self.called(b, name)))
+    }
+
+    /// Whether type `name` is a `[Host]` one: a built-in type's members.
+    pub fn is_host(&self, name: &str) -> bool {
+        self.hosts.contains(name)
+    }
+
     /// Whether type `name` is the runtime's, written by hand.
     pub fn is_intrinsic(&self, name: &str) -> bool {
         self.intrinsics.contains(name)

@@ -98,6 +98,25 @@ impl Gen<'_> {
         }
     }
 
+    /// Where call `e`'s method runs when its type is a `[Host]` one (the
+    /// method's, else the value's — `t`), with the rank after the value an
+    /// array's members take.
+    fn host_of_call(&self, e: &Expr, t: &Type) -> Option<(String, String)> {
+        let owner = self.types.method(e).and_then(|m| m.owner.as_deref());
+        match owner {
+            Some(o) if self.index.is_host(o) => {
+                let rank = if o == yog_script_ids::system::ARRAY {
+                    array_rank(t)
+                } else {
+                    String::new()
+                };
+                Some((self.index.place(o, 0), rank))
+            }
+            Some(_) => None,
+            None => self.index.host(t).map(|h| (h, array_rank(t))),
+        }
+    }
+
     /// A call whose method gives an array of its type parameter
     /// (`ToArray`, `Array.Empty<T>`): Java's generics gave an `Object[]`,
     /// made the array `e`'s type is (`int[]` for an `i32[]`).
@@ -153,9 +172,11 @@ impl Gen<'_> {
                 Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),
                 _ => format!("{}.{n}({a})", self.own(of)),
             },
-            Some(t) if let Some(host) = self.index.host(t) => {
+            // A method of a `[Host]` type (`string`'s, `object`'s): its
+            // companion's, the value first.
+            Some(t) if let Some((host, rank)) = self.host_of_call(e, t) => {
                 let sep = if a.is_empty() { "" } else { ", " };
-                format!("{host}.{n}({target}{}{sep}{a})", array_rank(t))
+                format!("{host}.{n}({target}{rank}{sep}{a})")
             }
             Some(Type::Yog(group)) => match yog::service(group, name) {
                 Some(s) if s.on_handle => {

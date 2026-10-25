@@ -13,6 +13,7 @@ mod collections;
 mod decls;
 mod delegates;
 mod exprs;
+mod identity;
 mod index;
 mod indexers;
 mod library;

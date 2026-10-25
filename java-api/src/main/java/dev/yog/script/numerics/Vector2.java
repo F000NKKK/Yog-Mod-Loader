@@ -73,6 +73,14 @@ public final class Vector2 implements dev.yog.script.IEquatable<dev.yog.script.n
     public static boolean op_Inequality(dev.yog.script.numerics.Vector2 a, dev.yog.script.numerics.Vector2 b) {
         return (!dev.yog.script.numerics.Vector2.op_Equality(a.copy(), b.copy()));
     }
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof Vector2 that && Equals(that);
+    }
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(X, Y);
+    }
     public Vector2 copy() {
         try { return (Vector2) clone(); } catch (CloneNotSupportedException e) { throw new AssertionError(e); }
     }

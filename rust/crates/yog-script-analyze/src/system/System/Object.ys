@@ -1,0 +1,14 @@
+namespace System;
+
+/// What every value is (`object`): every type's base, as .NET's. A type
+/// overrides what of it it answers its own way.
+[Intrinsic]
+[Host]
+public class Object {
+    /// Whether `obj` is this one's equal (the same object, unless its type says).
+    public virtual bool Equals(object? obj);
+    /// A number equal values share: what sets and dictionaries find them by.
+    public virtual i32 GetHashCode();
+    /// The value as text.
+    public virtual string ToString();
+}

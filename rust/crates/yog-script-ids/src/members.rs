@@ -1,5 +1,11 @@
 //! The System library's members a tool runs by hand (the build's
-//! interpreter), by their names as declared (`system/**/*.ys`).
+//! interpreter, the compilers' bridges), by their names as declared
+//! (`system/**/*.ys`).
+
+// `object`'s: what every value has.
+pub const EQUALS: &str = "Equals";
+pub const GET_HASH_CODE: &str = "GetHashCode";
+pub const TO_STRING: &str = "ToString";
 
 // Collections (`List<T>`).
 pub const COUNT: &str = "Count";

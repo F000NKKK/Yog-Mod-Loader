@@ -65,6 +65,8 @@ pub(crate) struct OwnType {
     pub ctor: Vec<ast::Param>,
     /// Its type parameters' names (`T` of `Box<T>`).
     pub generics: Vec<String>,
+    /// How each may vary (`out T` of `IEnumerable<out T>`), in order.
+    pub variance: Vec<Option<ast::Variance>>,
     /// An enum's cases that carry data, their fields by case.
     pub variants: HashMap<String, Vec<ast::Param>>,
     /// Its indexers (`this[i32 i]`), still as written.

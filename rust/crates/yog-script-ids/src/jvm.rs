@@ -35,6 +35,12 @@ pub const VIEW: &str = "view";
 /// generic code gave (`Object[]`): `Array.Of(items, int[].class)`.
 pub const TYPED_ARRAY: &str = "Of";
 
+/// `java.lang.Object`'s members a type's own `Equals`, `GetHashCode` and
+/// `ToString` stand behind, so Java's collections and strings use them.
+pub const EQUALS: &str = "equals";
+pub const HASH_CODE: &str = "hashCode";
+pub const TO_STRING: &str = "toString";
+
 /// Java's types compiled code names.
 pub const STRING: &str = "String";
 pub const OBJECT: &str = "Object";

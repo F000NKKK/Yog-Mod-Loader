@@ -7,6 +7,9 @@ use yog_script_analyze::ast::{
 };
 
 use super::Gen;
+
+/// What a Java interface's method with a body starts with.
+const DEFAULT: &str = "default ";
 use crate::index::Kind;
 
 /// Where a member is written.
@@ -60,14 +63,18 @@ impl Gen<'_> {
                 accessors,
                 ..
             } => {
+                let (t, n) = (self.written(ty, false), Self::ident(&name.text));
+                let interface = place == Place::Interface;
                 if let Some(body) = accessors.iter().find_map(|a| a.body.as_ref()) {
-                    let head = format!(
-                        "public {}{} {}()",
-                        stat(place),
-                        self.written(ty, false),
-                        Self::ident(&name.text)
-                    );
-                    self.body(&head, Some(body), false);
+                    let lead = if interface {
+                        DEFAULT.to_string()
+                    } else {
+                        format!("public {}", stat(place))
+                    };
+                    self.body(&format!("{lead}{t} {n}()"), Some(body), false);
+                } else if interface {
+                    // An interface's: its getter, its implementers'.
+                    self.code.line(format!("{t} {n}();"));
                 }
             }
             DeclKind::Indexer(ix) => self.indexer(d, ix, place),
@@ -132,7 +139,7 @@ impl Gen<'_> {
         }
         let lead = match (place, &m.body) {
             (Place::Interface, None) => String::new(),
-            (Place::Interface, Some(_)) if !d.has(Modifier::Static) => "default ".to_string(),
+            (Place::Interface, Some(_)) if !d.has(Modifier::Static) => DEFAULT.to_string(),
             (Place::File, _) => "public static ".to_string(),
             (_, None) => "public abstract ".to_string(),
             _ => format!("{}{}{}", access_of(d), stat_of(d), final_of(d)),

@@ -214,3 +214,46 @@ fn arrays_are_javas() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn variance_is_a_recast() {
+    let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    let want = "return ((dev.yog.script.collections.generic.IEnumerable<Object>) (Object) xs);";
+    assert!(out.contains(want), "missing `{want}` in:\n{out}");
+}
+
+#[test]
+fn identity_is_the_types() {
+    let src = "public struct Pos(i32 x, i32 y) {\n    public i32 X = x;\n    public i32 Y = y;\n}\n\
+               public class Tag(string name) {\n    public string Name = name;\n\
+               public override i32 GetHashCode() => 7;\n    public override string ToString() => Name;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "return other instanceof Pos that && java.util.Objects.equals(X, that.X) && java.util.Objects.equals(Y, that.Y);",
+        "return java.util.Objects.hash(X, Y);",
+        "public int hashCode() {",
+        "return GetHashCode();",
+        "public String toString() {",
+        "return ToString();",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
+fn an_interfaces_property_is_a_getter() {
+    let src = "public interface IHas {\n    i32 Count { get; }\n}\n\
+               public class Box(i32 count) : IHas {\n    public i32 Count { get; } = count;\n}\n\
+               i32 F(Box b, IHas h) => b.Count + h.Count;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "int Count();",
+        "public int Count;",
+        "public int Count() {",
+        "return this.Count;",
+        "h.Count()",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

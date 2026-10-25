@@ -18,6 +18,10 @@ pub(super) struct Info<'d> {
     /// Its bases as written, plain names only (the game's aren't here).
     pub bases: Vec<&'d Name>,
     pub members: Vec<Member>,
+    /// The library's (its rules were checked with it), the runtime's
+    /// (`[Intrinsic]`: implemented by hand).
+    pub library: bool,
+    pub intrinsic: bool,
 }
 
 pub(super) struct Member {
@@ -43,6 +47,16 @@ impl<'d> Index<'d> {
         index
     }
 
+    /// The types so far are the library's.
+    pub fn mark_library(&mut self) {
+        self.types.values_mut().for_each(|i| i.library = true);
+    }
+
+    /// `decls`' types too (a source's, beside the library's).
+    pub fn add(&mut self, decls: &'d [Decl]) {
+        self.walk(decls);
+    }
+
     fn walk(&mut self, decls: &'d [Decl]) {
         for d in decls {
             if let DeclKind::Type {
@@ -65,6 +79,12 @@ impl<'d> Index<'d> {
                     sealed: d.has(Modifier::Sealed),
                     bases: header.bases.iter().filter_map(plain_name).collect(),
                     members: body.iter().filter_map(|m| member(m, interface)).collect(),
+                    library: false,
+                    intrinsic: d.attributes.iter().any(|a| {
+                        a.path
+                            .last()
+                            .is_some_and(|n| n.text == yog_script_ids::system::INTRINSIC)
+                    }),
                 };
                 self.types.insert(&name.text, info);
             }
@@ -72,8 +92,20 @@ impl<'d> Index<'d> {
         }
     }
 
-    /// The own types `name` inherits or implements, nearest first, each once.
+    /// The own types `name` inherits or implements, nearest first, each
+    /// once — `object` last, every type's base.
     pub fn ancestors(&self, name: &str) -> Vec<&Info<'d>> {
+        let mut out = self.written_ancestors(name);
+        if let Some(object) = self.types.get(yog_script_ids::clr::OBJECT)
+            && name != object.name
+            && !out.iter().any(|o| o.name == object.name)
+        {
+            out.push(object);
+        }
+        out
+    }
+
+    fn written_ancestors(&self, name: &str) -> Vec<&Info<'d>> {
         let mut out: Vec<&Info<'d>> = Vec::new();
         let mut next = vec![name];
         while let Some(n) = next.pop() {
@@ -98,9 +130,8 @@ impl<'d> Index<'d> {
 
 fn plain_name(t: &Type) -> Option<&Name> {
     match &t.kind {
-        crate::ast::TypeKind::Path { path, args } if args.is_empty() && path.len() == 1 => {
-            path.first()
-        }
+        // `IList<T>` by its name: its arguments don't change what it asks.
+        crate::ast::TypeKind::Path { path, .. } if path.len() == 1 => path.first(),
         _ => None,
     }
 }

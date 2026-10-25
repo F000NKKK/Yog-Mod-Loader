@@ -56,6 +56,11 @@ impl OwnTypes {
             .entry(TypeKey::new(name, params.len()))
             .or_default();
         t.generics = params;
+        t.variance = generics
+            .iter()
+            .filter(|g| !g.lifetime)
+            .map(|g| g.variance)
+            .collect();
         t
     }
 

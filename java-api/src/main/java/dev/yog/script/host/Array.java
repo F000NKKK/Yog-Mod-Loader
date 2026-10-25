@@ -19,7 +19,7 @@ public final class Array {
 
     // Members.
 
-    public static int Length(Object array, int rank) {
+    public static int Length(java.lang.Object array, int rank) {
         int length = 1;
         for (int dimension = 0; dimension < rank; dimension++) {
             length *= GetLength(array, rank, dimension);
@@ -27,20 +27,20 @@ public final class Array {
         return length;
     }
 
-    public static long LongLength(Object array, int rank) {
+    public static long LongLength(java.lang.Object array, int rank) {
         return Length(array, rank);
     }
 
-    public static int Rank(Object array, int rank) {
+    public static int Rank(java.lang.Object array, int rank) {
         return rank;
     }
 
     /** How many items dimension {@code dimension} holds: its first row's, down to it. */
-    public static int GetLength(Object array, int rank, int dimension) {
+    public static int GetLength(java.lang.Object array, int rank, int dimension) {
         if (dimension < 0 || dimension >= rank) {
             throw new IndexOutOfBoundsException("dimension " + dimension + " of an array of rank " + rank);
         }
-        Object row = array;
+        java.lang.Object row = array;
         for (int d = 0; d < dimension; d++) {
             if (java.lang.reflect.Array.getLength(row) == 0) {
                 return 0;
@@ -53,17 +53,17 @@ public final class Array {
     // What generic code gave as an array of the type wanted.
 
     /** {@code items} (any array) as a new array of {@code type} ({@code int[].class}). */
-    public static <A> A Of(Object items, Class<A> type) {
+    public static <A> A Of(java.lang.Object items, Class<A> type) {
         int length = java.lang.reflect.Array.getLength(items);
-        Object made = java.lang.reflect.Array.newInstance(type.getComponentType(), length);
+        java.lang.Object made = java.lang.reflect.Array.newInstance(type.getComponentType(), length);
         for (int i = 0; i < length; i++) {
             java.lang.reflect.Array.set(made, i, java.lang.reflect.Array.get(items, i));
         }
         return type.cast(made);
     }
 
-    public static Object[] Empty() {
-        return new Object[0];
+    public static java.lang.Object[] Empty() {
+        return new java.lang.Object[0];
     }
 
     // An array as its interfaces.
@@ -473,7 +473,7 @@ public final class Array {
     /** {@code array} made {@code newSize} long; a null one an array of objects, Java not knowing its type. */
     @SuppressWarnings("unchecked")
     public static <T> T[] Resize(T[] array, int newSize) {
-        return array == null ? (T[]) new Object[newSize] : java.util.Arrays.copyOf(array, newSize);
+        return array == null ? (T[]) new java.lang.Object[newSize] : java.util.Arrays.copyOf(array, newSize);
     }
 
     // Matched.
@@ -485,7 +485,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static Object[] FindAll(int[] array, Predicate<Integer> match) {
+    public static java.lang.Object[] FindAll(int[] array, Predicate<Integer> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -501,7 +501,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <O> Object[] ConvertAll(int[] array, Converter<Integer, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(int[] array, Converter<Integer, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static boolean Exists(long[] array, Predicate<Long> match) {
@@ -512,7 +512,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static Object[] FindAll(long[] array, Predicate<Long> match) {
+    public static java.lang.Object[] FindAll(long[] array, Predicate<Long> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -528,7 +528,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <O> Object[] ConvertAll(long[] array, Converter<Long, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(long[] array, Converter<Long, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static boolean Exists(short[] array, Predicate<Short> match) {
@@ -539,7 +539,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static Object[] FindAll(short[] array, Predicate<Short> match) {
+    public static java.lang.Object[] FindAll(short[] array, Predicate<Short> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -555,7 +555,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <O> Object[] ConvertAll(short[] array, Converter<Short, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(short[] array, Converter<Short, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static boolean Exists(byte[] array, Predicate<Byte> match) {
@@ -566,7 +566,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static Object[] FindAll(byte[] array, Predicate<Byte> match) {
+    public static java.lang.Object[] FindAll(byte[] array, Predicate<Byte> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -582,7 +582,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <O> Object[] ConvertAll(byte[] array, Converter<Byte, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(byte[] array, Converter<Byte, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static boolean Exists(char[] array, Predicate<Character> match) {
@@ -593,7 +593,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static Object[] FindAll(char[] array, Predicate<Character> match) {
+    public static java.lang.Object[] FindAll(char[] array, Predicate<Character> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -609,7 +609,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <O> Object[] ConvertAll(char[] array, Converter<Character, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(char[] array, Converter<Character, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static boolean Exists(float[] array, Predicate<Float> match) {
@@ -620,7 +620,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static Object[] FindAll(float[] array, Predicate<Float> match) {
+    public static java.lang.Object[] FindAll(float[] array, Predicate<Float> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -636,7 +636,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <O> Object[] ConvertAll(float[] array, Converter<Float, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(float[] array, Converter<Float, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static boolean Exists(double[] array, Predicate<Double> match) {
@@ -647,7 +647,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static Object[] FindAll(double[] array, Predicate<Double> match) {
+    public static java.lang.Object[] FindAll(double[] array, Predicate<Double> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -663,7 +663,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <O> Object[] ConvertAll(double[] array, Converter<Double, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(double[] array, Converter<Double, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static boolean Exists(boolean[] array, Predicate<Boolean> match) {
@@ -674,7 +674,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static Object[] FindAll(boolean[] array, Predicate<Boolean> match) {
+    public static java.lang.Object[] FindAll(boolean[] array, Predicate<Boolean> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -690,7 +690,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <O> Object[] ConvertAll(boolean[] array, Converter<Boolean, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(boolean[] array, Converter<Boolean, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static <T> boolean Exists(T[] array, Predicate<T> match) {
@@ -701,7 +701,7 @@ public final class Array {
         return AsList(array).Find(match);
     }
 
-    public static <T> Object[] FindAll(T[] array, Predicate<T> match) {
+    public static <T> java.lang.Object[] FindAll(T[] array, Predicate<T> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
@@ -717,7 +717,7 @@ public final class Array {
         AsList(array).ForEach(action);
     }
 
-    public static <I, O> Object[] ConvertAll(I[] array, Converter<I, O> converter) {
+    public static <I, O> java.lang.Object[] ConvertAll(I[] array, Converter<I, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
 }

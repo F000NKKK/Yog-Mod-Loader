@@ -19,6 +19,9 @@ pub struct Types {
     /// The implicit conversions values go through where they're handed
     /// on, by expression.
     conversions: HashMap<usize, OperatorUse>,
+    /// The types values are recast to where they go by variance only (the
+    /// JVM's generics have none), by expression.
+    recasts: HashMap<usize, Type>,
     /// The method each call chose, by the call.
     methods: HashMap<usize, MethodUse>,
     /// The operators `op=` applies (`v += w` on a `Vec`), by the place it
@@ -47,6 +50,16 @@ pub struct MethodUse {
 }
 
 impl Types {
+    /// The type `e`'s value is recast to, going where it's wanted by
+    /// variance (`IEnumerable<string>` as an `IEnumerable<object>`).
+    pub fn recast(&self, e: &Expr) -> Option<&Type> {
+        self.recasts.get(&key(e))
+    }
+
+    pub(super) fn set_recast(&mut self, e: &Expr, to: Type) {
+        self.recasts.insert(key(e), to);
+    }
+
     /// The method call `e` chose, when it's an own one.
     pub fn method(&self, e: &Expr) -> Option<&MethodUse> {
         self.methods.get(&key(e))

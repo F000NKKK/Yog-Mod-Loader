@@ -35,6 +35,7 @@ mod shapes;
 mod stmts;
 pub(crate) mod surface;
 mod types;
+mod variance;
 mod variants;
 mod written;
 
@@ -140,7 +141,7 @@ pub(crate) fn check(
     c.type_delegates();
     c.type_operators();
     c.decls(&file.decls);
-    inherit::check(&file.decls, c.report);
+    inherit::check(&crate::system::DECLS, &file.decls, c.report);
     c.types
 }
 
@@ -191,16 +192,7 @@ impl Checker<'_, '_, '_> {
         }
         match (got.non_null(), wanted.non_null()) {
             // An own type, or one it inherits, given the arguments wanted.
-            (Type::Own(a, xs), Type::Own(b, ys)) => {
-                self.lineage_of(a, xs).iter().any(|(k, args)| {
-                    k.name == *b
-                        && k.arity == ys.len()
-                        && args
-                            .iter()
-                            .zip(ys)
-                            .all(|(x, y)| open(x) || open(y) || x == y)
-                })
-            }
+            (Type::Own(a, xs), Type::Own(b, ys)) => self.own_converts(a, xs, (b, ys), true),
             (Type::Array(..), wanted) => self.array_converts(got.non_null(), wanted),
             // A lambda or a method where a delegate of its shape is wanted.
             (Type::Fn(..), Type::Own(..)) => {
@@ -246,10 +238,4 @@ impl Checker<'_, '_, '_> {
         (self.this, self.side, self.returns) = saved;
         out
     }
-}
-
-/// A type argument not settled yet (a case made without the others':
-/// `Ok(5)` says nothing of `E`): it fits whatever is wanted.
-fn open(t: &Type) -> bool {
-    matches!(t, Type::Param(_) | Type::Unknown)
 }

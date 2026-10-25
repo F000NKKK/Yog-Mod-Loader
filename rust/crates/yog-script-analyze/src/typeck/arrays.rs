@@ -131,7 +131,7 @@ impl Checker<'_, '_, '_> {
     }
 
     /// Whether a `t` is a reference (an array of it is one of a base's).
-    fn is_reference(&self, t: &Type) -> bool {
+    pub(super) fn is_reference(&self, t: &Type) -> bool {
         match t {
             Type::String | Type::Object | Type::Dynamic | Type::Array(..) => true,
             Type::Own(name, args) => self.own.get(name, args.len()).is_some_and(|o| o.heap),

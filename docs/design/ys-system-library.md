@@ -153,10 +153,7 @@ Where Java's erasure makes .NET's shape impossible, the shape gives way:
 an `ICollection` of them (its `Remove(K)` and `ICollection`'s
 `Remove(KeyValuePair)` erase alike), and a set's `Add` gives nothing
 (`ICollection`'s `void Add` and `ISet`'s `bool Add` can't both be). Not
-there yet: variance (`IEnumerable<out T>` is written, not yet applied),
-`equals` / `hashCode` from a type's `Equals` / `GetHashCode` (a struct is
-found in a set by identity until then), `IReadOnlyDictionary`,
-`IReadOnlySet`.
+there yet: `IReadOnlyDictionary`, `IReadOnlySet`.
 
 ## Delegates and events
 
@@ -197,7 +194,7 @@ surface's delegates.
    a runtime method's `ref` gives the value back (`xs = Array.Sort(xs)`),
    and a generic `T[]` result is made the array wanted (`Array.Of`).
    Calls take type arguments (`Array.Empty<i32>()`).
-1b. Right after arrays, what the collections still miss:
+1b. (done) Right after arrays, what the collections still missed:
    - variance applied: `IEnumerable<out T>`, `IComparer<in T>`, a
      delegate's `in` / `out` — a `List<Derived>` goes where an
      `IEnumerable<Base>` is wanted (Java's wildcards where it lowers);
@@ -205,7 +202,11 @@ surface's delegates.
      `GetHashCode` (a struct's from its fields by default, as .NET's
      `ValueType`), so sets and dictionary keys find a struct by value;
    - a class's property implementing an interface's (`Count`) lowered as
-     the getter (and setter) Java's interface wants.
+     the getter Java's interface wants (beside its field);
+   - `System.Object` declared (`Equals`, `GetHashCode`, `ToString`,
+     virtual), every type's base: `override` finds it, `5.ToString()` and
+     `x.Equals(y)` are there; what a type doesn't answer itself runs on
+     the runtime's companion (`host.Object`).
 1c. Explicit interface implementations, as C#'s
    (`void ICollection<T>.Add(T item) { … }`): a member reached only
    through its interface. On the JVM each member has a Java name: its
