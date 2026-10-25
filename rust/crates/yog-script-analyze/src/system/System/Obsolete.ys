@@ -1,0 +1,4 @@
+namespace System;
+
+/// A declaration not to use any more, and what to use instead.
+public sealed class Obsolete(string message) : Attribute {}

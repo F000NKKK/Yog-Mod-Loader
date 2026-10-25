@@ -1,0 +1,12 @@
+namespace System;
+
+/// Numbers' functions.
+public static class Math {
+    public static i32 Max(i32 a, i32 b);
+    public static i32 Min(i32 a, i32 b);
+    public static i32 Abs(i32 x);
+    public static i32 Clamp(i32 x, i32 min, i32 max);
+    public static f64 Sqrt(f64 x);
+    public static f64 Floor(f64 x);
+    public static f64 Round(f64 x);
+}

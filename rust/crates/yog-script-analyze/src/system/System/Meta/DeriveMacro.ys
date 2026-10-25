@@ -1,0 +1,6 @@
+namespace System.Meta;
+
+/// Marks a method as a derive macro: `[Derive(Name)]` on a type runs it on
+/// the type (`string Name(Item item)`), and the code it gives is added
+/// after the type.
+public sealed class DeriveMacro : Attribute {}

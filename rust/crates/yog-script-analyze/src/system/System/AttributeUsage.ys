@@ -1,0 +1,7 @@
+namespace System;
+
+/// Where the attribute class it marks may stand.
+public sealed class AttributeUsage(AttributeTargets on) : Attribute {
+    public bool AllowMultiple;
+    public bool Inherited;
+}

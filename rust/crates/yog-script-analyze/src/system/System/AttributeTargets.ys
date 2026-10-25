@@ -1,0 +1,4 @@
+namespace System;
+
+/// Where an attribute may stand.
+public enum AttributeTargets { Class, Struct, Enum, Interface, Method, Property, Field, Parameter, ReturnValue, Module, All }

@@ -1,7 +1,8 @@
 //! The System library: its own sources check, and code uses it.
 
 use yog_ids::script_problem;
-use yog_script_analyze::check;
+use yog_script_analyze::ast::DeclKind;
+use yog_script_analyze::{check, system};
 
 fn codes(src: &str) -> Vec<String> {
     check("a.ys", src)
@@ -13,19 +14,30 @@ fn codes(src: &str) -> Vec<String> {
 
 #[test]
 fn the_librarys_sources_check() {
-    for (name, src) in [
-        ("System.ys", include_str!("../src/system/System.ys")),
-        (
-            "System.Meta.ys",
-            include_str!("../src/system/System.Meta.ys"),
-        ),
-        (
-            "System.Yog.Native.ys",
-            include_str!("../src/system/System.Yog.Native.ys"),
-        ),
-    ] {
-        let problems = check(name, src).problems;
-        assert!(problems.is_empty(), "{name}: {problems:#?}");
+    assert!(!system::sources().is_empty());
+    for (path, src) in system::sources() {
+        let checked = check(path, src);
+        assert!(
+            checked.problems.is_empty(),
+            "{path}: {:#?}",
+            checked.problems
+        );
+        // As .NET's IDE0130: a file's namespace is its folders.
+        let folders = path.rsplit_once(system::FOLDER_SEP).map_or("", |(f, _)| f);
+        let declared = checked.file.decls.iter().find_map(|d| match &d.kind {
+            DeclKind::Namespace { path, .. } => Some(
+                path.iter()
+                    .map(|n| n.text.as_str())
+                    .collect::<Vec<_>>()
+                    .join("."),
+            ),
+            _ => None,
+        });
+        assert_eq!(
+            declared.as_deref(),
+            Some(folders.replace(system::FOLDER_SEP, ".").as_str()),
+            "{path}"
+        );
     }
 }
 

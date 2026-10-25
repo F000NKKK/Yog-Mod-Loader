@@ -1,0 +1,5 @@
+namespace System.Yog.Native;
+
+/// An `extern` method that is a call on the bus: its parameters the
+/// request's fields (a Rust struct's, in order), its result the reply.
+public sealed class Service(string address) : Attribute {}

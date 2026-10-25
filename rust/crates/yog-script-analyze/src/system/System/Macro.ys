@@ -1,0 +1,5 @@
+namespace System;
+
+/// Marks an attribute class as an attribute macro: where it stands, the
+/// build runs its `Expand` on the declaration.
+public sealed class Macro : Attribute {}

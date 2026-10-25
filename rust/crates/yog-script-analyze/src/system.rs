@@ -1,5 +1,6 @@
-//! The System library's declarations (`system/*.ys`), read once and seen
-//! by every source as its own types are, namespace `System`.
+//! The System library's declarations (`system/**/*.ys`: one type a file,
+//! its folders its namespace), read once and seen by every source as its
+//! own types are.
 
 use yog_sync::LazyLock;
 
@@ -37,15 +38,16 @@ pub const SERVICE: &str = "Service";
 pub const EVENT: &str = "Event";
 pub const PROVIDE: &str = "Provide";
 
-/// The System library's sources, by file name.
-const SOURCES: &[(&str, &str)] = &[
-    ("System.ys", include_str!("system/System.ys")),
-    ("System.Meta.ys", include_str!("system/System.Meta.ys")),
-    (
-        "System.Yog.Native.ys",
-        include_str!("system/System.Yog.Native.ys"),
-    ),
-];
+// `SOURCES`: every `.ys` under `src/system/`, listed by `build.rs`.
+include!(concat!(env!("OUT_DIR"), "/system_sources.rs"));
+
+/// What separates a source's folders (`System/Meta/Item.ys`).
+pub const FOLDER_SEP: char = '/';
+
+/// The library's sources: each one's path under `src/system/` and its text.
+pub fn sources() -> &'static [(&'static str, &'static str)] {
+    SOURCES
+}
 
 /// Every declaration of the library, parsed once.
 pub static DECLS: LazyLock<Vec<Decl>> = LazyLock::new(|| {

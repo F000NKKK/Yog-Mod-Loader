@@ -1,0 +1,4 @@
+namespace System;
+
+/// Derive macros run on the type it marks: `[Derive(Clone, Equals)]`.
+public sealed class Derive : Attribute {}

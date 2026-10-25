@@ -1,0 +1,5 @@
+namespace System.Yog.Native;
+
+/// An `event` on the bus: `+=` listens to what's emitted there, `Invoke`
+/// emits it.
+public sealed class Event(string address) : Attribute {}

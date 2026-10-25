@@ -1,0 +1,4 @@
+namespace System.Meta;
+
+/// A field of an `Item`: its name and its type as written.
+public record Field(string Name, string Type);

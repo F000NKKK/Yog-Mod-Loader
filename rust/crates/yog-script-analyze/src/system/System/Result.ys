@@ -1,0 +1,17 @@
+namespace System;
+
+/// What may fail: a value, or why it isn't there — Rust's `Result`.
+/// `try F()` gives the value or returns the `Err` from the caller.
+public enum Result<T, TError> {
+    Ok(T Value),
+    Err(TError Error);
+
+    public readonly bool IsOk();
+    public readonly bool IsErr();
+    /// The value; a panic when it's an `Err`.
+    public readonly T Unwrap();
+    /// The value; a panic with `message` when it's an `Err`.
+    public readonly T Expect(string message);
+    /// The value, or `fallback` when it's an `Err`.
+    public readonly T UnwrapOr(T fallback);
+}

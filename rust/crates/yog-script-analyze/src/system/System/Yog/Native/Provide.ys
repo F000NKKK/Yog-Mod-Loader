@@ -1,0 +1,4 @@
+namespace System.Yog.Native;
+
+/// A method others call on the bus at this address.
+public sealed class Provide(string address) : Attribute {}

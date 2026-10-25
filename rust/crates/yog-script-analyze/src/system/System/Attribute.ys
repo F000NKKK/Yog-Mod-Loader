@@ -1,0 +1,6 @@
+namespace System;
+
+/// The base of every attribute: `[Name(…)]` on a declaration is an object
+/// of a class inheriting it, read by Reflection at run time and by macros
+/// at build time.
+public abstract class Attribute {}

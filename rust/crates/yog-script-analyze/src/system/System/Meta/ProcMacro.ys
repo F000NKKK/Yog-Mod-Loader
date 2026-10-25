@@ -1,0 +1,6 @@
+namespace System.Meta;
+
+/// Marks a method as a function-like macro: `Name!(…)` runs it on the
+/// call's text (`string Name(string input)`), and the code it gives takes
+/// the call's place.
+public sealed class ProcMacro : Attribute {}

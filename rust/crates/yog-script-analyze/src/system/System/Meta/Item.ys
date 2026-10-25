@@ -1,0 +1,5 @@
+namespace System.Meta;
+
+/// A declaration as a macro sees it: its name, its word (`class`,
+/// `struct`, `record`, `enum`), its fields, its text.
+public record Item(string Name, string Kind, List<Field> Fields, string Source);

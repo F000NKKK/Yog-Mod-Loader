@@ -118,8 +118,23 @@ panic named as C#'s exception would be (`ArgumentOutOfRange`).
 - LINQ is lazy as C#'s: `Where` gives an `IEnumerable<T>` that runs when
   it's gone through, on Java's iterators (no streams' one-shot rule).
 
+## Delegates and events
+
+As .NET's: a delegate is a type declared (`delegate void Action<in T>(T
+obj);`), `System`'s among them — `Action<…>`, `Func<…, out TResult>`,
+`Predicate<in T>`, `Comparison<in T>`, `Converter<in TIn, out TOut>`,
+`EventHandler<TEventArgs>` (with `EventArgs`) — each a file of its own,
+none known to the checker by name. An `event` is a member of any
+delegate type: `+=` / `-=` subscribe and leave, `Invoke` (or `?.Invoke`)
+raises it. Yog's events (`Player.Join += e => …`) are `event`s of the
+surface's delegates.
+
 ## Steps
 
+0. The language under the library: indexers (done), `value` / `field`
+   (done), the folders as namespaces (done); delegates declared and
+   events of any delegate type; operators (`operator +`, `==`,
+   `implicit` / `explicit` conversions).
 1. `System.Collections.Generic`'s interfaces and `List`, `Dictionary`,
    `HashSet`, `KeyValuePair`; `System`'s `IEquatable`, `IComparable`,
    `IDisposable`, `Math`, `String`'s members; the type checker reading
