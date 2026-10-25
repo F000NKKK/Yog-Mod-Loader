@@ -423,7 +423,7 @@ mod tests {
         );
         let newest = versions().last().expect("supported versions");
         let wanted = format!(
-            "isn't in Minecraft {newest} (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass"
+            "isn't in Minecraft {newest} (the mod's datapack; it's in 1.19.2, 1.20.1) — there it's minecraft:short_grass"
         );
         assert!(
             k.check(RefKind::Item, "minecraft:grass")

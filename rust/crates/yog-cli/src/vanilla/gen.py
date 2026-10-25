@@ -5,8 +5,10 @@ Run with the client jars of every supported version (Loom's cache):
 
 Add a version to VERSIONS when Yog starts supporting it."""
 import zipfile, json, re, os, sys, glob, subprocess, collections
-VERSIONS = ["1.20.1", "1.21.1", "26.2"]
+VERSIONS = ["1.19.2", "1.20.1", "1.21.1", "26.2"]
 ids = collections.defaultdict(set)   # (kind, id) -> versions
+# The potion registry's class in the mappings Loom keeps: Mojang's, Yarn's.
+POTIONS_NAMED = {"net/minecraft/world/item/alchemy/Potions", "net/minecraft/potion/Potions"}
 for v in VERSIONS:
     z = zipfile.ZipFile(os.path.expanduser(f"~/.gradle/caches/fabric-loom/{v}/minecraft-client.jar"))
     names = z.namelist()
@@ -43,7 +45,8 @@ for v in VERSIONS:
         m = re.fullmatch(r"entity\.minecraft\.([a-z0-9_]+)", k)
         if m:
             ids[("entity", m[1])].add(v)
-    # An unobfuscated version (26.1 on) names the class itself; an older one through Yarn.
+    # An unobfuscated version (26.1 on) names the class itself; an older one through
+    # its mappings (Mojang's, as the hosts build on, or Yarn's).
     # (Its registry ids are their own class's: `PotionIds`, `long_`/`strong_` spelled out.)
     UNOBFUSCATED = "net/minecraft/world/item/alchemy/PotionIds"
     registry_class = UNOBFUSCATED if f"{UNOBFUSCATED}.class" in names else None
@@ -52,13 +55,13 @@ for v in VERSIONS:
         with open(mapping) as f:
             for line in f:
                 columns = line.rstrip("\n").split("\t")
-                if len(columns) >= 4 and columns[0] == "c" and columns[-1] == "net/minecraft/potion/Potions":
+                if len(columns) >= 4 and columns[0] == "c" and columns[-1] in POTIONS_NAMED:
                     registry_class = columns[1]
                     break
         if registry_class:
             break
     if registry_class is None:
-        raise RuntimeError(f"no Yarn mapping for Minecraft {v}'s potion registry")
+        raise RuntimeError(f"no mapping for Minecraft {v}'s potion registry")
     bytecode = subprocess.run(
         ["javap", "-classpath", os.path.expanduser(f"~/.gradle/caches/fabric-loom/{v}/minecraft-client.jar"), "-c", "-p", registry_class],
         check=True,
