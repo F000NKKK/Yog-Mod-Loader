@@ -8,7 +8,7 @@ import dev.yog.util.YogModInfo;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import net.fabricmc.fabric.impl.item.group.ItemGroupExtensions;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -23,7 +23,11 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * What the shared host code ({@code java-common/mc/<version>}) asks of the
@@ -86,8 +90,17 @@ public final class YogPlatform {
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(YogPayload.CHANNEL, frame(channel, data));
     }
 
-    public static CreativeModeTab.Builder tabBuilder() {
-        return FabricItemGroup.builder();
+    /**
+     * Namespace ns's creative tab, titled ns: a new slot in the game's tab
+     * array (as Fabric's own builder makes one), holding what fill gives.
+     */
+    public static CreativeModeTab tab(String ns, Supplier<ItemStack> icon, Consumer<NonNullList<ItemStack>> fill) {
+        ((ItemGroupExtensions) CreativeModeTab.TAB_BUILDING_BLOCKS).fabric_expandArray();
+        return new CreativeModeTab(CreativeModeTab.TABS.length - 1, ns + "." + ns) {
+            @Override public ItemStack makeIcon() { return icon.get(); }
+            @Override public void fillItemList(NonNullList<ItemStack> stacks) { fill.accept(stacks); }
+            @Override public Component getDisplayName() { return Component.literal(ns); }
+        };
     }
 
     /** The menu type of the mods' inventories: the inventory's id comes with the screen. */

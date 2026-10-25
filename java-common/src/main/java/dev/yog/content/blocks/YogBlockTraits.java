@@ -15,7 +15,6 @@ import net.minecraft.world.level.block.AbstractChestBlock;
 import net.minecraft.world.level.block.AbstractSkullBlock;
 import net.minecraft.world.level.block.AmethystClusterBlock;
 import net.minecraft.world.level.block.AzaleaBlock;
-import net.minecraft.world.level.block.BambooStalkBlock;
 import net.minecraft.world.level.block.BaseFireBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -108,7 +107,7 @@ public final class YogBlockTraits {
         t |= bit(BlockTrait.AZALEA, b instanceof AzaleaBlock);
         t |= bit(BlockTrait.AMETHYST_CLUSTER, b instanceof AmethystClusterBlock);
         t |= bit(BlockTrait.POINTED_DRIPSTONE, b instanceof PointedDripstoneBlock);
-        t |= bit(BlockTrait.BAMBOO, b instanceof BambooStalkBlock);
+        t |= bit(BlockTrait.BAMBOO, b == Blocks.BAMBOO);
         t |= bit(BlockTrait.MOVING_PISTON, b instanceof MovingPistonBlock);
         t |= bit(BlockTrait.SCAFFOLDING, b instanceof ScaffoldingBlock);
         t |= bit(BlockTrait.CHEST, b instanceof AbstractChestBlock);

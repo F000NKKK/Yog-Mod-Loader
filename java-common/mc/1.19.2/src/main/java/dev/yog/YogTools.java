@@ -1,0 +1,351 @@
+package dev.yog;
+
+import net.minecraft.core.Registry;
+import dev.yog.client.YogTooltipData;
+import dev.yog.content.YogContentRegistry;
+
+import dev.yog.bus.YogTypes;
+import dev.yog.data.YogContent;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.EquipmentSlot;
+import java.util.Collection;
+import com.google.common.collect.Multimap;
+import java.util.List;
+import java.util.Optional;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.DiggerItem;
+import net.minecraft.world.item.HoeItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.PickaxeItem;
+import net.minecraft.world.item.ShovelItem;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.Tier;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.block.Block;
+
+/**
+ * Tools, weapons and armor of a material (the game's or a mod's), as the
+ * runtime describes them ({@link YogTypes.Tool}, {@link YogTypes.Armor}):
+ * the game's own item classes, with the mod's name and tooltip.
+ */
+public final class YogTools {
+    private YogTools() {}
+
+    /** The tool or armor item {@code p} says, or null for neither. */
+    public static Item make(Item.Properties props, YogTypes.Item p) {
+        if (p.tool() != null) {
+            YogTypes.Tool t = YogContent.resolved(p.tool(), YogTools::gameAttack);
+            Tier tier = new YogTier(t.material());
+            String n = p.name(), tip = p.tooltip();
+            return switch (t.kind()) {
+                case YogNames.ToolKind.PICKAXE -> new Pickaxe(tier, t, props, n, tip);
+                case YogNames.ToolKind.AXE -> new Axe(tier, t, props, n, tip);
+                case YogNames.ToolKind.SHOVEL -> new Shovel(tier, t, props, n, tip);
+                case YogNames.ToolKind.HOE -> new Hoe(tier, t, props, n, tip);
+                case YogNames.ToolKind.SWORD -> new Sword(tier, t, props, n, tip);
+                default -> new Digger(tier, t, props, n, tip);
+            };
+        }
+        if (p.armor() != null) {
+            YogTypes.Armor a = p.armor();
+            return new Armor(new YogArmorMaterial(a.material()), armorType(a.slot()), props, p.name(), p.tooltip());
+        }
+        return null;
+    }
+
+    /** Game item {@code id}'s main-hand attack damage and speed modifiers; null for no such item. */
+    static float[] gameAttack(String id) {
+        ResourceLocation rl = ResourceLocation.tryParse(id);
+        Item item = rl == null ? Items.AIR : Registry.ITEM.get(rl);
+        if (item == Items.AIR) return null;
+        Multimap<Attribute, AttributeModifier> mods = item.getDefaultAttributeModifiers(EquipmentSlot.MAINHAND);
+        return new float[] {sum(mods.get(Attributes.ATTACK_DAMAGE)), sum(mods.get(Attributes.ATTACK_SPEED))};
+    }
+
+    private static float sum(Collection<AttributeModifier> mods) {
+        double total = 0;
+        for (AttributeModifier m : mods) total += m.getAmount();
+        return (float) total;
+    }
+
+    /** {@code head}, {@code chest}, {@code legs}, {@code feet} as the game's armor type. */
+    static EquipmentSlot armorType(String slot) {
+        return switch (slot) {
+            case YogTypes.ArmorSlot.CHEST -> EquipmentSlot.CHEST;
+            case YogTypes.ArmorSlot.LEGS -> EquipmentSlot.LEGS;
+            case YogTypes.ArmorSlot.FEET -> EquipmentSlot.FEET;
+            default -> EquipmentSlot.HEAD;
+        };
+    }
+
+    /** A mod's kind of tool: the blocks it mines, by their tag. */
+    static TagKey<Block> mineable(String tag) {
+        ResourceLocation rl = ResourceLocation.tryParse(tag);
+        return TagKey.create(Registry.BLOCK_REGISTRY, rl != null ? rl : ResourceLocation.tryParse(YogNames.Game.MINEABLE + YogNames.ToolKind.PICKAXE));
+    }
+
+    /** What repairs it: an item id or {@code #tag}; nothing if neither is known. */
+    static Ingredient repair(String r) {
+        if (r == null || r.isEmpty()) return Ingredient.EMPTY;
+        if (r.startsWith("#")) {
+            ResourceLocation rl = ResourceLocation.tryParse(r.substring(1));
+            return rl == null ? Ingredient.EMPTY : Ingredient.of(TagKey.create(Registry.ITEM_REGISTRY, rl));
+        }
+        ResourceLocation rl = ResourceLocation.tryParse(r);
+        Item item = rl == null ? Items.AIR : Registry.ITEM.get(rl);
+        return item == Items.AIR ? Ingredient.EMPTY : Ingredient.of(item);
+    }
+
+    static Component named(String displayName, Component fallback) {
+        return displayName == null || displayName.isEmpty() ? fallback : Component.literal(displayName);
+    }
+
+    /** The item's tooltip lines: its {@code .desc} translation, else the mod's tooltip. */
+    public static void hover(Item item, String tip, List<Component> lines) {
+        String descKey = item.getDescriptionId() + ".desc";
+        // The game's own language (both sides; on a client the player's).
+        net.minecraft.locale.Language language = net.minecraft.locale.Language.getInstance();
+        String resolved = language.has(descKey) ? language.getOrDefault(descKey)
+                : (tip != null && !tip.isEmpty() ? tip : null);
+        if (resolved != null) {
+            for (String line : resolved.split("\n")) lines.add(Component.literal(line));
+        }
+    }
+
+    /** A tool material as the game's tier. */
+    record YogTier(YogTypes.ToolMaterial m) implements Tier {
+        @Override public int getUses() { return (int) m.durability(); }
+        @Override public float getSpeed() { return m.speed(); }
+        @Override public float getAttackDamageBonus() { return m.attackDamage(); }
+        @Override public int getLevel() { return (int) m.levelIndex(); }
+        @Override public int getEnchantmentValue() { return (int) m.enchantability(); }
+        @Override public Ingredient getRepairIngredient() { return repair(m.repair()); }
+    }
+
+    /** An armor material as the game's. */
+    record YogArmorMaterial(YogTypes.ArmorMaterial m) implements net.minecraft.world.item.ArmorMaterial {
+        @Override public int getDurabilityForSlot(EquipmentSlot type) {
+            return YogContent.armorDurability(new YogTypes.Armor(slotOf(type), m));
+        }
+        @Override public int getDefenseForSlot(EquipmentSlot type) {
+            return YogContent.armorDefense(new YogTypes.Armor(slotOf(type), m));
+        }
+        @Override public int getEnchantmentValue() { return (int) m.enchantability(); }
+        @Override public net.minecraft.sounds.SoundEvent getEquipSound() { return YogContentRegistry.soundEvent(m.equipSound()); }
+        @Override public Ingredient getRepairIngredient() { return repair(m.repair()); }
+        /** {@code ns:name}: the textures are {@code ns:textures/models/armor/name_layer_1.png}. */
+        @Override public String getName() { return m.texture(); }
+        @Override public float getToughness() { return m.toughness(); }
+        @Override public float getKnockbackResistance() { return m.knockbackResistance(); }
+    }
+
+    private static String slotOf(EquipmentSlot type) {
+        return switch (type) {
+            case CHEST -> YogTypes.ArmorSlot.CHEST;
+            case LEGS -> YogTypes.ArmorSlot.LEGS;
+            case FEET -> YogTypes.ArmorSlot.FEET;
+            default -> YogTypes.ArmorSlot.HEAD;
+        };
+    }
+
+    /** A pickaxe with the mod's name and tooltip. */
+    public static final class Pickaxe extends PickaxeItem {
+        private final String displayName, tip;
+
+        Pickaxe(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage().intValue(), t.attackSpeed(), p);
+            this.displayName = displayName;
+            this.tip = tip;
+        }
+
+        @Override
+        public Component getName(ItemStack stack) {
+            return named(displayName, super.getName(stack));
+        }
+
+        @Override
+        public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+            super.appendHoverText(stack, level, lines, flag);
+            hover(this, tip, lines);
+        }
+
+        @Override
+        public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+            return YogTooltipData.of(stack);
+        }
+    }
+
+    /** A axe with the mod's name and tooltip. */
+    public static final class Axe extends AxeItem {
+        private final String displayName, tip;
+
+        Axe(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage(), t.attackSpeed(), p);
+            this.displayName = displayName;
+            this.tip = tip;
+        }
+
+        @Override
+        public Component getName(ItemStack stack) {
+            return named(displayName, super.getName(stack));
+        }
+
+        @Override
+        public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+            super.appendHoverText(stack, level, lines, flag);
+            hover(this, tip, lines);
+        }
+
+        @Override
+        public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+            return YogTooltipData.of(stack);
+        }
+    }
+
+    /** A shovel with the mod's name and tooltip. */
+    public static final class Shovel extends ShovelItem {
+        private final String displayName, tip;
+
+        Shovel(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage(), t.attackSpeed(), p);
+            this.displayName = displayName;
+            this.tip = tip;
+        }
+
+        @Override
+        public Component getName(ItemStack stack) {
+            return named(displayName, super.getName(stack));
+        }
+
+        @Override
+        public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+            super.appendHoverText(stack, level, lines, flag);
+            hover(this, tip, lines);
+        }
+
+        @Override
+        public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+            return YogTooltipData.of(stack);
+        }
+    }
+
+    /** A hoe with the mod's name and tooltip. */
+    public static final class Hoe extends HoeItem {
+        private final String displayName, tip;
+
+        Hoe(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage().intValue(), t.attackSpeed(), p);
+            this.displayName = displayName;
+            this.tip = tip;
+        }
+
+        @Override
+        public Component getName(ItemStack stack) {
+            return named(displayName, super.getName(stack));
+        }
+
+        @Override
+        public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+            super.appendHoverText(stack, level, lines, flag);
+            hover(this, tip, lines);
+        }
+
+        @Override
+        public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+            return YogTooltipData.of(stack);
+        }
+    }
+
+    /** A sword with the mod's name and tooltip. */
+    public static final class Sword extends SwordItem {
+        private final String displayName, tip;
+
+        Sword(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(tier, t.attackDamage().intValue(), t.attackSpeed(), p);
+            this.displayName = displayName;
+            this.tip = tip;
+        }
+
+        @Override
+        public Component getName(ItemStack stack) {
+            return named(displayName, super.getName(stack));
+        }
+
+        @Override
+        public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+            super.appendHoverText(stack, level, lines, flag);
+            hover(this, tip, lines);
+        }
+
+        @Override
+        public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+            return YogTooltipData.of(stack);
+        }
+    }
+
+    /** A digger with the mod's name and tooltip. */
+    public static final class Digger extends DiggerItem {
+        private final String displayName, tip;
+
+        Digger(Tier tier, YogTypes.Tool t, Properties p, String displayName, String tip) {
+            super(t.attackDamage(), t.attackSpeed(), tier, mineable(t.kind()), p);
+            this.displayName = displayName;
+            this.tip = tip;
+        }
+
+        @Override
+        public Component getName(ItemStack stack) {
+            return named(displayName, super.getName(stack));
+        }
+
+        @Override
+        public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+            super.appendHoverText(stack, level, lines, flag);
+            hover(this, tip, lines);
+        }
+
+        @Override
+        public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+            return YogTooltipData.of(stack);
+        }
+    }
+
+    /** A armor with the mod's name and tooltip. */
+    public static final class Armor extends ArmorItem {
+        private final String displayName, tip;
+
+        Armor(net.minecraft.world.item.ArmorMaterial m, EquipmentSlot type, Properties p, String displayName, String tip) {
+            super(m, type, p);
+            this.displayName = displayName;
+            this.tip = tip;
+        }
+
+        @Override
+        public Component getName(ItemStack stack) {
+            return named(displayName, super.getName(stack));
+        }
+
+        @Override
+        public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
+            super.appendHoverText(stack, level, lines, flag);
+            hover(this, tip, lines);
+        }
+
+        @Override
+        public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+            return YogTooltipData.of(stack);
+        }
+    }
+}

@@ -32,8 +32,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -81,7 +79,7 @@ public class YogHost implements ModInitializer {
 
     private static <T> void register(ResourceKey<? extends Registry<T>> registry, ResourceLocation id, T value) {
         @SuppressWarnings("unchecked") // a registry of the key's type: the root registry hands it out untyped
-        Registry<T> r = (Registry<T>) BuiltInRegistries.REGISTRY.get(registry.location());
+        Registry<T> r = (Registry<T>) Registry.REGISTRY.get(registry.location());
         Registry.register(r, id, value);
     }
 
@@ -97,8 +95,8 @@ public class YogHost implements ModInitializer {
                 YogLog.warn(f.feature() + ": no generation step " + f.step());
                 continue;
             }
-            BiomeModifications.addFeature(BiomeSelectors.tag(TagKey.create(Registries.BIOME, biomes)), step,
-                    ResourceKey.create(Registries.PLACED_FEATURE, feature));
+            BiomeModifications.addFeature(BiomeSelectors.tag(TagKey.create(Registry.BIOME_REGISTRY, biomes)), step,
+                    ResourceKey.create(Registry.PLACED_FEATURE_REGISTRY, feature));
         }
     }
 

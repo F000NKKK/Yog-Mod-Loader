@@ -7,7 +7,6 @@ import java.util.Set;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.server.packs.repository.RepositorySource;
-import net.minecraft.server.packs.repository.ServerPacksSource;
 import dev.yog.content.YogPackProvider;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,20 +27,11 @@ public class ResourcePackManagerMixin {
     @Mutable
     private Set<RepositorySource> sources;
 
-    @Inject(method = "<init>", at = @At("TAIL"))
-    private void yog$addProvider(RepositorySource[] providers, CallbackInfo ci) {
+    /** The repository of a type (the client's resources, the server's data) — this version names it. */
+    @Inject(method = "<init>(Lnet/minecraft/server/packs/PackType;[Lnet/minecraft/server/packs/repository/RepositorySource;)V",
+            at = @At("TAIL"))
+    private void yog$addProvider(PackType type, RepositorySource[] providers, CallbackInfo ci) {
         try {
-            // The data-pack repository is built with the server's built-in
-            // packs; the client resource one is not. Use that to pick the type.
-            boolean isData = false;
-            for (RepositorySource p : providers) {
-                if (p instanceof ServerPacksSource) {
-                    isData = true;
-                    break;
-                }
-            }
-            PackType type = isData ? PackType.SERVER_DATA : PackType.CLIENT_RESOURCES;
-
             Set<RepositorySource> updated = new HashSet<>(this.sources);
             updated.add(new YogPackProvider(type));
             this.sources = updated;

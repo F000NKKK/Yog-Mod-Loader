@@ -19,7 +19,8 @@
     "ProjectileHitMixin",
     "PotionBrewingAccess",
     "ResourcePackManagerMixin",
-    "ServerSaveMixin"
+    "ServerSaveMixin",
+    "WearableSlotMixin"
   ],
   "client": [
     "ClientAdvancementsAccess",
@@ -33,8 +34,7 @@
     "ModelPartAccess",
     "NativeImageAccess",
     "SoundStreamMixin",
-    "TravelMixin",
-    "WalkAnimationAccess"
+    "TravelMixin"
   ],
   "injectors": {
     "defaultRequire": 1
