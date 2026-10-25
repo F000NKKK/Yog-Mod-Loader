@@ -78,7 +78,7 @@ public final class YogImagePack {
     }
 
     /** {@code in}, or — a yimage — its PNG. */
-    static InputStream png(InputStream in) throws IOException {
+    public static InputStream png(InputStream in) throws IOException {
         BufferedInputStream b = new BufferedInputStream(in);
         b.mark(MAGIC.length);
         byte[] head = b.readNBytes(MAGIC.length);

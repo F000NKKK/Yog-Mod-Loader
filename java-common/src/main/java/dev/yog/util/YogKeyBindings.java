@@ -48,14 +48,18 @@ public final class YogKeyBindings {
         return CATEGORY_PREFIX + namespace + "." + CATEGORY_PATH;
     }
 
-    /** The bindings the mods declare (the {@code key_binding/declared} service), remembered for {@link #categoryNames}. */
+    /**
+     * The bindings the mods declare (the {@code key_binding/declared} service),
+     * asked once: the pack's category names may want them before the loader
+     * registers the keys (Forge 1.19.2 stages its packs first).
+     */
     public static List<Binding> declared() {
-        List<Binding> out = new ArrayList<>();
-        for (YogTypes.CategorizedBinding b : new YogServices.KeyBinding.Declared().call()) {
-            out.add(new Binding(b.id(), b.name(), b.defaultKey(), b.category()));
+        if (DECLARED.isEmpty()) {
+            for (YogTypes.CategorizedBinding b : new YogServices.KeyBinding.Declared().call()) {
+                DECLARED.add(new Binding(b.id(), b.name(), b.defaultKey(), b.category()));
+            }
         }
-        DECLARED.addAll(out);
-        return out;
+        return List.copyOf(DECLARED);
     }
 
     /** What the game's own bindings' names start with: {@code key.sprint}. */
@@ -89,7 +93,7 @@ public final class YogKeyBindings {
     /** Each mod's category's name in the controls: its translation key → the mod's name. */
     public static Map<String, String> categoryNames() {
         Map<String, String> out = new LinkedHashMap<>();
-        for (Binding b : DECLARED) out.putIfAbsent(b.categoryKey(), b.modName());
+        for (Binding b : declared()) out.putIfAbsent(b.categoryKey(), b.modName());
         return out;
     }
 }

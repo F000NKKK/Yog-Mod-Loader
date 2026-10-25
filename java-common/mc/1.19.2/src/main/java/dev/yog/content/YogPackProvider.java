@@ -46,6 +46,8 @@ public class YogPackProvider implements RepositorySource {
         if (dir == null) {
             return;
         }
+        // This version reads every sprite from its own file, not from atlas definitions.
+        if (type == PackType.CLIENT_RESOURCES) YogAtlasCut.cut(dir);
         Pack pack = Pack.create(
                 YogPackStager.PACK_ID,
                 true,
