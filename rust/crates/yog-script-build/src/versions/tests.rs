@@ -11,7 +11,7 @@ fn cond(src: &str) -> VersionCond {
 #[test]
 fn targets_take_the_versions_yog_runs_on() {
     assert_eq!(
-        targeted(&cond("targets mc 1.20.1..26.2;\n")),
+        targeted(&cond("targets mc 1.19.2..26.2;\n")),
         game_version::ALL_VALUES
     );
     assert_eq!(
