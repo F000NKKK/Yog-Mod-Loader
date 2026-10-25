@@ -28,7 +28,14 @@ pub(super) fn file(package: &str) -> String {
     let hosted: Vec<&ServiceInfo> = all.iter().filter(|s| s.host.is_some()).collect();
     let entries: Vec<String> = hosted
         .iter()
-        .map(|s| format!("java.util.Map.entry({}.{}.ADDRESS, {CLASS}::{})", services::CLASS, record_path(s.domain, s.name), method(s)))
+        .map(|s| {
+            format!(
+                "java.util.Map.entry({}.{}.ADDRESS, {CLASS}::{})",
+                services::CLASS,
+                record_path(s.domain, s.name),
+                method(s)
+            )
+        })
         .collect();
     let _ = write!(
         o.text,
@@ -54,7 +61,10 @@ fn serve(s: &ServiceInfo, records: &mut Vec<StructShape>) -> String {
     if let Shape::Struct(request) = &s.shape {
         spread(request, "r", &mut args, records);
     }
-    let classes: String = args.iter().map(|(_, java)| format!(", {}", class_of(java))).collect();
+    let classes: String = args
+        .iter()
+        .map(|(_, java)| format!(", {}", class_of(java)))
+        .collect();
     let exprs: Vec<&str> = args.iter().map(|(expr, _)| expr.as_str()).collect();
     let record = format!("{}.{}", services::CLASS, record_path(s.domain, s.name));
     let method = method(s);
@@ -67,7 +77,12 @@ fn serve(s: &ServiceInfo, records: &mut Vec<StructShape>) -> String {
 
 /// The arguments record `s` (reached by `at`) spreads into, each with its
 /// Java type: a nested record's components in its place.
-fn spread(s: &StructShape, at: &str, out: &mut Vec<(String, String)>, records: &mut Vec<StructShape>) {
+fn spread(
+    s: &StructShape,
+    at: &str,
+    out: &mut Vec<(String, String)>,
+    records: &mut Vec<StructShape>,
+) {
     for f in &s.fields {
         let shape = (f.shape)();
         let expr = format!("{at}.{}()", field(f.name));

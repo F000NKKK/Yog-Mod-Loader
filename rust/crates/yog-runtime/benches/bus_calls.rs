@@ -31,7 +31,6 @@ const SOME_BLOCK: usize = 30_000;
 /// Compiles the host's bus classes and the probe; the class path.
 fn compile(jdk: &Path) -> PathBuf {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let java = root.join("../../../java-common/src/main/java/dev/yog");
     let out = Path::new(env!("CARGO_TARGET_TMPDIR")).join("bus-bench-classes");
     let sources: Vec<PathBuf> = [
         "YogBus.java",
@@ -42,7 +41,7 @@ fn compile(jdk: &Path) -> PathBuf {
         "data/YogData.java",
         "bus/YogTypes.java",
     ]
-    .map(|f| java.join(f))
+    .map(yog_runtime::testing::host_sources::host_source)
     .into_iter()
     // The tests' stand-in logger: no SLF4J here.
     .chain([

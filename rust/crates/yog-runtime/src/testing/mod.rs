@@ -3,6 +3,7 @@
 
 #[cfg(feature = "bench")]
 pub mod bench_support;
+pub mod host_sources;
 pub mod jvm;
 #[cfg(test)]
 pub(crate) mod jvm_shared;

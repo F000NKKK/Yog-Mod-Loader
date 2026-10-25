@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 
 use jni::objects::JString;
 
+#[path = "../src/testing/host_sources.rs"]
+mod host_sources;
 #[path = "../src/testing/jvm.rs"]
 mod test_jvm;
 
@@ -17,7 +19,6 @@ fn main() {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let common = root.join("../../../java-common/src/main/java/dev/yog");
     let out = Path::new(env!("CARGO_TARGET_TMPDIR")).join("nanite-bench-classes");
     let sources: Vec<PathBuf> = [
         "nanite/YogReflect.java",
@@ -32,7 +33,7 @@ fn main() {
         "YogAtoms.java",
         "bus/YogTypes.java",
     ]
-    .map(|f| common.join(f))
+    .map(host_sources::host_source)
     .into_iter()
     .chain([
         root.join("tests/java/dev/yog/YogLog.java"),

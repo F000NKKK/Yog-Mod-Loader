@@ -65,7 +65,8 @@ fn through_java<T: Schema + PartialEq + std::fmt::Debug>(dir: &Path, record: &st
 #[ignore = "needs a JDK; run with --ignored"]
 fn java_records_read_and_write_rust_frames() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let java = root.join("../../../java-common/src/main/java/dev/yog");
+    // The bus's Java is the API's (`java-api`).
+    let java = root.join("../../../java-api/src/main/java/dev/yog");
     let dir = std::env::temp_dir().join(format!("yog-frames-java-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let javac = Command::new(jdk_tool("javac"))

@@ -105,7 +105,7 @@ fn java_reads_and_writes_the_same_bytes() {
         .arg(gson())
         .arg("-d")
         .arg(&dir)
-        .arg(root.join("../../../java-common/src/main/java/dev/yog/data/YogData.java"))
+        .arg(root.join("../../../java-api/src/main/java/dev/yog/data/YogData.java"))
         .arg(root.join("tests/java/RoundTrip.java"))
         .status()
         .expect("javac");

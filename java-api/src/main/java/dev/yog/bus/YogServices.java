@@ -11,9 +11,6 @@ import dev.yog.data.YogFrame;
 public final class YogServices {
     private YogServices() {}
 
-    /** The actions the host answers, by address ({@code YogHostServices}). */
-    public static final java.util.List<java.util.Map.Entry<String, YogBus.Handler>> HOSTED = java.util.List.of(java.util.Map.entry(Advancement.Grant.ADDRESS, Advancement.Grant::serve), java.util.Map.entry(Advancement.Done.ADDRESS, Advancement.Done::serve), java.util.Map.entry(Block.Nbt.ADDRESS, Block.Nbt::serve), java.util.Map.entry(Block.SetNbt.ADDRESS, Block.SetNbt::serve), java.util.Map.entry(Block.State.ADDRESS, Block.State::serve), java.util.Map.entry(Block.SetState.ADDRESS, Block.SetState::serve), java.util.Map.entry(Block.Info.ADDRESS, Block.Info::serve), java.util.Map.entry(Block.Destroy.ADDRESS, Block.Destroy::serve), java.util.Map.entry(Block.Bonemeal.ADDRESS, Block.Bonemeal::serve), java.util.Map.entry(Block.UseItem.ADDRESS, Block.UseItem::serve), java.util.Map.entry(Block.PourFluid.ADDRESS, Block.PourFluid::serve), java.util.Map.entry(Block.RedstonePower.ADDRESS, Block.RedstonePower::serve), java.util.Map.entry(Block.RedstoneSignal.ADDRESS, Block.RedstoneSignal::serve), java.util.Map.entry(Block.SetRedstoneOutput.ADDRESS, Block.SetRedstoneOutput::serve), java.util.Map.entry(Block.InventorySlot.ADDRESS, Block.InventorySlot::serve), java.util.Map.entry(Block.SetInventorySlot.ADDRESS, Block.SetInventorySlot::serve), java.util.Map.entry(Bossbar.Create.ADDRESS, Bossbar.Create::serve), java.util.Map.entry(Bossbar.Remove.ADDRESS, Bossbar.Remove::serve), java.util.Map.entry(Bossbar.SetTitle.ADDRESS, Bossbar.SetTitle::serve), java.util.Map.entry(Bossbar.SetProgress.ADDRESS, Bossbar.SetProgress::serve), java.util.Map.entry(Bossbar.SetColor.ADDRESS, Bossbar.SetColor::serve), java.util.Map.entry(Bossbar.AddPlayer.ADDRESS, Bossbar.AddPlayer::serve), java.util.Map.entry(Bossbar.RemovePlayer.ADDRESS, Bossbar.RemovePlayer::serve), java.util.Map.entry(Bossbar.SetVisible.ADDRESS, Bossbar.SetVisible::serve), java.util.Map.entry(Chat.Broadcast.ADDRESS, Chat.Broadcast::serve), java.util.Map.entry(Chat.Tellraw.ADDRESS, Chat.Tellraw::serve), java.util.Map.entry(Chat.Title.ADDRESS, Chat.Title::serve), java.util.Map.entry(Chat.Actionbar.ADDRESS, Chat.Actionbar::serve), java.util.Map.entry(Chat.ActionbarJson.ADDRESS, Chat.ActionbarJson::serve), java.util.Map.entry(Client.PlaySound.ADDRESS, Client.PlaySound::serve), java.util.Map.entry(Client.StopSound.ADDRESS, Client.StopSound::serve), java.util.Map.entry(Client.HeldItem.ADDRESS, Client.HeldItem::serve), java.util.Map.entry(Client.SetBlockTint.ADDRESS, Client.SetBlockTint::serve), java.util.Map.entry(Client.ScreenSlots.ADDRESS, Client.ScreenSlots::serve), java.util.Map.entry(Client.KeyDown.ADDRESS, Client.KeyDown::serve), java.util.Map.entry(Client.KeyName.ADDRESS, Client.KeyName::serve), java.util.Map.entry(Client.AttributeValue.ADDRESS, Client.AttributeValue::serve), java.util.Map.entry(Client.AdvancementDone.ADDRESS, Client.AdvancementDone::serve), java.util.Map.entry(Client.BodyTrack.ADDRESS, Client.BodyTrack::serve), java.util.Map.entry(Client.BodyTrackType.ADDRESS, Client.BodyTrackType::serve), java.util.Map.entry(Client.SetDimensions.ADDRESS, Client.SetDimensions::serve), java.util.Map.entry(Client.Control.Drive.ADDRESS, Client.Control.Drive::serve), java.util.Map.entry(Client.Control.Release.ADDRESS, Client.Control.Release::serve), java.util.Map.entry(Client.Control.Look.ADDRESS, Client.Control.Look::serve), java.util.Map.entry(Client.Control.Attack.ADDRESS, Client.Control.Attack::serve), java.util.Map.entry(Client.Control.UseItem.ADDRESS, Client.Control.UseItem::serve), java.util.Map.entry(Client.Control.Mine.ADDRESS, Client.Control.Mine::serve), java.util.Map.entry(Client.Control.StopMining.ADDRESS, Client.Control.StopMining::serve), java.util.Map.entry(Client.Control.Place.ADDRESS, Client.Control.Place::serve), java.util.Map.entry(Client.Control.SelectSlot.ADDRESS, Client.Control.SelectSlot::serve), java.util.Map.entry(Client.Control.Click.ADDRESS, Client.Control.Click::serve), java.util.Map.entry(Client.Control.Chat.ADDRESS, Client.Control.Chat::serve), java.util.Map.entry(Client.Local.State.ADDRESS, Client.Local.State::serve), java.util.Map.entry(Client.Local.Inventory.ADDRESS, Client.Local.Inventory::serve), java.util.Map.entry(Client.Local.Scan.ADDRESS, Client.Local.Scan::serve), java.util.Map.entry(Client.Local.Area.ADDRESS, Client.Local.Area::serve), java.util.Map.entry(Client.Local.Entities.ADDRESS, Client.Local.Entities::serve), java.util.Map.entry(Client.Local.DigSpeeds.ADDRESS, Client.Local.DigSpeeds::serve), java.util.Map.entry(Client.Local.Raycast.ADDRESS, Client.Local.Raycast::serve), java.util.Map.entry(Client.Local.Target.ADDRESS, Client.Local.Target::serve), java.util.Map.entry(Client.Local.Message.ADDRESS, Client.Local.Message::serve), java.util.Map.entry(Entity.Teleport.ADDRESS, Entity.Teleport::serve), java.util.Map.entry(Entity.TeleportToDim.ADDRESS, Entity.TeleportToDim::serve), java.util.Map.entry(Entity.Position.ADDRESS, Entity.Position::serve), java.util.Map.entry(Entity.Rotation.ADDRESS, Entity.Rotation::serve), java.util.Map.entry(Entity.Velocity.ADDRESS, Entity.Velocity::serve), java.util.Map.entry(Entity.SetVelocity.ADDRESS, Entity.SetVelocity::serve), java.util.Map.entry(Entity.AddVelocity.ADDRESS, Entity.AddVelocity::serve), java.util.Map.entry(Entity.Health.ADDRESS, Entity.Health::serve), java.util.Map.entry(Entity.SetHealth.ADDRESS, Entity.SetHealth::serve), java.util.Map.entry(Entity.Kill.ADDRESS, Entity.Kill::serve), java.util.Map.entry(Entity.Spawn.ADDRESS, Entity.Spawn::serve), java.util.Map.entry(Entity.AddEffect.ADDRESS, Entity.AddEffect::serve), java.util.Map.entry(Entity.RemoveEffect.ADDRESS, Entity.RemoveEffect::serve), java.util.Map.entry(Entity.ClearEffects.ADDRESS, Entity.ClearEffects::serve), java.util.Map.entry(Entity.Nbt.ADDRESS, Entity.Nbt::serve), java.util.Map.entry(Entity.SetNbt.ADDRESS, Entity.SetNbt::serve), java.util.Map.entry(Entity.AttributeBase.ADDRESS, Entity.AttributeBase::serve), java.util.Map.entry(Entity.SetAttributeBase.ADDRESS, Entity.SetAttributeBase::serve), java.util.Map.entry(Entity.AttributeValue.ADDRESS, Entity.AttributeValue::serve), java.util.Map.entry(Entity.Info.ADDRESS, Entity.Info::serve), java.util.Map.entry(Entity.Damage.ADDRESS, Entity.Damage::serve), java.util.Map.entry(Entity.SetFireTicks.ADDRESS, Entity.SetFireTicks::serve), java.util.Map.entry(Entity.Vehicle.ADDRESS, Entity.Vehicle::serve), java.util.Map.entry(Entity.Passengers.ADDRESS, Entity.Passengers::serve), java.util.Map.entry(Entity.Mount.ADDRESS, Entity.Mount::serve), java.util.Map.entry(Entity.Dismount.ADDRESS, Entity.Dismount::serve), java.util.Map.entry(Entity.SetFallDistance.ADDRESS, Entity.SetFallDistance::serve), java.util.Map.entry(Game.Dir.ADDRESS, Game.Dir::serve), java.util.Map.entry(Game.WorldDir.ADDRESS, Game.WorldDir::serve), java.util.Map.entry(Game.Translate.ADDRESS, Game.Translate::serve), java.util.Map.entry(Game.PlatformMods.ADDRESS, Game.PlatformMods::serve), java.util.Map.entry(Item.SpawnItem.ADDRESS, Item.SpawnItem::serve), java.util.Map.entry(Item.EntityStack.ADDRESS, Item.EntityStack::serve), java.util.Map.entry(Item.SetEntityStack.ADDRESS, Item.SetEntityStack::serve), java.util.Map.entry(Item.Block.ADDRESS, Item.Block::serve), java.util.Map.entry(Jvm.Call.ADDRESS, Jvm.Call::serve), java.util.Map.entry(Nanite.Resolve.ADDRESS, Nanite.Resolve::serve), java.util.Map.entry(Nanite.Call.ADDRESS, Nanite.Call::serve), java.util.Map.entry(Nanite.Get.ADDRESS, Nanite.Get::serve), java.util.Map.entry(Nanite.Set.ADDRESS, Nanite.Set::serve), java.util.Map.entry(Nanite.Release.ADDRESS, Nanite.Release::serve), java.util.Map.entry(Net.SendToPlayer.ADDRESS, Net.SendToPlayer::serve), java.util.Map.entry(Net.SendToServer.ADDRESS, Net.SendToServer::serve), java.util.Map.entry(Particle.SpawnParticles.ADDRESS, Particle.SpawnParticles::serve), java.util.Map.entry(Player.GiveItem.ADDRESS, Player.GiveItem::serve), java.util.Map.entry(Player.Teleport.ADDRESS, Player.Teleport::serve), java.util.Map.entry(Player.TeleportToDim.ADDRESS, Player.TeleportToDim::serve), java.util.Map.entry(Player.Kick.ADDRESS, Player.Kick::serve), java.util.Map.entry(Player.SetGamemode.ADDRESS, Player.SetGamemode::serve), java.util.Map.entry(Player.Inventory.ADDRESS, Player.Inventory::serve), java.util.Map.entry(Player.SetSlot.ADDRESS, Player.SetSlot::serve), java.util.Map.entry(Player.HeldItemNbt.ADDRESS, Player.HeldItemNbt::serve), java.util.Map.entry(Player.SetHeldItemNbt.ADDRESS, Player.SetHeldItemNbt::serve), java.util.Map.entry(Player.OffhandItemNbt.ADDRESS, Player.OffhandItemNbt::serve), java.util.Map.entry(Player.SetOffhandItemNbt.ADDRESS, Player.SetOffhandItemNbt::serve), java.util.Map.entry(Player.SlotItem.ADDRESS, Player.SlotItem::serve), java.util.Map.entry(Player.SetSlotItem.ADDRESS, Player.SetSlotItem::serve), java.util.Map.entry(Player.AddXp.ADDRESS, Player.AddXp::serve), java.util.Map.entry(Player.SetMayFly.ADDRESS, Player.SetMayFly::serve), java.util.Map.entry(Player.Info.ADDRESS, Player.Info::serve), java.util.Map.entry(Player.SetItemCooldown.ADDRESS, Player.SetItemCooldown::serve), java.util.Map.entry(Player.PlaceBlockFromSlot.ADDRESS, Player.PlaceBlockFromSlot::serve), java.util.Map.entry(Player.Online.ADDRESS, Player.Online::serve), java.util.Map.entry(Scoreboard.Get.ADDRESS, Scoreboard.Get::serve), java.util.Map.entry(Scoreboard.Set.ADDRESS, Scoreboard.Set::serve), java.util.Map.entry(Scoreboard.Add.ADDRESS, Scoreboard.Add::serve), java.util.Map.entry(Sound.Play.ADDRESS, Sound.Play::serve), java.util.Map.entry(Sound.PlayToPlayer.ADDRESS, Sound.PlayToPlayer::serve), java.util.Map.entry(Tag.HasItem.ADDRESS, Tag.HasItem::serve), java.util.Map.entry(Tag.HasBlock.ADDRESS, Tag.HasBlock::serve), java.util.Map.entry(Tag.HasEntity.ADDRESS, Tag.HasEntity::serve), java.util.Map.entry(Tag.Items.ADDRESS, Tag.Items::serve), java.util.Map.entry(Ui.Open.ADDRESS, Ui.Open::serve), java.util.Map.entry(Ui.OpenWithFlags.ADDRESS, Ui.OpenWithFlags::serve), java.util.Map.entry(Ui.Close.ADDRESS, Ui.Close::serve), java.util.Map.entry(World.GetBlock.ADDRESS, World.GetBlock::serve), java.util.Map.entry(World.SetBlock.ADDRESS, World.SetBlock::serve), java.util.Map.entry(World.Time.ADDRESS, World.Time::serve), java.util.Map.entry(World.SetTime.ADDRESS, World.SetTime::serve), java.util.Map.entry(World.IsRaining.ADDRESS, World.IsRaining::serve), java.util.Map.entry(World.SetWeather.ADDRESS, World.SetWeather::serve), java.util.Map.entry(World.IsThundering.ADDRESS, World.IsThundering::serve), java.util.Map.entry(World.SetThunder.ADDRESS, World.SetThunder::serve), java.util.Map.entry(World.FillRegion.ADDRESS, World.FillRegion::serve), java.util.Map.entry(World.ScanRegion.ADDRESS, World.ScanRegion::serve), java.util.Map.entry(World.PlaceFeature.ADDRESS, World.PlaceFeature::serve), java.util.Map.entry(World.Explode.ADDRESS, World.Explode::serve), java.util.Map.entry(World.DropLoot.ADDRESS, World.DropLoot::serve), java.util.Map.entry(World.EntityCount.ADDRESS, World.EntityCount::serve), java.util.Map.entry(World.EntitiesInBox.ADDRESS, World.EntitiesInBox::serve), java.util.Map.entry(World.RaycastBlock.ADDRESS, World.RaycastBlock::serve), java.util.Map.entry(World.RaycastEntity.ADDRESS, World.RaycastEntity::serve));
-
     /** `advancement`. */
     public static final class Advancement {
         private Advancement() {}
@@ -137,25 +134,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Grant.View r = new Grant.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.id());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -284,25 +262,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Done.View r = new Done.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.id());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -607,25 +566,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Nbt.View r = new Nbt.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
@@ -765,25 +705,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetNbt.View r = new SetNbt.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.snbt());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -910,25 +831,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    State.View r = new State.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -1070,25 +972,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetState.View r = new SetState.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.state());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -1215,25 +1098,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Info.View r = new Info.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -1386,25 +1250,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, boolean.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Destroy.View r = new Destroy.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.drop(), r.breaker());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -1531,25 +1376,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Bonemeal.View r = new Bonemeal.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -1713,25 +1539,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    UseItem.View r = new UseItem.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.face(), r.item(), r.player());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -1871,25 +1678,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    PourFluid.View r = new PourFluid.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.bucket());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -2018,25 +1806,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    RedstonePower.View r = new RedstonePower.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
@@ -2163,25 +1932,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putI(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    RedstoneSignal.View r = new RedstoneSignal.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -2323,25 +2073,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetRedstoneOutput.View r = new SetRedstoneOutput.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.level());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -2479,25 +2210,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, long.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    InventorySlot.View r = new InventorySlot.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.slot());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -2672,25 +2384,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, long.class, String.class, long.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetInventorySlot.View r = new SetInventorySlot.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.slot(), r.item(), r.count(), r.snbt());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -2846,25 +2539,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Create.View r = new Create.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.title(), r.color(), r.style());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -2980,25 +2654,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Remove.View r = new Remove.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -3129,25 +2784,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetTitle.View r = new SetTitle.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.title());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -3274,25 +2910,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetProgress.View r = new SetProgress.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.progress());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -3423,25 +3040,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetColor.View r = new SetColor.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.color());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -3568,25 +3166,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    AddPlayer.View r = new AddPlayer.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.player());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -3717,25 +3296,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    RemovePlayer.View r = new RemovePlayer.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.player());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -3862,25 +3422,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetVisible.View r = new SetVisible.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id(), r.visible());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -4493,25 +4034,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Broadcast.View r = new Broadcast.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.message());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -4638,25 +4160,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Tellraw.View r = new Tellraw.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.json());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -4831,25 +4334,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Title.View r = new Title.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.title(), r.subtitle(), r.fadeIn(), r.stay(), r.fadeOut());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -4978,25 +4462,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Actionbar.View r = new Actionbar.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.message());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -5123,25 +4588,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    ActionbarJson.View r = new ActionbarJson.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.json());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -5428,25 +4874,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, float.class, boolean.class, float.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    PlaySound.View r = new PlaySound.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.sound(), r.volume(), r.pitch(), r.looping(), r.from());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 Integer v = (out == null ? null : Integer.valueOf(((Number) out).intValue()));
@@ -5564,25 +4991,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    StopSound.View r = new StopSound.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.handle());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -5698,25 +5106,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, boolean.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    HeldItem.View r = new HeldItem.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.offHand());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -5858,25 +5247,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetBlockTint.View r = new SetBlockTint.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.color());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -5981,25 +5351,6 @@ public final class YogServices {
                     { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    ScreenSlots.View r = new ScreenSlots.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact();
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -6119,25 +5470,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    KeyDown.View r = new KeyDown.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.key());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -6253,25 +5585,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    KeyName.View r = new KeyName.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.binding());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -6391,25 +5704,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    AttributeValue.View r = new AttributeValue.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.attribute());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
@@ -6525,25 +5819,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    AdvancementDone.View r = new AdvancementDone.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.id());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -6674,25 +5949,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    BodyTrack.View r = new BodyTrack.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.on());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -6819,25 +6075,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    BodyTrackType.View r = new BodyTrackType.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.on());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -6988,25 +6225,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, float.class, float.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetDimensions.View r = new SetDimensions.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.width(), r.height(), r.eye());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -7185,25 +6403,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, float.class, float.class, boolean.class, boolean.class, boolean.class, boolean.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Drive.View r = new Drive.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.forward(), r.strafe(), r.jump(), r.sneak(), r.sprint(), r.useItem());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
@@ -7308,25 +6507,6 @@ public final class YogServices {
                         p.putBool(v);
                         return YogBus.OK;
                     });
-                }
-
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Release.View r = new Release.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact();
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -7457,25 +6637,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, float.class, float.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Look.View r = new Look.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.yaw(), r.pitch());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
@@ -7593,25 +6754,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Attack.View r = new Attack.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.entity());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
@@ -7727,25 +6869,6 @@ public final class YogServices {
                         p.putBool(v);
                         return YogBus.OK;
                     });
-                }
-
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, boolean.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        UseItem.View r = new UseItem.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.offHand());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -7876,25 +6999,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, String.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Mine.View r = new Mine.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.pos().x(), r.pos().y(), r.pos().z(), r.face());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
@@ -7999,25 +7103,6 @@ public final class YogServices {
                         p.putBool(v);
                         return YogBus.OK;
                     });
-                }
-
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        StopMining.View r = new StopMining.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact();
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -8148,25 +7233,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, String.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Place.View r = new Place.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.pos().x(), r.pos().y(), r.pos().z(), r.face());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
@@ -8282,25 +7348,6 @@ public final class YogServices {
                         p.putBool(v);
                         return YogBus.OK;
                     });
-                }
-
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        SelectSlot.View r = new SelectSlot.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.slot());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -8442,25 +7489,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, String.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Click.View r = new Click.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.slot(), r.button(), r.mode());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
@@ -8578,25 +7606,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Chat.View r = new Chat.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.text());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     boolean v = (Boolean) out;
@@ -8708,25 +7717,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        State.View r = new State.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact();
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     YogTypes.LocalState v = (out == null ? null : (YogTypes.LocalState) out);
@@ -8831,25 +7821,6 @@ public final class YogServices {
                         { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
                         return YogBus.OK;
                     });
-                }
-
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Inventory.View r = new Inventory.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact();
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -8991,25 +7962,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, int.class, int.class, int.class, java.util.List.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Scan.View r = new Scan.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z(), r.ids());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     java.util.List<YogTypes.PlacedBlock> v = (java.util.List<YogTypes.PlacedBlock>) out;
@@ -9138,25 +8090,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, int.class, int.class, int.class, int.class, int.class, int.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Area.View r = new Area.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     YogTypes.BlockArea v = (out == null ? null : (YogTypes.BlockArea) out);
@@ -9274,25 +8207,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, double.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Entities.View r = new Entities.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.radius());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     java.util.List<YogTypes.NearbyEntity> v = (java.util.List<YogTypes.NearbyEntity>) out;
@@ -9408,25 +8322,6 @@ public final class YogServices {
                         { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
                         return YogBus.OK;
                     });
-                }
-
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, java.util.List.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        DigSpeeds.View r = new DigSpeeds.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.blocks());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -9557,25 +8452,6 @@ public final class YogServices {
                     });
                 }
 
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, double.class, double.class, double.class, double.class, double.class, double.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Raycast.View r = new Raycast.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
-                }
-
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
                 public static void reply(Object out, YogFrame.Packer p) {
                     YogTypes.BlockHit v = (out == null ? null : (YogTypes.BlockHit) out);
@@ -9680,25 +8556,6 @@ public final class YogServices {
                         p.putBool(v != null); if (v != null) { v.pack(p); }
                         return YogBus.OK;
                     });
-                }
-
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Target.View r = new Target.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact();
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -9816,25 +8673,6 @@ public final class YogServices {
                         p.putBool(v);
                         return YogBus.OK;
                     });
-                }
-
-                private static final class HostMethod {
-                    static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-                }
-
-                /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-                public static int serve(YogMessage in, YogBus.Out sink) {
-                    if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                    try {
-                        Message.View r = new Message.View(in.frame());
-                        Object out = (Object) HostMethod.H.invokeExact(r.text());
-                        reply(dev.yog.YogHostServices.none(out), sink.frame());
-                        return YogBus.OK;
-                    } catch (YogData.DecodeException e) {
-                        return YogBus.BAD_PAYLOAD;
-                    } catch (Throwable t) {
-                        return dev.yog.YogHostServices.failed(ADDRESS, t);
-                    }
                 }
 
                 /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -10700,25 +9538,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Teleport.View r = new Teleport.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -10858,25 +9677,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    TeleportToDim.View r = new TeleportToDim.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -10992,25 +9792,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Position.View r = new Position.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -11130,25 +9911,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Rotation.View r = new Rotation.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 YogTypes.Rotation v = (out == null ? null : (YogTypes.Rotation) out);
@@ -11264,25 +10026,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Velocity.View r = new Velocity.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -11413,25 +10156,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetVelocity.View r = new SetVelocity.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.velocity().x(), r.velocity().y(), r.velocity().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -11560,25 +10284,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    AddVelocity.View r = new AddVelocity.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.velocity().x(), r.velocity().y(), r.velocity().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -11694,25 +10399,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putF64(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Health.View r = new Health.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -11843,25 +10529,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetHealth.View r = new SetHealth.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.health());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -11977,25 +10644,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Kill.View r = new Kill.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -12135,25 +10783,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Spawn.View r = new Spawn.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -12317,25 +10946,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class, int.class, boolean.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    AddEffect.View r = new AddEffect.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.effect(), r.duration(), r.amplifier(), r.particles());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -12464,25 +11074,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    RemoveEffect.View r = new RemoveEffect.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.effect());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -12600,25 +11191,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    ClearEffects.View r = new ClearEffects.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -12734,25 +11306,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Nbt.View r = new Nbt.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -12883,25 +11436,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetNbt.View r = new SetNbt.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.snbt());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -13028,25 +11562,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putF64(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    AttributeBase.View r = new AttributeBase.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -13188,25 +11703,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetAttributeBase.View r = new SetAttributeBase.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute(), r.value());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -13335,25 +11831,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    AttributeValue.View r = new AttributeValue.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.attribute());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 Double v = (out == null ? null : Double.valueOf(((Number) out).doubleValue()));
@@ -13469,25 +11946,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Info.View r = new Info.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -13640,25 +12098,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Damage.View r = new Damage.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.amount(), r.damageType(), r.attacker());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -13787,25 +12226,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetFireTicks.View r = new SetFireTicks.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.ticks());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -13923,25 +12343,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Vehicle.View r = new Vehicle.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
@@ -14057,25 +12458,6 @@ public final class YogServices {
                     { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Passengers.View r = new Passengers.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -14217,25 +12599,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, boolean.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Mount.View r = new Mount.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.rider(), r.vehicle(), r.force());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -14351,25 +12714,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Dismount.View r = new Dismount.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -14498,25 +12842,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, float.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetFallDistance.View r = new SetFallDistance.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.distance());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -14833,25 +13158,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Dir.View r = new Dir.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact();
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
@@ -14956,25 +13262,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    WorldDir.View r = new WorldDir.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact();
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -15094,25 +13381,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Translate.View r = new Translate.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.key());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
@@ -15217,25 +13485,6 @@ public final class YogServices {
                     { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    PlatformMods.View r = new PlatformMods.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact();
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -15643,25 +13892,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class, String.class, long.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SpawnItem.View r = new SpawnItem.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.velocity().x(), r.velocity().y(), r.velocity().z(), r.item(), r.count(), r.snbt());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
@@ -15777,25 +14007,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    EntityStack.View r = new EntityStack.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -15948,25 +14159,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, long.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetEntityStack.View r = new SetEntityStack.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uuid(), r.item(), r.count(), r.snbt());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -16082,25 +14274,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Block.View r = new Block.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.item());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -16234,25 +14407,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putTagged(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, java.util.List.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Call.View r = new Call.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.expr(), r.args());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -17626,25 +15780,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Resolve.View r = new Resolve.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.class_(), r.name(), r.desc());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
@@ -17784,25 +15919,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class, Object.class, java.util.List.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Call.View r = new Call.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.member(), r.target(), r.args());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 Object v = (out == null ? null : (Object) out);
@@ -17929,25 +16045,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putTagged(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class, Object.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Get.View r = new Get.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.member(), r.target());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -18089,25 +16186,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long.class, Object.class, Object.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Set.View r = new Set.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.member(), r.target(), r.value());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -18234,25 +16312,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, long[].class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Release.View r = new Release.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.objects());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -18399,25 +16458,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, byte[].class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SendToPlayer.View r = new SendToPlayer.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.channel(), r.payload());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -18544,25 +16584,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, byte[].class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SendToServer.View r = new SendToServer.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.channel(), r.payload());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -18742,25 +16763,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, String.class, Long.class, Float.class, int.class, double.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SpawnParticles.View r = new SpawnParticles.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.particle().id(), r.particle().color(), r.particle().scale(), r.count(), r.spread().x(), r.spread().y(), r.spread().z(), r.speed());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -18905,25 +16907,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, long.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    GiveItem.View r = new GiveItem.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.item(), r.count());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -19050,25 +17033,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Teleport.View r = new Teleport.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -19210,25 +17174,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    TeleportToDim.View r = new TeleportToDim.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -19355,25 +17300,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Kick.View r = new Kick.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.reason());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -19504,25 +17430,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetGamemode.View r = new SetGamemode.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.mode());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -19638,25 +17545,6 @@ public final class YogServices {
                     { int l0 = p.beginList(v.size()); for (var e0 : v) { e0.pack(p); } p.end(l0); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Inventory.View r = new Inventory.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -19809,25 +17697,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, long.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetSlot.View r = new SetSlot.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.item(), r.count());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -19943,25 +17812,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    HeldItemNbt.View r = new HeldItemNbt.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -20092,25 +17942,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetHeldItemNbt.View r = new SetHeldItemNbt.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.snbt());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -20226,25 +18057,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    OffhandItemNbt.View r = new OffhandItemNbt.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -20375,25 +18187,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetOffhandItemNbt.View r = new SetOffhandItemNbt.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.snbt());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -20520,25 +18313,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SlotItem.View r = new SlotItem.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -20702,25 +18476,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, long.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetSlotItem.View r = new SetSlotItem.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.item(), r.count(), r.snbt());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -20847,25 +18602,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    AddXp.View r = new AddXp.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.amount());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -20996,25 +18732,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetMayFly.View r = new SetMayFly.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.mayFly());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -21130,25 +18847,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Info.View r = new Info.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -21288,25 +18986,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetItemCooldown.View r = new SetItemCooldown.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.item(), r.ticks());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -21459,25 +19138,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    PlaceBlockFromSlot.View r = new PlaceBlockFromSlot.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.slot(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -21582,25 +19242,6 @@ public final class YogServices {
                     { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Online.View r = new Online.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact();
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -21734,25 +19375,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putI(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Get.View r = new Get.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -21894,25 +19516,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Set.View r = new Set.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player(), r.score());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -22050,25 +19653,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putI(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Add.View r = new Add.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.objective(), r.player(), r.delta());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -22237,25 +19821,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, String.class, float.class, float.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Play.View r = new Play.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.sound(), r.volume(), r.pitch());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -22406,25 +19971,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, float.class, float.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    PlayToPlayer.View r = new PlayToPlayer.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.player(), r.sound(), r.volume(), r.pitch());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -22558,25 +20104,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    HasItem.View r = new HasItem.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.item(), r.tag());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -22703,25 +20230,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    HasBlock.View r = new HasBlock.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.block(), r.tag());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -22852,25 +20360,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    HasEntity.View r = new HasEntity.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.entityType(), r.tag());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -22986,25 +20475,6 @@ public final class YogServices {
                     { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Items.View r = new Items.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.tag());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -23151,25 +20621,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class, boolean.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Open.View r = new Open.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uiId(), r.modal(), r.pause());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -23298,25 +20749,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    OpenWithFlags.View r = new OpenWithFlags.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uiId(), r.flags());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -23432,25 +20864,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Close.View r = new Close.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.uiId());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -24266,25 +21679,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    GetBlock.View r = new GetBlock.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 String v = (out == null ? null : (String) out);
@@ -24424,25 +21818,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetBlock.View r = new SetBlock.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.block());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -24558,25 +21933,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putI(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Time.View r = new Time.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -24707,25 +22063,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, long.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetTime.View r = new SetTime.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.time());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -24841,25 +22178,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    IsRaining.View r = new IsRaining.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -25001,25 +22319,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetWeather.View r = new SetWeather.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.raining(), r.duration());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -25135,25 +22434,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    IsThundering.View r = new IsThundering.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -25293,25 +22573,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, boolean.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    SetThunder.View r = new SetThunder.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.thundering(), r.duration());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -25464,25 +22725,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, int.class, int.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    FillRegion.View r = new FillRegion.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z(), r.state());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 Long v = (out == null ? null : Long.valueOf(((Number) out).longValue()));
@@ -25622,25 +22864,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, int.class, int.class, int.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    ScanRegion.View r = new ScanRegion.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<YogTypes.PlacedBlock> v = (java.util.List<YogTypes.PlacedBlock>) out;
@@ -25778,25 +23001,6 @@ public final class YogServices {
                     p.putBool(v);
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, int.class, int.class, int.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    PlaceFeature.View r = new PlaceFeature.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.feature());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -25960,25 +23164,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, float.class, boolean.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    Explode.View r = new Explode.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.pos().x(), r.pos().y(), r.pos().z(), r.power(), r.fire(), r.source());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -26118,25 +23303,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    DropLoot.View r = new DropLoot.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.table(), r.dim(), r.pos().x(), r.pos().y(), r.pos().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 boolean v = (Boolean) out;
@@ -26263,25 +23429,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putI(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    EntityCount.View r = new EntityCount.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.entityType());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -26423,25 +23570,6 @@ public final class YogServices {
                 });
             }
 
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    EntitiesInBox.View r = new EntitiesInBox.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.min().x(), r.min().y(), r.min().z(), r.max().x(), r.max().y(), r.max().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
-            }
-
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
             public static void reply(Object out, YogFrame.Packer p) {
                 java.util.List<String> v = (java.util.List<String>) out;
@@ -26579,25 +23707,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { v.pack(p); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    RaycastBlock.View r = new RaycastBlock.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */
@@ -26748,25 +23857,6 @@ public final class YogServices {
                     p.putBool(v != null); if (v != null) { p.putStr(v); }
                     return YogBus.OK;
                 });
-            }
-
-            private static final class HostMethod {
-                static final java.lang.invoke.MethodHandle H = dev.yog.YogHostServices.handle(HOST, java.lang.invoke.MethodType.methodType(Object.class, String.class, double.class, double.class, double.class, double.class, double.class, double.class, String.class));
-            }
-
-            /** Answers the action: the request out of its frame, the host method called, the reply packed. */
-            public static int serve(YogMessage in, YogBus.Out sink) {
-                if (HostMethod.H == null) return YogBus.NO_HANDLER;
-                try {
-                    RaycastEntity.View r = new RaycastEntity.View(in.frame());
-                    Object out = (Object) HostMethod.H.invokeExact(r.dim(), r.from().x(), r.from().y(), r.from().z(), r.to().x(), r.to().y(), r.to().z(), r.exclude());
-                    reply(dev.yog.YogHostServices.none(out), sink.frame());
-                    return YogBus.OK;
-                } catch (YogData.DecodeException e) {
-                    return YogBus.BAD_PAYLOAD;
-                } catch (Throwable t) {
-                    return dev.yog.YogHostServices.failed(ADDRESS, t);
-                }
             }
 
             /** The host method's result {@code out} (its "none" already null) packed as the reply. */

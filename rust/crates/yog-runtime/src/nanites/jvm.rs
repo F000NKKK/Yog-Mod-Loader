@@ -107,7 +107,6 @@ fn nanites_reflect_and_inject() {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let common = root.join("../../../java-common/src/main/java/dev/yog");
     let sources: Vec<PathBuf> = [
         "nanite/YogReflect.java",
         "nanite/YogObjects.java",
@@ -132,7 +131,7 @@ fn nanites_reflect_and_inject() {
         "api/YogBus.java",
         "api/YogRecordFrames.java",
     ]
-    .map(|f| common.join(f))
+    .map(crate::testing::host_sources::host_source)
     .into_iter()
     .chain([
         root.join("tests/java/dev/yog/YogLog.java"),

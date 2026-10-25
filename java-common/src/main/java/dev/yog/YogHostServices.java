@@ -1,6 +1,6 @@
 package dev.yog;
 
-import dev.yog.bus.YogServices;
+import dev.yog.bus.YogHostedServices;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -10,8 +10,8 @@ import java.util.Map;
 
 /**
  * The host's actions on the bus ({@code docs/design/bus.md}, stage 3): every
- * action in {@link YogServices#HOSTED} answered by its generated
- * {@code serve} — the request read out of its frame, the host method its
+ * action in {@link YogHostedServices#HOSTED} answered by its generated
+ * method — the request read out of its frame, the host method its
  * record names ({@code HOST}: a {@link NativeBridge} method, or
  * {@code Class.method} of another {@code dev.yog} class) called through a
  * {@code static final} handle with the request's components spread (a
@@ -29,7 +29,7 @@ public final class YogHostServices {
      */
     public static void provideAll() {
         boolean client = YogPlatform.isClient();
-        for (Map.Entry<String, YogBus.Handler> action : YogServices.HOSTED) {
+        for (Map.Entry<String, YogBus.Handler> action : YogHostedServices.HOSTED) {
             if (!client && action.getKey().startsWith(YogNames.ServiceClient.DOMAIN)) continue;
             YogBus.provide(YogBus.resolve(action.getKey()), action.getValue());
         }

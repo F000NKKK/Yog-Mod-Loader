@@ -18,13 +18,13 @@ fn ids_are_composed_from_their_namespace() {
 #[test]
 fn the_java_names_are_current() {
     let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../java-common/src/main/java/dev/yog/YogNames.java");
+        .join("../../../java-api/src/main/java/dev/yog/YogNames.java");
     let Ok(java) = std::fs::read_to_string(&file) else {
         return;
     };
     assert!(
         java == export::java(export::JAVA_PACKAGE, export::JAVA_CLASS),
-        "{} is stale: cargo run -p yog-ids --bin yog-ids-export -- --java ../java-common/src/main/java/dev/yog dev.yog YogNames",
+        "{} is stale: cargo run -p yog-ids --bin yog-ids-export -- --java ../java-api/src/main/java/dev/yog dev.yog YogNames",
         file.display()
     );
 }

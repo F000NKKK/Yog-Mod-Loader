@@ -28,7 +28,6 @@ fn java_mods_on_the_bus() {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let common = root.join("../../../java-common/src/main/java/dev/yog");
     let sources: Vec<PathBuf> = [
         "YogNames.java",
         "YogBus.java",
@@ -43,7 +42,7 @@ fn java_mods_on_the_bus() {
         "api/YogBus.java",
         "api/YogRecordFrames.java",
     ]
-    .map(|f| common.join(f))
+    .map(crate::testing::host_sources::host_source)
     .into_iter()
     .chain([
         root.join("tests/java/dev/yog/YogLog.java"),
@@ -73,7 +72,6 @@ fn a_packs_yimages_are_read_as_pngs() {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let common = root.join("../../../java-common/src/main/java/dev/yog");
     let sources: Vec<PathBuf> = [
         "YogNames.java",
         "YogBus.java",
@@ -89,7 +87,7 @@ fn a_packs_yimages_are_read_as_pngs() {
         "api/YogBus.java",
         "api/YogRecordFrames.java",
     ]
-    .map(|f| common.join(f))
+    .map(crate::testing::host_sources::host_source)
     .into_iter()
     .chain([
         root.join("tests/java/dev/yog/YogLog.java"),

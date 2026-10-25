@@ -281,8 +281,7 @@ mod tests {
     /// `YogBus.java` reads the arena where this writes it.
     #[test]
     fn java_knows_the_layout() {
-        let java = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../java-common/src/main/java/dev/yog/YogBus.java");
+        let java = crate::testing::host_sources::host_source("YogBus.java");
         let Ok(src) = std::fs::read_to_string(&java) else {
             return;
         };

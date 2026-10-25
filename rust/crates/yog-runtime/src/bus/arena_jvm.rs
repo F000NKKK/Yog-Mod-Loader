@@ -121,7 +121,6 @@ fn calls_cross_the_arena_both_ways() {
         return;
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let java_common = root.join("../../../java-common/src/main/java/dev/yog");
     let sources: Vec<PathBuf> = [
         "YogBus.java",
         "YogMessage.java",
@@ -130,7 +129,7 @@ fn calls_cross_the_arena_both_ways() {
         "data/YogFrame.java",
         "data/YogData.java",
     ]
-    .map(|f| java_common.join(f))
+    .map(crate::testing::host_sources::host_source)
     .into_iter()
     .chain(["YogLog.java", "ArenaProbe.java"].map(|f| root.join("tests/java/dev/yog").join(f)))
     .collect();

@@ -205,6 +205,7 @@ fn source_dirs(root: &Path, host: &str, platform: &Path) -> Vec<PathBuf> {
     if shared {
         dirs.push(root.join(host).join(JAVA));
     }
+    dirs.push(root.join("java-api").join(JAVA));
     dirs.push(root.join("java-common").join(JAVA));
     let Some(v) = platform
         .file_name()
@@ -377,7 +378,7 @@ fn every_native_method_is_exported() {
 /// `YogBus.java`'s status values are `yog_abi::status`'s.
 #[test]
 fn java_bus_statuses_match_the_abi() {
-    let java = repo().join("java-common/src/main/java/dev/yog/YogBus.java");
+    let java = repo().join("java-api/src/main/java/dev/yog/YogBus.java");
     let Ok(src) = fs::read_to_string(&java) else {
         return;
     };
