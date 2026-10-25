@@ -93,7 +93,7 @@ resvg = { version = "0.48", default-features = false }
 serde_spanned = "1"
 toml = { version = "1", default-features = false }
 yog-abi = { version = "0.33.0", path = "crates/yog-abi" }
-yog-api = { version = "0.104.1", path = "crates/yog-api" }
+yog-api = { version = "0.105.0", path = "crates/yog-api" }
 yog-body = { version = "0.8.0", path = "crates/yog-body" }
 yog-book = { version = "0.73.2", path = "crates/yog-book" }
 yog-analysis = { version = "0.1.1", path = "crates/yog-analysis" }
@@ -119,7 +119,7 @@ yog-mirror = { version = "0.3.0", path = "crates/yog-mirror" }
 yog-sync = { version = "0.4.0", path = "crates/yog-sync" }
 yog-media = { version = "0.7.0", path = "crates/yog-media" }
 yog-interop = { version = "0.25.0", path = "crates/yog-interop" }
-yog-kit = { version = "0.15.0", path = "crates/yog-kit" }
+yog-kit = { version = "0.16.0", path = "crates/yog-kit" }
 yog-inventory = { version = "0.24.0", path = "crates/yog-inventory" }
 yog-logging = { version = "0.3.0", path = "crates/yog-logging" }
 yog-network = { version = "0.5.0", path = "crates/yog-network" }

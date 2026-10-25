@@ -2245,7 +2245,7 @@ dependencies = [
 
 [[package]]
 name = "yog-api"
-version = "0.104.1"
+version = "0.105.0"
 dependencies = [
  "ctor",
  "yog-abi",
@@ -2548,7 +2548,7 @@ dependencies = [
 
 [[package]]
 name = "yog-kit"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "yog-api",
  "yog-kit",
