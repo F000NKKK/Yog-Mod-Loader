@@ -32,7 +32,6 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.level.block.Block;
@@ -231,7 +230,7 @@ public final class YogClientOps {
             Float health = e instanceof LivingEntity l ? l.getHealth() : null;
             String name = e instanceof Player pl ? pl.getGameProfile().name() : null;
             out.add(new YogTypes.NearbyEntity(e.getStringUUID(), BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString(),
-                    YogQueries.point(e.position()), e.getEyeHeight(), YogQueries.point(e.getDeltaMovement()), health, name, e instanceof Enemy));
+                    YogQueries.point(e.position()), e.getEyeHeight(), YogQueries.point(e.getDeltaMovement()), health, name, dev.yog.client.YogHostility.hostileNow(e)));
         }
         return out;
     }
