@@ -215,7 +215,7 @@ build_rust() {
     local split=0 oc=""
     if [ "$DEV" = 0 ] && [ "$CONFIG" = "Release" ]; then
         oc="$(rust_objcopy)"
-        [ -n "$oc" ] || die "no rust-objcopy in the toolchain (it ships with rustc) — can't split the release's symbols"
+        [ -n "$oc" ] || die "no rust-objcopy: rustup's llvm-tools component (rust-toolchain.toml lists it) — can't split the release's symbols"
         split=1
         export CARGO_PROFILE_RELEASE_DEBUG=true CARGO_PROFILE_RELEASE_STRIP=none
         rm -rf "$SYMBOLS_DIR" "$SYMBOLS_ZIP"
