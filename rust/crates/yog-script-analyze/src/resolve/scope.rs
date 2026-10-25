@@ -106,7 +106,11 @@ impl Resolver<'_, '_> {
             return;
         };
         if let Some(&first) = scope.names.get(&name.text) {
-            if !again {
+            // A method beside methods of its name is an overload (C#'s): the
+            // type checker tells them apart by their parameters.
+            let overload =
+                kind == DefKind::Method && self.symbols.defs[first].kind == DefKind::Method;
+            if !again && !overload {
                 let at = self.symbols.defs[first].span;
                 let line = self.report.line_of(at);
                 self.report.error(

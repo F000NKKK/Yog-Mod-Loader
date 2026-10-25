@@ -10,7 +10,6 @@ use yog_ids::script_problem;
 
 use super::Checker;
 use super::delegates::Sig;
-use super::generics::params_of_names;
 use super::model::Type;
 use super::own::TypeKey;
 use super::types::OperatorUse;
@@ -40,7 +39,7 @@ impl Checker<'_, '_, '_> {
         let mut operators = Operators::new();
         self.quietly(|c| {
             for (key, generics, ops) in declared {
-                let typed = c.with_types(params_of_names(&generics), |c| {
+                let typed = c.as_declared(&key.name, &generics, |c| {
                     ops.iter()
                         .map(|op| {
                             (

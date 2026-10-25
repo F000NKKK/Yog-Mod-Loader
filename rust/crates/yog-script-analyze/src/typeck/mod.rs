@@ -7,6 +7,7 @@
 
 mod attributes;
 mod builtin;
+mod context;
 mod copy;
 mod decls;
 mod delegates;
@@ -23,6 +24,7 @@ mod model;
 mod mutation;
 mod names;
 mod operators;
+mod overloads;
 mod own;
 mod passing;
 mod shapes;

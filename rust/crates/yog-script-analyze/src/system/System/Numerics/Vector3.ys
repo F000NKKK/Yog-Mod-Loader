@@ -1,0 +1,45 @@
+namespace System.Numerics;
+
+/// Three `f32`s — a point, a direction, a colour — as .NET's: added,
+/// scaled and compared by its operators.
+public struct Vector3(f32 x, f32 y, f32 z) : IEquatable<Vector3> {
+    public f32 X = x;
+    public f32 Y = y;
+    public f32 Z = z;
+
+    public static readonly Vector3 Zero = new Vector3(0, 0, 0);
+    public static readonly Vector3 One = new Vector3(1, 1, 1);
+    public static readonly Vector3 UnitX = new Vector3(1, 0, 0);
+    public static readonly Vector3 UnitY = new Vector3(0, 1, 0);
+    public static readonly Vector3 UnitZ = new Vector3(0, 0, 1);
+
+    public readonly f32 LengthSquared() => Dot(this, this);
+    public readonly f32 Length() => (f32)Math.Sqrt(LengthSquared());
+
+    public static f32 Dot(Vector3 a, Vector3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    public static Vector3 Cross(Vector3 a, Vector3 b) =>
+        new Vector3(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
+    public static f32 DistanceSquared(Vector3 a, Vector3 b) => (a - b).LengthSquared();
+    public static f32 Distance(Vector3 a, Vector3 b) => (a - b).Length();
+    /// `v` of length one, the same way.
+    public static Vector3 Normalize(Vector3 v) => v / v.Length();
+    /// The point `amount` of the way from `a` to `b`.
+    public static Vector3 Lerp(Vector3 a, Vector3 b, f32 amount) => a + (b - a) * amount;
+    public static Vector3 Min(Vector3 a, Vector3 b) =>
+        new Vector3(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
+    public static Vector3 Max(Vector3 a, Vector3 b) =>
+        new Vector3(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
+
+    public readonly bool Equals(Vector3 other) => this == other;
+
+    public static Vector3 operator +(Vector3 a, Vector3 b) => new Vector3(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+    public static Vector3 operator -(Vector3 a, Vector3 b) => new Vector3(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+    public static Vector3 operator -(Vector3 v) => new Vector3(-v.X, -v.Y, -v.Z);
+    public static Vector3 operator *(Vector3 a, Vector3 b) => new Vector3(a.X * b.X, a.Y * b.Y, a.Z * b.Z);
+    public static Vector3 operator *(Vector3 v, f32 factor) => new Vector3(v.X * factor, v.Y * factor, v.Z * factor);
+    public static Vector3 operator *(f32 factor, Vector3 v) => v * factor;
+    public static Vector3 operator /(Vector3 a, Vector3 b) => new Vector3(a.X / b.X, a.Y / b.Y, a.Z / b.Z);
+    public static Vector3 operator /(Vector3 v, f32 divisor) => new Vector3(v.X / divisor, v.Y / divisor, v.Z / divisor);
+    public static bool operator ==(Vector3 a, Vector3 b) => a.X == b.X && a.Y == b.Y && a.Z == b.Z;
+    public static bool operator !=(Vector3 a, Vector3 b) => !(a == b);
+}

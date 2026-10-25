@@ -43,22 +43,22 @@ fn null_needs_a_nullable() {
         [script_problem::NULLABLE]
     );
     assert!(codes("record Pos(i32 X);\nvoid F() {\n    Pos? p = null;\n}\n").is_empty());
-    let src = "record Pos(i32 X);\nint F(Pos? p) => p.X;\n";
+    let src = "record Pos(i32 X);\ni32 F(Pos? p) => p.X;\n";
     assert_eq!(codes(src), [script_problem::NULLABLE]);
-    assert!(codes("record Pos(i32 X);\nint F(Pos? p) => p?.X ?? 0;\n").is_empty());
+    assert!(codes("record Pos(i32 X);\ni32 F(Pos? p) => p?.X ?? 0;\n").is_empty());
 }
 
 #[test]
 fn members_and_calls_are_the_types() {
-    let src = "record Pos(i32 X) {\n    i32 Twice() => X * 2;\n}\nint F(Pos p) => p.Y;\n";
+    let src = "record Pos(i32 X) {\n    i32 Twice() => X * 2;\n}\ni32 F(Pos p) => p.Y;\n";
     assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
-    let src = "i32 Area(i32 w, i32 h) => w * h;\nint F() => Area(1);\n";
+    let src = "i32 Area(i32 w, i32 h) => w * h;\ni32 F() => Area(1);\n";
     assert_eq!(codes(src), [script_problem::WRONG_ARGS]);
-    let src = "i32 Area(i32 w, i32 h) => w * h;\nint F() => Area(1, \"2\");\n";
+    let src = "i32 Area(i32 w, i32 h) => w * h;\ni32 F() => Area(1, \"2\");\n";
     assert_eq!(codes(src), [script_problem::TYPE_MISMATCH]);
     // A component's members on its owner.
     let src = "component Charge(i32 capacity) {\n    public i32 Energy = 0;\n}\n\
-               block Charger has Charge(10) { }\nint F(Charger c) => c.Energy + c.Charge.Energy;\n";
+               block Charger has Charge(10) { }\ni32 F(Charger c) => c.Energy + c.Charge.Energy;\n";
     assert!(codes(src).is_empty(), "{:?}", codes(src));
 }
 
@@ -116,12 +116,12 @@ fn the_games_classes_are_a_yns_files_only() {
     assert!(yns("client void F(Minecraft mc) { }\n").is_empty());
     // What `extend` adds sits beside the game's members.
     assert!(
-        yns("extend Player {\n    public i32 Visits = 0;\n}\nint F(Player p) => p.Visits;\n")
+        yns("extend Player {\n    public i32 Visits = 0;\n}\ni32 F(Player p) => p.Visits;\n")
             .is_empty()
     );
     // As in C#, a name two `using`s bring in (`System.Yog`, every file's, among
     // them) is ambiguous: an alias, as above, or the full name settles it.
-    let ambiguous = "targets mc 1.21.1..1.21.1;\nusing System.Game.World.Entity.Player;\nfloat F(Player p) => 1;\n";
+    let ambiguous = "targets mc 1.21.1..1.21.1;\nusing System.Game.World.Entity.Player;\nf32 F(Player p) => 1;\n";
     let found = codes_of(check_with("a.yns", ambiguous, Some(&index)).problems);
     assert_eq!(found, [script_problem::AMBIGUOUS]);
     assert!(yns("f32 F(System.Game.World.Entity.Player.Player p) => p.Health;\n").is_empty());
@@ -177,7 +177,7 @@ fn yogs_surface_is_typed() {
 /// `namespace` and `using` as in C#.
 #[test]
 fn namespaces_and_usings_work_as_in_csharp() {
-    let src = "namespace Charge.Machines;\n\nrecord Pos(i32 X);\nint F(Pos p) => p.X;\nint G(Charge.Machines.Pos p) => p.Y;\n";
+    let src = "namespace Charge.Machines;\n\nrecord Pos(i32 X);\ni32 F(Pos p) => p.X;\ni32 G(Charge.Machines.Pos p) => p.Y;\n";
     assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
     let src = "namespace Charge {\n    record Pos(i32 X);\n}\nnamespace Other {\n    using Charge;\n    i32 F(Pos p) => p.Y;\n}\n";
     assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
@@ -511,4 +511,18 @@ fn operators_are_declared_as_csharps() {
             script_problem::OPERATOR
         ]
     );
+}
+
+#[test]
+fn methods_overload_by_their_parameters() {
+    let ok = "class Scale {\n    public f64 Of(f64 x) => x;\n    public f64 Of(in Scale s) => 1.0;\n}\n\
+              f64 F(Scale s) => s.Of(2.0) + s.Of(in s);\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    // The same parameters twice, as C#'s CS0111; a field isn't a method.
+    for bad in [
+        "class Scale {\n    public f64 Of(f64 x) => x;\n    public f64 Of(f64 y) => y;\n}\n",
+        "class Scale {\n    public i32 N;\n    public void N() {}\n}\n",
+    ] {
+        assert_eq!(codes(bad), [script_problem::DUPLICATE], "{bad}");
+    }
 }

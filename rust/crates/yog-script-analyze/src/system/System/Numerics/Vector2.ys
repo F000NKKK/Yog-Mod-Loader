@@ -1,0 +1,39 @@
+namespace System.Numerics;
+
+/// Two `f32`s — a point or a direction on a plane, a screen's — as .NET's:
+/// added, scaled and compared by its operators.
+public struct Vector2(f32 x, f32 y) : IEquatable<Vector2> {
+    public f32 X = x;
+    public f32 Y = y;
+
+    public static readonly Vector2 Zero = new Vector2(0, 0);
+    public static readonly Vector2 One = new Vector2(1, 1);
+    public static readonly Vector2 UnitX = new Vector2(1, 0);
+    public static readonly Vector2 UnitY = new Vector2(0, 1);
+
+    public readonly f32 LengthSquared() => Dot(this, this);
+    public readonly f32 Length() => (f32)Math.Sqrt(LengthSquared());
+
+    public static f32 Dot(Vector2 a, Vector2 b) => a.X * b.X + a.Y * b.Y;
+    public static f32 DistanceSquared(Vector2 a, Vector2 b) => (a - b).LengthSquared();
+    public static f32 Distance(Vector2 a, Vector2 b) => (a - b).Length();
+    /// `v` of length one, the same way.
+    public static Vector2 Normalize(Vector2 v) => v / v.Length();
+    /// The point `amount` of the way from `a` to `b`.
+    public static Vector2 Lerp(Vector2 a, Vector2 b, f32 amount) => a + (b - a) * amount;
+    public static Vector2 Min(Vector2 a, Vector2 b) => new Vector2(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y));
+    public static Vector2 Max(Vector2 a, Vector2 b) => new Vector2(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
+
+    public readonly bool Equals(Vector2 other) => this == other;
+
+    public static Vector2 operator +(Vector2 a, Vector2 b) => new Vector2(a.X + b.X, a.Y + b.Y);
+    public static Vector2 operator -(Vector2 a, Vector2 b) => new Vector2(a.X - b.X, a.Y - b.Y);
+    public static Vector2 operator -(Vector2 v) => new Vector2(-v.X, -v.Y);
+    public static Vector2 operator *(Vector2 a, Vector2 b) => new Vector2(a.X * b.X, a.Y * b.Y);
+    public static Vector2 operator *(Vector2 v, f32 factor) => new Vector2(v.X * factor, v.Y * factor);
+    public static Vector2 operator *(f32 factor, Vector2 v) => v * factor;
+    public static Vector2 operator /(Vector2 a, Vector2 b) => new Vector2(a.X / b.X, a.Y / b.Y);
+    public static Vector2 operator /(Vector2 v, f32 divisor) => new Vector2(v.X / divisor, v.Y / divisor);
+    public static bool operator ==(Vector2 a, Vector2 b) => a.X == b.X && a.Y == b.Y;
+    public static bool operator !=(Vector2 a, Vector2 b) => !(a == b);
+}

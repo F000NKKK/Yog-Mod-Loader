@@ -5,8 +5,9 @@ use yog_script_analyze::check;
 use yog_script_analyze::resolve::DefKind;
 
 /// The type checker's problems.
-const TYPES: [&str; 5] = [
+const TYPES: [&str; 6] = [
     script_problem::TYPE_MISMATCH,
+    script_problem::UNKNOWN_TYPE,
     script_problem::NULLABLE,
     script_problem::UNKNOWN_MEMBER,
     script_problem::WRONG_SIDE,
@@ -52,7 +53,7 @@ fn the_examples_resolve_cleanly() {
 
 #[test]
 fn a_name_declared_twice_is_found() {
-    let src = "i32 Charge() => 1;\nint Charge() => 2;\n";
+    let src = "i32 Charge() => 1;\ni32 Charge() => 2;\n";
     assert_eq!(codes("a.ys", src), [script_problem::DUPLICATE]);
     // A block may bind a name again: the later one hides the earlier.
     assert!(
@@ -168,7 +169,7 @@ fn names_follow_csharps_style() {
 
 #[test]
 fn a_use_names_its_definition() {
-    let src = "i32 Area(i32 w, i32 h) => w * h;\nint Big() => Area(10, 20);\n";
+    let src = "i32 Area(i32 w, i32 h) => w * h;\ni32 Big() => Area(10, 20);\n";
     let checked = check("a.ys", src);
     let at = src.find("Area(10").unwrap() as u32;
     let def = checked.symbols.def_at(at).unwrap();

@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 
 use super::Checker;
-use super::generics::{Bound, params_of_names};
+use super::generics::Bound;
 use super::model::Type;
 use super::own::TypeKey;
 
@@ -27,7 +27,7 @@ impl Checker<'_, '_, '_> {
         let mut bases = Bases::new();
         self.quietly(|c| {
             for (key, generics, written) in written {
-                let typed = c.with_types(params_of_names(&generics), |c| {
+                let typed = c.as_declared(&key.name, &generics, |c| {
                     written.iter().map(|b| c.type_of(b)).collect()
                 });
                 bases.insert(key, typed);

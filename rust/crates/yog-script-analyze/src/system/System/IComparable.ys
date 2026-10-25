@@ -1,0 +1,7 @@
+namespace System;
+
+/// A type whose values are ordered: less than zero when this goes before
+/// `other`, zero when they're level, more after.
+public interface IComparable<in T> {
+    i32 CompareTo(T other);
+}

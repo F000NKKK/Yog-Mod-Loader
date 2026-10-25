@@ -5,8 +5,8 @@
 use yog_ids::script_problem;
 
 use super::Checker;
+use super::context::Context;
 use super::game::{self, Found};
-use super::generics::Bound;
 use super::model::Type;
 use super::own::TypeKey;
 use crate::ast::{Arg, Expr, ExprKind, Method, Pass};
@@ -18,7 +18,7 @@ pub(super) enum Callee {
     /// binds (`Box<i32>`'s `T` is `i32`; an inherited one's, by the
     /// arguments its base is given: `Dictionary<K, V>`'s `ICollection`'s
     /// `T` is `KeyValuePair<K, V>`).
-    Own(Vec<(Method, Bound)>),
+    Own(Vec<(Method, Context)>),
     /// Methods typed already: a game class's, Yog's.
     Typed(Vec<Signature>),
     Unknown,
@@ -83,8 +83,8 @@ impl Checker<'_, '_, '_> {
             _ => return Type::Unknown,
         };
         for (key, args) in self.lineage_of(type_name, args) {
-            let bound = self.bound_of(&key.name, &args);
-            let found = self.with_types(bound, |c| c.own_member_of(&key, name));
+            let context = self.context_of(&key.name, &args);
+            let found = self.in_context(&context, |c| c.own_member_of(&key, name));
             if found.known() {
                 return found;
             }
@@ -132,10 +132,10 @@ impl Checker<'_, '_, '_> {
             .find(Type::known)
     }
 
-    fn extension_methods(&self, class: &str, name: &str) -> Option<Vec<(Method, Bound)>> {
+    fn extension_methods(&self, class: &str, name: &str) -> Option<Vec<(Method, Context)>> {
         let ext = self.own.extended.get(crate::index::simple_name(class))?;
         match ext.methods.get(name) {
-            Some(methods) => Some(unbound(methods)),
+            Some(methods) => Some(self.unbound(methods)),
             None => ext
                 .components
                 .iter()
@@ -236,7 +236,7 @@ impl Checker<'_, '_, '_> {
             Callee::Own(methods) => {
                 let sigs: Vec<Signature> = methods
                     .iter()
-                    .map(|(m, bound)| self.with_types(bound.clone(), |c| c.signature(m)))
+                    .map(|(m, context)| self.in_context(context, |c| c.signature(m)))
                     .collect();
                 self.pick(&sigs, given, args, at)
             }
@@ -317,13 +317,13 @@ impl Checker<'_, '_, '_> {
 
     /// The source's own methods `name` reachable unqualified here: `this`'s
     /// (its components' and extensions' too), else the file's.
-    pub(super) fn callable(&self, name: &str) -> Vec<(Method, Bound)> {
+    pub(super) fn callable(&self, name: &str) -> Vec<(Method, Context)> {
         let in_this = self.this.clone().and_then(|t| match &t {
             Type::Game(class) | Type::Yog(class) => self.extension_methods(class, name),
             _ => self.own_methods(&t, name),
         });
         in_this
-            .or_else(|| self.own.methods.get(name).map(|m| unbound(m)))
+            .or_else(|| self.own.methods.get(name).map(|m| self.unbound(m)))
             .unwrap_or_default()
     }
 
@@ -335,7 +335,7 @@ impl Checker<'_, '_, '_> {
 
     /// Methods `name` of own type `t` or the nearest type it inherits that
     /// declares them (or a component of it), each with its type's bound.
-    fn own_methods(&self, t: &Type, name: &str) -> Option<Vec<(Method, Bound)>> {
+    fn own_methods(&self, t: &Type, name: &str) -> Option<Vec<(Method, Context)>> {
         let Type::Own(type_name, args) = t else {
             return None;
         };
@@ -345,8 +345,13 @@ impl Checker<'_, '_, '_> {
                 let own = self.own.of_key(&key)?;
                 match own.methods.get(name) {
                     Some(methods) => {
-                        let bound = self.bound_of(&key.name, &args);
-                        Some(methods.iter().map(|m| (m.clone(), bound.clone())).collect())
+                        let context = self.context_of(&key.name, &args);
+                        Some(
+                            methods
+                                .iter()
+                                .map(|m| (m.clone(), context.clone()))
+                                .collect(),
+                        )
                     }
                     None => own
                         .components
@@ -542,7 +547,11 @@ fn own_args(t: &Type) -> &[Type] {
     }
 }
 
-/// Methods that bind no type parameters (the file's, an extension's).
-fn unbound(methods: &[Method]) -> Vec<(Method, Bound)> {
-    methods.iter().map(|m| (m.clone(), Bound::new())).collect()
+impl Checker<'_, '_, '_> {
+    /// Methods that bind no type parameters (the file's, an extension's),
+    /// read where the code is.
+    fn unbound(&self, methods: &[Method]) -> Vec<(Method, Context)> {
+        let here = self.here();
+        methods.iter().map(|m| (m.clone(), here.clone())).collect()
+    }
 }

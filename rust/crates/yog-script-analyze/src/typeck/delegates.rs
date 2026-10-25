@@ -7,7 +7,6 @@
 use std::collections::HashMap;
 
 use super::Checker;
-use super::generics::params_of_names;
 use super::model::Type;
 use super::own::TypeKey;
 
@@ -29,7 +28,7 @@ impl Checker<'_, '_, '_> {
         let mut delegates = Delegates::new();
         self.quietly(|c| {
             for (key, generics, m) in declared {
-                let sig = c.with_types(params_of_names(&generics), |c| c.signature_types(&m));
+                let sig = c.as_declared(&key.name, &generics, |c| c.signature_types(&m));
                 delegates.insert(key, sig);
             }
         });

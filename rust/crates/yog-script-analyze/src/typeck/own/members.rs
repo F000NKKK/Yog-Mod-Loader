@@ -27,7 +27,8 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
                 }
             }
             DeclKind::Method(m) => {
-                if d.has(ast::Modifier::Readonly) {
+                // A static method has no object to change.
+                if d.has(ast::Modifier::Readonly) || d.has(ast::Modifier::Static) {
                     t.readonly.push(m.name.text.clone());
                 }
                 t.methods

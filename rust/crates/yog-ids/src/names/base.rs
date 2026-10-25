@@ -338,6 +338,9 @@ names! {
         /// none of its own type, or one of a pair without the other (`==`
         /// and `!=`, `<` and `>`, `<=` and `>=`).
         OPERATOR = "YS0034",
+        /// A type name nothing declares where it's written: no type of the
+        /// code's namespace nor of one a `using` brings in (C#'s CS0246).
+        UNKNOWN_TYPE = "YS0035",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

@@ -135,7 +135,7 @@ impl Gen<'_> {
             (Place::Interface, Some(_)) if !d.has(Modifier::Static) => "default ".to_string(),
             (Place::File, _) => "public static ".to_string(),
             (_, None) => "public abstract ".to_string(),
-            _ => format!("public {}{}", stat_of(d), final_of(d)),
+            _ => format!("{}{}{}", access_of(d), stat_of(d), final_of(d)),
         };
         let head = format!("{lead}{generics}{ret} {name}({params})");
         if m.body.is_none() {
@@ -238,6 +238,18 @@ pub(crate) fn generic_list(generics: &[Generic]) -> String {
 
 fn stat(place: Place) -> &'static str {
     if place == Place::File { "static " } else { "" }
+}
+
+/// A member's access in Java: C#'s `private` and `protected` as Java's,
+/// the rest public (`internal` is the mod's, across its packages).
+fn access_of(d: &Decl) -> &'static str {
+    if d.has(Modifier::Private) {
+        "private "
+    } else if d.has(Modifier::Protected) {
+        "protected "
+    } else {
+        "public "
+    }
 }
 
 fn stat_of(d: &Decl) -> &'static str {

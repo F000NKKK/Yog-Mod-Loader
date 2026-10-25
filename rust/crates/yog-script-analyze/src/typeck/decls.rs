@@ -10,6 +10,7 @@ use crate::index::Side;
 
 impl Checker<'_, '_, '_> {
     pub(super) fn decls(&mut self, decls: &[Decl]) {
+        self.check_overloads(decls);
         for d in decls {
             self.decl(d);
         }

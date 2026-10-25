@@ -79,10 +79,17 @@ fn the_game_versions_are_the_hosts() {
             return;
         };
         for e in entries.flatten() {
-            let Some(v) = e.path().file_stem().map(|s| s.to_string_lossy().into_owned()) else {
+            let Some(v) = e
+                .path()
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+            else {
                 continue;
             };
-            assert!(game_version::ALL_VALUES.contains(&v.as_str()), "{loader}/versions/{v} isn't one Yog lists");
+            assert!(
+                game_version::ALL_VALUES.contains(&v.as_str()),
+                "{loader}/versions/{v} isn't one Yog lists"
+            );
             hosted.insert(v);
         }
     }

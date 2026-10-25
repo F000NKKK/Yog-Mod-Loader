@@ -71,12 +71,12 @@ impl Checker<'_, '_, '_> {
             .lineage_of(type_name, args)
             .into_iter()
             .filter_map(|(key, args)| {
-                Some((self.own.of_key(&key)?, self.bound_of(&key.name, &args)))
+                Some((self.own.of_key(&key)?, self.context_of(&key.name, &args)))
             })
-            .flat_map(|(t, bound)| {
+            .flat_map(|(t, context)| {
                 t.indexers
                     .iter()
-                    .map(move |i| (i.get.clone(), bound.clone()))
+                    .map(move |i| (i.get.clone(), context.clone()))
             })
             .collect();
         (!getters.is_empty()).then_some(Callee::Own(getters))

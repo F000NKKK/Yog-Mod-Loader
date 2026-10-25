@@ -1,0 +1,68 @@
+namespace System;
+
+/// A length of time, as .NET's: a count of ticks of 100 nanoseconds,
+/// added, compared and scaled by its operators.
+public readonly struct TimeSpan(i64 ticks) : IEquatable<TimeSpan>, IComparable<TimeSpan> {
+    public const i64 NanosecondsPerTick = 100;
+    public const i64 TicksPerMicrosecond = 10;
+    public const i64 TicksPerMillisecond = 10000;
+    public const i64 TicksPerSecond = TicksPerMillisecond * 1000;
+    public const i64 TicksPerMinute = TicksPerSecond * 60;
+    public const i64 TicksPerHour = TicksPerMinute * 60;
+    public const i64 TicksPerDay = TicksPerHour * 24;
+
+    /// No time.
+    public static readonly TimeSpan Zero = new TimeSpan(0);
+
+    public i64 Ticks { get; } = ticks;
+
+    /// The whole days, and what's left of each unit after the larger ones.
+    public i32 Days => (i32)(Ticks / TicksPerDay);
+    public i32 Hours => (i32)(Ticks / TicksPerHour % 24);
+    public i32 Minutes => (i32)(Ticks / TicksPerMinute % 60);
+    public i32 Seconds => (i32)(Ticks / TicksPerSecond % 60);
+    public i32 Milliseconds => (i32)(Ticks / TicksPerMillisecond % 1000);
+
+    /// The whole length in each unit, with its fraction.
+    public f64 TotalDays => (f64)Ticks / TicksPerDay;
+    public f64 TotalHours => (f64)Ticks / TicksPerHour;
+    public f64 TotalMinutes => (f64)Ticks / TicksPerMinute;
+    public f64 TotalSeconds => (f64)Ticks / TicksPerSecond;
+    public f64 TotalMilliseconds => (f64)Ticks / TicksPerMillisecond;
+
+    public static TimeSpan FromDays(f64 value) => Interval(value, TicksPerDay);
+    public static TimeSpan FromHours(f64 value) => Interval(value, TicksPerHour);
+    public static TimeSpan FromMinutes(f64 value) => Interval(value, TicksPerMinute);
+    public static TimeSpan FromSeconds(f64 value) => Interval(value, TicksPerSecond);
+    public static TimeSpan FromMilliseconds(f64 value) => Interval(value, TicksPerMillisecond);
+    public static TimeSpan FromTicks(i64 value) => new TimeSpan(value);
+
+    private static TimeSpan Interval(f64 value, i64 scale) => new TimeSpan((i64)(value * scale));
+
+    public TimeSpan Add(TimeSpan ts) => new TimeSpan(Ticks + ts.Ticks);
+    public TimeSpan Subtract(TimeSpan ts) => new TimeSpan(Ticks - ts.Ticks);
+    public TimeSpan Negate() => new TimeSpan(-Ticks);
+    /// Its length, whichever way it goes.
+    public TimeSpan Duration() => Ticks < 0 ? Negate() : this;
+    public TimeSpan Multiply(f64 factor) => new TimeSpan((i64)(Ticks * factor));
+    public TimeSpan Divide(f64 divisor) => new TimeSpan((i64)(Ticks / divisor));
+    public f64 Divide(TimeSpan ts) => (f64)Ticks / ts.Ticks;
+
+    public static i32 Compare(TimeSpan t1, TimeSpan t2) => t1.Ticks < t2.Ticks ? -1 : t1.Ticks > t2.Ticks ? 1 : 0;
+    public i32 CompareTo(TimeSpan other) => Compare(this, other);
+    public bool Equals(TimeSpan other) => Ticks == other.Ticks;
+
+    public static TimeSpan operator +(TimeSpan t1, TimeSpan t2) => t1.Add(t2);
+    public static TimeSpan operator -(TimeSpan t1, TimeSpan t2) => t1.Subtract(t2);
+    public static TimeSpan operator -(TimeSpan t) => t.Negate();
+    public static TimeSpan operator *(TimeSpan t, f64 factor) => t.Multiply(factor);
+    public static TimeSpan operator *(f64 factor, TimeSpan t) => t.Multiply(factor);
+    public static TimeSpan operator /(TimeSpan t, f64 divisor) => t.Divide(divisor);
+    public static f64 operator /(TimeSpan t1, TimeSpan t2) => t1.Divide(t2);
+    public static bool operator ==(TimeSpan t1, TimeSpan t2) => t1.Ticks == t2.Ticks;
+    public static bool operator !=(TimeSpan t1, TimeSpan t2) => t1.Ticks != t2.Ticks;
+    public static bool operator <(TimeSpan t1, TimeSpan t2) => t1.Ticks < t2.Ticks;
+    public static bool operator >(TimeSpan t1, TimeSpan t2) => t1.Ticks > t2.Ticks;
+    public static bool operator <=(TimeSpan t1, TimeSpan t2) => t1.Ticks <= t2.Ticks;
+    public static bool operator >=(TimeSpan t1, TimeSpan t2) => t1.Ticks >= t2.Ticks;
+}

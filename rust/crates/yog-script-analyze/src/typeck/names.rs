@@ -115,6 +115,15 @@ impl Checker<'_, '_, '_> {
         self.ns.starts_with(ns).then(|| Type::own(name.to_string()))
     }
 
+    /// Whether own type `name` is reached by its name alone here: its
+    /// namespace is the code's, one enclosing it, or one a `using` brings in.
+    pub(super) fn own_in_reach(&self, name: &str) -> bool {
+        self.own
+            .namespaces
+            .get(name)
+            .is_none_or(|ns| self.ns.starts_with(ns) || self.directives.usings.contains(ns))
+    }
+
     /// A namespace `name` starts: Yog's, the game's (a `.yns`), or the source's.
     fn root(&self, name: &str) -> Type {
         let own_root = self

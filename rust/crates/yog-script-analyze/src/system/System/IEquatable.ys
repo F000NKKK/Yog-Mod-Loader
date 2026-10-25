@@ -1,0 +1,6 @@
+namespace System;
+
+/// A type whose values say whether they equal another of it.
+public interface IEquatable<T> {
+    bool Equals(T other);
+}

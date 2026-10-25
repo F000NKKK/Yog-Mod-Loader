@@ -58,7 +58,9 @@ System
   Action<…>, Func<…>, Predicate<T>, Comparison<T>, Converter<TIn, TOut>
   Tuple / ValueTuple          (a, b) Item1…, deconstruction
   Lazy<T>                     Value, IsValueCreated
-  TimeSpan, DateTime          (with Yog's Ticks / Seconds units)
+  TimeSpan                    Ticks, Days…, TotalSeconds…, FromSeconds…, Add, Negate, Duration,
+                              + - * / == < … (operators)            : IEquatable, IComparable
+  DateTime                    (with Yog's Ticks / Seconds units)
   Result<T, E>, Error, Panic  (Yog Script's own, `ys.md` §3 Failures)
 
 System.Collections            IEnumerable, IEnumerator (the untyped forms)
@@ -102,6 +104,10 @@ System.Linq
   IOrderedEnumerable<T>, IGrouping<K, T>, ILookup<K, T>
   Query syntax (`from x in xs where … select …`) lowers to the same calls.
 
+System.Numerics
+  Vector2, Vector3            X Y Z, Zero, One, UnitX…, Length, Dot, Cross, Distance, Normalize,
+                              Lerp, Min, Max, + - * / == (operators)   : IEquatable
+
 System.Text                   StringBuilder (Append, AppendLine, Insert, Remove, Clear, Length)
 System.Reflection             Type, MethodInfo, PropertyInfo, FieldInfo (`ys.md` §3)
 System.Linq.Expressions       Expression<Func<…>> (`ys.md` §3)
@@ -140,10 +146,12 @@ surface's delegates.
 
 ## Steps
 
-0. The language under the library: indexers (done), `value` / `field`
-   (done), the folders as namespaces (done); delegates declared and
-   events of any delegate type; operators (`operator +`, `==`,
-   `implicit` / `explicit` conversions).
+0. The language under the library (done): indexers, `value` / `field`,
+   the folders as namespaces, delegates declared and events of any
+   delegate type, operators (`operator +`, `==`, `implicit` / `explicit`
+   conversions), methods overloaded by their parameters. A library
+   type's members are read in its own namespace wherever they're reached
+   from; a type name nothing in reach declares is YS0035.
 1. `System.Collections.Generic`'s interfaces and `List`, `Dictionary`,
    `HashSet`, `KeyValuePair`; `System`'s `IEquatable`, `IComparable`,
    `IDisposable`, `Math`, `String`'s members; the type checker reading
@@ -152,5 +160,6 @@ surface's delegates.
    `SortedSet`, `SortedDictionary`, `PriorityQueue`, `LinkedList`,
    comparers.
 3. The numbers' and `char`'s members, `Random`, `StringBuilder`,
-   `Lazy`, `TimeSpan`, `DateTime`; query syntax.
+   `Lazy`, `TimeSpan` (done), `DateTime`, `System.Numerics`' vectors
+   (done; matrices, quaternions next); query syntax.
 4. `System.Reflection`, `System.Linq.Expressions`.

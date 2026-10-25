@@ -22,9 +22,9 @@ impl Checker<'_, '_, '_> {
         // A generic enum's case: its parameters inferred from the call.
         let generics = own.generics.clone();
         let params_of = |g: &String| Type::Param(g.clone());
-        let bound = generics.iter().map(|g| (g.clone(), params_of(g))).collect();
-        let params: Vec<Type> =
-            self.with_types(bound, |c| fields.iter().map(|f| c.type_of(&f.ty)).collect());
+        let params: Vec<Type> = self.as_declared(of, &generics, |c| {
+            fields.iter().map(|f| c.type_of(&f.ty)).collect()
+        });
         let ret = Type::Own(of.to_string(), generics.iter().map(params_of).collect());
         Callee::Typed(vec![Signature {
             passes: vec![None; params.len()],

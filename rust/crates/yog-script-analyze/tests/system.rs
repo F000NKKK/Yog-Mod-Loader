@@ -77,3 +77,38 @@ fn rust_is_reached_on_the_bus() {
         [script_problem::ATTRIBUTE]
     );
 }
+
+#[test]
+fn time_spans_add_and_compare_by_their_operators() {
+    let ok = "TimeSpan Wait() => TimeSpan.FromSeconds(2) + TimeSpan.FromMilliseconds(500);\n\
+              bool Long(TimeSpan t) => t * 2.0 >= TimeSpan.FromMinutes(1) && -t < TimeSpan.Zero;\n\
+              f64 Halves(TimeSpan t) => t / TimeSpan.FromSeconds(0.5);\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    // Two spans don't multiply; a span isn't a number.
+    let bad = "TimeSpan F(TimeSpan t) => t * t;\nf64 G(TimeSpan t) => t;\n";
+    assert_eq!(
+        codes(bad),
+        [script_problem::TYPE_MISMATCH, script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn vectors_are_numerics_by_their_operators() {
+    let ok = "using System.Numerics;\n\
+              Vector3 Step(Vector3 from, Vector3 to, f32 speed) => from + Vector3.Normalize(to - from) * speed;\n\
+              bool Still(Vector2 v) => -v == Vector2.Zero;\n\
+              f32 Far(Vector3 a, Vector3 b) => Math.Max(Vector3.Distance(a, b), 1);\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    // A vector isn't a number; `System.Numerics` is `using`'d.
+    let bad = "using System.Numerics;\nf32 F(Vector3 v) => v + 1;\n";
+    assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH]);
+    assert_eq!(
+        codes("Vector3 F() => default;\n"),
+        [script_problem::UNKNOWN_TYPE]
+    );
+    // Written in full, without the `using`: its members' types are read in
+    // its own namespace, not the caller's.
+    let full = "System.Numerics.Vector3 F(System.Numerics.Vector3 v) =>\n\
+                System.Numerics.Vector3.Normalize(v) + v;\n";
+    assert!(codes(full).is_empty(), "{:?}", codes(full));
+}

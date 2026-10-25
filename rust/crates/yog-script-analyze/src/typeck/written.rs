@@ -59,10 +59,18 @@ impl Checker<'_, '_, '_> {
         if let Some(t) = self.type_param(name) {
             return t;
         }
-        if self.own.get(name, args.len()).is_some() {
+        if self.own.get(name, args.len()).is_some() && self.own_in_reach(name) {
             return Type::Own(name.to_string(), args);
         }
-        self.imported(name, at)
+        let t = self.imported(name, at);
+        if !t.known() {
+            self.report.error(
+                script_problem::UNKNOWN_TYPE,
+                at,
+                format!("no type `{name}` here: is a `using` missing?"),
+            );
+        }
+        t
     }
 
     /// A game class of `side` used where the code runs on `self.side`.
