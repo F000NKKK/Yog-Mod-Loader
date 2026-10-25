@@ -76,7 +76,7 @@ fn compiles_a_book() {
         "{e}"
     );
     let newest = super::refs::versions().last().expect("supported versions");
-    assert!(e.contains(&format!("minecraft:grass isn't in Minecraft {newest} (the mod's datapack; it's in 1.20.1) — there it's minecraft:short_grass")), "{e}");
+    assert!(e.contains(&format!("minecraft:grass isn't in Minecraft {newest} (the mod's datapack; it's in 1.19.2, 1.20.1) — there it's minecraft:short_grass")), "{e}");
     assert!(e.contains("no recipe mymod:nope in this mod"), "{e}");
     assert!(e.contains("[external.create]"), "{e}");
 

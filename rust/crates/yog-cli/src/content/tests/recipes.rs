@@ -133,7 +133,7 @@ fn what_a_version_or_loader_hasnt_got_keeps_a_recipe_out_of_it() {
     );
     let w = check(r#""@tag:item:c:iron_ingots""#).unwrap();
     assert!(
-        w.contains("left out on forge 1.20.1, neoforge 1.20.1, Minecraft 1.21.1")
+        w.contains("left out on forge 1.19.2, forge 1.20.1, neoforge 1.20.1, Minecraft 1.21.1")
             && w.contains("@tag:item:yog:ingots/iron"),
         "{w}"
     );
