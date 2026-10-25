@@ -4,7 +4,7 @@
 
 # 🗝️ Yog
 
-### Write Minecraft mods in Rust: one `.yog` file for Fabric, NeoForge and Forge
+### Write Minecraft mods in Rust or Yog Script: one `.yog` file for Fabric, NeoForge and Forge
 
 [![yog-api](https://img.shields.io/crates/v/yog-api.svg?label=yog-api&cacheSeconds=86400)](https://crates.io/crates/yog-api)
 [![docs.rs](https://img.shields.io/docsrs/yog-api?cacheSeconds=86400)](https://docs.rs/yog-api)
@@ -31,15 +31,18 @@
 
 ## 📖 Overview
 
-**Yog** is a Minecraft mod loader for mods written in **Rust**. A mod is a
-normal Rust crate built against [`yog-api`](https://crates.io/crates/yog-api);
-`yog build` cross-compiles it for five platforms and packs everything into one
-`.yog` file. Drop that file into `yog-mods/` and it runs on **Fabric,
-NeoForge and Forge**, on Minecraft **1.20.1, 1.21.1 and 26.2**, on Linux, Windows
-and macOS.
+**Yog** is a Minecraft mod loader for mods written in **Rust** or in **Yog
+Script**. A Rust mod is a normal crate built against
+[`yog-api`](https://crates.io/crates/yog-api); a Yog Script mod is `.ys` sources
+that compile to JVM bytecode. `yog build` cross-compiles the natives for five
+platforms, compiles the scripts once per game version, and packs everything into
+one `.yog` file. Drop that file into `yog-mods/` and it runs on **Fabric,
+NeoForge and Forge**, on Minecraft **1.20.1, 1.21.1 and 26.2** (1.19.2 is being
+ported), on Linux, Windows and macOS.
 
 The Java side is a thin host per loader. It forwards game events over JNI to
-`yog-runtime`, a native library that loads the mods. All mod logic is Rust.
+`yog-runtime`, a native library that loads the mods, and loads the mods' Yog
+Script jars itself.
 
 The name comes from Yog-Sothoth, "the gate and the key": the gateway between
 the Java and Rust worlds.
@@ -52,7 +55,10 @@ the Java and Rust worlds.
 
 - **🦀 Rust, not Java.** Mods are Rust crates with Cargo dependencies,
   `cargo test` and rustc's type checking. No Mixins and no mappings in mod code.
-- **📦 One file for every setup.** The same `.yog` runs on three loaders, two
+- **📜 Or Yog Script.** A C#-style language with Rust's enums, `match`,
+  `Result` and ownership. It sees only Yog's own surface, so a script mod
+  needs no Rust toolchain and no natives.
+- **📦 One file for every setup.** The same `.yog` runs on three loaders, three
   Minecraft versions and five OS/CPU targets. Players install it by copying
   one file.
 - **🧩 Declarative by default.** Screens are `.yui` markup with compiled
@@ -60,9 +66,11 @@ the Java and Rust worlds.
   `.yblock`/`.yitem` files. Rust code is generated from all of them and
   checked by the compiler.
 - **🛠️ A real toolchain.** The `yog` CLI scaffolds, builds, checks, imports
-  and publishes mods. [Yog-IDLE](https://github.com/F000NKKK/Yog-IDLE) adds a
-  screen designer, a 3D block/item editor with paint mode, a native debugger
-  and hot reload.
+  and publishes mods. [Yog-IDLE](https://github.com/F000NKKK/Yog-IDLE) adds
+  screen, book, sound, particle and video designers, a 3D block/item editor
+  with paint mode, a native debugger and hot reload.
+  [Yog Installer](https://github.com/F000NKKK/Yog-Installer) installs and
+  updates all of it, with the JDKs and Rust.
 - **🔓 Free for mods.** The API crates are `MIT OR Apache-2.0`, so a mod can
   use any license. Only the loader engine itself is AGPL
   ([LICENSING.md](LICENSING.md)).
@@ -70,9 +78,11 @@ the Java and Rust worlds.
 ## 🌟 Key Features
 
 ### Gameplay API
-- ✅ **Events**: about 25 server events (block break/place, chat, damage,
-  death, explosions, pickups, containers, projectiles...), each with a `Pre`
-  phase that can cancel and a `Post` phase that observes, through one handler
+- ✅ **The bus**: every event and every action goes over one typed message
+  bus. Events have a `Pre` phase that can cancel and a `Post` phase that
+  observes; actions are plain functions per domain (`world::get_block`,
+  `player::give_item`, `chat::broadcast`). Mods can provide services of
+  their own on it
 - ✅ **World, players, entities**: blocks, time, weather, inventories, NBT,
   effects, attributes, teleport across dimensions, particles, sounds
 - ✅ **Commands**: plain and typed (`"float float float"`) commands
@@ -82,7 +92,20 @@ the Java and Rust worlds.
   regions, item cooldowns, riders, thunder
 - ✅ **Dimensions**: custom dimension types with chunk generators in Rust,
   plus biomes, structures, features and mob spawning per dimension
-- ✅ **Networking**: channels of bytes, and typed packets — any Yog Data (`Schema`) type
+- ✅ **Networking**: channels of bytes, and typed packets — any Yog Data
+  (`Schema`) type. Sending to the server is declared in `yog.toml`
+  (`[network] to_server = true`); an undeclared send is a compile error, in
+  Rust and in Yog Script. Without it, a client mod joins servers that don't
+  have Yog
+- ✅ **Nanites**: a mod reaches the game's (or a Java mod's) classes by
+  Mojang's names, private members too, through `#[nanite]` — typed, with no
+  Mixins in mod code
+- ✅ **Mirrors**: hot game data (blocks around the player, entities) in shared
+  memory, read in place by mods and the host
+- ✅ **Bodies**: skeletons and animations (`.ymodel`/`.yanim`), posing vanilla
+  models, disguises and morphs, camera and movement (`yog-body`)
+- ✅ **Worldgen**: declarative terrain — noise, layers, caves and ores — that
+  the game generates and Yog-IDLE previews (`yog-worldgen`)
 - ✅ **Persistence**: scoped key/value `Storage` (global, per player, world,
   chunk, entity) and `Config` files
 - ✅ **Scheduler**: one-shot and repeating tasks in ticks
@@ -109,6 +132,9 @@ the Java and Rust worlds.
   entities and structures; the book's own texture and colors; translated
   texts and names. One renderer runs in the game and in Yog-IDLE
 - 📦 **`yog-inventory`**: real container screens with custom slot layouts
+- 🎬 **Media**: pictures in any format, AV1 video played on screens, in the
+  world and on entities; Yog's own fonts with shaping and ligatures
+  (`yog-media`, `yog-font`)
 
 ### Resources and content
 - 🌍 **`.yres` resources**: texts (with culture variants such as
@@ -132,9 +158,27 @@ the Java and Rust worlds.
 - 📥 **Importers**: `yog import resourcepack` and `yog import bbmodel`
   (Blockbench)
 
+### Yog Script
+- 📜 **`.ys` sources**: C# syntax and naming, generics, Rust-style enums,
+  `match`, `Result` and borrow checking; a `System` library written in Yog
+  Script itself. Scripts see `System.Yog.*` only; game classes are reachable
+  from `.yns` (nanite) files under `System.Game.*`
+- 🧪 **One semantics, two runners**: `yog-script-run` interprets checked code
+  (build-time macros, constants, `yog-script test`), `yog-script-java` writes
+  it as Java that `javac` compiles for each game version's Java
+- 🪄 **Procedural macros**: `[ProcMacro]`, `[DeriveMacro]` and attribute
+  macros written in Yog Script and run at build time
+- 🔌 **Rust interop**: `[Service]`, `[Event]` and `[Provide]` reach native code
+  over the bus
+
 ### Developer experience
-- ⚡ **Hot reload**: swap a rebuilt mod into the running game over a control socket
-- 🐞 **Native debugging**: `yog-debugger` (ptrace, DAP) with DWARF symbols, used by Yog-IDLE
+- ⚡ **Hot reload**: swap a rebuilt mod (and, if asked, its resources) into the
+  running game over the control channel
+- 🐞 **Native debugging**: `yog-debugger` speaks DAP on Linux (ptrace),
+  Windows (the debug API) and macOS (Mach), with DWARF symbols; used by Yog-IDLE
+- 🗂️ **Yog Data**: every Yog format has one data model with a binary form on
+  disk and a text form for people (`yog data text`/`bin`, readable diffs
+  through `yog data git`)
 - 🖥️ **5-platform builds**: `cargo-zigbuild` cross-links Linux, Windows
   and macOS natives from one machine; `YOG_TARGETS` limits it for fast local builds
 
@@ -142,13 +186,15 @@ the Java and Rust worlds.
 
 | Loader | Minecraft | Toolchain | Java |
 |---|---|---|:---:|
-| **Fabric** | 1.20.1 | loader ≥ 0.15.11, fabric-api 0.92.2 | 17 |
+| **Fabric** | 1.19.2 *(porting)* | loader ≥ 0.15.11, fabric-api 0.77.0 | 17 |
+| | 1.20.1 | loader ≥ 0.15.11, fabric-api 0.92.2 | 17 |
 | | 1.21.1 | loader ≥ 0.16.9, fabric-api 0.115.6 | 21 |
 | | 26.2 | Loom 1.19.1, loader ≥ 0.19.5, fabric-api 0.161.0 | 25 |
 | **NeoForge** | 1.20.1 | NeoForge 47.1.106 | 17 |
 | | 1.21.1 | NeoForge 21.1.77 | 21 |
 | | 26.2 | NeoForge 26.2.0.93 (ModDevGradle) | 25 |
-| **Forge** | 1.20.1 | Forge 47.3.0 | 17 |
+| **Forge** | 1.19.2 *(planned)* | Forge 43.x | 17 |
+| | 1.20.1 | Forge 47.3.0 | 17 |
 | | 1.21.1 | Forge 52.0.40 | 21 |
 | | 26.2 | Forge 65.1.5 (ForgeGradle 7) | 25 |
 
@@ -158,14 +204,25 @@ version (or a range, named by the directory) shares across all three loaders.
 A loader/version pair adds only a thin adapter under `<loader>/platforms/<mc>/`
 (its entry point, event hooks and loader services) and its pins in
 `<loader>/versions/<mc>.properties`. Every Fabric host compiles on Mojang's
-names. 26.x builds live in each loader's `modern/` Gradle project. Yog targets
-the releases modders settle on; a new Minecraft version is added once the
-current ones are stable.
+names. 26.x builds live in each loader's `modern/` Gradle project. NeoForge
+doesn't exist for 1.19.2. Yog targets the releases modders settle on; a new
+Minecraft version is added once the current ones are stable.
+
+The host-facing Java API (the bus's generated records, the shared names, the
+Yog Script runtime) is its own module, `java-api/`: it is the classpath Yog
+Script compiles against and is bundled into every loader jar.
+
+A loader's network channel is optional: a client with Yog joins servers
+without it, and a mod's server-bound sends are skipped there.
 
 The runtime and every mod ship natives for **linux-x86_64, linux-aarch64,
 windows-x86_64, macos-x86_64 and macos-aarch64**.
 
 ## 🚀 Quick Start
+
+The easiest way is [Yog Installer](https://github.com/F000NKKK/Yog-Installer):
+it puts the CLI, the loader SDK, Yog-IDLE, the JDKs and Rust into `~/.yog`
+and keeps them updated. By hand:
 
 ```bash
 cargo install --locked yog-cli      # installs the `yog` command
@@ -213,9 +270,36 @@ has the Yog loader jar installed. The log confirms it:
 ```
 
 > [!NOTE]
-> The runtime loads a mod only if both were built against the **same ABI
-> version**. `yog build` picks the newest `yog-api` from crates.io, which
-> matches the newest published loader. After a loader update, rebuild your mods.
+> The runtime loads a mod built against the **same ABI major** and a minor
+> **no newer than its own**: minors only add, so older mods keep loading;
+> a major bump means rebuilding. `yog build` picks the newest `yog-api` from
+> crates.io, which matches the newest published loader.
+
+### The same mod in Yog Script
+
+A mod with no `src/lib.rs` needs no Rust at all. `src/Glassy.ys`:
+
+```csharp
+mod Glassy {
+    Version = "1.0.0";
+    Targets = mc 1.20.1..26.2;
+
+    const string Prefix = "g";
+
+    // The mod's constructor runs when it loads: its subscriptions.
+    Glassy() {
+        Block.Break += e => {
+            if (e.PlayerName.StartsWith(Prefix)) {
+                new World(e.Dimension).SetBlock(e.Pos, "minecraft:glass");
+            }
+        };
+    }
+}
+```
+
+`yog check` reports its errors with the same diagnostics the editor shows;
+`yog build` compiles it into `scripts/<mc>/<id>.jar` inside the `.yog`, one jar
+per game version, each for that version's Java.
 
 ## 📚 Examples
 
@@ -372,7 +456,7 @@ broadcast(
 ).unwrap();
 ```
 
-The call is serialized with rkyv and dispatched by the runtime, so the two
+The call is serialized as Yog Data and dispatched by the runtime, so the two
 `cdylib`s never link to each other. The exporting mod publishes its bindings
 crate with `yog publish exports`.
 
@@ -381,8 +465,8 @@ crate with `yog publish exports`.
 | Command | What it does |
 |---|---|
 | `yog new <name>` | Create a mod project |
-| `yog build` / `yog build debug` | Build for every platform and package `bin/<id>.yog` (`debug` keeps debug info for the debugger) |
-| `yog check` | Generate `obj/` and `cargo check` for the host only |
+| `yog build [debug\|release] [--dev]` | Build for every platform, compile the scripts, and package `bin/<id>.yog` (`debug` keeps debug info for the debugger, `--dev` adds what hot reload checks) |
+| `yog check` | Generate `obj/`, check the Yog Script sources, and `cargo check` for this machine |
 | `yog run <loader> <mc> [--debug]` | Build, copy the `.yog` into that loader's dev game, and launch it. Targets come from the loader SDK and `~/.yog/local.toml`, never from the mod (`yog run --list`) |
 | `yog ui gen` | Generate `.g.rs` from `.yui` screens and components |
 | `yog res check` | Validate `.yres` files, regenerate accessors, list untranslated texts |
@@ -392,7 +476,13 @@ crate with `yog publish exports`.
 | `yog add` / `yog remove <crate>` | Edit `[dependencies]`; `--mod` edits `[dependencies.exports]` |
 | `yog publish exports` | Publish the mod's `#[yog_export]` API to crates.io |
 | `yog setup` / `yog doctor [--json]` | Install or report the build dependencies |
-| `yog designer-lib` | Build the mod for this machine only (used by Yog-IDLE's designer) |
+| `yog data text\|bin\|git` | Convert a Yog format's file between binary and text; make git diffs show text |
+| `yog schema <format>` | A format's shape as JSON (what editors and docs are generated from) |
+| `yog bench` | Run the mod's `benches/*.rs` under criterion |
+| `yog control ...` | Talk to a running game over its control channel (hot reload, resource reload) |
+| `yog serve` | The CLI as a service for Yog-IDLE |
+| `yog designer-lib` | Build the mod for this machine only (used by Yog-IDLE's designers) |
+| `yog mappings <mc> <ns> <dir>` | Write a host's name-mapping table (used by the loader builds) |
 
 `YOG_TARGETS=linux-x86_64` (comma-separated tags or triples) builds only the
 listed platforms. `YOG_API_PATH`, or `[dev] yog_api_path` in `yog.toml`,
@@ -403,11 +493,13 @@ builds against a local `yog-api` checkout instead of crates.io.
 ```mermaid
 flowchart TB
     mod["Rust mod (cdylib, yog-api)<br/>packaged as .yog"]
-    rt["yog-runtime (native library)<br/>mod loader · event dispatch · JNI bridge"]
-    host["Java host: Fabric / NeoForge / Forge<br/>(java-common + per-version Mixins)"]
+    ys["Yog Script mod<br/>scripts/&lt;mc&gt;/&lt;id&gt;.jar in the .yog"]
+    rt["yog-runtime (native library)<br/>mod loader · bus · JNI bridge"]
+    host["Java host: Fabric / NeoForge / Forge<br/>(java-api + java-common + per-version Mixins)"]
     mc["Minecraft 1.20.1 / 1.21.1 / 26.2"]
-    mod -- "C ABI (yog-abi): YogApi, YogServer tables" --> rt
+    mod -- "C ABI (yog-abi): the bus" --> rt
     rt -- "JNI" --> host
+    ys -- "java-api: YogServices / YogEvents" --> host
     host --> mc
 ```
 
@@ -415,10 +507,13 @@ flowchart TB
   jar (`natives/<os>-<arch>/`), subscribes to the loader's events, and
   forwards them over JNI.
 - **Mods are loaded dynamically** from `<game dir>/yog-mods/`. A `.yog` is a
-  zip with `natives/<os>-<arch>/`, the generated `assets/` and `data/`, and the
-  manifest. The runtime picks the native for the current machine.
+  zip with `natives/<os>-<arch>/`, `scripts/<mc>/`, the generated `assets/`
+  and `data/`, and the manifest. The runtime picks the native for the current
+  machine; the host loads the script jar for the running game version.
 - **The ABI is versioned** (`ABI_MAJOR * 10000 + ABI_MINOR`, in `yog-abi`).
-  A mod loads only when its version equals the runtime's.
+  A mod loads when its major equals the runtime's and its minor is no newer.
+- **One source for every name.** Namespaces, kinds, schemes and ids live in
+  `yog-ids`; the Java (`YogNames`) and TypeScript sides are generated from it.
 - **Every event carries a phase** (`Pre`/`Post`), so one registration covers
   both sides of an action.
 
@@ -436,21 +531,28 @@ re-exported through it.
 | [`yog-gfx`](https://crates.io/crates/yog-gfx) | GPU pipeline facade, 2D drawing, image sources | MIT/Apache |
 | [`yog-book`](https://crates.io/crates/yog-book) | Guide books: format and renderer | MIT/Apache |
 | `yog-core`, `yog-event`, `yog-registry`, `yog-command`, `yog-network`, `yog-storage`, `yog-config`, `yog-logging`, `yog-dimensions`, `yog-inventory`, `yog-interop` | Domain crates behind `yog-api` | MIT/Apache |
+| `yog-body`, `yog-worldgen`, `yog-mirror`, `yog-media`, `yog-font`, `yog-graphics` | Bodies and morphs, declarative terrain, shared-memory mirrors, pictures and video, fonts, shared graphics primitives | MIT/Apache |
+| [`yog-data`](https://crates.io/crates/yog-data), `yog-data-derive` | Yog Data: the data model, text and binary forms and schemas of every Yog format | MIT/Apache |
+| `yog-ids`, `yog-formats`, `yog-sync` | Shared names (exported to Java and TS), the source formats' schemas, poison-proof locks | MIT/Apache |
 | [`yog-abi`](https://crates.io/crates/yog-abi) | The `#[repr(C)]` contract between mods and the runtime | MIT/Apache |
-| [`yog-cli`](https://crates.io/crates/yog-cli) | The `yog` command | MIT/Apache |
-| [`yog-runtime`](https://crates.io/crates/yog-runtime) | The engine: JNI bridge, mod loader, dispatch, control socket | AGPL |
-| `yog-hot-reload`, `yog-debugger`, `yog-symbols` | Hot reload, ptrace/DAP debugger, DWARF lookups | AGPL |
+| [`yog-cli`](https://crates.io/crates/yog-cli), `yog-home` | The `yog` command; `~/.yog` and the components Yog Installer put there | MIT/Apache |
+| `yog-script-analyze` | Yog Script's lexer, parser, type and borrow checker, macros, `System` library | MIT/Apache |
+| `yog-script`, `yog-script-build`, `yog-script-run`, `yog-script-java` | The `yog-script` tool, the compiler, the interpreter, the Java backend | AGPL |
+| `yog-codegen`, `yog-codegen-{rust,java,typescript}`, `yog-analysis` | Toolkits for the generators and analyzers | MIT/Apache |
+| [`yog-runtime`](https://crates.io/crates/yog-runtime) | The engine: JNI bridge, mod loader, the bus, control channel | AGPL |
+| `yog-hot-reload`, `yog-debugger`, `yog-symbols`, `yog-mappings` | Hot reload, DAP debugger, DWARF lookups, Minecraft's name mappings | AGPL |
 
 ## 🔧 Building the Loader
 
 You need Rust (pinned in `rust-toolchain.toml`; rustup installs the toolchain
 and all five targets), `cargo-zigbuild` with Zig for the cross builds, and
-JDK 17 and 21 for Gradle. `build.sh` picks the JDK from
+JDK 17, 21 and 25 for Gradle. `build.sh` picks the JDK from
 `<loader>/versions/<mc>.properties`.
 
 ```bash
 ./build.sh build                          # runtime for every platform + all loader jars
 ./build.sh build fabric --mc 1.21.1       # one loader, one Minecraft version
+./build.sh build api                      # java-api (the Yog Script classpath)
 ./build.sh run fabric --client            # build and start the Fabric dev client
 ./build.sh run neoforge --client --mc 1.21.1
 ./build.sh test                           # cargo test
@@ -463,12 +565,14 @@ set `eula=true` in `<loader>/run/eula.txt`.
 
 ### Hot reload
 
-When the game starts with `YOG_CONTROL_SOCKET=<path>` set, the runtime opens a
-Unix socket there (Linux and macOS). It answers `{"cmd":"list_mods"}` and
-`{"cmd":"hot_reload","mod_id":"my-mod","yog_path":"/abs/path/my-mod.yog"}`,
-which swaps the mod's native in place. The new build must have exactly the
-runtime's ABI, so build mods against the same checkout (`YOG_API_PATH`).
-Yog-IDLE does all of this from its Run toolbar.
+When the game starts with `YOG_CONTROL_SOCKET` and `YOG_CONTROL_TOKEN` set,
+the runtime listens on that loopback TCP address, on every OS. The launcher
+proves itself with the token, then sends binary Yog Data frames: list mods,
+check what a new build would register differently, hot-reload a mod (its
+native swapped in place, and its resources if asked), reload resources.
+`yog control` speaks it from a shell. The new build must be ABI-compatible
+with the runtime, so build mods that use new API against the same checkout
+(`YOG_API_PATH`). Yog-IDLE does all of this from its Run toolbar.
 
 ## 📖 Documentation
 
@@ -479,7 +583,7 @@ Yog-IDLE does all of this from its Run toolbar.
 | View-model screens (yog-kit) | [Yog-IDLE/docs/mvvm.md](https://github.com/F000NKKK/Yog-IDLE/blob/master/docs/mvvm.md) |
 | `.yres` resources and translations | [Yog-IDLE/docs/yres.md](https://github.com/F000NKKK/Yog-IDLE/blob/master/docs/yres.md) |
 | `.yblock` / `.yitem` content | [Yog-IDLE/docs/blocks-items.md](https://github.com/F000NKKK/Yog-IDLE/blob/master/docs/blocks-items.md) |
-| yog-kit design notes | [docs/design/yog-kit.md](docs/design/yog-kit.md) |
+| Design notes (yog-kit, nanites, …) | [docs/design/](docs/design/) |
 | Inventory design | [rust/crates/yog-inventory/DESIGN.md](rust/crates/yog-inventory/DESIGN.md) |
 | Licensing | [LICENSING.md](LICENSING.md) |
 
@@ -488,19 +592,22 @@ Yog-IDLE does all of this from its Run toolbar.
 | Project | What |
 |---|---|
 | **Yog-Mod-Loader** (this repo) | Loader hosts, runtime, API crates, `yog` CLI |
-| [Yog-IDLE](https://github.com/F000NKKK/Yog-IDLE) | IDE for Yog mods: screen and book designers, 3D block/item editor, debugger, hot reload |
+| [Yog-IDLE](https://github.com/F000NKKK/Yog-IDLE) | IDE for Yog mods: screen, book and media designers, 3D block/item editor, debugger, hot reload |
 | [Substrate-Platform](https://github.com/F000NKKK/Substrate-Platform) | The generic IDE core Yog-IDLE is built on |
+| [Yog-Installer](https://github.com/F000NKKK/Yog-Installer) | Installs and updates Yog-IDLE, the CLI, the loader SDK, JDKs and Rust |
 | [Yog-Modlist](https://github.com/F000NKKK/Yog-Modlist) | In-game mod browser; the reference view-model screen |
 | [Yog-Pipes](https://github.com/F000NKKK/Yog-Pipes) | Payload-agnostic pipe networks for other mods |
 | [HexMod-Yog](https://github.com/F000NKKK/HexMod-Yog) | A port of Hex Casting to Yog, with its whole guide book |
 | [Yog-VLSI](https://github.com/F000NKKK/Yog-VLSI) | Redstone microchips simulated by a Rust VM |
+| [Yog-Argus](https://github.com/F000NKKK/Yog-Argus) | A client bot: x-ray, Baritone's pathing and mining ported to Yog, aim and defense |
 
 ## 🚧 Status
 
 Yog is in **active development** and nothing is API-frozen. There is no
 backward compatibility between versions: old APIs and formats are removed,
-not deprecated. The core is complete and runs on all six loader/version
-pairs, and the API surface keeps growing.
+not deprecated. The core is complete and runs on all nine loader/version
+pairs; 1.19.2 (Fabric and Forge) is being ported, and the API surface keeps
+growing.
 
 ## 📄 License
 
@@ -508,7 +615,8 @@ Split so the loader stays free while mods can use any license (see
 [LICENSING.md](LICENSING.md)):
 
 - **Loader engine**: the Java hosts, `yog-runtime`, `yog-hot-reload`,
-  `yog-debugger` and `yog-symbols` are **AGPL-3.0-only** ([LICENSE](LICENSE)).
+  `yog-debugger`, `yog-symbols`, `yog-mappings` and the Yog Script compiler
+  crates are **AGPL-3.0-only** ([LICENSE](LICENSE)).
 - **Mod-facing crates**: `yog-api`, `yog-kit`, the domain crates and `yog-cli`
   are **MIT OR Apache-2.0** ([LICENSE-MIT](LICENSE-MIT), [LICENSE-APACHE](LICENSE-APACHE)).
 
