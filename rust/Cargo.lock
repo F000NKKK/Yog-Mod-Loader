@@ -2283,7 +2283,7 @@ dependencies = [
 
 [[package]]
 name = "yog-book"
-version = "0.73.1"
+version = "0.73.2"
 dependencies = [
  "criterion",
  "serde_json",
