@@ -199,11 +199,21 @@ surface's delegates.
    - a class's property implementing an interface's (`Count`) lowered as
      the getter (and setter) Java's interface wants.
 1c. Explicit interface implementations, as C#'s
-   (`bool ICollection<KeyValuePair<K, V>>.Remove(KeyValuePair<K, V> item)`):
-   a member reached only through its interface, lowered to a Java name of
-   its own, so two of one name that Java can't tell apart can both be.
-   Then `IDictionary<K, V>` is an `ICollection<KeyValuePair<K, V>>` and
-   `ISet<T>.Add` gives its `bool`, as .NET's.
+   (`void ICollection<T>.Add(T item) { … }`): a member reached only
+   through its interface. On the JVM each member has a Java name: its
+   own, unless Java couldn't tell it from one it inherits (the same
+   parameters once generics are erased, yet another signature — `ISet`'s
+   `new bool Add(T)` over `ICollection`'s `void Add(T)`, `IDictionary`'s
+   `Remove(TKey)` over `ICollection<KeyValuePair<…>>`'s `Remove(T)`), then
+   one of its type's (`ISet$Add`); an implementation takes the name of
+   what it implements, an explicit one too. The checker notes which
+   method a call chose, so the compiler writes that one's name.
+1d. `ISet<T>.Add` gives its `bool` (`new bool Add(T item)`), `HashSet<T>`
+   implements `ICollection<T>.Add` explicitly — as .NET's.
+1e. `IDictionary<TKey, TValue>` is an
+   `ICollection<KeyValuePair<TKey, TValue>>` again; `Dictionary` implements
+   its `Remove(KeyValuePair<…>)` (and `Add`, `Contains`, `IsReadOnly` of
+   pairs) explicitly — as .NET's.
 2. `System.Linq` (extensions on `IEnumerable<T>`), `Queue`, `Stack`,
    `SortedSet`, `SortedDictionary`, `PriorityQueue`, `LinkedList`,
    comparers.
