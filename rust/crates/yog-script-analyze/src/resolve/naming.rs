@@ -48,7 +48,11 @@ impl Case {
             Case::Pascal => first.is_uppercase(),
             Case::Camel | Case::Private => first.is_lowercase(),
             Case::Interface => first == INTERFACE_MARK && second.is_some_and(char::is_uppercase),
-            Case::TypeParam => first == TYPE_PARAM_MARK && second.is_none_or(char::is_uppercase),
+            // `T`, `TItem`, and `T1`, `T2` as .NET's `Func<T1, T2, TResult>`.
+            Case::TypeParam => {
+                first == TYPE_PARAM_MARK
+                    && second.is_none_or(|c| c.is_uppercase() || c.is_ascii_digit())
+            }
             Case::Any => true,
         }
     }
@@ -59,7 +63,7 @@ impl Case {
             Case::Camel => "camelCase (`chargeLevel`)",
             Case::Private => "`_` and camelCase (`_chargeLevel`): a field that isn't public",
             Case::Interface => "`I` and PascalCase (`IChargeable`)",
-            Case::TypeParam => "`T` or `T` and PascalCase (`TItem`)",
+            Case::TypeParam => "`T`, or `T` and PascalCase or a number (`TItem`, `T1`)",
             Case::Any => "any case",
         }
     }

@@ -9,9 +9,11 @@
 mod calls;
 mod classes;
 mod decls;
+mod delegates;
 mod exprs;
 mod index;
 mod indexers;
+mod library;
 mod stmts;
 mod switch;
 mod types;
@@ -22,6 +24,8 @@ use yog_data::Diagnostic;
 use yog_ids::script_problem;
 use yog_script_analyze::token::Span;
 use yog_script_analyze::{Checked, Types};
+
+pub use library::{JavaFile, library};
 
 /// A source's Java: its class's simple name and its text.
 pub struct JavaClass {
@@ -40,14 +44,12 @@ pub fn compile(
     package: &str,
 ) -> Result<JavaClass, Vec<Diagnostic>> {
     let class = class_name(name);
-    let mut g = Gen {
-        code: Code::new(),
-        types: &checked.types,
-        index: index::Index::collect(&checked.file.decls),
-        report: yog_analysis::Report::new(name, src),
-        file: file_name(name),
-        temps: 0,
-    };
+    let mut g = Gen::new(
+        &checked.types,
+        index::Index::collect(&checked.file.decls),
+        name,
+        src,
+    );
     g.file(package, &class, &checked.file.decls);
     if g.report.out.is_empty() {
         let mods = mods(&checked.file.decls)
@@ -109,6 +111,25 @@ pub(crate) struct Gen<'c> {
     file: String,
     /// Temporaries made so far (`$t1`, …).
     temps: usize,
+    /// Types are written nested in the source's class (a source's), or
+    /// each as a file's own (the library's).
+    nested: bool,
+}
+
+impl<'c> Gen<'c> {
+    /// A generator for source `src` of file `name`, its expressions typed
+    /// `types`, its declarations and the library's `index`.
+    fn new(types: &'c Types, index: index::Index, name: &'c str, src: &'c str) -> Self {
+        Gen {
+            code: Code::new(),
+            types,
+            index,
+            report: yog_analysis::Report::new(name, src),
+            file: file_name(name),
+            temps: 0,
+            nested: true,
+        }
+    }
 }
 
 impl Gen<'_> {

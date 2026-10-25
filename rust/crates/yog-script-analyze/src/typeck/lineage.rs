@@ -57,7 +57,7 @@ impl Checker<'_, '_, '_> {
     }
 
     /// `f` run with what it reports dropped.
-    fn quietly<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
+    pub(super) fn quietly<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
         let kept = std::mem::take(&mut self.report.out);
         let out = f(self);
         self.report.out = kept;

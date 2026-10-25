@@ -257,10 +257,11 @@ impl Checker<'_, '_, '_> {
                     .map_or(Callee::Unknown, |sig| Callee::Typed(vec![sig]))
             }
             // `Charged?.Invoke(…)`: a delegate's own call.
-            ExprKind::Member { expr, name, .. } if name.text == INVOKE => {
-                match self.expr(expr).non_null() {
-                    Type::Fn(params, ret) => Callee::Typed(vec![signature_of(params, ret)]),
-                    _ => Callee::Unknown,
+            ExprKind::Member { expr, name, .. } if name.text == crate::system::INVOKE => {
+                let t = self.expr(expr);
+                match self.delegate_sig(&t) {
+                    Some((params, ret)) => Callee::Typed(vec![signature_of(&params, &ret)]),
+                    None => Callee::Unknown,
                 }
             }
             ExprKind::Ident(name) if self.local(name).is_none() => {
@@ -361,10 +362,8 @@ impl Checker<'_, '_, '_> {
             Some(t) => t.clone(),
             None => self.this.clone().map(|this| self.own_member(&this, name))?,
         };
-        match t.non_null() {
-            Type::Fn(params, ret) => Some(signature_of(params, ret)),
-            _ => None,
-        }
+        self.delegate_sig(&t)
+            .map(|(params, ret)| signature_of(&params, &ret))
     }
 
     /// Method `name` a `using static` brings in (`using static Yog.Chat;`
@@ -538,9 +537,6 @@ fn own_args(t: &Type) -> &[Type] {
         _ => &[],
     }
 }
-
-/// A delegate's own call, as C#'s.
-const INVOKE: &str = "Invoke";
 
 /// Methods that bind no type parameters (the file's, an extension's).
 fn unbound(methods: &[Method]) -> Vec<(Method, Bound)> {

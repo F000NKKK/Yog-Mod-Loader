@@ -211,7 +211,7 @@ methods called on the other side are messages (`x.Client.F()`,
 ### 2.3 Types of one's own
 
 ```ebnf
-type_decl   = class_decl | struct_decl | record_decl | enum_decl | interface_decl | unit_decl ;
+type_decl   = class_decl | struct_decl | record_decl | enum_decl | interface_decl | delegate_decl | unit_decl ;
 class_decl  = class_mod* 'class' IDENT generics? primary_ctor? bases? constraints? type_body ;
 class_mod   = 'abstract' | 'sealed' | 'static' ;                    (* 'ref' struct: holds borrows *)
 struct_decl = 'struct' IDENT generics? primary_ctor? bases? constraints? type_body ;
@@ -223,6 +223,7 @@ generic     = LIFETIME | ('in' | 'out')? IDENT ;                     (* 'a; vari
 constraints = ('where' IDENT ':' constraint (',' constraint)*)+ ;
 constraint  = 'class' | 'struct' | 'new' '(' ')' | type ;
 interface_decl = 'interface' IDENT generics? bases? '{' member* '}' ;
+delegate_decl = 'delegate' (type | 'void') IDENT generics? '(' params? ')' constraints? ';' ;   (* a type of methods: Invoke's signature *)
 unit_decl   = 'unit' IDENT ('=' expr)? ';' ;                         (* a mod's own unit; `= 20t` defines it by another *)
 
 primary_ctor = '(' params? ')' ;                                     (* the type's constructor, its parameters in scope *)

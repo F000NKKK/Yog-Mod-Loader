@@ -1,0 +1,5 @@
+namespace System;
+
+/// How two values order: below 0 when `x` comes first, 0 when they're
+/// equal, above 0 when `y` does — what `List<T>.Sort` takes.
+public delegate i32 Comparison<in T>(T x, T y);

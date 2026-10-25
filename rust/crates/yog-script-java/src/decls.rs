@@ -8,7 +8,6 @@ use yog_script_analyze::ast::{
 
 use super::Gen;
 use crate::index::Kind;
-use crate::types::written;
 
 /// Where a member is written.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -40,11 +39,11 @@ impl Gen<'_> {
         }
     }
 
-    fn decl(&mut self, d: &Decl, place: Place) {
+    pub(crate) fn decl(&mut self, d: &Decl, place: Place) {
         match &d.kind {
             DeclKind::Method(m) => self.method(d, m, place),
             DeclKind::Field(f) if place == Place::File => {
-                let t = written(&f.ty, false);
+                let t = self.written(&f.ty, false);
                 let name = Self::ident(&f.name.text);
                 self.code.line(format!("public static {t} {name};"));
                 if let Some(v) = &f.value {
@@ -65,13 +64,14 @@ impl Gen<'_> {
                     let head = format!(
                         "public {}{} {}()",
                         stat(place),
-                        written(ty, false),
+                        self.written(ty, false),
                         Self::ident(&name.text)
                     );
                     self.body(&head, Some(body), false);
                 }
             }
             DeclKind::Indexer(ix) => self.indexer(d, ix, place),
+            DeclKind::Delegate(m) => self.delegate_decl(m),
             DeclKind::Type {
                 word,
                 name,
@@ -112,7 +112,7 @@ impl Gen<'_> {
         let ret = m
             .ret
             .as_ref()
-            .map_or_else(|| "void".to_string(), |t| written(t, false));
+            .map_or_else(|| "void".to_string(), |t| self.written(t, false));
         let void = m.ret.is_none();
         let generics = generic_list(&m.generics);
         let generics = if generics.is_empty() {
@@ -148,12 +148,18 @@ impl Gen<'_> {
     pub(crate) fn params(&mut self, params: &[Param]) -> String {
         params
             .iter()
-            .map(|p| format!("{} {}", written(&p.ty, false), Self::ident(&p.name.text)))
+            .map(|p| {
+                format!(
+                    "{} {}",
+                    self.written(&p.ty, false),
+                    Self::ident(&p.name.text)
+                )
+            })
             .collect::<Vec<_>>()
             .join(", ")
     }
 
-    fn type_decl(
+    pub(crate) fn type_decl(
         &mut self,
         d: &Decl,
         (word, name): (&str, &str),
@@ -166,7 +172,7 @@ impl Gen<'_> {
                 let bases = header
                     .bases
                     .iter()
-                    .map(|b| written(b, true))
+                    .map(|b| self.written(b, true))
                     .collect::<Vec<_>>();
                 let extends = if bases.is_empty() {
                     String::new()
@@ -206,7 +212,7 @@ impl Gen<'_> {
 
     /// ` implements A, B` for an own type's interfaces.
     fn implements(&self, bases: &[Type]) -> String {
-        let all: Vec<String> = bases.iter().map(|b| written(b, true)).collect();
+        let all: Vec<String> = bases.iter().map(|b| self.written(b, true)).collect();
         if all.is_empty() {
             String::new()
         } else {

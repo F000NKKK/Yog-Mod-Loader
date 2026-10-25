@@ -181,10 +181,10 @@ impl fmt::Display for Type {
             Type::Fn(params, ret) => {
                 let mut all: Vec<String> = params.iter().map(ToString::to_string).collect();
                 let word = if **ret == Type::Void {
-                    super::written::ACTION
+                    crate::system::ACTION
                 } else {
                     all.push(ret.to_string());
-                    super::written::FUNC
+                    crate::system::FUNC
                 };
                 write!(f, "{word}<{}>", all.join(", "))
             }

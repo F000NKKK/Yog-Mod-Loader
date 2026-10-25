@@ -1,0 +1,5 @@
+namespace System;
+
+/// Whether a value meets a condition: what `List<T>.Find`, `RemoveAll`
+/// and `Exists` ask.
+public delegate bool Predicate<in T>(T obj);

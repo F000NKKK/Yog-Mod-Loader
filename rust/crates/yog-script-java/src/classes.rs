@@ -9,7 +9,6 @@ use yog_script_analyze::ast::{
 use super::Gen;
 use crate::decls::{Place, generic_list};
 use crate::index::Kind;
-use crate::types::written;
 
 /// What a struct's objects are copied with.
 const COPY: &str = "copy";
@@ -58,15 +57,16 @@ impl Gen<'_> {
         } else {
             ""
         };
+        let stat = if self.nested { "static " } else { "" };
         self.code.open(format!(
-            "public static {lead}class {name}{}{extends}{implements}",
+            "public {stat}{lead}class {name}{}{extends}{implements}",
             generic_list(&header.generics)
         ));
         self.constants(body);
         for f in fields(body) {
             self.code.line(format!(
                 "public {} {};",
-                written(f.0, false),
+                self.written(f.0, false),
                 Self::ident(f.1)
             ));
         }
@@ -80,20 +80,22 @@ impl Gen<'_> {
         self.code.close("");
     }
 
-    /// `const` fields: Java's `static final`, set where they're declared.
+    /// `const` and `static` fields, set where they're declared: a constant
+    /// or a `static readonly` one Java's `static final`.
     fn constants(&mut self, body: &[Decl]) {
         for d in body {
             if let DeclKind::Field(f) = &d.kind
-                && d.has(Modifier::Const)
+                && (d.has(Modifier::Const) || d.has(Modifier::Static))
                 && let Some(v) = &f.value
             {
+                let fixed = d.has(Modifier::Const) || d.has(Modifier::Readonly);
                 let (t, n, v) = (
-                    written(&f.ty, false),
+                    self.written(&f.ty, false),
                     Self::ident(&f.name.text),
                     self.expr(v),
                 );
-                self.code
-                    .line(format!("public static final {t} {n} = {v};"));
+                let fin = if fixed { "final " } else { "" };
+                self.code.line(format!("public static {fin}{t} {n} = {v};"));
             }
         }
     }
@@ -110,9 +112,9 @@ impl Gen<'_> {
                 _ => false,
             };
             if is_interface || extends.is_some() {
-                interfaces.push(written(b, true));
+                interfaces.push(self.written(b, true));
             } else {
-                extends = Some(written(b, true));
+                extends = Some(self.written(b, true));
             }
         }
         (extends, interfaces)
@@ -162,7 +164,7 @@ impl Gen<'_> {
     fn first_values(&mut self, body: &[Decl]) {
         for d in body {
             let (name, value) = match &d.kind {
-                DeclKind::Field(_) if d.has(Modifier::Const) => continue,
+                DeclKind::Field(_) if d.has(Modifier::Const) || d.has(Modifier::Static) => continue,
                 DeclKind::Field(f) => (&f.name.text, f.value.as_ref()),
                 DeclKind::Property {
                     name,
@@ -248,7 +250,7 @@ impl Gen<'_> {
         let reply = m
             .ret
             .as_ref()
-            .map_or_else(|| "Void".to_string(), |t| written(t, true));
+            .map_or_else(|| "Void".to_string(), |t| self.written(t, true));
         let args: Vec<String> = m
             .params
             .iter()
@@ -291,7 +293,9 @@ const REQUEST: &str = "Request";
 fn fields(body: &[Decl]) -> Vec<(&yog_script_analyze::ast::Type, &str)> {
     body.iter()
         .filter_map(|d| match &d.kind {
-            DeclKind::Field(f) if !d.has(Modifier::Const) => Some((&f.ty, f.name.text.as_str())),
+            DeclKind::Field(f) if !d.has(Modifier::Const) && !d.has(Modifier::Static) => {
+                Some((&f.ty, f.name.text.as_str()))
+            }
             DeclKind::Property {
                 ty,
                 name,

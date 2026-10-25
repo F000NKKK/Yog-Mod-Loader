@@ -101,6 +101,12 @@ impl OwnTypes {
                 let t = self.declared(&name.text, &header.generics);
                 (t, body.as_slice(), header.has.as_slice())
             }
+            DeclKind::Delegate(m) => {
+                let t = self.declared(&m.name.text, &m.generics);
+                t.delegate = Some(m.clone());
+                t.heap = true;
+                return;
+            }
             // The mod is an object too: its members, its constructor.
             DeclKind::Mod { name, body } => {
                 (self.declared(&name.text, &[]), body.as_slice(), &[][..])

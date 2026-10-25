@@ -26,8 +26,20 @@ pub const FIELD: &str = "Field";
 pub const PROC_MACRO: &str = "ProcMacro";
 pub const DERIVE_MACRO: &str = "DeriveMacro";
 
+/// The attribute marking a library type the runtime implements by hand
+/// (`System.Intrinsic`): the compiler writes no Java for it.
+pub const INTRINSIC: &str = "Intrinsic";
+
 /// The attribute marking an attribute class as an attribute macro (`System`).
 pub const MACRO: &str = "Macro";
+
+/// The delegates a lambda's own type is named after, as C# 10's natural
+/// types: `Action<A, B>` gives nothing, `Func<A, TResult>` a `TResult`.
+pub const ACTION: &str = "Action";
+pub const FUNC: &str = "Func";
+
+/// What calling a delegate calls (`handler(x)` is `handler.Invoke(x)`).
+pub const INVOKE: &str = "Invoke";
 
 /// An indexer's member name (`x[i]`): C#'s `IndexerName` default, the
 /// CLR's `get_Item` / `set_Item` — what inheritance and the JVM call it.

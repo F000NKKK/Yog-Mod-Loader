@@ -69,6 +69,8 @@ pub(crate) struct OwnType {
     pub variants: HashMap<String, Vec<ast::Param>>,
     /// Its indexers (`this[i32 i]`), still as written.
     pub indexers: Vec<Indexer>,
+    /// A delegate: its signature, as written (what `Invoke` takes and gives).
+    pub delegate: Option<Method>,
 }
 
 /// An indexer as written: its getter (`get_Item`, what `x[i]` is typed as

@@ -1,0 +1,8 @@
+namespace System;
+
+/// What an event tells its handlers, beyond who raised it: the base of
+/// every event's arguments (`EventArgs.Empty` when there's nothing more).
+public class EventArgs {
+    /// No arguments.
+    public static readonly EventArgs Empty = new EventArgs();
+}

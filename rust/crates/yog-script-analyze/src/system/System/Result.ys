@@ -2,6 +2,7 @@ namespace System;
 
 /// What may fail: a value, or why it isn't there — Rust's `Result`.
 /// `try F()` gives the value or returns the `Err` from the caller.
+[Intrinsic]
 public enum Result<T, TError> {
     Ok(T Value),
     Err(TError Error);

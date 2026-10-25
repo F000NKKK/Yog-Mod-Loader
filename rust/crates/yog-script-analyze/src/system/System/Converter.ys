@@ -1,0 +1,4 @@
+namespace System;
+
+/// A value made into another: what `List<T>.ConvertAll` takes.
+public delegate TOutput Converter<in TInput, out TOutput>(TInput input);

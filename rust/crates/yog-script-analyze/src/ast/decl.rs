@@ -95,6 +95,9 @@ pub enum DeclKind {
         name: Name,
     },
     Method(Method),
+    /// `delegate R Name<…>(params);`: a type of methods, its signature
+    /// what calling one takes and gives (`Invoke`'s).
+    Delegate(Method),
     Field(Field),
     /// `Ticks Left { get; set; }`, `Energy Room => …;`.
     Property {

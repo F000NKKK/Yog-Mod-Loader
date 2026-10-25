@@ -1,8 +1,9 @@
-//! The source's own types as the Java they become needs them: what each
-//! is (a class, a struct, a record, an interface, an enum with or without
-//! data) and which members are computed properties (Java methods).
+//! The source's own types and the library's as the Java they become needs
+//! them: what each is (a class, a struct, a record, an interface, an enum
+//! with or without data, a delegate), which members are computed
+//! properties (Java methods), and where each is in Java.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use yog_script_analyze::ast::{Decl, DeclKind, MethodBody};
 use yog_script_analyze::words;
@@ -19,6 +20,8 @@ pub(crate) enum Kind {
     Enum,
     /// A sealed interface, a record per case.
     DataEnum,
+    /// A functional interface: its one method `Invoke`.
+    Delegate,
 }
 
 pub(crate) struct Info {
@@ -32,13 +35,26 @@ pub(crate) struct Index {
     pub types: HashMap<String, Info>,
     /// Each enum's cases' fields, by (enum, case).
     pub cases: HashMap<(String, String), Vec<String>>,
+    /// The arities each name is declared of (`Action`: 0 to 16).
+    arities: HashMap<String, BTreeSet<usize>>,
+    /// The library's types' Java packages, by name.
+    packages: HashMap<String, String>,
+    /// The namespace the declarations being walked are in, and whether
+    /// they're the library's.
+    namespace: Vec<String>,
+    library: bool,
 }
 
 impl Index {
     /// The types of the library and of `decls`.
     pub fn collect(decls: &[Decl]) -> Self {
-        let mut index = Index::default();
+        let mut index = Index {
+            library: true,
+            ..Index::default()
+        };
         index.walk(&yog_script_analyze::system::DECLS);
+        index.library = false;
+        index.namespace.clear();
         index.walk(decls);
         index
     }
@@ -46,13 +62,28 @@ impl Index {
     fn walk(&mut self, decls: &[Decl]) {
         for d in decls {
             match &d.kind {
+                DeclKind::Namespace { path, body: None } => {
+                    self.namespace = path.iter().map(|n| n.text.clone()).collect();
+                }
+                DeclKind::Delegate(m) => {
+                    self.declared(&m.name.text, arity(&m.generics));
+                    self.types.insert(
+                        m.name.text.clone(),
+                        Info {
+                            kind: Kind::Delegate,
+                            computed: HashSet::new(),
+                        },
+                    );
+                }
                 DeclKind::Type {
                     word,
                     name,
                     value,
                     body,
+                    header,
                     ..
                 } => {
+                    self.declared(&name.text, arity(&header.generics));
                     let kind = if word.text == words::record::WORD.text {
                         Kind::Record
                     } else if word.text == words::interface::WORD.text {
@@ -74,8 +105,10 @@ impl Index {
                     name,
                     variants,
                     body,
+                    generics,
                     ..
                 } => {
+                    self.declared(&name.text, arity(generics));
                     for v in variants {
                         let fields = v.fields.iter().map(|f| f.name.text.clone()).collect();
                         self.cases
@@ -119,6 +152,50 @@ impl Index {
             .map(|(o, _)| o.clone())
     }
 
+    /// Type `name` of `arity` declared here: its arity noted, and its
+    /// package when it's the library's.
+    fn declared(&mut self, name: &str, arity: usize) {
+        self.arities
+            .entry(name.to_string())
+            .or_default()
+            .insert(arity);
+        if self.library {
+            self.packages
+                .insert(name.to_string(), package(&self.namespace));
+        } else {
+            // The source's own type hides the library's of its name, as C#'s.
+            self.packages.remove(name);
+        }
+    }
+
+    /// Where type `name` of `arity` is in Java: the library's at its
+    /// package, the source's nested in its class; a name several arities
+    /// share told apart as the CLR does, by its arity (`Action2`), the
+    /// one of none keeping its name.
+    pub fn place(&self, name: &str, arity: usize) -> String {
+        let shared = self.arities.get(name).is_some_and(|a| a.len() > 1);
+        let simple = if shared && arity > 0 {
+            format!("{name}{arity}")
+        } else {
+            name.to_string()
+        };
+        match self.packages.get(name) {
+            Some(package) => format!("{package}.{simple}"),
+            None => simple,
+        }
+    }
+
+    /// Where type `name` is, named without its arguments (`Math.Max`): the
+    /// one of the fewest.
+    pub fn place_named(&self, name: &str) -> String {
+        let arity = self
+            .arities
+            .get(name)
+            .and_then(|a| a.first().copied())
+            .unwrap_or_default();
+        self.place(name, arity)
+    }
+
     pub fn kind(&self, name: &str) -> Option<Kind> {
         self.types.get(name).map(|i| i.kind)
     }
@@ -147,4 +224,22 @@ fn computed(body: &[Decl]) -> HashSet<String> {
             _ => None,
         })
         .collect()
+}
+
+/// How many type parameters `generics` declare (lifetimes aside).
+fn arity(generics: &[yog_script_analyze::ast::Generic]) -> usize {
+    generics.iter().filter(|g| !g.lifetime).count()
+}
+
+/// The runtime's package a library namespace is at: `System` the
+/// runtime's own, each namespace under it a package of its lowercased name
+/// (`System.Collections.Generic` → `dev.yog.script.collections.generic`),
+/// a Java word escaped as an identifier would be.
+fn package(namespace: &[String]) -> String {
+    std::iter::once(crate::types::RUNTIME.to_string())
+        .chain(namespace.iter().skip(1).map(|n| {
+            <yog_codegen_java::Java as yog_codegen::Identifiers>::ident(&n.to_lowercase())
+        }))
+        .collect::<Vec<_>>()
+        .join(".")
 }

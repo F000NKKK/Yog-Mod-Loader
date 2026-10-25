@@ -1,0 +1,7 @@
+namespace System;
+
+/// A handler of an event that tells nothing beyond who raised it.
+public delegate void EventHandler(object? sender, EventArgs e);
+
+/// A handler of an event that tells `TEventArgs`.
+public delegate void EventHandler<TEventArgs>(object? sender, TEventArgs e);

@@ -6,14 +6,14 @@ use yog_script_analyze::ast::{Arm, Expr, ExprKind, Pattern, TypeKind};
 
 use super::Gen;
 use crate::index::Kind;
-use crate::types::{RUNTIME, java};
+use crate::types::RUNTIME;
 
 impl Gen<'_> {
     pub(crate) fn switch(&mut self, e: &Expr, on: &Expr, arms: &[Arm]) -> String {
         let t = self
             .types
             .of(e)
-            .map_or_else(|| "Object".to_string(), |t| java(t, false));
+            .map_or_else(|| "Object".to_string(), |t| self.java(t, false));
         let (result, label, value) = (self.temp(), self.temp(), self.temp());
         let v = self.expr(on);
         self.code.line(format!("{t} {result};"));
@@ -48,7 +48,7 @@ impl Gen<'_> {
         let v = self.expr(on);
         match p {
             Pattern::Type { ty, bind } => {
-                let t = crate::types::written(ty, true);
+                let t = self.written(ty, true);
                 match bind {
                     Some(n) => format!("({v} instanceof {t} {})", Self::ident(&n.text)),
                     None => format!("({v} instanceof {t})"),
@@ -90,7 +90,7 @@ impl Gen<'_> {
                 let c = self.temp();
                 self.code.open(format!(
                     "if ({v} instanceof {} {c})",
-                    qualified(of.as_deref(), &case)
+                    self.qualified(of.as_deref(), &case)
                 ));
                 let fields = self.index.case_fields(of.as_deref(), &case);
                 let mut depth = 1;
@@ -171,10 +171,12 @@ pub(crate) fn hoists(e: &Expr) -> bool {
     found
 }
 
-/// A case's Java type: `Mode.Charging`, the runtime's `Result.Ok`.
-fn qualified(of: Option<&str>, case: &str) -> String {
-    match of {
-        Some(o) => format!("{}.{case}", crate::types::own(o)),
-        None => case.to_string(),
+impl Gen<'_> {
+    /// A case's Java type: `Mode.Charging`, the runtime's `Result.Ok`.
+    fn qualified(&self, of: Option<&str>, case: &str) -> String {
+        match of {
+            Some(o) => format!("{}.{case}", self.own(o)),
+            None => case.to_string(),
+        }
     }
 }

@@ -207,8 +207,8 @@ impl Checker<'_, '_, '_> {
     /// `e`'s value where `wanted` is: reported when it doesn't fit. A
     /// number written as a literal fits any number and any quantity.
     pub(super) fn fits(&mut self, e: &Expr, wanted: &Type) {
-        if let Type::Fn(params, ret) = wanted.non_null()
-            && self.as_delegate(e, params, ret)
+        if let Some((params, ret)) = self.delegate_sig(wanted)
+            && self.as_delegate(e, &params, &ret)
         {
             return;
         }

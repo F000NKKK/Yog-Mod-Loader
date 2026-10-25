@@ -442,3 +442,29 @@ fn a_type_is_its_name_and_arity() {
         [script_problem::UNKNOWN_MEMBER]
     );
 }
+
+#[test]
+fn a_delegate_is_a_type_of_methods() {
+    let fine = "delegate i32 Scale(i32 x);\n\
+                bool Even(i32 n) => n % 2 == 0;\n\
+                i32 F() {\n    Scale twice = x => x * 2;\n    Predicate<i32> even = Even;\n    return twice(3) + twice.Invoke(4);\n}\n\
+                bool G(Func<i32, string, bool> f) => f(1, \"a\");\n";
+    assert!(codes(fine).is_empty(), "{:?}", codes(fine));
+    assert_eq!(
+        codes("delegate i32 Scale(i32 x);\nstring F(Scale s) => s(1);\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+    assert_eq!(
+        codes("delegate i32 Scale(i32 x);\nvoid F() {\n    Scale s = (string x) => 1;\n}\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn an_event_is_of_any_delegate_type() {
+    let src = "class Args : EventArgs {\n    public i32 Count = 0;\n}\n\
+               class Button {\n    public event EventHandler<Args> Clicked;\n    \
+               public void Click() { Clicked?.Invoke(this, new Args()); }\n}\n\
+               void F(Button b) {\n    b.Clicked += (sender, e) => { i32 n = e.Count; };\n}\n";
+    assert!(codes(src).is_empty(), "{:?}", codes(src));
+}

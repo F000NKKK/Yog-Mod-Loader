@@ -9,6 +9,7 @@ mod attributes;
 mod builtin;
 mod copy;
 mod decls;
+mod delegates;
 mod exprs;
 mod game;
 mod generics;
@@ -74,6 +75,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     types: Types,
     /// Each own type's bases, typed.
     bases: lineage::Bases,
+    /// Each declared delegate's signature, typed.
+    delegates: delegates::Delegates,
 }
 
 /// `file`'s types checked against `index` (a targeted version's), what
@@ -83,6 +86,12 @@ pub(crate) struct Checker<'r, 's, 'i> {
 pub(crate) struct Allowed {
     pub nanites: bool,
     pub to_server: bool,
+}
+
+/// The built-in type its keyword names (`i32`, `string`): the one table
+/// of them, for whatever lowers types too.
+pub fn builtin_type(word: &str) -> Option<Type> {
+    builtin::by_word(word)
 }
 
 pub(crate) fn check(
@@ -109,8 +118,10 @@ pub(crate) fn check(
         readonly_this: false,
         types: Types::default(),
         bases: lineage::Bases::new(),
+        delegates: delegates::Delegates::new(),
     };
     c.type_bases();
+    c.type_delegates();
     c.decls(&file.decls);
     inherit::check(&file.decls, c.report);
     c.types
@@ -151,12 +162,31 @@ impl Checker<'_, '_, '_> {
         if got.converts_to(wanted) {
             return true;
         }
+        if got.is_nullable() && !wanted.is_nullable() {
+            return false;
+        }
         match (got.non_null(), wanted.non_null()) {
+            // An own type, or one it inherits, given the arguments wanted.
             (Type::Own(a, xs), Type::Own(b, ys)) => {
-                let args_fit = a != b
-                    || xs.len() != ys.len()
-                    || xs.iter().zip(ys).all(|(x, y)| open(x) || open(y) || x == y);
-                (!got.is_nullable() || wanted.is_nullable()) && self.own.is_a(a, b) && args_fit
+                self.lineage_of(a, xs).iter().any(|(k, args)| {
+                    k.name == *b
+                        && k.arity == ys.len()
+                        && args
+                            .iter()
+                            .zip(ys)
+                            .all(|(x, y)| open(x) || open(y) || x == y)
+                })
+            }
+            // A lambda or a method where a delegate of its shape is wanted.
+            (Type::Fn(..), Type::Own(..)) => {
+                match (self.delegate_sig(got), self.delegate_sig(wanted)) {
+                    (Some((gp, gr)), Some((wp, wr))) => {
+                        gp.len() == wp.len()
+                            && wp.iter().zip(&gp).all(|(w, g)| self.converts(w, g))
+                            && self.converts(&gr, &wr)
+                    }
+                    _ => false,
+                }
             }
             _ => false,
         }

@@ -25,18 +25,20 @@ impl Gen<'_> {
     pub(crate) fn stmt(&mut self, s: &Stmt) {
         match s {
             Stmt::Local {
+                ty: written,
                 binding: Binding::One(n),
                 value,
                 mutable,
-                ..
             } => {
                 let fin = if *mutable { "" } else { "final " };
                 let name = Self::ident(&n.text);
                 match value {
                     Some(v) => {
-                        // A lambda's local has its delegate's type: Java's `var` can't take one.
-                        let ty = match self.types.of(v) {
-                            Some(t @ Type::Fn(..)) => crate::types::java(t, false),
+                        // The type written, else a lambda's own (Java's `var`
+                        // can't take one), else `var`.
+                        let ty = match (written, self.types.of(v)) {
+                            (Some(w), _) => self.written(w, false),
+                            (None, Some(t @ Type::Fn(..))) => self.java(t, false),
                             _ => "var".to_string(),
                         };
                         let v = self.handed_expr(v);

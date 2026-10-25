@@ -1,6 +1,7 @@
 namespace System;
 
 /// Numbers' functions.
+[Intrinsic]
 public static class Math {
     public static i32 Max(i32 a, i32 b);
     public static i32 Min(i32 a, i32 b);

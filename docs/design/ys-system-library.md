@@ -12,11 +12,20 @@ file a namespace); what runs is the runtime's, in Java (`java-api`'s
 - A type's declaration is the only place its members are written: the
   type checker reads it, the JVM lowering reads it. No list of names
   kept anywhere else (the tables `yog-script-java` had are gone).
-- Where it runs is its place: `System.Collections.Generic.List<T>` is
-  `dev.yog.script.system.collections.generic.List<T>` — the namespace
-  lowered, the name kept. Members keep C#'s names in Java too
-  (`list.Add(x)` is `list.Add(x)`): the runtime implements them, on top
-  of `java.util`'s classes where they fit.
+- Where it runs is its place: `System` is the runtime's package
+  (`dev.yog.script`), each namespace under it a package of its
+  lowercased name (`System.Collections.Generic.List<T>` is
+  `dev.yog.script.collections.generic.List<T>`, a Java word escaped:
+  `System.Yog.Native` is `…yog.native_`). Members keep C#'s names in
+  Java too (`list.Add(x)` is `list.Add(x)`).
+- A name several arities share (`Action`, `Action<T>`, …) is told apart
+  as the CLR does, by its arity: `Action2` for `Action`2`, the one of none
+  keeping its name; a source's own type hides the library's of its name.
+- The library is compiled by its own compiler: every type of it the
+  compiler writes whole (delegates, classes, enums, attributes) is
+  generated into the runtime (`yog-script-library`, kept current by a
+  test); a type the runtime implements by hand is marked `[Intrinsic]`
+  (.NET's), its declaration what code sees.
 - A type the JVM has already and can't be given members — `string`
   (`java.lang.String`), the numbers, `bool`, `char` — is marked
   `[Host("java.lang.String")]`: its instance members lower to the

@@ -80,3 +80,21 @@ fn an_indexer_is_its_accessors() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn a_delegate_is_a_functional_interface() {
+    let src = "delegate i32 Scale(i32 x);\n\
+               i32 F() {\n    Scale twice = x => x * 2;\n    Func<i32, string, bool> f = (n, s) => n > 0;\n    Action<i32> log = n => { };\n    log(1);\n    return twice(3) + twice.Invoke(4);\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "@FunctionalInterface",
+        "public static interface Scale",
+        "int Invoke(int x);",
+        "dev.yog.script.Func3<Integer, String, Boolean> f",
+        "dev.yog.script.Action1<Integer> log",
+        "log.Invoke(1);",
+        "twice.Invoke(3) + twice.Invoke(4)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

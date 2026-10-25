@@ -46,6 +46,9 @@ impl Resolver<'_, '_> {
                 self.define_type(name, arity(&header.generics), case, again);
             }
             DeclKind::Method(m) => self.define(&m.name, DefKind::Method, Case::Pascal, again),
+            DeclKind::Delegate(m) => {
+                self.define_type(&m.name, arity(&m.generics), Case::Pascal, again);
+            }
             DeclKind::Event { name, .. } => self.define(name, DefKind::Field, Case::Pascal, again),
             DeclKind::Field(f) => self.define(&f.name, field_kind(d), field_case(d), again),
             DeclKind::Property {
@@ -85,6 +88,8 @@ impl Resolver<'_, '_> {
             DeclKind::Event { ty, .. } => self.ty(ty),
             DeclKind::Alias { ty, .. } => self.ty(ty),
             DeclKind::Method(m) => self.method(m, d.has(Modifier::Async)),
+            // Its signature's types and parameters, as a method's; no body.
+            DeclKind::Delegate(m) => self.method(m, false),
             DeclKind::Field(f) => {
                 self.ty(&f.ty);
                 self.opt_expr(f.bound.as_ref());

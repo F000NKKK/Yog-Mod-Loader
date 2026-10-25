@@ -10,7 +10,8 @@ use yog_script_analyze::{Type, yog};
 
 use super::Gen;
 use crate::index::Kind;
-use crate::types::{RUNTIME, delegate, own};
+use crate::types::RUNTIME;
+use yog_script_analyze::system::INVOKE;
 
 /// The library's members done by Java's own: (Yog Script's, Java's), a
 /// `()` after the Java name when it's a method there.
@@ -81,7 +82,7 @@ impl Gen<'_> {
                 let _ = e;
                 format!("new {of}.{n}<>()")
             }
-            _ => format!("{}.{n}", own(of)),
+            _ => format!("{}.{n}", self.own(of)),
         }
     }
 
@@ -90,20 +91,19 @@ impl Gen<'_> {
         match &callee.kind {
             ExprKind::Ident(name) => match self.types.of(callee) {
                 // A delegate held: called by its interface's method.
-                Some(Type::Fn(params, ret)) => {
-                    format!("{}.{}({a})", Self::ident(name), delegate(params, ret).1)
-                }
+                t if self.is_delegate(t) => format!("{}.{INVOKE}({a})", Self::ident(name)),
                 _ if self.is_result_case(name) => {
-                    format!("new {}.{}<>({a})", own(RESULT), Self::ident(name))
+                    format!("new {}.{}<>({a})", self.own(RESULT), Self::ident(name))
                 }
                 _ => format!("{}({a})", Self::ident(name)),
             },
             ExprKind::Member { expr, name, .. } => self.method_call(e, expr, &name.text, &a),
             _ => {
                 let f = self.expr(callee);
-                match self.types.of(callee) {
-                    Some(Type::Fn(params, ret)) => format!("{f}.{}({a})", delegate(params, ret).1),
-                    _ => format!("{f}({a})"),
+                if self.is_delegate(self.types.of(callee)) {
+                    format!("{f}.{INVOKE}({a})")
+                } else {
+                    format!("{f}({a})")
                 }
             }
         }
@@ -132,7 +132,7 @@ impl Gen<'_> {
             },
             Some(Type::Static(of)) => match self.index.kind(of) {
                 Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),
-                _ => format!("{}.{n}({a})", own(of)),
+                _ => format!("{}.{n}({a})", self.own(of)),
             },
             Some(Type::String) if name == SUBSTRING => {
                 let _ = e;
@@ -146,7 +146,6 @@ impl Gen<'_> {
                 "{target}.{}({a})",
                 java_member(LIST_METHODS, name).unwrap_or(n)
             ),
-            Some(Type::Fn(params, ret)) => format!("{target}.{}({a})", delegate(params, ret).1),
             Some(Type::Yog(group)) => match yog::service(group, name) {
                 Some(s) if s.on_handle => {
                     let sep = if a.is_empty() { "" } else { ", " };
@@ -171,11 +170,11 @@ impl Gen<'_> {
     ) -> String {
         let a = self.args(args);
         let t = match ty {
-            Some(t) => crate::types::written(t, true),
+            Some(t) => self.written(t, true),
             None => self
                 .types
                 .of(e)
-                .map_or_else(|| "Object".into(), |t| crate::types::java(t, true)),
+                .map_or_else(|| "Object".into(), |t| self.java(t, true)),
         };
         // A handle is its subject: `new World(dim)` is `dim`.
         if matches!(self.types.of(e), Some(Type::Yog(h)) if yog::is_handle(h)) {
@@ -236,6 +235,18 @@ impl Gen<'_> {
         }
         self.not_yet("this macro", e.span);
         String::new()
+    }
+}
+
+impl Gen<'_> {
+    /// Whether a value of `t` is a delegate: a lambda's or a method's own
+    /// type, or a declared delegate's.
+    fn is_delegate(&self, t: Option<&Type>) -> bool {
+        match t.map(Type::non_null) {
+            Some(Type::Fn(..)) => true,
+            Some(Type::Own(name, _)) => self.index.kind(name) == Some(Kind::Delegate),
+            _ => false,
+        }
     }
 }
 

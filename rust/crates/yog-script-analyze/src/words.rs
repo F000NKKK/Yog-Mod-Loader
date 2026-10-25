@@ -122,7 +122,7 @@ macro_rules! words {
 words! {
     // Files and declarations. `mod.rs` can't name a module file: its says `_word`.
     using, global, namespace, module = "words/mod_word.rs", r#macro, class, r#struct, record, interface, r#enum, unit,
-    component, system, extend, event, test, screen, command, patch, targets,
+    component, system, extend, event, delegate, test, screen, command, patch, targets,
     // Parts of declarations.
     was, requires, every, has, r#where, when, get, set, init, value, field, mc, out,
     // Modifiers.

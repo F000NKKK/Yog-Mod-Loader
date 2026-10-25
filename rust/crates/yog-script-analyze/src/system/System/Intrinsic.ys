@@ -1,0 +1,6 @@
+namespace System;
+
+/// A library type the runtime implements by hand (.NET's own `[Intrinsic]`):
+/// its declaration is what code sees, its Java is the runtime's, not the
+/// compiler's.
+public sealed class Intrinsic : Attribute {}

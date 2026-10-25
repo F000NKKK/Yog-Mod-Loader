@@ -29,7 +29,7 @@ impl Checker<'_, '_, '_> {
                 self.written(place);
                 // `=`, and `+=`/`-=` on a delegate (an event's subscription):
                 // the value must be one.
-                if op.is_none() || matches!(t.non_null(), Type::Fn(..)) {
+                if op.is_none() || self.delegate_sig(&t).is_some() {
                     self.fits(value, &t);
                     self.handed(value, &t);
                 } else {

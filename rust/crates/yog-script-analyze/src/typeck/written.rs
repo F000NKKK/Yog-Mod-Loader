@@ -15,9 +15,6 @@ use crate::words;
 pub(super) const LIST: &str = "List";
 pub(super) const SET: &str = "HashSet";
 pub(super) const MAP: &str = "Dictionary";
-/// Delegates, as C#'s: `Action<A, B>` gives nothing, `Func<A, R>` an `R`.
-pub(super) const ACTION: &str = "Action";
-pub(super) const FUNC: &str = "Func";
 
 impl Checker<'_, '_, '_> {
     pub(super) fn type_of(&mut self, t: &ast::Type) -> Type {
@@ -54,11 +51,6 @@ impl Checker<'_, '_, '_> {
                 return Type::Map(Box::new(key), Box::new(value));
             }
             TICKS | SECONDS | BLOCKS => return Type::Unit(name.to_string()),
-            ACTION => return Type::Fn(args, Box::new(Type::Void)),
-            FUNC if !args.is_empty() => {
-                let ret = args.pop().unwrap_or(Type::Unknown);
-                return Type::Fn(args, Box::new(ret));
-            }
             _ => {}
         }
         if self.own.units.iter().any(|u| u == name) {

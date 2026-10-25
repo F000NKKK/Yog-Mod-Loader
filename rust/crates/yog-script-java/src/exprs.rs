@@ -7,7 +7,7 @@ use yog_script_analyze::ast::{BinOp, Element, Expr, ExprKind, LambdaBody, StrSeg
 
 use super::Gen;
 use crate::index::Kind;
-use crate::types::{RUNTIME, java, primitive};
+use crate::types::{RUNTIME, primitive};
 
 impl Gen<'_> {
     /// `e` as handed on: a struct's object copied, as Yog Script copies it.
@@ -56,11 +56,9 @@ impl Gen<'_> {
 
     fn compound(&mut self, e: &Expr) -> String {
         match &e.kind {
-            ExprKind::Cast { ty, expr } => format!(
-                "(({}) {})",
-                crate::types::written(ty, false),
-                self.expr(expr)
-            ),
+            ExprKind::Cast { ty, expr } => {
+                format!("(({}) {})", self.written(ty, false), self.expr(expr))
+            }
             ExprKind::NotNull(inner)
             | ExprKind::Move(inner)
             | ExprKind::TypeArgs { expr: inner, .. } => self.expr(inner),
@@ -79,11 +77,7 @@ impl Gen<'_> {
             ExprKind::Switch { expr, arms } => self.switch(e, expr, arms),
             ExprKind::Is { expr, pattern } => self.is(expr, pattern),
             ExprKind::As { expr, ty } => {
-                let (v, t, tmp) = (
-                    self.expr(expr),
-                    crate::types::written(ty, true),
-                    self.temp(),
-                );
+                let (v, t, tmp) = (self.expr(expr), self.written(ty, true), self.temp());
                 format!("({v} instanceof {t} {tmp} ? {tmp} : null)")
             }
             ExprKind::NameOf(inner) => self.code.str(&last_name(inner)),
@@ -187,7 +181,7 @@ impl Gen<'_> {
         let t = self.types.of(e).map_or_else(
             || "Object".to_string(),
             |t| match t {
-                Type::List(item) => java(item, true),
+                Type::List(item) => self.java(item, true),
                 _ => "Object".into(),
             },
         );
