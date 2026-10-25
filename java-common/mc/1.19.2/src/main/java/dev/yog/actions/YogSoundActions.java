@@ -30,7 +30,7 @@ public final class YogSoundActions {
         ResourceLocation id = ResourceLocation.tryParse(soundId);
         if (p == null || id == null) return false;
         p.getLevel().playSound(null, p.getX(), p.getY(), p.getZ(),
-                net.minecraft.sounds.SoundEvent.createVariableRangeEvent(id), SoundSource.MASTER, volume, pitch);
+                new net.minecraft.sounds.SoundEvent(id), SoundSource.MASTER, volume, pitch);
         return true;
     }
 }

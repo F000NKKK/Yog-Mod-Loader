@@ -64,7 +64,11 @@ public final class YogLootHook {
             if (stack == null) continue;
             // As the game gives them: no stack above its size.
             int max = Math.max(1, stack.getMaxStackSize());
-            for (int left = stack.getCount(); left > 0; left -= max) out.accept(stack.copyWithCount(Math.min(left, max)));
+            for (int left = stack.getCount(); left > 0; left -= max) {
+                ItemStack part = stack.copy();
+                part.setCount(Math.min(left, max));
+                out.accept(part);
+            }
         }
         return true;
     }

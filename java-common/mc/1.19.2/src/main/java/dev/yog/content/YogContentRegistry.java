@@ -233,7 +233,7 @@ public final class YogContentRegistry {
         ResourceLocation i = ResourceLocation.tryParse(id);
         if (i == null) i = new ResourceLocation(YogNames.Game.NO_SOUND);
         SoundEvent e = Registry.SOUND_EVENT.get(i);
-        return e != null ? e : SoundEvent.createVariableRangeEvent(i);
+        return e != null ? e : new SoundEvent(i);
     }
 
     /** A block's item form as its {@code .yitem} says (how it stacks, whether it survives fire); the game's defaults otherwise. */

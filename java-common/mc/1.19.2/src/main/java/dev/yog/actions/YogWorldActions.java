@@ -132,7 +132,7 @@ public final class YogWorldActions {
         try {
             ServerLevel w = NativeBridge.worldFor(dim);
             if (w == null) return false;
-            w.explode(NativeBridge.optionalEntity(sourceUuid), x, y, z, power, fire, Level.ExplosionInteraction.TNT);
+            w.explode(NativeBridge.optionalEntity(sourceUuid), x, y, z, power, fire, net.minecraft.world.level.Explosion.BlockInteraction.BREAK);
             return true;
         } catch (Throwable t) {
             return false;

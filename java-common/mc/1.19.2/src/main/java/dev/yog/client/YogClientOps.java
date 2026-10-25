@@ -348,10 +348,10 @@ public final class YogClientOps {
 
     @YogServiceHost
     public static boolean chat(String text) {
-        var connection = mc().getConnection();
-        if (connection == null) return false;
-        if (text.startsWith(COMMAND_MARK)) connection.sendCommand(text.substring(COMMAND_MARK.length()));
-        else connection.sendChat(text);
+        var player = mc().player;
+        if (player == null) return false;
+        if (text.startsWith(COMMAND_MARK)) player.commandSigned(text.substring(COMMAND_MARK.length()), null);
+        else player.chatSigned(text, null);
         return true;
     }
 }

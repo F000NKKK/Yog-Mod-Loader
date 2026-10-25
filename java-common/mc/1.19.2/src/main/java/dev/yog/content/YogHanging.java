@@ -98,7 +98,7 @@ public class YogHanging extends HangingEntity {
 
     private void play(String sound) {
         ResourceLocation id = ResourceLocation.tryParse(sound);
-        if (id != null) playSound(SoundEvent.createVariableRangeEvent(id), 1.0F, 1.0F);
+        if (id != null) playSound(new SoundEvent(id), 1.0F, 1.0F);
     }
 
     @Override

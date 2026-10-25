@@ -27,6 +27,11 @@ public class YogObject extends Entity {
     protected void defineSynchedData() {}
 
     @Override
+    public net.minecraft.network.protocol.Packet<?> getAddEntityPacket() {
+        return new net.minecraft.network.protocol.game.ClientboundAddEntityPacket(this);
+    }
+
+    @Override
     protected void readAdditionalSaveData(CompoundTag tag) {}
 
     @Override
@@ -37,7 +42,7 @@ public class YogObject extends Entity {
         super.tick();
         if (!isNoGravity()) setDeltaMovement(getDeltaMovement().add(0.0, -dev.yog.util.YogGameNumbers.GRAVITY, 0.0));
         move(MoverType.SELF, getDeltaMovement());
-        setDeltaMovement(getDeltaMovement().scale(onGround() ? dev.yog.util.YogGameNumbers.GROUND_DRAG : dev.yog.util.YogGameNumbers.AIR_DRAG));
+        setDeltaMovement(getDeltaMovement().scale(isOnGround() ? dev.yog.util.YogGameNumbers.GROUND_DRAG : dev.yog.util.YogGameNumbers.AIR_DRAG));
         YogEntityTypes.tick(this);
     }
 

@@ -110,7 +110,7 @@ public final class YogBody {
         boolean alive = e.isAlive() && !e.isPassenger();
         Vec3 v = e.getDeltaMovement();
         YogTypes.BodyFrame frame = YogBodyWire.frame(new YogBodyWire.Pose(e.getUUID(), typeId(e), partial, e.tickCount + partial,
-                alive ? e.walkAnimation.position(partial) : 0, alive ? Math.min(1, e.walkAnimation.speed(partial)) : 0,
+                alive ? walkPosition(e, partial) : 0, alive ? Math.min(1, walkSpeed(e, partial)) : 0,
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
                 (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.getLevel().getGameTime() + (double) partial));
@@ -235,6 +235,16 @@ public final class YogBody {
         }
     }
 
+    /** How far e's walk cycle is at partial, as the living renderer reads it. */
+    private static float walkPosition(LivingEntity e, float partial) {
+        return e.animationPosition - e.animationSpeed * (1f - partial);
+    }
+
+    /** How fast e walks at partial, as the living renderer reads it. */
+    private static float walkSpeed(LivingEntity e, float partial) {
+        return Mth.lerp(partial, e.animationSpeedOld, e.animationSpeed);
+    }
+
     /** The matrix of its 16 floats, column by column. */
     private static Matrix4f matrix(float[] columns) {
         Matrix4f m = new Matrix4f();
@@ -257,7 +267,7 @@ public final class YogBody {
         boolean walks = living != null && living.isAlive() && !living.isPassenger();
         Vec3 v = e.getDeltaMovement();
         YogTypes.BodyFrame frame = YogBodyWire.frame(new YogBodyWire.Pose(e.getUUID(), typeId(e), partial, e.tickCount + partial,
-                walks ? living.walkAnimation.position(partial) : 0, walks ? Math.min(1, living.walkAnimation.speed(partial)) : 0,
+                walks ? walkPosition(living, partial) : 0, walks ? Math.min(1, walkSpeed(living, partial)) : 0,
                 head - body, Mth.lerp(partial, e.xRotO, e.getXRot()), body, e.getXRot(),
                 Mth.lerp(partial, e.xo, e.getX()), Mth.lerp(partial, e.yo, e.getY()), Mth.lerp(partial, e.zo, e.getZ()),
                 (float) v.x, (float) v.y, (float) v.z, NativeBridge.entityFlags(e), e.getLevel().getGameTime() + (double) partial));
@@ -482,7 +492,7 @@ public final class YogBody {
         Vec3 move = new Vec3(out[0], out[1], out[2]);
         p.setDeltaMovement(move);
         p.move(MoverType.SELF, move);
-        p.calculateEntityAnimation(false);
+        p.calculateEntityAnimation(p, false);
         return true;
     }
 }
