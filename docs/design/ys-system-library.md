@@ -189,7 +189,16 @@ surface's delegates.
    Java's arrays (`int[]` for `i32[]`, no boxing), seen as an `IList<T>`
    by a view where one is wanted. `Split`, `ToArray` and the game's
    arrays then give arrays, as .NET's.
-1b. Explicit interface implementations, as C#'s
+1b. Right after arrays, what the collections still miss:
+   - variance applied: `IEnumerable<out T>`, `IComparer<in T>`, a
+     delegate's `in` / `out` — a `List<Derived>` goes where an
+     `IEnumerable<Base>` is wanted (Java's wildcards where it lowers);
+   - `equals` / `hashCode` on the JVM from a type's `Equals` /
+     `GetHashCode` (a struct's from its fields by default, as .NET's
+     `ValueType`), so sets and dictionary keys find a struct by value;
+   - a class's property implementing an interface's (`Count`) lowered as
+     the getter (and setter) Java's interface wants.
+1c. Explicit interface implementations, as C#'s
    (`bool ICollection<KeyValuePair<K, V>>.Remove(KeyValuePair<K, V> item)`):
    a member reached only through its interface, lowered to a Java name of
    its own, so two of one name that Java can't tell apart can both be.
