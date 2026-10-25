@@ -1,0 +1,6 @@
+namespace System;
+
+/// A built-in type's members (`string`'s are `String`'s): what code sees of
+/// them is the declaration, what runs is the runtime's companion, a static
+/// method each with the value first (`s.ToUpper()` is `String.ToUpper(s)`).
+public sealed class Host : Attribute {}

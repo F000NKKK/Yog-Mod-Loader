@@ -8,6 +8,11 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use yog_script_analyze::ast::{Decl, DeclKind, MethodBody};
 use yog_script_analyze::words;
 
+use crate::types::RUNTIME;
+
+/// The runtime's package of built-in types' members' companions (`[Host]`).
+const HOST_PACKAGE: &str = "host";
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Kind {
     Class,
@@ -45,6 +50,8 @@ pub(crate) struct Index {
     /// they're the library's.
     namespace: Vec<String>,
     library: bool,
+    /// The `[Host]` types: built-in types' members' companions.
+    hosts: HashSet<String>,
 }
 
 impl Index {
@@ -97,6 +104,13 @@ impl Index {
             return;
         };
         self.declared(&name.text, arity(&header.generics));
+        if self.library && crate::library::is_host(d) {
+            // Apart, so it doesn't hide Java's of its name (`String`) in
+            // the runtime's package.
+            self.packages
+                .insert(name.text.clone(), format!("{RUNTIME}.{HOST_PACKAGE}"));
+            self.hosts.insert(name.text.clone());
+        }
         let kind = if word.text == words::record::WORD.text {
             Kind::Record
         } else if word.text == words::interface::WORD.text {
@@ -217,6 +231,13 @@ impl Index {
         self.place(name, arity)
     }
 
+    /// Where built-in type `t`'s members' companion is (`string`'s), if
+    /// the library has one.
+    pub fn host(&self, t: &yog_script_analyze::Type) -> Option<String> {
+        let name = yog_script_analyze::system_name(t.non_null())?;
+        self.hosts.contains(name).then(|| self.place(name, 0))
+    }
+
     pub fn kind(&self, name: &str) -> Option<Kind> {
         self.types.get(name).map(|i| i.kind)
     }
@@ -277,7 +298,7 @@ fn arity(generics: &[yog_script_analyze::ast::Generic]) -> usize {
 /// (`System.Collections.Generic` → `dev.yog.script.collections.generic`),
 /// a Java word escaped as an identifier would be.
 fn package(namespace: &[String]) -> String {
-    std::iter::once(crate::types::RUNTIME.to_string())
+    std::iter::once(RUNTIME.to_string())
         .chain(namespace.iter().skip(1).map(|n| {
             <yog_codegen_java::Java as yog_codegen::Identifiers>::ident(&n.to_lowercase())
         }))

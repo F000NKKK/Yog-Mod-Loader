@@ -67,7 +67,16 @@ impl Checker<'_, '_, '_> {
                 Some(t) => t,
                 None => self.yog_value(type_name, name, at),
             },
-            _ => Type::Unknown,
+            other => match self.hosted(other) {
+                Some(host) => {
+                    let t = self.own_member(&host, name);
+                    if !t.known() && !self.own_has_method(&host, name) {
+                        self.unknown_member(other, name, at);
+                    }
+                    t
+                }
+                None => Type::Unknown,
+            },
         };
         if safe { t.nullable() } else { t }
     }
@@ -313,7 +322,10 @@ impl Checker<'_, '_, '_> {
                         None if is_side_call(&name.text) => Callee::Unknown,
                         None => self.game_methods(class, &name.text, name.span),
                     },
-                    _ => Callee::Unknown,
+                    other => self
+                        .hosted(other)
+                        .and_then(|host| self.own_methods(&host, &name.text))
+                        .map_or(Callee::Unknown, Callee::Own),
                 }
             }
             _ => {
@@ -589,4 +601,14 @@ impl Checker<'_, '_, '_> {
 
 fn is_lambda(e: &Expr) -> bool {
     matches!(e.kind, ExprKind::Lambda { .. })
+}
+
+impl Checker<'_, '_, '_> {
+    /// A built-in type's members' declaration: its type in `System`
+    /// (`string`'s `String`, `[Host]`), when the library declares one.
+    pub(super) fn hosted(&self, t: &Type) -> Option<Type> {
+        let name = super::builtin::system_name(t)?;
+        let declared = self.own.namespaces.get(name)? == &[crate::system::ROOT];
+        declared.then(|| Type::own(name.to_string()))
+    }
 }

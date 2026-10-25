@@ -26,11 +26,14 @@ file a namespace); what runs is the runtime's, in Java (`java-api`'s
   generated into the runtime (`yog-script-library`, kept current by a
   test); a type the runtime implements by hand is marked `[Intrinsic]`
   (.NET's), its declaration what code sees.
-- A type the JVM has already and can't be given members — `string`
-  (`java.lang.String`), the numbers, `bool`, `char` — is marked
-  `[Host("java.lang.String")]`: its instance members lower to the
-  runtime's static ones with the value first (`s.ToUpper()` is
-  `system.String.ToUpper(s)`).
+- A built-in type is its type in `System`, as C#'s (`string` is
+  `String`, `i32` `Int32`: the table of built-ins names both). One the JVM
+  has already and can't be given members — `string`, the numbers, `bool`,
+  `char` — has its members declared on that type, marked `[Host]`: they
+  lower to a companion of the runtime's, a static each with the value
+  first (`s.ToUpper()` is `dev.yog.script.host.String.ToUpper(s)`; apart
+  in `host`, so it doesn't hide Java's `String` in the runtime's package).
+  `Split` gives a `List<string>` (Yog Script has no arrays of its own).
 - `System`, `System.Collections.Generic`, `System.Linq`, `System.Text`
   and `System.Yog` are every file's `using`s; the rest is `using`'d.
 
@@ -174,8 +177,9 @@ surface's delegates.
    `HashSet`, `KeyValuePair` (done: the checker reads their members off
    the declarations, `foreach` goes through any `IEnumerable<T>`, the
    built-in list and map types and the JVM tables for them are gone);
-   `System`'s `IEquatable`, `IComparable`, `IDisposable` (done), `Math`,
-   `String`'s members (next: `[Host]`, the string and `Math` tables go).
+   `System`'s `IEquatable`, `IComparable`, `IDisposable`, `Math` (the
+   runtime's, .NET's set) and `String`'s members (`[Host]`) — done: no
+   table of the library's names is left in `yog-script-java`.
 2. `System.Linq` (extensions on `IEnumerable<T>`), `Queue`, `Stack`,
    `SortedSet`, `SortedDictionary`, `PriorityQueue`, `LinkedList`,
    comparers.

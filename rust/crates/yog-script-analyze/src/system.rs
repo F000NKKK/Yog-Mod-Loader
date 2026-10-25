@@ -30,6 +30,10 @@ pub const DERIVE_MACRO: &str = "DeriveMacro";
 /// (`System.Intrinsic`): the compiler writes no Java for it.
 pub const INTRINSIC: &str = "Intrinsic";
 
+/// The attribute marking a built-in type's members (`System.String` for
+/// `string`): the runtime runs them, on a companion class of statics.
+pub const HOST: &str = "Host";
+
 /// The attribute marking an attribute class as an attribute macro (`System`).
 pub const MACRO: &str = "Macro";
 

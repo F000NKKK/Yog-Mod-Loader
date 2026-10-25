@@ -41,11 +41,6 @@ public final class Ys {
         return new YsPanic("no arm of this `switch` takes `" + value + "`", at);
     }
 
-    /** {@code s.Substring(from, length)}, by characters. */
-    public static String substring(String s, int from, int length) {
-        return s.substring(from, from + length);
-    }
-
     /** {@code list[i]}: a panic, not an exception, when it's out of range. */
     public static <T> T at(List<T> list, int i, String at) {
         if (i < 0 || i >= list.size()) {

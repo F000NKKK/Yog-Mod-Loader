@@ -20,7 +20,7 @@ public final class Vector3 implements dev.yog.script.IEquatable<dev.yog.script.n
         return Dot(this, this);
     }
     public float Length() {
-        return ((float) Math.sqrt(LengthSquared()));
+        return ((float) dev.yog.script.Math.Sqrt(LengthSquared()));
     }
     public static float Dot(dev.yog.script.numerics.Vector3 a, dev.yog.script.numerics.Vector3 b) {
         return (((a.X * b.X) + (a.Y * b.Y)) + (a.Z * b.Z));
@@ -41,10 +41,10 @@ public final class Vector3 implements dev.yog.script.IEquatable<dev.yog.script.n
         return dev.yog.script.numerics.Vector3.op_Addition(a.copy(), dev.yog.script.numerics.Vector3.op_Multiply(dev.yog.script.numerics.Vector3.op_Subtraction(b.copy(), a.copy()), amount));
     }
     public static dev.yog.script.numerics.Vector3 Min(dev.yog.script.numerics.Vector3 a, dev.yog.script.numerics.Vector3 b) {
-        return new dev.yog.script.numerics.Vector3(Math.min(a.X, b.X), Math.min(a.Y, b.Y), Math.min(a.Z, b.Z));
+        return new dev.yog.script.numerics.Vector3(dev.yog.script.Math.Min(a.X, b.X), dev.yog.script.Math.Min(a.Y, b.Y), dev.yog.script.Math.Min(a.Z, b.Z));
     }
     public static dev.yog.script.numerics.Vector3 Max(dev.yog.script.numerics.Vector3 a, dev.yog.script.numerics.Vector3 b) {
-        return new dev.yog.script.numerics.Vector3(Math.max(a.X, b.X), Math.max(a.Y, b.Y), Math.max(a.Z, b.Z));
+        return new dev.yog.script.numerics.Vector3(dev.yog.script.Math.Max(a.X, b.X), dev.yog.script.Math.Max(a.Y, b.Y), dev.yog.script.Math.Max(a.Z, b.Z));
     }
     public boolean Equals(dev.yog.script.numerics.Vector3 other) {
         return dev.yog.script.numerics.Vector3.op_Equality(this, other.copy());

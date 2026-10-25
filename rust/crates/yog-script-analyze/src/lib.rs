@@ -17,7 +17,7 @@ pub mod resolve;
 pub mod system;
 mod typeck;
 
-pub use typeck::{OperatorUse, Type, Types, builtin_type};
+pub use typeck::{OperatorUse, Type, Types, builtin_type, system_name};
 pub mod versions;
 pub mod words;
 pub mod yog;

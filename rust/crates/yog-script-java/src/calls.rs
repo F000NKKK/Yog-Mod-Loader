@@ -1,7 +1,7 @@
 //! Calls, members, objects made, the built-in macros — each as Java
-//! writes it: an own method by its name, a case made with `new`, the
-//! library's members as Java's (`s.Length` is `s.length()`, `Math.Max` is
-//! `Math.max`).
+//! writes it: an own method by its name, a case made with `new`, a
+//! built-in type's members on its companion (`s.Length` is
+//! `String.Length(s)`), the library's by their places.
 
 use yog_script_analyze::ast::{Arg, Expr, ExprKind, Name, Type as Written};
 use yog_script_analyze::macros::builtin;
@@ -13,30 +13,8 @@ use crate::index::Kind;
 use crate::types::RUNTIME;
 use yog_script_analyze::system::INVOKE;
 
-/// The library's members done by Java's own: (Yog Script's, Java's), a
-/// `()` after the Java name when it's a method there.
-const STRING_MEMBERS: &[(&str, &str)] = &[("Length", "length()")];
-/// A game's array's length (C#'s `T[]`'s `Length`).
+/// A game's array's length (C#'s `T[]`'s `Length`): (Yog Script's, Java's).
 const ARRAY_MEMBERS: &[(&str, &str)] = &[("Length", "length")];
-const STRING_METHODS: &[(&str, &str)] = &[
-    ("ToUpper", "toUpperCase"),
-    ("ToLower", "toLowerCase"),
-    ("Trim", "trim"),
-    ("StartsWith", "startsWith"),
-    ("EndsWith", "endsWith"),
-    ("Contains", "contains"),
-];
-const MATH: &str = "Math";
-const MATH_METHODS: &[(&str, &str)] = &[
-    ("Max", "max"),
-    ("Min", "min"),
-    ("Abs", "abs"),
-    ("Sqrt", "sqrt"),
-    ("Floor", "floor"),
-    ("Round", "rint"),
-];
-/// A string's `Substring`, done by the runtime (by characters and a length).
-const SUBSTRING: &str = "Substring";
 
 impl Gen<'_> {
     pub(crate) fn args(&mut self, args: &[Arg]) -> String {
@@ -49,9 +27,15 @@ impl Gen<'_> {
     pub(crate) fn member(&mut self, e: &Expr, on: &Expr, name: &str, safe: bool) -> String {
         let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
+        let host = on_type.as_ref().and_then(|t| self.index.host(t));
         let member = match on_type.as_ref().map(Type::non_null) {
             Some(Type::Static(of)) => return self.static_member(e, of, name),
-            Some(Type::String) => java_member(STRING_MEMBERS, name),
+            // A built-in type's property: its companion's static, the value first.
+            _ if host.is_some() => {
+                let host = host.unwrap_or_default();
+                let n = Self::ident(name);
+                return self.maybe_null(&target, safe, |v| format!("{host}.{n}({v})"));
+            }
             Some(Type::Array(_)) => java_member(ARRAY_MEMBERS, name),
             Some(Type::Own(of, _)) if self.index.called(of, name) => {
                 Some(format!("{}()", Self::ident(name)))
@@ -60,17 +44,21 @@ impl Gen<'_> {
             _ => None,
         }
         .unwrap_or_else(|| Self::ident(name));
-        let read = if safe {
-            let t = self.temp();
-            self.code.line(format!("var {t} = {target};"));
-            format!("({t} == null ? null : {t}.{member})")
-        } else {
-            format!("{target}.{member}")
-        };
+        let read = self.maybe_null(&target, safe, |v| format!("{v}.{member}"));
         match on_type.as_ref().map(Type::non_null) {
             Some(Type::Yog(_)) => self.viewed(e, read),
             _ => read,
         }
+    }
+
+    /// `read(v)` of `target`; `safe` (`?.`): `null` when `target` is.
+    fn maybe_null(&mut self, target: &str, safe: bool, read: impl Fn(&str) -> String) -> String {
+        if !safe {
+            return read(target);
+        }
+        let t = self.temp();
+        self.code.line(format!("var {t} = {target};"));
+        format!("({t} == null ? null : {})", read(&t))
     }
 
     /// `Type.Name`: an enum's case, a static field.
@@ -125,22 +113,14 @@ impl Gen<'_> {
         let target = self.expr(on);
         let n = Self::ident(name);
         match on_type.as_ref().map(Type::non_null) {
-            Some(Type::Static(of)) if of == MATH => match java_member(MATH_METHODS, name) {
-                Some(m) => format!("Math.{m}({a})"),
-                None => format!("Math.{n}({a})"),
-            },
             Some(Type::Static(of)) => match self.index.kind(of) {
                 Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),
                 _ => format!("{}.{n}({a})", self.own(of)),
             },
-            Some(Type::String) if name == SUBSTRING => {
-                let _ = e;
-                format!("{RUNTIME}.Ys.substring({target}, {a})")
+            Some(t) if let Some(host) = self.index.host(t) => {
+                let sep = if a.is_empty() { "" } else { ", " };
+                format!("{host}.{n}({target}{sep}{a})")
             }
-            Some(Type::String) => format!(
-                "{target}.{}({a})",
-                java_member(STRING_METHODS, name).unwrap_or(n)
-            ),
             Some(Type::Yog(group)) => match yog::service(group, name) {
                 Some(s) if s.on_handle => {
                     let sep = if a.is_empty() { "" } else { ", " };

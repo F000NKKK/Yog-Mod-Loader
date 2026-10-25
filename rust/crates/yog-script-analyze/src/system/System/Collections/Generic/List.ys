@@ -5,20 +5,20 @@ namespace System.Collections.Generic;
 public class List<T> : IList<T>, IReadOnlyList<T> {
     public List() {}
     /// A list of `collection`'s items.
-    public List(IEnumerable<T> collection) {}
+    public List(in IEnumerable<T> collection) {}
 
     public i32 Count { get; }
     public bool IsReadOnly { get; }
     public T this[i32 index] { get; set; }
     public IEnumerator<T> GetEnumerator();
     public void Add(T item);
-    public void AddRange(IEnumerable<T> collection);
+    public void AddRange(in IEnumerable<T> collection);
     public void Clear();
     public bool Contains(T item);
     public bool Remove(T item);
     public i32 IndexOf(T item);
     public void Insert(i32 index, T item);
-    public void InsertRange(i32 index, IEnumerable<T> collection);
+    public void InsertRange(i32 index, in IEnumerable<T> collection);
     public void RemoveAt(i32 index);
     public void RemoveRange(i32 index, i32 count);
     /// How many items `match` took away.

@@ -58,7 +58,7 @@ fn yogs_surface_is_the_bus() {
     for want in [
         "public static final String Prefix = \"g\";",
         "dev.yog.bus.YogEvents.Block.Break.on(0, (e) -> {",
-        "if (e.playerName().startsWith(Prefix)) {",
+        "if (dev.yog.script.host.String.StartsWith(e.playerName(), Prefix)) {",
         "new dev.yog.bus.YogServices.World.SetBlock(e.dimension(), e.pos(), \"minecraft:glass\").call();",
         "return null;",
     ] {
@@ -169,6 +169,22 @@ fn collections_are_the_librarys() {
         ".Add(1);",
         ".Add(\"steve\", 3);",
         "set.Contains(\"a\")",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
+fn a_strings_members_are_its_companions() {
+    let src = "string F(string s) => s.Trim().Substring(1, s.Length - 2);\n\
+               char G(string? s) => s?.Length > 0 ? s![0] : 'x';\n\
+               string J(List<string> parts) => String.Join(\", \", in parts) + String.Empty;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "dev.yog.script.host.String.Substring(dev.yog.script.host.String.Trim(s), 1, (dev.yog.script.host.String.Length(s) - 2))",
+        "dev.yog.script.host.String.get_Item(",
+        "dev.yog.script.host.String.Join(\", \", parts)",
+        "dev.yog.script.host.String.Empty",
     ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }

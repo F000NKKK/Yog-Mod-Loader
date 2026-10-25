@@ -9,6 +9,7 @@ use super::model::{BLOCKS, SECONDS, TICKS, Type};
 use crate::ast::{self, TypeKind};
 use crate::index::Side;
 use crate::source::token::Span;
+use crate::system::ROOT;
 use crate::words;
 
 impl Checker<'_, '_, '_> {
@@ -46,6 +47,13 @@ impl Checker<'_, '_, '_> {
         }
         if let Some(t) = self.type_param(name) {
             return t;
+        }
+        // `String` is `string`, `Int32` `i32` — unless the code's own
+        // namespaces declare a type of the name.
+        if let Some(b) = super::builtin::by_system_name(name)
+            && self.own.namespaces.get(name).is_none_or(|ns| *ns == [ROOT])
+        {
+            return b;
         }
         if self.own.get(name, args.len()).is_some() && self.own_in_reach(name) {
             return Type::Own(name.to_string(), args);

@@ -4,38 +4,56 @@
 use super::model::Type;
 use crate::words::{self, Word};
 
-/// Each built-in type and its word: the one place a word names a type.
-static BUILTINS: &[(&Word, Type)] = &[
-    (&words::i8::WORD, Type::I8),
-    (&words::i16::WORD, Type::I16),
-    (&words::i32::WORD, Type::I32),
-    (&words::i64::WORD, Type::I64),
-    (&words::u8::WORD, Type::U8),
-    (&words::u16::WORD, Type::U16),
-    (&words::u32::WORD, Type::U32),
-    (&words::u64::WORD, Type::U64),
-    (&words::f32::WORD, Type::F32),
-    (&words::f64::WORD, Type::F64),
-    (&words::decimal::WORD, Type::Decimal),
-    (&words::char::WORD, Type::Char),
-    (&words::bool::WORD, Type::Bool),
-    (&words::string::WORD, Type::String),
-    (&words::object::WORD, Type::Object),
-    (&words::dynamic::WORD, Type::Dynamic),
-    (&words::void::WORD, Type::Void),
+/// Each built-in type, its word and its type's name in `System` (C#'s:
+/// `i32` is `System.Int32`, `string` `System.String`): the one place a
+/// word names a type.
+static BUILTINS: &[(&Word, Type, &str)] = &[
+    (&words::i8::WORD, Type::I8, "SByte"),
+    (&words::i16::WORD, Type::I16, "Int16"),
+    (&words::i32::WORD, Type::I32, "Int32"),
+    (&words::i64::WORD, Type::I64, "Int64"),
+    (&words::u8::WORD, Type::U8, "Byte"),
+    (&words::u16::WORD, Type::U16, "UInt16"),
+    (&words::u32::WORD, Type::U32, "UInt32"),
+    (&words::u64::WORD, Type::U64, "UInt64"),
+    (&words::f32::WORD, Type::F32, "Single"),
+    (&words::f64::WORD, Type::F64, "Double"),
+    (&words::decimal::WORD, Type::Decimal, "Decimal"),
+    (&words::char::WORD, Type::Char, "Char"),
+    (&words::bool::WORD, Type::Bool, "Boolean"),
+    (&words::string::WORD, Type::String, "String"),
+    (&words::object::WORD, Type::Object, "Object"),
+    (&words::dynamic::WORD, Type::Dynamic, "Object"),
+    (&words::void::WORD, Type::Void, "Void"),
 ];
 
 /// The built-in type its keyword names.
 pub(super) fn by_word(name: &str) -> Option<Type> {
     BUILTINS
         .iter()
-        .find(|(w, _)| w.text == name)
-        .map(|(_, t)| t.clone())
+        .find(|(w, ..)| w.text == name)
+        .map(|(_, t, _)| t.clone())
 }
 
 /// A built-in type's keyword.
 pub(super) fn word(t: &Type) -> Option<&'static str> {
-    BUILTINS.iter().find(|(_, b)| b == t).map(|(w, _)| w.text)
+    BUILTINS
+        .iter()
+        .find(|(_, b, _)| b == t)
+        .map(|(w, ..)| w.text)
+}
+
+/// The built-in type `System`'s type `name` is (`String` is `string`).
+pub(super) fn by_system_name(name: &str) -> Option<Type> {
+    BUILTINS
+        .iter()
+        .find(|(_, t, n)| *n == name && *t != Type::Dynamic)
+        .map(|(_, t, _)| t.clone())
+}
+
+/// A built-in type's type in `System` (`string`'s `String`).
+pub(super) fn system_name(t: &Type) -> Option<&'static str> {
+    BUILTINS.iter().find(|(_, b, _)| b == t).map(|(.., n)| *n)
 }
 
 /// The numbers a number converts to without a cast.

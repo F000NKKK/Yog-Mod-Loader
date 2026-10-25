@@ -141,3 +141,22 @@ fn collections_are_the_librarys_own() {
         [script_problem::UNKNOWN_MEMBER]
     );
 }
+
+#[test]
+fn strings_have_strings_members() {
+    let ok = "string F(string s) => s.Trim().ToUpper().Substring(1, s.Length - 2);\n\
+              char G(string s) => s[0];\n\
+              bool H(string? s) => String.IsNullOrEmpty(s) || s!.StartsWith(\"a\");\n\
+              string J(List<string> parts) => String.Join(\", \", in parts);\n\
+              i32 K(string s) => s.Split(',').Count + s.IndexOf('x');\n\
+              String L(string s) => s;\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert_eq!(
+        codes("i32 F(string s) => s.Size;\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+    assert_eq!(
+        codes("i32 F(string s) => s.ToUpper();\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}

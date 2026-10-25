@@ -1,0 +1,47 @@
+namespace System;
+
+/// Text: `string`'s members, as .NET's. A string doesn't change: what
+/// changes one gives a new one.
+[Intrinsic]
+[Host]
+public sealed class String {
+    /// No text.
+    public static readonly string Empty;
+
+    public i32 Length { get; }
+    public char this[i32 index] { get; }
+
+    /// What's from `startIndex` on.
+    public string Substring(i32 startIndex);
+    /// `length` characters from `startIndex`.
+    public string Substring(i32 startIndex, i32 length);
+    public string ToUpper();
+    public string ToLower();
+    public string Trim();
+    public string TrimStart();
+    public string TrimEnd();
+    public string PadLeft(i32 totalWidth);
+    public string PadRight(i32 totalWidth);
+    public string Replace(string oldValue, string newValue);
+    public string Insert(i32 startIndex, string value);
+    public string Remove(i32 startIndex, i32 count);
+    public bool StartsWith(string value);
+    public bool EndsWith(string value);
+    public bool Contains(string value);
+    /// Where `value` first is; -1 when it isn't.
+    public i32 IndexOf(string value);
+    public i32 IndexOf(char value);
+    public i32 LastIndexOf(string value);
+    public i32 LastIndexOf(char value);
+    /// The parts between each `separator`.
+    public List<string> Split(char separator);
+    public List<string> Split(string separator);
+    public bool Equals(string value);
+    public i32 CompareTo(string value);
+
+    public static bool IsNullOrEmpty(string? value);
+    public static bool IsNullOrWhiteSpace(string? value);
+    public static string Join(string separator, in IEnumerable<string> values);
+    public static string Concat(string a, string b);
+    public static i32 Compare(string a, string b);
+}

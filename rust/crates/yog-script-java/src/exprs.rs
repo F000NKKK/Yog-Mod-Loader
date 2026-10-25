@@ -80,8 +80,10 @@ impl Gen<'_> {
                 if self.has_indexer(expr) {
                     return Self::index_read(&on, &at);
                 }
+                if let Some(host) = self.types.of(expr).and_then(|t| self.index.host(t)) {
+                    return Self::index_read(&host, &format!("{on}, {at}"));
+                }
                 match self.types.of(expr) {
-                    Some(Type::String) => format!("{on}.charAt({at})"),
                     Some(Type::Array(_)) => format!("{on}[{at}]"),
                     _ => format!("{RUNTIME}.Ys.at({on}, {at}, {})", self.at(e.span)),
                 }

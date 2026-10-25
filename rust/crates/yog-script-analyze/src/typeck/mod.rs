@@ -101,6 +101,12 @@ pub fn builtin_type(word: &str) -> Option<Type> {
     builtin::by_word(word)
 }
 
+/// A built-in type's type in `System` (`string`'s `String`), which a
+/// `[Host]` declaration gives its members.
+pub fn system_name(t: &Type) -> Option<&'static str> {
+    builtin::system_name(t)
+}
+
 pub(crate) fn check(
     file: &File,
     allowed: Allowed,

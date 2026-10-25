@@ -16,6 +16,7 @@ impl Checker<'_, '_, '_> {
             self.expr(index);
             return *item;
         }
+        let on = self.hosted(&on).unwrap_or(on);
         let Some(callee) = self.indexer(&on) else {
             self.expr(index);
             return Type::Unknown;
