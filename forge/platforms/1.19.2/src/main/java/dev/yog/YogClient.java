@@ -36,7 +36,7 @@ public final class YogClient {
         });
         modBus.addListener((RegisterClientTooltipComponentFactoriesEvent e) -> e.register(YogTooltipData.class, YogClientTooltip::new));
         modBus.addListener((net.minecraftforge.client.event.RegisterParticleProvidersEvent e) ->
-                YogParticleClient.providers((type, make) -> e.registerSpriteSet(type, make::apply)));
+                YogParticleClient.providers((type, make) -> e.register(type, make::apply)));
         modBus.addListener((RegisterKeyMappingsEvent e) -> {
             for (KeyMapping key : YogClientEvents.keyMappings()) e.register(key);
         });
