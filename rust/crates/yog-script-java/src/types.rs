@@ -1,7 +1,7 @@
 //! Yog Script's types as Java's: numbers by their width (boxed where
 //! Java's generics want an object), the source's and the library's types
 //! where they are (`Index::place`), a lambda's own type as the library's
-//! `Action` or `Func` of its arity, collections as `java.util`'s.
+//! `Action` or `Func` of its arity, a game's array as Java's.
 
 use yog_script_analyze::ast::{Type as Written, TypeKind};
 use yog_script_analyze::{Type, builtin_type, system, yog};
@@ -10,12 +10,6 @@ use super::Gen;
 
 /// Where the compiled code's runtime is (`java-api`'s `dev.yog.script`).
 pub(crate) const RUNTIME: &str = "dev.yog.script";
-/// The library's collections, by their Yog Script names, as `java.util`'s.
-const COLLECTIONS: [(&str, &str); 3] = [
-    ("List", "java.util.List"),
-    ("Dictionary", "java.util.Map"),
-    ("HashSet", "java.util.Set"),
-];
 
 impl Gen<'_> {
     /// `t` in Java; `boxed`: where only an object goes (a type argument).
@@ -32,8 +26,7 @@ impl Gen<'_> {
             Type::Static(name) => self.index.place_named(name),
             Type::Param(name) => name.clone(),
             Type::Game(class) => class.replace(['/', '$'], "."),
-            Type::List(item) => self.generic(COLLECTIONS[0].1, std::slice::from_ref(item)),
-            Type::Map(k, v) => self.generic(COLLECTIONS[1].1, &[(**k).clone(), (**v).clone()]),
+            Type::Array(item) => format!("{}[]", self.java(item, false)),
             Type::Nullable(inner) => self.java(inner, true),
             Type::Fn(params, ret) => self.fn_type(params, ret),
             // A handle is its subject; a payload its record.
@@ -86,10 +79,7 @@ impl Gen<'_> {
                 {
                     return self.java(&b, boxed);
                 }
-                let base = COLLECTIONS.iter().find(|(ys, _)| *ys == name).map_or_else(
-                    || self.index.place(name, args.len()),
-                    |(_, java)| java.to_string(),
-                );
+                let base = self.index.place(name, args.len());
                 let inner: Vec<String> = args.iter().map(|a| self.written(a, true)).collect();
                 if inner.is_empty() {
                     base

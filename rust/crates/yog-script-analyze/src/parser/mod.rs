@@ -183,6 +183,7 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
     /// Past a form that failed: through its `;`, or through the `{ … }`
     /// that ended it, or up to a `}` closing what it's in.
     pub(crate) fn recover(&mut self) {
+        let start = self.pos;
         let mut depth = 0usize;
         loop {
             match self.tok() {
@@ -194,6 +195,12 @@ impl<'t, 'r, 'a> Parser<'t, 'r, 'a> {
                 Tok::Punct(Punct::LBrace | Punct::LParen | Punct::LBracket) => depth += 1,
                 Tok::Punct(Punct::RBrace | Punct::RParen | Punct::RBracket) => {
                     if depth == 0 {
+                        // A `)` or `]` nothing opened, met first: skipped, or
+                        // what failed on it would fail on it again. A `}`
+                        // closes the block around.
+                        if self.pos == start && !self.at(Punct::RBrace) {
+                            self.bump();
+                        }
                         return;
                     }
                     depth -= 1;

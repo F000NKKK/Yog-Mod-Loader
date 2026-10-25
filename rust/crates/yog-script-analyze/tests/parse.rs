@@ -264,3 +264,14 @@ fn a_lifetime_is_declared_where_it_is_used() {
         .collect();
     assert_eq!(codes, [script_problem::LIFETIME]);
 }
+
+#[test]
+fn a_stray_closer_is_got_past() {
+    // `:` isn't an entry's (`=>` is): reported, and reading goes on past
+    // the `]` the failed collection leaves, not round it for ever.
+    let found = codes(
+        "a.ys",
+        "void F() {\n    let d = [\"a\": 1];\n}\nvoid G() {}\n",
+    );
+    assert_eq!(found, [script_problem::EXPECTED, script_problem::EXPECTED]);
+}

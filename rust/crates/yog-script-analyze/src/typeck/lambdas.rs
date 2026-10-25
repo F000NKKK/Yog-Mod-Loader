@@ -19,6 +19,9 @@ impl Checker<'_, '_, '_> {
                 body,
             } => {
                 self.lambda_as(written, body, params, ret, e.span);
+                // Its type the delegate's, not what it was alone.
+                let own = Type::Fn(params.to_vec(), Box::new(ret.clone()));
+                self.types.set(e, own);
                 true
             }
             ExprKind::Ident(name) if self.local(name).is_none() => {

@@ -40,7 +40,10 @@ impl Gen<'_> {
             return String::new();
         }
         let place = self.expr(expr);
-        let set = format!("{place} = {}", self.applied(used, std::slice::from_ref(&place)));
+        let set = format!(
+            "{place} = {}",
+            self.applied(used, std::slice::from_ref(&place))
+        );
         if alone { set } else { format!("({set})") }
     }
 

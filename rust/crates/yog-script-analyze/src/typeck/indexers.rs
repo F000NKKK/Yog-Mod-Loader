@@ -12,16 +12,9 @@ use crate::source::token::Span;
 impl Checker<'_, '_, '_> {
     /// `on[index]`: what the indexer gives.
     pub(super) fn indexed(&mut self, on: Type, index: &Expr, at: Span) -> Type {
-        match on {
-            Type::List(item) => {
-                self.expr(index);
-                return *item;
-            }
-            Type::Map(_, value) => {
-                self.expr(index);
-                return *value;
-            }
-            _ => {}
+        if let Type::Array(item) = on {
+            self.expr(index);
+            return *item;
         }
         let Some(callee) = self.indexer(&on) else {
             self.expr(index);

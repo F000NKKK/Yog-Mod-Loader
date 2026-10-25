@@ -3,7 +3,7 @@
 //! checked read, a struct copied where it's handed on).
 
 use yog_script_analyze::Type;
-use yog_script_analyze::ast::{BinOp, Element, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
+use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
 use super::Gen;
 use crate::index::Kind;
@@ -82,6 +82,7 @@ impl Gen<'_> {
                 }
                 match self.types.of(expr) {
                     Some(Type::String) => format!("{on}.charAt({at})"),
+                    Some(Type::Array(_)) => format!("{on}[{at}]"),
                     _ => format!("{RUNTIME}.Ys.at({on}, {at}, {})", self.at(e.span)),
                 }
             }
@@ -188,30 +189,10 @@ impl Gen<'_> {
             let cmp = if *inclusive { "<=" } else { "<" };
             return format!("({a} <= {x} && {x} {cmp} {b})");
         }
-        format!("{r}.contains({x})")
-    }
-
-    fn collection(&mut self, e: &Expr, items: &[Element]) -> String {
-        let mut parts = Vec::new();
-        for i in items {
-            match i {
-                Element::Item(x) => parts.push(self.expr(x)),
-                _ => {
-                    self.not_yet("a spread or a map's entry in a collection", e.span);
-                }
-            }
+        match self.types.of(right).map(Type::non_null) {
+            Some(Type::Own(..)) => format!("{r}.Contains({x})"),
+            _ => format!("{r}.contains({x})"),
         }
-        let t = self.types.of(e).map_or_else(
-            || "Object".to_string(),
-            |t| match t {
-                Type::List(item) => self.java(item, true),
-                _ => "Object".into(),
-            },
-        );
-        format!(
-            "new java.util.ArrayList<{t}>(java.util.List.<{t}>of({}))",
-            parts.join(", ")
-        )
     }
 
     fn lambda(
@@ -231,13 +212,11 @@ impl Gen<'_> {
         let outer = std::mem::take(&mut self.code);
         self.code.open(&head);
         match body {
+            // A value given to nothing: a statement, as one written alone.
+            LambdaBody::Expr(body) if void => self.expr_stmt(body),
             LambdaBody::Expr(body) => {
                 let v = self.expr(body);
-                if void {
-                    self.code.line(format!("{v};"))
-                } else {
-                    self.code.line(format!("return {v};"))
-                };
+                self.code.line(format!("return {v};"));
             }
             LambdaBody::Block(stmts) => stmts.iter().for_each(|s| self.stmt(s)),
         }

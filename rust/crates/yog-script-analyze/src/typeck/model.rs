@@ -52,8 +52,8 @@ pub enum Type {
     Yog(String),
     /// A namespace (`Game.World`), on the way to what's in it.
     Namespace(String),
-    List(Box<Type>),
-    Map(Box<Type>, Box<Type>),
+    /// A Java array a game class gives or takes (C#'s `T[]`).
+    Array(Box<Type>),
     Tuple(Vec<Type>),
     /// A delegate: `Action<A, B>` (its result `void`), `Func<A, R>`.
     Fn(Vec<Type>, Box<Type>),
@@ -123,7 +123,7 @@ impl Type {
             (n, Type::Unit(_)) => builtin::is_number(n),
             (Type::Unit(_), n) => builtin::widens(&Type::I32, n),
             (Type::String, Type::Text) => true,
-            (Type::List(a), Type::List(b)) => a.converts_to(b),
+            (Type::Array(a), Type::Array(b)) => a.converts_to(b),
             (a, b) => builtin::widens(a, b),
         }
     }
@@ -176,8 +176,7 @@ impl fmt::Display for Type {
             Type::Content(kind) => write!(f, "@{kind}"),
             Type::Tag => write!(f, "{}", yog_ids::kind::TAG),
             Type::Game(name) => write!(f, "{}", crate::index::simple_name(name)),
-            Type::List(t) => write!(f, "List<{t}>"),
-            Type::Map(k, v) => write!(f, "Dictionary<{k}, {v}>"),
+            Type::Array(t) => write!(f, "{t}[]"),
             Type::Tuple(items) => {
                 let items: Vec<_> = items.iter().map(ToString::to_string).collect();
                 write!(f, "({})", items.join(", "))

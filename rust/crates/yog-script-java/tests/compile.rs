@@ -147,3 +147,29 @@ fn bits_and_steps_are_javas() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn collections_are_the_librarys() {
+    let src = "i32 Sum(List<i32> xs) {\n    let mut total = 0;\n    foreach (let x in xs) {\n        total += x;\n    }\n    xs[0] = total;\n    return total + xs.Count + xs[1];\n}\n\
+               bool Has(Dictionary<string, i32> ages, string name) => ages.ContainsKey(name) && ages[name] > 3;\n\
+               i32 Count(IList<string> names) => names.Count;\n\
+               List<i32> Made(List<i32> more) => [1, 2, ..more];\n\
+               Dictionary<string, i32> Ages() => [\"steve\" => 3];\n\
+               bool In(HashSet<string> set) => \"a\" in set;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static int Sum(dev.yog.script.collections.generic.List<Integer> xs)",
+        "for (var x : xs)",
+        "xs.set_Item(0, total);",
+        "xs.Count()",
+        "xs.get_Item(1)",
+        "ages.ContainsKey(name)",
+        "names.Count()",
+        "new dev.yog.script.collections.generic.List<Integer>();",
+        ".Add(1);",
+        ".Add(\"steve\", 3);",
+        "set.Contains(\"a\")",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

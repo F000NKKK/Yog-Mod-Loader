@@ -1,0 +1,4 @@
+namespace System.Collections.Generic;
+
+/// A key and its value: a dictionary's item.
+public readonly record struct KeyValuePair<TKey, TValue>(TKey Key, TValue Value);

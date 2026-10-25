@@ -40,7 +40,7 @@ impl Checker<'_, '_, '_> {
 
     fn copy_seen(&self, t: &Type, seen: &mut HashSet<TypeKey>) -> bool {
         match t {
-            Type::List(_) | Type::Map(..) | Type::Object => false,
+            Type::Array(_) | Type::Object => false,
             Type::Nullable(inner) => self.copy_seen(inner, seen),
             Type::Tuple(items) => items.iter().all(|i| self.copy_seen(i, seen)),
             Type::Own(name, args) => self.own_copy(&TypeKey::new(name.clone(), args.len()), seen),
@@ -67,19 +67,8 @@ impl Checker<'_, '_, '_> {
             .chain(own.variants.values().flatten().map(|p| &p.ty));
         fields.into_iter().all(|f| match TypeKey::of_written(f) {
             Some(k) if self.own.of_key(&k).is_some() => self.own_copy(&k, seen),
-            _ => !written_heap(f),
+            // A built-in's, a type parameter's: copied.
+            _ => true,
         })
-    }
-}
-
-/// A field's written type that is a collection (a heap object of the
-/// library's): its holder isn't `Copy`.
-fn written_heap(t: &crate::ast::Type) -> bool {
-    use super::written::{LIST, MAP, SET};
-    match &t.kind {
-        crate::ast::TypeKind::Path { path, .. } => path
-            .last()
-            .is_some_and(|n| [LIST, MAP, SET].contains(&n.text.as_str())),
-        _ => false,
     }
 }

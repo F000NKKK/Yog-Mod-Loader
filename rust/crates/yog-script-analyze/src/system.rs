@@ -45,6 +45,17 @@ pub const INVOKE: &str = "Invoke";
 /// CLR's `get_Item` / `set_Item` — what inheritance and the JVM call it.
 pub const INDEXER: &str = "Item";
 
+/// `System.Collections.Generic`: every file's `using`, as .NET's implicit ones.
+pub const COLLECTIONS_GENERIC: [&str; 3] = [ROOT, "Collections", "Generic"];
+
+/// The collections Yog's values come as: a list (`List<T>`), a map
+/// (`Dictionary<string, T>`); what `foreach` goes through (`IEnumerable<T>`);
+/// a dictionary's item.
+pub const LIST: &str = "List";
+pub const DICTIONARY: &str = "Dictionary";
+pub const ENUMERABLE: &str = "IEnumerable";
+pub const KEY_VALUE_PAIR: &str = "KeyValuePair";
+
 /// The bus's attributes (`System.Yog.Native`): a call, an event, a method provided.
 pub const SERVICE: &str = "Service";
 pub const EVENT: &str = "Event";

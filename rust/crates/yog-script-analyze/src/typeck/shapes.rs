@@ -3,6 +3,7 @@
 use yog_data::Shape;
 
 use super::model::Type;
+use crate::system::{DICTIONARY, LIST};
 
 impl Type {
     /// The type a value of `shape` has in a `.ys`.
@@ -22,10 +23,11 @@ impl Type {
             Shape::Text => Type::Text,
             Shape::Ref([kind]) => Type::Content((*kind).to_string()),
             Shape::Tag(_) => Type::Tag,
-            Shape::List(inner) => Type::List(Box::new(Type::of_shape(&inner()))),
-            Shape::Map(inner) => {
-                Type::Map(Box::new(Type::String), Box::new(Type::of_shape(&inner())))
-            }
+            Shape::List(inner) => Type::Own(LIST.into(), vec![Type::of_shape(&inner())]),
+            Shape::Map(inner) => Type::Own(
+                DICTIONARY.into(),
+                vec![Type::String, Type::of_shape(&inner())],
+            ),
             Shape::Optional(inner) => Type::of_shape(&inner()).nullable(),
             Shape::Struct(s) => Type::Yog(s.name.to_string()),
             Shape::Enum(e) => Type::Yog(e.name.to_string()),

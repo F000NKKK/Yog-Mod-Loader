@@ -48,7 +48,7 @@ fn descriptors_are_types() {
     );
     assert_eq!(
         parse_desc("[F").map(|(t, _)| t),
-        Some(Type::List(Box::new(Type::F32)))
+        Some(Type::Array(Box::new(Type::F32)))
     );
     let (params, ret) = method_types("(Lnet/minecraft/A;F)Z").unwrap();
     assert_eq!(params, [Type::Game("net/minecraft/A".into()), Type::F32]);

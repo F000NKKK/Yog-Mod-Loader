@@ -77,10 +77,7 @@ fn java_file(
 /// A library declaration the compiler writes: a type, not the runtime's;
 /// its name and arity.
 fn written_here(d: &Decl) -> Option<(&Decl, &str, usize)> {
-    if d.attributes
-        .iter()
-        .any(|a| a.path.last().is_some_and(|n| n.text == system::INTRINSIC))
-    {
+    if is_intrinsic(d) {
         return None;
     }
     let (name, generics) = match &d.kind {
@@ -94,4 +91,11 @@ fn written_here(d: &Decl) -> Option<(&Decl, &str, usize)> {
         name.text.as_str(),
         generics.iter().filter(|g| !g.lifetime).count(),
     ))
+}
+
+/// Whether `d` is marked `[Intrinsic]`: the runtime's, written by hand.
+pub(crate) fn is_intrinsic(d: &Decl) -> bool {
+    d.attributes
+        .iter()
+        .any(|a| a.path.last().is_some_and(|n| n.text == system::INTRINSIC))
 }

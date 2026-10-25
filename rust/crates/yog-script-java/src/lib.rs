@@ -8,6 +8,7 @@
 
 mod calls;
 mod classes;
+mod collections;
 mod decls;
 mod delegates;
 mod exprs;

@@ -16,7 +16,7 @@ use super::surface::SURFACE;
 use crate::ast::{self, Decl, DeclKind, Name};
 use crate::index::namespace;
 use crate::source::token::Span;
-use crate::system::ROOT;
+use crate::system::{COLLECTIONS_GENERIC, ROOT};
 
 /// What a namespace's segments are joined with.
 const SEP: &str = ".";
@@ -46,7 +46,11 @@ pub(super) struct Directives {
 impl Directives {
     pub fn collect(decls: &[Decl]) -> Self {
         let mut out = Directives {
-            usings: vec![vec![ROOT.to_string()], yog_ns()],
+            usings: vec![
+                vec![ROOT.to_string()],
+                COLLECTIONS_GENERIC.map(String::from).to_vec(),
+                yog_ns(),
+            ],
             ..Directives::default()
         };
         out.add(decls);

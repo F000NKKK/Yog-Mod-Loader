@@ -1,0 +1,10 @@
+namespace System.Collections.Generic;
+
+/// A walk through an `IEnumerable<T>`: `MoveNext` steps, `Current` is
+/// the item it's on.
+[Intrinsic]
+public interface IEnumerator<out T> : IDisposable {
+    T Current { get; }
+    bool MoveNext();
+    void Reset();
+}

@@ -5,7 +5,7 @@ use yog_ids::script_problem;
 
 use super::Checker;
 use super::model::{BLOCKS, SECONDS, TICKS, Type};
-use crate::ast::{BinOp, Element, Expr, ExprKind, StrSeg, UnOp};
+use crate::ast::{BinOp, Expr, ExprKind, StrSeg, UnOp};
 use crate::source::token::Span;
 
 /// Unit suffixes the game has: ticks, seconds (and its multiples), blocks.
@@ -87,6 +87,7 @@ impl Checker<'_, '_, '_> {
                 t
             }
             ExprKind::NotNull(inner) => self.expr(inner).non_null().clone(),
+            ExprKind::Collection(items) => self.collection(items),
             ExprKind::Index { expr, index } => {
                 let on = self.expr(expr);
                 self.indexed(on, index, e.span)
@@ -108,15 +109,6 @@ impl Checker<'_, '_, '_> {
             }
             ExprKind::Tuple(items) => items.iter().for_each(|i| {
                 self.expr(i);
-            }),
-            ExprKind::Collection(items) => items.iter().for_each(|i| match i {
-                Element::Item(e) | Element::Spread(e) => {
-                    self.expr(e);
-                }
-                Element::Entry(k, v) => {
-                    self.expr(k);
-                    self.expr(v);
-                }
             }),
             ExprKind::Range { from, to, .. } => {
                 self.expr(from);
@@ -238,6 +230,11 @@ impl Checker<'_, '_, '_> {
     pub(super) fn fits(&mut self, e: &Expr, wanted: &Type) {
         if let Some((params, ret)) = self.delegate_sig(wanted)
             && self.as_delegate(e, &params, &ret)
+        {
+            return;
+        }
+        if let ExprKind::Collection(items) = &e.kind
+            && self.collection_as(e, items, wanted.non_null())
         {
             return;
         }

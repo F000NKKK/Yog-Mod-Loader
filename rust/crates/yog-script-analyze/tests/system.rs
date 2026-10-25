@@ -112,3 +112,32 @@ fn vectors_are_numerics_by_their_operators() {
                 System.Numerics.Vector3.Normalize(v) + v;\n";
     assert!(codes(full).is_empty(), "{:?}", codes(full));
 }
+
+#[test]
+fn collections_are_the_librarys_own() {
+    let ok = "i32 Sum(List<i32> xs) {\n    let mut total = 0;\n    foreach (let x in xs) {\n        total += x;\n    }\n    return total + xs.Count + xs[0];\n}\n\
+              bool Has(Dictionary<string, i32> ages, string name) => ages.ContainsKey(name) && ages[name] > 3;\n\
+              i32? Age(Dictionary<string, i32> ages) => ages.TryGetValue(\"steve\");\n\
+              void Fill(List<string> names) {\n    names.Add(\"a\");\n    names.Insert(0, \"b\");\n    names.RemoveAll(n => n == \"a\");\n    names.Sort((a, b) => a.Length - b.Length);\n}\n\
+              i32 Firsts(in IEnumerable<i32> xs) {\n    foreach (let x in xs) {\n        return x;\n    }\n    return 0;\n}\n\
+              i32 Pass(List<i32> xs) => Firsts(in xs);\n\
+              List<i32> Made() => [1, 2, 3];\n\
+              HashSet<string> Set() => [\"a\", \"b\"];\n\
+              Dictionary<string, i32> Map() => [\"a\" => 1, \"b\" => 2];\n\
+              i32 Pairs(Dictionary<string, i32> d) {\n    let mut n = 0;\n    foreach (let kv in d) {\n        n += kv.Value;\n    }\n    return n;\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    for bad in [
+        "string F(List<i32> xs) => xs[0];\n",
+        "void G(List<i32> xs) {\n    xs.Add(\"no\");\n}\n",
+        "HashSet<i32> H() => [\"a\"];\n",
+        "bool K(Dictionary<string, i32> d) => d.ContainsKey(3);\n",
+        // A lambda typed by the delegate it's handed as: a `Predicate<i32>`'s.
+        "void L(List<i32> xs) {\n    xs.RemoveAll(x => x + 1);\n}\n",
+    ] {
+        assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH], "{bad}");
+    }
+    assert_eq!(
+        codes("i32 C(List<i32> xs) => xs.Length;\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+}

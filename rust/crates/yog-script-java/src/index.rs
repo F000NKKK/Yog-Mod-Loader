@@ -28,6 +28,8 @@ pub(crate) struct Info {
     pub kind: Kind,
     /// Properties computed on reading: Java methods (`x.Room()`).
     pub computed: HashSet<String>,
+    /// The types it inherits and implements, by name.
+    pub bases: Vec<String>,
 }
 
 #[derive(Default)]
@@ -67,69 +69,88 @@ impl Index {
                 }
                 DeclKind::Delegate(m) => {
                     self.declared(&m.name.text, arity(&m.generics));
-                    self.types.insert(
-                        m.name.text.clone(),
-                        Info {
-                            kind: Kind::Delegate,
-                            computed: HashSet::new(),
-                        },
-                    );
-                }
-                DeclKind::Type {
-                    word,
-                    name,
-                    value,
-                    body,
-                    header,
-                    ..
-                } => {
-                    self.declared(&name.text, arity(&header.generics));
-                    let kind = if word.text == words::record::WORD.text {
-                        Kind::Record
-                    } else if word.text == words::interface::WORD.text {
-                        Kind::Interface
-                    } else if *value {
-                        Kind::Struct
-                    } else {
-                        Kind::Class
+                    let info = Info {
+                        kind: Kind::Delegate,
+                        computed: HashSet::new(),
+                        bases: Vec::new(),
                     };
-                    self.types.insert(
-                        name.text.clone(),
-                        Info {
-                            kind,
-                            computed: computed(body),
-                        },
-                    );
+                    self.types.insert(m.name.text.clone(), info);
                 }
-                DeclKind::Enum {
-                    name,
-                    variants,
-                    body,
-                    generics,
-                    ..
-                } => {
-                    self.declared(&name.text, arity(generics));
-                    for v in variants {
-                        let fields = v.fields.iter().map(|f| f.name.text.clone()).collect();
-                        self.cases
-                            .insert((name.text.clone(), v.name.text.clone()), fields);
-                    }
-                    let kind = if variants.iter().any(|v| !v.fields.is_empty()) {
-                        Kind::DataEnum
-                    } else {
-                        Kind::Enum
-                    };
-                    self.types.insert(
-                        name.text.clone(),
-                        Info {
-                            kind,
-                            computed: computed(body),
-                        },
-                    );
-                }
+                DeclKind::Type { .. } => self.type_decl(d),
+                DeclKind::Enum { .. } => self.enum_decl(d),
                 kind => self.walk(kind.members()),
             }
         }
+    }
+
+    /// A class, struct, record or interface.
+    fn type_decl(&mut self, d: &Decl) {
+        let DeclKind::Type {
+            word,
+            name,
+            value,
+            body,
+            header,
+            ..
+        } = &d.kind
+        else {
+            return;
+        };
+        self.declared(&name.text, arity(&header.generics));
+        let kind = if word.text == words::record::WORD.text {
+            Kind::Record
+        } else if word.text == words::interface::WORD.text {
+            Kind::Interface
+        } else if *value {
+            Kind::Struct
+        } else {
+            Kind::Class
+        };
+        // An interface's properties, and a hand-written type's, are its
+        // methods in Java.
+        let computed = if kind == Kind::Interface || crate::library::is_intrinsic(d) {
+            properties(body)
+        } else {
+            computed(body)
+        };
+        let bases = header.bases.iter().filter_map(base_name).collect();
+        let info = Info {
+            kind,
+            computed,
+            bases,
+        };
+        self.types.insert(name.text.clone(), info);
+    }
+
+    /// An enum: its cases' fields, whether any case holds data.
+    fn enum_decl(&mut self, d: &Decl) {
+        let DeclKind::Enum {
+            name,
+            variants,
+            body,
+            generics,
+            ..
+        } = &d.kind
+        else {
+            return;
+        };
+        self.declared(&name.text, arity(generics));
+        for v in variants {
+            let fields = v.fields.iter().map(|f| f.name.text.clone()).collect();
+            self.cases
+                .insert((name.text.clone(), v.name.text.clone()), fields);
+        }
+        let kind = if variants.iter().any(|v| !v.fields.is_empty()) {
+            Kind::DataEnum
+        } else {
+            Kind::Enum
+        };
+        let info = Info {
+            kind,
+            computed: computed(body),
+            bases: Vec::new(),
+        };
+        self.types.insert(name.text.clone(), info);
     }
 
     /// Case `case`'s fields' names (of enum `of`, or whichever has it).
@@ -203,10 +224,30 @@ impl Index {
     /// Whether `name` of type `of` is read by calling it (a computed
     /// property, a record's field).
     pub fn called(&self, of: &str, name: &str) -> bool {
-        self.types
-            .get(of)
-            .is_some_and(|i| i.kind == Kind::Record || i.computed.contains(name))
+        self.types.get(of).is_some_and(|i| {
+            i.kind == Kind::Record
+                || i.computed.contains(name)
+                || i.bases.iter().any(|b| self.called(b, name))
+        })
     }
+}
+
+/// A base's name as written (`ICollection<T>` is `ICollection`).
+fn base_name(t: &yog_script_analyze::ast::Type) -> Option<String> {
+    match &t.kind {
+        yog_script_analyze::ast::TypeKind::Path { path, .. } => path.last().map(|n| n.text.clone()),
+        _ => None,
+    }
+}
+
+/// Every property of a body.
+fn properties(body: &[Decl]) -> HashSet<String> {
+    body.iter()
+        .filter_map(|d| match &d.kind {
+            DeclKind::Property { name, .. } => Some(name.text.clone()),
+            _ => None,
+        })
+        .collect()
 }
 
 /// A body's computed properties (`T X => …;`, `T X { get => …; }`).

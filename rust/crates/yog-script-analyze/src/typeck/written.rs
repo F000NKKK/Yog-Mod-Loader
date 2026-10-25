@@ -11,11 +11,6 @@ use crate::index::Side;
 use crate::source::token::Span;
 use crate::words;
 
-/// The library's collections, by the names a source writes.
-pub(super) const LIST: &str = "List";
-pub(super) const SET: &str = "HashSet";
-pub(super) const MAP: &str = "Dictionary";
-
 impl Checker<'_, '_, '_> {
     pub(super) fn type_of(&mut self, t: &ast::Type) -> Type {
         match &t.kind {
@@ -39,19 +34,12 @@ impl Checker<'_, '_, '_> {
     }
 
     /// A type by its one name.
-    fn named(&mut self, name: &str, mut args: Vec<Type>, at: Span) -> Type {
+    fn named(&mut self, name: &str, args: Vec<Type>, at: Span) -> Type {
         if let Some(t) = super::builtin::by_word(name) {
             return t;
         }
-        match name {
-            LIST | SET => return Type::List(Box::new(args.pop().unwrap_or(Type::Unknown))),
-            MAP if args.len() == 2 => {
-                let value = args.pop().unwrap_or(Type::Unknown);
-                let key = args.pop().unwrap_or(Type::Unknown);
-                return Type::Map(Box::new(key), Box::new(value));
-            }
-            TICKS | SECONDS | BLOCKS => return Type::Unit(name.to_string()),
-            _ => {}
+        if [TICKS, SECONDS, BLOCKS].contains(&name) {
+            return Type::Unit(name.to_string());
         }
         if self.own.units.iter().any(|u| u == name) {
             return Type::Unit(name.to_string());

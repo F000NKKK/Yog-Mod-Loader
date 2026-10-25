@@ -14,7 +14,7 @@ fn conversions_follow_the_grammar() {
     assert!(!Type::Bool.converts_to(&Type::I32));
     assert!(Type::Unknown.converts_to(&Type::Bool));
     assert_eq!(
-        Type::List(Box::new(Type::I32.nullable())).to_string(),
-        "List<i32?>"
+        Type::Array(Box::new(Type::I32.nullable())).to_string(),
+        "i32?[]"
     );
 }

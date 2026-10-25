@@ -8,6 +8,7 @@
 mod attributes;
 mod bits;
 mod builtin;
+mod collections;
 mod context;
 mod copy;
 mod decls;

@@ -120,18 +120,36 @@ panic named as C#'s exception would be (`ArgumentOutOfRange`).
 
 ## On the JVM
 
-- The interfaces are Java interfaces of the same names, the chain kept
-  (`IList<T> extends ICollection<T>`), each extending `java.util`'s where
-  one fits (`IEnumerable<T> extends Iterable<T>`, `ICollection<T> extends
-  java.util.Collection<T>`), C#'s members as default methods on Java's
-  (`Add` is `add`): a `List<T>` is a `java.util.ArrayList` the rest of the
-  JVM takes as one.
-- `Dictionary<K, V>` is a `LinkedHashMap` that is also an
-  `IEnumerable<KeyValuePair<K, V>>` (C#'s order: insertion).
-- Yog's own lists (a payload's `List<string>`) are `java.util.List`s:
-  given to Yog Script as a `List<T>` view, not copied.
-- LINQ is lazy as C#'s: `Where` gives an `IEnumerable<T>` that runs when
-  it's gone through, on Java's iterators (no streams' one-shot rule).
+- The collections are the runtime's, by hand (`[Intrinsic]`), in
+  `dev.yog.script.collections.generic`: the interfaces Java interfaces of
+  the same names and chain (`IList<T> extends ICollection<T>`),
+  `IEnumerable<T>` also Java's `Iterable<T>` (so `foreach` and the rest of
+  the JVM go through any of them); a property of an interface or of a
+  runtime type is its getter there (`xs.Count` is `xs.Count()`), an
+  indexer `get_Item` / `set_Item`.
+- `List<T>`, `Dictionary<K, V>`, `HashSet<T>` are Java's `AbstractList`,
+  `AbstractMap`, `AbstractSet` over what they hold — their own, or a Java
+  list or map they're a view of: Yog's values' lists and maps are given to
+  Yog Script as `List.view(…)` / `Dictionary.view(…)`, not copied, and a
+  Yog Script list handed to Yog is a `java.util.List` as it is.
+- `Dictionary` keeps C#'s order: insertion. `HashSet` too (C#'s is
+  unordered; a fixed order keeps a game's runs the same).
+- A collection expression is made as C#'s collection initializer does:
+  `new List<T>()`, then `Add` each item (`Add(k, v)` each entry, every item
+  of a spread); an interface wanted (`IEnumerable<T> xs = […]`) makes a
+  `List<T>` (a `Dictionary` for entries).
+- LINQ will be lazy as C#'s: `Where` gives an `IEnumerable<T>` that runs
+  when it's gone through, on Java's iterators (no streams' one-shot rule).
+
+Where Java's erasure makes .NET's shape impossible, the shape gives way:
+`IDictionary<K, V>` is an `IReadOnlyCollection<KeyValuePair<K, V>>`, not
+an `ICollection` of them (its `Remove(K)` and `ICollection`'s
+`Remove(KeyValuePair)` erase alike), and a set's `Add` gives nothing
+(`ICollection`'s `void Add` and `ISet`'s `bool Add` can't both be). Not
+there yet: variance (`IEnumerable<out T>` is written, not yet applied),
+`equals` / `hashCode` from a type's `Equals` / `GetHashCode` (a struct is
+found in a set by identity until then), `IReadOnlyDictionary`,
+`IReadOnlySet`.
 
 ## Delegates and events
 
@@ -153,9 +171,11 @@ surface's delegates.
    type's members are read in its own namespace wherever they're reached
    from; a type name nothing in reach declares is YS0035.
 1. `System.Collections.Generic`'s interfaces and `List`, `Dictionary`,
-   `HashSet`, `KeyValuePair`; `System`'s `IEquatable`, `IComparable`,
-   `IDisposable`, `Math`, `String`'s members; the type checker reading
-   members off the declarations; the lowering by place. The tables go.
+   `HashSet`, `KeyValuePair` (done: the checker reads their members off
+   the declarations, `foreach` goes through any `IEnumerable<T>`, the
+   built-in list and map types and the JVM tables for them are gone);
+   `System`'s `IEquatable`, `IComparable`, `IDisposable` (done), `Math`,
+   `String`'s members (next: `[Host]`, the string and `Math` tables go).
 2. `System.Linq` (extensions on `IEnumerable<T>`), `Queue`, `Stack`,
    `SortedSet`, `SortedDictionary`, `PriorityQueue`, `LinkedList`,
    comparers.

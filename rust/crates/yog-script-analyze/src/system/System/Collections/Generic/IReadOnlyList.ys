@@ -1,0 +1,7 @@
+namespace System.Collections.Generic;
+
+/// Items in order, read by their index.
+[Intrinsic]
+public interface IReadOnlyList<out T> : IReadOnlyCollection<T> {
+    T this[i32 index] { get; }
+}

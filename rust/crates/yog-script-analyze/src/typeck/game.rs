@@ -27,7 +27,7 @@ pub(crate) fn parse_desc(desc: &str) -> Option<(Type, &str)> {
         'V' => Type::Void,
         '[' => {
             let (item, rest) = parse_desc(chars.as_str())?;
-            return Some((Type::List(Box::new(item)), rest));
+            return Some((Type::Array(Box::new(item)), rest));
         }
         'L' => {
             let rest = chars.as_str();

@@ -1,0 +1,7 @@
+namespace System;
+
+/// What holds something to let go of when it's done (a `using` lets go of
+/// it at its block's end).
+public interface IDisposable {
+    void Dispose();
+}

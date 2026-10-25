@@ -1,0 +1,13 @@
+namespace System.Collections.Generic;
+
+/// Items that can be added and taken away.
+[Intrinsic]
+public interface ICollection<T> : IEnumerable<T> {
+    i32 Count { get; }
+    bool IsReadOnly { get; }
+    void Add(T item);
+    void Clear();
+    bool Contains(T item);
+    /// Whether `item` was there to take away.
+    bool Remove(T item);
+}

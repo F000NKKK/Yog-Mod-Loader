@@ -16,7 +16,8 @@ use yog_script_analyze::system::INVOKE;
 /// The library's members done by Java's own: (Yog Script's, Java's), a
 /// `()` after the Java name when it's a method there.
 const STRING_MEMBERS: &[(&str, &str)] = &[("Length", "length()")];
-const LIST_MEMBERS: &[(&str, &str)] = &[("Count", "size()")];
+/// A game's array's length (C#'s `T[]`'s `Length`).
+const ARRAY_MEMBERS: &[(&str, &str)] = &[("Length", "length")];
 const STRING_METHODS: &[(&str, &str)] = &[
     ("ToUpper", "toUpperCase"),
     ("ToLower", "toLowerCase"),
@@ -24,13 +25,6 @@ const STRING_METHODS: &[(&str, &str)] = &[
     ("StartsWith", "startsWith"),
     ("EndsWith", "endsWith"),
     ("Contains", "contains"),
-];
-const LIST_METHODS: &[(&str, &str)] = &[
-    ("Add", "add"),
-    ("Contains", "contains"),
-    ("IndexOf", "indexOf"),
-    ("Clear", "clear"),
-    ("RemoveAt", "remove"),
 ];
 const MATH: &str = "Math";
 const MATH_METHODS: &[(&str, &str)] = &[
@@ -58,7 +52,7 @@ impl Gen<'_> {
         let member = match on_type.as_ref().map(Type::non_null) {
             Some(Type::Static(of)) => return self.static_member(e, of, name),
             Some(Type::String) => java_member(STRING_MEMBERS, name),
-            Some(Type::List(_)) => java_member(LIST_MEMBERS, name),
+            Some(Type::Array(_)) => java_member(ARRAY_MEMBERS, name),
             Some(Type::Own(of, _)) if self.index.called(of, name) => {
                 Some(format!("{}()", Self::ident(name)))
             }
@@ -66,12 +60,17 @@ impl Gen<'_> {
             _ => None,
         }
         .unwrap_or_else(|| Self::ident(name));
-        if safe {
+        let read = if safe {
             let t = self.temp();
             self.code.line(format!("var {t} = {target};"));
-            return format!("({t} == null ? null : {t}.{member})");
+            format!("({t} == null ? null : {t}.{member})")
+        } else {
+            format!("{target}.{member}")
+        };
+        match on_type.as_ref().map(Type::non_null) {
+            Some(Type::Yog(_)) => self.viewed(e, read),
+            _ => read,
         }
-        format!("{target}.{member}")
     }
 
     /// `Type.Name`: an enum's case, a static field.
@@ -141,10 +140,6 @@ impl Gen<'_> {
             Some(Type::String) => format!(
                 "{target}.{}({a})",
                 java_member(STRING_METHODS, name).unwrap_or(n)
-            ),
-            Some(Type::List(_)) => format!(
-                "{target}.{}({a})",
-                java_member(LIST_METHODS, name).unwrap_or(n)
             ),
             Some(Type::Yog(group)) => match yog::service(group, name) {
                 Some(s) if s.on_handle => {

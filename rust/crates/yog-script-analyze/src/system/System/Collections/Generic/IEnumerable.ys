@@ -1,0 +1,7 @@
+namespace System.Collections.Generic;
+
+/// What can be gone through, an item at a time (`foreach`, LINQ).
+[Intrinsic]
+public interface IEnumerable<out T> {
+    IEnumerator<T> GetEnumerator();
+}

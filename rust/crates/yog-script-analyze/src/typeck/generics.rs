@@ -79,17 +79,25 @@ impl Checker<'_, '_, '_> {
                     true
                 }
             },
-            (Type::Own(a, xs), Type::Own(b, ys)) if a == b && xs.len() == ys.len() => xs
-                .iter()
-                .zip(ys)
-                .all(|(x, y)| self.unify(x, y, free, found)),
-            (Type::List(x), Type::List(y)) | (Type::Nullable(x), Type::Nullable(y)) => {
+            // `given` as the type `param` names, among what it inherits:
+            // a `List<i32>` where an `IEnumerable<T>` is wanted binds `T`.
+            (Type::Own(b, ys), Type::Own(a, xs)) => {
+                let as_wanted = self
+                    .lineage_of(a, xs)
+                    .into_iter()
+                    .find(|(k, _)| k.name == *b && k.arity == ys.len());
+                match as_wanted {
+                    Some((_, xs)) => ys
+                        .iter()
+                        .zip(&xs)
+                        .all(|(y, x)| self.unify(y, x, free, found)),
+                    None => false,
+                }
+            }
+            (Type::Array(x), Type::Array(y)) | (Type::Nullable(x), Type::Nullable(y)) => {
                 self.unify(x, y, free, found)
             }
             (Type::Nullable(x), y) => self.unify(x, y, free, found),
-            (Type::Map(k, v), Type::Map(k2, v2)) => {
-                self.unify(k, k2, free, found) && self.unify(v, v2, free, found)
-            }
             _ => self.converts(given, param),
         }
     }
@@ -119,9 +127,8 @@ impl Type {
         match self {
             Type::Param(p) => bound.get(p).cloned().unwrap_or_else(|| self.clone()),
             Type::Own(n, args) => Type::Own(n.clone(), args.iter().map(sub).collect()),
-            Type::List(t) => Type::List(Box::new(sub(t))),
+            Type::Array(t) => Type::Array(Box::new(sub(t))),
             Type::Nullable(t) => Type::Nullable(Box::new(sub(t))),
-            Type::Map(k, v) => Type::Map(Box::new(sub(k)), Box::new(sub(v))),
             Type::Tuple(items) => Type::Tuple(items.iter().map(sub).collect()),
             Type::Fn(params, ret) => Type::Fn(params.iter().map(sub).collect(), Box::new(sub(ret))),
             _ => self.clone(),

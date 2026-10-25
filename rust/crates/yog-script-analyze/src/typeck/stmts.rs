@@ -4,6 +4,7 @@
 use super::Checker;
 use super::model::Type;
 use crate::ast::{self, BinOp, Binding, Block, Expr, ExprKind, Pattern, Stmt};
+use crate::system::ENUMERABLE;
 
 impl Checker<'_, '_, '_> {
     pub(super) fn block(&mut self, b: &Block) {
@@ -118,12 +119,11 @@ impl Checker<'_, '_, '_> {
         self.bind_binding(binding, &t, !mutable);
     }
 
-    /// `foreach (T x in items)`: `x` an item of the list, or of the type written.
+    /// `foreach (T x in items)`: `x` an item of what's gone through (an
+    /// `IEnumerable<T>`'s `T`), or of the type written.
     fn foreach(&mut self, ty: Option<&ast::Type>, binding: &Binding, iter: &Expr, body: &Stmt) {
-        let item = match self.expr(iter) {
-            Type::List(item) => *item,
-            _ => Type::Unknown,
-        };
+        let items = self.expr(iter);
+        let item = self.item_of(&items);
         let t = ty.map_or(item, |t| self.type_of(t));
         self.scoped(|c| {
             c.bind_binding(binding, &t, true);
@@ -194,6 +194,22 @@ impl Checker<'_, '_, '_> {
             && (super::exprs::is_number_literal(value) || self.converts(&v, t));
         if !narrowed {
             self.want(&r, t, value.span);
+        }
+    }
+
+    /// What going through a `t` gives: an array's item, a string's `char`,
+    /// the `T` of the `IEnumerable<T>` it is.
+    pub(super) fn item_of(&self, t: &Type) -> Type {
+        match t.non_null() {
+            Type::Array(item) => (**item).clone(),
+            Type::String => Type::Char,
+            Type::Own(name, args) => self
+                .lineage_of(name, args)
+                .into_iter()
+                .find(|(k, _)| k.name == ENUMERABLE && k.arity == 1)
+                .and_then(|(_, args)| args.into_iter().next())
+                .unwrap_or(Type::Unknown),
+            _ => Type::Unknown,
         }
     }
 }

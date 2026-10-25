@@ -122,7 +122,7 @@ impl Gen<'_> {
 
     /// An expression standing as a statement: a call as it is; any other
     /// value kept in a temporary (Java takes only calls and assignments).
-    fn expr_stmt(&mut self, e: &Expr) {
+    pub(crate) fn expr_stmt(&mut self, e: &Expr) {
         if let ExprKind::Unary { op, .. } = &e.kind
             && op.steps()
         {
@@ -164,11 +164,10 @@ impl Gen<'_> {
                 self.code.line(Self::index_write(&list, &at, &v));
                 return;
             }
-            let v = match op {
-                Some(op) => self.op_value(place, *op, &format!("{list}.get({at})"), &v),
-                None => v,
-            };
-            self.code.line(format!("{list}.set({at}, {v});"));
+            // A game's array.
+            let slot = format!("{list}[{at}]");
+            let set = self.set(place, op.copied(), &slot, &v);
+            self.code.line(format!("{set};"));
             return;
         }
         let p = self.expr(place);

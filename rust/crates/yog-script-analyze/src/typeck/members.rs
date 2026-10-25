@@ -220,7 +220,15 @@ impl Checker<'_, '_, '_> {
     /// A call: its arguments checked against the callee's parameters; its result.
     pub(super) fn call(&mut self, callee: &Expr, args: &[Arg]) -> Type {
         let target = self.callee(callee);
-        let given: Vec<Type> = args.iter().map(|a| self.expr(&a.value)).collect();
+        // A lambda's own type, for choosing the overload only: it's typed
+        // against the delegate the chosen one takes (`pick`).
+        let given: Vec<Type> = args
+            .iter()
+            .map(|a| match a.value.kind {
+                ExprKind::Lambda { .. } => self.quietly(|c| c.expr(&a.value)),
+                _ => self.expr(&a.value),
+            })
+            .collect();
         self.called(target, &given, args, callee.span)
     }
 
@@ -479,6 +487,7 @@ impl Checker<'_, '_, '_> {
     /// none takes that many, or the one that does gets a wrong type.
     fn pick(&mut self, sigs: &[Signature], given: &[Type], args: &[Arg], at: Span) -> Type {
         if sigs.is_empty() || args.iter().any(|a| a.name.is_some()) {
+            self.lambdas_alone(args);
             return Type::Unknown;
         }
         let takes = |s: &Signature| (s.required..=s.params.len()).contains(&given.len());
@@ -495,13 +504,18 @@ impl Checker<'_, '_, '_> {
             self.check_passing(&s.passes, args, given);
             let params: Vec<Type> = s.params.iter().map(|p| p.substitute(&found)).collect();
             for ((arg, g), p) in args.iter().zip(given).zip(&params) {
-                self.note_conversion(&arg.value, g, p);
+                if is_lambda(&arg.value) {
+                    self.fits(&arg.value, p);
+                } else {
+                    self.note_conversion(&arg.value, g, p);
+                }
             }
             return s.ret.substitute(&found);
         }
         let taking: Vec<&Signature> = sigs.iter().filter(|s| takes(s)).collect();
         match taking.as_slice() {
             [] => {
+                self.lambdas_alone(args);
                 self.report.error(
                     script_problem::WRONG_ARGS,
                     at,
@@ -511,11 +525,18 @@ impl Checker<'_, '_, '_> {
             }
             [one] => {
                 for ((g, p), a) in given.iter().zip(&one.params).zip(args) {
-                    self.want(g, p, a.value.span);
+                    if is_lambda(&a.value) {
+                        self.fits(&a.value, p);
+                    } else {
+                        self.want(g, p, a.value.span);
+                    }
                 }
                 one.ret.clone()
             }
-            _ => Type::Unknown,
+            _ => {
+                self.lambdas_alone(args);
+                Type::Unknown
+            }
         }
     }
 }
@@ -554,4 +575,18 @@ impl Checker<'_, '_, '_> {
         let here = self.here();
         methods.iter().map(|m| (m.clone(), here.clone())).collect()
     }
+}
+
+impl Checker<'_, '_, '_> {
+    /// The lambdas among `args`, no delegate chosen for them: typed alone,
+    /// what's wrong in them reported.
+    fn lambdas_alone(&mut self, args: &[Arg]) {
+        for a in args.iter().filter(|a| is_lambda(&a.value)) {
+            self.expr(&a.value);
+        }
+    }
+}
+
+fn is_lambda(e: &Expr) -> bool {
+    matches!(e.kind, ExprKind::Lambda { .. })
 }
