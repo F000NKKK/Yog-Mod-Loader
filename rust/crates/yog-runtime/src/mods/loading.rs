@@ -59,6 +59,15 @@ pub(crate) fn load_mods(dir: &Path, api: &YogApi) {
     let mut loaded: Vec<LoadedModule> = Vec::new();
     for idx in sorted {
         let meta = &metas[idx];
+        // No native at all: a Yog Script mod — the host loads its scripts.
+        if meta.info.platforms.is_empty() {
+            yog_logging::info!(
+                "{}: no native (its Yog Script loads in the host)",
+                meta.info.id
+            );
+            MOD_INFOS.lock().push(meta.info.clone());
+            continue;
+        }
         let lib_path = match extract_yog(&meta.yog_path) {
             Some(p) => p,
             None => {

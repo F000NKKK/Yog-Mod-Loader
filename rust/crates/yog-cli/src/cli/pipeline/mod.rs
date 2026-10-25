@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use yog_cli::project::bench;
-use yog_cli::project::manifest::YogToml;
+use yog_cli::project::manifest::{RUST_LIB, SOURCES_DIR, YogToml};
 use yog_cli::{content, diagnostics};
 use yog_ids::build_problem;
 
@@ -132,13 +132,20 @@ pub(crate) fn build(
         resources,
         content,
     } = prepare()?;
-    let bundled = build_natives(&root, &meta, &build_dir, symbols, platforms)?;
+    // A mod without Rust (its code all Yog Script) has no native to build.
+    let has_rust = root.join(SOURCES_DIR).join(RUST_LIB).is_file();
+    let bundled = if has_rust {
+        build_natives(&root, &meta, &build_dir, symbols, platforms)?
+    } else {
+        Vec::new()
+    };
     // Save Cargo.lock as yog.lock
     let new_lock = build_dir.join("Cargo.lock");
     if new_lock.exists() {
         std::fs::copy(&new_lock, root.join(yog_ids::file::LOCK)).map_err(|e| e.to_string())?;
     }
-    let assets = assets(&root, resources, content, dev)?;
+    let mut assets = assets(&root, resources, content, dev)?;
+    assets.extend(yog_cli::script::jvm::jars(&root, &meta, &build_dir)?);
     let bin = root.join(yog_ids::project::BIN);
     std::fs::create_dir_all(&bin).map_err(|e| e.to_string())?;
     let bundled = match symbols {

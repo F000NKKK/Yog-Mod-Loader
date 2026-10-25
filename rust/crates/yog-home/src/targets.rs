@@ -33,6 +33,10 @@ mod sdk {
     pub const MC: &str = "--mc";
     /// The runtime is the SDK's to build (`dev.sh`); a launch doesn't rebuild it.
     pub const NO_BUILD: &str = "--no-build";
+    /// java-api's jar, what compiled Yog Script is checked against
+    /// (`build.sh build api`; its name is `java-api/build.gradle`'s), by its
+    /// folders under the SDK — joined as each platform joins them.
+    pub const JAVA_API_JAR: [&str; 4] = ["java-api", "build", "libs", "yog-java-api.jar"];
 }
 
 /// How a target's game starts.
@@ -59,6 +63,16 @@ pub struct Target {
     pub variant: Option<String>,
     pub label: String,
     how: How,
+}
+
+impl Target {
+    /// The Java its game runs (a loader's version's `java_version`).
+    pub fn java(&self) -> Option<u32> {
+        match &self.how {
+            How::Loader { java, .. } => *java,
+            How::Custom(_) => None,
+        }
+    }
 }
 
 /// What launching a target does: export the `.yog`, then run a command.
@@ -122,6 +136,17 @@ impl Resolver {
     }
 
     /// Every target: the SDK's loaders and versions, then the local ones.
+    /// The loader SDK's java-api jar, if it's built.
+    pub fn java_api_jar(&self) -> Option<PathBuf> {
+        self.loader_sdk()
+            .map(|sdk| {
+                sdk::JAVA_API_JAR
+                    .iter()
+                    .fold(sdk, |path, part| path.join(part))
+            })
+            .filter(|jar| jar.is_file())
+    }
+
     pub fn targets(&self) -> Result<Vec<Target>, String> {
         let mut out = match self.loader_sdk() {
             Some(sdk) => loader_targets(&sdk)?,

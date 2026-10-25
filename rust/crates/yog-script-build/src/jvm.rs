@@ -12,8 +12,9 @@ use yog_ids::script_problem;
 
 /// Where a jar lists a service's providers.
 const SERVICES_DIR: &str = "META-INF/services";
-/// What separates a package's names, in Java and as folders.
+/// What separates a package's names.
 const DOT: char = '.';
+/// What separates a jar's folders: `/` whatever the platform (zip's).
 const SLASH: char = '/';
 
 /// What a build for one game version needs: `javac`, the Java the version
@@ -25,6 +26,8 @@ pub struct JvmBuild<'a> {
     pub classpath: &'a [PathBuf],
     pub package: &'a str,
     pub work: &'a Path,
+    /// Its mod says it sends to the server (`yog.toml`'s `[network] to_server`).
+    pub to_server: bool,
 }
 
 /// `sources` (name, text) built into the jar `jar`, or what's wrong.
@@ -46,12 +49,20 @@ pub fn build_jar(
     let mut files = Vec::new();
     let mut mods = Vec::new();
     for (name, text) in sources {
-        let checked = yog_script_analyze::check(name, text);
+        let env = yog_script_analyze::Env {
+            to_server: b.to_server,
+            ..Default::default()
+        };
+        let checked = yog_script_analyze::check_in(name, text, env);
         if checked.problems.iter().any(Diagnostic::is_error) {
             return Err(checked.problems);
         }
         let class = yog_script_java::compile(name, text, &checked, b.package)?;
-        let dir = src.join(b.package.replace(DOT, &SLASH.to_string()));
+        // The package's folders, joined as the platform joins them.
+        let dir = b
+            .package
+            .split(DOT)
+            .fold(src.clone(), |path, part| path.join(part));
         std::fs::create_dir_all(&dir).map_err(fail)?;
         let file = dir.join(format!("{}.java", class.name));
         std::fs::write(&file, &class.source).map_err(fail)?;
@@ -105,14 +116,16 @@ fn write_jar(classes: &Path, mods: &[String], jar: &Path) -> std::io::Result<()>
         let name = file
             .strip_prefix(classes)
             .map_err(std::io::Error::other)?
-            .to_string_lossy()
-            .replace('\\', "/");
+            .components()
+            .map(|c| c.as_os_str().to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join(&SLASH.to_string());
         zip.start_file(name, options)?;
         zip.write_all(&std::fs::read(&file)?)?;
     }
     if !mods.is_empty() {
         zip.start_file(
-            format!("{SERVICES_DIR}/{}", yog_script_java::MOD_INTERFACE),
+            format!("{SERVICES_DIR}{SLASH}{}", yog_script_java::MOD_INTERFACE),
             options,
         )?;
         zip.write_all(mods.join("\n").as_bytes())?;

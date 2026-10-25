@@ -9,6 +9,10 @@ const DEFAULT_VERSION: &str = "0.1.0";
 /// The manifest's file name, in the project root.
 pub use yog_ids::file::MANIFEST;
 /// Where `yog build` generates the cargo project, under the project root.
+/// Where a mod's code is: its Rust and its Yog Script.
+pub const SOURCES_DIR: &str = "src";
+/// Its Rust's root file: a mod without one is Yog Script alone.
+pub const RUST_LIB: &str = "lib.rs";
 /// Plain crates.io dependencies.
 pub const DEPS_SECTION: &str = "[dependencies]";
 /// Other Yog mods' exports crates.

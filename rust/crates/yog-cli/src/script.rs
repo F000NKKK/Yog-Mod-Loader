@@ -2,6 +2,8 @@
 //! compiler (`yog-script-build`), what's wrong reported at its file, line
 //! and column; errors stop the build.
 
+pub mod jvm;
+
 use std::path::Path;
 
 use yog_ids::Format;
@@ -9,7 +11,7 @@ use yog_ids::Format;
 use crate::diagnostics;
 
 /// Where a mod's code is: its scripts beside its Rust.
-const SOURCES: &str = "src";
+use crate::project::manifest::SOURCES_DIR as SOURCES;
 
 /// A script's text checked in the mod at `root`: what its `yog.toml` says
 /// it does (sending to the server) known.
