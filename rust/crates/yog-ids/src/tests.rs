@@ -67,27 +67,26 @@ fn block_traits_fit_a_word() {
     assert!(block_trait::ALL_VALUES.len() <= u64::BITS as usize);
 }
 
-/// Every version Yog says it runs on has its hosts' properties, and no
-/// host has a version Yog doesn't list (in this crate's repository).
+/// Every version Yog says it runs on has some host's properties (not
+/// every loader exists for every version), and no host has a version Yog
+/// doesn't list (in this crate's repository).
 #[test]
 fn the_game_versions_are_the_hosts() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let mut hosted = std::collections::BTreeSet::new();
     for loader in ["fabric", "forge", "neoforge"] {
         let Ok(entries) = std::fs::read_dir(root.join(loader).join("versions")) else {
             return;
         };
-        let mut found: Vec<String> = entries
-            .flatten()
-            .filter_map(|e| {
-                e.path()
-                    .file_stem()
-                    .map(|s| s.to_string_lossy().into_owned())
-            })
-            .collect();
-        found.sort_by(|a, b| {
-            let pos = |v: &str| game_version::ALL_VALUES.iter().position(|x| *x == v);
-            pos(a).cmp(&pos(b))
-        });
-        assert_eq!(found, game_version::ALL_VALUES, "{loader}/versions");
+        for e in entries.flatten() {
+            let Some(v) = e.path().file_stem().map(|s| s.to_string_lossy().into_owned()) else {
+                continue;
+            };
+            assert!(game_version::ALL_VALUES.contains(&v.as_str()), "{loader}/versions/{v} isn't one Yog lists");
+            hosted.insert(v);
+        }
+    }
+    for v in game_version::ALL_VALUES {
+        assert!(hosted.contains(*v), "no host has {v}");
     }
 }

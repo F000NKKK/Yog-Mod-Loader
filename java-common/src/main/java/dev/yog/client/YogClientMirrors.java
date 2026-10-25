@@ -18,7 +18,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -76,7 +75,7 @@ public final class YogClientMirrors {
         }
         if ((c = due.column(YogMirrors.ClientEntity.ROTATION)) != null) c.putFloats(row, e.getYRot(), e.getXRot());
         if ((c = due.column(YogMirrors.ClientEntity.KIND)) != null) {
-            c.putInt(row, YogAtoms.number(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString()));
+            c.putInt(row, YogAtoms.number(net.minecraft.world.entity.EntityType.getKey(e.getType()).toString()));
         }
         if ((c = due.column(YogMirrors.ClientEntity.HEALTH)) != null) c.putFloat(row, e instanceof LivingEntity l ? l.getHealth() : 0f);
         if ((c = due.column(YogMirrors.ClientEntity.UUID)) != null) {

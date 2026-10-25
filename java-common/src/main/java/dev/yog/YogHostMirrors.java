@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -145,7 +144,7 @@ public final class YogHostMirrors {
         }
         if ((c = due.column(YogMirrors.Entity.ROTATION)) != null) c.putFloats(row, e.getYRot(), e.getXRot());
         if ((c = due.column(YogMirrors.Entity.KIND)) != null) {
-            c.putInt(row, YogAtoms.number(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString()));
+            c.putInt(row, YogAtoms.number(net.minecraft.world.entity.EntityType.getKey(e.getType()).toString()));
         }
         if ((c = due.column(YogMirrors.Entity.DIMENSION)) != null) c.putInt(row, YogAtoms.number(YogQueries.dimensionId(e)));
         if ((c = due.column(YogMirrors.Entity.HEALTH)) != null) c.putFloat(row, e instanceof LivingEntity l ? l.getHealth() : 0f);

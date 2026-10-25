@@ -1541,12 +1541,13 @@ public final class YogNames {
     public static final class GameVersion {
         private GameVersion() {}
 
+        public static final String V1_19_2 = "1.19.2";
         public static final String V1_20_1 = "1.20.1";
         public static final String V1_21_1 = "1.21.1";
         public static final String V26_2 = "26.2";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(V1_20_1, V1_21_1, V26_2);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(V1_19_2, V1_20_1, V1_21_1, V26_2);
     }
 
     public static final class GameDir {

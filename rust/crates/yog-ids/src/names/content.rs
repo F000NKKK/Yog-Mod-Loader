@@ -100,9 +100,11 @@ names! {
     }
 
     /// The game's versions Yog runs on, oldest first: each has its hosts'
-    /// `<loader>/versions/<version>.properties`. `.yns` targets a range of
+    /// `<loader>/versions/<version>.properties` (the loaders that exist
+    /// for it: NeoForge begins at 1.20.1). `.yns` targets a range of
     /// them; `yog build` checks every patch on each.
     game_version {
+        V1_19_2 = "1.19.2",
         V1_20_1 = "1.20.1",
         V1_21_1 = "1.21.1",
         V26_2 = "26.2",

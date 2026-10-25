@@ -12,7 +12,7 @@ import java.util.Optional;
 public record YogTooltipData(String item, String snbt, int width, int height) implements net.minecraft.world.inventory.tooltip.TooltipComponent {
     /** The picture a mod gives {@code stack}, if any. */
     public static Optional<net.minecraft.world.inventory.tooltip.TooltipComponent> of(net.minecraft.world.item.ItemStack stack) {
-        String item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+        String item = stack.getItem().builtInRegistryHolder().key().location().toString();
         String snbt = NativeBridge.tooltipSnbt(stack);
         float[] size;
         try {
