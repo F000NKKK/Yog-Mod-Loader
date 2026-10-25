@@ -2245,7 +2245,7 @@ dependencies = [
 
 [[package]]
 name = "yog-api"
-version = "0.105.0"
+version = "0.105.1"
 dependencies = [
  "ctor",
  "yog-abi",
@@ -2441,7 +2441,7 @@ dependencies = [
 
 [[package]]
 name = "yog-event"
-version = "0.11.2"
+version = "0.11.3"
 dependencies = [
  "pastey",
  "yog-body",
@@ -2520,7 +2520,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ids"
-version = "0.6.3"
+version = "0.6.4"
 dependencies = [
  "const_format",
  "yog-codegen",
