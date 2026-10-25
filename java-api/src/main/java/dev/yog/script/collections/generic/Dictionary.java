@@ -10,7 +10,8 @@ import java.util.Set;
  * {@code Dictionary<TKey, TValue>}. Also a {@link java.util.Map} over the
  * entries it holds — its own, or a Java map's it's a view of ({@link #view}).
  */
-public class Dictionary<K, V> extends AbstractMap<K, V> implements IDictionary<K, V> {
+public class Dictionary<K, V> extends AbstractMap<K, V>
+        implements IDictionary<K, V>, IReadOnlyCollection<KeyValuePair<K, V>> {
     private final Map<K, V> items;
 
     public Dictionary() {
@@ -100,7 +101,7 @@ public class Dictionary<K, V> extends AbstractMap<K, V> implements IDictionary<K
     }
 
     @Override
-    public boolean Remove(K key) {
+    public boolean IDictionary$Remove(K key) {
         if (!items.containsKey(key)) {
             return false;
         }
@@ -120,5 +121,27 @@ public class Dictionary<K, V> extends AbstractMap<K, V> implements IDictionary<K
     @Override
     public void Clear() {
         items.clear();
+    }
+
+    // Its pairs as a collection's: `ICollection<KeyValuePair<K, V>>`'s, explicitly.
+
+    @Override
+    public boolean IsReadOnly() {
+        return false;
+    }
+
+    @Override
+    public void Add(KeyValuePair<K, V> item) {
+        Add(item.Key(), item.Value());
+    }
+
+    @Override
+    public boolean Contains(KeyValuePair<K, V> item) {
+        return items.containsKey(item.Key()) && java.util.Objects.equals(items.get(item.Key()), item.Value());
+    }
+
+    @Override
+    public boolean Remove(KeyValuePair<K, V> item) {
+        return Contains(item) && IDictionary$Remove(item.Key());
     }
 }

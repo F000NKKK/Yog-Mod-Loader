@@ -29,6 +29,8 @@ pub enum Modifier {
     Ref,
     /// Its body is elsewhere: a `[Service]` method's, on the bus.
     Extern,
+    /// `new`: hides a member of its name it inherits (`new bool Add(T item)`).
+    New,
 }
 
 /// `[Obsolete("…")]`.
@@ -105,6 +107,9 @@ pub enum DeclKind {
         name: Name,
         accessors: Vec<Accessor>,
         value: Option<Expr>,
+        /// The interface it implements explicitly (`bool
+        /// ICollection<T>.IsReadOnly => false;`).
+        explicit: Option<Type>,
     },
     /// `T this[i32 index] { get; set; }`: what `x[i]` reads and writes.
     Indexer(super::Indexer),
@@ -191,6 +196,9 @@ pub struct Prop {
 pub struct Method {
     pub ret: Option<Type>,
     pub name: Name,
+    /// The interface it implements explicitly (`void ICollection<T>.Add(T
+    /// item)`): reached only through that interface.
+    pub explicit: Option<Type>,
     pub generics: Vec<Generic>,
     pub params: Vec<Param>,
     pub constraints: Vec<Where>,

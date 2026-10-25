@@ -257,3 +257,21 @@ fn an_interfaces_property_is_a_getter() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn members_java_cant_tell_apart_are_named_apart() {
+    let src = "bool Added(HashSet<string> set) => set.Add(\"a\");\n\
+               void Through(ICollection<string> c) {\n    c.Add(\"b\");\n}\n\
+               bool Gone(Dictionary<string, i32> d) => d.Remove(\"a\");\n\
+               public interface IShape {\n    f64 Area();\n}\n\
+               public class Square(f64 side) : IShape {\n    public f64 Side = side;\n    f64 IShape.Area() => Side * Side;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "return set.ISet$Add(\"a\");",
+        "c.Add(\"b\");",
+        "return d.IDictionary$Remove(\"a\");",
+        "public double Area() {",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

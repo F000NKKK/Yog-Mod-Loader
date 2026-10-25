@@ -175,7 +175,9 @@ Rust's), not keywords.
 ### 2.2 Methods, fields, properties
 
 ```ebnf
-method_decl = type_or_void IDENT generics? '(' params? ')' constraints? requires? method_body ;
+method_decl = type_or_void member_name generics? '(' params? ')' constraints? requires? method_body ;
+member_name = IDENT | type '.' IDENT ;                            (* ICollection<T>.Add: an explicit implementation,
+                                                                     reached through that interface only, no access said *)
 type_or_void = type | 'void' ;
 method_body = block | '=>' expr ';' ;
 params      = param (',' param)* ;

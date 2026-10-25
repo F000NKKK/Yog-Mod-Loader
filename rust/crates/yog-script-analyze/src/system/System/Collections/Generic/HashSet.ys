@@ -10,7 +10,9 @@ public class HashSet<T> : ISet<T> {
     public i32 Count { get; }
     public bool IsReadOnly { get; }
     public IEnumerator<T> GetEnumerator();
-    public void Add(T item);
+    /// `item` added; whether it was (it wasn't there).
+    public bool Add(T item);
+    void ICollection<T>.Add(T item);
     public void Clear();
     public bool Contains(T item);
     public bool Remove(T item);

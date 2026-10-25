@@ -21,6 +21,7 @@ pub(super) fn check(library: &[Decl], decls: &[Decl], report: &mut Report<'_>) {
     for info in index.types.values().filter(|i| !i.library) {
         bases(&index, info, report);
         overrides(&index, info, report);
+        explicit(&index, info, report);
         if info.class && !info.is_abstract {
             implemented(&index, info, report);
         }
@@ -86,16 +87,45 @@ fn overrides(index: &Index, info: &Info, report: &mut Report<'_>) {
     }
 }
 
+/// Each explicit implementation (`void ICollection<T>.Add(T item)`) is of
+/// an interface the type inherits, one declaring the member, and says no
+/// access of its own (C#'s CS0538, CS0539, CS0106).
+fn explicit(index: &Index, info: &Info, report: &mut Report<'_>) {
+    for m in &info.members {
+        let Some(of) = &m.explicit else {
+            continue;
+        };
+        let ancestors = index.ancestors(info.name);
+        let problem = match ancestors.iter().find(|a| a.name == of) {
+            None => Some(format!("`{}` doesn't implement `{of}`", info.name)),
+            Some(a) if !a.interface => Some(format!("`{of}` isn't an interface")),
+            Some(a) if !a.members.iter().any(|b| b.name == m.name) => {
+                Some(format!("`{of}` has no `{}` to implement", m.name))
+            }
+            Some(_) if m.access => Some(format!(
+                "`{of}.{}` is reached through `{of}` only: it says no access of its own",
+                m.name
+            )),
+            Some(_) => None,
+        };
+        if let Some(message) = problem {
+            report.error(script_problem::INHERIT, m.span, message);
+        }
+    }
+}
+
 /// A class that's made implements what its bases leave to it.
 fn implemented(index: &Index, info: &Info, report: &mut Report<'_>) {
     let lineage: Vec<&Info> = std::iter::once(info)
         .chain(index.ancestors(info.name))
         .collect();
-    let has = |name: &str| {
+    // An explicit implementation implements its own interface's only.
+    let has = |name: &str, of: &str| {
         lineage
             .iter()
             .filter(|i| i.class)
             .flat_map(|i| i.members.iter().map(move |m| (i, m)))
+            .filter(|(_, m)| m.explicit.as_deref().is_none_or(|e| e == of))
             // The runtime's class implements what it declares, bodies or not.
             .any(|(i, m)| m.name == name && (m.body || i.intrinsic))
     };
@@ -105,7 +135,7 @@ fn implemented(index: &Index, info: &Info, report: &mut Report<'_>) {
             .iter()
             .filter(|m| m.is_abstract || owner.interface && !m.body)
         {
-            if !has(&m.name) {
+            if !has(&m.name, owner.name) {
                 report.error(
                     script_problem::INHERIT,
                     info.span,

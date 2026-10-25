@@ -16,6 +16,10 @@ impl Checker<'_, '_, '_> {
             let DeclKind::Method(m) = &d.kind else {
                 continue;
             };
+            // An explicit implementation is its interface's member.
+            if m.explicit.is_some() {
+                continue;
+            }
             // Typed again for the comparison only: the method reports its own.
             let (params, _) = self.quietly(|c| c.signature_types(m));
             let name = m.name.text.as_str();

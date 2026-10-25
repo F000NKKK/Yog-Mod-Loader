@@ -93,7 +93,7 @@ fn it_and_this_belong_where_they_mean_something() {
     assert!(
         codes(
             "a.ys",
-            "List<i32> F(List<i32> xs) => xs.Select { it * 2 };\n"
+            "bool F(List<i32> xs) => xs.Exists { it * 2 > 3 };\n"
         )
         .is_empty()
     );

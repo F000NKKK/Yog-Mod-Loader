@@ -91,7 +91,7 @@ impl Checker<'_, '_, '_> {
             }
             _ => return Type::Unknown,
         };
-        for (key, args) in self.lineage_of(type_name, args) {
+        for (key, args) in self.member_lineage(type_name, args) {
             let context = self.context_of(&key.name, &args);
             let found = self.in_context(&context, |c| c.own_member_of(&key, name));
             if found.known() {
@@ -274,7 +274,13 @@ impl Checker<'_, '_, '_> {
                                 }
                                 Callee::Own(methods)
                             }
-                            None => self.variant_ctor(&of.clone(), &name.text),
+                            None => match self.variant_ctor(&of.clone(), &name.text) {
+                                Callee::Unknown => {
+                                    self.unknown_member(on.non_null(), &name.text, name.span);
+                                    Callee::Unknown
+                                }
+                                made => made,
+                            },
                         }
                     }
                     Type::Yog(group) => match self.extension_methods(group, &name.text) {
@@ -323,7 +329,7 @@ impl Checker<'_, '_, '_> {
         let Type::Own(type_name, args) = t else {
             return None;
         };
-        self.lineage_of(type_name, args)
+        self.member_lineage(type_name, args)
             .into_iter()
             .find_map(|(key, args)| {
                 let own = self.own.of_key(&key)?;

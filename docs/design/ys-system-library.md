@@ -148,11 +148,13 @@ panic named as C#'s exception would be (`ArgumentOutOfRange`).
 - LINQ will be lazy as C#'s: `Where` gives an `IEnumerable<T>` that runs
   when it's gone through, on Java's iterators (no streams' one-shot rule).
 
-Where Java's erasure makes .NET's shape impossible, the shape gives way:
-`IDictionary<K, V>` is an `IReadOnlyCollection<KeyValuePair<K, V>>`, not
-an `ICollection` of them (its `Remove(K)` and `ICollection`'s
-`Remove(KeyValuePair)` erase alike), and a set's `Add` gives nothing
-(`ICollection`'s `void Add` and `ISet`'s `bool Add` can't both be). Not
+Where Java can't hold .NET's shape as it is, the names give way, never
+the shape: a method Java's erasure can't tell from one it inherits, or
+one hiding it (`ISet<T>`'s `new bool Add(T)` over `ICollection<T>`'s
+`void Add(T)`, `IDictionary<K, V>`'s `Remove(K)` over
+`ICollection<KeyValuePair<K, V>>`'s `Remove(T)`), is named after its type
+in Java (`ISet$Add`, `IDictionary$Remove`); what implements it takes that
+name, explicit implementations theirs. Not
 there yet: `IReadOnlyDictionary`, `IReadOnlySet`.
 
 ## Delegates and events
@@ -207,7 +209,7 @@ surface's delegates.
      virtual), every type's base: `override` finds it, `5.ToString()` and
      `x.Equals(y)` are there; what a type doesn't answer itself runs on
      the runtime's companion (`host.Object`).
-1c. Explicit interface implementations, as C#'s
+1c. (done) Explicit interface implementations, as C#'s
    (`void ICollection<T>.Add(T item) { … }`): a member reached only
    through its interface. On the JVM each member has a Java name: its
    own, unless Java couldn't tell it from one it inherits (the same
@@ -217,9 +219,9 @@ surface's delegates.
    one of its type's (`ISet$Add`); an implementation takes the name of
    what it implements, an explicit one too. The checker notes which
    method a call chose, so the compiler writes that one's name.
-1d. `ISet<T>.Add` gives its `bool` (`new bool Add(T item)`), `HashSet<T>`
+1d. (done) `ISet<T>.Add` gives its `bool` (`new bool Add(T item)`), `HashSet<T>`
    implements `ICollection<T>.Add` explicitly — as .NET's.
-1e. `IDictionary<TKey, TValue>` is an
+1e. (done) `IDictionary<TKey, TValue>` is an
    `ICollection<KeyValuePair<TKey, TValue>>` again; `Dictionary` implements
    its `Remove(KeyValuePair<…>)` (and `Add`, `Contains`, `IsReadOnly` of
    pairs) explicitly — as .NET's.

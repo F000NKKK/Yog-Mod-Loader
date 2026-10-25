@@ -5,18 +5,24 @@
 use super::{PResult, Parser};
 use crate::ast::{
     Accessor, BinOp, Chain, Ctor, DeclKind, Field, Indexer, Method, MethodBody, Name, Operator,
-    OperatorKind, Prop, Type,
+    OperatorKind, Prop, Type, TypeKind,
 };
 use crate::source::token::{Punct, Tok};
 use crate::words::{
     explicit, get, has, implicit, r#in, init, operator, requires, set, this, void, was,
 };
 
+/// The fewest tokens of `IFace.Name`: a name, a dot, a name.
+const DOTTED: usize = 3;
+
 impl Parser<'_, '_, '_> {
     /// A member no word starts.
     pub(super) fn member(&mut self) -> PResult<DeclKind> {
         if self.at_word(&void::WORD) {
             self.bump();
+            if self.explicit_ahead() {
+                return self.explicit(None);
+            }
             let name = self.name("a method's name")?;
             return self.method_rest(None, name).map(DeclKind::Method);
         }
@@ -44,31 +50,80 @@ impl Parser<'_, '_, '_> {
             return self.content();
         }
         let ty = self.ty()?;
+        if self.explicit_ahead() {
+            return self.explicit(Some(ty));
+        }
         let name = self.name("a name")?;
         match self.tok() {
             Tok::Punct(Punct::LParen | Punct::Lt) => {
                 self.method_rest(Some(ty), name).map(DeclKind::Method)
             }
             Tok::Punct(Punct::LBrace) => self.property(ty, name),
-            Tok::Punct(Punct::FatArrow) => {
-                self.bump();
-                let value = self.expr()?;
-                self.end()?;
-                let get = Accessor {
-                    name: Name {
-                        text: get::WORD.text.to_string(),
-                        span: value.span,
-                    },
-                    body: Some(MethodBody::Expr(value)),
-                };
-                Ok(DeclKind::Property {
-                    ty,
-                    name,
-                    accessors: vec![get],
-                    value: None,
-                })
-            }
+            Tok::Punct(Punct::FatArrow) => self.arrow_property(ty, name),
             _ => self.field_rest(ty, name).map(DeclKind::Field),
+        }
+    }
+
+    /// Whether an explicit interface implementation's name is here:
+    /// `ICollection<T>.Add(`, `IDisposable.Dispose(` (a dotted path read as
+    /// one type, its last name the member's).
+    fn explicit_ahead(&self) -> bool {
+        let Some(len) = self.type_len(0) else {
+            return false;
+        };
+        let generic = self.nth_is(len, Punct::Dot) && matches!(self.nth(len + 1), Tok::Ident(_));
+        // A method's `(`, a property's `{` or `=>`: a type then a name
+        // would have the name here.
+        let member = [Punct::LParen, Punct::LBrace, Punct::FatArrow]
+            .into_iter()
+            .any(|p| self.nth_is(len, p));
+        let dotted = len >= DOTTED && self.nth_is(len - 2, Punct::Dot) && member;
+        generic || dotted
+    }
+
+    /// `ICollection<T>.Add(T item) …` returning `ret`, `bool
+    /// ICollection<T>.IsReadOnly => …`: a member of `ICollection<T>`'s,
+    /// implemented.
+    fn explicit(&mut self, ret: Option<Type>) -> PResult<DeclKind> {
+        let ty = self.ty()?;
+        let (interface, name) = if self.eat(Punct::Dot) {
+            (ty, self.name("the member's name")?)
+        } else {
+            match ty.kind {
+                TypeKind::Path { mut path, args } if args.is_empty() && path.len() > 1 => {
+                    let name = path
+                        .pop()
+                        .ok_or_else(|| self.expected("the member's name"))?;
+                    let kind = TypeKind::Path { path, args };
+                    (
+                        Type {
+                            kind,
+                            span: ty.span,
+                        },
+                        name,
+                    )
+                }
+                _ => return Err(self.expected("an interface's member: `IFace.Name`")),
+            }
+        };
+        let property = matches!(self.tok(), Tok::Punct(Punct::LBrace | Punct::FatArrow));
+        match ret {
+            Some(ty) if property => {
+                let mut kind = if self.at(Punct::LBrace) {
+                    self.property(ty, name)?
+                } else {
+                    self.arrow_property(ty, name)?
+                };
+                if let DeclKind::Property { explicit, .. } = &mut kind {
+                    *explicit = Some(interface);
+                }
+                Ok(kind)
+            }
+            _ => {
+                let mut method = self.method_rest(ret, name)?;
+                method.explicit = Some(interface);
+                Ok(DeclKind::Method(method))
+            }
         }
     }
 
@@ -158,6 +213,7 @@ impl Parser<'_, '_, '_> {
         Ok(Method {
             ret,
             name,
+            explicit: None,
             generics,
             params,
             constraints,
@@ -257,6 +313,28 @@ impl Parser<'_, '_, '_> {
             name,
             accessors,
             value,
+            explicit: None,
+        })
+    }
+
+    /// `T Name => value;`: a property of a getter only.
+    fn arrow_property(&mut self, ty: Type, name: Name) -> PResult<DeclKind> {
+        self.need(Punct::FatArrow)?;
+        let value = self.expr()?;
+        self.end()?;
+        let get = Accessor {
+            name: Name {
+                text: get::WORD.text.to_string(),
+                span: value.span,
+            },
+            body: Some(MethodBody::Expr(value)),
+        };
+        Ok(DeclKind::Property {
+            ty,
+            name,
+            accessors: vec![get],
+            value: None,
+            explicit: None,
         })
     }
 

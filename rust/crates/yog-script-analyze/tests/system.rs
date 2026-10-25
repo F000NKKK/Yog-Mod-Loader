@@ -242,3 +242,38 @@ fn every_type_is_an_object() {
         [script_problem::INHERIT]
     );
 }
+
+#[test]
+fn explicit_implementations_are_csharps() {
+    let ok = "public interface IShape {\n    f64 Area();\n    string Name { get; }\n}\n\
+              public class Square(f64 side) : IShape {\n    public f64 Side = side;\n\
+              f64 IShape.Area() => Side * Side;\n    string IShape.Name => \"square\";\n}\n\
+              f64 A(IShape s) => s.Area();\n\
+              bool Added(HashSet<string> set) => set.Add(\"a\");\n\
+              bool Pair(ICollection<KeyValuePair<string, i32>> pairs, Dictionary<string, i32> d) =>\n\
+                  pairs.Remove(new KeyValuePair<string, i32>(\"a\", 1)) && d.Remove(\"a\");\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    let shape = "public interface IShape {\n    f64 Area();\n}\n";
+    for (body, code) in [
+        // Not one of its interfaces; one without the member; an access said.
+        (
+            "class A {\n    f64 IShape.Area() => 1;\n}\n",
+            script_problem::INHERIT,
+        ),
+        (
+            "class B : IShape {\n    f64 IShape.Area() => 1;\n    f64 IShape.Size() => 1;\n}\n",
+            script_problem::INHERIT,
+        ),
+        (
+            "class C : IShape {\n    public f64 IShape.Area() => 1;\n}\n",
+            script_problem::INHERIT,
+        ),
+        // Reached through its interface only.
+        (
+            "class D : IShape {\n    f64 IShape.Area() => 1;\n}\nf64 F(D d) => d.Area();\n",
+            script_problem::UNKNOWN_MEMBER,
+        ),
+    ] {
+        assert_eq!(codes(&format!("{shape}{body}")), [code], "{body}");
+    }
+}

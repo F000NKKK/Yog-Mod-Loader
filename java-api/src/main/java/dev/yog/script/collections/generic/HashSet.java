@@ -54,9 +54,15 @@ public class HashSet<T> extends AbstractSet<T> implements ISet<T> {
         return false;
     }
 
+    /** {@code ICollection<T>.Add}, explicitly: the set's own gives whether it added. */
     @Override
     public void Add(T item) {
         items.add(item);
+    }
+
+    @Override
+    public boolean ISet$Add(T item) {
+        return items.add(item);
     }
 
     @Override

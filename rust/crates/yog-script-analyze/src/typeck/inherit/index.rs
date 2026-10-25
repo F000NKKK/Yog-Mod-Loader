@@ -32,6 +32,10 @@ pub(super) struct Member {
     pub overrides: bool,
     /// It has a body (an implementation).
     pub body: bool,
+    /// The interface it implements explicitly, by name (`ICollection`).
+    pub explicit: Option<String>,
+    /// It says its access (`public`): an explicit implementation can't.
+    pub access: bool,
 }
 
 pub(super) struct Index<'d> {
@@ -140,18 +144,30 @@ fn plain_name(t: &Type) -> Option<&Name> {
 /// A class's property without `abstract` is implemented (`{ get; }` is
 /// stored); an interface's only with a body.
 fn member(d: &Decl, interface: bool) -> Option<Member> {
+    let mut explicit = None;
     let (name, span, body) = match &d.kind {
-        DeclKind::Method(m) => (m.name.text.as_str(), m.name.span, m.body.is_some()),
+        DeclKind::Method(m) => {
+            explicit = m
+                .explicit
+                .as_ref()
+                .and_then(plain_name)
+                .map(|n| n.text.clone());
+            (m.name.text.as_str(), m.name.span, m.body.is_some())
+        }
         DeclKind::Property {
             name,
             accessors,
             value,
+            explicit: of,
             ..
-        } => (
-            name.text.as_str(),
-            name.span,
-            !interface || value.is_some() || accessors.iter().any(|a| a.body.is_some()),
-        ),
+        } => {
+            explicit = of.as_ref().and_then(plain_name).map(|n| n.text.clone());
+            (
+                name.text.as_str(),
+                name.span,
+                !interface || value.is_some() || accessors.iter().any(|a| a.body.is_some()),
+            )
+        }
         DeclKind::Indexer(ix) => (
             yog_script_ids::clr::INDEXER,
             ix.span,
@@ -167,5 +183,14 @@ fn member(d: &Decl, interface: bool) -> Option<Member> {
         is_virtual: d.has(Modifier::Virtual),
         overrides: d.has(Modifier::Override),
         body,
+        explicit,
+        access: [
+            Modifier::Public,
+            Modifier::Private,
+            Modifier::Protected,
+            Modifier::Internal,
+        ]
+        .into_iter()
+        .any(|m| d.has(m)),
     })
 }

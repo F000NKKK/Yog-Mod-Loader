@@ -36,6 +36,18 @@ impl Checker<'_, '_, '_> {
         self.bases = bases;
     }
 
+    /// What `name<args>`'s members are looked up in: its lineage — a
+    /// class's or a struct's without its interfaces, as C#'s (an interface's
+    /// member is reached through the interface, or the type's own).
+    pub(super) fn member_lineage(&self, name: &str, args: &[Type]) -> Vec<(TypeKey, Vec<Type>)> {
+        let interface = |k: &TypeKey| self.own.of_key(k).is_some_and(|o| o.interface);
+        let lineage = self.lineage_of(name, args);
+        if lineage.first().is_some_and(|(k, _)| interface(k)) {
+            return lineage;
+        }
+        lineage.into_iter().filter(|(k, _)| !interface(k)).collect()
+    }
+
     /// `name<args>` and every type it inherits or implements, nearest
     /// first, each once — with the arguments `name<args>` gives it.
     pub(super) fn lineage_of(&self, name: &str, args: &[Type]) -> Vec<(TypeKey, Vec<Type>)> {

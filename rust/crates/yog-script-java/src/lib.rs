@@ -16,6 +16,7 @@ mod exprs;
 mod identity;
 mod index;
 mod indexers;
+mod java_names;
 mod library;
 mod operators;
 mod stmts;
@@ -115,6 +116,8 @@ pub(crate) struct Gen<'c> {
     /// Types are written nested in the source's class (a source's), or
     /// each as a file's own (the library's).
     nested: bool,
+    /// The type whose members are being written.
+    owner: Option<String>,
 }
 
 impl<'c> Gen<'c> {
@@ -129,6 +132,7 @@ impl<'c> Gen<'c> {
             file: file_name(name),
             temps: 0,
             nested: true,
+            owner: None,
         }
     }
 }

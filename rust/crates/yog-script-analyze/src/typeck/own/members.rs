@@ -11,7 +11,12 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
             DeclKind::Field(f) => {
                 t.values.insert(f.name.text.clone(), f.ty.clone());
             }
-            DeclKind::Property { ty, name, .. } => {
+            DeclKind::Property {
+                ty,
+                name,
+                explicit: None,
+                ..
+            } => {
                 t.values.insert(name.text.clone(), ty.clone());
             }
             DeclKind::Event { ty, name } => {
@@ -26,6 +31,8 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
                     });
                 }
             }
+            // An explicit implementation: its interface's, not the type's.
+            DeclKind::Method(m) if m.explicit.is_some() => {}
             DeclKind::Method(m) => {
                 // A static method has no object to change.
                 if d.has(ast::Modifier::Readonly) || d.has(ast::Modifier::Static) {

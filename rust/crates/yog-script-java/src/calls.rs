@@ -84,7 +84,7 @@ impl Gen<'_> {
                 _ if self.is_result_case(name) => {
                     format!("new {}.{}<>({a})", self.own(RESULT), Self::ident(name))
                 }
-                _ => format!("{}({a})", Self::ident(name)),
+                _ => format!("{}({a})", self.called_name(e, name)),
             },
             ExprKind::Member { expr, name, .. } => self.method_call(e, expr, &name.text, &a),
             _ => {
@@ -96,6 +96,18 @@ impl Gen<'_> {
                 }
             }
         }
+    }
+
+    /// The Java name of the method call `e` chose (`name` in Yog Script):
+    /// its own, unless Java needs it named after its type too.
+    fn called_name(&self, e: &Expr, name: &str) -> String {
+        let java = self
+            .types
+            .method(e)
+            .and_then(|m| Some((m.owner.as_deref()?, m)))
+            .filter(|(owner, _)| !self.index.is_host(owner))
+            .and_then(|(owner, m)| self.index.java_name_of(owner, &m.name, m.overload));
+        Self::ident(java.as_deref().unwrap_or(name))
     }
 
     /// Where call `e`'s method runs when its type is a `[Host]` one (the
@@ -166,7 +178,7 @@ impl Gen<'_> {
     fn method_call(&mut self, e: &Expr, on: &Expr, name: &str, a: &str) -> String {
         let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
-        let n = Self::ident(name);
+        let n = self.called_name(e, name);
         match on_type.as_ref().map(Type::non_null) {
             Some(Type::Static(of)) => match self.index.kind(of) {
                 Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),

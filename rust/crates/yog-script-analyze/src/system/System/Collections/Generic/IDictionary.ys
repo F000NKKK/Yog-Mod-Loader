@@ -1,8 +1,8 @@
 namespace System.Collections.Generic;
 
-/// Values by their keys, each key there once; gone through as its pairs.
+/// Values by their keys, each key there once; a collection of its pairs.
 [Intrinsic]
-public interface IDictionary<TKey, TValue> : IReadOnlyCollection<KeyValuePair<TKey, TValue>> {
+public interface IDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>> {
     /// The value of `key` (a panic when it has none); set, it's added or replaced.
     TValue this[TKey key] { get; set; }
     ICollection<TKey> Keys { get; }
@@ -14,5 +14,4 @@ public interface IDictionary<TKey, TValue> : IReadOnlyCollection<KeyValuePair<TK
     bool Remove(TKey key);
     /// `key`'s value, or `null` when it has none.
     TValue? TryGetValue(TKey key);
-    void Clear();
 }

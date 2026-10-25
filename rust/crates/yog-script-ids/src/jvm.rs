@@ -41,6 +41,10 @@ pub const EQUALS: &str = "equals";
 pub const HASH_CODE: &str = "hashCode";
 pub const TO_STRING: &str = "toString";
 
+/// What a method named after its type too joins them with (`ISet$Add`):
+/// one Java couldn't tell from one it inherits.
+pub const MEMBER_SEP: char = '$';
+
 /// Java's types compiled code names.
 pub const STRING: &str = "String";
 pub const OBJECT: &str = "Object";

@@ -53,6 +53,8 @@ pub(crate) struct Index {
     hosts: HashSet<String>,
     /// The `[Intrinsic]` types: the runtime's, written by hand.
     intrinsics: HashSet<String>,
+    /// Each type's shape, for its methods' Java names.
+    shapes: HashMap<String, crate::java_names::Shape>,
 }
 
 impl Index {
@@ -105,6 +107,8 @@ impl Index {
             return;
         };
         self.declared(&name.text, arity(&header.generics));
+        self.shapes
+            .insert(name.text.clone(), crate::java_names::shape_of(header, body));
         if self.library && crate::library::is_intrinsic(d) {
             self.intrinsics.insert(name.text.clone());
         }
@@ -251,6 +255,11 @@ impl Index {
         self.types
             .get(of)
             .is_some_and(|i| i.bases.iter().any(|b| self.called(b, name)))
+    }
+
+    /// Type `name`'s shape, if it's one of the library's or the source's.
+    pub(crate) fn shape(&self, name: &str) -> Option<&crate::java_names::Shape> {
+        self.shapes.get(name)
     }
 
     /// Whether type `name` is a `[Host]` one: a built-in type's members.

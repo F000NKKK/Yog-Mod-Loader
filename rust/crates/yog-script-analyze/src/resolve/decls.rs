@@ -103,8 +103,10 @@ impl Resolver<'_, '_> {
                 ty,
                 accessors,
                 value,
+                explicit,
                 ..
             } => {
+                self.opt_ty(explicit.as_ref());
                 self.accessors(ty, None, accessors);
                 self.opt_expr(value.as_ref());
             }
@@ -220,6 +222,7 @@ impl Resolver<'_, '_> {
                 r.generics(&m.generics);
                 r.params(&m.params);
                 r.opt_ty(m.ret.as_ref());
+                r.opt_ty(m.explicit.as_ref());
                 r.constraints(&m.constraints);
                 r.opt_expr(m.requires.as_ref());
                 r.body(m.body.as_ref(), awaits);

@@ -1,6 +1,6 @@
 //! `new` — an object made, or an array.
 
-use crate::ast::{ArrayItem, Expr, ExprKind, Name, Type, TypeKind};
+use crate::ast::{ArrayItem, Expr, ExprKind, Modifier, Name, Type, TypeKind};
 use crate::parser::{PResult, Parser};
 use crate::source::token::{Punct, Tok};
 use crate::words::{Role, Word};
@@ -9,10 +9,10 @@ pub static WORD: Word = Word {
     text: "new",
     doc: "Makes an object: `new Pos(1, 64, 3)`, `new Battery { Count = 2 }`, `new(4)` where the type \
           is known (`Slots<Battery> Inventory = new(4);`); an array: `new i32[16]`, `new i32[4, 4]`, \
-          `new string[] { \"a\", \"b\" }`, `new[] { 1, 2 }`. In a patch, where the method makes one: \
+          `new string[] { \"a\", \"b\" }`, `new[] { 1, 2 }`. Before a member, it hides one of its name it inherits: `new bool Add(T item);`. In a patch, where the method makes one: \
           `at new BlockPos { … }`.",
     reserved: true,
-    roles: &[Role::Prefix { starts: None, parse }],
+    roles: &[Role::Prefix { starts: None, parse }, Role::Modifier(Modifier::New)],
 };
 
 fn parse(p: &mut Parser) -> PResult<Expr> {

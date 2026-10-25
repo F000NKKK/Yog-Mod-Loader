@@ -3,6 +3,8 @@ namespace System.Collections.Generic;
 /// Items each there once, combined and compared as sets.
 [Intrinsic]
 public interface ISet<T> : ICollection<T> {
+    /// `item` added; whether it was (it wasn't there).
+    new bool Add(T item);
     void UnionWith(in IEnumerable<T> other);
     void IntersectWith(in IEnumerable<T> other);
     void ExceptWith(in IEnumerable<T> other);

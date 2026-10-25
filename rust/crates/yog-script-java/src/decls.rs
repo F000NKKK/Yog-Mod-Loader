@@ -129,7 +129,10 @@ impl Gen<'_> {
             format!("{generics} ")
         };
         let params = self.params(&m.params);
-        let name = Self::ident(&m.name.text);
+        let name = match &self.owner {
+            Some(owner) => Self::ident(&self.index.java_name(owner, m)),
+            None => Self::ident(&m.name.text),
+        };
         if d.has(Modifier::Extern) {
             return self.service(
                 d,
@@ -168,6 +171,18 @@ impl Gen<'_> {
     }
 
     pub(crate) fn type_decl(
+        &mut self,
+        d: &Decl,
+        (word, name): (&str, &str),
+        header: &TypeHeader,
+        body: &[Decl],
+    ) {
+        let outer = self.owner.replace(name.to_string());
+        self.type_of_kind(d, (word, name), header, body);
+        self.owner = outer;
+    }
+
+    fn type_of_kind(
         &mut self,
         d: &Decl,
         (word, name): (&str, &str),

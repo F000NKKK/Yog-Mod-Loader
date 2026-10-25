@@ -69,6 +69,7 @@ impl Indexer {
                 text: accessor_name(word),
                 span: self.span,
             },
+            explicit: None,
             generics: Vec::new(),
             params,
             constraints: Vec::new(),
