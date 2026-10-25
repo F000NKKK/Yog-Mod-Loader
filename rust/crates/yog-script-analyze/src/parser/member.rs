@@ -4,10 +4,13 @@
 
 use super::{PResult, Parser};
 use crate::ast::{
-    Accessor, Chain, Ctor, DeclKind, Field, Indexer, Method, MethodBody, Name, Prop, Type,
+    Accessor, Chain, Ctor, DeclKind, Field, Indexer, Method, MethodBody, Name, Operator,
+    OperatorKind, Prop, Type,
 };
 use crate::source::token::{Punct, Tok};
-use crate::words::{get, has, r#in, init, requires, set, this, void, was};
+use crate::words::{
+    explicit, get, has, implicit, r#in, init, operator, requires, set, this, void, was,
+};
 
 impl Parser<'_, '_, '_> {
     /// A member no word starts.
@@ -19,6 +22,12 @@ impl Parser<'_, '_, '_> {
         }
         if matches!(self.tok(), Tok::Ident(_)) && self.nth_is(1, Punct::LParen) {
             return self.ctor().map(DeclKind::Ctor);
+        }
+        if self.at_word(&implicit::WORD) || self.at_word(&explicit::WORD) {
+            return self.conversion();
+        }
+        if self.operator_ahead() {
+            return self.operator();
         }
         if self.indexer_ahead() {
             let ty = self.ty()?;
@@ -61,6 +70,56 @@ impl Parser<'_, '_, '_> {
             }
             _ => self.field_rest(ty, name).map(DeclKind::Field),
         }
+    }
+
+    /// Whether an operator starts here: a type, then `operator`.
+    fn operator_ahead(&self) -> bool {
+        self.type_len(0)
+            .is_some_and(|len| self.nth_word(len, &operator::WORD))
+    }
+
+    /// `R operator +(A a, B b) …`: which operator its sign and its
+    /// parameters' count say (`-` of one is negation).
+    fn operator(&mut self) -> PResult<DeclKind> {
+        let ret = self.ty()?;
+        self.need_word(&operator::WORD)?;
+        let Tok::Punct(p) = self.tok().clone() else {
+            return Err(self.expected("an operator's sign"));
+        };
+        let name = Name {
+            text: String::new(),
+            span: self.bump().span,
+        };
+        let mut method = self.method_rest(Some(ret), name)?;
+        let kind = match method.params.len() {
+            1 => super::expr::prefix_of(p).map(OperatorKind::Unary),
+            _ => super::expr::binary_of(p).map(OperatorKind::Binary),
+        };
+        let Some((kind, named)) = kind.and_then(|k| Some((k, k.method_name()?))) else {
+            return Err(self.expected(
+                "an operator a type may declare (`+ - * / % == != < > <= >=`, unary `-` `!`)",
+            ));
+        };
+        method.name.text = named.to_string();
+        Ok(DeclKind::Operator(Operator { kind, method }))
+    }
+
+    /// `implicit operator R(A a) …` / `explicit operator R(A a) …`.
+    fn conversion(&mut self) -> PResult<DeclKind> {
+        let kind = if self.eat_word(&implicit::WORD) {
+            OperatorKind::Implicit
+        } else {
+            self.need_word(&explicit::WORD)?;
+            OperatorKind::Explicit
+        };
+        self.need_word(&operator::WORD)?;
+        let ret = self.ty()?;
+        let name = Name {
+            text: kind.method_name().unwrap_or_default().to_string(),
+            span: ret.span,
+        };
+        let method = self.method_rest(Some(ret), name)?;
+        Ok(DeclKind::Operator(Operator { kind, method }))
     }
 
     /// Whether an indexer starts here: a type, then `this[`.

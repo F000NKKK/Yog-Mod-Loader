@@ -124,7 +124,7 @@ words! {
     using, global, namespace, module = "words/mod_word.rs", r#macro, class, r#struct, record, interface, r#enum, unit,
     component, system, extend, event, delegate, test, screen, command, patch, targets,
     // Parts of declarations.
-    was, requires, every, has, r#where, when, get, set, init, value, field, mc, out,
+    was, requires, every, has, r#where, when, get, set, init, value, field, operator, implicit, explicit, mc, out,
     // Modifiers.
     public, private, internal, protected, r#static, r#const, readonly, r#async,
     r#abstract, r#virtual, r#override, sealed, r#extern,

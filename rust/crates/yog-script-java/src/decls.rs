@@ -72,6 +72,7 @@ impl Gen<'_> {
             }
             DeclKind::Indexer(ix) => self.indexer(d, ix, place),
             DeclKind::Delegate(m) => self.delegate_decl(m),
+            DeclKind::Operator(op) => self.method(d, &op.method, place),
             DeclKind::Type {
                 word,
                 name,

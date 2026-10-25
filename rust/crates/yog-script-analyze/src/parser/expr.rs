@@ -50,6 +50,24 @@ const SIGNS: &[(Punct, BinOp, Level)] = &[
 
 const PREFIXES: &[(Punct, UnOp)] = &[(Punct::Minus, UnOp::Neg), (Punct::Bang, UnOp::Not)];
 
+/// The binary operator sign `p` is.
+pub(crate) fn binary_of(p: Punct) -> Option<BinOp> {
+    SIGNS.iter().find(|(s, ..)| *s == p).map(|(_, op, _)| *op)
+}
+
+/// How binary operator `op` is written.
+pub(crate) fn sign_of(op: BinOp) -> &'static str {
+    SIGNS
+        .iter()
+        .find(|(_, o, _)| *o == op)
+        .map_or("", |(p, ..)| p.text())
+}
+
+/// The prefix operator sign `p` is.
+pub(crate) fn prefix_of(p: Punct) -> Option<UnOp> {
+    PREFIXES.iter().find(|(s, _)| *s == p).map(|(_, op)| *op)
+}
+
 impl Level {
     /// The next tighter level (the right side of a left-associative one).
     pub(crate) fn tighter(self) -> Level {

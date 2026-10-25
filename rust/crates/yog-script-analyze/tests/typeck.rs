@@ -468,3 +468,47 @@ fn an_event_is_of_any_delegate_type() {
                void F(Button b) {\n    b.Clicked += (sender, e) => { i32 n = e.Count; };\n}\n";
     assert!(codes(src).is_empty(), "{:?}", codes(src));
 }
+
+const ENERGY: &str = "public struct Energy(i32 amount) {\n    public i32 Amount = amount;\n\
+    public static Energy operator +(Energy a, Energy b) => new Energy(a.Amount + b.Amount);\n\
+    public static Energy operator -(Energy a) => new Energy(-a.Amount);\n\
+    public static bool operator ==(Energy a, Energy b) => a.Amount == b.Amount;\n\
+    public static bool operator !=(Energy a, Energy b) => a.Amount != b.Amount;\n\
+    public static implicit operator Energy(i32 amount) => new Energy(amount);\n\
+    public static explicit operator i32(Energy e) => e.Amount;\n}\n";
+
+#[test]
+fn a_types_operators_are_its_own() {
+    let fine = format!(
+        "{ENERGY}Energy Sum(Energy a, Energy b) => a + b;\nEnergy Neg(Energy a) => -a;\n\
+         bool Same(Energy a, Energy b) => a == b;\nEnergy Five() => 5;\ni32 Back(Energy e) => (i32)e;\n\
+         Energy Twice(Energy e) => Sum(e, 3);\n"
+    );
+    assert!(codes(&fine).is_empty(), "{:?}", codes(&fine));
+    // No `operator *`: two Energies don't multiply.
+    assert_eq!(
+        codes(&format!("{ENERGY}Energy F(Energy a, Energy b) => a * b;\n")),
+        [script_problem::TYPE_MISMATCH]
+    );
+    // An explicit conversion isn't implicit.
+    assert_eq!(
+        codes(&format!("{ENERGY}i32 F(Energy e) => e;\n")),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn operators_are_declared_as_csharps() {
+    let src = "public struct V(i32 x) {\n    public i32 X = x;\n\
+               public static bool operator ==(V a, V b) => a.X == b.X;\n\
+               public V operator -(V a) => a;\n\
+               public static i32 operator +(i32 a, i32 b) => a;\n}\n";
+    assert_eq!(
+        codes(src),
+        [
+            script_problem::OPERATOR,
+            script_problem::OPERATOR,
+            script_problem::OPERATOR
+        ]
+    );
+}

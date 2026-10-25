@@ -4,7 +4,7 @@
 
 mod block;
 mod decl;
-mod expr;
+pub(crate) mod expr;
 mod header;
 mod lambda;
 mod member;

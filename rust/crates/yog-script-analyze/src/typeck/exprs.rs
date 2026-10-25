@@ -54,8 +54,8 @@ impl Checker<'_, '_, '_> {
             ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
             ExprKind::Lambda { params, body } => self.lambda_alone(params, body),
             ExprKind::Macro { name, args } => self.builtin_macro(name, args),
-            ExprKind::Unary { op, expr } => self.unary(*op, expr),
-            ExprKind::Binary { op, left, right } => self.binary(*op, left, right, e.span),
+            ExprKind::Unary { op, expr } => self.unary(e, *op, expr),
+            ExprKind::Binary { op, left, right } => self.binary(e, *op, left, right),
             ExprKind::Conditional {
                 cond,
                 then,
@@ -67,8 +67,9 @@ impl Checker<'_, '_, '_> {
                 t
             }
             ExprKind::Cast { ty, expr } => {
-                self.expr(expr);
-                self.type_of(ty)
+                let (got, to) = (self.expr(expr), self.type_of(ty));
+                self.note_cast(e, &got, &to);
+                to
             }
             ExprKind::As { expr, ty } => {
                 self.expr(expr);
@@ -148,8 +149,11 @@ impl Checker<'_, '_, '_> {
         self.imported(name, at)
     }
 
-    fn unary(&mut self, op: UnOp, expr: &Expr) -> Type {
+    fn unary(&mut self, e: &Expr, op: UnOp, expr: &Expr) -> Type {
         let t = self.expr(expr);
+        if let Some(declared) = self.declared_unary(e, op, &t) {
+            return declared;
+        }
         match op {
             UnOp::Not => {
                 self.want(&t, &Type::Bool, expr.span);
@@ -167,8 +171,12 @@ impl Checker<'_, '_, '_> {
         }
     }
 
-    fn binary(&mut self, op: BinOp, left: &Expr, right: &Expr, at: Span) -> Type {
+    fn binary(&mut self, e: &Expr, op: BinOp, left: &Expr, right: &Expr) -> Type {
         let (a, b) = (self.expr(left), self.expr(right));
+        if let Some(declared) = self.declared_binary(e, op, &a, &b) {
+            return declared;
+        }
+        let at = e.span;
         match op {
             BinOp::And | BinOp::Or => {
                 self.want(&a, &Type::Bool, left.span);
@@ -217,6 +225,7 @@ impl Checker<'_, '_, '_> {
             return;
         }
         self.want(&t, wanted, e.span);
+        self.note_conversion(e, &t, wanted);
     }
 
     /// `got` where `wanted` is: reported when it doesn't convert.

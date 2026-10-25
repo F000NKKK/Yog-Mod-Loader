@@ -22,6 +22,7 @@ mod members;
 mod model;
 mod mutation;
 mod names;
+mod operators;
 mod own;
 mod passing;
 mod shapes;
@@ -34,7 +35,7 @@ mod written;
 use std::collections::HashMap;
 
 pub use model::Type;
-pub use types::Types;
+pub use types::{OperatorUse, Types};
 
 use crate::ast::File;
 use crate::index::{ClassIndex, Lookup, Side};
@@ -77,6 +78,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     bases: lineage::Bases,
     /// Each declared delegate's signature, typed.
     delegates: delegates::Delegates,
+    /// Each type's operators, typed.
+    operators: operators::Operators,
 }
 
 /// `file`'s types checked against `index` (a targeted version's), what
@@ -119,9 +122,11 @@ pub(crate) fn check(
         types: Types::default(),
         bases: lineage::Bases::new(),
         delegates: delegates::Delegates::new(),
+        operators: operators::Operators::new(),
     };
     c.type_bases();
     c.type_delegates();
+    c.type_operators();
     c.decls(&file.decls);
     inherit::check(&file.decls, c.report);
     c.types
@@ -156,9 +161,16 @@ impl Checker<'_, '_, '_> {
         self.scopes.iter().rev().find_map(|s| s.get(name))
     }
 
-    /// Whether a `got` goes where `wanted` is: a conversion, or an own
-    /// type that is the one wanted (inherits or implements it).
+    /// Whether a `got` goes where `wanted` is: as it is, or through an
+    /// implicit conversion one of them declares.
     fn converts(&self, got: &Type, wanted: &Type) -> bool {
+        self.converts_plainly(got, wanted) || self.implicit(got, wanted).is_some()
+    }
+
+    /// Whether a `got` goes where `wanted` is as it is: a built-in
+    /// conversion, or an own type that is the one wanted (inherits or
+    /// implements it).
+    fn converts_plainly(&self, got: &Type, wanted: &Type) -> bool {
         if got.converts_to(wanted) {
             return true;
         }

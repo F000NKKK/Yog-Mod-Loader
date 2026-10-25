@@ -4,8 +4,8 @@
 use super::naming::Case;
 use super::{Context, DefKind, Resolver};
 use crate::ast::{
-    Constraint, Decl, DeclKind, Generic, Method, MethodBody, Modifier, Name, Param, TypeHeader,
-    Where, accessor_scope,
+    Accessor, Constraint, Decl, DeclKind, Generic, Method, MethodBody, Modifier, Name, Param,
+    TypeHeader, Where, accessor_scope,
 };
 use crate::words::{interface, record};
 
@@ -90,6 +90,7 @@ impl Resolver<'_, '_> {
             DeclKind::Method(m) => self.method(m, d.has(Modifier::Async)),
             // Its signature's types and parameters, as a method's; no body.
             DeclKind::Delegate(m) => self.method(m, false),
+            DeclKind::Operator(op) => self.method(&op.method, false),
             DeclKind::Field(f) => {
                 self.ty(&f.ty);
                 self.opt_expr(f.bound.as_ref());
@@ -104,25 +105,10 @@ impl Resolver<'_, '_> {
                 value,
                 ..
             } => {
-                self.ty(ty);
-                for a in accessors {
-                    self.scoped(|r| {
-                        r.params(&accessor_scope(ty, a, true));
-                        r.body(a.body.as_ref(), false);
-                    });
-                }
+                self.accessors(ty, None, accessors);
                 self.opt_expr(value.as_ref());
             }
-            DeclKind::Indexer(ix) => {
-                self.ty(&ix.ty);
-                for a in &ix.accessors {
-                    self.scoped(|r| {
-                        r.params(&ix.params);
-                        r.params(&accessor_scope(&ix.ty, a, false));
-                        r.body(a.body.as_ref(), false);
-                    });
-                }
-            }
+            DeclKind::Indexer(ix) => self.accessors(&ix.ty, Some(&ix.params), &ix.accessors),
             DeclKind::Ctor(c) => self.scoped(|r| {
                 r.params(&c.params);
                 c.chain
@@ -242,6 +228,24 @@ impl Resolver<'_, '_> {
     }
 
     /// A method's or an accessor's body.
+    /// A property's or (with its parameters) an indexer's accessors, each
+    /// in a scope of what it has.
+    fn accessors(
+        &mut self,
+        ty: &crate::ast::Type,
+        params: Option<&[Param]>,
+        accessors: &[Accessor],
+    ) {
+        self.ty(ty);
+        for a in accessors {
+            self.scoped(|r| {
+                r.params(params.unwrap_or_default());
+                r.params(&accessor_scope(ty, a, params.is_none()));
+                r.body(a.body.as_ref(), false);
+            });
+        }
+    }
+
     fn body(&mut self, body: Option<&MethodBody>, awaits: bool) {
         let cx = Context { awaits, ..self.cx };
         self.within(cx, |r| match body {

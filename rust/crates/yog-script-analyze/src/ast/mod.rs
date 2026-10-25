@@ -5,6 +5,7 @@ mod decl;
 mod expr;
 mod generics;
 mod indexer;
+mod operator;
 mod pass;
 mod patch;
 mod pattern;
@@ -19,6 +20,7 @@ pub use decl::{
 pub use expr::{Arg, Arm, BinOp, Element, Expr, ExprKind, LambdaBody, LambdaParam, StrSeg, UnOp};
 pub use generics::{Constraint, Generic, Variance, Where};
 pub use indexer::{Indexer, accessor_name};
+pub use operator::{Operator, OperatorKind};
 pub use pass::Pass;
 pub use patch::{Callee, Local, Patch, PatchItem, Point, Selector, Target};
 pub use pattern::{Pattern, Type, TypeKind};

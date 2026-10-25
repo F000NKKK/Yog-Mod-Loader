@@ -108,6 +108,8 @@ pub enum DeclKind {
     },
     /// `T this[i32 index] { get; set; }`: what `x[i]` reads and writes.
     Indexer(super::Indexer),
+    /// `static R operator +(A a, B b)`, `static implicit operator R(A a)`.
+    Operator(super::Operator),
     Ctor(Ctor),
     /// `class`, `struct`, `record`, `interface`: which is `word`;
     /// `value`: copied by value (a struct, a `record struct`).

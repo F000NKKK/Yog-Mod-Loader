@@ -14,6 +14,7 @@ mod exprs;
 mod index;
 mod indexers;
 mod library;
+mod operators;
 mod stmts;
 mod switch;
 mod types;

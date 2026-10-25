@@ -488,6 +488,10 @@ impl Checker<'_, '_, '_> {
         };
         if let Some((s, found)) = sigs.iter().find_map(|s| fits(s).map(|f| (s, f))) {
             self.check_passing(&s.passes, args, given);
+            let params: Vec<Type> = s.params.iter().map(|p| p.substitute(&found)).collect();
+            for ((arg, g), p) in args.iter().zip(given).zip(&params) {
+                self.note_conversion(&arg.value, g, p);
+            }
             return s.ret.substitute(&found);
         }
         let taking: Vec<&Signature> = sigs.iter().filter(|s| takes(s)).collect();

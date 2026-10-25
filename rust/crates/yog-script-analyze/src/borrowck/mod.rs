@@ -41,6 +41,11 @@ impl Checker<'_, '_> {
                     }
                 }
                 DeclKind::Ctor(c) => self.block_body(&c.params, &c.body),
+                DeclKind::Operator(op) => {
+                    if let Some(body) = &op.method.body {
+                        self.body(&op.method.params, body);
+                    }
+                }
                 DeclKind::Property { ty, accessors, .. } => {
                     for a in accessors {
                         if let Some(body) = &a.body {

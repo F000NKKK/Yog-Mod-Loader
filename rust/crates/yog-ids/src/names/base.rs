@@ -334,6 +334,10 @@ names! {
         /// Sending to the server from a mod whose `yog.toml` doesn't say so
         /// (`[network] to_server = true`).
         UNDECLARED = "YS0033",
+        /// An operator declared as C# doesn't allow: not `public static`, of
+        /// none of its own type, or one of a pair without the other (`==`
+        /// and `!=`, `<` and `>`, `<=` and `>=`).
+        OPERATOR = "YS0034",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

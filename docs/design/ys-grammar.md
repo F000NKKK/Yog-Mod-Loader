@@ -189,7 +189,10 @@ field_decl  = type IDENT bound? ('=' expr)? migration? ';'          (* a field; 
 bound       = 'in' range_expr ;                      (* i32 Level in 0..100: kept in range *)
             | type IDENT '=>' expr ';'                               (* a computed property *)
             | type IDENT '{' accessor+ '}' ('=' expr ';')?            (* a property with accessors *)
-            | type 'this' '[' params ']' '{' accessor+ '}' ;          (* an indexer: what `x[i]` reads and writes *)
+            | type 'this' '[' params ']' '{' accessor+ '}'            (* an indexer: what `x[i]` reads and writes *)
+            | type 'operator' op_sign '(' params ')' method_body      (* `public static` and of its own type, as C#'s *)
+            | ('implicit' | 'explicit') 'operator' type '(' param ')' method_body ;  (* a conversion *)
+op_sign     = '+' | '-' | '*' | '/' | '%' | '==' | '!=' | '<' | '>' | '<=' | '>=' | '!' ;  (* `-` of one parameter is negation *)
 accessor    = ('get' | 'set' | 'init') (';' | method_body) ;
 migration   = 'was' IDENT (':' type)? ;              (* an old save's name and type *)
 ```

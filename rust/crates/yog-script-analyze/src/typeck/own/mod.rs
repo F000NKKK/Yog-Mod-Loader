@@ -71,6 +71,8 @@ pub(crate) struct OwnType {
     pub indexers: Vec<Indexer>,
     /// A delegate: its signature, as written (what `Invoke` takes and gives).
     pub delegate: Option<Method>,
+    /// The operators and conversions it declares.
+    pub operators: Vec<ast::Operator>,
 }
 
 /// An indexer as written: its getter (`get_Item`, what `x[i]` is typed as

@@ -98,3 +98,27 @@ fn a_delegate_is_a_functional_interface() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn a_types_operators_are_static_methods() {
+    let src = "public struct Energy(i32 amount) {\n    public i32 Amount = amount;\n\
+               public static Energy operator +(Energy a, Energy b) => new Energy(a.Amount + b.Amount);\n\
+               public static bool operator ==(Energy a, Energy b) => a.Amount == b.Amount;\n\
+               public static bool operator !=(Energy a, Energy b) => a.Amount != b.Amount;\n\
+               public static implicit operator Energy(i32 amount) => new Energy(amount);\n\
+               public static explicit operator i32(Energy e) => e.Amount;\n}\n\
+               Energy Sum(Energy a, Energy b) => a + b;\nbool Same(Energy a, Energy b) => a == b;\n\
+               Energy Five() => 5;\ni32 Back(Energy e) => (i32)e;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static Energy op_Addition(Energy a, Energy b)",
+        "public static Energy op_Implicit(int amount)",
+        "public static int op_Explicit(Energy e)",
+        "return Energy.op_Addition(a.copy(), b.copy());",
+        "return Energy.op_Equality(a.copy(), b.copy());",
+        "return Energy.op_Implicit(5);",
+        "return Energy.op_Explicit(e.copy());",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

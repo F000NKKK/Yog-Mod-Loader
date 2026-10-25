@@ -21,7 +21,20 @@ impl Gen<'_> {
         }
     }
 
+    /// `e` in Java: the operator its type declares when it's one, through
+    /// the implicit conversion it goes through when it does.
     pub(crate) fn expr(&mut self, e: &Expr) -> String {
+        if let Some(used) = self.types.operator(e).cloned() {
+            return self.operator_call(e, &used);
+        }
+        let v = self.expr_kind(e);
+        match self.types.conversion(e).cloned() {
+            Some(used) => self.converted(&used, &v),
+            None => v,
+        }
+    }
+
+    fn expr_kind(&mut self, e: &Expr) -> String {
         match &e.kind {
             ExprKind::Int(n) => n.to_string(),
             ExprKind::Float(x) => format!("{x:?}"),

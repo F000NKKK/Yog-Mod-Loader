@@ -40,6 +40,7 @@ impl Checker<'_, '_, '_> {
             DeclKind::Indexer(ix) => {
                 self.accessors(&ix.ty, Of::Indexer(&ix.params), &ix.accessors, side);
             }
+            DeclKind::Operator(op) => self.method(&op.method, side),
             DeclKind::Method(m) => {
                 let readonly = d.has(Modifier::Readonly) || self.this_readonly();
                 let outer = std::mem::replace(&mut self.readonly_this, readonly);
@@ -117,6 +118,9 @@ impl Checker<'_, '_, '_> {
                     .then(|| Type::Own(name.text.clone(), args));
                 let bound = generics::params_of(&header.generics);
                 self.with_types(bound, |c| {
+                    if let Some(this) = &own {
+                        c.check_operators(this, body);
+                    }
                     c.within(own, side, None, |c| {
                         c.params(header.ctor.as_deref().unwrap_or_default());
                         c.decls(body);
