@@ -42,7 +42,6 @@ public final class YogTags {
     /** This host: {@code <loader>/<version>} — set when the pack is staged. */
     private static volatile String host = "";
 
-    private static final List<String> LOADERS = new ArrayList<>();
     /** {@code <registry> <id>} → where it is: {@code *}, versions, {@code <loader>/<version>}s. */
     private static final Map<String, Set<String>> TAGS = new HashMap<>();
     /** {@code <registry> <path>} → the tags {@code yog:<path>} is, the game's first. */
@@ -55,10 +54,6 @@ public final class YogTags {
             if (in != null) {
                 BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
                 for (String line; (line = r.readLine()) != null; ) {
-                    if (line.startsWith(YogNames.TagTable.LOADERS)) {
-                        LOADERS.addAll(List.of(line.substring(YogNames.TagTable.LOADERS.length()).trim().split("\\s+")));
-                        continue;
-                    }
                     String[] p = line.trim().split("\\s+");
                     if (p.length == 4 && p[0].equals(YogNames.TagTable.TAG)) {
                         TAGS.put(p[1] + " " + p[2], Set.of(p[3].split(",")));

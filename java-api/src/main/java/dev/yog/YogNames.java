@@ -2388,10 +2388,10 @@ public final class YogNames {
         public static final String BASE = "base";
         public static final String HAS = "has";
         public static final String EVERYWHERE = "*";
-        public static final String LOADERS = "# loaders:";
+        public static final String HOSTS = "# hosts:";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(TAG, YOG, BASE, HAS, EVERYWHERE, LOADERS);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(TAG, YOG, BASE, HAS, EVERYWHERE, HOSTS);
     }
 
     public static final class Advancement {

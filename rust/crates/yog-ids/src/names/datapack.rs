@@ -133,7 +133,9 @@ names! {
         BASE = crate::word::BASE,
         HAS = "has",
         EVERYWHERE = "*",
-        LOADERS = "# loaders:",
+        /// The header line naming every host (`<loader>/<version>`); a
+        /// version in a tag's place means every host of that version.
+        HOSTS = "# hosts:",
     }
 
     /// The game's advancements.

@@ -36,8 +36,7 @@ use yog_ids::tag_table::EVERYWHERE;
 use yog_ids::tag_table::{BASE, HAS, TAG, YOG};
 
 static TAGS: LazyLock<Tags> = LazyLock::new(|| {
-    let mut loaders = Vec::new();
-    let mut hosts = Vec::new();
+    let mut hosts: Vec<String> = Vec::new();
     let (mut tags, mut yog, mut has, mut base) = (
         HashMap::new(),
         HashMap::new(),
@@ -45,27 +44,30 @@ static TAGS: LazyLock<Tags> = LazyLock::new(|| {
         HashMap::new(),
     );
     for line in TABLE.lines() {
-        if let Some(l) = line.strip_prefix(yog_ids::tag_table::LOADERS) {
-            loaders = l.split_whitespace().map(str::to_string).collect();
-        } else if let Some(h) = line.strip_prefix("# hosts:") {
+        if let Some(h) = line.strip_prefix(yog_ids::tag_table::HOSTS) {
             hosts = h.split_whitespace().map(str::to_string).collect();
         }
         let p: Vec<&str> = line.split_whitespace().collect();
         match p.as_slice() {
             [TAG, reg, id, place] => {
-                let hosts = (*place != EVERYWHERE).then(|| {
+                let on = (*place != EVERYWHERE).then(|| {
                     place
                         .split(',')
                         .flat_map(|w| {
                             if w.contains('/') {
                                 vec![w.to_string()]
                             } else {
-                                loaders.iter().map(|l| format!("{l}/{w}")).collect()
+                                let of_version = format!("{}{w}", yog_ids::sep::PATH);
+                                hosts
+                                    .iter()
+                                    .filter(|h| h.ends_with(&of_version))
+                                    .cloned()
+                                    .collect()
                             }
                         })
                         .collect()
                 });
-                tags.insert((reg.to_string(), id.to_string()), hosts);
+                tags.insert((reg.to_string(), id.to_string()), on);
             }
             [YOG, reg, path, of @ ..] => {
                 yog.insert(
@@ -216,8 +218,8 @@ mod tests {
             tag_hosts("item", "minecraft:music_discs")
                 .flatten()
                 .map(|h| h.len()),
-            Some(3),
-            "1.20.1, every loader"
+            Some(5),
+            "1.19.2 and 1.20.1, each on every loader it has"
         );
         assert_eq!(
             yog_tag_for("item", "c:iron_ingots").as_deref(),
