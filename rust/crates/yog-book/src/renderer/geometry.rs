@@ -66,11 +66,8 @@ pub const EDITION_X: f32 = 24.0;
 pub const EDITION_Y: f32 = 24.0;
 /// The second line is drawn smaller than the name (Patchouli's 0.6).
 pub const EDITION_SCALE: f32 = 0.6;
-/// The landing text: where it starts, the entry count's line under it.
+/// Where the landing text starts (the entry count is in the navigation's row under it).
 pub const LANDING_Y: f32 = 25.0;
-pub const COUNT_H: f32 = 9.0;
-/// The slack kept above the entry count.
-pub const COUNT_SLACK: f32 = 2.0;
 /// The landing text shrinks this far at most, this much at a time.
 pub const LANDING_MIN_FIT: f32 = 0.6;
 pub const LANDING_FIT_STEP: f32 = 0.05;

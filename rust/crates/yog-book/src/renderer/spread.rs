@@ -11,10 +11,10 @@ use yog_ui::{Align, FlexDir, UiRoot, widget};
 
 use super::geometry::{
     BK_H, BK_W, BODY_Y, BOOK_NAME_X, BOOK_NAME_Y, CAT_CELL, CAT_COLUMNS, CAT_GRID_X, CAT_GRID_Y,
-    CAT_ICON_INSET, COUNT_H, COUNT_SLACK, EDITION_SCALE, EDITION_X, EDITION_Y, GAP,
-    LANDING_FIT_STEP, LANDING_MIN_FIT, LANDING_Y, LEFT_X, LIST_ICON, LIST_ICON_INSET, LIST_NAME_W,
-    LIST_PAD_BOTTOM, LIST_ROW_H, LIST_Y, NAMEPLATE_H, NAMEPLATE_V, NAMEPLATE_W, NAMEPLATE_X,
-    NAMEPLATE_Y, PAGE_H, PAGE_W, RIGHT_X, SEP_H, SEP_Y, TITLE_H, TOP_PAD,
+    CAT_ICON_INSET, EDITION_SCALE, EDITION_X, EDITION_Y, GAP, LANDING_FIT_STEP, LANDING_MIN_FIT,
+    LANDING_Y, LEFT_X, LIST_ICON, LIST_ICON_INSET, LIST_NAME_W, LIST_PAD_BOTTOM, LIST_ROW_H,
+    LIST_Y, NAMEPLATE_H, NAMEPLATE_V, NAMEPLATE_W, NAMEPLATE_X, NAMEPLATE_Y, NAV_H, PAGE_H, PAGE_W,
+    RIGHT_X, SEP_H, SEP_Y, TITLE_H, TOP_PAD,
 };
 use super::names::{ordinal, word};
 use super::overlay::{BgSprite, OverlayCmd, SpriteSheet};
@@ -129,10 +129,16 @@ impl Spread<'_> {
                 false => lbl(para).color(c.theme.text).font_scale(text_scale() * fit),
             });
         }
-        let count = title_lbl(word("entry_count", &book.entries.len().to_string()))
-            .color(c.theme.nav)
-            .h(COUNT_H * c.sy)
-            .align(Align::Center);
+        // In the navigation's row, as the other pages' "1/8": centred in it,
+        // clear of the page's edge.
+        let count = widget::panel(FlexDir::Row)
+            .h(NAV_H * c.sy)
+            .align(Align::Center)
+            .child(
+                title_lbl(word("entry_count", &book.entries.len().to_string()))
+                    .color(c.theme.nav)
+                    .align(Align::Center),
+            );
         col.child(widget::spacer().flex(1.0)).child(count)
     }
 
@@ -236,8 +242,9 @@ impl Spread<'_> {
             .unwrap_or_else(|| word("entries", ""));
         let icon = LIST_ICON * c.sx.min(c.sy);
         let mut col = self.page(c).padding(0.0, GAP, LIST_PAD_BOTTOM, 0.0);
+        // One line over the separator, a long name drawn smaller (as an entry's title).
         col = col.child(
-            title_lbl(cat_name)
+            header_lbl(cat_name)
                 .color(c.theme.divider)
                 .h(TITLE_H * c.sy)
                 .align(Align::Center),
@@ -308,7 +315,7 @@ const LIST_GAP: f32 = 2.0;
 pub(super) fn landing_fit(text: &str, sx: f32, sy: f32) -> f32 {
     use yog_ui::text::text_height_in;
     let width = PAGE_W * sx - PAGE_PAD_RIGHT - GAP;
-    let room = (PAGE_H - LANDING_Y - COUNT_H - COUNT_SLACK) * sy - GAP;
+    let room = (PAGE_H - LANDING_Y - NAV_H) * sy - GAP;
     let height = |fit: f32| -> f32 {
         text.split('\n')
             .map(|p| match p.is_empty() {
