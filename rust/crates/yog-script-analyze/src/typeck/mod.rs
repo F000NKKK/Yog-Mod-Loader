@@ -64,6 +64,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     ns: Vec<String>,
     /// A `.yns`: the game's classes reachable.
     nanites: bool,
+    /// Its mod says it sends to the server.
+    to_server: bool,
     /// The type parameters in scope, innermost last.
     type_params: Vec<generics::Bound>,
     /// Each expression's type found.
@@ -72,9 +74,16 @@ pub(crate) struct Checker<'r, 's, 'i> {
 
 /// `file`'s types checked against `index` (a targeted version's), what
 /// doesn't fit reported.
+/// What a source may reach: the game's classes (a `.yns`), sending to the
+/// server (its mod says so).
+pub(crate) struct Allowed {
+    pub nanites: bool,
+    pub to_server: bool,
+}
+
 pub(crate) fn check(
     file: &File,
-    nanites: bool,
+    allowed: Allowed,
     index: Option<&ClassIndex>,
     report: &mut Report<'_>,
 ) -> Types {
@@ -90,7 +99,8 @@ pub(crate) fn check(
         returns: None,
         directives: names::Directives::collect(&file.decls),
         ns: Vec::new(),
-        nanites,
+        nanites: allowed.nanites,
+        to_server: allowed.to_server,
         type_params: Vec::new(),
         readonly_this: false,
         types: Types::default(),

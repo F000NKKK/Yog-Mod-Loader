@@ -367,3 +367,16 @@ fn records_never_change() {
     let own = "record Pos(i32 X) { public void Move() { X = 1; } }\n";
     assert_eq!(codes(own), [script_problem::ASSIGN_TO_CONSTANT]);
 }
+
+#[test]
+fn sending_to_the_server_is_declared() {
+    let src = "void F(List<u8> bytes) { bool sent = Net.SendToServer(\"m:c\", move bytes); }\n";
+    let undeclared = yog_script_analyze::check_in("a.ys", src, yog_script_analyze::Env::default());
+    assert_eq!(codes_of(undeclared.problems), [script_problem::UNDECLARED]);
+    let env = yog_script_analyze::Env {
+        to_server: true,
+        ..Default::default()
+    };
+    let declared = yog_script_analyze::check_in("a.ys", src, env);
+    assert!(codes_of(declared.problems).is_empty());
+}

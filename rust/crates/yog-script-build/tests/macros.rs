@@ -2,7 +2,7 @@
 //! a source is checked.
 
 use yog_ids::script_problem;
-use yog_script_build::{MacroLibrary, check_source_using};
+use yog_script_build::{MacroLibrary, Project, check_source_using};
 
 const LIBRARY: &str = "using System.Meta;\n\
     [ProcMacro]\nstring Twice(string input) => \"(\" + input + \") * 2\";\n\
@@ -25,10 +25,18 @@ fn library() -> MacroLibrary {
 
 fn codes(src: &str) -> Vec<String> {
     let lib = library();
-    check_source_using("a.ys", src, |_| Err(String::new()), Some(&lib))
-        .into_iter()
-        .filter_map(|d| d.code.map(|c| c.to_string()))
-        .collect()
+    check_source_using(
+        "a.ys",
+        src,
+        |_| Err(String::new()),
+        Project {
+            macros: Some(&lib),
+            to_server: false,
+        },
+    )
+    .into_iter()
+    .filter_map(|d| d.code.map(|c| c.to_string()))
+    .collect()
 }
 
 #[test]

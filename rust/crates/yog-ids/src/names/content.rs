@@ -151,6 +151,10 @@ names! {
         API = crate::concatcp!(PREFIX, API_WORD),
         API_RUST_NAME = crate::concatcp!(crate::ns::YOG, crate::sep::WORD, API_WORD),
         API_VERSION_KEY = crate::concatcp!(API_RUST_NAME, crate::sep::WORD, crate::serve_method::VERSION),
+        /// The API's feature a mod that sends to the server builds with
+        /// (`yog.toml`'s `[network] to_server`): without it, sending
+        /// doesn't compile.
+        API_TO_SERVER = "to-server",
         ABI = crate::concatcp!(PREFIX, "abi"),
         UI = crate::concatcp!(PREFIX, crate::word::UI),
         KIT = crate::concatcp!(PREFIX, "kit"),

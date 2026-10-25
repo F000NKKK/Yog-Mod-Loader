@@ -413,6 +413,7 @@ pub(crate) fn package(
             .iter()
             .map(|(id, _)| id.clone())
             .collect(),
+        to_server: meta.to_server,
     };
     zip.start_file(yog_ids::archive::MANIFEST, opts)
         .map_err(|e| e.to_string())?;

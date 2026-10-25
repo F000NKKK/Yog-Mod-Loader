@@ -299,6 +299,9 @@ pub mod core {
 /// Events by plane — `event::player::session::Join`, `event::block::Break`, … —
 /// subscribed with `Registry::on` / `before` / `after`.
 pub mod event {
+    /// The network's actions as a mod may use them (sending to the server
+    /// declared): this module, not `yog_event`'s.
+    pub use crate::net;
     pub use yog_event::*;
 }
 
@@ -306,8 +309,10 @@ pub mod event {
 /// (`world::get_block(dim, pos)`, `entity::position(uuid)`,
 /// `player::give_item(name, item, count)`) beside its events.
 pub use yog_event::{
-    block, bossbar, chat, entity, game, item, net, particle, player, scoreboard, sound, tag, world,
+    block, bossbar, chat, entity, game, item, particle, player, scoreboard, sound, tag, world,
 };
+
+pub mod net;
 
 /// Content registration (custom items / blocks / food).
 pub mod content {

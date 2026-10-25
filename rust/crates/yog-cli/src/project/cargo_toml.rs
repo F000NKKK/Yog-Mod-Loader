@@ -42,7 +42,7 @@ path       = "../src/lib.rs"
         description = meta.description,
         authors_line = authors_toml,
         license = meta.license,
-        api_dep = meta.api_dep(),
+        api_dep = meta.api_line(),
         deps = deps_lines.join("\n"),
         patch = patch,
         crate_types = if benches.is_empty() {
@@ -133,7 +133,7 @@ fn test_support(meta: &YogToml) -> Vec<String> {
 }
 
 /// A dependency's spec (`"0.11"` or `{ version = .. }`) with `feature` on.
-fn with_feature(spec: &str, feature: &str) -> String {
+pub(crate) fn with_feature(spec: &str, feature: &str) -> String {
     let spec = spec.trim();
     let features = format!("features = [{feature:?}]");
     match spec.strip_prefix('{').and_then(|s| s.strip_suffix('}')) {

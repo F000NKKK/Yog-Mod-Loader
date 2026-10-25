@@ -17,9 +17,9 @@ pub(crate) fn check(
     name: &str,
     text: &str,
     load: impl Fn(&str) -> Result<ClassIndex, String>,
-    macros: Option<&dyn yog_script_analyze::macros::ProcMacros>,
+    env: Env<'_>,
 ) -> Vec<Diagnostic> {
-    let read = yog_script_analyze::check_in(name, text, Env { game: None, macros });
+    let read = yog_script_analyze::check_in(name, text, env);
     let Some(cond) = yog_script_analyze::targets(&read.file) else {
         return read.problems;
     };
@@ -65,7 +65,7 @@ pub(crate) fn check(
             text,
             Env {
                 game: Some(&game),
-                macros,
+                ..env
             },
         )
         .problems

@@ -1,4 +1,5 @@
 use super::*;
+use yog_script_analyze::Env;
 use yog_script_analyze::ast::VersionCond;
 use yog_script_analyze::index::{Class, Member, Side, access};
 
@@ -53,13 +54,13 @@ fn game(mc: &str) -> Result<ClassIndex, String> {
 #[test]
 fn a_patch_is_checked_on_each_version() {
     let src = "targets mc 1.20.1..26.2;\nusing System.Game.World.Entity;\n\npatch LivingEntity {\n    after float GetMaxHealth() {\n        float h = this.Health;\n    }\n}\n";
-    let problems = check("a.yns", src, game, None);
+    let problems = check("a.yns", src, game, Env::default());
     assert_eq!(problems.len(), 1, "{problems:#?}");
     assert!(
         problems[0].message.ends_with("(on 26.2)"),
         "{}",
         problems[0].message
     );
-    let none = check("a.yns", "targets mc < 1.19;\n", game, None);
+    let none = check("a.yns", "targets mc < 1.19;\n", game, Env::default());
     assert_eq!(none[0].code.as_deref(), Some(script_problem::NO_VERSION));
 }

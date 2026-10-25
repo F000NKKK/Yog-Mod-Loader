@@ -9,6 +9,12 @@ authors = { workspace = true }
 license = "MIT OR Apache-2.0"
 description = "Yog — ergonomic Rust API for writing Minecraft mods (facade)."
 
+[features]
+# The mod sends to the server (`yog.toml`: `[network] to_server = true`, set by
+# `yog build`): `net::send_to_server` takes its channels. Named by yog-ids'
+# `rust_crate::API_TO_SERVER`.
+to-server = []
+
 [dependencies]
 yog-ids = { workspace = true }
 # Content crosses the ABI as Yog Data blobs (`register_content`).

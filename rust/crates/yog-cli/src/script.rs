@@ -11,6 +11,25 @@ use crate::diagnostics;
 /// Where a mod's code is: its scripts beside its Rust.
 const SOURCES: &str = "src";
 
+/// A script's text checked in the mod at `root`: what its `yog.toml` says
+/// it does (sending to the server) known.
+pub(crate) fn check_text(name: &str, text: &str, root: &Path) -> Vec<yog_data::Diagnostic> {
+    let to_server =
+        crate::project::manifest::YogToml::read(&root.join(crate::project::manifest::MANIFEST))
+            .is_ok_and(|m| m.to_server);
+    let project = yog_script_build::Project {
+        to_server,
+        ..Default::default()
+    };
+    yog_script_build::check_source_using(name, text, yog_script_build::index::load, project)
+}
+
+/// The mod a file is in: the nearest folder up from it with a `yog.toml`.
+pub(crate) fn mod_root(file: &Path) -> Option<&Path> {
+    file.ancestors()
+        .find(|dir| dir.join(crate::project::manifest::MANIFEST).is_file())
+}
+
 /// Checks every script of the mod at `root` (a `.yns` on each game version
 /// it targets); an error when one has errors.
 pub fn check(root: &Path) -> Result<(), String> {
@@ -27,7 +46,7 @@ pub fn check(root: &Path) -> Result<(), String> {
         let text =
             std::fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?;
         let name = crate::shown_path(root, &file);
-        let problems = yog_script_build::check_source(&name, &text);
+        let problems = check_text(&name, &text, root);
         errors += problems.iter().filter(|d| d.is_error()).count();
         diagnostics::report_all(&problems);
         for d in &problems {

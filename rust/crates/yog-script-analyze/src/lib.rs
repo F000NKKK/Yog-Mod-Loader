@@ -68,7 +68,14 @@ pub fn check(name: &str, src: &str) -> Checked {
 /// Yog, not the game: `game` is ignored for it.
 #[must_use]
 pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Checked {
-    check_in(name, src, Env { game, macros: None })
+    check_in(
+        name,
+        src,
+        Env {
+            game,
+            ..Env::default()
+        },
+    )
 }
 
 /// What a source is checked in: the game's classes (a `.yns`'s, of one
@@ -77,6 +84,8 @@ pub fn check_with(name: &str, src: &str, game: Option<&index::ClassIndex>) -> Ch
 pub struct Env<'a> {
     pub game: Option<&'a index::ClassIndex>,
     pub macros: Option<&'a dyn macros::ProcMacros>,
+    /// The mod says it sends to the server (`yog.toml`: `[network] to_server`).
+    pub to_server: bool,
 }
 
 /// [`check_with`] in `env`.
@@ -93,7 +102,11 @@ pub fn check_in(name: &str, src: &str, env: Env<'_>) -> Checked {
     // would only report the same problem again.
     let mut types = Types::default();
     if !report.out.iter().any(yog_data::Diagnostic::is_error) {
-        types = typeck::check(&file, is_nanites(name), game, &mut report);
+        let side = typeck::Allowed {
+            nanites: is_nanites(name),
+            to_server: env.to_server,
+        };
+        types = typeck::check(&file, side, game, &mut report);
         borrowck::check(&file, &mut report);
     }
     Checked {

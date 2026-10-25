@@ -1,18 +1,41 @@
-//! `--macros <file.ys>` before a command's files: the procedural macros
-//! the files are checked with.
+//! `--macros <file.ys>` and `--to-server` before a command's files: the
+//! procedural macros the files are checked with, and what their mod says.
 
 use yog_script_build::MacroLibrary;
 
 /// The flag naming a macros' source.
 const FLAG: &str = "--macros";
+/// The flag saying the sources' mod sends to the server (its `yog.toml`'s
+/// `[network] to_server`).
+const TO_SERVER: &str = "--to-server";
 
-/// `rest` split into the macros' library (when any is named) and the files.
-pub(super) fn split(rest: &[String]) -> Result<(Option<MacroLibrary>, Vec<String>), String> {
+/// What a command's arguments say besides its files.
+pub(super) struct Given {
+    pub macros: Option<MacroLibrary>,
+    pub to_server: bool,
+    pub files: Vec<String>,
+}
+
+impl Given {
+    /// The project the files are checked in.
+    pub fn project(&self) -> yog_script_build::Project<'_> {
+        yog_script_build::Project {
+            macros: self.macros.as_ref(),
+            to_server: self.to_server,
+        }
+    }
+}
+
+/// `rest` split into the macros' library (when any is named), the flags and the files.
+pub(super) fn split(rest: &[String]) -> Result<Given, String> {
     let mut sources = Vec::new();
     let mut files = Vec::new();
+    let mut to_server = false;
     let mut args = rest.iter();
     while let Some(a) = args.next() {
-        if a == FLAG {
+        if a == TO_SERVER {
+            to_server = true;
+        } else if a == FLAG {
             let path = args.next().ok_or_else(|| format!("{FLAG} takes a file"))?;
             let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
             sources.push((path.clone(), text));
@@ -21,11 +44,19 @@ pub(super) fn split(rest: &[String]) -> Result<(Option<MacroLibrary>, Vec<String
         }
     }
     if sources.is_empty() {
-        return Ok((None, files));
+        return Ok(Given {
+            macros: None,
+            to_server,
+            files,
+        });
     }
     let lib = MacroLibrary::load(&sources).map_err(|problems| {
         problems.iter().for_each(|d| eprintln!("{d}"));
         format!("the macros ({}) have errors", sources.len())
     })?;
-    Ok((Some(lib), files))
+    Ok(Given {
+        macros: Some(lib),
+        to_server,
+        files,
+    })
 }

@@ -383,6 +383,17 @@ impl Checker<'_, '_, '_> {
             self.unknown_member(&Type::Yog(group.to_string()), name, at);
             return Callee::Unknown;
         };
+        if !self.to_server
+            && methods
+                .iter()
+                .any(|m| m.address == yog_ids::service_net::SEND_TO_SERVER)
+        {
+            self.report.error(
+                script_problem::UNDECLARED,
+                at,
+                "this mod sends to the server without saying so: `[network]` `to_server = true` in yog.toml (it then needs Yog on the server too)",
+            );
+        }
         Callee::Typed(
             methods
                 .iter()

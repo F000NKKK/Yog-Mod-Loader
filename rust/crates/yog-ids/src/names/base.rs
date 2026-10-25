@@ -331,6 +331,9 @@ names! {
         ATTRIBUTE = "YS0031",
         /// What the compiler doesn't write as Java yet.
         NOT_COMPILED = "YS0032",
+        /// Sending to the server from a mod whose `yog.toml` doesn't say so
+        /// (`[network] to_server = true`).
+        UNDECLARED = "YS0033",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the

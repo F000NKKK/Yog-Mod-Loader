@@ -32,21 +32,33 @@ pub fn check_source_with(
     text: &str,
     load: impl Fn(&str) -> Result<index::ClassIndex, String>,
 ) -> Vec<Diagnostic> {
-    check_source_using(name, text, load, None)
+    check_source_using(name, text, load, Project::default())
 }
 
-/// [`check_source_with`], the build's procedural macros `macros` run where
-/// the source calls them.
+/// What a source's mod brings to its check: the build's procedural macros,
+/// what its `yog.toml` says it does (sending to the server).
+#[derive(Default, Clone, Copy)]
+pub struct Project<'a> {
+    pub macros: Option<&'a MacroLibrary>,
+    pub to_server: bool,
+}
+
+/// [`check_source_with`] in its mod's `project`.
 pub fn check_source_using(
     name: &str,
     text: &str,
     load: impl Fn(&str) -> Result<index::ClassIndex, String>,
-    macros: Option<&MacroLibrary>,
+    project: Project<'_>,
 ) -> Vec<Diagnostic> {
-    let macros = macros.map(|m| m as &dyn yog_script_analyze::macros::ProcMacros);
+    let env = yog_script_analyze::Env {
+        game: None,
+        macros: project
+            .macros
+            .map(|m| m as &dyn yog_script_analyze::macros::ProcMacros),
+        to_server: project.to_server,
+    };
     if !yog_script_analyze::is_nanites(name) {
-        let env = yog_script_analyze::Env { game: None, macros };
         return yog_script_analyze::check_in(name, text, env).problems;
     }
-    versions::check(name, text, load, macros)
+    versions::check(name, text, load, env)
 }

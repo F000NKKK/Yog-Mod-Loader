@@ -83,6 +83,9 @@ pub struct YogToml {
     /// names, declared up front: `[external.<namespace>]` with `items`,
     /// `blocks`, `entities`, `recipes` (paths: `["cutting_board"]`).
     pub(crate) externals: Vec<External>,
+    /// It sends to the server (`[network] to_server`): built with yog-api's
+    /// feature for it.
+    pub to_server: bool,
 }
 
 /// One `[external.<namespace>]` section.
@@ -127,6 +130,19 @@ impl YogToml {
                 .unwrap_or_else(latest_yog_api_version)
         };
         format!("yog-api = {:?}", version)
+    }
+
+    /// yog-api's dependency line, with the features the manifest asks for.
+    pub(crate) fn api_line(&self) -> String {
+        let line = self.api_dep();
+        match (self.to_server, line.split_once(" = ")) {
+            (true, Some((name, spec))) => {
+                let spec =
+                    super::cargo_toml::with_feature(spec, yog_ids::rust_crate::API_TO_SERVER);
+                format!("{name} = {spec}")
+            }
+            _ => line,
+        }
     }
 }
 
@@ -222,6 +238,7 @@ pub(crate) fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
             .into_iter()
             .map(|(namespace, e)| external(namespace, e))
             .collect(),
+        to_server: f.network.is_some_and(|n| n.to_server),
         id: m.id,
     })
 }

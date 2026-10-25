@@ -46,12 +46,23 @@ pub struct ExternalSection {
     pub recipes: Vec<String>,
 }
 
+/// `[network]`: where the mod sends — said, so code that sends without
+/// saying so doesn't build, and a server knows what its clients need.
+#[derive(Schema, Default)]
+pub struct NetworkSection {
+    /// It sends to the server (client → server): it then needs Yog on the
+    /// server too, so a client with it can't join one without.
+    #[data(default)]
+    pub to_server: bool,
+}
+
 /// A whole `yog.toml`.
 #[derive(Schema)]
 pub struct ManifestFile {
     #[data(rename = "mod")]
     pub module: ModSection,
     pub dev: Option<DevSection>,
+    pub network: Option<NetworkSection>,
     /// Crates as Cargo writes them; `exports` is the other Yog mods'.
     #[data(default)]
     pub dependencies: Ordered<Value>,
@@ -85,4 +96,7 @@ pub struct Built {
     /// The Yog mods it needs loaded before it, by id.
     #[data(default)]
     pub dependencies: Vec<String>,
+    /// It sends to the server (`[network] to_server`): it needs Yog there.
+    #[data(default)]
+    pub to_server: bool,
 }

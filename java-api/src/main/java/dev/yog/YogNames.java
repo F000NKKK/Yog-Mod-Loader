@@ -296,9 +296,10 @@ public final class YogNames {
         public static final String MACRO = "YS0030";
         public static final String ATTRIBUTE = "YS0031";
         public static final String NOT_COMPILED = "YS0032";
+        public static final String UNDECLARED = "YS0033";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS, TARGETS, NO_VERSION, AMBIGUOUS, DIRECTIVE, LIFETIME, MOVED, BORROW, PASS, INHERIT, NOT_EXHAUSTIVE, MACRO, ATTRIBUTE, NOT_COMPILED);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS, TARGETS, NO_VERSION, AMBIGUOUS, DIRECTIVE, LIFETIME, MOVED, BORROW, PASS, INHERIT, NOT_EXHAUSTIVE, MACRO, ATTRIBUTE, NOT_COMPILED, UNDECLARED);
     }
 
     public static final class Storage {
@@ -1591,6 +1592,7 @@ public final class YogNames {
         public static final String API = "yog-api";
         public static final String API_RUST_NAME = "yog_api";
         public static final String API_VERSION_KEY = "yog_api_version";
+        public static final String API_TO_SERVER = "to-server";
         public static final String ABI = "yog-abi";
         public static final String UI = "yog-ui";
         public static final String KIT = "yog-kit";
@@ -1600,7 +1602,7 @@ public final class YogNames {
         public static final String DATA_RUST_NAME = "yog_data";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, API_WORD, API, API_RUST_NAME, API_VERSION_KEY, ABI, UI, KIT, GFX, REGISTRY, DATA, DATA_RUST_NAME);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PREFIX, API_WORD, API, API_RUST_NAME, API_VERSION_KEY, API_TO_SERVER, ABI, UI, KIT, GFX, REGISTRY, DATA, DATA_RUST_NAME);
     }
 
     public static final class Res {

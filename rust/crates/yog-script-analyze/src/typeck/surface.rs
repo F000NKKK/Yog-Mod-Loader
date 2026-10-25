@@ -18,6 +18,8 @@ pub(crate) struct YogMethod {
     pub reply: Shape,
     /// The domain it's from (`chat`, `client/control`): where its record is.
     pub domain: &'static str,
+    /// Its address on the bus.
+    pub address: &'static str,
 }
 
 /// A handle's or a domain's methods, by name (overloads side by side), and
@@ -75,6 +77,7 @@ impl Surface {
                 params,
                 reply: s.reply.clone(),
                 domain: s.domain,
+                address: s.address,
             };
             out.groups
                 .entry(group)
