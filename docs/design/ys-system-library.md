@@ -180,6 +180,21 @@ surface's delegates.
    `System`'s `IEquatable`, `IComparable`, `IDisposable`, `Math` (the
    runtime's, .NET's set) and `String`'s members (`[Host]`) — done: no
    table of the library's names is left in `yog-script-java`.
+1a. **Next, first:** arrays, as C#'s. `T[]` written and made (`new
+   i32[n]`, `new[] { … }`, `i32[] xs = [1, 2];`), jagged `T[][]` and
+   rectangular `T[,]`; `Length`, `Rank`, the indexer, `foreach`; an array
+   is an `IList<T>` / `IReadOnlyList<T>` (`System.Array`'s statics:
+   `Sort`, `IndexOf`, `BinarySearch`, `Reverse`, `Resize`, `Fill`,
+   `Copy`, `Empty<T>()`); C#'s covariance of reference arrays. On the JVM
+   Java's arrays (`int[]` for `i32[]`, no boxing), seen as an `IList<T>`
+   by a view where one is wanted. `Split`, `ToArray` and the game's
+   arrays then give arrays, as .NET's.
+1b. Explicit interface implementations, as C#'s
+   (`bool ICollection<KeyValuePair<K, V>>.Remove(KeyValuePair<K, V> item)`):
+   a member reached only through its interface, lowered to a Java name of
+   its own, so two of one name that Java can't tell apart can both be.
+   Then `IDictionary<K, V>` is an `ICollection<KeyValuePair<K, V>>` and
+   `ISet<T>.Add` gives its `bool`, as .NET's.
 2. `System.Linq` (extensions on `IEnumerable<T>`), `Queue`, `Stack`,
    `SortedSet`, `SortedDictionary`, `PriorityQueue`, `LinkedList`,
    comparers.
