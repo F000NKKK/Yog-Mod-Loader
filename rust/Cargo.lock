@@ -2375,7 +2375,7 @@ version = "0.3.0"
 
 [[package]]
 name = "yog-core"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "yog-analysis",
  "yog-data",
@@ -2441,7 +2441,7 @@ dependencies = [
 
 [[package]]
 name = "yog-event"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "pastey",
  "yog-body",
@@ -2520,7 +2520,7 @@ dependencies = [
 
 [[package]]
 name = "yog-ids"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "const_format",
  "yog-codegen",
@@ -2665,7 +2665,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script-analyze"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "yog-analysis",
  "yog-codegen",
@@ -2692,7 +2692,7 @@ dependencies = [
 
 [[package]]
 name = "yog-script-java"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "yog-analysis",
  "yog-codegen",
