@@ -35,8 +35,7 @@ impl Checker<'_, '_, '_> {
     pub(super) fn bound_of(&self, name: &str, args: &[Type]) -> Bound {
         let generics = self
             .own
-            .types
-            .get(name)
+            .get(name, args.len())
             .map(|t| t.generics.as_slice())
             .unwrap_or_default();
         generics
@@ -94,6 +93,14 @@ impl Checker<'_, '_, '_> {
             _ => self.converts(given, param),
         }
     }
+}
+
+/// Type parameters `names` standing for themselves.
+pub(super) fn params_of_names(names: &[String]) -> Bound {
+    names
+        .iter()
+        .map(|n| (n.clone(), Type::Param(n.clone())))
+        .collect()
 }
 
 /// A method's or a type's own parameters, standing for themselves.

@@ -107,13 +107,13 @@ impl Checker<'_, '_, '_> {
             | DeclKind::Screen {
                 name, body, header, ..
             } => {
-                let args = header
+                let args: Vec<Type> = header
                     .generics
                     .iter()
                     .filter(|g| !g.lifetime)
                     .map(|g| Type::Param(g.name.text.clone()))
                     .collect();
-                let own = (self.own.types.contains_key(&name.text))
+                let own = (self.own.get(&name.text, args.len()).is_some())
                     .then(|| Type::Own(name.text.clone(), args));
                 let bound = generics::params_of(&header.generics);
                 self.with_types(bound, |c| {

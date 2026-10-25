@@ -44,9 +44,8 @@ impl Checker<'_, '_, '_> {
         }
         let params = self
             .own
-            .types
-            .get(class)
-            .map(|o| o.ctor.clone())
+            .named(class)
+            .map(|(_, o)| o.ctor.clone())
             .unwrap_or_default();
         // `[Derive(Clone)]` names macros, not values: a class without a
         // constructor takes what its macro reads.

@@ -41,10 +41,9 @@ impl Checker<'_, '_, '_> {
     /// `on.name(…)` (`on` None: `name(…)` on `this`), a method of own type
     /// `of`: one that changes its object is called on one that may change.
     pub(super) fn called_on(&mut self, on: Option<&Expr>, of: &str, name: &str, at: Span) {
-        let readonly = self.own.lineage(of).iter().any(|o| {
+        let readonly = self.own.lineage_named(of).iter().any(|o| {
             self.own
-                .types
-                .get(o)
+                .of_key(o)
                 .is_some_and(|t| t.readonly_all || t.readonly.iter().any(|r| r == name))
         });
         if readonly {
@@ -92,7 +91,7 @@ impl Checker<'_, '_, '_> {
             _ => None,
         };
         match t.map(Type::non_null) {
-            Some(Type::Own(name, _)) => self.own.types.get(name).is_some_and(|t| t.record),
+            Some(Type::Own(name, args)) => self.own.get(name, args.len()).is_some_and(|t| t.record),
             _ => false,
         }
     }
@@ -100,7 +99,10 @@ impl Checker<'_, '_, '_> {
     /// Whether `this` is a `readonly struct`: every member borrows it read-only.
     pub(super) fn this_readonly(&self) -> bool {
         match &self.this {
-            Some(Type::Own(name, _)) => self.own.types.get(name).is_some_and(|t| t.readonly_all),
+            Some(Type::Own(name, args)) => self
+                .own
+                .get(name, args.len())
+                .is_some_and(|t| t.readonly_all),
             _ => false,
         }
     }

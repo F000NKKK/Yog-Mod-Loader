@@ -19,14 +19,6 @@ pub(super) const MAP: &str = "Dictionary";
 pub(super) const ACTION: &str = "Action";
 pub(super) const FUNC: &str = "Func";
 
-/// A plain one-name type's name (`Player`, not `List<i32>` or `a.B`).
-pub(crate) fn simple_path(ty: &ast::Type) -> Option<&str> {
-    match &ty.kind {
-        TypeKind::Path { path, args } if args.is_empty() && path.len() == 1 => Some(&path[0].text),
-        _ => None,
-    }
-}
-
 impl Checker<'_, '_, '_> {
     pub(super) fn type_of(&mut self, t: &ast::Type) -> Type {
         match &t.kind {
@@ -75,7 +67,7 @@ impl Checker<'_, '_, '_> {
         if let Some(t) = self.type_param(name) {
             return t;
         }
-        if self.own.types.contains_key(name) {
+        if self.own.get(name, args.len()).is_some() {
             return Type::Own(name.to_string(), args);
         }
         self.imported(name, at)

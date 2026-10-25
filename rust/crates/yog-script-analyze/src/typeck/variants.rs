@@ -13,7 +13,7 @@ use crate::source::token::Span;
 impl Checker<'_, '_, '_> {
     /// `Mode.Charging(…)`: case `name` of own enum `of`, made with its fields.
     pub(super) fn variant_ctor(&mut self, of: &str, name: &str) -> Callee {
-        let Some(own) = self.own.types.get(of) else {
+        let Some((_, own)) = self.own.named(of) else {
             return Callee::Unknown;
         };
         let Some(fields) = own.variants.get(name).cloned() else {
@@ -62,10 +62,9 @@ impl Checker<'_, '_, '_> {
             Pattern::Let(n) => self.bind_as(&n.text, on.clone(), true),
             Pattern::Variant { path, args } => {
                 let fields = match (on.non_null(), path.last()) {
-                    (Type::Own(of, _), Some(case)) => self
+                    (Type::Own(of, args), Some(case)) => self
                         .own
-                        .types
-                        .get(of)
+                        .get(of, args.len())
                         .and_then(|t| t.variants.get(&case.text))
                         .cloned()
                         .unwrap_or_default(),
@@ -86,10 +85,10 @@ impl Checker<'_, '_, '_> {
 
     /// A `switch` over own enum `on` names every case, or has a `_`.
     fn exhaustive(&mut self, on: &Type, arms: &[Arm], at: Span) {
-        let Type::Own(of, _) = on.non_null() else {
+        let Type::Own(of, args) = on.non_null() else {
             return;
         };
-        let Some(cases) = self.own.types.get(of).map(|t| t.cases.clone()) else {
+        let Some(cases) = self.own.get(of, args.len()).map(|t| t.cases.clone()) else {
             return;
         };
         if cases.is_empty() {

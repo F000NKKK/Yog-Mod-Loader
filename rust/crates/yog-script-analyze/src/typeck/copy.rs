@@ -10,6 +10,7 @@ use yog_ids::script_problem;
 
 use super::Checker;
 use super::model::Type;
+use super::own::TypeKey;
 use crate::ast::{Expr, ExprKind};
 
 impl Checker<'_, '_, '_> {
@@ -37,12 +38,12 @@ impl Checker<'_, '_, '_> {
         self.copy_seen(t, &mut HashSet::new())
     }
 
-    fn copy_seen(&self, t: &Type, seen: &mut HashSet<String>) -> bool {
+    fn copy_seen(&self, t: &Type, seen: &mut HashSet<TypeKey>) -> bool {
         match t {
             Type::List(_) | Type::Map(..) | Type::Object => false,
             Type::Nullable(inner) => self.copy_seen(inner, seen),
             Type::Tuple(items) => items.iter().all(|i| self.copy_seen(i, seen)),
-            Type::Own(name, _) => self.own_copy(name, seen),
+            Type::Own(name, args) => self.own_copy(&TypeKey::new(name.clone(), args.len()), seen),
             // Numbers, strings, handles, delegates, what isn't known.
             _ => true,
         }
@@ -50,26 +51,24 @@ impl Checker<'_, '_, '_> {
 
     /// An own type: an object never; a struct or an enum when everything
     /// it holds is (a type holding itself is, as far as itself goes).
-    fn own_copy(&self, name: &str, seen: &mut HashSet<String>) -> bool {
-        let Some(own) = self.own.types.get(name) else {
+    fn own_copy(&self, key: &TypeKey, seen: &mut HashSet<TypeKey>) -> bool {
+        let Some(own) = self.own.of_key(key) else {
             return true;
         };
         if own.record {
             return true;
         }
-        if own.heap || !seen.insert(name.to_string()) {
+        if own.heap || !seen.insert(key.clone()) {
             return !own.heap;
         }
         let fields = own
             .values
             .values()
             .chain(own.variants.values().flatten().map(|p| &p.ty));
-        fields
-            .into_iter()
-            .all(|f| match super::written::simple_path(f) {
-                Some(n) if self.own.types.contains_key(n) => self.own_copy(n, seen),
-                _ => !written_heap(f),
-            })
+        fields.into_iter().all(|f| match TypeKey::of_written(f) {
+            Some(k) if self.own.of_key(&k).is_some() => self.own_copy(&k, seen),
+            _ => !written_heap(f),
+        })
     }
 }
 

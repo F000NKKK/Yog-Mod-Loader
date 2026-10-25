@@ -142,7 +142,7 @@ impl Checker<'_, '_, '_> {
         if let Some(t) = self.own.values.get(name).cloned() {
             return self.type_of(&t);
         }
-        if self.own.types.contains_key(name) {
+        if self.own.has(name) {
             return Type::Static(name.to_string());
         }
         self.imported(name, at)

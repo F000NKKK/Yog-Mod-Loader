@@ -31,16 +31,19 @@ impl Resolver<'_, '_> {
             // A `using` brings in a namespace's types, which aren't this
             // source's to know: it declares no name (an alias does).
             DeclKind::Alias { name, .. } => self.define(name, DefKind::Import, Case::Any, again),
-            DeclKind::Unit { name, .. } | DeclKind::Enum { name, .. } => {
-                self.define(name, DefKind::Type, Case::Pascal, again);
+            DeclKind::Unit { name, .. } => self.define_type(name, 0, Case::Pascal, again),
+            DeclKind::Enum { name, generics, .. } => {
+                self.define_type(name, arity(generics), Case::Pascal, again);
             }
-            DeclKind::Type { word, name, .. } => {
+            DeclKind::Type {
+                word, name, header, ..
+            } => {
                 let case = if word.text == interface::WORD.text {
                     Case::Interface
                 } else {
                     Case::Pascal
                 };
-                self.define(name, DefKind::Type, case, again);
+                self.define_type(name, arity(&header.generics), case, again);
             }
             DeclKind::Method(m) => self.define(&m.name, DefKind::Method, Case::Pascal, again),
             DeclKind::Event { name, .. } => self.define(name, DefKind::Field, Case::Pascal, again),
@@ -317,4 +320,9 @@ fn field_kind(d: &Decl) -> DefKind {
     } else {
         DefKind::Field
     }
+}
+
+/// How many type parameters `generics` declare (lifetimes aside).
+fn arity(generics: &[Generic]) -> usize {
+    generics.iter().filter(|g| !g.lifetime).count()
 }

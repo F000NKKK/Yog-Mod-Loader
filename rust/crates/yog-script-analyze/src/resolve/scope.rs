@@ -84,6 +84,9 @@ impl Symbols {
 #[derive(Default)]
 pub(super) struct Scope {
     names: HashMap<String, usize>,
+    /// The types declared here by name and arity: `Box` and `Box<T>` are
+    /// two (C#'s), one name for lookup.
+    types: HashMap<(String, usize), usize>,
 }
 
 impl Resolver<'_, '_> {
@@ -119,6 +122,40 @@ impl Resolver<'_, '_> {
             name: name.text.clone(),
             span: name.span,
             kind,
+        });
+        self.check_case(name, case);
+    }
+
+    /// Declares type `name` of `arity` type parameters: a second of the same
+    /// name and arity is an error (unless `again`), one of another arity a
+    /// type apart.
+    pub(super) fn define_type(&mut self, name: &Name, arity: usize, case: Case, again: bool) {
+        let key = (name.text.clone(), arity);
+        let Some(scope) = self.scopes.last_mut() else {
+            return;
+        };
+        if let Some(&first) = scope.types.get(&key) {
+            if !again {
+                let at = self.symbols.defs[first].span;
+                let line = self.report.line_of(at);
+                self.report.error(
+                    script_problem::DUPLICATE,
+                    name.span,
+                    format!(
+                        "`{}` of {arity} type parameter(s) is declared already (line {line})",
+                        name.text
+                    ),
+                );
+            }
+            return;
+        }
+        let id = self.symbols.defs.len();
+        scope.types.insert(key, id);
+        scope.names.entry(name.text.clone()).or_insert(id);
+        self.symbols.defs.push(Def {
+            name: name.text.clone(),
+            span: name.span,
+            kind: DefKind::Type,
         });
         self.check_case(name, case);
     }

@@ -41,11 +41,14 @@ impl Checker<'_, '_, '_> {
         let Some(Type::Own(type_name, _)) = self.types.of(on).map(Type::non_null).cloned() else {
             return;
         };
+        let args = self.types.of(on).map(Type::non_null).map(|t| match t {
+            Type::Own(_, a) => a.clone(),
+            _ => Vec::new(),
+        });
         let indexers: Vec<bool> = self
-            .own
-            .lineage(&type_name)
+            .lineage_of(&type_name, &args.unwrap_or_default())
             .iter()
-            .filter_map(|of| self.own.types.get(of))
+            .filter_map(|(key, _)| self.own.of_key(key))
             .flat_map(|t| t.indexers.iter().map(|i| i.settable))
             .collect();
         if !indexers.is_empty() && !indexers.contains(&true) {
@@ -65,12 +68,17 @@ impl Checker<'_, '_, '_> {
             return None;
         };
         let getters: Vec<_> = self
-            .own
-            .lineage(type_name)
-            .iter()
-            .filter_map(|of| self.own.types.get(of))
-            .flat_map(|t| t.indexers.iter().map(|i| i.get.clone()))
+            .lineage_of(type_name, args)
+            .into_iter()
+            .filter_map(|(key, args)| {
+                Some((self.own.of_key(&key)?, self.bound_of(&key.name, &args)))
+            })
+            .flat_map(|(t, bound)| {
+                t.indexers
+                    .iter()
+                    .map(move |i| (i.get.clone(), bound.clone()))
+            })
             .collect();
-        (!getters.is_empty()).then(|| Callee::Own(getters, self.bound_of(type_name, args)))
+        (!getters.is_empty()).then_some(Callee::Own(getters))
     }
 }

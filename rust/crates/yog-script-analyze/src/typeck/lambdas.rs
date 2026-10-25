@@ -94,8 +94,8 @@ impl Checker<'_, '_, '_> {
         if methods.is_empty() {
             return false;
         }
-        let fits = methods.iter().any(|m| {
-            let (taken, given) = self.signature_types(m);
+        let fits = methods.iter().any(|(m, bound)| {
+            let (taken, given) = self.with_types(bound.clone(), |c| c.signature_types(m));
             taken.len() == params.len()
                 && params.iter().zip(&taken).all(|(p, t)| p.converts_to(t))
                 && given.converts_to(ret)

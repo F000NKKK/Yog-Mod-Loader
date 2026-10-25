@@ -15,6 +15,7 @@ mod generics;
 mod indexers;
 mod inherit;
 mod lambdas;
+mod lineage;
 mod macro_calls;
 mod members;
 mod model;
@@ -71,6 +72,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     type_params: Vec<generics::Bound>,
     /// Each expression's type found.
     types: Types,
+    /// Each own type's bases, typed.
+    bases: lineage::Bases,
 }
 
 /// `file`'s types checked against `index` (a targeted version's), what
@@ -105,7 +108,9 @@ pub(crate) fn check(
         type_params: Vec::new(),
         readonly_this: false,
         types: Types::default(),
+        bases: lineage::Bases::new(),
     };
+    c.type_bases();
     c.decls(&file.decls);
     inherit::check(&file.decls, c.report);
     c.types

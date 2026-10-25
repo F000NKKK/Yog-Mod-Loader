@@ -118,11 +118,12 @@ fn implemented(index: &Index, info: &Info, report: &mut Report<'_>) {
 impl super::Checker<'_, '_, '_> {
     /// `new T(…)`: `T` isn't abstract (nor an interface).
     pub(super) fn made(&mut self, t: &super::Type, at: crate::source::token::Span) {
-        let super::Type::Own(name, _) = t else { return };
+        let super::Type::Own(name, args) = t else {
+            return;
+        };
         if self
             .own
-            .types
-            .get(name)
+            .get(name, args.len())
             .is_some_and(|o| o.is_abstract || o.interface)
         {
             self.report.error(

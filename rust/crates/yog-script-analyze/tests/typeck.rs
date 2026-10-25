@@ -414,3 +414,31 @@ fn a_setter_takes_its_value() {
     let src = "class Grid {\n    List<i32> _cells = [0, 0];\n    public i32 this[i32 i] {\n        get => _cells[i];\n        set { _cells[i] = value; }\n    }\n}\n";
     assert!(codes(src).is_empty(), "{:?}", codes(src));
 }
+
+#[test]
+fn inherited_members_take_their_bases_arguments() {
+    let types = "interface IBox<T> {\n    T Get();\n}\n\
+                 class IntBox : IBox<i32> {\n    public i32 Get() => 1;\n}\n\
+                 interface IPair<TFirst, TSecond> : IBox<TSecond> {\n    TFirst First();\n}\n";
+    let fine =
+        format!("{types}i32 F(IntBox b) => b.Get();\nstring G(IPair<i32, string> p) => p.Get();\n");
+    assert!(codes(&fine).is_empty(), "{:?}", codes(&fine));
+    assert_eq!(
+        codes(&format!(
+            "{types}string F(IPair<i32, string> p) => p.First();\n"
+        )),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn a_type_is_its_name_and_arity() {
+    let types =
+        "class Box {\n    public i32 Size = 0;\n}\nclass Box<T> {\n    public T Value;\n}\n";
+    let fine = format!("{types}i32 F(Box b) => b.Size;\nstring G(Box<string> b) => b.Value;\n");
+    assert!(codes(&fine).is_empty(), "{:?}", codes(&fine));
+    assert_eq!(
+        codes(&format!("{types}i32 F(Box<string> b) => b.Size;\n")),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+}
