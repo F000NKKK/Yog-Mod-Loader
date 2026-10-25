@@ -55,7 +55,7 @@ public class YogHost {
         YogContentRegistry.schedule();
 
         modBus.addListener(RegisterEvent.class, YogHost::register);
-        modBus.addListener(RegisterPayloadHandlersEvent.class, e -> e.registrar(PROTOCOL).playBidirectional(YogPayload.TYPE, YogPayload.CODEC,
+        modBus.addListener(RegisterPayloadHandlersEvent.class, e -> e.registrar(PROTOCOL).optional().playBidirectional(YogPayload.TYPE, YogPayload.CODEC,
                 (payload, ctx) -> ctx.enqueueWork(payload::toClient),
                 (payload, ctx) -> {
                     if (ctx.player() instanceof ServerPlayer sp) ctx.enqueueWork(() -> payload.toServer(sp));

@@ -65,6 +65,9 @@ public final class YogPlatform {
     }
 
     public static void sendToServer(String channel, byte[] data) {
+        // A server without Yog has no such channel: nothing to send it.
+        var conn = net.minecraft.client.Minecraft.getInstance().getConnection();
+        if (conn == null || !conn.hasChannel(YogPayload.TYPE)) return;
         ClientPacketDistributor.sendToServer(new YogPayload(channel, data));
     }
 

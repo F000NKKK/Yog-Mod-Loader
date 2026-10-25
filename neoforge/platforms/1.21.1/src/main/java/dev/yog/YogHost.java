@@ -59,7 +59,7 @@ public class YogHost {
 
         modBus.addListener(RegisterEvent.class, YogHost::register);
         modBus.addListener(FMLCommonSetupEvent.class, e -> e.enqueueWork(YogEffects::linkModifiers));
-        modBus.addListener(RegisterPayloadHandlersEvent.class, e -> e.registrar(PROTOCOL).playBidirectional(YogPayload.TYPE, YogPayload.CODEC,
+        modBus.addListener(RegisterPayloadHandlersEvent.class, e -> e.registrar(PROTOCOL).optional().playBidirectional(YogPayload.TYPE, YogPayload.CODEC,
                 (payload, ctx) -> {
                     if (ctx.player() instanceof ServerPlayer sp) ctx.enqueueWork(() -> payload.toServer(sp));
                     else ctx.enqueueWork(payload::toClient);

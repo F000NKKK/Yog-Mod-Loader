@@ -57,7 +57,10 @@ public final class YogPlatform {
 
     /** Opens Yog's channel; what comes on it goes to the mods. */
     static void openChannel() {
-        channel = net.minecraftforge.network.NetworkRegistry.newSimpleChannel(YogPayload.CHANNEL, () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
+        // Optional both ways: a client with Yog joins a server without it, and
+        // the other way round — Yog's channel just isn't there to talk on.
+        var accepted = net.minecraftforge.network.NetworkRegistry.acceptMissingOr(PROTOCOL);
+        channel = net.minecraftforge.network.NetworkRegistry.newSimpleChannel(YogPayload.CHANNEL, () -> PROTOCOL, accepted, accepted);
         channel.registerMessage(MESSAGE, YogPayload.class, YogPayload::write, YogPayload::read, (payload, context) -> {
             var ctx = context.get();
             ctx.setPacketHandled(true);
@@ -77,6 +80,9 @@ public final class YogPlatform {
     }
 
     public static void sendToServer(String channelName, byte[] data) {
+        // A server without Yog has no such channel: nothing to send it.
+        var conn = net.minecraft.client.Minecraft.getInstance().getConnection();
+        if (conn == null || !channel.isRemotePresent(conn.getConnection())) return;
         channel.sendToServer(new YogPayload(channelName, data));
     }
 
