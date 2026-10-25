@@ -14,9 +14,9 @@
 [![API: MIT OR Apache-2.0](https://img.shields.io/badge/API-MIT%20OR%20Apache--2.0-blue.svg)](LICENSING.md)
 [![Rust 1.99](https://img.shields.io/badge/Rust-1.99-orange.svg)](rust-toolchain.toml)
 
-![Fabric](https://img.shields.io/badge/Fabric-1.20.1%20%7C%201.21.1%20%7C%2026.2-dbd0b4)
+![Fabric](https://img.shields.io/badge/Fabric-1.19.2%20%7C%201.20.1%20%7C%201.21.1%20%7C%2026.2-dbd0b4)
 ![NeoForge](https://img.shields.io/badge/NeoForge-1.20.1%20%7C%201.21.1%20%7C%2026.2-e68c37)
-![Forge](https://img.shields.io/badge/Forge-1.20.1%20%7C%201.21.1%20%7C%2026.2-1e2d47)
+![Forge](https://img.shields.io/badge/Forge-1.19.2%20%7C%201.20.1%20%7C%201.21.1%20%7C%2026.2-1e2d47)
 ![Linux](https://img.shields.io/badge/Linux-x86__64%20%7C%20aarch64-success)
 ![Windows](https://img.shields.io/badge/Windows-x86__64-success)
 ![macOS](https://img.shields.io/badge/macOS-x86__64%20%7C%20aarch64-success)
@@ -37,8 +37,8 @@ Script**. A Rust mod is a normal crate built against
 that compile to JVM bytecode. `yog build` cross-compiles the natives for five
 platforms, compiles the scripts once per game version, and packs everything into
 one `.yog` file. Drop that file into `yog-mods/` and it runs on **Fabric,
-NeoForge and Forge**, on Minecraft **1.20.1, 1.21.1 and 26.2** (1.19.2 is being
-ported), on Linux, Windows and macOS.
+NeoForge and Forge**, on Minecraft **1.19.2, 1.20.1, 1.21.1 and 26.2** (1.19.2 on
+Fabric and Forge: NeoForge starts at 1.20.1), on Linux, Windows and macOS.
 
 The Java side is a thin host per loader. It forwards game events over JNI to
 `yog-runtime`, a native library that loads the mods, and loads the mods' Yog
@@ -58,7 +58,7 @@ the Java and Rust worlds.
 - **📜 Or Yog Script.** A C#-style language with Rust's enums, `match`,
   `Result` and ownership. It sees only Yog's own surface, so a script mod
   needs no Rust toolchain and no natives.
-- **📦 One file for every setup.** The same `.yog` runs on three loaders, three
+- **📦 One file for every setup.** The same `.yog` runs on three loaders, four
   Minecraft versions and five OS/CPU targets. Players install it by copying
   one file.
 - **🧩 Declarative by default.** Screens are `.yui` markup with compiled
@@ -186,14 +186,14 @@ the Java and Rust worlds.
 
 | Loader | Minecraft | Toolchain | Java |
 |---|---|---|:---:|
-| **Fabric** | 1.19.2 *(porting)* | loader ≥ 0.15.11, fabric-api 0.77.0 | 17 |
+| **Fabric** | 1.19.2 | loader ≥ 0.15.11, fabric-api 0.77.0 | 17 |
 | | 1.20.1 | loader ≥ 0.15.11, fabric-api 0.92.2 | 17 |
 | | 1.21.1 | loader ≥ 0.16.9, fabric-api 0.115.6 | 21 |
 | | 26.2 | Loom 1.19.1, loader ≥ 0.19.5, fabric-api 0.161.0 | 25 |
 | **NeoForge** | 1.20.1 | NeoForge 47.1.106 | 17 |
 | | 1.21.1 | NeoForge 21.1.77 | 21 |
 | | 26.2 | NeoForge 26.2.0.93 (ModDevGradle) | 25 |
-| **Forge** | 1.19.2 *(planned)* | Forge 43.x | 17 |
+| **Forge** | 1.19.2 | Forge 43.5.2 | 17 |
 | | 1.20.1 | Forge 47.3.0 | 17 |
 | | 1.21.1 | Forge 52.0.40 | 21 |
 | | 26.2 | Forge 65.1.5 (ForgeGradle 7) | 25 |
@@ -606,9 +606,8 @@ with the runtime, so build mods that use new API against the same checkout
 
 Yog is in **active development** and nothing is API-frozen. There is no
 backward compatibility between versions: old APIs and formats are removed,
-not deprecated. The core is complete and runs on all nine loader/version
-pairs; 1.19.2 (Fabric and Forge) is being ported, and the API surface keeps
-growing.
+not deprecated. The core is complete and runs on all eleven loader/version
+pairs (1.19.2 the newest to arrive), and the API surface keeps growing.
 
 ## 📄 License
 
