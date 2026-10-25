@@ -140,6 +140,7 @@ impl Checker<'_, '_, '_> {
     /// `e` (of `got`) handed where `wanted` is: the implicit conversion it
     /// goes through noted, when it needs one.
     pub(super) fn note_conversion(&mut self, e: &Expr, got: &Type, wanted: &Type) {
+        self.note_array_view(e, got, wanted);
         if !self.converts_plainly(got, wanted)
             && let Some(used) = self.implicit(got, wanted)
         {

@@ -9,6 +9,10 @@ file a namespace); what runs is the runtime's, in Java (`java-api`'s
 
 ## One truth, no tables
 
+- Every name the tools know Yog Script by — the library's types,
+  attributes and namespaces, the CLR's member names, units, where the
+  runtime is on the JVM, the members a tool runs by hand — is
+  `yog-script-ids`'s, written once there.
 - A type's declaration is the only place its members are written: the
   type checker reads it, the JVM lowering reads it. No list of names
   kept anywhere else (the tables `yog-script-java` had are gone).
@@ -180,15 +184,19 @@ surface's delegates.
    `System`'s `IEquatable`, `IComparable`, `IDisposable`, `Math` (the
    runtime's, .NET's set) and `String`'s members (`[Host]`) — done: no
    table of the library's names is left in `yog-script-java`.
-1a. **Next, first:** arrays, as C#'s. `T[]` written and made (`new
+1a. (done) Arrays, as C#'s. `T[]` written and made (`new
    i32[n]`, `new[] { … }`, `i32[] xs = [1, 2];`), jagged `T[][]` and
    rectangular `T[,]`; `Length`, `Rank`, the indexer, `foreach`; an array
    is an `IList<T>` / `IReadOnlyList<T>` (`System.Array`'s statics:
    `Sort`, `IndexOf`, `BinarySearch`, `Reverse`, `Resize`, `Fill`,
    `Copy`, `Empty<T>()`); C#'s covariance of reference arrays. On the JVM
    Java's arrays (`int[]` for `i32[]`, no boxing), seen as an `IList<T>`
-   by a view where one is wanted. `Split`, `ToArray` and the game's
-   arrays then give arrays, as .NET's.
+   by a view where one is wanted (`Array.AsList`). `Split`, `ToArray`
+   and the game's arrays give arrays, as .NET's. What changes an array
+   takes it `ref` (`Array.Sort(ref xs)`), what reads one `in`; on the JVM
+   a runtime method's `ref` gives the value back (`xs = Array.Sort(xs)`),
+   and a generic `T[]` result is made the array wanted (`Array.Of`).
+   Calls take type arguments (`Array.Empty<i32>()`).
 1b. Right after arrays, what the collections still miss:
    - variance applied: `IEnumerable<out T>`, `IComparer<in T>`, a
      delegate's `in` / `out` — a `List<Derived>` goes where an

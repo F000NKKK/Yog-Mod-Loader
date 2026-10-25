@@ -45,10 +45,8 @@ pub(crate) struct Surface {
 /// What separates a domain's segments (`client/control`), and the groups'
 /// in a source (`Client.Control`).
 const DOMAIN_SEP: char = '/';
-const GROUP_SEP: &str = ".";
-/// What an event's arguments' type is named after it (`JoinArgs`), as C#'s
-/// `EventArgs`.
-const ARGS: &str = "Args";
+const GROUP_SEP: &str = yog_script_ids::system::NAMESPACE_SEP;
+const ARGS: &str = yog_script_ids::system::ARGS_SUFFIX;
 
 /// Yog's surface, made once a process.
 pub(crate) static SURFACE: LazyLock<Surface> = LazyLock::new(Surface::make);

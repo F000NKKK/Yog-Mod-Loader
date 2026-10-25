@@ -52,8 +52,9 @@ pub enum Type {
     Yog(String),
     /// A namespace (`Game.World`), on the way to what's in it.
     Namespace(String),
-    /// A Java array a game class gives or takes (C#'s `T[]`).
-    Array(Box<Type>),
+    /// An array: `T[]` (rank 1), `T[,]` (rank 2); a Java array a game
+    /// class gives or takes too.
+    Array(Box<Type>, usize),
     Tuple(Vec<Type>),
     /// A delegate: `Action<A, B>` (its result `void`), `Func<A, R>`.
     Fn(Vec<Type>, Box<Type>),
@@ -64,9 +65,7 @@ pub enum Type {
 }
 
 /// The units a whole game has; a mod declares its own (`unit Energy;`).
-pub const TICKS: &str = "Ticks";
-pub const SECONDS: &str = "Seconds";
-pub const BLOCKS: &str = "Blocks";
+pub use yog_script_ids::units::{BLOCKS, SECONDS, TICKS};
 
 impl Type {
     /// An own type that isn't generic.
@@ -123,7 +122,7 @@ impl Type {
             (n, Type::Unit(_)) => builtin::is_number(n),
             (Type::Unit(_), n) => builtin::widens(&Type::I32, n),
             (Type::String, Type::Text) => true,
-            (Type::Array(a), Type::Array(b)) => a.converts_to(b),
+            (Type::Array(a, ra), Type::Array(b, rb)) => ra == rb && a == b,
             (a, b) => builtin::widens(a, b),
         }
     }
@@ -176,7 +175,17 @@ impl fmt::Display for Type {
             Type::Content(kind) => write!(f, "@{kind}"),
             Type::Tag => write!(f, "{}", yog_ids::kind::TAG),
             Type::Game(name) => write!(f, "{}", crate::index::simple_name(name)),
-            Type::Array(t) => write!(f, "{t}[]"),
+            // As C# writes it: the item, then the ranks outermost first
+            // (`i32[][,]`, an array of `i32[,]`).
+            Type::Array(..) => {
+                let mut item = self;
+                let mut ranks = String::new();
+                while let Type::Array(inner, rank) = item {
+                    ranks.push_str(&format!("[{}]", ",".repeat(rank - 1)));
+                    item = inner;
+                }
+                write!(f, "{item}{ranks}")
+            }
             Type::Tuple(items) => {
                 let items: Vec<_> = items.iter().map(ToString::to_string).collect();
                 write!(f, "({})", items.join(", "))
@@ -184,10 +193,10 @@ impl fmt::Display for Type {
             Type::Fn(params, ret) => {
                 let mut all: Vec<String> = params.iter().map(ToString::to_string).collect();
                 let word = if **ret == Type::Void {
-                    crate::system::ACTION
+                    yog_script_ids::system::ACTION
                 } else {
                     all.push(ret.to_string());
-                    crate::system::FUNC
+                    yog_script_ids::system::FUNC
                 };
                 write!(f, "{word}<{}>", all.join(", "))
             }

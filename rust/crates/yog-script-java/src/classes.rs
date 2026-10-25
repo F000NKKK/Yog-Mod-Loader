@@ -10,10 +10,7 @@ use super::Gen;
 use crate::decls::{Place, generic_list};
 use crate::index::Kind;
 
-/// What a struct's objects are copied with.
-const COPY: &str = "copy";
-/// The bus's call for Java code (`java-common`'s `dev.yog.api.YogBus`).
-const BUS_CALL: &str = "dev.yog.api.YogBus.call";
+use yog_script_ids::jvm::{BUS_CALL, CLONEABLE, COPY, REQUEST};
 
 impl Gen<'_> {
     /// A `mod`: a class the runtime finds and makes (`YsMod`).
@@ -42,7 +39,7 @@ impl Gen<'_> {
         let mut implements = interfaces;
         implements.extend(also.map(str::to_string));
         if struct_ {
-            implements.push("Cloneable".into());
+            implements.push(CLONEABLE.into());
         }
         let implements = if implements.is_empty() {
             String::new()
@@ -274,7 +271,7 @@ impl Gen<'_> {
         let a = d.attributes.iter().find(|a| {
             a.path
                 .last()
-                .is_some_and(|n| n.text == yog_script_analyze::system::SERVICE)
+                .is_some_and(|n| n.text == yog_script_ids::system::SERVICE)
         })?;
         match &a.args.first()?.value.kind {
             yog_script_analyze::ast::ExprKind::Str(segs) => match segs.as_slice() {
@@ -285,9 +282,6 @@ impl Gen<'_> {
         }
     }
 }
-
-/// What a request record is called: the method's name and this.
-const REQUEST: &str = "Request";
 
 /// A class's stored fields: its fields and auto-properties.
 fn fields(body: &[Decl]) -> Vec<(&yog_script_analyze::ast::Type, &str)> {

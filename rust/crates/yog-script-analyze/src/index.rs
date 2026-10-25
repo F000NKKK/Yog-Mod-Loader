@@ -7,6 +7,8 @@
 use std::collections::HashMap;
 
 use yog_data::Schema;
+/// What separates a nested class from the class it's in (`Outer$Inner`).
+pub use yog_script_ids::jvm::NESTED;
 
 /// Where a class exists: on both sides, or only in the client's or the
 /// dedicated server's jar. Code of one side can't reach the other's.
@@ -67,9 +69,6 @@ impl ClassIndex {
         Lookup { by_name, by_simple }
     }
 }
-
-/// What separates a nested class from the class it's in (`Outer$Inner`).
-pub const NESTED: char = '$';
 
 /// `net/minecraft/world/entity/LivingEntity` → `LivingEntity`; a nested
 /// class (`Outer$Inner`) by its own name (`Inner`).

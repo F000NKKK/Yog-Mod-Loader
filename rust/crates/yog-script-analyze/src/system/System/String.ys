@@ -34,8 +34,8 @@ public sealed class String {
     public i32 LastIndexOf(string value);
     public i32 LastIndexOf(char value);
     /// The parts between each `separator`.
-    public List<string> Split(char separator);
-    public List<string> Split(string separator);
+    public string[] Split(char separator);
+    public string[] Split(string separator);
     public bool Equals(string value);
     public i32 CompareTo(string value);
 

@@ -8,10 +8,10 @@ use super::Checker;
 use super::model::Type;
 use crate::ast::{self, Attribute, TypeKind};
 use crate::source::token::Span;
-use crate::system::SERVICE;
+use yog_script_ids::system::SERVICE;
 
 /// The class every attribute class inherits.
-const ATTRIBUTE: &str = "Attribute";
+use yog_script_ids::system::ATTRIBUTE;
 
 impl Checker<'_, '_, '_> {
     pub(super) fn attributes(&mut self, attributes: &[Attribute]) {

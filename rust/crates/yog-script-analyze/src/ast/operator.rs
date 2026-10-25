@@ -3,6 +3,8 @@
 //! as the CLR names it (`op_Addition`, `op_Implicit`), so the checker,
 //! inheritance and the JVM treat it as any method.
 
+use yog_script_ids::clr;
+
 use super::{BinOp, Method, UnOp};
 
 /// Which operator a declaration is.
@@ -29,36 +31,36 @@ impl OperatorKind {
     pub fn method_name(self) -> Option<&'static str> {
         Some(match self {
             OperatorKind::Binary(op) => match op {
-                BinOp::Add => "op_Addition",
-                BinOp::Sub => "op_Subtraction",
-                BinOp::Mul => "op_Multiply",
-                BinOp::Div => "op_Division",
-                BinOp::Rem => "op_Modulus",
-                BinOp::BitAnd => "op_BitwiseAnd",
-                BinOp::BitOr => "op_BitwiseOr",
-                BinOp::BitXor => "op_ExclusiveOr",
-                BinOp::Shl => "op_LeftShift",
-                BinOp::Shr => "op_RightShift",
-                BinOp::Eq => "op_Equality",
-                BinOp::NotEq => "op_Inequality",
-                BinOp::Lt => "op_LessThan",
-                BinOp::LtEq => "op_LessThanOrEqual",
-                BinOp::Gt => "op_GreaterThan",
-                BinOp::GtEq => "op_GreaterThanOrEqual",
+                BinOp::Add => clr::OP_ADDITION,
+                BinOp::Sub => clr::OP_SUBTRACTION,
+                BinOp::Mul => clr::OP_MULTIPLY,
+                BinOp::Div => clr::OP_DIVISION,
+                BinOp::Rem => clr::OP_MODULUS,
+                BinOp::BitAnd => clr::OP_BITWISE_AND,
+                BinOp::BitOr => clr::OP_BITWISE_OR,
+                BinOp::BitXor => clr::OP_EXCLUSIVE_OR,
+                BinOp::Shl => clr::OP_LEFT_SHIFT,
+                BinOp::Shr => clr::OP_RIGHT_SHIFT,
+                BinOp::Eq => clr::OP_EQUALITY,
+                BinOp::NotEq => clr::OP_INEQUALITY,
+                BinOp::Lt => clr::OP_LESS_THAN,
+                BinOp::LtEq => clr::OP_LESS_THAN_OR_EQUAL,
+                BinOp::Gt => clr::OP_GREATER_THAN,
+                BinOp::GtEq => clr::OP_GREATER_THAN_OR_EQUAL,
                 BinOp::Coalesce | BinOp::Or | BinOp::And | BinOp::In => return None,
             },
             OperatorKind::Unary(op) => match op {
-                UnOp::Neg => "op_UnaryNegation",
-                UnOp::Not => "op_LogicalNot",
-                UnOp::BitNot => "op_OnesComplement",
-                UnOp::Increment => "op_Increment",
-                UnOp::Decrement => "op_Decrement",
+                UnOp::Neg => clr::OP_UNARY_NEGATION,
+                UnOp::Not => clr::OP_LOGICAL_NOT,
+                UnOp::BitNot => clr::OP_ONES_COMPLEMENT,
+                UnOp::Increment => clr::OP_INCREMENT,
+                UnOp::Decrement => clr::OP_DECREMENT,
                 UnOp::PostIncrement | UnOp::PostDecrement | UnOp::Try | UnOp::Await => {
                     return None;
                 }
             },
-            OperatorKind::Implicit => "op_Implicit",
-            OperatorKind::Explicit => "op_Explicit",
+            OperatorKind::Implicit => clr::OP_IMPLICIT,
+            OperatorKind::Explicit => clr::OP_EXPLICIT,
         })
     }
 }

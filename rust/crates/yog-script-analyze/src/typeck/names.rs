@@ -16,10 +16,10 @@ use super::surface::SURFACE;
 use crate::ast::{self, Decl, DeclKind, Name};
 use crate::index::namespace;
 use crate::source::token::Span;
-use crate::system::{COLLECTIONS_GENERIC, ROOT};
+use yog_script_ids::system::{COLLECTIONS_GENERIC, ROOT};
 
 /// What a namespace's segments are joined with.
-const SEP: &str = ".";
+const SEP: &str = yog_script_ids::system::NAMESPACE_SEP;
 
 /// `System.Yog`: Yog's objects, groups and events.
 pub(super) fn yog_ns() -> Vec<String> {

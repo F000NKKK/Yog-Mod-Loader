@@ -7,7 +7,7 @@ use super::model::Type;
 use crate::index::{Class, Lookup, Member, access};
 
 /// The JVM's string class: Yog Script's `string`.
-const JAVA_STRING: &str = "java/lang/String";
+use yog_script_ids::jvm::STRING_INTERNAL as JAVA_STRING;
 /// What a getter's name starts with.
 const GETTER_PREFIXES: [&str; 2] = ["get", "is"];
 
@@ -27,7 +27,7 @@ pub(crate) fn parse_desc(desc: &str) -> Option<(Type, &str)> {
         'V' => Type::Void,
         '[' => {
             let (item, rest) = parse_desc(chars.as_str())?;
-            return Some((Type::Array(Box::new(item)), rest));
+            return Some((Type::Array(Box::new(item), 1), rest));
         }
         'L' => {
             let rest = chars.as_str();

@@ -5,7 +5,7 @@
 use super::Checker;
 use super::model::Type;
 use crate::ast::{Element, Expr};
-use crate::system::{DICTIONARY, KEY_VALUE_PAIR, LIST};
+use yog_script_ids::system::{DICTIONARY, KEY_VALUE_PAIR, LIST};
 
 impl Checker<'_, '_, '_> {
     /// `[…]` alone: its natural type (unknown when it's empty).
@@ -41,7 +41,8 @@ impl Checker<'_, '_, '_> {
     /// `wanted` is a collection it makes.
     pub(super) fn collection_as(&mut self, e: &Expr, items: &[Element], wanted: &Type) -> bool {
         let item = self.item_of(wanted);
-        if !item.known() {
+        // C#'s collection expressions make one-dimensional arrays only.
+        if !item.known() || matches!(wanted, Type::Array(_, rank) if *rank > 1) {
             return false;
         }
         let pair = match &item {

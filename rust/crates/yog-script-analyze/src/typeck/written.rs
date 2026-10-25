@@ -9,13 +9,14 @@ use super::model::{BLOCKS, SECONDS, TICKS, Type};
 use crate::ast::{self, TypeKind};
 use crate::index::Side;
 use crate::source::token::Span;
-use crate::system::ROOT;
 use crate::words;
+use yog_script_ids::system::ROOT;
 
 impl Checker<'_, '_, '_> {
     pub(super) fn type_of(&mut self, t: &ast::Type) -> Type {
         match &t.kind {
             TypeKind::Nullable(inner) => self.type_of(inner).nullable(),
+            TypeKind::Array { item, rank } => Type::Array(Box::new(self.type_of(item)), *rank),
             TypeKind::Tuple(items) => {
                 Type::Tuple(items.iter().map(|(t, _)| self.type_of(t)).collect())
             }
@@ -59,7 +60,9 @@ impl Checker<'_, '_, '_> {
             return Type::Own(name.to_string(), args);
         }
         let t = self.imported(name, at);
-        if !t.known() {
+        // A `.yns` checked without the game's classes can't know them.
+        let blind = self.nanites && self.lookup.is_none();
+        if !t.known() && !blind {
             self.report.error(
                 script_problem::UNKNOWN_TYPE,
                 at,

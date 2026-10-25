@@ -125,7 +125,10 @@ fn write_jar(classes: &Path, mods: &[String], jar: &Path) -> std::io::Result<()>
     }
     if !mods.is_empty() {
         zip.start_file(
-            format!("{SERVICES_DIR}{SLASH}{}", yog_script_java::MOD_INTERFACE),
+            format!(
+                "{SERVICES_DIR}{SLASH}{}",
+                yog_script_ids::jvm::MOD_INTERFACE
+            ),
             options,
         )?;
         zip.write_all(mods.join("\n").as_bytes())?;

@@ -195,6 +195,11 @@ public class List<T> extends AbstractList<T> implements IList<T>, IReadOnlyList<
         return new List<>(new ArrayList<>(items.subList(index, index + count)));
     }
 
+    /** Its items in a new array of objects (made the type wanted where it's handed on, `Array.Of`). */
+    public Object[] ToArray() {
+        return items.toArray();
+    }
+
     public void Reverse() {
         java.util.Collections.reverse(items);
     }

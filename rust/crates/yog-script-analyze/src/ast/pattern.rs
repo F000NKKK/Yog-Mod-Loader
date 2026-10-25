@@ -57,6 +57,11 @@ pub enum TypeKind {
     /// `(i32 X, i32 Y)`.
     Tuple(Vec<(Type, Option<Name>)>),
     Nullable(Box<Type>),
+    /// `T[]`, `T[,]` (`rank` 2), `T[][]` (an array of `T[]`).
+    Array {
+        item: Box<Type>,
+        rank: usize,
+    },
     /// `Charge & Owned`.
     Both(Vec<Type>),
     /// `in 'a T`, `ref 'a T`: a borrow (Rust's `&'a T`, `&'a mut T`).

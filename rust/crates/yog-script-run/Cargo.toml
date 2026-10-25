@@ -7,5 +7,7 @@ license = { workspace = true }
 description = "Yog Script's interpreter: checked code run over its tree — for macros at build time, constants, `yog test`, and as the semantics the compiled code must keep."
 
 [dependencies]
+# Yog Script's names.
+yog-script-ids = { workspace = true }
 yog-script-analyze = { workspace = true }
 yog-data = { workspace = true }

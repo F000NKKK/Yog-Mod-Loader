@@ -4,7 +4,7 @@
 //! runtime's (`Action2`, by the CLR's arity rule: `Index::place`).
 
 use yog_script_analyze::ast::Method;
-use yog_script_analyze::system::INVOKE;
+use yog_script_ids::clr::INVOKE;
 
 use super::Gen;
 use crate::decls::generic_list;

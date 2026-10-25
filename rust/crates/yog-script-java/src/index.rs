@@ -10,8 +10,7 @@ use yog_script_analyze::words;
 
 use crate::types::RUNTIME;
 
-/// The runtime's package of built-in types' members' companions (`[Host]`).
-const HOST_PACKAGE: &str = "host";
+use yog_script_ids::jvm::HOST_PACKAGE;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Kind {
@@ -52,6 +51,8 @@ pub(crate) struct Index {
     library: bool,
     /// The `[Host]` types: built-in types' members' companions.
     hosts: HashSet<String>,
+    /// The `[Intrinsic]` types: the runtime's, written by hand.
+    intrinsics: HashSet<String>,
 }
 
 impl Index {
@@ -104,6 +105,9 @@ impl Index {
             return;
         };
         self.declared(&name.text, arity(&header.generics));
+        if self.library && crate::library::is_intrinsic(d) {
+            self.intrinsics.insert(name.text.clone());
+        }
         if self.library && crate::library::is_host(d) {
             // Apart, so it doesn't hide Java's of its name (`String`) in
             // the runtime's package.
@@ -234,8 +238,16 @@ impl Index {
     /// Where built-in type `t`'s members' companion is (`string`'s), if
     /// the library has one.
     pub fn host(&self, t: &yog_script_analyze::Type) -> Option<String> {
-        let name = yog_script_analyze::system_name(t.non_null())?;
+        let name = match t.non_null() {
+            yog_script_analyze::Type::Array(..) => yog_script_ids::system::ARRAY,
+            t => yog_script_analyze::system_name(t)?,
+        };
         self.hosts.contains(name).then(|| self.place(name, 0))
+    }
+
+    /// Whether type `name` is the runtime's, written by hand.
+    pub fn is_intrinsic(&self, name: &str) -> bool {
+        self.intrinsics.contains(name)
     }
 
     pub fn kind(&self, name: &str) -> Option<Kind> {

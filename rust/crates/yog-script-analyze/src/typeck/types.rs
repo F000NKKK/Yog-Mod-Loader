@@ -19,6 +19,8 @@ pub struct Types {
     /// The implicit conversions values go through where they're handed
     /// on, by expression.
     conversions: HashMap<usize, OperatorUse>,
+    /// The method each call chose, by the call.
+    methods: HashMap<usize, MethodUse>,
     /// The operators `op=` applies (`v += w` on a `Vec`), by the place it
     /// writes.
     assigned: HashMap<usize, OperatorUse>,
@@ -32,7 +34,28 @@ pub struct OperatorUse {
     pub method: String,
 }
 
+/// A method as a call chose it: its type (none: the file's), its name,
+/// which of the type's methods of that name (in declaration order), its
+/// parameters and result as declared (its type parameters unbound).
+#[derive(Debug, Clone, PartialEq)]
+pub struct MethodUse {
+    pub owner: Option<String>,
+    pub name: String,
+    pub overload: usize,
+    pub params: Vec<Type>,
+    pub ret: Type,
+}
+
 impl Types {
+    /// The method call `e` chose, when it's an own one.
+    pub fn method(&self, e: &Expr) -> Option<&MethodUse> {
+        self.methods.get(&key(e))
+    }
+
+    pub(super) fn set_method(&mut self, e: &Expr, used: MethodUse) {
+        self.methods.insert(key(e), used);
+    }
+
     /// `e`'s type, if it was checked.
     pub fn of(&self, e: &Expr) -> Option<&Type> {
         self.types.get(&key(e))

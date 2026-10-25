@@ -8,6 +8,8 @@ license = "MIT OR Apache-2.0"
 description = "Yog Script (.ys, .yns) analyzed: its lexer, parser and syntax tree, names resolved, the class index model — what the build and the editors read a source with."
 
 [dependencies]
+# Yog Script's names.
+yog-script-ids = { workspace = true }
 # Problem codes, file formats.
 yog-ids = { workspace = true }
 # Problems as Diagnostics, positions.

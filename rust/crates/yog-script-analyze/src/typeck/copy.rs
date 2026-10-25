@@ -40,7 +40,7 @@ impl Checker<'_, '_, '_> {
 
     fn copy_seen(&self, t: &Type, seen: &mut HashSet<TypeKey>) -> bool {
         match t {
-            Type::Array(_) | Type::Object => false,
+            Type::Array(..) | Type::Object => false,
             Type::Nullable(inner) => self.copy_seen(inner, seen),
             Type::Tuple(items) => items.iter().all(|i| self.copy_seen(i, seen)),
             Type::Own(name, args) => self.own_copy(&TypeKey::new(name.clone(), args.len()), seen),

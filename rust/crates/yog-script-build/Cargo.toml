@@ -7,6 +7,8 @@ license = { workspace = true }
 description = "Yog Script's compiler: a .ys/.yns source checked against the game's class index (built from its jars) — what the Yog CLI and the yog-script tool compile with."
 
 [dependencies]
+# Yog Script's names.
+yog-script-ids = { workspace = true }
 yog-script-analyze = { workspace = true }
 yog-script-run = { workspace = true }
 yog-script-java = { workspace = true }

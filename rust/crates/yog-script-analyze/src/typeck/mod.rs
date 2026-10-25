@@ -5,9 +5,11 @@
 //! index of a targeted version (C#'s names over Java's); what neither the
 //! source nor the index knows (the library's) is not checked yet.
 
+mod arrays;
 mod attributes;
 mod bits;
 mod builtin;
+mod calls;
 mod collections;
 mod context;
 mod copy;
@@ -39,7 +41,7 @@ mod written;
 use std::collections::HashMap;
 
 pub use model::Type;
-pub use types::{OperatorUse, Types};
+pub use types::{MethodUse, OperatorUse, Types};
 
 use crate::ast::File;
 use crate::index::{ClassIndex, Lookup, Side};
@@ -199,6 +201,7 @@ impl Checker<'_, '_, '_> {
                             .all(|(x, y)| open(x) || open(y) || x == y)
                 })
             }
+            (Type::Array(..), wanted) => self.array_converts(got.non_null(), wanted),
             // A lambda or a method where a delegate of its shape is wanted.
             (Type::Fn(..), Type::Own(..)) => {
                 match (self.delegate_sig(got), self.delegate_sig(wanted)) {

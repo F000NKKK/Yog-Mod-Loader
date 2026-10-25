@@ -100,15 +100,15 @@ impl Parser<'_, '_, '_> {
         Ok(Expr { kind, span })
     }
 
+    /// `a[i]`, `grid[x, y]`.
     fn index(&mut self, expr: Expr) -> PResult<Expr> {
         self.bump();
-        let index = self.braces(Self::expr)?;
-        self.need(Punct::RBracket)?;
+        let args = self.braces(|p| p.list(Punct::RBracket, Self::expr))?;
         let span = expr.span.to(self.prev());
         Ok(Expr {
             kind: ExprKind::Index {
                 expr: Box::new(expr),
-                index: Box::new(index),
+                args,
             },
             span,
         })

@@ -3,7 +3,7 @@
 use yog_data::Shape;
 
 use super::model::Type;
-use crate::system::{DICTIONARY, LIST};
+use yog_script_ids::system::{DICTIONARY, LIST};
 
 impl Type {
     /// The type a value of `shape` has in a `.ys`.

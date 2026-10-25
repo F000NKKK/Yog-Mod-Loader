@@ -1,0 +1,10 @@
+[package]
+name = "yog-script-ids"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = "MIT OR Apache-2.0"
+description = "Yog Script's names, one place each: the System library's types and namespaces, the CLR's member names, units, and where the runtime is on the JVM."
+
+[dependencies]

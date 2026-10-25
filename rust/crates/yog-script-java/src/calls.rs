@@ -3,18 +3,15 @@
 //! built-in type's members on its companion (`s.Length` is
 //! `String.Length(s)`), the library's by their places.
 
-use yog_script_analyze::ast::{Arg, Expr, ExprKind, Name, Type as Written};
+use yog_script_analyze::ast::{Arg, Expr, ExprKind, Name, Pass, Type as Written};
 use yog_script_analyze::macros::builtin;
-use yog_script_analyze::system::RESULT;
 use yog_script_analyze::{Type, yog};
+use yog_script_ids::system::RESULT;
 
 use super::Gen;
 use crate::index::Kind;
 use crate::types::RUNTIME;
-use yog_script_analyze::system::INVOKE;
-
-/// A game's array's length (C#'s `T[]`'s `Length`): (Yog Script's, Java's).
-const ARRAY_MEMBERS: &[(&str, &str)] = &[("Length", "length")];
+use yog_script_ids::clr::INVOKE;
 
 impl Gen<'_> {
     pub(crate) fn args(&mut self, args: &[Arg]) -> String {
@@ -31,12 +28,11 @@ impl Gen<'_> {
         let member = match on_type.as_ref().map(Type::non_null) {
             Some(Type::Static(of)) => return self.static_member(e, of, name),
             // A built-in type's property: its companion's static, the value first.
-            _ if host.is_some() => {
-                let host = host.unwrap_or_default();
+            Some(t) if let Some(host) = host => {
                 let n = Self::ident(name);
-                return self.maybe_null(&target, safe, |v| format!("{host}.{n}({v})"));
+                let rank = array_rank(t);
+                return self.maybe_null(&target, safe, |v| format!("{host}.{n}({v}{rank})"));
             }
-            Some(Type::Array(_)) => java_member(ARRAY_MEMBERS, name),
             Some(Type::Own(of, _)) if self.index.called(of, name) => {
                 Some(format!("{}()", Self::ident(name)))
             }
@@ -74,6 +70,12 @@ impl Gen<'_> {
     }
 
     pub(crate) fn call(&mut self, e: &Expr, callee: &Expr, args: &[Arg]) -> String {
+        let called = self.called(e, callee, args);
+        let called = self.typed_array(e, called);
+        self.given_back(e, args, called)
+    }
+
+    fn called(&mut self, e: &Expr, callee: &Expr, args: &[Arg]) -> String {
         let a = self.args(args);
         match &callee.kind {
             ExprKind::Ident(name) => match self.types.of(callee) {
@@ -93,6 +95,40 @@ impl Gen<'_> {
                     format!("{f}({a})")
                 }
             }
+        }
+    }
+
+    /// A call whose method gives an array of its type parameter
+    /// (`ToArray`, `Array.Empty<T>`): Java's generics gave an `Object[]`,
+    /// made the array `e`'s type is (`int[]` for an `i32[]`).
+    fn typed_array(&self, e: &Expr, called: String) -> String {
+        let generic = self
+            .types
+            .method(e)
+            .is_some_and(|m| of_type_parameter(&m.ret));
+        match self.types.of(e).map(Type::non_null) {
+            Some(t @ Type::Array(..)) if generic => format!(
+                "{}.{}({called}, {}.class)",
+                self.array_host(),
+                yog_script_ids::jvm::TYPED_ARRAY,
+                self.java(t, false)
+            ),
+            _ => called,
+        }
+    }
+
+    /// A runtime method taking an argument `ref` (`Array.Resize(ref xs,
+    /// n)`): Java has no `ref`, so the runtime's gives the new value back
+    /// and the place takes it (`xs = Array.Resize(xs, n)`).
+    fn given_back(&mut self, e: &Expr, args: &[Arg], called: String) -> String {
+        let runtime = self
+            .types
+            .method(e)
+            .and_then(|m| m.owner.as_deref())
+            .is_some_and(|o| self.index.is_intrinsic(o));
+        match args.iter().find(|a| a.pass == Some(Pass::Ref)) {
+            Some(place) if runtime => format!("{} = {called}", self.expr(&place.value)),
+            _ => called,
         }
     }
 
@@ -119,7 +155,7 @@ impl Gen<'_> {
             },
             Some(t) if let Some(host) = self.index.host(t) => {
                 let sep = if a.is_empty() { "" } else { ", " };
-                format!("{host}.{n}({target}{sep}{a})")
+                format!("{host}.{n}({target}{}{sep}{a})", array_rank(t))
             }
             Some(Type::Yog(group)) => match yog::service(group, name) {
                 Some(s) if s.on_handle => {
@@ -225,9 +261,19 @@ impl Gen<'_> {
     }
 }
 
-fn java_member(table: &[(&str, &str)], name: &str) -> Option<String> {
-    table
-        .iter()
-        .find(|(ys, _)| *ys == name)
-        .map(|(_, java)| (*java).to_string())
+/// After an array handed to `System.Array`'s companion, its rank (`, 2`):
+/// Java can't tell `T[,]` from `T[][]`. Nothing after any other value.
+fn array_rank(t: &Type) -> String {
+    match t {
+        Type::Array(_, rank) => format!(", {rank}"),
+        _ => String::new(),
+    }
+}
+
+/// Whether `t` is an array of a type parameter (`T[]`, `T[][]`).
+fn of_type_parameter(t: &Type) -> bool {
+    match t {
+        Type::Array(item, _) => matches!(**item, Type::Param(_)) || of_type_parameter(item),
+        _ => false,
+    }
 }

@@ -56,6 +56,15 @@ pub enum ExprKind {
         args: Option<Vec<Arg>>,
         init: Vec<(Name, Expr)>,
     },
+    /// `new i32[n]`, `new i32[2, 3]`, `new i32[3][]`, `new[] { 1, 2 }`,
+    /// `new i32[,] { { 1, 2 }, { 3, 4 } }`: an array made. `elem` is its
+    /// items' type (none: the items' own), `rank` its dimensions.
+    NewArray {
+        elem: Option<Type>,
+        rank: usize,
+        sizes: Vec<Expr>,
+        init: Option<Vec<ArrayItem>>,
+    },
     /// `x => …`, `(a, b) => …`, `{ … }` after a call (`it` its parameter).
     Lambda {
         params: Vec<LambdaParam>,
@@ -110,9 +119,10 @@ pub enum ExprKind {
         callee: Box<Expr>,
         args: Vec<Arg>,
     },
+    /// `a[i]`, `grid[x, y]`: an indexer's or an array's element.
     Index {
         expr: Box<Expr>,
-        index: Box<Expr>,
+        args: Vec<Expr>,
     },
     /// `f<T, U>` before a call: the type arguments.
     TypeArgs {
@@ -144,6 +154,24 @@ pub enum ExprKind {
 pub enum StrSeg {
     Text(String),
     Expr(Expr),
+}
+
+/// An item of an array's initializer (`new[] { … }`).
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArrayItem {
+    Value(Expr),
+    /// `{ … }` of a dimension inside (`new i32[,] { { 1, 2 } }`).
+    Nested(Vec<ArrayItem>),
+}
+
+impl ArrayItem {
+    /// Each value inside, however deep.
+    pub fn each_value<'e>(&'e self, f: &mut impl FnMut(&'e Expr)) {
+        match self {
+            ArrayItem::Value(e) => f(e),
+            ArrayItem::Nested(items) => items.iter().for_each(|i| i.each_value(f)),
+        }
+    }
 }
 
 /// An element of a collection expression.

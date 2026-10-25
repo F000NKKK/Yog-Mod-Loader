@@ -23,7 +23,9 @@ fn the_librarys_sources_check() {
             checked.problems
         );
         // As .NET's IDE0130: a file's namespace is its folders.
-        let folders = path.rsplit_once(system::FOLDER_SEP).map_or("", |(f, _)| f);
+        let folders = path
+            .rsplit_once(yog_script_ids::system::FOLDER_SEP)
+            .map_or("", |(f, _)| f);
         let declared = checked.file.decls.iter().find_map(|d| match &d.kind {
             DeclKind::Namespace { path, .. } => Some(
                 path.iter()
@@ -35,7 +37,14 @@ fn the_librarys_sources_check() {
         });
         assert_eq!(
             declared.as_deref(),
-            Some(folders.replace(system::FOLDER_SEP, ".").as_str()),
+            Some(
+                folders
+                    .replace(
+                        yog_script_ids::system::FOLDER_SEP,
+                        yog_script_ids::system::NAMESPACE_SEP
+                    )
+                    .as_str()
+            ),
             "{path}"
         );
     }
@@ -148,7 +157,7 @@ fn strings_have_strings_members() {
               char G(string s) => s[0];\n\
               bool H(string? s) => String.IsNullOrEmpty(s) || s!.StartsWith(\"a\");\n\
               string J(List<string> parts) => String.Join(\", \", in parts);\n\
-              i32 K(string s) => s.Split(',').Count + s.IndexOf('x');\n\
+              i32 K(string s) => s.Split(',').Length + s.IndexOf('x');\n\
               String L(string s) => s;\n";
     assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
     assert_eq!(
@@ -158,5 +167,41 @@ fn strings_have_strings_members() {
     assert_eq!(
         codes("i32 F(string s) => s.ToUpper();\n"),
         [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn arrays_are_csharps() {
+    let ok = "i32 Sum(i32[] xs) {\n    let mut total = 0;\n    foreach (let x in xs) {\n        total += x;\n    }\n    return total + xs.Length + xs[0];\n}\n\
+              i32 Grid() {\n    let g = new i32[3, 4];\n    g[1, 2] = 5;\n    return g.GetLength(1) + g.Rank + g[1, 2];\n}\n\
+              i32[][] Jagged() => new i32[3][];\n\
+              string[] Names() => new[] { \"a\", \"b\" };\n\
+              i32[] Made() => [1, 2, 3];\n\
+              i32[,] Square() => new i32[,] { { 1, 2 }, { 3, 4 } };\n\
+              void Sorted(i32[] xs) {\n    let mut ys = move xs;\n    Array.Sort(ref ys);\n    let i = Array.IndexOf(in ys, 3);\n}\n\
+              i32 Count(in IEnumerable<i32> xs) => 0;\n\
+              i32 Viewed(i32[] xs) => Count(in xs);\n\
+              object[] Covariant(string[] names) => names;\n\
+              string[] Parts(string s) => s.Split(',');\n\
+              i32[] Back(List<i32> xs) => xs.ToArray();\n\
+              void Grown(i32[] xs) {\n    let mut ys = move xs;\n    Array.Resize(ref ys, 10);\n}\n\
+              i32[] None() => Array.Empty<i32>();\n\
+              string[] Long(string[] names) => Array.FindAll(in names, n => n.Length > 2);\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    for bad in [
+        "i32 F(i32[] xs) => xs[\"a\"];\n",
+        "i64[] G(i32[] xs) => xs;\n",
+        "i32[] H() => new i32[] { \"a\" };\n",
+        "i32[,] K() => new i32[,] { 1, 2 };\n",
+    ] {
+        assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH], "{bad}");
+    }
+    assert_eq!(
+        codes("i32 F(i32[,] g) => g[1];\n"),
+        [script_problem::WRONG_ARGS]
+    );
+    assert_eq!(
+        codes("i32 F(i32[] xs) => xs.Count;\n"),
+        [script_problem::UNKNOWN_MEMBER]
     );
 }

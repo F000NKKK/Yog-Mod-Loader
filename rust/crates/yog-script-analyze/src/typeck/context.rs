@@ -5,10 +5,13 @@
 use super::Checker;
 use super::generics::{Bound, params_of_names};
 use super::model::Type;
+use super::own::TypeKey;
 
-/// A declaration's context: its type's parameters bound, its namespace.
+/// A declaration's context: its type (none: the file's), its type's
+/// parameters bound, its namespace.
 #[derive(Debug, Clone, Default)]
 pub(super) struct Context {
+    pub owner: Option<TypeKey>,
     pub bound: Bound,
     pub ns: Vec<String>,
 }
@@ -17,6 +20,7 @@ impl Checker<'_, '_, '_> {
     /// Own type `name<args>`'s context.
     pub(super) fn context_of(&self, name: &str, args: &[Type]) -> Context {
         Context {
+            owner: Some(TypeKey::new(name, args.len())),
             bound: self.bound_of(name, args),
             ns: self.ns_of(name),
         }
@@ -26,6 +30,7 @@ impl Checker<'_, '_, '_> {
     /// extension's).
     pub(super) fn here(&self) -> Context {
         Context {
+            owner: None,
             bound: Bound::new(),
             ns: self.ns.clone(),
         }
@@ -53,6 +58,7 @@ impl Checker<'_, '_, '_> {
         f: impl FnOnce(&mut Self) -> R,
     ) -> R {
         let context = Context {
+            owner: Some(TypeKey::new(name, generics.len())),
             bound: params_of_names(generics),
             ns: self.ns_of(name),
         };

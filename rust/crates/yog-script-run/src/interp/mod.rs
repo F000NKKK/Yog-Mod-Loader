@@ -1,6 +1,7 @@
 //! The interpreter: frames of locals, `this`, and how a run stops — a
 //! panic (a bug, with where it was), a `return`, a `break`, a `continue`.
 
+mod arrays;
 mod calls;
 mod exprs;
 mod macros;

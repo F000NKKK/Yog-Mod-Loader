@@ -5,6 +5,8 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
+use yog_script_ids::jvm::HELPERS;
+
 use super::Gen;
 use crate::index::Kind;
 use crate::types::{RUNTIME, primitive};
@@ -75,19 +77,25 @@ impl Gen<'_> {
             ExprKind::NotNull(inner)
             | ExprKind::Move(inner)
             | ExprKind::TypeArgs { expr: inner, .. } => self.expr(inner),
-            ExprKind::Index { expr, index } => {
-                let (on, at) = (self.expr(expr), self.expr(index));
+            ExprKind::Index { expr, args } => {
+                let on = self.expr(expr);
+                let at: Vec<String> = args.iter().map(|a| self.expr(a)).collect();
+                if let Some(Type::Array(..)) = self.types.of(expr).map(Type::non_null) {
+                    return Self::array_slot(&on, &at);
+                }
                 if self.has_indexer(expr) {
-                    return Self::index_read(&on, &at);
+                    return Self::index_read(&on, &at.join(", "));
                 }
                 if let Some(host) = self.types.of(expr).and_then(|t| self.index.host(t)) {
-                    return Self::index_read(&host, &format!("{on}, {at}"));
+                    return Self::index_read(
+                        &host,
+                        &[on].into_iter().chain(at).collect::<Vec<_>>().join(", "),
+                    );
                 }
-                match self.types.of(expr) {
-                    Some(Type::Array(_)) => format!("{on}[{at}]"),
-                    _ => format!("{RUNTIME}.Ys.at({on}, {at}, {})", self.at(e.span)),
-                }
+                let at = at.join(", ");
+                format!("{RUNTIME}.{HELPERS}.at({on}, {at}, {})", self.at(e.span))
             }
+            ExprKind::NewArray { sizes, init, .. } => self.new_array(e, sizes, init.as_deref()),
             ExprKind::Collection(items) => self.collection(e, items),
             ExprKind::Lambda { params, body } => self.lambda(e, params, body),
             ExprKind::Switch { expr, arms } => self.switch(e, expr, arms),

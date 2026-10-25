@@ -8,10 +8,7 @@ use super::model::{BLOCKS, SECONDS, TICKS, Type};
 use crate::ast::{BinOp, Expr, ExprKind, StrSeg, UnOp};
 use crate::source::token::Span;
 
-/// Unit suffixes the game has: ticks, seconds (and its multiples), blocks.
-const TICK_SUFFIX: &str = "t";
-const SECOND_SUFFIXES: [&str; 4] = ["s", "ms", "m", "h"];
-const BLOCK_SUFFIX: &str = "b";
+use yog_script_ids::units::{BLOCK_SUFFIX, SECOND_SUFFIXES, TICK_SUFFIX};
 
 impl Checker<'_, '_, '_> {
     pub(super) fn expr(&mut self, e: &Expr) -> Type {
@@ -25,14 +22,7 @@ impl Checker<'_, '_, '_> {
             return t;
         }
         match &e.kind {
-            ExprKind::Str(segs) => {
-                for s in segs {
-                    if let StrSeg::Expr(e) = s {
-                        self.expr(e);
-                    }
-                }
-                Type::String
-            }
+            ExprKind::Str(segs) => self.interpolated(segs),
             ExprKind::Bool(_) | ExprKind::Mc(_) | ExprKind::Is { .. } | ExprKind::Has { .. } => {
                 self.walk_inner(e);
                 Type::Bool
@@ -50,7 +40,7 @@ impl Checker<'_, '_, '_> {
                 let on = self.expr(expr);
                 self.member(&on, &name.text, *safe, name.span)
             }
-            ExprKind::Call { callee, args } => self.call(callee, args),
+            ExprKind::Call { callee, args } => self.call(e, callee, args),
             ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
             ExprKind::Lambda { params, body } => self.lambda_alone(params, body),
             ExprKind::Macro { name, args } => self.builtin_macro(name, args),
@@ -76,22 +66,20 @@ impl Checker<'_, '_, '_> {
                 self.type_of(ty).nullable()
             }
             ExprKind::New { ty, args, init } => {
-                args.iter().flatten().for_each(|a| {
-                    self.expr(&a.value);
-                });
-                init.iter().for_each(|(_, v)| {
-                    self.expr(v);
-                });
-                let t = ty.as_ref().map_or(Type::Unknown, |t| self.type_of(t));
-                self.made(&t, e.span);
-                t
+                self.new_object(e, ty.as_ref(), args.as_deref(), init)
             }
             ExprKind::NotNull(inner) => self.expr(inner).non_null().clone(),
             ExprKind::Collection(items) => self.collection(items),
-            ExprKind::Index { expr, index } => {
+            ExprKind::Index { expr, args } => {
                 let on = self.expr(expr);
-                self.indexed(on, index, e.span)
+                self.indexed(on, args, e.span)
             }
+            ExprKind::NewArray {
+                elem,
+                rank,
+                sizes,
+                init,
+            } => self.new_array(elem.as_ref(), *rank, sizes, init.as_deref(), e.span),
             _ => {
                 self.walk_inner(e);
                 Type::Unknown
@@ -161,7 +149,7 @@ impl Checker<'_, '_, '_> {
             }
             // `try r`: a `Result<T, E>`'s `T`.
             UnOp::Try => match t.non_null() {
-                Type::Own(name, args) if name == crate::system::RESULT => {
+                Type::Own(name, args) if name == yog_script_ids::system::RESULT => {
                     args.first().cloned().unwrap_or(Type::Unknown)
                 }
                 _ => Type::Unknown,
@@ -276,6 +264,35 @@ impl Checker<'_, '_, '_> {
     fn declare(&mut self, ty: Option<&crate::ast::Type>, name: &str, mutable: bool) -> Type {
         let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
         self.bind_as(name, t.clone(), !mutable);
+        t
+    }
+
+    /// `"a {x} b"`: a string, what's inside checked.
+    fn interpolated(&mut self, segs: &[StrSeg]) -> Type {
+        for s in segs {
+            if let StrSeg::Expr(e) = s {
+                self.expr(e);
+            }
+        }
+        Type::String
+    }
+
+    /// `new T(args) { init }`: a `T`, one that may be made.
+    fn new_object(
+        &mut self,
+        e: &Expr,
+        ty: Option<&crate::ast::Type>,
+        args: Option<&[crate::ast::Arg]>,
+        init: &[(crate::ast::Name, Expr)],
+    ) -> Type {
+        args.into_iter().flatten().for_each(|a| {
+            self.expr(&a.value);
+        });
+        init.iter().for_each(|(_, v)| {
+            self.expr(v);
+        });
+        let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
+        self.made(&t, e.span);
         t
     }
 

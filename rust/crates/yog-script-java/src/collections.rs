@@ -5,17 +5,19 @@
 
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Element, Expr};
-use yog_script_analyze::system::{DICTIONARY, LIST};
+use yog_script_ids::system::{DICTIONARY, LIST};
 
 use super::Gen;
 use crate::index::Kind;
 
-/// What makes a library collection out of a Java one, keeping it.
-const VIEW: &str = "view";
+use yog_script_ids::jvm::VIEW;
 
 impl Gen<'_> {
     /// `[a, ..rest]`, `[k => v]`: made where it's met, its temporary its value.
     pub(crate) fn collection(&mut self, e: &Expr, items: &[Element]) -> String {
+        if let Some(Type::Array(..)) = self.types.of(e).map(Type::non_null) {
+            return self.array_collection(e, items);
+        }
         let Some(Type::Own(name, args)) = self.types.of(e).map(Type::non_null).cloned() else {
             self.not_yet(
                 "a collection of a type not known (`List<T> xs = [];`)",
@@ -48,6 +50,32 @@ impl Gen<'_> {
                     let (all, item) = (self.expr(s), self.temp());
                     self.code
                         .line(format!("for (var {item} : {all}) {t}.Add({item});"));
+                }
+            }
+        }
+        t
+    }
+
+    /// `[a, ..rest]`'s items gathered in Java's list of their boxed type
+    /// (`e` an array's): its temporary.
+    pub(crate) fn collection_of_list(&mut self, e: &Expr, items: &[Element]) -> String {
+        let item = match self.types.of(e) {
+            Some(Type::Array(item, _)) => self.java(item, true),
+            _ => yog_script_ids::jvm::OBJECT.to_string(),
+        };
+        let t = self.temp();
+        self.code
+            .line(format!("var {t} = new java.util.ArrayList<{item}>();"));
+        for i in items {
+            match i {
+                Element::Item(x) | Element::Entry(x, _) => {
+                    let v = self.handed_expr(x);
+                    self.code.line(format!("{t}.add({v});"));
+                }
+                Element::Spread(s) => {
+                    let (all, one) = (self.expr(s), self.temp());
+                    self.code
+                        .line(format!("for (var {one} : {all}) {t}.add({one});"));
                 }
             }
         }

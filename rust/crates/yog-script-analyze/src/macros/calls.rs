@@ -7,8 +7,8 @@ use yog_ids::script_problem;
 use super::procs::ProcMacros;
 use super::tree::{Tree, tree_at};
 use crate::source::token::{Punct, Span, Tok, Token};
-use crate::system::DERIVE;
 use yog_analysis::Report;
+use yog_script_ids::system::DERIVE;
 
 /// How many procedural expansions one source may make.
 const MAX_CALLS: usize = 1024;

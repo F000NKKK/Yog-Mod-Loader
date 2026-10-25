@@ -94,8 +94,14 @@ impl Checker<'_, '_, '_> {
                     None => false,
                 }
             }
-            (Type::Array(x), Type::Array(y)) | (Type::Nullable(x), Type::Nullable(y)) => {
-                self.unify(x, y, free, found)
+            (Type::Array(x, rx), Type::Array(y, ry)) => rx == ry && self.unify(x, y, free, found),
+            (Type::Nullable(x), Type::Nullable(y)) => self.unify(x, y, free, found),
+            // A `T[]` as one of its interfaces: `IEnumerable<T>`'s `T` its item.
+            (Type::Own(b, ys), Type::Array(x, 1))
+                if yog_script_ids::system::ARRAY_INTERFACES.contains(&b.as_str())
+                    && ys.len() == 1 =>
+            {
+                self.unify(&ys[0], x, free, found)
             }
             (Type::Nullable(x), y) => self.unify(x, y, free, found),
             _ => self.converts(given, param),
@@ -127,7 +133,7 @@ impl Type {
         match self {
             Type::Param(p) => bound.get(p).cloned().unwrap_or_else(|| self.clone()),
             Type::Own(n, args) => Type::Own(n.clone(), args.iter().map(sub).collect()),
-            Type::Array(t) => Type::Array(Box::new(sub(t))),
+            Type::Array(t, rank) => Type::Array(Box::new(sub(t)), *rank),
             Type::Nullable(t) => Type::Nullable(Box::new(sub(t))),
             Type::Tuple(items) => Type::Tuple(items.iter().map(sub).collect()),
             Type::Fn(params, ret) => Type::Fn(params.iter().map(sub).collect(), Box::new(sub(ret))),

@@ -4,6 +4,7 @@ use crate::ast::{DeclKind, TypeHeader, TypeKind};
 use crate::parser::{PResult, Parser};
 use crate::source::token::{Punct, Tok};
 use crate::words::{Role, Word};
+use yog_script_ids::system::UI;
 
 pub static WORD: Word = Word {
     text: "screen",
@@ -13,8 +14,6 @@ pub static WORD: Word = Word {
     roles: &[Role::Decl { starts: Some(starts), parse }],
 };
 
-/// The markup's base: `: Ui("file.yui")`.
-const UI: &str = "Ui";
 
 fn starts(p: &Parser) -> bool {
     p.at_word(&WORD) && matches!(p.nth(1), Tok::Ident(_)) && matches!(p.nth(2), Tok::Punct(Punct::LParen | Punct::Colon))

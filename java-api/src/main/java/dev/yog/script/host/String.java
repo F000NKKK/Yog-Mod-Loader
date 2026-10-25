@@ -102,12 +102,12 @@ public final class String {
         return s.lastIndexOf(value);
     }
 
-    public static List<java.lang.String> Split(java.lang.String s, char separator) {
+    public static java.lang.String[] Split(java.lang.String s, char separator) {
         return Split(s, java.lang.String.valueOf(separator));
     }
 
     /** The parts between each {@code separator}, empty ones kept (C#'s, not Java's regex split). */
-    public static List<java.lang.String> Split(java.lang.String s, java.lang.String separator) {
+    public static java.lang.String[] Split(java.lang.String s, java.lang.String separator) {
         List<java.lang.String> parts = new List<>();
         int from = 0;
         int at = s.indexOf(separator);
@@ -117,7 +117,7 @@ public final class String {
             at = s.indexOf(separator, from);
         }
         parts.Add(s.substring(from));
-        return parts;
+        return parts.toArray(new java.lang.String[0]);
     }
 
     public static boolean Equals(java.lang.String s, java.lang.String value) {

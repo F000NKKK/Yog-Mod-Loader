@@ -1,0 +1,43 @@
+namespace System;
+
+/// Every array's members, and what's done to one: .NET's `System.Array`.
+/// An array is made with `new T[n]` (or its items); a `T[]` is an
+/// `IList<T>` too. What changes an array takes it `ref`, what reads one `in`.
+[Intrinsic]
+[Host]
+public abstract class Array {
+    /// How many items it holds, over all its dimensions.
+    public i32 Length { get; }
+    public i64 LongLength { get; }
+    /// How many dimensions it has (`T[,]`: 2).
+    public i32 Rank { get; }
+    /// How many items dimension `dimension` (from 0) holds.
+    public i32 GetLength(i32 dimension);
+
+    /// An array of no items.
+    public static T[] Empty<T>();
+    /// `array`'s items in their own order (`IComparable<T>`).
+    public static void Sort<T>(ref T[] array);
+    public static void Sort<T>(ref T[] array, Comparison<T> comparison);
+    /// Where `value` first is; -1 when it isn't.
+    public static i32 IndexOf<T>(in T[] array, T value);
+    public static i32 LastIndexOf<T>(in T[] array, T value);
+    /// Where `value` is in sorted `array`; when it isn't, the bitwise
+    /// complement of where it would go.
+    public static i32 BinarySearch<T>(in T[] array, T value);
+    public static void Reverse<T>(ref T[] array);
+    public static void Fill<T>(ref T[] array, T value);
+    public static void Clear<T>(ref T[] array);
+    /// `length` items from `sourceArray`'s start into `destinationArray`'s.
+    public static void Copy<T>(in T[] sourceArray, ref T[] destinationArray, i32 length);
+    /// `array` made `newSize` long, its items kept as far as they go.
+    public static void Resize<T>(ref T[]? array, i32 newSize);
+    public static bool Exists<T>(in T[] array, Predicate<T> match);
+    /// The first item `match` takes, or `null`.
+    public static T? Find<T>(in T[] array, Predicate<T> match);
+    public static T[] FindAll<T>(in T[] array, Predicate<T> match);
+    public static i32 FindIndex<T>(in T[] array, Predicate<T> match);
+    public static bool TrueForAll<T>(in T[] array, Predicate<T> match);
+    public static void ForEach<T>(in T[] array, Action<T> action);
+    public static TOutput[] ConvertAll<TInput, TOutput>(in TInput[] array, Converter<TInput, TOutput> converter);
+}

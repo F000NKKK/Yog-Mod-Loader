@@ -122,7 +122,7 @@ fn member(d: &Decl, interface: bool) -> Option<Member> {
             !interface || value.is_some() || accessors.iter().any(|a| a.body.is_some()),
         ),
         DeclKind::Indexer(ix) => (
-            crate::system::INDEXER,
+            yog_script_ids::clr::INDEXER,
             ix.span,
             !interface || ix.accessors.iter().any(|a| a.body.is_some()),
         ),

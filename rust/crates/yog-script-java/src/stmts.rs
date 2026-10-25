@@ -154,9 +154,15 @@ impl Gen<'_> {
             return self.listen(&event, value);
         }
         let v = self.handed_expr(value);
-        if let ExprKind::Index { expr, index } = &place.kind {
-            let (list, at) = (self.expr(expr), self.expr(index));
-            if self.has_indexer(expr) {
+        if let ExprKind::Index { expr, args } = &place.kind {
+            let list = self.expr(expr);
+            let at: Vec<String> = args.iter().map(|a| self.expr(a)).collect();
+            if !matches!(
+                self.types.of(expr).map(Type::non_null),
+                Some(Type::Array(..))
+            ) && self.has_indexer(expr)
+            {
+                let at = at.join(", ");
                 let v = match op {
                     Some(op) => self.op_value(place, *op, &Self::index_read(&list, &at), &v),
                     None => v,
@@ -164,8 +170,8 @@ impl Gen<'_> {
                 self.code.line(Self::index_write(&list, &at, &v));
                 return;
             }
-            // A game's array.
-            let slot = format!("{list}[{at}]");
+            // An array's item.
+            let slot = Self::array_slot(&list, &at);
             let set = self.set(place, op.copied(), &slot, &v);
             self.code.line(format!("{set};"));
             return;
@@ -248,11 +254,15 @@ impl Gen<'_> {
             );
         }
         let items = self.expr(iter);
-        let items = match self.types.of(iter) {
-            Some(Type::String) => format!("{items}.toCharArray()"),
-            _ => items,
+        let (items, rows) = match self.types.of(iter).map(Type::non_null) {
+            Some(Type::String) => (format!("{items}.toCharArray()"), 0),
+            Some(Type::Array(_, rank)) => self.array_loops(&items, *rank),
+            _ => (items, 0),
         };
         self.branch(&format!("for (var {name} : {items})"), body);
+        for _ in 0..rows {
+            self.code.close("");
+        }
     }
 }
 

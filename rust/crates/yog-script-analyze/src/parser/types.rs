@@ -53,13 +53,58 @@ impl Parser<'_, '_, '_> {
         } else {
             self.ty_path()?
         };
-        if self.eat(Punct::Question) {
-            ty = Type {
-                kind: TypeKind::Nullable(Box::new(ty)),
-                span: start.to(self.prev()),
-            };
+        ty = self.nullable_of(ty, start);
+        let ranks = self.ranks();
+        ty = Self::array_of(ty, &ranks, start.to(self.prev()));
+        Ok(self.nullable_of(ty, start))
+    }
+
+    /// `ty?` when a `?` follows.
+    fn nullable_of(&mut self, ty: Type, start: crate::source::token::Span) -> Type {
+        if !self.eat(Punct::Question) {
+            return ty;
         }
-        Ok(ty)
+        Type {
+            kind: TypeKind::Nullable(Box::new(ty)),
+            span: start.to(self.prev()),
+        }
+    }
+
+    /// The ranks of the `[]` / `[,]` here, read.
+    pub(crate) fn ranks(&mut self) -> Vec<usize> {
+        let mut ranks = Vec::new();
+        while let Some(rank) = self.rank_ahead(0) {
+            (0..=rank).for_each(|_| {
+                self.bump();
+            });
+            ranks.push(rank);
+        }
+        ranks
+    }
+
+    /// `item` with `ranks` after it, as C# reads them: the first the
+    /// outermost (`i32[][,]` is an array of `i32[,]`).
+    pub(crate) fn array_of(item: Type, ranks: &[usize], span: crate::source::token::Span) -> Type {
+        ranks.iter().rev().fold(item, |t, &rank| Type {
+            kind: TypeKind::Array {
+                item: Box::new(t),
+                rank,
+            },
+            span,
+        })
+    }
+
+    /// `[]` (1) or `[,]` (2), … starting `n` ahead: an array's rank; its
+    /// tokens are the rank and one.
+    pub(crate) fn rank_ahead(&self, n: usize) -> Option<usize> {
+        if !self.nth_is(n, Punct::LBracket) {
+            return None;
+        }
+        let mut rank = 1;
+        while self.nth_is(n + rank, Punct::Comma) {
+            rank += 1;
+        }
+        self.nth_is(n + rank, Punct::RBracket).then_some(rank)
     }
 
     fn ty_path(&mut self) -> PResult<Type> {
@@ -140,10 +185,15 @@ impl Parser<'_, '_, '_> {
         if self.nth_is(end, Punct::Lt) {
             end = self.type_args_end(end)?;
         }
-        if self.nth_is(end, Punct::Question) {
-            end += 1;
+        loop {
+            if self.nth_is(end, Punct::Question) {
+                end += 1;
+            } else if let Some(rank) = self.rank_ahead(end) {
+                end += rank + 1;
+            } else {
+                return Some(end);
+            }
         }
-        Some(end)
     }
 
     /// Where `<…>` of types starting at `n` ends.

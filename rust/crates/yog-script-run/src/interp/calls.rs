@@ -72,7 +72,7 @@ impl<'p> Interp<'p> {
         if let Some(m) = self.program.file_method(name, given.len()) {
             return self.run(m, None, args, given, at);
         }
-        let result = yog_script_analyze::system::RESULT;
+        let result = yog_script_ids::system::RESULT;
         if self.program.variant(result, name).is_some() {
             return Ok(Value::case(result, name, given));
         }

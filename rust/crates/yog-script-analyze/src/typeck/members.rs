@@ -9,7 +9,7 @@ use super::context::Context;
 use super::game::{self, Found};
 use super::model::Type;
 use super::own::TypeKey;
-use crate::ast::{Arg, Expr, ExprKind, Method, Pass};
+use crate::ast::{Expr, ExprKind, Method, Pass};
 use crate::source::token::Span;
 
 /// What a call's callee stands for.
@@ -226,44 +226,8 @@ impl Checker<'_, '_, '_> {
         );
     }
 
-    /// A call: its arguments checked against the callee's parameters; its result.
-    pub(super) fn call(&mut self, callee: &Expr, args: &[Arg]) -> Type {
-        let target = self.callee(callee);
-        // A lambda's own type, for choosing the overload only: it's typed
-        // against the delegate the chosen one takes (`pick`).
-        let given: Vec<Type> = args
-            .iter()
-            .map(|a| match a.value.kind {
-                ExprKind::Lambda { .. } => self.quietly(|c| c.expr(&a.value)),
-                _ => self.expr(&a.value),
-            })
-            .collect();
-        self.called(target, &given, args, callee.span)
-    }
-
-    /// `target` called with `args` (typed `given`): its result.
-    pub(super) fn called(
-        &mut self,
-        target: Callee,
-        given: &[Type],
-        args: &[Arg],
-        at: Span,
-    ) -> Type {
-        match target {
-            Callee::Own(methods) => {
-                let sigs: Vec<Signature> = methods
-                    .iter()
-                    .map(|(m, context)| self.in_context(context, |c| c.signature(m)))
-                    .collect();
-                self.pick(&sigs, given, args, at)
-            }
-            Callee::Typed(sigs) => self.pick(&sigs, given, args, at),
-            Callee::Unknown => Type::Unknown,
-        }
-    }
-
     /// What `callee` calls.
-    fn callee(&mut self, callee: &Expr) -> Callee {
+    pub(super) fn callee(&mut self, callee: &Expr) -> Callee {
         match &callee.kind {
             // A delegate called: `handler(x)`.
             ExprKind::Ident(name) if self.delegate(name).is_some() => {
@@ -274,7 +238,7 @@ impl Checker<'_, '_, '_> {
                     .map_or(Callee::Unknown, |sig| Callee::Typed(vec![sig]))
             }
             // `Charged?.Invoke(…)`: a delegate's own call.
-            ExprKind::Member { expr, name, .. } if name.text == crate::system::INVOKE => {
+            ExprKind::Member { expr, name, .. } if name.text == yog_script_ids::clr::INVOKE => {
                 let t = self.expr(expr);
                 match self.delegate_sig(&t) {
                     Some((params, ret)) => Callee::Typed(vec![signature_of(&params, &ret)]),
@@ -285,7 +249,7 @@ impl Checker<'_, '_, '_> {
                 let methods = self.callable(name);
                 if methods.is_empty() {
                     // `Ok(v)`, `Err(e)`: the prelude's cases, by their names.
-                    match self.variant_ctor(crate::system::RESULT, name) {
+                    match self.variant_ctor(yog_script_ids::system::RESULT, name) {
                         Callee::Unknown => self.static_import(name, callee.span),
                         made => made,
                     }
@@ -480,77 +444,6 @@ impl Checker<'_, '_, '_> {
             _ => Callee::Unknown,
         }
     }
-
-    /// An own method's signature: parameters, how many are required (the
-    /// rest have defaults), result.
-    fn signature(&mut self, m: &Method) -> Signature {
-        let bound = super::generics::params_of(&m.generics);
-        let generics = bound.keys().cloned().collect();
-        self.with_types(bound, |c| Signature {
-            params: m.params.iter().map(|p| c.type_of(&p.ty)).collect(),
-            passes: m.params.iter().map(|p| p.pass).collect(),
-            required: m.params.iter().take_while(|p| p.default.is_none()).count(),
-            ret: m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t)),
-            generics,
-        })
-    }
-
-    /// The signature `given` arguments fit; its result — or a report when
-    /// none takes that many, or the one that does gets a wrong type.
-    fn pick(&mut self, sigs: &[Signature], given: &[Type], args: &[Arg], at: Span) -> Type {
-        if sigs.is_empty() || args.iter().any(|a| a.name.is_some()) {
-            self.lambdas_alone(args);
-            return Type::Unknown;
-        }
-        let takes = |s: &Signature| (s.required..=s.params.len()).contains(&given.len());
-        let fits = |s: &Signature| {
-            let mut found = super::generics::Bound::new();
-            let all = takes(s)
-                && given
-                    .iter()
-                    .zip(&s.params)
-                    .all(|(g, p)| self.unify(p, g, &s.generics, &mut found));
-            all.then_some(found)
-        };
-        if let Some((s, found)) = sigs.iter().find_map(|s| fits(s).map(|f| (s, f))) {
-            self.check_passing(&s.passes, args, given);
-            let params: Vec<Type> = s.params.iter().map(|p| p.substitute(&found)).collect();
-            for ((arg, g), p) in args.iter().zip(given).zip(&params) {
-                if is_lambda(&arg.value) {
-                    self.fits(&arg.value, p);
-                } else {
-                    self.note_conversion(&arg.value, g, p);
-                }
-            }
-            return s.ret.substitute(&found);
-        }
-        let taking: Vec<&Signature> = sigs.iter().filter(|s| takes(s)).collect();
-        match taking.as_slice() {
-            [] => {
-                self.lambdas_alone(args);
-                self.report.error(
-                    script_problem::WRONG_ARGS,
-                    at,
-                    format!("no overload takes {} arguments", given.len()),
-                );
-                Type::Unknown
-            }
-            [one] => {
-                for ((g, p), a) in given.iter().zip(&one.params).zip(args) {
-                    if is_lambda(&a.value) {
-                        self.fits(&a.value, p);
-                    } else {
-                        self.want(g, p, a.value.span);
-                    }
-                }
-                one.ret.clone()
-            }
-            _ => {
-                self.lambdas_alone(args);
-                Type::Unknown
-            }
-        }
-    }
 }
 
 /// `x.Client` / `x.Server`: a call on the other side (`ys-grammar.md`
@@ -590,25 +483,14 @@ impl Checker<'_, '_, '_> {
 }
 
 impl Checker<'_, '_, '_> {
-    /// The lambdas among `args`, no delegate chosen for them: typed alone,
-    /// what's wrong in them reported.
-    fn lambdas_alone(&mut self, args: &[Arg]) {
-        for a in args.iter().filter(|a| is_lambda(&a.value)) {
-            self.expr(&a.value);
-        }
-    }
-}
-
-fn is_lambda(e: &Expr) -> bool {
-    matches!(e.kind, ExprKind::Lambda { .. })
-}
-
-impl Checker<'_, '_, '_> {
     /// A built-in type's members' declaration: its type in `System`
     /// (`string`'s `String`, `[Host]`), when the library declares one.
     pub(super) fn hosted(&self, t: &Type) -> Option<Type> {
-        let name = super::builtin::system_name(t)?;
-        let declared = self.own.namespaces.get(name)? == &[crate::system::ROOT];
+        let name = match t {
+            Type::Array(..) => yog_script_ids::system::ARRAY,
+            _ => super::builtin::system_name(t)?,
+        };
+        let declared = self.own.namespaces.get(name)? == &[yog_script_ids::system::ROOT];
         declared.then(|| Type::own(name.to_string()))
     }
 }

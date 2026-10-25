@@ -10,24 +10,29 @@ use crate::ast::{Arg, Expr};
 use crate::source::token::Span;
 
 impl Checker<'_, '_, '_> {
-    /// `on[index]`: what the indexer gives.
-    pub(super) fn indexed(&mut self, on: Type, index: &Expr, at: Span) -> Type {
-        if let Type::Array(item) = on {
-            self.expr(index);
+    /// `on[args]`: an array's item, or what the indexer gives.
+    pub(super) fn indexed(&mut self, on: Type, index: &[Expr], at: Span) -> Type {
+        if let Type::Array(item, rank) = on {
+            self.array_index(index, rank, at);
             return *item;
         }
         let on = self.hosted(&on).unwrap_or(on);
         let Some(callee) = self.indexer(&on) else {
-            self.expr(index);
+            index.iter().for_each(|i| {
+                self.expr(i);
+            });
             return Type::Unknown;
         };
-        let given = vec![self.expr(index)];
-        let args = [Arg {
-            name: None,
-            pass: None,
-            value: index.clone(),
-        }];
-        self.called(callee, &given, &args, at)
+        let given: Vec<Type> = index.iter().map(|i| self.expr(i)).collect();
+        let args: Vec<Arg> = index
+            .iter()
+            .map(|i| Arg {
+                name: None,
+                pass: None,
+                value: i.clone(),
+            })
+            .collect();
+        self.called(callee, &given, &args, at).0
     }
 
     /// `on[…] = v` where `on`'s indexers are all `get`-only: said so.

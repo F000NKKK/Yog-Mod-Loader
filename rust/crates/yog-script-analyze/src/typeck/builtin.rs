@@ -1,6 +1,8 @@
 //! The built-in types by their words (`i32` is `System.Int32`, …) and the
 //! numbers' implicit conversions, as C#'s (§10.2.3 of its spec).
 
+use yog_script_ids::clr;
+
 use super::model::Type;
 use crate::words::{self, Word};
 
@@ -8,23 +10,23 @@ use crate::words::{self, Word};
 /// `i32` is `System.Int32`, `string` `System.String`): the one place a
 /// word names a type.
 static BUILTINS: &[(&Word, Type, &str)] = &[
-    (&words::i8::WORD, Type::I8, "SByte"),
-    (&words::i16::WORD, Type::I16, "Int16"),
-    (&words::i32::WORD, Type::I32, "Int32"),
-    (&words::i64::WORD, Type::I64, "Int64"),
-    (&words::u8::WORD, Type::U8, "Byte"),
-    (&words::u16::WORD, Type::U16, "UInt16"),
-    (&words::u32::WORD, Type::U32, "UInt32"),
-    (&words::u64::WORD, Type::U64, "UInt64"),
-    (&words::f32::WORD, Type::F32, "Single"),
-    (&words::f64::WORD, Type::F64, "Double"),
-    (&words::decimal::WORD, Type::Decimal, "Decimal"),
-    (&words::char::WORD, Type::Char, "Char"),
-    (&words::bool::WORD, Type::Bool, "Boolean"),
-    (&words::string::WORD, Type::String, "String"),
-    (&words::object::WORD, Type::Object, "Object"),
-    (&words::dynamic::WORD, Type::Dynamic, "Object"),
-    (&words::void::WORD, Type::Void, "Void"),
+    (&words::i8::WORD, Type::I8, clr::SBYTE),
+    (&words::i16::WORD, Type::I16, clr::INT16),
+    (&words::i32::WORD, Type::I32, clr::INT32),
+    (&words::i64::WORD, Type::I64, clr::INT64),
+    (&words::u8::WORD, Type::U8, clr::BYTE),
+    (&words::u16::WORD, Type::U16, clr::UINT16),
+    (&words::u32::WORD, Type::U32, clr::UINT32),
+    (&words::u64::WORD, Type::U64, clr::UINT64),
+    (&words::f32::WORD, Type::F32, clr::SINGLE),
+    (&words::f64::WORD, Type::F64, clr::DOUBLE),
+    (&words::decimal::WORD, Type::Decimal, clr::DECIMAL),
+    (&words::char::WORD, Type::Char, clr::CHAR),
+    (&words::bool::WORD, Type::Bool, clr::BOOLEAN),
+    (&words::string::WORD, Type::String, clr::STRING),
+    (&words::object::WORD, Type::Object, clr::OBJECT),
+    (&words::dynamic::WORD, Type::Dynamic, clr::OBJECT),
+    (&words::void::WORD, Type::Void, clr::VOID),
 ];
 
 /// The built-in type its keyword names.

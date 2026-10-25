@@ -32,6 +32,8 @@ public class List<T> : IList<T>, IReadOnlyList<T> {
     public bool TrueForAll(Predicate<T> match);
     public void ForEach(Action<T> action);
     public List<T> GetRange(i32 index, i32 count);
+    /// Its items, in a new array.
+    public T[] ToArray();
     public void Reverse();
     /// In the items' own order (`IComparable<T>`).
     public void Sort();

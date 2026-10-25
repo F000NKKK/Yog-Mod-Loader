@@ -10,8 +10,8 @@ use super::NESTED;
 /// the namespace itself, `com/mojang/` its `Mojang`.
 pub const GAME_PACKAGES: [(&str, &str); 2] = [("net/minecraft/", ""), ("com/mojang/", "mojang/")];
 /// What separates a package's segments, and a namespace's.
-const PACKAGE_SEP: char = '/';
-const NAMESPACE_SEP: char = '.';
+use yog_script_ids::jvm::INTERNAL_SEP as PACKAGE_SEP;
+use yog_script_ids::system::NAMESPACE_SEP;
 
 /// Whether `internal` is one of the game's own classes.
 pub fn is_game_class(internal: &str) -> bool {
@@ -33,7 +33,7 @@ pub fn of_class(internal: &str) -> Option<(Vec<String>, String)> {
         .filter(|s| !s.is_empty())
         .map(yog_codegen::pascal)
         .collect();
-    Some((namespace, name.replace(NESTED, &NAMESPACE_SEP.to_string())))
+    Some((namespace, name.replace(NESTED, NAMESPACE_SEP)))
 }
 
 /// The class `name` (`Player`, `OutgoingChatMessage.Player`) of namespace

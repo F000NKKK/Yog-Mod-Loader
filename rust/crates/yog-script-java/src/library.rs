@@ -95,13 +95,13 @@ fn written_here(d: &Decl) -> Option<(&Decl, &str, usize)> {
 
 /// Whether `d` is marked `[Intrinsic]`: the runtime's, written by hand.
 pub(crate) fn is_intrinsic(d: &Decl) -> bool {
-    marked(d, system::INTRINSIC)
+    marked(d, yog_script_ids::system::INTRINSIC)
 }
 
 /// Whether `d` is marked `[Host]`: a built-in type's members, on a
 /// companion of the runtime's.
 pub(crate) fn is_host(d: &Decl) -> bool {
-    marked(d, system::HOST)
+    marked(d, yog_script_ids::system::HOST)
 }
 
 fn marked(d: &Decl, attribute: &str) -> bool {

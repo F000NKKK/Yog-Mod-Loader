@@ -90,7 +90,13 @@ impl<'p> Interp<'p> {
                 let v = self.eval(expr)?;
                 Ok(self.cast(v, ty))
             }
-            ExprKind::Index { expr, index } => self.index(expr, index),
+            ExprKind::Index { expr, args } => {
+                let on = self.eval(expr)?;
+                args.iter().try_fold(on, |on, i| self.index(on, i, expr))
+            }
+            ExprKind::NewArray {
+                elem, sizes, init, ..
+            } => self.new_array(elem.as_ref(), sizes, init.as_deref()),
             ExprKind::NotNull(inner) => match self.eval(inner)? {
                 Value::Null => self.panic("`!` on a value that is null", e.span),
                 v => Ok(v),
@@ -122,8 +128,10 @@ impl<'p> Interp<'p> {
         Ok(Value::list(out))
     }
 
-    fn index(&mut self, expr: &Expr, index: &Expr) -> Run<Value> {
-        let (on, at) = (self.eval(expr)?, self.eval(index)?);
+    /// `on[index]` (`expr` is `on`, as written); a rank's next index reads
+    /// the row the last gave.
+    pub(super) fn index(&mut self, on: Value, index: &Expr, expr: &Expr) -> Run<Value> {
+        let at = self.eval(index)?;
         match (&on, at) {
             (Value::List(items), Value::Int(k)) => match usize::try_from(k)
                 .ok()

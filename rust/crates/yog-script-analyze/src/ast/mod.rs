@@ -17,7 +17,9 @@ pub use decl::{
     Accessor, Attribute, Chain, Ctor, Decl, DeclKind, Field, Method, MethodBody, Modifier, Param,
     Prop, TypeHeader, Variant, VersionCond,
 };
-pub use expr::{Arg, Arm, BinOp, Element, Expr, ExprKind, LambdaBody, LambdaParam, StrSeg, UnOp};
+pub use expr::{
+    Arg, Arm, ArrayItem, BinOp, Element, Expr, ExprKind, LambdaBody, LambdaParam, StrSeg, UnOp,
+};
 pub use generics::{Constraint, Generic, Variance, Where};
 pub use indexer::{Indexer, accessor_name};
 pub use operator::{Operator, OperatorKind};

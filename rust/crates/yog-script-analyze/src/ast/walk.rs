@@ -39,9 +39,13 @@ impl Expr {
                 f(from);
                 f(to);
             }
-            ExprKind::Index { expr, index } => {
+            ExprKind::Index { expr, args } => {
                 f(expr);
-                f(index);
+                args.iter().for_each(f);
+            }
+            ExprKind::NewArray { sizes, init, .. } => {
+                sizes.iter().for_each(&mut f);
+                init.iter().flatten().for_each(|i| i.each_value(&mut f));
             }
             ExprKind::Conditional {
                 cond,

@@ -6,6 +6,7 @@
 //! What a source has that isn't written yet is reported (`YS0032`), never
 //! written wrong.
 
+mod arrays;
 mod calls;
 mod classes;
 mod collections;
@@ -90,11 +91,8 @@ fn mods(decls: &[yog_script_analyze::ast::Decl]) -> Vec<String> {
     out
 }
 
-/// What the runtime's mods implement (`java-common`'s `dev.yog.script.YsMod`).
-pub const MOD_INTERFACE: &str = "dev.yog.script.YsMod";
-
-/// What a source's class name ends with: never its mod's or a type's name.
-const CLASS_SUFFIX: &str = "Script";
+use yog_script_ids::jvm::CLASS_SUFFIX;
+use yog_script_ids::jvm::MOD_INTERFACE;
 
 fn file_name(path: &str) -> String {
     std::path::Path::new(path)

@@ -396,7 +396,7 @@ The conditional expression is `c ? a : b`; `switch` is an expression
 | 14 | `*` `/` `%` | left |
 | 15 | `switch` (`x switch { … }`) | left |
 | 16 | prefix `-` `!` `~` `++` `--` `await` `try` `(T)` cast | right |
-| 17 | postfix: call `f(…)`, index `a[i]`, member `.M`, null-conditional `?.M`, `!` (not null), `++` `--`, trailing lambda `{ … }`, side `.Server` / `.Client` | left |
+| 17 | postfix: call `f(…)`, `F<T>(…)`, index `a[i]` / `g[x, y]`, member `.M`, null-conditional `?.M`, `!` (not null), `++` `--`, trailing lambda `{ … }`, side `.Server` / `.Client` | left |
 
 ```ebnf
 expr        = lambda | conditional ;
@@ -406,7 +406,13 @@ literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | CHAR | TEXT | CONTENT |
 tuple       = '(' expr ',' expr (',' expr)* ')' ;
 collection  = '[' (element (',' element)* ','?)? ']' ;            (* a list, a set or a map, by its target type *)
 element     = expr ('=>' expr)? | '..' expr ;                     (* k => v in a map; ..xs spreads *)
-new_expr    = 'new' type? call_args? initializer? ;                (* new Pos(1, 2, 3); new(4) where the type is known *)
+new_expr    = 'new' type? call_args? initializer?                  (* new Pos(1, 2, 3); new(4) where the type is known *)
+            | 'new' type '[' expr (',' expr)* ']' rank* array_init?   (* new i32[16], new i32[4, 4], new i32[3][] *)
+            | 'new' type rank array_init                           (* new string[] { "a", "b" } *)
+            | 'new' rank array_init ;                              (* new[] { 1, 2 }: the items' own type *)
+array_init  = '{' (array_item (',' array_item)* ','?)? '}' ;
+array_item  = expr | array_init ;                                  (* { { 1, 2 }, { 3, 4 } } for a T[,] *)
+rank        = '[' ','* ']' ;                                       (* [] one dimension, [,] two *)
 initializer = '{' (IDENT '=' expr (',' IDENT '=' expr)* ','?)? '}' ;   (* new Battery { Count = 2 } *)
 lambda      = (IDENT | '(' (param_or_name (',' param_or_name)*)? ')') '=>' (expr | block) ;
 param_or_name = type? IDENT ;
@@ -490,7 +496,7 @@ type `Sender` receives the caller.
 ## 4. Types
 
 ```ebnf
-type        = base_type ('&' base_type)* '?'? ;                     (* Charge & Owned: an object with both *)
+type        = base_type ('&' base_type)* '?'? ;                     (* base_type '?'? rank* '?'?: i32?[], string[]?, i32[][,] *)                     (* Charge & Owned: an object with both *)
 base_type   = path generic_args?                                     (* i32, List<T>, LivingEntity, a component *)
             | ('in' | 'ref') LIFETIME? base_type                     (* a borrow: in 'a T is &'a T, ref 'a T &'a mut T *)
             | LIFETIME ;                                             (* among type arguments: Cursor<'a> *)

@@ -167,8 +167,15 @@ impl<'p> Interp<'p> {
                 let on = self.eval(expr)?;
                 self.set_field(Some(&on), &name.text, v, place.span)
             }
-            ExprKind::Index { expr, index } => {
-                let (on, at) = (self.eval(expr)?, self.eval(index)?);
+            ExprKind::Index { expr, args } => {
+                let Some((last, rows)) = args.split_last() else {
+                    return self.panic("an index is wanted", place.span);
+                };
+                let mut on = self.eval(expr)?;
+                for row in rows {
+                    on = self.index(on, row, expr)?;
+                }
+                let at = self.eval(last)?;
                 match (on, at) {
                     (Value::List(items), Value::Int(k)) => {
                         let mut items = items.borrow_mut();

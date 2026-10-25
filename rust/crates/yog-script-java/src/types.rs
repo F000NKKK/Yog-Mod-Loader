@@ -4,12 +4,15 @@
 //! `Action` or `Func` of its arity, a game's array as Java's.
 
 use yog_script_analyze::ast::{Type as Written, TypeKind};
-use yog_script_analyze::{Type, builtin_type, system, yog};
+use yog_script_analyze::{Type, builtin_type, yog};
 
 use super::Gen;
 
-/// Where the compiled code's runtime is (`java-api`'s `dev.yog.script`).
-pub(crate) const RUNTIME: &str = "dev.yog.script";
+pub(crate) use yog_script_ids::jvm::RUNTIME;
+use yog_script_ids::jvm::{
+    BIG_DECIMAL, BOOLEAN, BOXED, BOXED_VOID, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, OBJECT, SHORT,
+    STRING, VOID,
+};
 
 impl Gen<'_> {
     /// `t` in Java; `boxed`: where only an object goes (a type argument).
@@ -18,21 +21,23 @@ impl Gen<'_> {
             return if boxed { boxed_name(p) } else { p }.to_string();
         }
         match t {
-            Type::String | Type::Text | Type::Content(_) | Type::Tag => "String".into(),
-            Type::Decimal => "java.math.BigDecimal".into(),
-            Type::Void => if boxed { "Void" } else { "void" }.into(),
-            Type::Unit(_) => if boxed { "Double" } else { "double" }.into(),
+            Type::String | Type::Text | Type::Content(_) | Type::Tag => STRING.into(),
+            Type::Decimal => BIG_DECIMAL.into(),
+            Type::Void => if boxed { BOXED_VOID } else { VOID }.into(),
+            Type::Unit(_) => self.java(&Type::F64, boxed),
             Type::Own(name, args) => self.generic(&self.index.place(name, args.len()), args),
             Type::Static(name) => self.index.place_named(name),
             Type::Param(name) => name.clone(),
             Type::Game(class) => class.replace(['/', '$'], "."),
-            Type::Array(item) => format!("{}[]", self.java(item, false)),
+            Type::Array(item, rank) => {
+                format!("{}{}", self.java(item, false), crate::arrays::ranks(*rank))
+            }
             Type::Nullable(inner) => self.java(inner, true),
             Type::Fn(params, ret) => self.fn_type(params, ret),
             // A handle is its subject; a payload its record.
-            Type::Yog(name) if yog::is_handle(name) => "String".into(),
-            Type::Yog(name) => yog::data(name).unwrap_or_else(|| "Object".into()),
-            _ => "Object".into(),
+            Type::Yog(name) if yog::is_handle(name) => STRING.into(),
+            Type::Yog(name) => yog::data(name).unwrap_or_else(|| OBJECT.into()),
+            _ => OBJECT.into(),
         }
     }
 
@@ -44,7 +49,11 @@ impl Gen<'_> {
         if gives {
             args.push(ret.clone());
         }
-        let name = if gives { system::FUNC } else { system::ACTION };
+        let name = if gives {
+            yog_script_ids::system::FUNC
+        } else {
+            yog_script_ids::system::ACTION
+        };
         self.generic(&self.index.place(name, args.len()), &args)
     }
 
@@ -65,13 +74,17 @@ impl Gen<'_> {
     pub(crate) fn written(&self, t: &Written, boxed: bool) -> String {
         match &t.kind {
             TypeKind::Nullable(inner) => self.written(inner, true),
+            TypeKind::Array { item, rank } => self.written_array(item, *rank),
             TypeKind::Borrow { ty, .. } => self.written(ty, boxed),
             // A path out of the library (a game class's, in a `.yns`) as written.
-            TypeKind::Path { path, .. } if path.len() > 1 && path[0].text != system::ROOT => path
-                .iter()
-                .map(|n| n.text.as_str())
-                .collect::<Vec<_>>()
-                .join("."),
+            TypeKind::Path { path, .. }
+                if path.len() > 1 && path[0].text != yog_script_ids::system::ROOT =>
+            {
+                path.iter()
+                    .map(|n| n.text.as_str())
+                    .collect::<Vec<_>>()
+                    .join(".")
+            }
             TypeKind::Path { path, args } => {
                 let name = path.last().map_or("", |n| n.text.as_str());
                 if args.is_empty()
@@ -87,7 +100,7 @@ impl Gen<'_> {
                     format!("{base}<{}>", inner.join(", "))
                 }
             }
-            _ => "Object".into(),
+            _ => OBJECT.into(),
         }
     }
 }
@@ -95,27 +108,21 @@ impl Gen<'_> {
 /// A number, `bool` or `char` as Java's primitive.
 pub(crate) fn primitive(t: &Type) -> Option<&'static str> {
     Some(match t {
-        Type::I8 => "byte",
-        Type::I16 => "short",
-        Type::I32 | Type::U8 | Type::U16 => "int",
-        Type::I64 | Type::U32 | Type::U64 => "long",
-        Type::F32 => "float",
-        Type::F64 => "double",
-        Type::Bool => "boolean",
-        Type::Char => "char",
+        Type::I8 => BYTE,
+        Type::I16 => SHORT,
+        Type::I32 | Type::U8 | Type::U16 => INT,
+        Type::I64 | Type::U32 | Type::U64 => LONG,
+        Type::F32 => FLOAT,
+        Type::F64 => DOUBLE,
+        Type::Bool => BOOLEAN,
+        Type::Char => CHAR,
         _ => return None,
     })
 }
 
 fn boxed_name(p: &str) -> &'static str {
-    match p {
-        "byte" => "Byte",
-        "short" => "Short",
-        "int" => "Integer",
-        "long" => "Long",
-        "float" => "Float",
-        "double" => "Double",
-        "boolean" => "Boolean",
-        _ => "Character",
-    }
+    BOXED
+        .iter()
+        .find(|(primitive, _)| *primitive == p)
+        .map_or(OBJECT, |(_, boxed)| boxed)
 }

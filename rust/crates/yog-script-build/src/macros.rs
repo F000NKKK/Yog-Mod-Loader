@@ -8,7 +8,8 @@ use std::collections::HashSet;
 use yog_data::Diagnostic;
 use yog_script_analyze::ast::{Decl, DeclKind, File, TypeKind};
 use yog_script_analyze::macros::ProcMacros;
-use yog_script_analyze::system::{self, DERIVE_MACRO, FIELD, ITEM, MACRO, PROC_MACRO};
+use yog_script_analyze::system;
+use yog_script_ids::system::{DERIVE_MACRO, FIELD, ITEM, MACRO, PROC_MACRO};
 use yog_script_run::{Interp, Panic, Program, Value};
 
 /// A build's macros, loaded from their sources.

@@ -143,9 +143,13 @@ impl Resolver<'_, '_> {
                 self.expr(callee);
                 args.iter().for_each(|a| self.arg(a));
             }
-            ExprKind::Index { expr, index } => {
+            ExprKind::Index { expr, args } => {
                 self.expr(expr);
-                self.expr(index);
+                args.iter().for_each(|a| self.expr(a));
+            }
+            ExprKind::NewArray { elem, .. } => {
+                self.opt_ty(elem.as_ref());
+                e.each_child(|c| self.expr(c));
             }
             ExprKind::TypeArgs { expr, args } => {
                 self.expr(expr);
@@ -195,7 +199,7 @@ impl Resolver<'_, '_> {
                 args.iter().for_each(|a| self.ty(a));
             }
             TypeKind::Tuple(items) => items.iter().for_each(|(t, _)| self.ty(t)),
-            TypeKind::Nullable(inner) => self.ty(inner),
+            TypeKind::Nullable(inner) | TypeKind::Array { item: inner, .. } => self.ty(inner),
             TypeKind::Both(all) => all.iter().for_each(|t| self.ty(t)),
             TypeKind::Borrow { lifetime, ty, .. } => {
                 if let Some(l) = lifetime {

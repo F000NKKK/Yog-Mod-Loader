@@ -5,11 +5,11 @@
 
 use super::{Accessor, Method, MethodBody, Name, Param, Type, value_param};
 use crate::source::token::Span;
-use crate::system::INDEXER;
 use crate::words::{get, set};
+use yog_script_ids::clr::INDEXER;
 
 /// What joins an accessor's word to the indexer's name (`get_Item`).
-const ACCESSOR_SEP: char = '_';
+use yog_script_ids::clr::ACCESSOR_SEP;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Indexer {

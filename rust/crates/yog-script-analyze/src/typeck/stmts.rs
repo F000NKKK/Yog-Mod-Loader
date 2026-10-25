@@ -4,7 +4,7 @@
 use super::Checker;
 use super::model::Type;
 use crate::ast::{self, BinOp, Binding, Block, Expr, ExprKind, Pattern, Stmt};
-use crate::system::ENUMERABLE;
+use yog_script_ids::system::ENUMERABLE;
 
 impl Checker<'_, '_, '_> {
     pub(super) fn block(&mut self, b: &Block) {
@@ -201,7 +201,7 @@ impl Checker<'_, '_, '_> {
     /// the `T` of the `IEnumerable<T>` it is.
     pub(super) fn item_of(&self, t: &Type) -> Type {
         match t.non_null() {
-            Type::Array(item) => (**item).clone(),
+            Type::Array(item, _) => (**item).clone(),
             Type::String => Type::Char,
             Type::Own(name, args) => self
                 .lineage_of(name, args)

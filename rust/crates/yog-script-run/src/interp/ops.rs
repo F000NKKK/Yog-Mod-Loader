@@ -22,7 +22,7 @@ impl<'p> Interp<'p> {
     /// `try r`: an `Ok`'s value; an `Err` returned from the method.
     fn try_value(&self, v: Value, at: Span) -> Run<Value> {
         match &v {
-            Value::Case(c) if c.of == yog_script_analyze::system::RESULT => {
+            Value::Case(c) if c.of == yog_script_ids::system::RESULT => {
                 if self.is_ok_case(c) {
                     Ok(c.fields.first().cloned().unwrap_or(Value::Void))
                 } else {

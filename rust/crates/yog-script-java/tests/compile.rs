@@ -189,3 +189,28 @@ fn a_strings_members_are_its_companions() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn arrays_are_javas() {
+    let src = "i32 Grid() {\n    let g = new i32[3, 4];\n    g[1, 2] = 5;\n    let mut n = 0;\n    foreach (let v in g) {\n        n += v;\n    }\n    return g.GetLength(1) + g[1, 2] + n;\n}\n\
+               string[] Names() => new[] { \"a\", \"b\" };\n\
+               i32[] Made(List<i32> more) => [1, 2, ..more];\n\
+               void Sorted(i32[] xs) {\n    let mut ys = move xs;\n    Array.Sort(ref ys);\n}\n\
+               i32 Count(in IEnumerable<i32> xs) => 0;\n\
+               i32 Viewed(i32[] xs) => Count(in xs);\n\
+               i32[] Back(List<i32> xs) => xs.ToArray();\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "new int[3][4]",
+        "g[1][2] = 5;",
+        "for (var v : $t",
+        "dev.yog.script.host.Array.GetLength(g, 2, 1)",
+        "new String[] { \"a\", \"b\" }",
+        "dev.yog.script.host.Array.Of($t",
+        "ys = dev.yog.script.host.Array.Sort(ys);",
+        "Count(dev.yog.script.host.Array.AsList(xs))",
+        "dev.yog.script.host.Array.Of(xs.ToArray(), int[].class)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
