@@ -5254,6 +5254,123 @@ public final class YogServices {
             }
         }
 
+        /** Draws only `blocks` (their ids) of the world on this client, every other block unseen and seen through; none: every block as usual. */
+        public record OnlyBlocks(java.util.List<String> blocks) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("blocks", blocks);
+                return m;
+            }
+
+            public static OnlyBlocks fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new OnlyBlocks(YogData.list(m.get("blocks")).stream().map(e0 -> YogData.str(e0, "")).toList());
+            }
+
+            public static OnlyBlocks fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                { int l0 = p.beginList(this.blocks.size()); for (var e0 : this.blocks) { p.putStr(e0); } p.end(l0); }
+                p.end(at);
+            }
+
+            public static OnlyBlocks unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                java.util.List<String> f_blocks = u.more(end) ? YogFrame.list(u, () -> u.getStr()) : java.util.List.of();
+                u.leave(end);
+                return new OnlyBlocks(f_blocks);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static OnlyBlocks fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static OnlyBlocks fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static OnlyBlocks readFrame(YogFrame.Unpacker u) {
+                OnlyBlocks v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code OnlyBlocks} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); { u.count(); u.skipTo(u.listEnd()); } } else { o0 = -1; }
+                    u.leave(end);
+                }
+
+                public java.util.List<String> blocks() {
+                    if (o0 < 0) return java.util.List.of();
+                    u.seek(o0);
+                    return YogFrame.list(u, () -> u.getStr());
+                }
+            }
+
+            private static final class Address {
+                static final int AT = YogBus.resolve(YogNames.ServiceClient.ONLY_BLOCKS);
+            }
+
+            /** The host's method answering it ({@code NativeBridge}), and where it's provided. */
+            public static final String HOST = "client.YogClientApi.onlyBlocks";
+            public static final String ADDRESS = YogNames.ServiceClient.ONLY_BLOCKS;
+
+            public boolean call() {
+                YogMessage r = YogBus.call(Address.AT, packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(dev.yog.api.YogBus.Provider<OnlyBlocks, Boolean> provider) {
+                return YogBus.provide(Address.AT, (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+
+            /** The host method's result {@code out} (its "none" already null) packed as the reply. */
+            public static void reply(Object out, YogFrame.Packer p) {
+                boolean v = (Boolean) out;
+                p.putBool(v);
+            }
+        }
+
         /** The slots of the inventory screen this client has open (none when it has none). */
         public record ScreenSlots() {
             public java.util.Map<String, Object> toData() {

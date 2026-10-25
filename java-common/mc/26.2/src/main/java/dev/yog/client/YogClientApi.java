@@ -77,6 +77,21 @@ public final class YogClientApi {
         return InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), key);
     }
 
+    // ── Drawn blocks (client::only_blocks) ───────────────────────────────────
+
+    /** Draws only {@code blocks} (ids) of the world, the rest unseen and seen through; none: all. */
+    @YogServiceHost
+    public static void onlyBlocks(java.util.List<String> blocks) {
+        java.util.Set<net.minecraft.world.level.block.Block> shown = new java.util.HashSet<>();
+        for (String id : blocks) {
+            Identifier key = Identifier.tryParse(id);
+            if (key != null) BuiltInRegistries.BLOCK.getOptional(key).ifPresent(shown::add);
+        }
+        dev.yog.render.YogBlockFilter.show(shown);
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(mc.levelExtractor::allChanged);
+    }
+
     // ── Block tints (client::set_block_tint) ──────────────────────────────────
 
     private static final Map<String, Map<Long, Integer>> TINTS = new ConcurrentHashMap<>();

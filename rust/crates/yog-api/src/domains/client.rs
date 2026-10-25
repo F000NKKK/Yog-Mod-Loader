@@ -80,6 +80,16 @@ pub fn set_block_tint(dimension: &str, pos: yog_core::BlockPos, color: Option<u3
     });
 }
 
+/// Draws only `blocks` (ids, `minecraft:diamond_ore`) of the world on this
+/// client: every other block isn't drawn and doesn't hide what's behind it
+/// (an x-ray). Empty: the world drawn as usual again. The world's drawing
+/// is made anew either way.
+pub fn only_blocks(blocks: &[&str]) {
+    call(&client::OnlyBlocks {
+        blocks: blocks.iter().map(|b| (*b).to_owned()).collect(),
+    });
+}
+
 /// GLFW key codes for [`key_down`].
 pub mod keys {
     /// No key: a key binding left unbound (GLFW's `GLFW_KEY_UNKNOWN`).

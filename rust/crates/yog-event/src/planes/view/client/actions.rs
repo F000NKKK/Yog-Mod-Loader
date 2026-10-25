@@ -13,6 +13,9 @@ actions! {
     HeldItem { off_hand: bool } -> Option<Stack> = ids::service_client::HELD_ITEM, "client.YogClientApi.heldItem";
     /// Tints the block at `pos` on this client (`0xRRGGBB`; -1 clears it).
     SetBlockTint { dim: String, pos: BlockPos, color: i32 } -> bool = ids::service_client::SET_BLOCK_TINT, "client.YogClientApi.setBlockTint";
+    /// Draws only `blocks` (their ids) of the world on this client, every
+    /// other block unseen and seen through; none: every block as usual.
+    OnlyBlocks { blocks: Vec<String> } -> bool = ids::service_client::ONLY_BLOCKS, "client.YogClientApi.onlyBlocks";
     /// The slots of the inventory screen this client has open (none when it has none).
     ScreenSlots {  } -> Vec<ScreenSlot> = ids::service_client::SCREEN_SLOTS, "actions.YogQueries.screenSlots";
     /// Whether GLFW key `key` is held down.

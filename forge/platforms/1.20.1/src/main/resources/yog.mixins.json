@@ -22,6 +22,7 @@
     "ServerSaveMixin"
     ],
     "client": [
+    "BlockFilterMixin",
     "ClientAdvancementsAccess",
         "BodyRenderMixin",
         "CameraMixin",

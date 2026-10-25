@@ -23,6 +23,7 @@
     "WearableSlotMixin"
   ],
   "client": [
+    "BlockFilterMixin",
     "ClientAdvancementsAccess",
     "BodyRenderMixin",
     "CameraMixin",
