@@ -28,10 +28,13 @@ Commands:
   run <loader>        Build, then run that loader's dev server (--client for client)
   test                Run tests (cargo test)
   clean               Remove build outputs and artifacts
+  runtime             The release runtime for every platform into every loader's
+                      natives, its debug info zipped apart (CI's first step)
   publish <target>    Release build + assemble artifacts/<loader>/ (+ native/)
   release <notes.md>  publish all, then the GitHub release of version.properties'
                       version: every jar and the runtime's debug info
                       (yog-runtime-symbols.zip, Yog Installer's symbols component)
+                      — CI does the same on a version's tag (.github/workflows/release.yml)
 
 Targets:
   rust                Rust runtime (native lib)
@@ -56,6 +59,8 @@ Options:
 Environment:
   YOG_TARGETS=linux-x86_64              only build these runtime platforms
                                         (comma-separated tags or triples)
+  YOG_PREBUILT_NATIVES=1                publish: take the natives already in
+                                        <loader>/src/main/resources/natives/
 
 Examples:
   ./build.sh build
@@ -395,7 +400,13 @@ cmd_publish() {
     [ -n "${1:-}" ] || die "publish needs a target: a loader (${LOADERS[*]}) or 'all'"
     CONFIG="Release"
     DEV=0           # a release: no hot reload, in the runtime or the jars
-    build_rust      # embeds all-platform natives into the loader jars
+    # Natives already in <loader>/src/main/resources/natives/ (CI builds
+    # them once, then each jar apart): taken as they are.
+    if [ "${YOG_PREBUILT_NATIVES:-0}" = 1 ]; then
+        echo "==> natives: prebuilt (YOG_PREBUILT_NATIVES)"
+    else
+        build_rust  # embeds all-platform natives into the loader jars
+    fi
 
     if [ "$1" = "all" ]; then
         local l v
@@ -476,6 +487,7 @@ case "$cmd" in
     run)            cmd_run "$target" ;;
     test)           cmd_test ;;
     clean)          cmd_clean ;;
+    runtime)        CONFIG="Release"; DEV=0; build_rust ;;
     publish)        cmd_publish "$target" ;;
     release)        cmd_release "$target" ;;
     -h|--help|help) usage ;;

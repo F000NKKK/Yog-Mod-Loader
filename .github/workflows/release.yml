@@ -1,0 +1,142 @@
+# A loader release, on a version's tag (version.properties' mod_version,
+# e.g. 0.7.0-beta.3): the runtime built once for every platform (its debug
+# info split out), then every loader × Minecraft version's jar apart, then
+# the GitHub release with them all — a pre-release when the version has a
+# suffix. Its notes: docs/releases/<version>.md when there's one.
+name: Release
+
+on:
+  push:
+    tags: ["[0-9]+.[0-9]+.[0-9]+*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ZIG_VERSION: "0.16.0"
+  ZIGBUILD_VERSION: "0.23.0"
+
+jobs:
+  runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust (the toolchain and targets rust-toolchain.toml pins)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - name: Zig and cargo-zigbuild (the cross linker)
+        run: |
+          curl -sSfL "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/zig-x86_64-linux-${ZIG_VERSION}" >> "$GITHUB_PATH"
+          cargo install --locked cargo-zigbuild --version "$ZIGBUILD_VERSION"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      # Natives into every loader, their debug info zipped apart.
+      - name: Build the runtime (all platforms)
+        run: |
+          set -euo pipefail
+          ./build.sh runtime
+          test "$(find fabric/src/main/resources/natives -type f | wc -l)" -eq 5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: natives
+          path: fabric/src/main/resources/natives/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: symbols
+          path: artifacts/yog-runtime-symbols.zip
+
+  jar:
+    needs: runtime
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { loader: fabric, mc: "1.19.2" }
+          - { loader: fabric, mc: "1.20.1" }
+          - { loader: fabric, mc: "1.21.1" }
+          - { loader: fabric, mc: "26.2" }
+          - { loader: forge, mc: "1.19.2" }
+          - { loader: forge, mc: "1.20.1" }
+          - { loader: forge, mc: "1.21.1" }
+          - { loader: forge, mc: "26.2" }
+          - { loader: neoforge, mc: "1.20.1" }
+          - { loader: neoforge, mc: "1.21.1" }
+          - { loader: neoforge, mc: "26.2" }
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: jdk17
+        uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - id: jdk21
+        uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - id: jdk25
+        uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "25" }
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: natives
+          path: ${{ matrix.loader }}/src/main/resources/natives/
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ matrix.loader }}-${{ matrix.mc }}-${{ hashFiles(format('{0}/versions/{1}.properties', matrix.loader, matrix.mc)) }}
+
+      - name: Build the jar
+        env:
+          YOG_PREBUILT_NATIVES: "1"
+          YOG_JAVA17_HOME: ${{ steps.jdk17.outputs.path }}
+          YOG_JAVA21_HOME: ${{ steps.jdk21.outputs.path }}
+          YOG_JAVA25_HOME: ${{ steps.jdk25.outputs.path }}
+        run: |
+          set -euo pipefail
+          ./build.sh publish "${{ matrix.loader }}" --mc "${{ matrix.mc }}"
+          ls artifacts/${{ matrix.loader }}/${{ matrix.mc }}/*.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jar-${{ matrix.loader }}-${{ matrix.mc }}
+          path: artifacts/${{ matrix.loader }}/${{ matrix.mc }}/*.jar
+
+  release:
+    needs: jar
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(grep '^mod_version=' version.properties | cut -d= -f2)"
+          tag="${GITHUB_REF_NAME}"
+          [ "$GITHUB_REF_TYPE" = tag ] || tag="$version"
+          [ "$tag" = "$version" ] || { echo "tag $tag isn't version.properties' $version"; exit 1; }
+          notes=(--generate-notes)
+          [ -f "docs/releases/$version.md" ] && notes=(--notes-file "docs/releases/$version.md")
+          pre=(); [[ "$version" == *-* ]] && pre=(--prerelease)
+          ls out
+          gh release create "$tag" out/*.jar out/yog-runtime-symbols.zip \
+            --title "Yog $version" "${notes[@]}" "${pre[@]}"
