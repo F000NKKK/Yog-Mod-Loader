@@ -226,13 +226,24 @@ impl Checker<'_, '_, '_> {
     pub(super) fn call(&mut self, callee: &Expr, args: &[Arg]) -> Type {
         let target = self.callee(callee);
         let given: Vec<Type> = args.iter().map(|a| self.expr(&a.value)).collect();
+        self.called(target, &given, args, callee.span)
+    }
+
+    /// `target` called with `args` (typed `given`): its result.
+    pub(super) fn called(
+        &mut self,
+        target: Callee,
+        given: &[Type],
+        args: &[Arg],
+        at: Span,
+    ) -> Type {
         match target {
             Callee::Own(methods, bound) => {
                 let sigs: Vec<Signature> =
                     self.with_types(bound, |c| methods.iter().map(|m| c.signature(m)).collect());
-                self.pick(&sigs, &given, args, callee.span)
+                self.pick(&sigs, given, args, at)
             }
-            Callee::Typed(sigs) => self.pick(&sigs, &given, args, callee.span),
+            Callee::Typed(sigs) => self.pick(&sigs, given, args, at),
             Callee::Unknown => Type::Unknown,
         }
     }

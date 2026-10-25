@@ -25,8 +25,8 @@ impl Checker<'_, '_, '_> {
                 mutable,
             } => self.local_decl(ty.as_ref(), binding, value.as_ref(), *mutable),
             Stmt::Assign { place, op, value } => {
-                self.written(place);
                 let t = self.expr(place);
+                self.written(place);
                 // `=`, and `+=`/`-=` on a delegate (an event's subscription):
                 // the value must be one.
                 if op.is_none() || matches!(t.non_null(), Type::Fn(..)) {

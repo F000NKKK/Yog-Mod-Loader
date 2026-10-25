@@ -105,27 +105,33 @@ fn plain_name(t: &Type) -> Option<&Name> {
     }
 }
 
-/// A method or a property, with what inheritance reads of it. A class's
-/// property without `abstract` is implemented (`{ get; }` is stored); an
-/// interface's only with a body.
+/// A method, a property or an indexer, with what inheritance reads of it.
+/// A class's property without `abstract` is implemented (`{ get; }` is
+/// stored); an interface's only with a body.
 fn member(d: &Decl, interface: bool) -> Option<Member> {
-    let (name, body) = match &d.kind {
-        DeclKind::Method(m) => (&m.name, m.body.is_some()),
+    let (name, span, body) = match &d.kind {
+        DeclKind::Method(m) => (m.name.text.as_str(), m.name.span, m.body.is_some()),
         DeclKind::Property {
             name,
             accessors,
             value,
             ..
         } => (
-            name,
+            name.text.as_str(),
+            name.span,
             !interface || value.is_some() || accessors.iter().any(|a| a.body.is_some()),
+        ),
+        DeclKind::Indexer(ix) => (
+            crate::system::INDEXER,
+            ix.span,
+            !interface || ix.accessors.iter().any(|a| a.body.is_some()),
         ),
         _ => return None,
     };
     let body = body && !d.has(Modifier::Abstract);
     Some(Member {
-        name: name.text.clone(),
-        span: name.span,
+        name: name.to_string(),
+        span,
         is_abstract: d.has(Modifier::Abstract),
         is_virtual: d.has(Modifier::Virtual),
         overrides: d.has(Modifier::Override),

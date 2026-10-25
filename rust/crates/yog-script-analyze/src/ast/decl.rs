@@ -103,6 +103,8 @@ pub enum DeclKind {
         accessors: Vec<Accessor>,
         value: Option<Expr>,
     },
+    /// `T this[i32 index] { get; set; }`: what `x[i]` reads and writes.
+    Indexer(super::Indexer),
     Ctor(Ctor),
     /// `class`, `struct`, `record`, `interface`: which is `word`;
     /// `value`: copied by value (a struct, a `record struct`).

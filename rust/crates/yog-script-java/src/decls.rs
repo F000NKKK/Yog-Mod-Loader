@@ -71,6 +71,7 @@ impl Gen<'_> {
                     self.body(&head, Some(body), false);
                 }
             }
+            DeclKind::Indexer(ix) => self.indexer(d, ix, place),
             DeclKind::Type {
                 word,
                 name,
@@ -101,7 +102,7 @@ impl Gen<'_> {
         }
     }
 
-    fn method(&mut self, d: &Decl, m: &Method, place: Place) {
+    pub(crate) fn method(&mut self, d: &Decl, m: &Method, place: Place) {
         if m.params
             .iter()
             .any(|p| matches!(p.pass, Some(Pass::Ref | Pass::Out)))

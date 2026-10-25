@@ -10,7 +10,7 @@ mod state;
 
 use std::collections::HashSet;
 
-use crate::ast::{Block, Decl, DeclKind, File, MethodBody, Param, Pass};
+use crate::ast::{Block, Decl, DeclKind, File, MethodBody, Param, Pass, accessor_scope};
 use crate::source::token::Span;
 use state::{State, Var};
 use yog_analysis::Report;
@@ -41,9 +41,20 @@ impl Checker<'_, '_> {
                     }
                 }
                 DeclKind::Ctor(c) => self.block_body(&c.params, &c.body),
-                DeclKind::Property { accessors, .. } => {
-                    for body in accessors.iter().filter_map(|a| a.body.as_ref()) {
-                        self.body(&[], body);
+                DeclKind::Property { ty, accessors, .. } => {
+                    for a in accessors {
+                        if let Some(body) = &a.body {
+                            self.body(&accessor_scope(ty, a, true), body);
+                        }
+                    }
+                }
+                DeclKind::Indexer(ix) => {
+                    for a in &ix.accessors {
+                        if let Some(body) = &a.body {
+                            let params =
+                                [ix.params.clone(), accessor_scope(&ix.ty, a, false)].concat();
+                            self.body(&params, body);
+                        }
                     }
                 }
                 DeclKind::System { params, body, .. } => self.block_body(params, body),

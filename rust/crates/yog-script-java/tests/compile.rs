@@ -65,3 +65,18 @@ fn yogs_surface_is_the_bus() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn an_indexer_is_its_accessors() {
+    let src = "public class Grid {\n    List<i32> _cells = [0, 0];\n    public i32 this[i32 i] {\n        get => _cells[i];\n        set { _cells[i] = value; }\n    }\n}\n\
+               void F(Grid g) {\n    g[0] = g[1];\n    g[1] += 2;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public int get_Item(int i)",
+        "public void set_Item(int i, int value)",
+        "g.set_Item(0, g.get_Item(1));",
+        "g.set_Item(1, g.get_Item(1) + 2);",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

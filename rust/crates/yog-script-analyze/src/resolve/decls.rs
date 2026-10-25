@@ -5,7 +5,7 @@ use super::naming::Case;
 use super::{Context, DefKind, Resolver};
 use crate::ast::{
     Constraint, Decl, DeclKind, Generic, Method, MethodBody, Modifier, Name, Param, TypeHeader,
-    Where,
+    Where, accessor_scope,
 };
 use crate::words::{interface, record};
 
@@ -44,7 +44,7 @@ impl Resolver<'_, '_> {
             }
             DeclKind::Method(m) => self.define(&m.name, DefKind::Method, Case::Pascal, again),
             DeclKind::Event { name, .. } => self.define(name, DefKind::Field, Case::Pascal, again),
-            DeclKind::Field(f) => self.define(&f.name, field_kind(d), Case::Pascal, again),
+            DeclKind::Field(f) => self.define(&f.name, field_kind(d), field_case(d), again),
             DeclKind::Property {
                 name, accessors, ..
             } => {
@@ -98,9 +98,22 @@ impl Resolver<'_, '_> {
             } => {
                 self.ty(ty);
                 for a in accessors {
-                    self.body(a.body.as_ref(), false);
+                    self.scoped(|r| {
+                        r.params(&accessor_scope(ty, a, true));
+                        r.body(a.body.as_ref(), false);
+                    });
                 }
                 self.opt_expr(value.as_ref());
+            }
+            DeclKind::Indexer(ix) => {
+                self.ty(&ix.ty);
+                for a in &ix.accessors {
+                    self.scoped(|r| {
+                        r.params(&ix.params);
+                        r.params(&accessor_scope(&ix.ty, a, false));
+                        r.body(a.body.as_ref(), false);
+                    });
+                }
             }
             DeclKind::Ctor(c) => self.scoped(|r| {
                 r.params(&c.params);
@@ -285,6 +298,17 @@ impl Resolver<'_, '_> {
 }
 
 /// What a field is by its modifiers.
+/// A field's case, as C#'s: a public one's and a constant's PascalCase,
+/// any other's (private, internal, protected — private when it says none)
+/// `_camelCase`.
+fn field_case(d: &Decl) -> Case {
+    if d.has(Modifier::Public) || d.has(Modifier::Const) {
+        Case::Pascal
+    } else {
+        Case::Private
+    }
+}
+
 fn field_kind(d: &Decl) -> DefKind {
     if d.has(Modifier::Const) {
         DefKind::Constant

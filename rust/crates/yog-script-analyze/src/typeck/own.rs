@@ -35,6 +35,16 @@ pub(crate) struct OwnType {
     pub generics: Vec<String>,
     /// An enum's cases that carry data, their fields by case.
     pub variants: HashMap<String, Vec<ast::Param>>,
+    /// Its indexers (`this[i32 i]`), still as written.
+    pub indexers: Vec<Indexer>,
+}
+
+/// An indexer as written: its getter (`get_Item`, what `x[i]` is typed as
+/// a call of), and whether it's set too (`x[i] = v`).
+#[derive(Clone)]
+pub(crate) struct Indexer {
+    pub get: Method,
+    pub settable: bool,
 }
 
 /// Every type the source declares, by name; the units it declares.
@@ -236,6 +246,14 @@ fn members(t: &mut OwnType, body: &[Decl]) {
             }
             DeclKind::Event { ty, name } => {
                 t.values.insert(name.text.clone(), ty.clone());
+            }
+            DeclKind::Indexer(ix) => {
+                if let Some(get) = ix.getter() {
+                    t.indexers.push(Indexer {
+                        get,
+                        settable: ix.setter().is_some(),
+                    });
+                }
             }
             DeclKind::Method(m) => {
                 if d.has(ast::Modifier::Readonly) {

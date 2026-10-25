@@ -188,7 +188,8 @@ constraints = ('where' IDENT ':' type (',' type)*)+ ;
 field_decl  = type IDENT bound? ('=' expr)? migration? ';'          (* a field; with `const`, a constant *)
 bound       = 'in' range_expr ;                      (* i32 Level in 0..100: kept in range *)
             | type IDENT '=>' expr ';'                               (* a computed property *)
-            | type IDENT '{' accessor+ '}' ('=' expr ';')? ;          (* a property with accessors *)
+            | type IDENT '{' accessor+ '}' ('=' expr ';')?            (* a property with accessors *)
+            | type 'this' '[' params ']' '{' accessor+ '}' ;          (* an indexer: what `x[i]` reads and writes *)
 accessor    = ('get' | 'set' | 'init') (';' | method_body) ;
 migration   = 'was' IDENT (':' type)? ;              (* an old save's name and type *)
 ```
@@ -266,7 +267,7 @@ content_item = IDENT '=' expr ';'                                    (* a proper
 ```ys
 block Charger has Charge(Res.Charger.Capacity) {
     Hardness = Res.Charger.Hardness;
-    Slots<Battery> Inventory = new(4);
+    public Slots<Battery> Inventory = new(4);
 
     Charger() {
         Use += player => player.Open(new ChargerScreen(this));
@@ -573,7 +574,7 @@ record Link(Pos From, Pos To);
 enum Mode { Idle, Charging(i32 Rate), Full }
 
 component Charge(Energy capacity) {
-    saved synced Energy Energy in 0..capacity = 0 was Power: i32;
+    public saved synced Energy Energy in 0..capacity = 0 was Power: i32;
     public Energy Capacity => capacity;
     public Energy Room => capacity - Energy;
 
@@ -585,7 +586,7 @@ component Charge(Energy capacity) {
 }
 
 extend Player {
-    saved i32 Visits = 0;
+    public saved i32 Visits = 0;
     public bool IsCharged => Inventory.Any { it is Battery b && b.Charge.Energy > 0 };
 }
 
@@ -593,9 +594,9 @@ block Charger has Charge(Res.Charger.Capacity) {
     Hardness = Res.Charger.Hardness;
     Drops = this;
 
-    saved Mode Mode = Mode.Idle;
-    Slots<Battery> Inventory = new(4);
-    tune i32 Rate = 4;
+    public saved Mode Mode = Mode.Idle;
+    public Slots<Battery> Inventory = new(4);
+    public tune i32 Rate = 4;
 
     Charger() {
         Tick += Charge;
@@ -674,7 +675,7 @@ using System.Game.Server;                    // MinecraftServer
 using Player = System.Game.World.Entity.Player.Player;   // the game's (Yog's Player is every file's)
 
 patch LivingEntity {
-    add saved f32 Shield = 0;
+    add public saved f32 Shield = 0;
     add : IChargeable;
 
     before bool Hurt(DamageSource source, f32 amount) {

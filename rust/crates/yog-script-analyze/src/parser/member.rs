@@ -1,11 +1,13 @@
 //! Members written type first (`ys-grammar.md` §2.2): methods, fields,
-//! properties; constructors; content of any kind (`block Charger { … }`,
+//! properties, indexers; constructors; content of any kind (`block Charger { … }`,
 //! a mod's own kinds: the kinds are open); `Name = value;` properties.
 
 use super::{PResult, Parser};
-use crate::ast::{Accessor, Chain, Ctor, DeclKind, Field, Method, MethodBody, Name, Prop, Type};
+use crate::ast::{
+    Accessor, Chain, Ctor, DeclKind, Field, Indexer, Method, MethodBody, Name, Prop, Type,
+};
 use crate::source::token::{Punct, Tok};
-use crate::words::{get, has, r#in, init, requires, set, void, was};
+use crate::words::{get, has, r#in, init, requires, set, this, void, was};
 
 impl Parser<'_, '_, '_> {
     /// A member no word starts.
@@ -17,6 +19,10 @@ impl Parser<'_, '_, '_> {
         }
         if matches!(self.tok(), Tok::Ident(_)) && self.nth_is(1, Punct::LParen) {
             return self.ctor().map(DeclKind::Ctor);
+        }
+        if self.indexer_ahead() {
+            let ty = self.ty()?;
+            return self.indexer(ty);
         }
         let Some(len) = self.typed_ahead() else {
             return Err(self.expected("a declaration"));
@@ -55,6 +61,13 @@ impl Parser<'_, '_, '_> {
             }
             _ => self.field_rest(ty, name).map(DeclKind::Field),
         }
+    }
+
+    /// Whether an indexer starts here: a type, then `this[`.
+    fn indexer_ahead(&self) -> bool {
+        self.type_len(0).is_some_and(|len| {
+            self.nth_word(len, &this::WORD) && self.nth_is(len + 1, Punct::LBracket)
+        })
     }
 
     /// Whether `get`, `set` or `init` stands `n` ahead: a property's braces.
@@ -134,8 +147,8 @@ impl Parser<'_, '_, '_> {
         })
     }
 
-    /// `{ get; set { … } }` and maybe `= value;`.
-    fn property(&mut self, ty: Type, name: Name) -> PResult<DeclKind> {
+    /// `{ get; set { … } }`: a property's or an indexer's accessors.
+    fn accessors(&mut self) -> PResult<Vec<Accessor>> {
         self.need(Punct::LBrace)?;
         let mut accessors = Vec::new();
         while !self.eat(Punct::RBrace) {
@@ -146,6 +159,26 @@ impl Parser<'_, '_, '_> {
             let body = self.method_body()?;
             accessors.push(Accessor { name, body });
         }
+        Ok(accessors)
+    }
+
+    /// `this[Type name, …] { get; set; }`, after the indexer's type.
+    fn indexer(&mut self, ty: Type) -> PResult<DeclKind> {
+        self.need_word(&this::WORD)?;
+        let start = ty.span;
+        let params = self.index_params()?;
+        let accessors = self.accessors()?;
+        Ok(DeclKind::Indexer(Indexer {
+            span: start.to(self.prev()),
+            ty,
+            params,
+            accessors,
+        }))
+    }
+
+    /// `{ get; set { … } }` and maybe `= value;`.
+    fn property(&mut self, ty: Type, name: Name) -> PResult<DeclKind> {
+        let accessors = self.accessors()?;
         let value = if self.eat(Punct::Eq) {
             let v = self.expr()?;
             self.end()?;

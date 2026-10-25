@@ -28,6 +28,10 @@ pub const DERIVE_MACRO: &str = "DeriveMacro";
 /// The attribute marking an attribute class as an attribute macro (`System`).
 pub const MACRO: &str = "Macro";
 
+/// An indexer's member name (`x[i]`): C#'s `IndexerName` default, the
+/// CLR's `get_Item` / `set_Item` — what inheritance and the JVM call it.
+pub const INDEXER: &str = "Item";
+
 /// The bus's attributes (`System.Yog.Native`): a call, an event, a method provided.
 pub const SERVICE: &str = "Service";
 pub const EVENT: &str = "Event";

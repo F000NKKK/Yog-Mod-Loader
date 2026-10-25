@@ -54,6 +54,12 @@ impl Parser<'_, '_, '_> {
         self.braces(|p| p.list(Punct::RParen, Self::param))
     }
 
+    /// `[Type name, …]`: an indexer's parameters.
+    pub(crate) fn index_params(&mut self) -> PResult<Vec<Param>> {
+        self.need(Punct::LBracket)?;
+        self.braces(|p| p.list(Punct::RBracket, Self::param))
+    }
+
     fn param(&mut self) -> PResult<Param> {
         let pass = self.pass();
         let lifetime = self.lifetime();

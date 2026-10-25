@@ -57,7 +57,7 @@ fn members_and_calls_are_the_types() {
     let src = "i32 Area(i32 w, i32 h) => w * h;\nint F() => Area(1, \"2\");\n";
     assert_eq!(codes(src), [script_problem::TYPE_MISMATCH]);
     // A component's members on its owner.
-    let src = "component Charge(i32 capacity) {\n    i32 Energy = 0;\n}\n\
+    let src = "component Charge(i32 capacity) {\n    public i32 Energy = 0;\n}\n\
                block Charger has Charge(10) { }\nint F(Charger c) => c.Energy + c.Charge.Energy;\n";
     assert!(codes(src).is_empty(), "{:?}", codes(src));
 }
@@ -116,7 +116,8 @@ fn the_games_classes_are_a_yns_files_only() {
     assert!(yns("client void F(Minecraft mc) { }\n").is_empty());
     // What `extend` adds sits beside the game's members.
     assert!(
-        yns("extend Player {\n    i32 Visits = 0;\n}\nint F(Player p) => p.Visits;\n").is_empty()
+        yns("extend Player {\n    public i32 Visits = 0;\n}\nint F(Player p) => p.Visits;\n")
+            .is_empty()
     );
     // As in C#, a name two `using`s bring in (`System.Yog`, every file's, among
     // them) is ambiguous: an alias, as above, or the full name settles it.
@@ -379,4 +380,37 @@ fn sending_to_the_server_is_declared() {
     };
     let declared = yog_script_analyze::check_in("a.ys", src, env);
     assert!(codes_of(declared.problems).is_empty());
+}
+
+#[test]
+fn an_indexer_is_called_by_brackets() {
+    let grid = "class Grid {\n    public i32 this[i32 i] { get => i * 2; }\n}\n";
+    let fine = format!("{grid}i32 F(Grid g) => g[3];\n");
+    assert!(codes(&fine).is_empty(), "{:?}", codes(&fine));
+    assert_eq!(
+        codes(&format!("{grid}i32 F(Grid g) => g[\"a\"];\n")),
+        [script_problem::TYPE_MISMATCH]
+    );
+    assert_eq!(
+        codes(&format!("{grid}string F(Grid g) => g[1];\n")),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn a_get_only_indexer_isnt_written() {
+    let grid = "class Grid {\n    public i32 this[i32 i] { get => i; }\n}\n";
+    assert_eq!(
+        codes(&format!("{grid}void F(Grid g) {{\n    g[0] = 1;\n}}\n")),
+        [script_problem::ASSIGN_TO_CONSTANT]
+    );
+    let set = "class Grid {\n    public i32 this[i32 i] { get => i; set { } }\n}\n";
+    let fine = format!("{set}void F(Grid g) {{\n    g[0] = 1;\n}}\n");
+    assert!(codes(&fine).is_empty(), "{:?}", codes(&fine));
+}
+
+#[test]
+fn a_setter_takes_its_value() {
+    let src = "class Grid {\n    List<i32> _cells = [0, 0];\n    public i32 this[i32 i] {\n        get => _cells[i];\n        set { _cells[i] = value; }\n    }\n}\n";
+    assert!(codes(src).is_empty(), "{:?}", codes(src));
 }

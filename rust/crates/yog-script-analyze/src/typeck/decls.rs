@@ -3,7 +3,9 @@
 
 use super::model::Type;
 use super::{Checker, generics};
-use crate::ast::{Decl, DeclKind, Method, MethodBody, Modifier, Param, PatchItem, Point};
+use crate::ast::{
+    Accessor, Decl, DeclKind, Method, MethodBody, Modifier, Param, PatchItem, Point, accessor_scope,
+};
 use crate::index::Side;
 
 impl Checker<'_, '_, '_> {
@@ -30,13 +32,13 @@ impl Checker<'_, '_, '_> {
                 value,
                 ..
             } => {
-                let t = self.type_of(ty);
-                for a in accessors {
-                    self.body(a.body.as_ref(), &[], Some(t.clone()), side);
-                }
+                let t = self.accessors(ty, Of::Property, accessors, side);
                 if let Some(v) = value {
                     self.fits(v, &t);
                 }
+            }
+            DeclKind::Indexer(ix) => {
+                self.accessors(&ix.ty, Of::Indexer(&ix.params), &ix.accessors, side);
             }
             DeclKind::Method(m) => {
                 let readonly = d.has(Modifier::Readonly) || self.this_readonly();
@@ -227,4 +229,43 @@ fn side_of(d: &Decl) -> Option<Side> {
         Modifier::Shared => Some(Side::Shared),
         _ => None,
     })
+}
+
+/// Whose accessors these are: a property's, or an indexer's (its parameters).
+enum Of<'a> {
+    Property,
+    Indexer(&'a [Param]),
+}
+
+impl Checker<'_, '_, '_> {
+    /// A member's accessors checked, each with what it has in scope; the
+    /// member's type.
+    fn accessors(
+        &mut self,
+        ty: &crate::ast::Type,
+        of: Of,
+        accessors: &[Accessor],
+        side: Side,
+    ) -> Type {
+        let t = self.type_of(ty);
+        let (params, property) = match of {
+            Of::Property => (&[][..], true),
+            Of::Indexer(params) => (params, false),
+        };
+        for a in accessors {
+            let scope = [params.to_vec(), accessor_scope(ty, a, property)].concat();
+            self.body(a.body.as_ref(), &scope, Some(accessor_result(a, &t)), side);
+        }
+        t
+    }
+}
+
+/// What accessor `a`'s body gives: a `get` the member's type `t`, a `set`
+/// or an `init` nothing.
+fn accessor_result(a: &Accessor, t: &Type) -> Type {
+    if a.name.text == crate::words::get::WORD.text {
+        t.clone()
+    } else {
+        Type::Void
+    }
 }

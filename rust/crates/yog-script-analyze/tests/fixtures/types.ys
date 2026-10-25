@@ -7,7 +7,7 @@ public interface IChargeable<out T> where T : class {
 }
 
 public abstract class Machine(i32 capacity) : IChargeable<Machine> {
-    protected i32 Stored;
+    protected i32 _stored;
     public Machine Holder => this;
     public abstract void Tick();
     public virtual i32 Rate() => 1;
@@ -15,7 +15,7 @@ public abstract class Machine(i32 capacity) : IChargeable<Machine> {
 
 public sealed class Battery : Machine {
     public Battery() : base(1000) { }
-    public override void Tick() { Stored += Rate(); }
+    public override void Tick() { _stored += Rate(); }
     public override i32 Rate() => base.Rate() * 4u8;
 }
 
@@ -54,7 +54,7 @@ public static class Tools {
 
 // Lifetimes: a borrow kept by a `ref struct`, one given back.
 public ref struct Cursor<'a>(in 'a List<i32> items) {
-    i32 At = 0;
+    i32 _at = 0;
 }
 
 public static class Borrows {

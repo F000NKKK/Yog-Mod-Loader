@@ -12,6 +12,7 @@ mod decls;
 mod exprs;
 mod game;
 mod generics;
+mod indexers;
 mod inherit;
 mod lambdas;
 mod macro_calls;

@@ -87,12 +87,8 @@ impl Checker<'_, '_, '_> {
             }
             ExprKind::NotNull(inner) => self.expr(inner).non_null().clone(),
             ExprKind::Index { expr, index } => {
-                self.expr(index);
-                match self.expr(expr) {
-                    Type::List(item) => *item,
-                    Type::Map(_, value) => *value,
-                    _ => Type::Unknown,
-                }
+                let on = self.expr(expr);
+                self.indexed(on, index, e.span)
             }
             _ => {
                 self.walk_inner(e);

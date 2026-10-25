@@ -12,6 +12,8 @@ pub(crate) enum Case {
     Pascal,
     /// Parameters and locals: `chargeLevel`.
     Camel,
+    /// Fields that aren't public: `_chargeLevel`.
+    Private,
     /// Interfaces: `IChargeable`.
     Interface,
     /// Type parameters: `T`, `TItem`.
@@ -25,7 +27,8 @@ const DISCARD: &str = "_";
 /// What an interface's and a type parameter's names start with.
 const INTERFACE_MARK: char = 'I';
 const TYPE_PARAM_MARK: char = 'T';
-/// What C#'s cases don't have inside a name.
+/// What C#'s cases don't have inside a name, and what a field that isn't
+/// public starts with.
 const SEPARATOR: char = '_';
 
 impl Case {
@@ -35,12 +38,15 @@ impl Case {
         let (Some(first), second) = (chars.next(), chars.next()) else {
             return true;
         };
+        if self == Case::Private {
+            return first == SEPARATOR && Case::Camel.fits(&name[SEPARATOR.len_utf8()..]);
+        }
         if name.contains(SEPARATOR) && self != Case::Any {
             return false;
         }
         match self {
             Case::Pascal => first.is_uppercase(),
-            Case::Camel => first.is_lowercase(),
+            Case::Camel | Case::Private => first.is_lowercase(),
             Case::Interface => first == INTERFACE_MARK && second.is_some_and(char::is_uppercase),
             Case::TypeParam => first == TYPE_PARAM_MARK && second.is_none_or(char::is_uppercase),
             Case::Any => true,
@@ -51,6 +57,7 @@ impl Case {
         match self {
             Case::Pascal => "PascalCase (`ChargeLevel`)",
             Case::Camel => "camelCase (`chargeLevel`)",
+            Case::Private => "`_` and camelCase (`_chargeLevel`): a field that isn't public",
             Case::Interface => "`I` and PascalCase (`IChargeable`)",
             Case::TypeParam => "`T` or `T` and PascalCase (`TItem`)",
             Case::Any => "any case",

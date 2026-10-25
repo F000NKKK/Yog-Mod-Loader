@@ -395,7 +395,7 @@ mod's own classes inherit as in C# (above).
 
 ```ys
 component Charge(Energy capacity) {
-    saved synced Energy Energy in 0..capacity = 0;
+    public saved synced Energy Energy in 0..capacity = 0;
     public Energy Capacity => capacity;
     public Energy Room => capacity - Energy;
 
@@ -413,7 +413,7 @@ component Owned {
 
 block Charger has Charge(Res.Charger.Capacity), Owned {
     Hardness = Res.Charger.Hardness;
-    Slots<Battery> Inventory = new(4);
+    public Slots<Battery> Inventory = new(4);
     Charger() { Use += player => player.Open(new ChargerScreen(this)); }
 }
 
@@ -490,13 +490,13 @@ State is declared where it belongs, with modifiers instead of code:
 
 ```ys
 block Charger {
-    saved synced Energy Energy in 0..Res.Capacity = 0;
+    public saved synced Energy Energy in 0..Res.Capacity = 0;
     saved Player? Owner = null;
     Ticks Cooldown = 0t;                 // neither saved nor synced: server memory
 }
 
 extend Player {                          // per player: state the game's object carries
-    saved i32 Visits = 0;
+    public saved i32 Visits = 0;
 }
 
 extend World {                           // per world
@@ -618,7 +618,7 @@ block Charger has Charge(Res.Charger.Capacity) {
     Tool = Tool.Pickaxe;
     Drops = this;
 
-    Slots<Battery> Inventory = new(4);
+    public Slots<Battery> Inventory = new(4);
 
     Charger() {
         Tick += () => { foreach (let battery in Inventory) Charge.Push(battery.Charge); };
@@ -674,7 +674,7 @@ nearest candidate.
 
 ```yns
 patch LivingEntity {
-    add saved f32 Shield = 0;              // added state (saved, synced work here too)
+    add public saved f32 Shield = 0;              // added state (saved, synced work here too)
     add : IChargeable;                       // an added interface
 
     // Before the method. `skip` ends it with a value; nothing: it runs.

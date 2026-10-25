@@ -11,6 +11,7 @@ mod classes;
 mod decls;
 mod exprs;
 mod index;
+mod indexers;
 mod stmts;
 mod switch;
 mod types;

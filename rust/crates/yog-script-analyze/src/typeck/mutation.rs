@@ -15,6 +15,9 @@ impl Checker<'_, '_, '_> {
     /// `place = …` / `place += …` on a member or an element: what holds it
     /// may change.
     pub(super) fn written(&mut self, place: &Expr) {
+        if let ExprKind::Index { expr, .. } = &place.kind {
+            self.index_written(expr, place.span);
+        }
         let why = match &place.kind {
             ExprKind::Member { expr, .. } if self.is_record(expr) => {
                 Some("a record (changed only by `with`)".to_string())

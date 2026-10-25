@@ -1,20 +1,24 @@
 //! The syntax tree of a Yog Script source (`docs/design/ys-grammar.md`).
 
+mod accessor;
 mod decl;
 mod expr;
 mod generics;
+mod indexer;
 mod pass;
 mod patch;
 mod pattern;
 mod stmt;
 mod walk;
 
+pub use accessor::{accessor_scope, value_param};
 pub use decl::{
     Accessor, Attribute, Chain, Ctor, Decl, DeclKind, Field, Method, MethodBody, Modifier, Param,
     Prop, TypeHeader, Variant, VersionCond,
 };
 pub use expr::{Arg, Arm, BinOp, Element, Expr, ExprKind, LambdaBody, LambdaParam, StrSeg, UnOp};
 pub use generics::{Constraint, Generic, Variance, Where};
+pub use indexer::{Indexer, accessor_name};
 pub use pass::Pass;
 pub use patch::{Callee, Local, Patch, PatchItem, Point, Selector, Target};
 pub use pattern::{Pattern, Type, TypeKind};

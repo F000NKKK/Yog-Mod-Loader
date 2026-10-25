@@ -66,6 +66,9 @@ impl Gen<'_> {
             | ExprKind::TypeArgs { expr: inner, .. } => self.expr(inner),
             ExprKind::Index { expr, index } => {
                 let (on, at) = (self.expr(expr), self.expr(index));
+                if self.has_indexer(expr) {
+                    return Self::index_read(&on, &at);
+                }
                 match self.types.of(expr) {
                     Some(Type::String) => format!("{on}.charAt({at})"),
                     _ => format!("{RUNTIME}.Ys.at({on}, {at}, {})", self.at(e.span)),

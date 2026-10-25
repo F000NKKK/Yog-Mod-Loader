@@ -145,6 +145,18 @@ impl Gen<'_> {
         let v = self.handed_expr(value);
         if let ExprKind::Index { expr, index } = &place.kind {
             let (list, at) = (self.expr(expr), self.expr(index));
+            if self.has_indexer(expr) {
+                let v = match op {
+                    Some(op) => format!(
+                        "{} {} {v}",
+                        Self::index_read(&list, &at),
+                        crate::exprs::op_text(*op)
+                    ),
+                    None => v,
+                };
+                self.code.line(Self::index_write(&list, &at, &v));
+                return;
+            }
             let v = match op {
                 Some(op) => format!("{list}.get({at}) {} {v}", crate::exprs::op_text(*op)),
                 None => v,
