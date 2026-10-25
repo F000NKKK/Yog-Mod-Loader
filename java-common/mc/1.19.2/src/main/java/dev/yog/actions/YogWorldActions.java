@@ -44,7 +44,7 @@ public final class YogWorldActions {
             // Full /setblock syntax: id[prop=value,...]{nbt}
             try {
                 BlockStateParser.BlockResult r =
-                        BlockStateParser.parseForBlock(Registry.BLOCK.asLookup(), blockId, true);
+                        BlockStateParser.parseForBlock(Registry.BLOCK, blockId, true);
                 return new BlockInput(r.blockState(), r.properties().keySet(), r.nbt())
                         .place(w, new BlockPos(x, y, z), 3);
             } catch (CommandSyntaxException e) {

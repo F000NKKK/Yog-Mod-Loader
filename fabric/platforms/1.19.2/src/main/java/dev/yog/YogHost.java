@@ -119,9 +119,9 @@ public class YogHost implements ModInitializer {
         PlayerBlockBreakEvents.AFTER.register(YogServerEvents::blockBroken);
 
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) ->
-                YogServerEvents.chatPre(sender, message.decoratedContent().getString()));
+                YogServerEvents.chatPre(sender, message.serverContent().getString()));
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) ->
-                YogServerEvents.chat(sender, message.decoratedContent().getString()));
+                YogServerEvents.chat(sender, message.serverContent().getString()));
 
         UseItemCallback.EVENT.register((player, level, hand) -> {
             var stack = player.getItemInHand(hand);

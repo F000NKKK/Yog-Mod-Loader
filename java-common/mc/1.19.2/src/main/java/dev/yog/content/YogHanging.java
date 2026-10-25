@@ -79,7 +79,7 @@ public class YogHanging extends HangingEntity {
 
     /** Tells the mods how it hangs (server side). */
     public void share() {
-        if (level().isClientSide || direction == null) return;
+        if (getLevel().isClientSide || direction == null) return;
         ItemStack item = item();
         NativeBridge.nativeEntityDataSet(getStringUUID(), YogNames.Yog.HANGING, new YogTypes.Hanging(direction.getSerializedName(),
                 entityData.get(WIDTH), entityData.get(HEIGHT), Registry.ITEM.getKey(item.getItem()).toString(),
@@ -103,7 +103,7 @@ public class YogHanging extends HangingEntity {
 
     @Override
     public void dropItem(Entity breaker) {
-        if (!level().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) return;
+        if (!getLevel().getGameRules().getBoolean(GameRules.RULE_DOENTITYDROPS)) return;
         YogTypes.EntityDef def = def();
         if (def != null) play(def.breakSound());
         if (breaker instanceof Player p && p.getAbilities().instabuild) return;

@@ -25,14 +25,14 @@ public abstract class ProjectileHitMixin extends Entity {
     @Inject(method = "onHit", at = @At("HEAD"), cancellable = true)
     private void yog$onProjectileHit(HitResult hitResult, CallbackInfo ci) {
         if (hitResult.getType() == HitResult.Type.MISS) return;
-        if (level().isClientSide()) return;
+        if (getLevel().isClientSide()) return;
 
         Projectile self = (Projectile)(Object)this;
         String projType = Registry.ENTITY_TYPE.getKey(getType()).toString();
         String projUuid = getStringUUID();
         Entity owner = self.getOwner();
         String shooterUuid = owner != null ? owner.getStringUUID() : "";
-        String dim = level().dimension().location().toString();
+        String dim = getLevel().dimension().location().toString();
 
         String hitType;
         String hitEntityUuid;

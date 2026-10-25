@@ -164,7 +164,7 @@ public final class YogQueries {
         FluidState fs = st.getFluidState();
         String fluid = fs.isEmpty() ? null : Registry.FLUID.getKey(fs.getType()).toString();
         boolean inWorld = w.isInWorldBounds(pos) && w.getWorldBorder().isWithinBounds(pos);
-        return new YogTypes.BlockInfo(BlockStateParser.serialize(st), st.getDestroySpeed(w, pos), st.canBeReplaced(), st.isAir(),
+        return new YogTypes.BlockInfo(BlockStateParser.serialize(st), st.getDestroySpeed(w, pos), st.getMaterial().isReplaceable(), st.isAir(),
                 fluid, !fs.isEmpty() && fs.isSource(), w.getBestNeighborSignal(pos), inWorld);
     }
 
@@ -212,7 +212,7 @@ public final class YogQueries {
         ServerLevel w = NativeBridge.worldFor(dim);
         if (w == null) return null;
         try {
-            BlockState parsed = BlockStateParser.parseForBlock(Registry.BLOCK.asLookup(), state, false).blockState();
+            BlockState parsed = BlockStateParser.parseForBlock(Registry.BLOCK, state, false).blockState();
             int changed = 0;
             for (BlockPos pos : BlockPos.betweenClosed(new BlockPos(x1, y1, z1), new BlockPos(x2, y2, z2))) {
                 if (w.setBlock(pos, parsed, SET_BLOCK_FLAGS)) changed++;

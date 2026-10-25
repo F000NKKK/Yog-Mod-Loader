@@ -14,7 +14,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
@@ -61,7 +60,7 @@ public final class YogEntityActions {
     public static boolean entityAddVelocity(String uuid, double vx, double vy, double vz) {
         Entity e = NativeBridge.entityByUuid(uuid);
         if (e == null) return false;
-        e.addDeltaMovement(new net.minecraft.world.phys.Vec3(vx, vy, vz));
+        e.setDeltaMovement(e.getDeltaMovement().add(vx, vy, vz));
         e.hasImpulse = true;
         return true;
     }
@@ -71,7 +70,13 @@ public final class YogEntityActions {
         Entity e = NativeBridge.entityByUuid(uuid);
         ServerLevel w = NativeBridge.worldFor(dimension);
         if (e == null || w == null) return false;
-        e.teleportTo(w, x, y, z, java.util.Set.of(), e.getYRot(), e.getXRot());
+        if (e instanceof net.minecraft.server.level.ServerPlayer sp) {
+            sp.teleportTo(w, x, y, z, e.getYRot(), e.getXRot());
+            return true;
+        }
+        Entity there = e.getLevel() == w ? e : e.changeDimension(w);
+        if (there == null) return false;
+        there.teleportTo(x, y, z);
         return true;
     }
 
@@ -123,6 +128,30 @@ public final class YogEntityActions {
         return e.getStringUUID();
     }
 
+    /**
+     * The damage source of type id: this version names its sources by
+     * message id, the type's path in camel case ({@code in_fire} is
+     * {@code inFire}) — the game's own source when it has one and no one
+     * caused it, else one of that id caused by src.
+     */
+    private static DamageSource damageSource(ResourceLocation id, Entity src) {
+        StringBuilder msg = new StringBuilder();
+        for (String word : id.getPath().split(dev.yog.YogNames.Sep.WORD)) {
+            msg.append(msg.isEmpty() ? word : Character.toUpperCase(word.charAt(0)) + word.substring(1));
+        }
+        String msgId = msg.toString();
+        if (src != null) return new net.minecraft.world.damagesource.EntityDamageSource(msgId, src);
+        for (java.lang.reflect.Field f : DamageSource.class.getFields()) {
+            if (!java.lang.reflect.Modifier.isStatic(f.getModifiers()) || f.getType() != DamageSource.class) continue;
+            try {
+                if (f.get(null) instanceof DamageSource d && d.getMsgId().equals(msgId)) return d;
+            } catch (IllegalAccessException ignored) {
+                // A public field: always readable.
+            }
+        }
+        return new DamageSource(msgId);
+    }
+
     /** Damage an entity with a damage type id (empty: from the attacker), caused by attacker (uuid or ""). */
     @YogServiceHost
     public static boolean entityDamage(String uuid, float amount, String damageType, String attackerUuid) {
@@ -133,18 +162,13 @@ public final class YogEntityActions {
             DamageSource ds = null;
             ResourceLocation tid = damageType == null || damageType.isEmpty() ? null : ResourceLocation.tryParse(damageType);
             if (tid != null) {
-                var type = e.getLevel().registryAccess().registryOrThrow(Registry.DAMAGE_TYPE_REGISTRY)
-                        .getHolder(ResourceKey.create(Registry.DAMAGE_TYPE_REGISTRY, tid));
-                if (type.isPresent()) ds = new DamageSource(type.get(), src);
-            }
-            if (ds == null) {
-                if (tid == null && src instanceof Player sp) {
-                    ds = e.damageSources().playerAttack(sp);
-                } else if (tid == null && src instanceof LivingEntity sl) {
-                    ds = e.damageSources().mobAttack(sl);
-                } else {
-                    ds = e.damageSources().magic();
-                }
+                ds = damageSource(tid, src);
+            } else if (src instanceof Player sp) {
+                ds = DamageSource.playerAttack(sp);
+            } else if (src instanceof LivingEntity sl) {
+                ds = DamageSource.mobAttack(sl);
+            } else {
+                ds = DamageSource.MAGIC;
             }
             return e.hurt(ds, amount);
         } catch (Throwable t) {

@@ -174,7 +174,7 @@ public final class YogBlockActions {
         ServerLevel w = NativeBridge.worldFor(dimension);
         if (w == null) return false;
         try {
-            var parsed = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(Registry.BLOCK.asLookup(), state, false).blockState();
+            var parsed = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(Registry.BLOCK, state, false).blockState();
             net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, y, z);
             return w.setBlock(pos, parsed, 3);
         } catch (Exception e) {

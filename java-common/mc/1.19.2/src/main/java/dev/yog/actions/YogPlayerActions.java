@@ -107,7 +107,7 @@ public final class YogPlayerActions {
             ItemStack stack = inv.items.get(slot);
             if (stack.isEmpty() || !(stack.getItem() instanceof BlockItem bi)) return false;
             BlockPos pos = new BlockPos(x, y, z);
-            if (!w.getBlockState(pos).canBeReplaced()) return false;
+            if (!w.getBlockState(pos).getMaterial().isReplaceable()) return false;
             BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
             InteractionResult r = bi.place(new BlockPlaceContext(p, InteractionHand.MAIN_HAND, stack, hit));
             return r.consumesAction();
