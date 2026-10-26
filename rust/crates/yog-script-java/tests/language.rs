@@ -235,3 +235,21 @@ fn commands_are_ways_of_running() {
         );
     }
 }
+
+/// `t"key"` is System.Yog's `Text` of the key; its arguments go in `With`;
+/// a `string` becomes one by `Text`'s implicit conversion.
+#[test]
+fn texts_are_yogs_text() {
+    let src = "Text Full(i32 n) => t\"m.full\"(n);\nText Words() => \"plain\";\n";
+    let checked = yog_script_analyze::check("t.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let java = yog_script_java::compile("t.ys", src, &checked, "p")
+        .unwrap_or_else(|p| panic!("{p:#?}"))
+        .source;
+    for want in [
+        "dev.yog.script.yog.Text.Of(\"m.full\").With(new Object[] { n })",
+        "dev.yog.script.yog.Text.op_Implicit(\"plain\")",
+    ] {
+        assert!(java.contains(want), "missing `{want}` in:\n{java}");
+    }
+}

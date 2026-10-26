@@ -20,7 +20,7 @@ impl Type {
             Shape::Float { bits } if *bits <= u32::BITS => Type::F32,
             Shape::Float { .. } => Type::F64,
             Shape::Str | Shape::Atom => Type::String,
-            Shape::Text => Type::Text,
+            Shape::Text => Type::own(yog_script_ids::system::TEXT_TYPE.to_string()),
             Shape::Ref([kind]) => Type::Content((*kind).to_string()),
             Shape::Tag(_) => Type::Tag,
             Shape::List(inner) => Type::Own(LIST.into(), vec![Type::of_shape(&inner())]),

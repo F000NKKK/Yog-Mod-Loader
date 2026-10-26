@@ -6,10 +6,10 @@ use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, Stmt, StrSeg, UnOp};
 
 use yog_script_ids::java::{
-    BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NULL, RETURN, ZERO, ZERO_CHAR,
+    BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NEW, NULL, RETURN, ZERO, ZERO_CHAR,
 };
 use yog_script_ids::jvm::{
-    COPY, EQUALS, HELPERS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE,
+    COPY, EQUALS, HELPERS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE, TEXT_OF, TEXT_WITH,
 };
 use yog_script_ids::members::TO_STRING;
 use yog_script_ids::units::SECOND_SUFFIXES;
@@ -61,7 +61,13 @@ impl Gen<'_> {
             ExprKind::Bool(b) => b.to_string(),
             ExprKind::Null => NULL.into(),
             ExprKind::Char(c) => format!("'{}'", self.code.str(&c.to_string()).trim_matches('"')),
-            ExprKind::RawStr(s) | ExprKind::Text(s) | ExprKind::Tag(s) => self.code.str(s),
+            ExprKind::RawStr(s) | ExprKind::Tag(s) => self.code.str(s),
+            // `t"key"`: System.Yog's `Text` of the key.
+            ExprKind::Text(key) => format!(
+                "{}.{TEXT_OF}({})",
+                self.index.place(yog_script_ids::system::TEXT_TYPE, 0),
+                self.code.str(key)
+            ),
             ExprKind::Content { id, .. } => self.code.str(id),
             ExprKind::Str(segs) => self.interpolated(segs),
             ExprKind::Ident(name) if let Some(field) = self.field_of(name) => field.to_string(),
@@ -83,6 +89,12 @@ impl Gen<'_> {
             ExprKind::Member { expr, name, safe } => self.member(e, expr, &name.text, *safe),
             ExprKind::Call { callee, args } if let Some(m) = self.types.message(e).cloned() => {
                 self.message_sent(e, (callee, args), &m)
+            }
+            // `t"key"(a, b)`: `Text.With`, its arguments as objects.
+            ExprKind::Call { callee, args } if matches!(callee.kind, ExprKind::Text(_)) => {
+                let text = self.expr(callee);
+                let a = self.args(args);
+                format!("{text}.{TEXT_WITH}({NEW} {OBJECT}[] {{ {a} }})")
             }
             ExprKind::Call { callee, args } => self.giving_back(e, |g| g.call(e, callee, args)),
             ExprKind::New { ty, args, init } => self.giving_back(e, |g| {

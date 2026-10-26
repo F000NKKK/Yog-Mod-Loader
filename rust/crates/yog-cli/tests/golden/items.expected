@@ -1,5 +1,4 @@
 # warning: resources/Items.ru_ru.yres: 1 text(s) not translated (shown in en_us): ruby.desc
-# warning: the mod has content (blocks, items, particles, videos, …), but src/ never calls `yog_api::content!();` — it isn't registered
 # resources: Items.g.rs
 /// The resources of `resources/Items.yres`.
 #[allow(dead_code)]

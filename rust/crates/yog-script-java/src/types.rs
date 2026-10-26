@@ -21,7 +21,7 @@ impl Gen<'_> {
             return if boxed { boxed_name(p) } else { p }.to_string();
         }
         match t {
-            Type::String | Type::Text | Type::Content(_) | Type::Tag => STRING.into(),
+            Type::String | Type::Content(_) | Type::Tag => STRING.into(),
             Type::Decimal => BIG_DECIMAL.into(),
             Type::Void => if boxed { BOXED_VOID } else { VOID }.into(),
             Type::Unit(_) => self.java(&Type::F64, boxed),

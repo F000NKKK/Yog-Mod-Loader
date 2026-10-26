@@ -1,5 +1,4 @@
 # warning: resources/Book.ru_ru.yres: 2 text(s) not translated (shown in en_us): intro, landing
-# warning: the mod has content (blocks, items, particles, videos, …), but src/ never calls `yog_api::content!();` — it isn't registered
 # resources: Book.g.rs
 /// The resources of `resources/Book.yres`.
 #[allow(dead_code)]

@@ -106,7 +106,8 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.yog.BlockObject.class, () -> BlockObjectCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.GameTime.class, () -> GameTimeCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.ItemObject.class, () -> ItemObjectCompanion.TYPE),
-            java.util.Map.entry(dev.yog.script.yog.Sender.class, () -> SenderCompanion.TYPE));
+            java.util.Map.entry(dev.yog.script.yog.Sender.class, () -> SenderCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.yog.Text.class, () -> TextCompanion.TYPE));
 
     public static dev.yog.script.Type of(Class<?> c) {
         java.util.function.Supplier<dev.yog.script.Type> t = TYPES.get(c);

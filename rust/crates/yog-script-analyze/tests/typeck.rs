@@ -740,3 +740,16 @@ fn bits_steps_and_assignments_use_a_types_operators() {
         [script_problem::TYPE_MISMATCH, script_problem::TYPE_MISMATCH]
     );
 }
+
+/// `Text` is System.Yog's: written by its name, `t"key"` one, `t"key"(a)`
+/// one with its arguments, a `string` one by its implicit conversion; it
+/// isn't a `string`.
+#[test]
+fn text_is_yogs() {
+    let ok = "Text Title() => t\"m.title\";\nText Full(i32 n) => t\"m.full\"(n, \"x\");\nText Words() => \"plain\";\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    assert_eq!(
+        codes("string S() => t\"m.title\";\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}

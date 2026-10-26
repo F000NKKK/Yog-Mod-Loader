@@ -22,8 +22,12 @@ pub struct Map {
     entries: Vec<(Arc<str>, Value)>,
     /// Each key's position, once a lookup in a big map asked for it;
     /// boxed, so a map (and so every [`Value`]) is no bigger for it.
-    index: OnceLock<Box<HashMap<Arc<str>, usize>>>,
+    index: OnceLock<Box<KeyIndex>>,
 }
+
+/// Each key's position among a map's entries.
+#[derive(Clone, Default)]
+struct KeyIndex(HashMap<Arc<str>, usize>);
 
 impl std::fmt::Debug for Map {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -56,20 +60,20 @@ impl Map {
             return self.entries.iter().position(|(k, _)| &**k == key);
         }
         let index = self.index.get_or_init(|| {
-            Box::new(
+            Box::new(KeyIndex(
                 self.entries
                     .iter()
                     .enumerate()
                     .map(|(i, (k, _))| (k.clone(), i))
                     .collect(),
-            )
+            ))
         });
-        index.get(key).copied()
+        index.0.get(key).copied()
     }
 
     /// The index, if one's made: what a change keeps current.
     fn index_mut(&mut self) -> Option<&mut HashMap<Arc<str>, usize>> {
-        self.index.get_mut().map(|b| &mut **b)
+        self.index.get_mut().map(|b| &mut b.0)
     }
 
     pub fn get(&self, key: &str) -> Option<&Value> {

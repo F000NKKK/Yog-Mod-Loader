@@ -11,7 +11,6 @@ fn conversions_follow_the_grammar() {
     assert!(!Type::Unit(SECONDS.into()).converts_to(&Type::Unit(TICKS.into())));
     assert!(!Type::Unit(TICKS.into()).converts_to(&Type::Unit(SECONDS.into())));
     assert!(!Type::Unit(TICKS.into()).converts_to(&Type::Unit(BLOCKS.into())));
-    assert!(Type::String.converts_to(&Type::Text));
     assert!(!Type::Bool.converts_to(&Type::I32));
     assert!(Type::Unknown.converts_to(&Type::Bool));
     assert_eq!(

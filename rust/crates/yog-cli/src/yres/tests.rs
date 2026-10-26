@@ -216,7 +216,7 @@ fn compiles_a_mod() {
     // The same sets for the mod's Yog Script: `Res.Icons.Max`.
     let members = |set: &str| c.scripts[set].1.join("\n");
     assert!(
-        members("Strings").contains("public static string Title => t\"m.title\";"),
+        members("Strings").contains("public static Text Title => t\"m.title\";"),
         "{}",
         members("Strings")
     );

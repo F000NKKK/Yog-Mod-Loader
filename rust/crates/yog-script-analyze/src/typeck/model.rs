@@ -29,8 +29,6 @@ pub enum Type {
     Void,
     /// `null` before it meets a type.
     Null,
-    /// Translatable text: `t"key"`.
-    Text,
     /// A quantity with a unit: `Ticks`, `Seconds`, `Blocks`, a mod's own.
     Unit(String),
     /// A content reference of a kind: `@item:…` is `Content("item")`.
@@ -128,7 +126,6 @@ impl Type {
             // literals are; quantities of different units never mix.
             (n, Type::Unit(_)) => builtin::is_number(n),
             (Type::Unit(_), n) => builtin::widens(&Type::I32, n),
-            (Type::String, Type::Text) => true,
             (Type::Array(a, ra), Type::Array(b, rb)) => ra == rb && a == b,
             (a, b) => builtin::widens(a, b),
         }
@@ -171,7 +168,6 @@ impl fmt::Display for Type {
             | Type::Dynamic
             | Type::Void => write!(f, "{}", builtin::word(self).unwrap_or_default()),
             Type::Null => write!(f, "{}", crate::words::null::WORD.text),
-            Type::Text => write!(f, "Text"),
             Type::Own(name, args) if !args.is_empty() => {
                 let args: Vec<_> = args.iter().map(ToString::to_string).collect();
                 write!(f, "{name}<{}>", args.join(", "))

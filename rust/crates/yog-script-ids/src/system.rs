@@ -25,6 +25,9 @@ pub const FOLDER_SEP: char = '/';
 pub const RESULT: &str = "Result";
 /// What an `async` method gives and `await` waits for.
 pub const TASK: &str = "Task";
+/// `System.Yog.Text`: what a player reads, a translation key and its
+/// arguments (`t"key"`'s type).
+pub const TEXT_TYPE: &str = "Text";
 /// What a mod's content inherits: a block's, an item's.
 pub const BLOCK_OBJECT: &str = "BlockObject";
 pub const ITEM_OBJECT: &str = "ItemObject";
