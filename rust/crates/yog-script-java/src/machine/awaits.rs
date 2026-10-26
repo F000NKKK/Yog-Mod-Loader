@@ -120,6 +120,8 @@ pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
         Stmt::Return(v, _) | Stmt::Skip(v, _) => v.as_ref().is_some_and(awaits),
         // An iterator's `yield` leaves its machine as an `await` does.
         Stmt::Yield(..) => true,
+        // Nothing waits inside a `lock` (the checker says so).
+        Stmt::Lock { .. } => false,
         Stmt::Expr(e) | Stmt::Value(e) => awaits(e),
         Stmt::Break(_) | Stmt::Continue(_) => false,
     }

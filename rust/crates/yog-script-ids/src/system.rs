@@ -28,6 +28,8 @@ pub const TASK: &str = "Task";
 /// `Yog.Text`: what a player reads, a translation key and its
 /// arguments (`t"key"`'s type).
 pub const TEXT_TYPE: &str = "Text";
+/// What `lock` holds: `System.Threading.Lock<T>`.
+pub const LOCK: &str = "Lock";
 /// What holds something to let go of: dropped at its owner's scope's end.
 pub const DISPOSABLE: &str = "IDisposable";
 /// What a mod's content inherits: a block's, an item's.

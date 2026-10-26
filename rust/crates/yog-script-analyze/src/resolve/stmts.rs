@@ -85,6 +85,23 @@ impl Resolver<'_, '_> {
             }
             Stmt::Break(_) | Stmt::Continue(_) => {}
             Stmt::Return(value, _) | Stmt::Yield(value, _) => self.opt_expr(value.as_ref()),
+            Stmt::Lock {
+                target,
+                value,
+                body,
+                ..
+            } => {
+                self.expr(target);
+                // No `await` while it's held.
+                let outer = std::mem::replace(&mut self.cx.locked, true);
+                self.scoped(|r| {
+                    if let Some(n) = value {
+                        r.bind(n, DefKind::Variable);
+                    }
+                    r.stmt(body);
+                });
+                self.cx.locked = outer;
+            }
             Stmt::Skip(value, at) => self.skip(value.as_ref(), *at),
             Stmt::Expr(e) | Stmt::Value(e) => self.expr(e),
         }

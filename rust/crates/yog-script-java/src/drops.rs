@@ -125,6 +125,10 @@ fn each_expr(s: &Stmt, f: &mut dyn FnMut(&Expr)) {
         }
         Stmt::Block(b) => b.stmts.iter().for_each(|s| each_expr(s, f)),
         Stmt::Return(v, _) | Stmt::Skip(v, _) | Stmt::Yield(v, _) => v.iter().for_each(&mut *f),
+        Stmt::Lock { target, body, .. } => {
+            f(target);
+            each_expr(body, f);
+        }
         Stmt::Expr(e) | Stmt::Value(e) => f(e),
         Stmt::Break(_) | Stmt::Continue(_) => {}
     }

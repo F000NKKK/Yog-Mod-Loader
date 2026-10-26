@@ -42,6 +42,8 @@ struct Context {
     awaits: bool,
     /// In a constructor's body: its type's `readonly` fields may be set.
     constructing: bool,
+    /// In a `lock`'s statement: no `await` (a lock isn't held across a wait).
+    locked: bool,
 }
 
 pub(crate) struct Resolver<'r, 's> {

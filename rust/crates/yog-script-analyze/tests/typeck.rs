@@ -776,3 +776,16 @@ fn readonly_fields_are_set_in_constructors() {
     let bad = "class Box {\n    private readonly i32 _size;\n    public void Grow() { _size = 2; }\n}\n";
     assert_eq!(codes(bad), [script_problem::ASSIGN_TO_CONSTANT]);
 }
+
+/// `lock`, as C#'s over a `Lock<T>`: its value lent; no `await` inside.
+#[test]
+fn locks_lend_their_value() {
+    let ok = "using System.Threading;\nvoid F(Lock<i32> l) {\n    lock (l, ref let n) { n += 1; }\n    lock (l) { }\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    assert_eq!(
+        codes("void F(i32 x) {\n    lock (x) { }\n}\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+    let waits = "using System.Threading;\nusing System.Threading.Tasks;\nasync void F(Lock<i32> l) {\n    lock (l) { await Task.Yield(); }\n}\n";
+    assert_eq!(codes(waits), [script_problem::AWAIT_OUTSIDE_ASYNC]);
+}

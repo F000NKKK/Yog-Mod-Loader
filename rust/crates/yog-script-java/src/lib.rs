@@ -26,6 +26,7 @@ mod indexers;
 mod java_names;
 mod kept;
 mod library;
+mod locks;
 mod load;
 mod machine;
 mod macros;

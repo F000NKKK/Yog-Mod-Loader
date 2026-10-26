@@ -74,6 +74,14 @@ pub enum Stmt {
     /// `yield return value;` (`Some`) or `yield break;` (`None`), in an
     /// iterator.
     Yield(Option<Expr>, Span),
+    /// `lock (target) body` or `lock (target, ref let value) body`: a
+    /// `Lock<T>` held for `body`, its value lent as `value`.
+    Lock {
+        target: Expr,
+        value: Option<super::Name>,
+        body: Box<Stmt>,
+        at: Span,
+    },
     Expr(Expr),
     /// A block lambda's last expression, without `;`: its value.
     Value(Expr),

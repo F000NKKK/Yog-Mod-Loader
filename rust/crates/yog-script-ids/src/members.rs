@@ -14,6 +14,10 @@ pub const MOVE_NEXT_ASYNC: &str = "MoveNextAsync";
 pub const CURRENT: &str = "Current";
 pub const DISPOSE_ASYNC: &str = "DisposeAsync";
 
+// A `Lock<T>`'s: what `lock` enters it by, its value.
+pub const ENTER: &str = "Enter";
+pub const VALUE: &str = "Value";
+
 // `IDisposable`'s: what a drop calls.
 pub const DISPOSE: &str = "Dispose";
 

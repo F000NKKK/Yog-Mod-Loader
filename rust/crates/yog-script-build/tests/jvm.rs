@@ -428,3 +428,32 @@ fn lazy_is_made_once() {
     };
     assert_eq!(out, "False v 1 True");
 }
+
+/// `lock (l, ref let n) { … }`: the value changed by threads in turn,
+/// written back however the statement ends (an early `return` too).
+#[test]
+fn lock_statements_hold_and_write_back() {
+    let src = "using System.Threading;\nusing System.Threading.Tasks;\n\
+               public static class K {\n\
+                   static i32 Bump(Lock<i32> l) {\n\
+                       lock (l, ref let n) {\n\
+                           n += 1;\n\
+                           if (n > 0) { return n; }\n\
+                       }\n\
+                       return -1;\n\
+                   }\n\
+                   public static string Run() {\n\
+                       let l = new Lock<i32>(0);\n\
+                       Parallel.For(0, 1000, i => { lock (l, ref let n) { n += 1; } });\n\
+                       let after = Bump(l);\n\
+                       lock (l) { }\n\
+                       let mut seen = 0;\n\
+                       lock (l, ref let n) { seen = n; }\n\
+                       return after + \" \" + seen;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("k.ys", src)], "t.KScript.K.Run()") else {
+        return;
+    };
+    assert_eq!(out, "1001 1001");
+}

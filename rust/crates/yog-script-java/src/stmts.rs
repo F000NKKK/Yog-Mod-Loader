@@ -202,6 +202,12 @@ impl Gen<'_> {
                     self.code.line(format!("{CONTINUE};"));
                 }
             },
+            Stmt::Lock {
+                target,
+                value,
+                body,
+                ..
+            } => self.lock_stmt(target, value.as_ref(), body),
             // An iterator's item given (its machine leaving until the next
             // is asked for), or its end.
             Stmt::Yield(Some(v), _) => self.yield_item(v),

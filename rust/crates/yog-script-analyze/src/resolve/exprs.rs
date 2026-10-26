@@ -64,7 +64,13 @@ impl Resolver<'_, '_> {
                 asynchronous,
             } => self.lambda(params, body, *asynchronous),
             ExprKind::Unary { op, expr } => {
-                if *op == UnOp::Await && !self.cx.awaits {
+                if *op == UnOp::Await && self.cx.locked {
+                    self.report.error(
+                        script_problem::AWAIT_OUTSIDE_ASYNC,
+                        e.span,
+                        "no `await` inside `lock`: a lock isn't held across a wait (take the value out first)",
+                    );
+                } else if *op == UnOp::Await && !self.cx.awaits {
                     self.report.error(
                         script_problem::AWAIT_OUTSIDE_ASYNC,
                         e.span,

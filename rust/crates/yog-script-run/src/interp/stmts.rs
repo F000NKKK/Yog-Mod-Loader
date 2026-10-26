@@ -97,6 +97,8 @@ impl<'p> Interp<'p> {
                 self.yield_item(v, *at)
             }
             Stmt::Yield(None, _) => Err(Stop::Return(Value::Void)),
+            // Threads are the JVM's and the native's: the interpreter has none.
+            Stmt::Lock { at, .. } => self.panic("a `lock` isn't run by the interpreter: it has no threads", *at),
             Stmt::Expr(e) => self.eval(e).map(drop),
             // A block lambda's last value: what it gives.
             Stmt::Value(e) => Err(Stop::Return(self.eval(e)?)),

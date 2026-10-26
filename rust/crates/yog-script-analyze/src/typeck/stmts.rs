@@ -74,6 +74,12 @@ impl Checker<'_, '_, '_> {
             }),
             Stmt::Block(b) => self.block(b),
             Stmt::Yield(v, at) => self.yielded(v.as_ref(), *at),
+            Stmt::Lock {
+                target,
+                value,
+                body,
+                ..
+            } => self.locked(target, value.as_ref(), body),
             Stmt::Return(Some(v), at) if self.yields.is_some() => {
                 self.expr(v);
                 self.returned_from_iterator(*at);
@@ -137,6 +143,30 @@ impl Checker<'_, '_, '_> {
         self.types.set_item(iter, t.clone());
         self.scoped(|c| {
             c.bind_binding(binding, &t, !mutable);
+            c.branch(body);
+        });
+    }
+
+    /// `lock (target, ref let value) body`: `target` a `Lock<T>`, `value` its `T`, changeable.
+    fn locked(&mut self, target: &Expr, value: Option<&crate::ast::Name>, body: &Stmt) {
+        let t = self.expr(target);
+        let held = match t.non_null() {
+            Type::Own(name, args) if name == yog_script_ids::system::LOCK && args.len() == 1 => {
+                args[0].clone()
+            }
+            _ => {
+                self.report.error(
+                    yog_ids::script_problem::TYPE_MISMATCH,
+                    target.span,
+                    format!("`lock` holds a `Lock<T>`, not a `{t}`"),
+                );
+                Type::Unknown
+            }
+        };
+        self.scoped(|c| {
+            if let Some(n) = value {
+                c.bind_as(&n.text, held, false);
+            }
             c.branch(body);
         });
     }
