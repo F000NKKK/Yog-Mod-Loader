@@ -181,7 +181,8 @@ member_name = IDENT | type '.' IDENT ;                            (* ICollection
 type_or_void = type | 'void' ;
 method_body = block | '=>' expr ';' ;
 params      = param (',' param)* ;
-param       = pass? LIFETIME? type IDENT ('=' expr)? ;
+param       = 'this'? pass? LIFETIME? type IDENT ('=' expr)? ;   (* 'this' on a static method's first: an extension
+                                                                     method, C#'s — xs.Where(f) is Enumerable.Where(xs, f) *)
 pass        = 'in' | 'ref' | 'out' | 'move' ;                       (* ys.md §3 Memory *)
 requires    = 'requires' expr ;                      (* a guard: commands, server methods called by clients *)
 generics    = '<' IDENT (',' IDENT)* '>' ;

@@ -2,8 +2,6 @@
 //! delegate it's handed as), its arguments checked against it, and which
 //! method it was noted for the compiler (`Types::method`).
 
-use yog_ids::script_problem;
-
 use super::Checker;
 use super::context::Context;
 use super::members::{Callee, Signature};
@@ -25,14 +23,41 @@ impl Checker<'_, '_, '_> {
         let target = self.callee(callee);
         // A lambda's own type, for choosing the overload only: it's typed
         // against the delegate the chosen one takes (`pick`).
-        let given: Vec<Type> = args
+        let mut given: Vec<Type> = args
             .iter()
             .map(|a| match a.value.kind {
                 ExprKind::Lambda { .. } => self.quietly(|c| c.expr(&a.value)),
                 _ => self.expr(&a.value),
             })
             .collect();
-        let (t, used) = self.called_with(target, (&given, args), &explicit, callee.span);
+        let mut args: Vec<&Arg> = args.iter().collect();
+        // `xs.Where(…)`, an extension method: the receiver its first argument.
+        let receiver = match (&target, &callee.kind) {
+            (Callee::Extension(_), ExprKind::Member { expr, .. }) => {
+                let t = self.types.of(expr).cloned().unwrap_or(Type::Unknown);
+                given.insert(0, t.clone());
+                Some((
+                    &**expr,
+                    t,
+                    Arg {
+                        name: None,
+                        pass: None,
+                        value: (**expr).clone(),
+                    },
+                ))
+            }
+            _ => None,
+        };
+        if let Some((_, _, arg)) = &receiver {
+            args.insert(0, arg);
+        }
+        let (t, used) = self.called_with(target, (&given, &args), &explicit, callee.span);
+        if let (Some((expr, got, _)), Some(used)) = (&receiver, &used) {
+            // The receiver's own conversion, the copy handed to `pick` aside.
+            if let Some(param) = used.taken.first() {
+                self.note_conversion(expr, got, param);
+            }
+        }
         if let Some(used) = used {
             self.types.set_method(e, used);
         }
@@ -48,7 +73,8 @@ impl Checker<'_, '_, '_> {
         args: &[Arg],
         at: Span,
     ) -> (Type, Option<MethodUse>) {
-        self.called_with(target, (given, args), &[], at)
+        let args: Vec<&Arg> = args.iter().collect();
+        self.called_with(target, (given, &args), &[], at)
     }
 
     /// [`Self::called`] with type arguments given (`F<i32>(…)`): each
@@ -56,24 +82,45 @@ impl Checker<'_, '_, '_> {
     fn called_with(
         &mut self,
         target: Callee,
-        (given, args): (&[Type], &[Arg]),
+        (given, args): (&[Type], &[&Arg]),
         explicit: &[Type],
         at: Span,
     ) -> (Type, Option<MethodUse>) {
         match target {
-            Callee::Own(methods) => {
-                let sigs: Vec<Signature> = methods
-                    .iter()
-                    .map(|(m, context)| self.in_context(context, |c| c.signature(m)))
-                    .map(|s| s.given(explicit))
-                    .collect();
-                let (t, chosen) = self.pick(&sigs, given, args, at);
-                let used = chosen.map(|i| self.method_use(&methods[i].0, &methods[i].1));
-                (t, used)
+            Callee::Own(methods) => self.own_called(&methods, false, (given, args), explicit, at),
+            Callee::Extension(methods) => {
+                self.own_called(&methods, true, (given, args), explicit, at)
             }
             Callee::Typed(sigs) => (self.pick(&sigs, given, args, at).0, None),
             Callee::Unknown => (Type::Unknown, None),
         }
+    }
+
+    /// One of own `methods` (extension methods: `extension`) called with
+    /// `args`: its result, the one chosen.
+    fn own_called(
+        &mut self,
+        methods: &[(Method, Context)],
+        extension: bool,
+        (given, args): (&[Type], &[&Arg]),
+        explicit: &[Type],
+        at: Span,
+    ) -> (Type, Option<MethodUse>) {
+        let sigs: Vec<Signature> = methods
+            .iter()
+            .map(|(m, context)| self.in_context(context, |c| c.signature(m)))
+            .map(|s| s.given(explicit))
+            .collect();
+        let (t, chosen) = self.pick(&sigs, given, args, at);
+        let used = chosen.map(|c| {
+            let (m, context) = &methods[c.index];
+            MethodUse {
+                extension,
+                taken: c.params,
+                ..self.method_use(m, context)
+            }
+        });
+        (t, used)
     }
 
     /// Method `m` (its declaration's `context`) as a call uses it: whose,
@@ -103,6 +150,8 @@ impl Checker<'_, '_, '_> {
             overload,
             params,
             ret,
+            taken: Vec::new(),
+            extension: false,
         }
     }
 
@@ -125,87 +174,6 @@ impl Checker<'_, '_, '_> {
             generics,
         })
     }
-
-    /// The signature `given` arguments fit; its result — or a report when
-    /// none takes that many, or the one that does gets a wrong type.
-    fn pick(
-        &mut self,
-        sigs: &[Signature],
-        given: &[Type],
-        args: &[Arg],
-        at: Span,
-    ) -> (Type, Option<usize>) {
-        if sigs.is_empty() || args.iter().any(|a| a.name.is_some()) {
-            self.lambdas_alone(args);
-            return (Type::Unknown, None);
-        }
-        let takes = |s: &Signature| (s.required..=s.params.len()).contains(&given.len());
-        let fits = |s: &Signature| {
-            let mut found = super::generics::Bound::new();
-            let all = takes(s)
-                && given
-                    .iter()
-                    .zip(&s.params)
-                    .all(|(g, p)| self.unify(p, g, &s.generics, &mut found));
-            all.then_some(found)
-        };
-        if let Some((i, found)) = sigs
-            .iter()
-            .enumerate()
-            .find_map(|(i, s)| fits(s).map(|f| (i, f)))
-        {
-            let s = &sigs[i];
-            self.check_passing(&s.passes, args, given);
-            let params: Vec<Type> = s.params.iter().map(|p| p.substitute(&found)).collect();
-            for ((arg, g), p) in args.iter().zip(given).zip(&params) {
-                if is_lambda(&arg.value) {
-                    self.fits(&arg.value, p);
-                } else {
-                    self.note_conversion(&arg.value, g, p);
-                }
-            }
-            return (s.ret.substitute(&found), Some(i));
-        }
-        let taking: Vec<usize> = (0..sigs.len()).filter(|&i| takes(&sigs[i])).collect();
-        match taking.as_slice() {
-            [] => {
-                self.lambdas_alone(args);
-                self.report.error(
-                    script_problem::WRONG_ARGS,
-                    at,
-                    format!("no overload takes {} arguments", given.len()),
-                );
-                (Type::Unknown, None)
-            }
-            &[i] => {
-                let one = &sigs[i];
-                for ((g, p), a) in given.iter().zip(&one.params).zip(args) {
-                    if is_lambda(&a.value) {
-                        self.fits(&a.value, p);
-                    } else {
-                        self.want(g, p, a.value.span);
-                    }
-                }
-                (one.ret.clone(), Some(i))
-            }
-            _ => {
-                self.lambdas_alone(args);
-                (Type::Unknown, None)
-            }
-        }
-    }
-
-    /// The lambdas among `args`, no delegate chosen for them: typed alone,
-    /// what's wrong in them reported.
-    fn lambdas_alone(&mut self, args: &[Arg]) {
-        for a in args.iter().filter(|a| is_lambda(&a.value)) {
-            self.expr(&a.value);
-        }
-    }
-}
-
-fn is_lambda(e: &Expr) -> bool {
-    matches!(e.kind, ExprKind::Lambda { .. })
 }
 
 impl Signature {

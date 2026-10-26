@@ -19,6 +19,8 @@ pub(super) enum Callee {
     /// arguments its base is given: `Dictionary<K, V>`'s `ICollection`'s
     /// `T` is `KeyValuePair<K, V>`).
     Own(Vec<(Method, Context)>),
+    /// Extension methods of the receiver (`xs.Where(…)`): it's their first argument.
+    Extension(Vec<(Method, Context)>),
     /// Methods typed already: a game class's, Yog's.
     Typed(Vec<Signature>),
     Unknown,
@@ -141,7 +143,11 @@ impl Checker<'_, '_, '_> {
             .find(Type::known)
     }
 
-    fn extension_methods(&self, class: &str, name: &str) -> Option<Vec<(Method, Context)>> {
+    pub(super) fn extension_methods(
+        &self,
+        class: &str,
+        name: &str,
+    ) -> Option<Vec<(Method, Context)>> {
         let ext = self.own.extended.get(crate::index::simple_name(class))?;
         match ext.methods.get(name) {
             Some(methods) => Some(self.unbound(methods)),
@@ -218,7 +224,7 @@ impl Checker<'_, '_, '_> {
         Type::Unknown
     }
 
-    fn unknown_member(&mut self, on: &Type, name: &str, at: Span) {
+    pub(super) fn unknown_member(&mut self, on: &Type, name: &str, at: Span) {
         self.report.error(
             script_problem::UNKNOWN_MEMBER,
             at,
@@ -262,42 +268,7 @@ impl Checker<'_, '_, '_> {
                     Callee::Own(methods)
                 }
             }
-            ExprKind::Member { expr, name, .. } => {
-                let on = self.expr(expr);
-                match on.non_null() {
-                    Type::Own(of, _) | Type::Static(of) => {
-                        let on_type = Type::Own(of.clone(), own_args(on.non_null()).to_vec());
-                        match self.own_methods(&on_type, &name.text) {
-                            Some(methods) => {
-                                if matches!(on.non_null(), Type::Own(..)) {
-                                    self.called_on(Some(expr), of, &name.text, name.span);
-                                }
-                                Callee::Own(methods)
-                            }
-                            None => match self.variant_ctor(&of.clone(), &name.text) {
-                                Callee::Unknown => {
-                                    self.unknown_member(on.non_null(), &name.text, name.span);
-                                    Callee::Unknown
-                                }
-                                made => made,
-                            },
-                        }
-                    }
-                    Type::Yog(group) => match self.extension_methods(group, &name.text) {
-                        Some(m) => Callee::Own(m),
-                        None => self.yog_methods(group, &name.text, name.span),
-                    },
-                    Type::Game(class) => match self.extension_methods(class, &name.text) {
-                        Some(m) => Callee::Own(m),
-                        None if is_side_call(&name.text) => Callee::Unknown,
-                        None => self.game_methods(class, &name.text, name.span),
-                    },
-                    other => self
-                        .hosted(other)
-                        .and_then(|host| self.own_methods(&host, &name.text))
-                        .map_or(Callee::Unknown, Callee::Own),
-                }
-            }
+            ExprKind::Member { expr, name, .. } => self.method_of(expr, name),
             _ => {
                 self.expr(callee);
                 Callee::Unknown
@@ -325,7 +296,7 @@ impl Checker<'_, '_, '_> {
 
     /// Methods `name` of own type `t` or the nearest type it inherits that
     /// declares them (or a component of it), each with its type's bound.
-    fn own_methods(&self, t: &Type, name: &str) -> Option<Vec<(Method, Context)>> {
+    pub(super) fn own_methods(&self, t: &Type, name: &str) -> Option<Vec<(Method, Context)>> {
         let Type::Own(type_name, args) = t else {
             return None;
         };
@@ -386,7 +357,7 @@ impl Checker<'_, '_, '_> {
     }
 
     /// Group `group`'s methods `name`: each one's parameters and answer.
-    fn yog_methods(&mut self, group: &str, name: &str, at: Span) -> Callee {
+    pub(super) fn yog_methods(&mut self, group: &str, name: &str, at: Span) -> Callee {
         let surface = &*super::surface::SURFACE;
         let Some(g) = surface.groups.get(group) else {
             return Callee::Unknown;
@@ -424,7 +395,7 @@ impl Checker<'_, '_, '_> {
         )
     }
 
-    fn game_methods(&mut self, class: &str, name: &str, at: Span) -> Callee {
+    pub(super) fn game_methods(&mut self, class: &str, name: &str, at: Span) -> Callee {
         let Some(lookup) = &self.lookup else {
             return Callee::Unknown;
         };
@@ -454,7 +425,7 @@ impl Checker<'_, '_, '_> {
 
 /// `x.Client` / `x.Server`: a call on the other side (`ys-grammar.md`
 /// §3.6), which every object has.
-fn is_side_call(name: &str) -> bool {
+pub(super) fn is_side_call(name: &str) -> bool {
     [&crate::words::client::WORD, &crate::words::server::WORD]
         .iter()
         .any(|w| yog_codegen::pascal(w.text) == name)
@@ -472,7 +443,7 @@ fn signature_of(params: &[Type], ret: &Type) -> Signature {
 }
 
 /// An own type's type arguments (none for any other type).
-fn own_args(t: &Type) -> &[Type] {
+pub(super) fn own_args(t: &Type) -> &[Type] {
     match t {
         Type::Own(_, args) => args,
         _ => &[],
@@ -507,5 +478,29 @@ impl Checker<'_, '_, '_> {
                     .is_some_and(|ns| *ns == [yog_script_ids::system::ROOT])
             })
             .map(|n| Type::own(n.to_string()))
+    }
+}
+
+impl Checker<'_, '_, '_> {
+    /// `on.name(…)` that `on`'s type doesn't declare: the extension methods
+    /// of the name in reach (C#'s: an instance method comes first), or a
+    /// report (when `on`'s type is known).
+    pub(super) fn extension_or_unknown(&mut self, on: &Type, name: &crate::ast::Name) -> Callee {
+        let methods: Vec<(Method, Context)> = self
+            .own
+            .extension_methods
+            .get(&name.text)
+            .into_iter()
+            .flatten()
+            .filter(|(key, _)| self.own_in_reach(&key.name))
+            .map(|(key, m)| (m.clone(), self.context_of(&key.name, &[])))
+            .collect();
+        if !methods.is_empty() {
+            return Callee::Extension(methods);
+        }
+        if on.known() {
+            self.unknown_member(on, &name.text, name.span);
+        }
+        Callee::Unknown
     }
 }

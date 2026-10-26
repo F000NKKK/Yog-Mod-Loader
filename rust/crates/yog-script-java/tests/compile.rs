@@ -275,3 +275,19 @@ fn members_java_cant_tell_apart_are_named_apart() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn linq_is_enumerables_statics() {
+    let src = "record Player(string Name, f64 Score);\n\
+               List<string> High(List<Player> ps) => ps.Where(p => p.Score > 1.0).OrderBy(p => p.Name).Select(p => p.Name).ToList();\n\
+               f64 Scores(List<Player> ps) => ps.Sum(p => p.Score);\n\
+               f64 Mean(i32[] xs) => xs.Average();\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "dev.yog.script.linq.Enumerable.ToList(dev.yog.script.linq.Enumerable.Select(dev.yog.script.linq.Enumerable.OrderBy(dev.yog.script.linq.Enumerable.Where(ps,",
+        "dev.yog.script.linq.Enumerable.Sum$3(ps,",
+        "dev.yog.script.linq.Enumerable.Average(dev.yog.script.host.Array.AsList(xs))",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

@@ -251,6 +251,9 @@ pub enum Chain {
 /// `Player target = source.Player`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Param {
+    /// `this T x`, a static method's first: it extends `T` (C#'s extension
+    /// method: `xs.Where(…)` is `Enumerable.Where(xs, …)`).
+    pub extension: bool,
     pub pass: Option<super::Pass>,
     /// `in 'a T x`: the borrow's lifetime.
     pub lifetime: Option<Name>,

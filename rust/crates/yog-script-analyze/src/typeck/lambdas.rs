@@ -52,22 +52,7 @@ impl Checker<'_, '_, '_> {
         }
         let returns = self.returns.replace(ret.clone());
         self.scoped(|c| {
-            match (written, params) {
-                ([], [one]) => c.bind(IT, one.clone()),
-                _ => {
-                    for (w, given) in written.iter().zip(params) {
-                        let t = match &w.ty {
-                            Some(declared) => {
-                                let declared = c.type_of(declared);
-                                c.want(given, &declared, w.name.span);
-                                declared
-                            }
-                            None => given.clone(),
-                        };
-                        c.bind(&w.name.text, t);
-                    }
-                }
-            }
+            c.bind_lambda(written, params);
             match body {
                 LambdaBody::Expr(e) if *ret == Type::Void => {
                     c.expr(e);
@@ -77,6 +62,64 @@ impl Checker<'_, '_, '_> {
             }
         });
         self.returns = returns;
+    }
+
+    /// A lambda's parameters bound to what its delegate gives (`it`, when
+    /// it names none and takes one).
+    fn bind_lambda(&mut self, written: &[LambdaParam], params: &[Type]) {
+        match (written, params) {
+            ([], [one]) => self.bind(IT, one.clone()),
+            _ => {
+                for (w, given) in written.iter().zip(params) {
+                    let t = match &w.ty {
+                        Some(declared) => {
+                            let declared = self.type_of(declared);
+                            self.want(given, &declared, w.name.span);
+                            declared
+                        }
+                        None => given.clone(),
+                    };
+                    self.bind(&w.name.text, t);
+                }
+            }
+        }
+    }
+
+    /// What lambda `e` gives taking `params`: its expression's type, or
+    /// what its block returns (the first `return`'s, or its last value).
+    pub(super) fn lambda_result(&mut self, e: &Expr, params: &[Type]) -> Type {
+        let ExprKind::Lambda {
+            params: written,
+            body,
+        } = &e.kind
+        else {
+            return Type::Unknown;
+        };
+        let returns = self.returns.take();
+        let inferred = self.inferred.replace(Vec::new());
+        let t = self.scoped(|c| {
+            c.bind_lambda(written, params);
+            match body {
+                LambdaBody::Expr(e) => c.expr(e),
+                LambdaBody::Block(stmts) => {
+                    let last = match stmts.split_last() {
+                        Some((Stmt::Value(v), before)) => {
+                            c.stmts(before);
+                            Some(c.expr(v))
+                        }
+                        _ => {
+                            c.stmts(stmts);
+                            None
+                        }
+                    };
+                    let returned = c.inferred.as_ref().and_then(|r| r.first().cloned());
+                    returned.or(last).unwrap_or(Type::Void)
+                }
+            }
+        });
+        self.returns = returns;
+        self.inferred = inferred;
+        t
     }
 
     /// A block lambda's statements; its last expression without `;` its value.

@@ -83,9 +83,19 @@ impl Index {
                 .any(|b| self.erased(base, b) == own_erased)
         });
         if clashes {
-            format!("{owner}{MEMBER_SEP}{}", m.name.text)
-        } else {
+            return format!("{owner}{MEMBER_SEP}{}", m.name.text);
+        }
+        // Overloads of its own type Java can't tell apart (`Sum` of `i32`s,
+        // of `f64`s): the first keeps the name, the rest are numbered.
+        let earlier = self
+            .methods_named(owner, &m.name.text)
+            .take_while(|b| *b != m)
+            .filter(|b| self.erased(owner, b) == own_erased)
+            .count();
+        if earlier == 0 {
             m.name.text.clone()
+        } else {
+            format!("{}{MEMBER_SEP}{earlier}", m.name.text)
         }
     }
 
@@ -203,12 +213,14 @@ fn render(t: &Type, bound: &Bound) -> String {
 /// `Object`; a generic type without its arguments.
 fn erase(t: &Type, params: &[&str]) -> String {
     match &t.kind {
+        // A generic type by its name and arity: Java's classes differ by
+        // it (`Func<T, bool>` is `Func2`, `Func<T, i32, bool>` `Func3`).
         TypeKind::Path { path, args } => {
             let name = path.last().map(|n| n.text.as_str()).unwrap_or_default();
             if args.is_empty() && params.contains(&name) {
                 OBJECT.to_string()
             } else {
-                name.to_string()
+                format!("{name}{}", args.len())
             }
         }
         // A number's `?` boxes it in Java; anything else is as it is.

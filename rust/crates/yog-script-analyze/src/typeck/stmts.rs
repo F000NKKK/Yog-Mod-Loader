@@ -85,7 +85,10 @@ impl Checker<'_, '_, '_> {
             Stmt::Return(Some(v), _) => match self.returns.clone() {
                 Some(r) if r != Type::Void => self.fits(v, &r),
                 _ => {
-                    self.expr(v);
+                    let t = self.expr(v);
+                    if let Some(inferred) = &mut self.inferred {
+                        inferred.push(t);
+                    }
                 }
             },
             Stmt::Skip(Some(v), _) | Stmt::Expr(v) | Stmt::Value(v) => {

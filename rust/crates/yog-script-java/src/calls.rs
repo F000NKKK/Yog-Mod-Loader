@@ -179,6 +179,16 @@ impl Gen<'_> {
         let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
         let n = self.called_name(e, name);
+        // An extension method: its type's static, the receiver first.
+        if let Some(owner) = self
+            .types
+            .method(e)
+            .filter(|m| m.extension)
+            .and_then(|m| m.owner.as_deref())
+        {
+            let sep = if a.is_empty() { "" } else { ", " };
+            return format!("{}.{n}({target}{sep}{a})", self.index.place(owner, 0));
+        }
         match on_type.as_ref().map(Type::non_null) {
             Some(Type::Static(of)) => match self.index.kind(of) {
                 Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),

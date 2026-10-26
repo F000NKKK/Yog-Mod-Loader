@@ -95,6 +95,9 @@ pub(crate) struct OwnTypes {
     pub values: HashMap<String, ast::Type>,
     /// What `extend` adds to the game's types, by their names.
     pub extended: HashMap<String, OwnType>,
+    /// Extension methods (`static R F(this T x, …)`), by name: each with
+    /// the type declaring it.
+    pub extension_methods: HashMap<String, Vec<(TypeKey, Method)>>,
     /// Each type's namespace (`namespace A.B;`), by its name.
     pub namespaces: HashMap<String, Vec<String>>,
     /// The namespace the declarations being collected are in.

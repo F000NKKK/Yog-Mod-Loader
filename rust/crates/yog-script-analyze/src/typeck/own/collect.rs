@@ -41,7 +41,35 @@ impl OwnTypes {
                         }
                     }
                 }
-                _ => self.type_decl(d),
+                _ => {
+                    self.extension_methods_of(d);
+                    self.type_decl(d);
+                }
+            }
+        }
+    }
+
+    /// A type's extension methods: its static methods whose first
+    /// parameter is `this`.
+    fn extension_methods_of(&mut self, d: &Decl) {
+        let DeclKind::Type {
+            name, header, body, ..
+        } = &d.kind
+        else {
+            return;
+        };
+        let key = TypeKey::new(
+            name.text.clone(),
+            header.generics.iter().filter(|g| !g.lifetime).count(),
+        );
+        for m in body.iter().filter(|m| m.has(ast::Modifier::Static)) {
+            if let DeclKind::Method(method) = &m.kind
+                && method.params.first().is_some_and(|p| p.extension)
+            {
+                self.extension_methods
+                    .entry(method.name.text.clone())
+                    .or_default()
+                    .push((key.clone(), method.clone()));
             }
         }
     }

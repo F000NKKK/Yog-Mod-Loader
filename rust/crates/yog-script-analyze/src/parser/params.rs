@@ -61,6 +61,7 @@ impl Parser<'_, '_, '_> {
     }
 
     fn param(&mut self) -> PResult<Param> {
+        let extension = self.eat_word(&crate::words::this::WORD);
         let pass = self.pass();
         let lifetime = self.lifetime();
         let ty = self.ty()?;
@@ -71,6 +72,7 @@ impl Parser<'_, '_, '_> {
             None
         };
         Ok(Param {
+            extension,
             pass,
             lifetime,
             ty,

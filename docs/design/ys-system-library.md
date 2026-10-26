@@ -145,8 +145,10 @@ panic named as C#'s exception would be (`ArgumentOutOfRange`).
   `new List<T>()`, then `Add` each item (`Add(k, v)` each entry, every item
   of a spread); an interface wanted (`IEnumerable<T> xs = […]`) makes a
   `List<T>` (a `Dictionary` for entries).
-- LINQ will be lazy as C#'s: `Where` gives an `IEnumerable<T>` that runs
-  when it's gone through, on Java's iterators (no streams' one-shot rule).
+- LINQ is lazy as C#'s: `Where` gives an `IEnumerable<T>` that runs when
+  it's gone through, every time anew (a Java stream made per pass: no
+  one-shot rule). Overloads Java's erasure can't tell apart in one type
+  are numbered (`Sum`, `Sum$1`, … in their declared order).
 
 Where Java can't hold .NET's shape as it is, the names give way, never
 the shape: a method Java's erasure can't tell from one it inherits, or
@@ -225,7 +227,13 @@ surface's delegates.
    `ICollection<KeyValuePair<TKey, TValue>>` again; `Dictionary` implements
    its `Remove(KeyValuePair<…>)` (and `Add`, `Contains`, `IsReadOnly` of
    pairs) explicitly — as .NET's.
-2. `System.Linq` (extensions on `IEnumerable<T>`), `Queue`, `Stack`,
+2. `System.Linq` (done: extension methods, C#'s, on `IEnumerable<T>` —
+   `Where`, `Select`, `OrderBy`/`ThenBy`, `GroupBy`, `Join`, set
+   operators, `First`…`Single`, `Sum`/`Average`/`Min`/`Max` of every
+   width, `Aggregate`, `To*`, `Range`/`Repeat`/`Empty` — a generic
+   method's type parameters inferred from its lambdas' results as C#'s;
+   `OfType` and `Chunk` wait for a type known at run time on the JVM),
+   `Queue`, `Stack`,
    `SortedSet`, `SortedDictionary`, `PriorityQueue`, `LinkedList`,
    comparers.
 3. The numbers' and `char`'s members, `Random`, `StringBuilder`,

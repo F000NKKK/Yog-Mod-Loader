@@ -1,0 +1,138 @@
+namespace System.Linq;
+
+/// What's asked of and done to items gone through, as .NET's LINQ: each an
+/// extension method of `IEnumerable<T>` (`xs.Where(x => x > 2)`), lazy —
+/// what gives items runs when they're gone through, every time.
+[Intrinsic]
+public static class Enumerable {
+    // Filtered, projected.
+
+    public static IEnumerable<TSource> Where<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    /// Its items `predicate` takes, given each one's index too.
+    public static IEnumerable<TSource> Where<TSource>(this in IEnumerable<TSource> source, Func<TSource, i32, bool> predicate);
+    public static IEnumerable<TResult> Select<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, TResult> selector);
+    public static IEnumerable<TResult> Select<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, i32, TResult> selector);
+    public static IEnumerable<TResult> SelectMany<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector);
+    /// Each item as a `TResult`: a panic at one that isn't.
+    public static IEnumerable<TResult> Cast<TResult>(this in IEnumerable<object> source);
+
+    // Taken, skipped.
+
+    public static IEnumerable<TSource> Take<TSource>(this in IEnumerable<TSource> source, i32 count);
+    public static IEnumerable<TSource> Skip<TSource>(this in IEnumerable<TSource> source, i32 count);
+    public static IEnumerable<TSource> TakeLast<TSource>(this in IEnumerable<TSource> source, i32 count);
+    public static IEnumerable<TSource> SkipLast<TSource>(this in IEnumerable<TSource> source, i32 count);
+    public static IEnumerable<TSource> TakeWhile<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    public static IEnumerable<TSource> SkipWhile<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+
+    // Ordered.
+
+    /// Its items in their own order (`IComparable<T>`).
+    public static IOrderedEnumerable<TSource> Order<TSource>(this in IEnumerable<TSource> source);
+    public static IOrderedEnumerable<TSource> OrderDescending<TSource>(this in IEnumerable<TSource> source);
+    public static IOrderedEnumerable<TSource> OrderBy<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static IOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static IOrderedEnumerable<TSource> ThenBy<TSource, TKey>(this in IOrderedEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static IOrderedEnumerable<TSource> ThenByDescending<TSource, TKey>(this in IOrderedEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static IEnumerable<TSource> Reverse<TSource>(this in IEnumerable<TSource> source);
+
+    // Grouped, joined.
+
+    public static IEnumerable<IGrouping<TKey, TSource>> GroupBy<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static IEnumerable<IGrouping<TKey, TElement>> GroupBy<TSource, TKey, TElement>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector, Func<TSource, TElement> elementSelector);
+    public static IEnumerable<TResult> Join<TOuter, TInner, TKey, TResult>(this in IEnumerable<TOuter> outer, in IEnumerable<TInner> inner, Func<TOuter, TKey> outerKeySelector, Func<TInner, TKey> innerKeySelector, Func<TOuter, TInner, TResult> resultSelector);
+    public static IEnumerable<TResult> GroupJoin<TOuter, TInner, TKey, TResult>(this in IEnumerable<TOuter> outer, in IEnumerable<TInner> inner, Func<TOuter, TKey> outerKeySelector, Func<TInner, TKey> innerKeySelector, Func<TOuter, IEnumerable<TInner>, TResult> resultSelector);
+    public static IEnumerable<TResult> Zip<TFirst, TSecond, TResult>(this in IEnumerable<TFirst> first, in IEnumerable<TSecond> second, Func<TFirst, TSecond, TResult> resultSelector);
+
+    // Combined as sets and sequences.
+
+    public static IEnumerable<TSource> Concat<TSource>(this in IEnumerable<TSource> first, in IEnumerable<TSource> second);
+    public static IEnumerable<TSource> Union<TSource>(this in IEnumerable<TSource> first, in IEnumerable<TSource> second);
+    public static IEnumerable<TSource> Intersect<TSource>(this in IEnumerable<TSource> first, in IEnumerable<TSource> second);
+    public static IEnumerable<TSource> Except<TSource>(this in IEnumerable<TSource> first, in IEnumerable<TSource> second);
+    public static IEnumerable<TSource> UnionBy<TSource, TKey>(this in IEnumerable<TSource> first, in IEnumerable<TSource> second, Func<TSource, TKey> keySelector);
+    public static IEnumerable<TSource> IntersectBy<TSource, TKey>(this in IEnumerable<TSource> first, in IEnumerable<TKey> second, Func<TSource, TKey> keySelector);
+    public static IEnumerable<TSource> ExceptBy<TSource, TKey>(this in IEnumerable<TSource> first, in IEnumerable<TKey> second, Func<TSource, TKey> keySelector);
+    public static IEnumerable<TSource> Distinct<TSource>(this in IEnumerable<TSource> source);
+    public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static IEnumerable<TSource> Append<TSource>(this in IEnumerable<TSource> source, TSource element);
+    public static IEnumerable<TSource> Prepend<TSource>(this in IEnumerable<TSource> source, TSource element);
+    public static IEnumerable<TSource> DefaultIfEmpty<TSource>(this in IEnumerable<TSource> source, TSource defaultValue);
+
+    // One item.
+
+    /// Its first item; a panic when it has none.
+    public static TSource First<TSource>(this in IEnumerable<TSource> source);
+    public static TSource First<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    /// As `First`, `null` where that panics.
+    public static TSource? FirstOrDefault<TSource>(this in IEnumerable<TSource> source);
+    public static TSource? FirstOrDefault<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    public static TSource Last<TSource>(this in IEnumerable<TSource> source);
+    public static TSource Last<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    public static TSource? LastOrDefault<TSource>(this in IEnumerable<TSource> source);
+    public static TSource? LastOrDefault<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    /// Its one item; a panic when it has none or more.
+    public static TSource Single<TSource>(this in IEnumerable<TSource> source);
+    public static TSource Single<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    /// As `Single`, `null` where that panics.
+    public static TSource? SingleOrDefault<TSource>(this in IEnumerable<TSource> source);
+    public static TSource? SingleOrDefault<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    public static TSource ElementAt<TSource>(this in IEnumerable<TSource> source, i32 index);
+    public static TSource? ElementAtOrDefault<TSource>(this in IEnumerable<TSource> source, i32 index);
+
+    // Asked of all.
+
+    public static bool Any<TSource>(this in IEnumerable<TSource> source);
+    public static bool Any<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    public static bool All<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    public static bool Contains<TSource>(this in IEnumerable<TSource> source, TSource value);
+    public static i32 Count<TSource>(this in IEnumerable<TSource> source);
+    public static i32 Count<TSource>(this in IEnumerable<TSource> source, Func<TSource, bool> predicate);
+    public static i64 LongCount<TSource>(this in IEnumerable<TSource> source);
+    public static bool SequenceEqual<TSource>(this in IEnumerable<TSource> first, in IEnumerable<TSource> second);
+
+    // Summed (in the order Java names them: `Sum`, `Sum$1`, … — see yog-script-java's java_names).
+
+    public static i32 Sum(this in IEnumerable<i32> source);
+    public static i64 Sum(this in IEnumerable<i64> source);
+    public static f32 Sum(this in IEnumerable<f32> source);
+    public static f64 Sum(this in IEnumerable<f64> source);
+    public static i32 Sum<TSource>(this in IEnumerable<TSource> source, Func<TSource, i32> selector);
+    public static i64 Sum<TSource>(this in IEnumerable<TSource> source, Func<TSource, i64> selector);
+    public static f32 Sum<TSource>(this in IEnumerable<TSource> source, Func<TSource, f32> selector);
+    public static f64 Sum<TSource>(this in IEnumerable<TSource> source, Func<TSource, f64> selector);
+    public static f64 Average(this in IEnumerable<i32> source);
+    public static f64 Average(this in IEnumerable<i64> source);
+    public static f32 Average(this in IEnumerable<f32> source);
+    public static f64 Average(this in IEnumerable<f64> source);
+    public static f64 Average<TSource>(this in IEnumerable<TSource> source, Func<TSource, i32> selector);
+    public static f64 Average<TSource>(this in IEnumerable<TSource> source, Func<TSource, i64> selector);
+    public static f32 Average<TSource>(this in IEnumerable<TSource> source, Func<TSource, f32> selector);
+    public static f64 Average<TSource>(this in IEnumerable<TSource> source, Func<TSource, f64> selector);
+    /// Its least item, in their own order; a panic when it has none.
+    public static TSource Min<TSource>(this in IEnumerable<TSource> source);
+    public static TSource Max<TSource>(this in IEnumerable<TSource> source);
+    public static TResult Min<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, TResult> selector);
+    public static TResult Max<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, TResult> selector);
+    public static TSource MinBy<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static TSource MaxBy<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static TSource Aggregate<TSource>(this in IEnumerable<TSource> source, Func<TSource, TSource, TSource> func);
+    public static TAccumulate Aggregate<TSource, TAccumulate>(this in IEnumerable<TSource> source, TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> func);
+
+    // Made into collections.
+
+    public static List<TSource> ToList<TSource>(this in IEnumerable<TSource> source);
+    public static TSource[] ToArray<TSource>(this in IEnumerable<TSource> source);
+    public static HashSet<TSource> ToHashSet<TSource>(this in IEnumerable<TSource> source);
+    /// A panic at a key met twice.
+    public static Dictionary<TKey, TSource> ToDictionary<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+    public static Dictionary<TKey, TElement> ToDictionary<TSource, TKey, TElement>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector, Func<TSource, TElement> elementSelector);
+    public static ILookup<TKey, TSource> ToLookup<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
+
+    // Made from nothing.
+
+    /// `count` whole numbers from `start` on.
+    public static IEnumerable<i32> Range(i32 start, i32 count);
+    public static IEnumerable<TResult> Repeat<TResult>(TResult element, i32 count);
+    public static IEnumerable<TResult> Empty<TResult>();
+}

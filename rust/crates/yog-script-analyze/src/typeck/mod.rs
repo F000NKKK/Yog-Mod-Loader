@@ -9,6 +9,7 @@ mod arrays;
 mod attributes;
 mod bits;
 mod builtin;
+mod callees;
 mod calls;
 mod collections;
 mod context;
@@ -31,6 +32,7 @@ mod operators;
 mod overloads;
 mod own;
 mod passing;
+mod pick;
 mod shapes;
 mod stmts;
 pub(crate) mod surface;
@@ -69,6 +71,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     side: Side,
     /// What a `return` in the code must give (`None`: not in a method).
     returns: Option<Type>,
+    /// While a lambda's result is inferred: what its `return`s give.
+    inferred: Option<Vec<Type>>,
     /// The file's `using` directives.
     directives: names::Directives,
     /// The namespace the code is in.
@@ -126,6 +130,7 @@ pub(crate) fn check(
         this: None,
         side: Side::Shared,
         returns: None,
+        inferred: None,
         directives: names::Directives::collect(&file.decls),
         ns: Vec::new(),
         nanites: allowed.nanites,

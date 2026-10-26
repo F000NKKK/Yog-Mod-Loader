@@ -1,0 +1,10 @@
+namespace System.Linq;
+
+/// Items by their keys, many to a key (`ToLookup`).
+[Intrinsic]
+public interface ILookup<TKey, TElement> : IEnumerable<IGrouping<TKey, TElement>> {
+    i32 Count { get; }
+    /// The items of `key`; none when it has none.
+    IEnumerable<TElement> this[TKey key] { get; }
+    bool Contains(TKey key);
+}

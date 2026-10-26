@@ -26,6 +26,7 @@ pub fn value_param(ty: &Type, at: &Name) -> Param {
 
 fn named(text: &str, ty: &Type, at: &Name) -> Param {
     Param {
+        extension: false,
         pass: None,
         lifetime: None,
         ty: ty.clone(),

@@ -1,0 +1,7 @@
+namespace System.Linq;
+
+/// The items of one key (`GroupBy`), gone through as its items.
+[Intrinsic]
+public interface IGrouping<out TKey, out TElement> : IEnumerable<TElement> {
+    TKey Key { get; }
+}

@@ -1,0 +1,6 @@
+namespace System.Linq;
+
+/// Items in an order (`OrderBy`), to be ordered further (`ThenBy`).
+[Intrinsic]
+public interface IOrderedEnumerable<out TElement> : IEnumerable<TElement> {
+}

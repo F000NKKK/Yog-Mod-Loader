@@ -5,11 +5,11 @@ import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
 /** Java's iterators as {@link IEnumerator}s and back. */
-final class Enumerators {
+public final class Enumerators {
     private Enumerators() {}
 
     /** A walk over what {@code start} iterates, from its start again on {@code Reset}. */
-    static <T> IEnumerator<T> of(Supplier<Iterator<T>> start) {
+    public static <T> IEnumerator<T> of(Supplier<Iterator<T>> start) {
         return new IEnumerator<>() {
             private Iterator<T> items = start.get();
             private T current;
@@ -37,7 +37,7 @@ final class Enumerators {
     }
 
     /** An enumerator walked as Java's iterator. */
-    static <T> Iterator<T> iterator(IEnumerator<T> e) {
+    public static <T> Iterator<T> iterator(IEnumerator<T> e) {
         return new Iterator<>() {
             private boolean ahead;
             private boolean more;

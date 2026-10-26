@@ -277,3 +277,26 @@ fn explicit_implementations_are_csharps() {
         assert_eq!(codes(&format!("{shape}{body}")), [code], "{body}");
     }
 }
+
+#[test]
+fn linq_is_csharps() {
+    let ok = "record Player(string Name, i32 Level);\n\
+              List<string> High(List<Player> ps) => ps.Where(p => p.Level > 10).OrderBy(p => p.Name).Select(p => p.Name).ToList();\n\
+              i32 Levels(List<Player> ps) => ps.Sum(p => p.Level) + ps.Count(p => p.Level > 3) + ps.Max(p => p.Level);\n\
+              f64 Mean(i32[] xs) => xs.Average();\n\
+              bool Any(i32[] xs) => xs.Any(x => x > 3) && xs.Contains(4);\n\
+              Dictionary<string, i32> ByName(List<Player> ps) => ps.ToDictionary(p => p.Name, p => p.Level);\n\
+              i32 Groups(List<Player> ps) {\n    let mut n = 0;\n    foreach (let g in ps.GroupBy(p => p.Level)) {\n        n += g.Key + g.Count();\n    }\n    return n;\n}\n\
+              string? First(List<Player> ps) => ps.FirstOrDefault(p => p.Level > 99)?.Name;\n\
+              i32 Squares() => Enumerable.Range(1, 10).Select(x => x * x).Where(x => x % 2 == 0).Sum();\n\
+              i32 Total(List<i32> xs) => xs.Aggregate(0, (acc, x) => acc + x);\n\
+              string[] Names(List<Player> ps) => ps.Select(p => p.Name).Distinct().ToArray();\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    for bad in [
+        // `Select` gives strings: no `Level` on them; `Where` wants a `bool`.
+        "record P(i32 Level);\ni32 F(List<P> ps) => ps.Select(p => p.Level).Sum(x => x.Level);\n",
+        "i32 G(List<i32> xs) => xs.Where(x => x + 1).Count();\n",
+    ] {
+        assert!(!codes(bad).is_empty(), "{bad}");
+    }
+}
