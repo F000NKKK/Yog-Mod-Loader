@@ -4,6 +4,12 @@
 /// An indexer's member name (`x[i]`): C#'s `IndexerName` default; its
 /// accessors `get_Item` / `set_Item`, the accessor and the name joined.
 pub const INDEXER: &str = "Item";
+
+/// A record's text, as .NET writes it: `Pos { X = 1, Y = 2 }`.
+pub const RECORD_OPEN: &str = " { ";
+pub const RECORD_EQ: &str = " = ";
+pub const RECORD_SEP: &str = ", ";
+pub const RECORD_CLOSE: &str = " }";
 pub const ACCESSOR_SEP: char = '_';
 
 /// A tuple's items' own names: `Item1`, `Item2`, … (`ValueTuple`'s fields).

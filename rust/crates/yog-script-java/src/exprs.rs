@@ -5,14 +5,13 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
-use yog_script_ids::java::{DOUBLE, FLOAT, INT, LONG};
+use yog_script_ids::java::{BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NULL, ZERO, ZERO_CHAR};
 use yog_script_ids::jvm::{EQUALS, HELPERS, OBJECT, OBJECTS, REQUIRE_NON_NULL_ELSE};
 use yog_script_ids::members::TO_STRING;
 
 use super::Gen;
 use crate::index::Kind;
 use crate::types::{RUNTIME, primitive};
-use yog_script_ids::java::NULL;
 use yog_script_ids::java::UNSIGNED_SHR;
 
 impl Gen<'_> {
@@ -175,7 +174,13 @@ impl Gen<'_> {
     /// `v` (`e`'s) where text is made of it: a number Java writes its own
     /// way (`2.0`, `true`) written as Yog Script does (`2`, `True`).
     fn as_text(&self, e: &Expr, v: String) -> String {
-        match self.types.of(e).map(Type::non_null) {
+        self.text_of(self.types.of(e), v)
+    }
+
+    /// Value `v` of type `t` as Yog Script writes it in text: a number,
+    /// a `bool`, a `decimal` as .NET does (`2`, `True`); else Java's.
+    pub(crate) fn text_of(&self, t: Option<&Type>, v: String) -> String {
+        match t.map(Type::non_null) {
             Some(t @ (Type::F32 | Type::F64 | Type::Bool | Type::Decimal)) => {
                 match self.index.host(t) {
                     Some(host) => format!("{host}.{TO_STRING}({v})"),
@@ -342,12 +347,13 @@ pub(crate) fn op_text(op: BinOp) -> &'static str {
 }
 
 /// A type's zero value (`default(T)`).
-fn zero(t: &Type) -> &'static str {
+/// A value of `t` before one's set: its zero, `false`, `null`.
+pub(crate) fn zero(t: &Type) -> &'static str {
     match primitive(t) {
-        Some("boolean") => "false",
-        Some("char") => "'\\0'",
-        Some(_) => "0",
-        None => "null",
+        Some(BOOLEAN) => FALSE,
+        Some(CHAR) => ZERO_CHAR,
+        Some(_) => ZERO,
+        None => NULL,
     }
 }
 

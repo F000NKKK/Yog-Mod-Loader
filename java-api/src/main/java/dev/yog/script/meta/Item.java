@@ -11,4 +11,5 @@ public record Item(String Name, String Kind, dev.yog.script.collections.generic.
         d.Property("Source", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.meta.Item) o).Source(), null);
         d.Constructor(0, a -> new dev.yog.script.meta.Item((String) a[0], (String) a[1], (dev.yog.script.collections.generic.List) a[2], (String) a[3])).Takes("Name", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("Kind", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("Fields", dev.yog.script.Type.Of(dev.yog.script.collections.generic.List.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.meta.Field.class) }), false).Takes("Source", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
+    @Override public String toString() { return "Item { " + "Name = " + java.util.Objects.toString(Name, "") + ", " + "Kind = " + java.util.Objects.toString(Kind, "") + ", " + "Fields = " + java.util.Objects.toString(Fields, "") + ", " + "Source = " + java.util.Objects.toString(Source, "") + " }"; }
 }

@@ -11,10 +11,12 @@ use yog_script_ids::clr::ACCESSOR_SEP;
 use super::Gen;
 use crate::index::Kind;
 use crate::modifier;
+use yog_script_ids::clr::{RECORD_CLOSE, RECORD_EQ, RECORD_OPEN, RECORD_SEP};
 use yog_script_ids::java::{
-    ABSTRACT, CLASS, DEFAULT, EXTENDS, FINAL, IMPLEMENTS, INTERFACE, PACKAGE, PRIVATE, PROTECTED,
-    PUBLIC, RECORD, STATIC, VOID,
+    ABSTRACT, CLASS, DEFAULT, EXTENDS, FINAL, IMPLEMENTS, INTERFACE, NULL, OVERRIDE, PACKAGE,
+    PRIVATE, PROTECTED, PUBLIC, RECORD, RETURN, STATIC, THIS, VOID,
 };
+use yog_script_ids::jvm::{OBJECTS, TO_STRING};
 
 /// Where a member is written.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -247,22 +249,134 @@ impl Gen<'_> {
         }
     }
 
+    /// A record: Java's, its own fields components after its parameters
+    /// (equal, written and copied with them, as C#'s), set from their
+    /// values by a constructor of its parameters.
     fn record(&mut self, d: &Decl, name: &str, header: &TypeHeader, body: &[Decl]) {
-        let params = self.params(header.ctor.as_deref().unwrap_or_default());
+        let ctor = header.ctor.as_deref().unwrap_or_default();
+        let own: Vec<&yog_script_analyze::ast::Field> = body
+            .iter()
+            .filter(|m| !m.has(Modifier::Static) && !m.has(Modifier::Const))
+            .filter_map(|m| match &m.kind {
+                DeclKind::Field(f) => Some(f),
+                _ => None,
+            })
+            .collect();
+        let mut components = vec![self.params(ctor)];
+        components.extend(own.iter().map(|f| {
+            format!(
+                "{} {}",
+                self.written(&f.ty, false),
+                Self::ident(&f.name.text)
+            )
+        }));
+        components.retain(|c| !c.is_empty());
         let implements = self.implements(&header.bases);
         self.code.open(format!(
-            "{PUBLIC} {RECORD} {name}{}({params}){implements}",
-            generic_list(&header.generics)
+            "{PUBLIC} {RECORD} {name}{}({}){implements}",
+            generic_list(&header.generics),
+            components.join(", ")
         ));
         self.describe(d);
+        self.constants(body);
+        if !own.is_empty() {
+            self.record_ctor(name, ctor, &own);
+        }
+        let shown: Vec<(&yog_script_analyze::ast::Name, &Type)> = ctor
+            .iter()
+            .map(|p| (&p.name, &p.ty))
+            .chain(own.iter().map(|f| (&f.name, &f.ty)))
+            .collect();
+        // Its own `ToString()` stands behind Java's; else .NET's text of it.
+        let own_text = body.iter().any(|m| {
+            matches!(&m.kind, DeclKind::Method(f) if f.name.text == yog_script_ids::members::TO_STRING && f.params.is_empty())
+        });
+        if own_text {
+            self.code.line(format!(
+                "{OVERRIDE} {PUBLIC} {} {TO_STRING}() {{ {RETURN} {}(); }}",
+                yog_script_ids::jvm::STRING,
+                yog_script_ids::members::TO_STRING
+            ));
+        } else {
+            self.record_text(name, &shown);
+        }
         for member in body {
-            if matches!(member.kind, DeclKind::Field(_)) {
-                self.not_yet("a record's own field", decl_span(member));
-            } else {
+            if !matches!(member.kind, DeclKind::Field(_)) {
                 self.decl(member, Place::Fixed);
             }
         }
         self.code.close("");
+    }
+
+    /// `Name(params)`: the record made of them, its own fields of their values.
+    fn record_ctor(&mut self, name: &str, ctor: &[Param], own: &[&yog_script_analyze::ast::Field]) {
+        let mut given: Vec<String> = ctor.iter().map(|p| Self::ident(&p.name.text)).collect();
+        for f in own {
+            let v = match &f.value {
+                Some(v) => self.handed_expr(v),
+                None => self.zero_of_written(&f.ty).to_string(),
+            };
+            given.push(v);
+        }
+        let params = self.params(ctor);
+        self.code.line(format!(
+            "{PUBLIC} {name}({params}) {{ {THIS}({}); }}",
+            given.join(", ")
+        ));
+    }
+
+    /// `toString()` as .NET writes a record: `Pos { X = 1, Y = 2 }`, a
+    /// `null` as nothing.
+    fn record_text(&mut self, name: &str, shown: &[(&yog_script_analyze::ast::Name, &Type)]) {
+        let parts: Vec<String> = shown
+            .iter()
+            .map(|(n, t)| {
+                let v = Self::ident(&n.text);
+                let typed = match &t.kind {
+                    yog_script_analyze::ast::TypeKind::Path { path, args } if args.is_empty() => {
+                        path.last()
+                            .and_then(|p| yog_script_analyze::builtin_type(&p.text))
+                    }
+                    _ => None,
+                };
+                let text = match typed.as_ref().filter(|b| {
+                    crate::types::primitive(b).is_some() || **b == yog_script_analyze::Type::Decimal
+                }) {
+                    Some(b) => self.text_of(Some(b), v),
+                    None => format!("{OBJECTS}.{TO_STRING}({v}, \"\")"),
+                };
+                format!(
+                    "{} + {text}",
+                    self.code.str(&format!("{}{RECORD_EQ}", n.text))
+                )
+            })
+            .collect();
+        let body = if parts.is_empty() {
+            self.code
+                .str(&format!("{name}{RECORD_OPEN}{}", RECORD_CLOSE.trim_start()))
+        } else {
+            format!(
+                "{} + {} + {}",
+                self.code.str(&format!("{name}{RECORD_OPEN}")),
+                parts.join(&format!(" + {} + ", self.code.str(RECORD_SEP))),
+                self.code.str(RECORD_CLOSE)
+            )
+        };
+        self.code.line(format!(
+            "{OVERRIDE} {PUBLIC} {} {TO_STRING}() {{ {RETURN} {body}; }}",
+            yog_script_ids::jvm::STRING
+        ));
+    }
+
+    /// Written type `t`'s value before one's set.
+    fn zero_of_written(&self, t: &Type) -> &'static str {
+        match &t.kind {
+            yog_script_analyze::ast::TypeKind::Path { path, args } if args.is_empty() => path
+                .last()
+                .and_then(|n| yog_script_analyze::builtin_type(&n.text))
+                .map_or(NULL, |b| crate::exprs::zero(&b)),
+            _ => NULL,
+        }
     }
 
     /// ` implements A, B` for an own type's interfaces.

@@ -9,4 +9,5 @@ public record Field(String Name, String Type) {
         d.Property("Type", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.meta.Field) o).Type(), null);
         d.Constructor(0, a -> new dev.yog.script.meta.Field((String) a[0], (String) a[1])).Takes("Name", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("Type", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
+    @Override public String toString() { return "Field { " + "Name = " + java.util.Objects.toString(Name, "") + ", " + "Type = " + java.util.Objects.toString(Type, "") + " }"; }
 }

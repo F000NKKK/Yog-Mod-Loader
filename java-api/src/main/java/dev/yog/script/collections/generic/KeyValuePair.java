@@ -9,4 +9,5 @@ public record KeyValuePair<TKey, TValue>(TKey Key, TValue Value) {
         d.Property("Value", 0, d.Parameter(1), o -> ((dev.yog.script.collections.generic.KeyValuePair) o).Value(), null);
         d.Constructor(0, a -> new dev.yog.script.collections.generic.KeyValuePair(a[0], a[1])).Takes("Key", d.Parameter(0), false).Takes("Value", d.Parameter(1), false);
     }
+    @Override public String toString() { return "KeyValuePair { " + "Key = " + java.util.Objects.toString(Key, "") + ", " + "Value = " + java.util.Objects.toString(Value, "") + " }"; }
 }

@@ -103,7 +103,9 @@ impl Gen<'_> {
         } else {
             format!("(({}) {OBJECT})", owner.raw)
         };
-        let fixed = d.has(Modifier::Const) || d.has(Modifier::Readonly);
+        // A record's never changes, as C#'s.
+        let record = self.index.kind(&(owner.name.to_string(), owner.arity)) == Some(Kind::Record);
+        let fixed = d.has(Modifier::Const) || d.has(Modifier::Readonly) || record;
         let set = if fixed {
             NULL.to_string()
         } else {

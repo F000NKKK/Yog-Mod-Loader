@@ -153,7 +153,7 @@ impl Gen<'_> {
 
     /// `const` and `static` fields, set where they're declared: a constant
     /// or a `static readonly` one Java's `static final`.
-    fn constants(&mut self, body: &[Decl]) {
+    pub(crate) fn constants(&mut self, body: &[Decl]) {
         for d in body {
             if let DeclKind::Field(f) = &d.kind
                 && (d.has(Modifier::Const) || d.has(Modifier::Static))

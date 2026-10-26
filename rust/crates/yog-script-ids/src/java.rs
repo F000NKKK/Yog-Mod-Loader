@@ -6,6 +6,9 @@
 pub const NULL: &str = "null";
 pub const TRUE: &str = "true";
 pub const FALSE: &str = "false";
+/// A number's zero, a `char`'s.
+pub const ZERO: &str = "0";
+pub const ZERO_CHAR: &str = "'\\0'";
 
 // Its keywords.
 pub const ABSTRACT: &str = "abstract";

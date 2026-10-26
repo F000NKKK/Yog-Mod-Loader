@@ -443,6 +443,20 @@ fn a_loop_whose_condition_takes_steps() {
 }
 
 #[test]
+fn a_records_own_fields() {
+    let src = "record Pos(i32 X, i32 Y) {\n    public i32 Sum = X + Y;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public record Pos(int X, int Y, int Sum)",
+        "public Pos(int X, int Y) { this(X, Y, (X + Y)); }",
+        // Its text as .NET writes a record's.
+        "\"Pos { \" + \"X = \" + X + \", \" + \"Y = \" + Y + \", \" + \"Sum = \" + Sum + \" }\"",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));
