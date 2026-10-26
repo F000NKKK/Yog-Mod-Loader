@@ -38,11 +38,21 @@ public final class Scheduler {
      * the game runs (the bus is the game's).
      */
     public static void listen() {
+        // What's started while the mods load (a mod's constructor) waits on
+        // the loading thread: the client's, where a client runs; else (a
+        // dedicated server) the server's ticks drive it.
+        Scheduler loading = here();
+        boolean[] client = {false};
         dev.yog.bus.YogEvents.Server.Game.Tick.on(0, e -> {
-            here().tick();
+            Scheduler server = here();
+            server.tick();
+            if (!client[0] && loading != server) {
+                loading.tick();
+            }
             return null;
         });
         dev.yog.bus.YogEvents.Client.Game.Tick.on(0, e -> {
+            client[0] = true;
             here().tick();
             return null;
         });
