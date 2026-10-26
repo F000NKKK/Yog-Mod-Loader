@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use yog_script_analyze::ast::{Arg, Expr, Name, Type, TypeKind};
+use yog_script_analyze::ast::{Arg, Expr, Name, Stmt, Type, TypeKind};
 use yog_script_analyze::token::Span;
 
 use super::{Interp, Run};
@@ -17,7 +17,7 @@ impl<'p> Interp<'p> {
         &mut self,
         ty: Option<&Type>,
         args: &[Arg],
-        init: &[(Name, Expr)],
+        (init, items): (&[(Name, Expr)], &[Stmt]),
         at: Span,
     ) -> Run<Value> {
         let Some(name) = ty.and_then(|t| match &t.kind {
@@ -35,6 +35,11 @@ impl<'p> Interp<'p> {
             let v = self.eval(e)?.copied();
             self.set_field(Some(&made), &field.text, v, field.span)?;
         }
+        // A collection's items: statements on it, `$made` naming it.
+        self.scoped(|i| {
+            i.bind(yog_script_ids::members::MADE, made.clone());
+            items.iter().try_for_each(|s| i.stmt(s))
+        })?;
         Ok(made)
     }
 

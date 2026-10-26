@@ -593,3 +593,22 @@ fn async_linq() {
     };
     assert_eq!(out, "20,100 4 1 True 6");
 }
+
+/// Collection initializers: `{ a, b }` each `Add`ed, `{ { k, v } }` an
+/// `Add` of several, `{ [k] = v }` set through the indexer.
+#[test]
+fn collection_initializers() {
+    let src = "public static class C {\n\
+                   public static string Run() {\n\
+                       let xs = new List<i32> { 1, 2, 3 };\n\
+                       let ages = new Dictionary<string, i32> { { \"a\", 1 }, { \"b\", 2 } };\n\
+                       let named = new Dictionary<string, i32> { [\"x\"] = 7, [\"y\"] = 8 };\n\
+                       let set = new HashSet<string> { \"p\", \"q\", \"p\" };\n\
+                       return xs.Count + \" \" + xs[2] + \" \" + ages[\"b\"] + \" \" + named[\"y\"] + \" \" + set.Count;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("c.ys", src)], "t.CScript.C.Run()") else {
+        return;
+    };
+    assert_eq!(out, "3 3 2 8 2");
+}

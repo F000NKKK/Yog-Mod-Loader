@@ -24,6 +24,10 @@ pub const DISPOSE: &str = "Dispose";
 // Collections (`List<T>`).
 pub const COUNT: &str = "Count";
 pub const ADD: &str = "Add";
+/// What a collection initializer's items are written on: the object being
+/// made (`new List<i32> { 1, 2 }` is `$made.Add(1); $made.Add(2);`). No
+/// source can name it.
+pub const MADE: &str = "$made";
 pub const CONTAINS: &str = "Contains";
 pub const INDEX_OF: &str = "IndexOf";
 pub const CLEAR: &str = "Clear";

@@ -53,11 +53,12 @@ impl Resolver<'_, '_> {
                     self.expr(v);
                 }
             }),
-            ExprKind::New { ty, args, init } => {
-                self.opt_ty(ty.as_ref());
-                args.iter().flatten().for_each(|a| self.expr(&a.value));
-                init.iter().for_each(|(_, v)| self.expr(v));
-            }
+            ExprKind::New {
+                ty,
+                args,
+                init,
+                items,
+            } => self.new_object(e, ty.as_ref(), args.as_deref(), (init, items)),
             ExprKind::Lambda {
                 params,
                 body,
@@ -226,6 +227,31 @@ impl Resolver<'_, '_> {
             }
             TypeKind::Lifetime(l) => self.lifetime(l),
         }
+    }
+
+    /// `new T(args) { init }`: a collection's items in a scope naming the
+    /// object made (`members::MADE`).
+    fn new_object(
+        &mut self,
+        e: &Expr,
+        ty: Option<&Type>,
+        args: Option<&[crate::ast::Arg]>,
+        (init, items): (&[(Name, Expr)], &[crate::ast::Stmt]),
+    ) {
+        self.opt_ty(ty);
+        args.iter()
+            .copied()
+            .flatten()
+            .for_each(|a| self.expr(&a.value));
+        init.iter().for_each(|(_, v)| self.expr(v));
+        self.scoped(|r| {
+            let made = Name {
+                text: yog_script_ids::members::MADE.to_string(),
+                span: e.span,
+            };
+            r.bind(&made, DefKind::local(true));
+            items.iter().for_each(|s| r.stmt(s));
+        });
     }
 
     /// `'a`: declared by a generic list around it, or `'static`.

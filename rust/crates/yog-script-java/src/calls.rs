@@ -3,8 +3,9 @@
 //! built-in type's members on its companion (`s.Length` is
 //! `String.Length(s)`), the library's by their places.
 
-use yog_script_analyze::ast::{Arg, Expr, ExprKind, Name, Pass, Type as Written};
+use yog_script_analyze::ast::{Arg, Expr, ExprKind, Name, Pass, Stmt, Type as Written};
 use yog_script_analyze::{Type, yog};
+use yog_script_ids::members::MADE;
 use yog_script_ids::system::RESULT;
 
 use super::Gen;
@@ -443,12 +444,27 @@ impl Gen<'_> {
         }
     }
 
+    /// `new T(args) { … }` (`e`).
+    pub(crate) fn new_expr(&mut self, e: &Expr) -> String {
+        let ExprKind::New {
+            ty,
+            args,
+            init,
+            items,
+        } = &e.kind
+        else {
+            return String::new();
+        };
+        let args = args.as_deref().unwrap_or_default();
+        self.new_object(e, ty.as_ref(), args, (init, items))
+    }
+
     pub(crate) fn new_object(
         &mut self,
         e: &Expr,
         ty: Option<&Written>,
         args: &[Arg],
-        init: &[(Name, Expr)],
+        (init, items): (&[(Name, Expr)], &[Stmt]),
     ) -> String {
         let a = self.new_args(e, args);
         let t = match ty {
@@ -467,7 +483,7 @@ impl Gen<'_> {
             Some(of) => self.new_of(&of, &t, &a),
             None => format!("{NEW} {t}({a})"),
         };
-        if init.is_empty() {
+        if init.is_empty() && items.is_empty() {
             return made;
         }
         let tmp = self.temp();
@@ -477,6 +493,10 @@ impl Gen<'_> {
             self.code
                 .line(format!("{tmp}.{} = {v};", Self::ident(&field.text)));
         }
+        // A collection's items: statements on it, `$made` naming it.
+        self.renamed.push((MADE.to_string(), tmp.clone()));
+        items.iter().for_each(|s| self.stmt(s));
+        self.renamed.pop();
         tmp
     }
 }

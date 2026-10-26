@@ -104,3 +104,10 @@ fn iterators_give_their_items() {
                i32 Sum() { let mut t = 0; foreach (let x in Evens(100)) { t += x; } return t; }\n";
     assert_eq!(run(src, "Sum", vec![]), Ok(int(12)));
 }
+
+#[test]
+fn collection_initializers_add() {
+    let src = "class Bag { public i32 Sum = 0; public void Add(i32 x) { Sum += x; } public void Add(i32 x, i32 times) { Sum += x * times; } }\n\
+               i32 Run() { let b = new Bag { 1, 2, { 3, 10 } }; return b.Sum; }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(33)));
+}

@@ -69,9 +69,12 @@ impl Checker<'_, '_, '_> {
                 self.expr(expr);
                 self.type_of(ty).nullable()
             }
-            ExprKind::New { ty, args, init } => {
-                self.new_object(e, ty.as_ref(), args.as_deref(), init)
-            }
+            ExprKind::New {
+                ty,
+                args,
+                init,
+                items,
+            } => self.new_with_items(e, (ty.as_ref(), args.as_deref()), init, items),
             ExprKind::NotNull(inner) => self.expr(inner).non_null().clone(),
             ExprKind::Collection(items) => self.collection(items),
             ExprKind::Tuple { items, names } => self.tuple(items, names, e.span),
@@ -345,6 +348,23 @@ impl Checker<'_, '_, '_> {
             self.expr(v);
         });
         self.made(&t, e.span);
+        t
+    }
+
+    /// `new T(args) { init }`: its collection items checked as statements
+    /// on the object made (`members::MADE`).
+    fn new_with_items(
+        &mut self,
+        e: &Expr,
+        (ty, args): (Option<&crate::ast::Type>, Option<&[crate::ast::Arg]>),
+        init: &[(crate::ast::Name, Expr)],
+        items: &[crate::ast::Stmt],
+    ) -> Type {
+        let t = self.new_object(e, ty, args, init);
+        self.scoped(|c| {
+            c.bind_as(yog_script_ids::members::MADE, t.clone(), false);
+            c.stmts(items);
+        });
         t
     }
 

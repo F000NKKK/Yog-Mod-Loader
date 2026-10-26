@@ -1,6 +1,7 @@
 //! `new` — an object made, or an array.
 
-use crate::ast::{ArrayItem, Expr, ExprKind, Modifier, Name, Type, TypeKind};
+use crate::ast::{Arg, ArrayItem, Expr, ExprKind, Modifier, Name, Stmt, Type, TypeKind};
+use yog_script_ids::members::{ADD, MADE};
 use crate::parser::{PResult, Parser};
 use crate::source::token::{Punct, Tok};
 use crate::words::{Role, Word};
@@ -37,8 +38,8 @@ fn parse(p: &mut Parser) -> PResult<Expr> {
         return Ok(Expr { kind, span: start.to(p.prev()) });
     }
     let args = if p.at(Punct::LParen) { Some(p.args()?) } else { None };
-    let init = if p.at(Punct::LBrace) { initializer(p)? } else { Vec::new() };
-    Ok(Expr { kind: ExprKind::New { ty, args, init }, span: start.to(p.prev()) })
+    let (init, items) = if p.at(Punct::LBrace) { initializer(p)? } else { (Vec::new(), Vec::new()) };
+    Ok(Expr { kind: ExprKind::New { ty, args, init, items }, span: start.to(p.prev()) })
 }
 
 /// `new T[n, m][]… { … }?`: its sizes, then its items' own ranks.
@@ -66,17 +67,50 @@ fn items(p: &mut Parser) -> PResult<Vec<ArrayItem>> {
     })
 }
 
-/// `{ Name = value, … }`.
-fn initializer(p: &mut Parser) -> PResult<Vec<(Name, Expr)>> {
+/// An initializer's members set and collection items.
+type Initializer = (Vec<(Name, Expr)>, Vec<Stmt>);
+
+/// `{ Name = value, … }` (members set), or a collection's `{ a, { k, v },
+/// [k] = v, … }` (each item a statement on the object made).
+fn initializer(p: &mut Parser) -> PResult<Initializer> {
     p.need(Punct::LBrace)?;
+    let mut members = Vec::new();
+    let mut items = Vec::new();
     p.braces(|p| {
         p.list(Punct::RBrace, |p| {
-            if !matches!(p.tok(), Tok::Ident(_)) {
-                return Err(p.expected("a member to set"));
+            if matches!(p.tok(), Tok::Ident(_)) && p.nth_is(1, Punct::Eq) {
+                let name = p.name("a member")?;
+                p.need(Punct::Eq)?;
+                members.push((name, p.expr()?));
+            } else {
+                items.push(item(p)?);
             }
-            let name = p.name("a member")?;
-            p.need(Punct::Eq)?;
-            Ok((name, p.expr()?))
+            Ok(())
         })
-    })
+    })?;
+    Ok((members, items))
+}
+
+/// One of a collection initializer's items: `[k] = v` its indexer set,
+/// `{ k, v }` or `v` its `Add`.
+fn item(p: &mut Parser) -> PResult<Stmt> {
+    let at = p.span();
+    let made = Expr { kind: ExprKind::Ident(MADE.to_string()), span: at };
+    if p.eat(Punct::LBracket) {
+        let args = p.braces(|p| p.list(Punct::RBracket, Parser::expr))?;
+        p.need(Punct::Eq)?;
+        let value = p.expr()?;
+        let place = Expr { kind: ExprKind::Index { expr: Box::new(made), args }, span: at.to(p.prev()) };
+        return Ok(Stmt::Assign { place, op: None, value });
+    }
+    let values = if p.eat(Punct::LBrace) {
+        p.braces(|p| p.list(Punct::RBrace, Parser::expr))?
+    } else {
+        vec![p.expr()?]
+    };
+    let span = at.to(p.prev());
+    let add = Name { text: ADD.to_string(), span: at };
+    let callee = Expr { kind: ExprKind::Member { expr: Box::new(made), name: add, safe: false }, span };
+    let args = values.into_iter().map(|value| Arg { name: None, pass: None, value }).collect();
+    Ok(Stmt::Expr(Expr { kind: ExprKind::Call { callee: Box::new(callee), args }, span }))
 }

@@ -107,9 +107,7 @@ impl Gen<'_> {
                 format!("{text}.{TEXT_WITH}({NEW} {OBJECT}[] {{ {a} }})")
             }
             ExprKind::Call { callee, args } => self.giving_back(e, |g| g.call(e, callee, args)),
-            ExprKind::New { ty, args, init } => self.giving_back(e, |g| {
-                g.new_object(e, ty.as_ref(), args.as_deref().unwrap_or_default(), init)
-            }),
+            ExprKind::New { .. } => self.giving_back(e, |g| g.new_expr(e)),
             ExprKind::Unary { op, expr } => self.unary(*op, expr),
             ExprKind::Binary { op, left, right } => self.binary(e, *op, left, right),
             ExprKind::Conditional {

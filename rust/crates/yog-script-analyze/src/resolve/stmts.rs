@@ -22,7 +22,7 @@ impl Resolver<'_, '_> {
         self.scoped(|r| r.stmt(s));
     }
 
-    fn stmt(&mut self, s: &Stmt) {
+    pub(super) fn stmt(&mut self, s: &Stmt) {
         match s {
             Stmt::Local {
                 ty,

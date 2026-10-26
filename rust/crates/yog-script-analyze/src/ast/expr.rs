@@ -59,6 +59,10 @@ pub enum ExprKind {
         ty: Option<Type>,
         args: Option<Vec<Arg>>,
         init: Vec<(Name, Expr)>,
+        /// A collection initializer's items, each a statement on the object
+        /// made (`members::MADE`): `$made.Add(1);`, `$made.Add(k, v);`,
+        /// `$made[k] = v;`.
+        items: Vec<super::Stmt>,
     },
     /// `new i32[n]`, `new i32[2, 3]`, `new i32[3][]`, `new[] { 1, 2 }`,
     /// `new i32[,] { { 1, 2 }, { 3, 4 } }`: an array made. `elem` is its

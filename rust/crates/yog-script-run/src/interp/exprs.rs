@@ -33,10 +33,15 @@ impl<'p> Interp<'p> {
                 self.member(&on, &name.text, e.span)
             }
             ExprKind::Call { callee, args } => self.call_expr(callee, args, e.span),
-            ExprKind::New { ty, args, init } => self.new_object(
+            ExprKind::New {
+                ty,
+                args,
+                init,
+                items,
+            } => self.new_object(
                 ty.as_ref(),
                 args.as_deref().unwrap_or_default(),
-                init,
+                (init, items),
                 e.span,
             ),
             ExprKind::Unary { op, expr } => self.unary(*op, expr, e.span),

@@ -87,7 +87,8 @@ impl Gen<'_> {
                 ty: Some(_),
                 args: Some(args),
                 init,
-            } if init.is_empty() => self.new_node(e, args, scopes)?,
+                items,
+            } if init.is_empty() && items.is_empty() => self.new_node(e, args, scopes)?,
             ExprKind::Lambda { params, body, .. } => {
                 self.nested_lambda(e, (params, body), scopes)?
             }
