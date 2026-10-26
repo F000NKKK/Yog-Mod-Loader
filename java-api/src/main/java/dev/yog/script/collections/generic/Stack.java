@@ -4,7 +4,20 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 
 /** Items last in, first out: Yog Script's {@code Stack<T>}, gone through from its top. */
-public class Stack<T> implements IReadOnlyCollection<T> {
+public class Stack<T> implements IReadOnlyCollection<T>, dev.yog.script.Typed {
+    /** The type arguments it was made with ({@code GetType()}'s), when they were known. */
+    private dev.yog.script.Type[] $types;
+
+    @Override
+    public dev.yog.script.Type[] $types() {
+        return $types;
+    }
+
+    @Override
+    public void $types(dev.yog.script.Type[] arguments) {
+        this.$types = arguments;
+    }
+
     private static final String EMPTY = "the stack is empty";
 
     private final ArrayDeque<T> items = new ArrayDeque<>();

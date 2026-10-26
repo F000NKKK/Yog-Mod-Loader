@@ -9,7 +9,20 @@ import java.util.Set;
  * Items each there once: Yog Script's {@code HashSet<T>} — gone through in
  * the order they were added, so a game's runs repeat. Also a {@link java.util.Set}.
  */
-public class HashSet<T> extends AbstractSet<T> implements ISet<T>, IReadOnlySet<T> {
+public class HashSet<T> extends AbstractSet<T> implements ISet<T>, IReadOnlySet<T>, dev.yog.script.Typed {
+    /** The type arguments it was made with ({@code GetType()}'s), when they were known. */
+    private dev.yog.script.Type[] $types;
+
+    @Override
+    public dev.yog.script.Type[] $types() {
+        return $types;
+    }
+
+    @Override
+    public void $types(dev.yog.script.Type[] arguments) {
+        this.$types = arguments;
+    }
+
     private final Set<T> items = new LinkedHashSet<>();
 
     public HashSet() {}

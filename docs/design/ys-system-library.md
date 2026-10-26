@@ -204,11 +204,13 @@ At run time `Type.Of(x)` finds a value's `Type` by its class (its
 `$TYPE`, or the library's companion: `Integer` is `Int32`). A Java class
 Yog Script doesn't declare is seen by its Java name, without members.
 
-On the JVM an object doesn't keep its generic arguments, so a compiled
-generic class's do (`Typed`): `new Box<i32>(…)` keeps `Int32` and
-`GetType()` gives `Box<Int32>`, as .NET's. Generic code not knowing its `T`
-makes one without (its `GetType()` the definition), and so do the
-runtime's hand-written collections (`new List<i32>()`'s is `List<T>`).
+On the JVM an object doesn't keep its generic arguments, so every generic
+class made by `new` keeps them (`Typed`) — the compiler's and the
+runtime's collections alike: `new Box<i32>(…)`, `new List<string>()`,
+`[1, 2]` keep their arguments and `GetType()` gives `Box<Int32>`,
+``List`1[System.String]``, as .NET's. Each list of arguments is a constant
+of the source's class, worked out once; generic code not knowing its `T`
+makes one without (its `GetType()` the definition).
 A value type's `T?` is `Nullable<T>` (`typeof(i32?)`); a reference's `?`
 is the type itself. A generic method's `MethodInfo` is
 called erased (`MakeGenericMethod` gives the same method).

@@ -4,7 +4,20 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 
 /** Items first in, first out: Yog Script's {@code Queue<T>}. */
-public class Queue<T> implements IReadOnlyCollection<T> {
+public class Queue<T> implements IReadOnlyCollection<T>, dev.yog.script.Typed {
+    /** The type arguments it was made with ({@code GetType()}'s), when they were known. */
+    private dev.yog.script.Type[] $types;
+
+    @Override
+    public dev.yog.script.Type[] $types() {
+        return $types;
+    }
+
+    @Override
+    public void $types(dev.yog.script.Type[] arguments) {
+        this.$types = arguments;
+    }
+
     private static final String EMPTY = "the queue is empty";
 
     private final ArrayDeque<T> items = new ArrayDeque<>();

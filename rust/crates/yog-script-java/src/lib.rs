@@ -19,6 +19,7 @@ mod identity;
 mod index;
 mod indexers;
 mod java_names;
+mod kept;
 mod library;
 mod operators;
 mod reflection;
@@ -124,6 +125,9 @@ pub(crate) struct Gen<'c> {
     nested: bool,
     /// The type whose members are being written, by name and arity.
     owner: Option<crate::java_names::TypeRef>,
+    /// The type arguments objects are made with, each list a constant of
+    /// the source's class (`$types1`): worked out once, not per object.
+    kept_types: Vec<String>,
 }
 
 impl<'c> Gen<'c> {
@@ -139,6 +143,7 @@ impl<'c> Gen<'c> {
             temps: 0,
             nested: true,
             owner: None,
+            kept_types: Vec::new(),
         }
     }
 }

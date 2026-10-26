@@ -33,9 +33,10 @@ impl Gen<'_> {
         } else {
             Type::Own(name, args)
         };
-        let made = self.java(&made, false);
+        let java = self.java(&made, false);
+        let new = self.made_of_type(&made, format!("new {java}()"));
         let t = self.temp();
-        self.code.line(format!("var {t} = new {made}();"));
+        self.code.line(format!("var {t} = {new};"));
         for i in items {
             match i {
                 Element::Item(x) => {

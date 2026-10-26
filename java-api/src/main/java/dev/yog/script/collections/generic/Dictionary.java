@@ -11,7 +11,20 @@ import java.util.Set;
  * entries it holds — its own, or a Java map's it's a view of ({@link #view}).
  */
 public class Dictionary<K, V> extends AbstractMap<K, V>
-        implements IDictionary<K, V>, IReadOnlyDictionary<K, V> {
+        implements IDictionary<K, V>, IReadOnlyDictionary<K, V>, dev.yog.script.Typed {
+    /** The type arguments it was made with ({@code GetType()}'s), when they were known. */
+    private dev.yog.script.Type[] $types;
+
+    @Override
+    public dev.yog.script.Type[] $types() {
+        return $types;
+    }
+
+    @Override
+    public void $types(dev.yog.script.Type[] arguments) {
+        this.$types = arguments;
+    }
+
     private final Map<K, V> items;
 
     public Dictionary() {

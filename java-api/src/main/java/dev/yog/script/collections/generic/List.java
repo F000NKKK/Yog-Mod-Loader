@@ -9,7 +9,20 @@ import java.util.RandomAccess;
  * Also a {@link java.util.List} over the items it holds — its own, or a
  * Java list it's a view of ({@link #view}, Yog's values' lists, not copied).
  */
-public class List<T> extends AbstractList<T> implements IList<T>, IReadOnlyList<T>, RandomAccess {
+public class List<T> extends AbstractList<T> implements IList<T>, IReadOnlyList<T>, RandomAccess, dev.yog.script.Typed {
+    /** The type arguments it was made with ({@code GetType()}'s), when they were known. */
+    private dev.yog.script.Type[] $types;
+
+    @Override
+    public dev.yog.script.Type[] $types() {
+        return $types;
+    }
+
+    @Override
+    public void $types(dev.yog.script.Type[] arguments) {
+        this.$types = arguments;
+    }
+
     private final java.util.List<T> items;
 
     public List() {

@@ -173,7 +173,7 @@ fn collections_are_the_librarys() {
         "xs.get_Item(1)",
         "ages.ContainsKey(name)",
         "names.Count()",
-        "new dev.yog.script.collections.generic.List<Integer>();",
+        "dev.yog.script.Type.made(new dev.yog.script.collections.generic.List<Integer>(), $kept",
         ".Add(1);",
         ".Add(\"steve\", 3);",
         "set.Contains(\"a\")",
@@ -372,12 +372,17 @@ fn a_tree_has_news_text_lambdas_and_operators() {
 fn generic_objects_keep_their_arguments() {
     let src = "class Box<T>(T item) {\n    public T Item = item;\n}\n\
                object Made() => new Box<i32>(1);\n\
+               object Names() => new List<string>();\n\
                Type Nullable() => typeof(i32?);\n";
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "implements dev.yog.script.Typed",
         "private dev.yog.script.Type[] $types;",
-        "dev.yog.script.Type.made(new Box<Integer>(1), new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int32.class) })",
+        "dev.yog.script.Type.made(new Box<Integer>(1), $kept1)",
+        // Each list of arguments a constant of the class, worked out once.
+        "private static final dev.yog.script.Type[] $kept1 = new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int32.class) };",
+        // The runtime's collections keep theirs too.
+        "dev.yog.script.Type.made(new dev.yog.script.collections.generic.List<String>(), $kept2)",
         // A value type's `?` is `Nullable<T>`.
         "dev.yog.script.Type.Of(dev.yog.script.Nullable.class).MakeGenericType(",
     ] {

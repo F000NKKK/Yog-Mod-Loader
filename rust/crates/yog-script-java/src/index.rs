@@ -37,6 +37,8 @@ pub(crate) struct Info {
     /// Whether it's made with arguments (it declares a constructor taking
     /// some): an attribute without one takes what a macro reads (`[Derive(Clone)]`).
     pub takes_args: bool,
+    /// An `abstract` class: never made by `new`.
+    pub is_abstract: bool,
 }
 
 #[derive(Default)]
@@ -99,6 +101,7 @@ impl Index {
                         computed: HashSet::new(),
                         bases: Vec::new(),
                         takes_args: false,
+                        is_abstract: false,
                     };
                     self.types
                         .insert((m.name.text.clone(), arity(&m.generics)), info);
@@ -164,6 +167,7 @@ impl Index {
             computed,
             bases,
             takes_args,
+            is_abstract: d.has(yog_script_analyze::ast::Modifier::Abstract),
         };
         self.types
             .insert((name.text.clone(), arity(&header.generics)), info);
@@ -192,6 +196,7 @@ impl Index {
             computed: computed(body),
             bases: Vec::new(),
             takes_args: false,
+            is_abstract: false,
         };
         self.types
             .insert((name.text.clone(), arity(generics)), info);
@@ -307,6 +312,17 @@ impl Index {
         self.types
             .get(&(name.to_string(), 0))
             .is_some_and(|i| i.takes_args)
+    }
+
+    /// Whether type `t` is made by `new` and keeps the type arguments it's
+    /// made with (`Typed`): a generic class or struct, not abstract — the
+    /// compiler's, or one the runtime writes by hand.
+    pub fn keeps_types(&self, t: &TypeRef) -> bool {
+        t.1 > 0
+            && self
+                .types
+                .get(t)
+                .is_some_and(|i| matches!(i.kind, Kind::Class | Kind::Struct) && !i.is_abstract)
     }
 
     pub fn kind(&self, t: &TypeRef) -> Option<Kind> {

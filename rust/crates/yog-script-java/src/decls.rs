@@ -35,6 +35,7 @@ impl Gen<'_> {
         self.code.open(format!("public final class {class}"));
         self.code.line(format!("private {class}() {{}}"));
         self.members(decls, Place::File);
+        self.kept_types_constants();
         self.code.close("");
     }
 

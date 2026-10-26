@@ -3,7 +3,20 @@ package dev.yog.script.collections.generic;
 import java.util.Comparator;
 
 /** Items taken least priority first: Yog Script's {@code PriorityQueue<TElement, TPriority>}. */
-public class PriorityQueue<E, P> {
+public class PriorityQueue<E, P> implements dev.yog.script.Typed {
+    /** The type arguments it was made with ({@code GetType()}'s), when they were known. */
+    private dev.yog.script.Type[] $types;
+
+    @Override
+    public dev.yog.script.Type[] $types() {
+        return $types;
+    }
+
+    @Override
+    public void $types(dev.yog.script.Type[] arguments) {
+        this.$types = arguments;
+    }
+
     private static final String EMPTY = "the queue is empty";
 
     /** An item and its priority. */

@@ -196,6 +196,9 @@ pub mod reflection {
     pub const TYPED: &str = concat!(runtime!(), sep!(), "Typed");
     pub const TYPES_FIELD: &str = "$types";
     pub const MADE: &str = "made";
+    /// The source's class's constants of the arguments its objects are made
+    /// with (`$kept1`): each list worked out once.
+    pub const KEPT: &str = "$kept";
     /// What fills a type's description, beside `$TYPE` (`Box::$describe`).
     pub const DESCRIBE: &str = "$describe";
     pub const DESCRIPTION: &str = concat!(reflection!(), sep!(), "TypeDescription");

@@ -1,7 +1,20 @@
 package dev.yog.script.collections.generic;
 
 /** A place in a {@link LinkedList}: its item, and its neighbours. */
-public final class LinkedListNode<T> {
+public final class LinkedListNode<T> implements dev.yog.script.Typed {
+    /** The type arguments it was made with ({@code GetType()}'s), when they were known. */
+    private dev.yog.script.Type[] $types;
+
+    @Override
+    public dev.yog.script.Type[] $types() {
+        return $types;
+    }
+
+    @Override
+    public void $types(dev.yog.script.Type[] arguments) {
+        this.$types = arguments;
+    }
+
     private T value;
     LinkedList<T> list;
     LinkedListNode<T> next;
