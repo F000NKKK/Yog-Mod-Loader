@@ -567,3 +567,29 @@ fn when_all_gives_results() {
     };
     assert_eq!(out, "12 b 9");
 }
+
+/// LINQ over `IAsyncEnumerable<T>`: lazy filters and projections, values
+/// awaited (`CountAsync`, `ToArrayAsync` of the items' own type).
+#[test]
+fn async_linq() {
+    let src = "using System.Linq;\n\
+               using System.Threading.Tasks;\n\
+               public static class Q {\n\
+                   static async IAsyncEnumerable<i32> Numbers(i32 n) {\n\
+                       for (let mut i = 1; i <= n; i += 1) { await Task.Yield(); yield return i; }\n\
+                   }\n\
+                   static async Task<string> Go() {\n\
+                       let evens = await Numbers(10).Where(x => x % 2 == 0).Select(x => x * 10).ToArrayAsync();\n\
+                       let count = await Numbers(10).Skip(3).Take(4).CountAsync();\n\
+                       let first = await Numbers(5).FirstAsync();\n\
+                       let any = await Numbers(3).AnyAsync(x => x > 2);\n\
+                       let sum = await new i32[] { 1, 2, 3 }.ToAsyncEnumerable().SumAsync();\n\
+                       return evens[0] + \",\" + evens[4] + \" \" + count + \" \" + first + \" \" + any + \" \" + sum;\n\
+                   }\n\
+                   public static string Run() => Go().Result;\n\
+               }\n";
+    let Some(out) = support::run(&[("q.ys", src)], "t.QScript.Q.Run()") else {
+        return;
+    };
+    assert_eq!(out, "20,100 4 1 True 6");
+}

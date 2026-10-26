@@ -83,6 +83,23 @@ public final class Generics {
         throw new IllegalStateException("`" + type + "` isn't made with nothing");
     }
 
+    /**
+     * {@code task}'s result (generic code's array: of objects) as an array of
+     * {@code type} ({@code int[]}) once it's done: what {@code Task<T[]>} is
+     * where {@code T} is known.
+     */
+    public static <A> dev.yog.script.threading.tasks.Task1<A> arrayTask(dev.yog.script.threading.tasks.Task1<?> task, Class<A> type) {
+        dev.yog.script.threading.tasks.Task1<A> made = new dev.yog.script.threading.tasks.Task1<>();
+        task.onDoneUncaptured(() -> {
+            if (task.IsFaulted()) {
+                made.fail(task.failureOf());
+            } else {
+                made.finish(dev.yog.script.host.Array.Of(task.Result(), type));
+            }
+        });
+        return made;
+    }
+
     /** {@code default(T)} of {@code type}: a built-in value's zero, else {@code null}. */
     public static Object zero(Type type) {
         for (Map.Entry<Class<?>, Object> z : ZEROS.entrySet()) {

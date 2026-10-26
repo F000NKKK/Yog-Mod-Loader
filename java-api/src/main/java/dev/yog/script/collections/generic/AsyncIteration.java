@@ -16,6 +16,8 @@ public abstract class AsyncIteration<T> implements IAsyncEnumerator<T>, Runnable
     private T current;
     private boolean done;
     private Task1<Boolean> pending;
+    /** What the step being run gives the pending ask (its item or its end), given once it's left. */
+    private Boolean given;
 
     /** The iterator's code, from {@link #$state} on. */
     protected abstract void $step();
@@ -38,9 +40,17 @@ public abstract class AsyncIteration<T> implements IAsyncEnumerator<T>, Runnable
             $step();
         } catch (RuntimeException e) {
             done = true;
+            given = null;
             pending.fail(e);
         } finally {
             dev.yog.script.threading.ExecutionContext.restore(outer);
+        }
+        // Given after the step's left: what goes on then (the next ask)
+        // never runs it again from the middle.
+        Boolean answer = given;
+        if (answer != null) {
+            given = null;
+            pending.finish(answer);
         }
     }
 
@@ -52,13 +62,13 @@ public abstract class AsyncIteration<T> implements IAsyncEnumerator<T>, Runnable
     /** {@code yield return item}. */
     protected final void $yield(T item) {
         current = item;
-        pending.finish(true);
+        given = true;
     }
 
     /** Its end. */
     protected final void $finish(Object nothing) {
         done = true;
-        pending.finish(false);
+        given = false;
     }
 
     /** Whether it waits for {@code awaited}: not done yet, it goes on when it is. */

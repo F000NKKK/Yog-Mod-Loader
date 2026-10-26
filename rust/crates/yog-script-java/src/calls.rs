@@ -345,6 +345,13 @@ impl Gen<'_> {
 
     /// `called`, an array generic code gave, made Java's array of `t`.
     fn as_array(&self, called: String, t: &Type) -> String {
+        // Generic code's arrays are of objects (Java's erased `T[]`): cast only.
+        if crate::reified::names_parameter(t) {
+            return format!(
+                "(({}) {called})",
+                crate::reified::erased(&self.java(t, false))
+            );
+        }
         format!(
             "{}.{}({called}, {}{CLASS_LITERAL})",
             self.array_host(),

@@ -153,7 +153,7 @@ public class Task {
     }
 
     /** Why it failed ({@code null} when it didn't). */
-    Throwable failureOf() {
+    public Throwable failureOf() {
         return failure;
     }
 

@@ -259,6 +259,8 @@ pub mod generics {
     pub const VIEW: &str = "view";
     pub const MADE: &str = "made";
     pub const ZERO: &str = "zero";
+    /// A task of generic code's array made one of its items' own class.
+    pub const ARRAY_TASK: &str = "arrayTask";
 }
 
 pub mod reflection {

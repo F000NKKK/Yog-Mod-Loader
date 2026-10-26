@@ -15,6 +15,9 @@ const JDK: &str = "/usr/lib/jvm/java-21-openjdk-amd64";
 const PACKAGE: &str = "t";
 
 /// The runtime's jar, built by `./build.sh build api`.
+/// The variable that keeps a run's Java and classes.
+const KEEP: &str = "YOG_KEEP_JVM";
+
 fn runtime_jar() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../java-api/build/libs/yog-java-api.jar")
 }
@@ -117,6 +120,9 @@ pub fn run(sources: &[(&str, &str)], expr: &str) -> Option<String> {
         "java: {}",
         String::from_utf8_lossy(&java.stderr)
     );
-    let _ = std::fs::remove_dir_all(&work);
+    // `YOG_KEEP_JVM=1` keeps the Java written, to read when a test fails.
+    if std::env::var_os(KEEP).is_none() {
+        let _ = std::fs::remove_dir_all(&work);
+    }
     Some(String::from_utf8_lossy(&java.stdout).trim_end().to_owned())
 }

@@ -48,12 +48,39 @@ impl Gen<'_> {
                 let owner = (o.to_string(), m.owner_arity);
                 self.index.is_reified(&owner, &m.name, m.overload)
             });
+        if let Some(task) = self.array_task(e, &called) {
+            return task;
+        }
         match self.types.of(e) {
             Some(t) if reified && t.known() => {
                 format!("(({}) ({OBJECT}) {called})", self.java(t, false))
             }
             _ => called,
         }
+    }
+
+    /// Call `e` (written `called`) giving a task of a type parameter's
+    /// array (`Task<T[]>`): generic code's array is of objects, so the
+    /// task's result is made the items' own array (`int[]`) when it's done.
+    fn array_task(&self, e: &Expr, called: &str) -> Option<String> {
+        let m = self.types.method(e)?;
+        let Type::Own(task, args) = &m.ret else {
+            return None;
+        };
+        if task != yog_script_ids::system::TASK
+            || !matches!(args.as_slice(), [Type::Array(item, _)] if names_parameter(item))
+        {
+            return None;
+        }
+        let Some(Type::Own(_, given)) = self.types.of(e) else {
+            return None;
+        };
+        let class = self.class_literal(given.first()?)?;
+        use yog_script_ids::jvm::generics::{ARRAY_TASK, GENERICS};
+        Some(format!(
+            "(({}) {GENERICS}.{ARRAY_TASK}({called}, {class}))",
+            self.java(self.types.of(e)?, false)
+        ))
     }
 
     /// `t` as Java's class value (`String.class`, `int[].class`), when it

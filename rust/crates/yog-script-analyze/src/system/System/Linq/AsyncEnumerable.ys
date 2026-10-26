@@ -1,0 +1,260 @@
+namespace System.Linq;
+
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+/// LINQ over items that come in time (.NET's `System.Linq.AsyncEnumerable`):
+/// each an extension method of `IAsyncEnumerable<T>`, lazy as `Enumerable`'s
+/// — what gives items runs when they're gone through (`await foreach`).
+/// Those giving one value are awaited (`await xs.CountAsync()`).
+public static class AsyncEnumerable {
+    /// `source`'s items, one at a time as `await foreach` asks.
+    public static async IAsyncEnumerable<TSource> ToAsyncEnumerable<TSource>(this in IEnumerable<TSource> source) {
+        foreach (let item in source) {
+            yield return item;
+        }
+    }
+
+    // Filtered, projected.
+
+    public static async IAsyncEnumerable<TSource> Where<TSource>(this in IAsyncEnumerable<TSource> source, Func<TSource, bool> predicate) {
+        await foreach (let item in source) {
+            if (predicate(item)) {
+                yield return item;
+            }
+        }
+    }
+
+    /// Its items `predicate` takes, waited for each.
+    public static async IAsyncEnumerable<TSource> Where<TSource>(this in IAsyncEnumerable<TSource> source, Func<TSource, Task<bool>> predicate) {
+        await foreach (let item in source) {
+            if (await predicate(item)) {
+                yield return item;
+            }
+        }
+    }
+
+    public static async IAsyncEnumerable<TResult> Select<TSource, TResult>(this in IAsyncEnumerable<TSource> source, Func<TSource, TResult> selector) {
+        await foreach (let item in source) {
+            yield return selector(item);
+        }
+    }
+
+    /// Each item made another by `selector`, waited for each.
+    public static async IAsyncEnumerable<TResult> Select<TSource, TResult>(this in IAsyncEnumerable<TSource> source, Func<TSource, Task<TResult>> selector) {
+        await foreach (let item in source) {
+            yield return await selector(item);
+        }
+    }
+
+    public static async IAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this in IAsyncEnumerable<TSource> source, Func<TSource, IAsyncEnumerable<TResult>> selector) {
+        await foreach (let item in source) {
+            await foreach (let inner in selector(item)) {
+                yield return inner;
+            }
+        }
+    }
+
+    // Taken, skipped.
+
+    public static async IAsyncEnumerable<TSource> Take<TSource>(this in IAsyncEnumerable<TSource> source, i32 count) {
+        if (count <= 0) {
+            yield break;
+        }
+        let mut left = count;
+        await foreach (let item in source) {
+            yield return item;
+            left -= 1;
+            if (left == 0) {
+                yield break;
+            }
+        }
+    }
+
+    public static async IAsyncEnumerable<TSource> Skip<TSource>(this in IAsyncEnumerable<TSource> source, i32 count) {
+        let mut skipped = 0;
+        await foreach (let item in source) {
+            if (skipped < count) {
+                skipped += 1;
+            } else {
+                yield return item;
+            }
+        }
+    }
+
+    public static async IAsyncEnumerable<TSource> TakeWhile<TSource>(this in IAsyncEnumerable<TSource> source, Func<TSource, bool> predicate) {
+        await foreach (let item in source) {
+            if (!predicate(item)) {
+                yield break;
+            }
+            yield return item;
+        }
+    }
+
+    public static async IAsyncEnumerable<TSource> SkipWhile<TSource>(this in IAsyncEnumerable<TSource> source, Func<TSource, bool> predicate) {
+        let mut taking = false;
+        await foreach (let item in source) {
+            if (!taking && !predicate(item)) {
+                taking = true;
+            }
+            if (taking) {
+                yield return item;
+            }
+        }
+    }
+
+    public static async IAsyncEnumerable<TSource> Concat<TSource>(this in IAsyncEnumerable<TSource> first, IAsyncEnumerable<TSource> second) {
+        await foreach (let item in first) {
+            yield return item;
+        }
+        await foreach (let item in second) {
+            yield return item;
+        }
+    }
+
+    public static async IAsyncEnumerable<TSource> Distinct<TSource>(this in IAsyncEnumerable<TSource> source) {
+        let mut seen = new HashSet<TSource>();
+        await foreach (let item in source) {
+            if (seen.Add(item)) {
+                yield return item;
+            }
+        }
+    }
+
+    // Gathered.
+
+    public static async Task<List<TSource>> ToListAsync<TSource>(this in IAsyncEnumerable<TSource> source) {
+        let mut list = new List<TSource>();
+        await foreach (let item in source) {
+            list.Add(item);
+        }
+        return list;
+    }
+
+    public static async Task<TSource[]> ToArrayAsync<TSource>(this in IAsyncEnumerable<TSource> source) {
+        let list = await source.ToListAsync();
+        return list.ToArray();
+    }
+
+    public static async Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>(this in IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector) {
+        let mut map = new Dictionary<TKey, TSource>();
+        await foreach (let item in source) {
+            map.Add(keySelector(item), item);
+        }
+        return map;
+    }
+
+    // Asked.
+
+    public static async Task<i32> CountAsync<TSource>(this in IAsyncEnumerable<TSource> source) {
+        let mut count = 0;
+        await foreach (let item in source) {
+            count += 1;
+        }
+        return count;
+    }
+
+    public static async Task<i32> CountAsync<TSource>(this in IAsyncEnumerable<TSource> source, Func<TSource, bool> predicate) {
+        let mut count = 0;
+        await foreach (let item in source) {
+            if (predicate(item)) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
+    public static async Task<bool> AnyAsync<TSource>(this in IAsyncEnumerable<TSource> source) {
+        await foreach (let item in source) {
+            return true;
+        }
+        return false;
+    }
+
+    public static async Task<bool> AnyAsync<TSource>(this in IAsyncEnumerable<TSource> source, Func<TSource, bool> predicate) {
+        await foreach (let item in source) {
+            if (predicate(item)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static async Task<bool> AllAsync<TSource>(this in IAsyncEnumerable<TSource> source, Func<TSource, bool> predicate) {
+        await foreach (let item in source) {
+            if (!predicate(item)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static async Task<bool> ContainsAsync<TSource>(this in IAsyncEnumerable<TSource> source, TSource value) {
+        await foreach (let item in source) {
+            if (EqualityComparer<TSource>.Default.Equals(item, value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Its first item: a panic when it has none.
+    public static async Task<TSource> FirstAsync<TSource>(this in IAsyncEnumerable<TSource> source) {
+        await foreach (let item in source) {
+            return item;
+        }
+        panic!("the sequence has no items");
+    }
+
+    public static async Task<TSource?> FirstOrDefaultAsync<TSource>(this in IAsyncEnumerable<TSource> source) {
+        await foreach (let item in source) {
+            return item;
+        }
+        return default;
+    }
+
+    /// Its last item: a panic when it has none.
+    public static async Task<TSource> LastAsync<TSource>(this in IAsyncEnumerable<TSource> source) {
+        let mut found = false;
+        let mut last = default(TSource);
+        await foreach (let item in source) {
+            found = true;
+            last = item;
+        }
+        if (!found) {
+            panic!("the sequence has no items");
+        }
+        return last;
+    }
+
+    /// `func` folded over its items from `seed`.
+    public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>(this in IAsyncEnumerable<TSource> source, TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> func) {
+        let mut acc = seed;
+        await foreach (let item in source) {
+            acc = func(acc, item);
+        }
+        return acc;
+    }
+
+    public static async Task<i32> SumAsync(this in IAsyncEnumerable<i32> source) {
+        let mut sum = 0;
+        await foreach (let item in source) {
+            sum += item;
+        }
+        return sum;
+    }
+
+    public static async Task<f64> SumAsync(this in IAsyncEnumerable<f64> source) {
+        let mut sum = 0.0;
+        await foreach (let item in source) {
+            sum += item;
+        }
+        return sum;
+    }
+
+    public static async Task ForEachAsync<TSource>(this in IAsyncEnumerable<TSource> source, Action<TSource> action) {
+        await foreach (let item in source) {
+            action(item);
+        }
+    }
+}

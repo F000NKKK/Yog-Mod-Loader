@@ -34,7 +34,7 @@ impl Gen<'_> {
         };
         let typed = self.java(&t, false);
         // Java makes no array of a generic type with its arguments: a raw one.
-        let java = crate::types::raw(&typed);
+        let java = crate::reified::erased(&typed);
         match init {
             // Java takes no sizes with the items.
             Some(items) => {

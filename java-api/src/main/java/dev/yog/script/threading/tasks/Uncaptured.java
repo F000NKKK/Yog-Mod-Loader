@@ -7,9 +7,17 @@ package dev.yog.script.threading.tasks;
  */
 final class Uncaptured<TResult> extends Task1<TResult> {
     private final Task of;
+    /** The task again when it gives a result. */
+    private final Task1<TResult> giving;
 
     Uncaptured(Task of) {
         this.of = of;
+        this.giving = null;
+    }
+
+    Uncaptured(Task1<TResult> of) {
+        this.of = of;
+        this.giving = of;
     }
 
     @Override
@@ -38,7 +46,7 @@ final class Uncaptured<TResult> extends Task1<TResult> {
     }
 
     @Override
-    Throwable failureOf() {
+    public Throwable failureOf() {
         return of.failureOf();
     }
 
@@ -48,8 +56,7 @@ final class Uncaptured<TResult> extends Task1<TResult> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public TResult Result() {
-        return of instanceof Task1<?> t ? (TResult) t.Result() : null;
+        return giving == null ? null : giving.Result();
     }
 }
