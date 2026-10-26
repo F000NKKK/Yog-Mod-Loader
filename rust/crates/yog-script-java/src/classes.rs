@@ -234,7 +234,7 @@ impl Gen<'_> {
                 }
             }
             let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&c.params));
-            self.block_stmts(&c.body);
+            self.with_boxed(&c.body.stmts, |g| g.block_stmts(&c.body));
             self.cells = outer;
             self.code.close("");
         }
@@ -279,7 +279,7 @@ impl Gen<'_> {
     pub(crate) fn body(&mut self, head: &str, body: Option<&MethodBody>, void: bool) {
         self.code.open(head);
         match body {
-            Some(MethodBody::Block(b)) => self.block_stmts(b),
+            Some(MethodBody::Block(b)) => self.with_boxed(&b.stmts, |g| g.block_stmts(b)),
             Some(MethodBody::Expr(e)) => {
                 let v = self.handed_expr(e);
                 if void {
@@ -330,18 +330,7 @@ impl Gen<'_> {
 
     /// The address a `[Service("…")]` gives, as a Java string.
     fn service_address(&self, d: &Decl) -> Option<String> {
-        let a = d.attributes.iter().find(|a| {
-            a.path
-                .last()
-                .is_some_and(|n| n.text == yog_script_ids::system::SERVICE)
-        })?;
-        match &a.args.first()?.value.kind {
-            yog_script_analyze::ast::ExprKind::Str(segs) => match segs.as_slice() {
-                [yog_script_analyze::ast::StrSeg::Text(t)] => Some(self.code.str(t)),
-                _ => None,
-            },
-            _ => None,
-        }
+        crate::index::attribute_text(d, yog_script_ids::system::SERVICE).map(|t| self.code.str(&t))
     }
 }
 

@@ -8,12 +8,14 @@
 
 mod arrays;
 mod calls;
+mod captures;
 mod classes;
 mod collections;
 mod decimals;
 mod decls;
 mod delegates;
 mod enums;
+mod events;
 mod exprs;
 mod groups;
 mod identity;
@@ -26,6 +28,7 @@ mod machine;
 mod macros;
 mod operators;
 mod patterns;
+mod provided;
 mod reflection;
 mod refs;
 mod reified;
@@ -71,10 +74,18 @@ pub fn compile(
     );
     g.file(package, &class, &checked.file.decls);
     if g.report.out.is_empty() {
-        let mods = mods(&checked.file.decls)
+        let mut mods: Vec<String> = mods(&checked.file.decls)
             .into_iter()
             .map(|m| format!("{package}.{class}${m}"))
             .collect();
+        if g.has_provided {
+            // A nested class's binary name: its outer one's, `$`, its own.
+            mods.push(format!(
+                "{package}.{class}{}{}",
+                yog_script_ids::jvm::NESTED,
+                yog_script_ids::jvm::PROVIDED
+            ));
+        }
         Ok(JavaClass {
             name: class,
             source: g.code.finish(),
@@ -162,6 +173,17 @@ pub(crate) struct Gen<'c> {
     /// The loops being written, innermost last: a loop split in states
     /// the jump a `break` leaves it by; Java's own none.
     breaks: Vec<Option<String>>,
+    /// The code being written has no object (a static member's, the file's).
+    statik: bool,
+    /// The source's class's simple name.
+    class_name: String,
+    /// The body being written's locals a lambda captures and something
+    /// changes: each a cell (`captures.rs`).
+    boxed: std::collections::HashSet<String>,
+    /// The `[Provide]` methods' registrations, for the file's `$Provided`.
+    provided: Vec<String>,
+    /// The file has a `$Provided`.
+    has_provided: bool,
 }
 
 impl<'c> Gen<'c> {
@@ -188,6 +210,11 @@ impl<'c> Gen<'c> {
             renamed: Vec::new(),
             this_name: None,
             breaks: Vec::new(),
+            statik: true,
+            class_name: String::new(),
+            boxed: std::collections::HashSet::new(),
+            provided: Vec::new(),
+            has_provided: false,
         }
     }
 }

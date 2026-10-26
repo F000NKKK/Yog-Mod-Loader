@@ -151,11 +151,55 @@ fn an_await_some_paths_reach_is_jumped_past() {
                async Task<bool> Yes() {\n    await Task.Yield();\n    return true;\n}\n\
                async Task<bool> F(bool a) => a && await Yes();\n";
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in ["= a$p;", "if (!$t", ") if (true) { $state = ", ".Result();"] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+/// `event`s: an `Event` of handlers, a method's removed by its key; a bus
+/// one listened to and emitted; a `[Provide]` method answering when the
+/// mods load.
+#[test]
+fn events_are_handlers() {
+    let src = "using System.Yog.Native;\n\
+               record Overloaded(i64 Energy);\n\
+               [Event(\"charge:overloaded\")]\npublic static event Action<Overloaded> Overloads;\n\
+               [Provide(\"charge:double\")]\nstatic i64 Double(i64 x) => x * 2;\n\
+               class Button {\n    public event Action<string> Clicked;\n    public void Click() => Clicked(\"me\");\n    public void Saw(string s) { }\n}\n\
+               void F(Overloaded o) {\n    let mut b = new Button();\n    b.Clicked += b.Saw;\n    b.Clicked -= b.Saw;\n    Overloads += e => { };\n    Overloads.Invoke(o);\n}\n";
+    let checked = yog_script_analyze::check("sample.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let class = yog_script_java::compile("sample.ys", src, &checked, "p")
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    let out = class.source;
     for want in [
-        "= a$p;",
-        "if (!$t",
-        ") if (true) { $state = ",
-        ".Result();",
+        "public final dev.yog.script.Event<dev.yog.script.Action1<String>> Clicked = new dev.yog.script.Event<>();",
+        "Clicked.each(($t",
+        "b.Clicked.add(java.util.List.of(b, \"Saw#0\"), b::Saw);",
+        "b.Clicked.remove(java.util.List.of(b, \"Saw#0\"));",
+        "dev.yog.api.YogBus.on(\"charge:overloaded\", 0, Overloaded.class,",
+        "dev.yog.api.YogBus.emit(\"charge:overloaded\", Overloaded.class, o)",
+        "public record DoubleRequest(long x) {}",
+        "dev.yog.api.YogBus.provide(\"charge:double\", SampleScript.DoubleRequest.class,",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+    assert!(
+        class.mods.iter().any(|m| m == "p.SampleScript$$Provided"),
+        "{:?}",
+        class.mods
+    );
+}
+
+/// A local a lambda captures and something changes: a cell.
+#[test]
+fn a_changed_capture_is_a_cell() {
+    let src = "i32 F() {\n    let mut n = 0;\n    Action add = () => { n += 1; };\n    add();\n    return n;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "final dev.yog.script.Ref<Integer> n = new dev.yog.script.Ref<>(0);",
+        "n.value += 1;",
+        "return n.value;",
     ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }

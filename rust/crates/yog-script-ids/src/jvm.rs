@@ -118,15 +118,30 @@ pub const MOD_INTERFACE: &str = concat!(runtime!(), sep!(), "YsMod");
 pub const CLASS_SUFFIX: &str = "Script";
 
 /// The bus's call for Java code (`java-common`'s `dev.yog.api.YogBus`).
-pub const BUS_CALL: &str = concat!(
-    java_root!(),
-    sep!(),
-    "api",
-    sep!(),
-    "YogBus",
-    sep!(),
-    "call"
-);
+macro_rules! bus_api {
+    () => {
+        concat!(java_root!(), sep!(), "api", sep!(), "YogBus")
+    };
+}
+pub const BUS_CALL: &str = concat!(bus_api!(), sep!(), "call");
+/// A bus event emitted, listened to (at the default priority).
+pub const BUS_EMIT: &str = concat!(bus_api!(), sep!(), "emit");
+pub const BUS_ON: &str = concat!(bus_api!(), sep!(), "on");
+pub const BUS_PRIORITY: &str = "0";
+/// A `[Provide]` method answering at its address; the file's class
+/// registering them, made as a mod is.
+pub const BUS_PROVIDE: &str = concat!(bus_api!(), sep!(), "provide");
+pub const PROVIDED: &str = "$Provided";
+/// An `event`'s handlers (the runtime's `Event`): added (by a key),
+/// removed by it, each called, the last's value given; a method's key
+/// made of its object and itself (`List.of(c, "Times#0")`).
+pub const EVENT_CLASS: &str = concat!(runtime!(), sep!(), "Event");
+pub const EVENT_ADD: &str = "add";
+pub const EVENT_REMOVE: &str = "remove";
+pub const EVENT_EACH: &str = "each";
+pub const EVENT_LAST: &str = "last";
+pub const KEY_OF: &str = concat!(java_util!(), sep!(), "List", sep!(), "of");
+pub const OVERLOAD_SEP: &str = "#";
 
 /// A request record's name: its method's, and this.
 pub const REQUEST: &str = "Request";

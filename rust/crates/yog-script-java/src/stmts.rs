@@ -5,11 +5,12 @@ use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Binding, Block, Expr, ExprKind, Stmt};
 
 use yog_script_ids::clr::{ACCESSOR_SEP, INVOKE};
+use yog_script_ids::jvm::{BUS_PRIORITY, REF};
 
 use super::Gen;
 use crate::modifier;
 use yog_script_ids::java::{
-    BREAK, CONTINUE, DO, ELSE, FINAL, FOR, IF, INT, NULL, RETURN, TRUE, VAR, WHILE,
+    BREAK, CONTINUE, DO, ELSE, FINAL, FOR, IF, INT, NEW, NULL, RETURN, TRUE, VAR, WHILE,
 };
 
 impl Gen<'_> {
@@ -114,6 +115,9 @@ impl Gen<'_> {
             modifier(FINAL)
         };
         let name = Self::ident(&n.text);
+        if self.boxed.contains(&n.text) {
+            return self.boxed_local(n, (written, value));
+        }
         let Some(v) = value else {
             let ty = match written {
                 Some(w) => self.written(w, false),
@@ -131,6 +135,36 @@ impl Gen<'_> {
         };
         let v = self.handed_expr(v);
         self.code.line(format!("{fin}{ty} {name} = {v};"));
+    }
+
+    /// A local a lambda captures and something changes: a cell, read and
+    /// written as `x.value` from here on.
+    fn boxed_local(
+        &mut self,
+        n: &yog_script_analyze::ast::Name,
+        (written, value): (Option<&yog_script_analyze::ast::Type>, Option<&Expr>),
+    ) {
+        let ty = match (written, value.and_then(|v| self.types.of(v))) {
+            (Some(w), _) => self.written(w, true),
+            (None, Some(t)) => self.java(t, true),
+            (None, None) => yog_script_ids::jvm::OBJECT.to_string(),
+        };
+        let v = value.map(|v| self.handed_expr(v)).unwrap_or_default();
+        let name = Self::ident(&n.text);
+        self.code
+            .line(format!("{FINAL} {REF}<{ty}> {name} = {NEW} {REF}<>({v});"));
+        self.cells.insert(n.text.clone());
+    }
+
+    /// `f` writing a body of `stmts`: its locals a lambda captures and
+    /// something changes cells.
+    pub(crate) fn with_boxed<R>(&mut self, stmts: &[Stmt], f: impl FnOnce(&mut Self) -> R) -> R {
+        let outer = std::mem::replace(&mut self.boxed, crate::captures::boxed_locals(stmts));
+        let cells = self.cells.clone();
+        let out = f(self);
+        self.cells = cells;
+        self.boxed = outer;
+        out
     }
 
     fn simple(&mut self, s: &Stmt) {
@@ -203,6 +237,11 @@ impl Gen<'_> {
     }
 
     fn assign(&mut self, place: &Expr, op: Option<&BinOp>, value: &Expr) {
+        if let Some(op @ (BinOp::Add | BinOp::Sub)) = op
+            && let Some(ev) = self.event_of(place)
+        {
+            return self.subscribe(&ev, *op, value);
+        }
         if let (Some(BinOp::Add), ExprKind::Member { expr, name, .. }) = (op, &place.kind)
             && let Some(Type::Yog(group)) = self.types.of(expr)
             && let Some(event) = yog_script_analyze::yog::event(group, &name.text)
@@ -465,7 +504,8 @@ impl Gen<'_> {
                 "{FINAL} {} {made} = {delegate};",
                 self.java(&t, false)
             ));
-            self.code.open(format!("{event}.on(0, ({each}) ->"));
+            self.code
+                .open(format!("{event}.on({BUS_PRIORITY}, ({each}) ->"));
             self.code.line(format!("{made}.{INVOKE}({each});"));
             self.code.line(format!("{RETURN} {NULL};"));
             self.code.close(");");
@@ -475,7 +515,8 @@ impl Gen<'_> {
             || yog_script_analyze::ast::IT.to_string(),
             |p| Self::ident(&p.name.text),
         );
-        self.code.open(format!("{event}.on(0, ({name}) ->"));
+        self.code
+            .open(format!("{event}.on({BUS_PRIORITY}, ({name}) ->"));
         match body {
             yog_script_analyze::ast::LambdaBody::Expr(e) => self.expr_stmt(e),
             yog_script_analyze::ast::LambdaBody::Block(stmts) => {

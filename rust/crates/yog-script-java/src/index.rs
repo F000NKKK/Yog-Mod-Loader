@@ -12,6 +12,7 @@ use crate::java_names::TypeRef;
 use crate::types::RUNTIME;
 
 use yog_script_ids::jvm::HOST_PACKAGE;
+use yog_script_ids::system::EVENT;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Kind {
@@ -63,6 +64,9 @@ pub(crate) struct Index {
     library: bool,
     /// The units the source declares (`unit Energy;`), beside the game's.
     units: HashSet<String>,
+    /// Each `event`, by its type's name (the file's or a mod's: none) and
+    /// its own: its bus address when it's `[Event("…")]`'s.
+    events: HashMap<(String, String), Option<String>>,
     /// The `[Host]` types: built-in types' members' companions.
     hosts: HashSet<String>,
     /// The `[Intrinsic]` types: the runtime's, written by hand.
@@ -121,6 +125,10 @@ impl Index {
                 DeclKind::Unit { name, .. } => {
                     self.units.insert(name.text.clone());
                 }
+                DeclKind::Event { name, .. } => {
+                    self.events
+                        .insert((String::new(), name.text.clone()), attribute_text(d, EVENT));
+                }
                 kind => self.walk(kind.members()),
             }
         }
@@ -140,6 +148,14 @@ impl Index {
             return;
         };
         self.declared(&name.text, arity(&header.generics));
+        for m in body {
+            if let DeclKind::Event { name: e, .. } = &m.kind {
+                self.events.insert(
+                    (name.text.clone(), e.text.clone()),
+                    attribute_text(m, EVENT),
+                );
+            }
+        }
         self.shapes.insert(
             (name.text.clone(), arity(&header.generics)),
             crate::java_names::shape_of(header, body),
@@ -329,6 +345,14 @@ impl Index {
         self.intrinsics.contains(name)
     }
 
+    /// Event `name` of type `owner` (the file's or a mod's: none): its bus
+    /// address, when it's on the bus; `None` when there's no such event.
+    pub fn event(&self, owner: Option<&str>, name: &str) -> Option<Option<&str>> {
+        self.events
+            .get(&(owner.unwrap_or_default().to_string(), name.to_string()))
+            .map(Option::as_deref)
+    }
+
     /// Whether `name` is a unit: the game's (`Ticks`) or one declared.
     pub fn is_unit(&self, name: &str) -> bool {
         yog_script_ids::units::GAME_UNITS.contains(&name) || self.units.contains(name)
@@ -397,6 +421,21 @@ impl Index {
                 || i.computed.contains(name)
                 || i.bases.iter().any(|b| self.called(b, name))
         })
+    }
+}
+
+/// The text attribute `attr` of `d` is given (`[Event("charge:overloaded")]`).
+pub(crate) fn attribute_text(d: &Decl, attr: &str) -> Option<String> {
+    let a = d
+        .attributes
+        .iter()
+        .find(|a| a.path.last().is_some_and(|n| n.text == attr))?;
+    match &a.args.first()?.value.kind {
+        yog_script_analyze::ast::ExprKind::Str(segs) => match segs.as_slice() {
+            [yog_script_analyze::ast::StrSeg::Text(t)] => Some(t.clone()),
+            _ => None,
+        },
+        _ => None,
     }
 }
 

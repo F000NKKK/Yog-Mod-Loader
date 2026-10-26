@@ -106,6 +106,14 @@ impl Gen<'_> {
             ExprKind::TypeArgs { expr, .. } => &**expr,
             _ => callee,
         };
+        // An event raised: `Joined(p)`, `Joined.Invoke(p)`, `Joined?.Invoke(p)`.
+        let raised = match &callee.kind {
+            ExprKind::Member { expr, name, .. } if name.text == INVOKE => &**expr,
+            _ => callee,
+        };
+        if let Some(ev) = self.event_of(raised) {
+            return self.raise(e, &ev, args);
+        }
         let a = self.args(args);
         match &callee.kind {
             ExprKind::Ident(name) => match self.types.of(callee) {

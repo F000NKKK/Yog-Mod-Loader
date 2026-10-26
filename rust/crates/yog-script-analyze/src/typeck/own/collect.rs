@@ -26,7 +26,7 @@ impl OwnTypes {
                 DeclKind::Field(f) => {
                     self.values.insert(f.name.text.clone(), f.ty.clone());
                 }
-                DeclKind::Property { ty, name, .. } => {
+                DeclKind::Property { ty, name, .. } | DeclKind::Event { ty, name } => {
                     self.values.insert(name.text.clone(), ty.clone());
                 }
                 DeclKind::Unit { name, .. } => self.units.push(name.text.clone()),

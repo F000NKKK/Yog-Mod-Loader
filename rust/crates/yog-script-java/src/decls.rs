@@ -36,9 +36,11 @@ impl Gen<'_> {
             self.file
         ));
         self.code.line(format!("{PACKAGE} {package};")).blank();
+        self.class_name = class.to_string();
         self.code.open(format!("{PUBLIC} {FINAL} {CLASS} {class}"));
         self.code.line(format!("{PRIVATE} {class}() {{}}"));
         self.members(decls, Place::File);
+        self.has_provided = self.provided_class();
         self.kept_types_constants();
         self.code.close("");
     }
@@ -51,7 +53,12 @@ impl Gen<'_> {
 
     pub(crate) fn decl(&mut self, d: &Decl, place: Place) {
         let params = self.object_type_params(d);
+        let statik = std::mem::replace(
+            &mut self.statik,
+            place == Place::File || d.has(Modifier::Static),
+        );
         self.with_type_params(params, |g| g.decl_kind(d, place));
+        self.statik = statik;
     }
 
     fn decl_kind(&mut self, d: &Decl, place: Place) {
@@ -79,6 +86,10 @@ impl Gen<'_> {
                 self.property_accessors(place, (&t, &n), accessors);
             }
             DeclKind::Indexer(ix) => self.indexer(d, ix, place),
+            DeclKind::Event { ty, name } => {
+                let t = self.written(ty, true);
+                self.event_decl(d, (&t, &name.text), place);
+            }
             DeclKind::Delegate(m) => self.delegate_decl(d, m),
             DeclKind::Operator(op) => self.method(d, &op.method, place),
             DeclKind::Type {
@@ -143,6 +154,7 @@ impl Gen<'_> {
             _ => format!("{}{}{}", access_of(d), stat_of(d), final_of(d)),
         };
         let head = format!("{lead}{generics}{ret} {name}({params})");
+        self.provided(d, m, &name);
         if m.body.is_none() {
             self.code.line(format!("{head};"));
             return;
