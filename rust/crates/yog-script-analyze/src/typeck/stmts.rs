@@ -161,6 +161,7 @@ impl Checker<'_, '_, '_> {
             (Binding::One(n), _) => self.bind_as(&n.text, t.clone(), fixed),
             (Binding::Tuple(names), Type::Tuple(items, _)) if names.len() == items.len() => {
                 for (n, item) in names.iter().zip(items) {
+                    self.types.set_binding(n, item.clone());
                     self.bind_as(&n.text, item.clone(), fixed);
                 }
             }
@@ -170,6 +171,7 @@ impl Checker<'_, '_, '_> {
                 if self.record_params(record, args).len() == names.len() =>
             {
                 for (n, item) in names.iter().zip(self.record_params(record, args)) {
+                    self.types.set_binding(n, item.clone());
                     self.bind_as(&n.text, item, fixed);
                 }
             }

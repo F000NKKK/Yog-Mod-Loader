@@ -142,3 +142,21 @@ fn async_methods_are_machines() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+/// An `await` only some paths reach: its value a field, the path not taken
+/// jumped past.
+#[test]
+fn an_await_some_paths_reach_is_jumped_past() {
+    let src = "using System.Threading.Tasks;\n\
+               async Task<bool> Yes() {\n    await Task.Yield();\n    return true;\n}\n\
+               async Task<bool> F(bool a) => a && await Yes();\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "= a$p;",
+        "if (!$t",
+        ") if (true) { $state = ",
+        ".Result();",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

@@ -83,6 +83,9 @@ impl Gen<'_> {
                 then,
                 otherwise,
             } => {
+                if let Some(v) = self.split_conditional(e, (cond, then, otherwise)) {
+                    return v;
+                }
                 let (c, a, b) = (self.expr(cond), self.expr(then), self.expr(otherwise));
                 format!("({c} ? {a} : {b})")
             }
@@ -256,6 +259,9 @@ impl Gen<'_> {
 
     fn binary(&mut self, e: &Expr, op: BinOp, left: &Expr, right: &Expr) -> String {
         if let Some(v) = self.enum_binary(op, left, right) {
+            return v;
+        }
+        if let Some(v) = self.short_circuit(e, op, (left, right)) {
             return v;
         }
         let l = self.expr(left);

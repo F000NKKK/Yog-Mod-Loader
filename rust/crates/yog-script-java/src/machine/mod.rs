@@ -8,6 +8,7 @@
 //! (`awaits.rs`).
 
 mod awaits;
+mod branches;
 mod flow;
 
 use yog_script_analyze::Type;

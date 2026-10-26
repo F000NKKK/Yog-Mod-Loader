@@ -4,7 +4,7 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Binding, Block, Expr, ExprKind, Stmt};
 
-use yog_script_ids::clr::{ACCESSOR_SEP, INVOKE, TUPLE_ITEM};
+use yog_script_ids::clr::{ACCESSOR_SEP, INVOKE};
 
 use super::Gen;
 use crate::modifier;
@@ -387,7 +387,7 @@ impl Gen<'_> {
         } = &iter.kind
         {
             let (a, b) = (self.expr(from), self.expr(to));
-            let cmp = if *inclusive { "<=" } else { "<" };
+            let cmp = crate::exprs::op_text(if *inclusive { BinOp::LtEq } else { BinOp::Lt });
             let head = format!("{FOR} ({INT} {name} = {a}; {name} {cmp} {b}; {name}++)");
             return self.loop_body(|g| g.branch(&head, body));
         }
@@ -425,16 +425,8 @@ impl Gen<'_> {
         let each = self.temp();
         self.code.open(format!("{FOR} ({VAR} {each} : {items})"));
         for (i, n) in names.iter().enumerate() {
-            let part = match item.as_ref().map(Type::non_null) {
-                Some(Type::Own(record, args)) => match self
-                    .index
-                    .record_params(&(record.clone(), args.len()))
-                    .get(i)
-                {
-                    Some(p) => format!("{each}.{}()", Self::ident(p)),
-                    None => return self.not_yet("this taken apart", n.span),
-                },
-                _ => format!("{each}.{TUPLE_ITEM}{}", i + 1),
+            let Some(part) = self.part_of(item.as_ref(), &each, i) else {
+                return self.not_yet("this taken apart", n.span);
             };
             self.code.line(format!(
                 "{} {VAR} {} = {part};",

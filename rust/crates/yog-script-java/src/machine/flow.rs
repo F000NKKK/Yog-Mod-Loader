@@ -4,7 +4,7 @@
 //! split is a field (`x$v1`): it lives across a wait.
 
 use yog_script_analyze::Type;
-use yog_script_analyze::ast::{Binding, Block, Expr, ExprKind, Stmt};
+use yog_script_analyze::ast::{BinOp, Binding, Block, Expr, ExprKind, Stmt};
 use yog_script_ids::java::{CHAR, IF, INT, RANK};
 use yog_script_ids::jvm::tasks::LOCAL_FIELD;
 use yog_script_ids::jvm::{HAS_NEXT, ITERATOR, ITERATOR_OF, LENGTH, NEXT, OBJECT, TO_CHAR_ARRAY};
@@ -73,10 +73,15 @@ impl Gen<'_> {
             }
             Stmt::Local {
                 binding: Binding::Tuple(names),
+                value: Some(v),
+                ..
+            } => self.machine_taken_apart(names, v),
+            Stmt::Local {
+                binding: Binding::Tuple(names),
                 ..
             } => {
                 if let Some(n) = names.first() {
-                    self.not_yet("a tuple taken apart in an `async` method", n.span);
+                    self.not_yet("a tuple taken apart without a value", n.span);
                 }
             }
             s if !stmt_awaits(s) => self.stmt(s),
@@ -105,6 +110,35 @@ impl Gen<'_> {
             Stmt::Expr(e) | Stmt::Value(e) | Stmt::Return(Some(e), _)
                 if self.await_unwritable(e) => {}
             other => self.stmt(other),
+        }
+    }
+
+    /// `let (a, b) = v;` in the machine: `v` kept in a field, each name a
+    /// field of its part.
+    fn machine_taken_apart(&mut self, names: &[yog_script_analyze::ast::Name], v: &Expr) {
+        if self.await_unwritable(v) {
+            return;
+        }
+        let of = self.types.of(v).cloned();
+        let whole_t = of
+            .as_ref()
+            .map_or_else(|| OBJECT.to_string(), |t| self.java(t, false));
+        let whole = self.handed_expr(v);
+        let kept = self.temp();
+        self.declare_field(&whole_t, &kept);
+        self.code.line(format!("{kept} = {whole};"));
+        for (i, n) in names.iter().enumerate() {
+            let Some(part) = self.part_of(of.as_ref(), &kept, i) else {
+                return self.not_yet("this taken apart", n.span);
+            };
+            let t = self
+                .types
+                .binding(n)
+                .map_or_else(|| OBJECT.to_string(), |t| self.java(t, false));
+            let field = format!("{}{LOCAL_FIELD}{}", Self::ident(&n.text), self.new_state());
+            self.declare_field(&t, &field);
+            self.renamed.push((n.text.clone(), field.clone()));
+            self.code.line(format!("{field} = {part};"));
         }
     }
 
@@ -219,6 +253,14 @@ impl Gen<'_> {
         if awaits(iter) && self.await_unwritable(iter) {
             return;
         }
+        if let ExprKind::Range {
+            from,
+            to,
+            inclusive,
+        } = &iter.kind
+        {
+            return self.split_range(n, (from, to, *inclusive), body);
+        }
         let item_t = self.types.item(iter).cloned().unwrap_or(Type::Unknown);
         let item = format!("{}{LOCAL_FIELD}{}", Self::ident(&n.text), self.new_state());
         self.declare_field(&self.java(&item_t, false), &item);
@@ -241,14 +283,54 @@ impl Gen<'_> {
         self.renamed.truncate(depth);
     }
 
+    /// `foreach (let i in from..to)` split: `i` and the end fields, `i`
+    /// stepped where a `continue` goes.
+    fn split_range(
+        &mut self,
+        n: &yog_script_analyze::ast::Name,
+        (from, to, inclusive): (&Expr, &Expr, bool),
+        body: &Stmt,
+    ) {
+        let t = self
+            .types
+            .of(from)
+            .map_or_else(|| INT.to_string(), |t| self.java(t, false));
+        let at = format!("{}{LOCAL_FIELD}{}", Self::ident(&n.text), self.new_state());
+        let end = self.temp();
+        self.declare_field(&t, &at);
+        self.declare_field(&t, &end);
+        let a = self.expr(from);
+        let a = self.kept_before(a, from, awaits(to));
+        let b = self.expr(to);
+        self.code.line(format!("{at} = {a};"));
+        self.code.line(format!("{end} = {b};"));
+        let depth = self.renamed.len();
+        self.renamed.push((n.text.clone(), at.clone()));
+        let (top, l) = (
+            self.new_state(),
+            Loop {
+                again: self.new_state(),
+                past: self.new_state(),
+            },
+        );
+        let within = crate::exprs::op_text(if inclusive { BinOp::LtEq } else { BinOp::Lt });
+        self.state_starts(top);
+        self.code.line(format!(
+            "{IF} (!({at} {within} {end})) {}",
+            Self::jump(l.past)
+        ));
+        self.split_body(&l, body);
+        self.state_starts(l.again);
+        self.code.line(format!("{at}++;"));
+        self.code.line(Self::jump(top));
+        self.state_starts(l.past);
+        self.renamed.truncate(depth);
+    }
+
     /// What a split `foreach` reads its items with: whether there's one
     /// more, the next. An array (a string's chars) by an index, else an
     /// iterator, each a field.
     fn foreach_source(&mut self, iter: &Expr, item_t: &Type) -> Option<(String, String)> {
-        if matches!(iter.kind, ExprKind::Range { .. }) {
-            self.not_yet("a range gone through in an `async` method", iter.span);
-            return None;
-        }
         let items = self.expr(iter);
         let over = match self.types.of(iter).map(Type::non_null) {
             Some(Type::String) => Some(format!("{items}.{TO_CHAR_ARRAY}()")),

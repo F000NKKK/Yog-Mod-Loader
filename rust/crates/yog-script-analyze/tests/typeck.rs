@@ -115,7 +115,9 @@ fn async_methods_give_tasks() {
         format!("{base}async Task F() {{\n    i32 x = await Two();\n    await Task.Yield();\n}}\n");
     assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
     // An `async` lambda's `return` gives its task's value.
-    let lambda = format!("{base}void F() {{\n    Func<i32, Task<i32>> f = async x => {{\n        await Task.Yield();\n        return x * 2;\n    }};\n}}\n");
+    let lambda = format!(
+        "{base}void F() {{\n    Func<i32, Task<i32>> f = async x => {{\n        await Task.Yield();\n        return x * 2;\n    }};\n}}\n"
+    );
     assert!(codes(&lambda).is_empty(), "{:?}", codes(&lambda));
     for wrong in [
         "async Task F() {\n    string s = await Two();\n}\n",

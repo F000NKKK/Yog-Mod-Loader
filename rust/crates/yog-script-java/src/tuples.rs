@@ -37,12 +37,28 @@ impl Gen<'_> {
 
     /// `let (a, b) = v;` (`fin`: `final ` or nothing).
     pub(crate) fn taken_apart(&mut self, names: &[Name], v: &Expr, fin: &str) {
+        let of = self.types.of(v).cloned();
         let (whole, t) = (self.handed_expr(v), self.temp());
         self.code.line(format!("{FINAL} {VAR} {t} = {whole};"));
         for (i, n) in names.iter().enumerate() {
             let name = Self::ident(&n.text);
-            self.code
-                .line(format!("{fin}{VAR} {name} = {t}.{TUPLE_ITEM}{};", i + 1));
+            let Some(part) = self.part_of(of.as_ref(), &t, i) else {
+                return self.not_yet("this taken apart", n.span);
+            };
+            self.code.line(format!("{fin}{VAR} {name} = {part};"));
+        }
+    }
+
+    /// Part `i` of `whole` (of type `t`) taken apart: a record's
+    /// constructor's parameter (C#'s `Deconstruct`), else a tuple's item.
+    pub(crate) fn part_of(&self, t: Option<&Type>, whole: &str, i: usize) -> Option<String> {
+        match t.map(Type::non_null) {
+            Some(Type::Own(record, args)) => self
+                .index
+                .record_params(&(record.clone(), args.len()))
+                .get(i)
+                .map(|p| format!("{whole}.{}()", Self::ident(p))),
+            _ => Some(format!("{whole}.{TUPLE_ITEM}{}", i + 1)),
         }
     }
 

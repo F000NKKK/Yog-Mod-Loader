@@ -2,12 +2,12 @@
 //! made, the machine leaving when `t` isn't done (it goes on there once it
 //! is), then what `t` finished with. What its statement reads before it
 //! (an operand, an argument) is kept in a field first, as C# reads it
-//! before it waits. An `await` only some paths reach (`a && await b`, a
-//! `switch`'s arm, `?.`), or beside a value computed before its statement,
-//! isn't compiled yet.
+//! before it waits; one only some paths reach is `branches.rs`'. An
+//! `await` in a `switch`'s arm, after `?.`, or beside a value computed
+//! before its statement, isn't compiled yet.
 
 use yog_script_analyze::Type;
-use yog_script_analyze::ast::{BinOp, Expr, ExprKind, Stmt, UnOp};
+use yog_script_analyze::ast::{Expr, ExprKind, Stmt, UnOp};
 use yog_script_ids::java::{IF, RETURN};
 use yog_script_ids::jvm::tasks::{CHECK, RESULT, STATE, SUSPEND};
 
@@ -125,23 +125,17 @@ fn hazard(e: &Expr) -> Option<&'static str> {
     if !awaits(e) {
         return None;
     }
-    let only_some_paths = match &e.kind {
-        ExprKind::Binary {
-            op: BinOp::And | BinOp::Or | BinOp::Coalesce,
-            right,
-            ..
-        } => awaits(right),
-        ExprKind::Conditional {
-            then, otherwise, ..
-        } => awaits(then) || awaits(otherwise),
-        ExprKind::Member { safe: true, .. } | ExprKind::Switch { .. } => true,
-        ExprKind::Unary { op: UnOp::Try, .. } | ExprKind::With { .. } => true,
-        _ => false,
-    };
-    if only_some_paths {
-        return Some(
-            "an `await` here (only some paths reach it, or a value is computed before it)",
-        );
+    // A `switch`'s arm and `?.` reach it on some paths; `try` and `with`
+    // compute a value before their statement.
+    let unwritable = matches!(
+        &e.kind,
+        ExprKind::Member { safe: true, .. }
+            | ExprKind::Switch { .. }
+            | ExprKind::Unary { op: UnOp::Try, .. }
+            | ExprKind::With { .. }
+    );
+    if unwritable {
+        return Some("an `await` in a `switch`'s arm, after `?.`, or in `try` or `with`");
     }
     let mut found = None;
     e.each_child(|c| found = found.or_else(|| hazard(c)));

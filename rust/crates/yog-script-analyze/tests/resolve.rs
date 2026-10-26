@@ -187,5 +187,10 @@ fn await_needs_an_async_lambda_too() {
         .into_iter()
         .filter_map(|d| d.code)
         .collect();
-    assert!(codes.iter().any(|c| c == yog_ids::script_problem::AWAIT_OUTSIDE_ASYNC), "{codes:?}");
+    assert!(
+        codes
+            .iter()
+            .any(|c| c == yog_ids::script_problem::AWAIT_OUTSIDE_ASYNC),
+        "{codes:?}"
+    );
 }
