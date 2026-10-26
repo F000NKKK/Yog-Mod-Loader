@@ -111,3 +111,36 @@ fn collection_initializers_add() {
                i32 Run() { let b = new Bag { 1, 2, { 3, 10 } }; return b.Sum; }\n";
     assert_eq!(run(src, "Run", vec![]), Ok(int(33)));
 }
+
+#[test]
+fn statics_are_one_per_type() {
+    let src = "class Counter { public static i32 Made = 10; public const i32 Step = 2; \
+               public Counter() { Made += Step; } public static i32 Total() => Made; }\n\
+               i32 Run() { let a = new Counter(); let b = new Counter(); Counter.Made = Counter.Made + 1; return Counter.Total(); }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(15)));
+}
+
+#[test]
+fn async_code_runs_to_its_end() {
+    let src = "using System.Threading.Tasks;\n\
+               async Task<i32> Twice(i32 n) { await Task.Yield(); return n * 2; }\n\
+               async IAsyncEnumerable<i32> Numbers(i32 n) { for (let mut i = 1; i <= n; i += 1) { await Task.Delay(1); yield return i; } }\n\
+               async Task<i32> Go() {\n\
+                   let mut sum = await Twice(5);\n\
+                   await foreach (let x in Numbers(3)) { sum += x; }\n\
+                   let all = await Task.WhenAll(Twice(1), Twice(2));\n\
+                   let f = async () => 100;\n\
+                   return sum + all[1] + await f() + await Task.FromResult(1000);\n\
+               }\n\
+               i32 Run() => Go().Result;\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(1120)));
+}
+
+#[test]
+fn constructors_run_with_their_chain() {
+    let src = "class Base { public i32 Log = 0; public Base() { Log = Log * 10 + 1; } public Base(i32 n) { Log = Log * 10 + n; } }\n\
+               class Mid : Base { public Mid() : base(2) { Log = Log * 10 + 3; } public Mid(i32 n) : this() { Log = Log * 10 + n; } }\n\
+               class Leaf : Base { public Leaf() { Log = Log * 10 + 7; } }\n\
+               i32 Run() { let a = new Mid(4); let b = new Leaf(); return a.Log * 100 + b.Log; }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(234 * 100 + 17)));
+}

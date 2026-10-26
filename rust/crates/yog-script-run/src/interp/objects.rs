@@ -74,13 +74,20 @@ impl<'p> Interp<'p> {
             Ok(())
         });
         self.this = outer;
-        made.map(|()| object)
+        made?;
+        self.construct(key, &object, args, at)?;
+        Ok(object)
     }
 
     /// `on.name`: a field, a computed property, a case's data, an enum's
     /// case, a string's or a list's size.
     pub(crate) fn member(&mut self, on: &Value, name: &str, at: Span) -> Run<Value> {
         if let Some(v) = self.field(on, name)? {
+            return Ok(v);
+        }
+        if let Value::Type(of) = on
+            && let Some(v) = self.static_value(of, name)?
+        {
             return Ok(v);
         }
         if let Some(v) = crate::natives::member(on, name) {

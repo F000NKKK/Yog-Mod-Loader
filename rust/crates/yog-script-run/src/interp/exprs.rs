@@ -76,11 +76,16 @@ impl<'p> Interp<'p> {
                 items.iter().map(|i| self.eval(i)).collect::<Run<_>>()?,
             )),
             ExprKind::Collection(items) => self.collection(items),
-            ExprKind::Lambda { params, body, .. } => Ok(Value::Fn(Rc::new(Closure {
+            ExprKind::Lambda {
+                params,
+                body,
+                asynchronous,
+            } => Ok(Value::Fn(Rc::new(Closure {
                 params: params.clone(),
                 body: body.clone(),
                 scopes: self.scopes.clone(),
                 this: self.this.clone(),
+                asynchronous: *asynchronous,
             }))),
             ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
             ExprKind::Is { expr, pattern } => {
@@ -166,6 +171,9 @@ impl<'p> Interp<'p> {
         if let Some(this) = self.this.clone()
             && let Some(v) = self.field(&this, name)?
         {
+            return Ok(v);
+        }
+        if let Some(v) = self.own_static(name)? {
             return Ok(v);
         }
         if self.program.types.contains_key(name) {

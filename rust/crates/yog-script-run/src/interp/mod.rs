@@ -3,11 +3,13 @@
 
 mod arrays;
 mod calls;
+mod ctors;
 mod exprs;
 mod macros;
 mod objects;
 mod ops;
 mod patterns;
+mod statics;
 mod stmts;
 
 use std::collections::HashMap;
@@ -49,6 +51,10 @@ pub struct Interp<'p> {
     /// The items each iterator being run has yielded, innermost last: the
     /// interpreter runs an iterator to its end at once, its items a list.
     yielded: Vec<Vec<Value>>,
+    /// Each type's static fields' values, set when first reached.
+    statics: HashMap<(String, String), Value>,
+    /// The type whose method is running (its statics reached by name).
+    class: Option<&'p str>,
 }
 
 /// How many items an iterator gives the interpreter before it's taken for
@@ -71,6 +77,8 @@ impl<'p> Interp<'p> {
             depth: 0,
             log: Vec::new(),
             yielded: Vec::new(),
+            statics: HashMap::new(),
+            class: None,
         }
     }
 
@@ -133,9 +141,11 @@ impl<'p> Interp<'p> {
             std::mem::replace(&mut self.scopes, vec![HashMap::new()]),
             std::mem::replace(&mut self.this, this),
         );
+        let class = std::mem::replace(&mut self.class, self.program.owner_of(m));
         self.depth += 1;
         let out = self.run_method(m, args);
         self.depth -= 1;
+        self.class = class;
         let params = m
             .params
             .iter()
@@ -156,7 +166,13 @@ impl<'p> Interp<'p> {
             self.bind(&p.name.text, v);
         }
         if !yog_script_analyze::body_yields(m.body.as_ref()) {
-            return self.body(m.body.as_ref());
+            let v = self.body(m.body.as_ref())?;
+            // An `async` one ran to its end: a task done with it.
+            return Ok(if self.program.is_async(m) {
+                Value::done(v)
+            } else {
+                v
+            });
         }
         // An iterator: run to its end, its items a list.
         self.yielded.push(Vec::new());

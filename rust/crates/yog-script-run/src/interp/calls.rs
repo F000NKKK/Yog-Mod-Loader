@@ -93,16 +93,17 @@ impl<'p> Interp<'p> {
     ) -> Run<Value> {
         match &on {
             Value::Type(of) => {
+                // A method the library declares without a body: done natively.
+                if let Some(v) = crate::natives::call_static(of, name, &given) {
+                    return v.map_err(|m| self.stop(m, at));
+                }
                 if let Some(m) = self.method_of(of, name, given.len()) {
                     return self.run_member(m, None, args, given, at);
                 }
                 if self.program.variant(of, name).is_some() {
                     return Ok(Value::case(of, name, given));
                 }
-                match crate::natives::call_static(of, name, &given) {
-                    Some(v) => v.map_err(|m| self.stop(m, at)),
-                    None => self.panic(format!("`{of}` has no `{name}`"), at),
-                }
+                self.panic(format!("`{of}` has no `{name}`"), at)
             }
             Value::Object(o) => {
                 let class = o.borrow().class.clone();
@@ -205,6 +206,9 @@ impl<'p> Interp<'p> {
             }
         });
         (self.scopes, self.this) = outer;
+        if c.asynchronous {
+            return out.map(Value::done);
+        }
         out
     }
 

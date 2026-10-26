@@ -3,7 +3,9 @@
 
 use std::collections::HashMap;
 
-use yog_script_analyze::ast::{Decl, DeclKind, Expr, Method, MethodBody, Modifier, Param, Variant};
+use yog_script_analyze::ast::{
+    Ctor, Decl, DeclKind, Expr, Method, MethodBody, Modifier, Param, Variant,
+};
 use yog_script_analyze::words;
 
 /// A type: what making one sets, what calling on one finds.
@@ -20,6 +22,10 @@ pub struct TypeDef<'a> {
     pub value: bool,
     /// Its stored fields and auto-properties, with their first values.
     pub fields: Vec<(&'a str, Option<&'a Expr>)>,
+    /// The constructors its body writes.
+    pub ctors: Vec<&'a Ctor>,
+    /// Its static fields and constants, with their first values: one each.
+    pub statics: Vec<(&'a str, Option<&'a Expr>)>,
     /// Properties computed on reading (`T X => …;`), by name.
     pub computed: HashMap<&'a str, &'a MethodBody>,
     pub methods: HashMap<&'a str, Vec<Member<'a>>>,
@@ -38,6 +44,11 @@ pub struct Program<'a> {
     pub types: HashMap<&'a str, TypeDef<'a>>,
     /// The file's own methods, outside types.
     pub methods: HashMap<&'a str, Vec<&'a Method>>,
+    /// The `async` methods, by where they are: what they give is a task.
+    asyncs: std::collections::HashSet<usize>,
+    /// Each type's methods' type, by where they are: whose statics their
+    /// code reaches by name.
+    owners: HashMap<usize, &'a str>,
 }
 
 impl<'a> Program<'a> {
@@ -50,8 +61,48 @@ impl<'a> Program<'a> {
         p
     }
 
+    /// A type's `async` methods noted.
+    fn note_asyncs(&mut self, body: &[Decl]) {
+        for d in body {
+            if let DeclKind::Method(m) = &d.kind
+                && d.has(Modifier::Async)
+            {
+                self.asyncs.insert(std::ptr::from_ref(m).addr());
+            }
+        }
+    }
+
+    /// Type `name`'s methods noted as its.
+    fn note_owner(&mut self, name: &'a str, body: &'a [Decl]) {
+        for d in body {
+            if let DeclKind::Method(m) = &d.kind {
+                self.owners.insert(std::ptr::from_ref(m).addr(), name);
+            }
+        }
+    }
+
+    /// The type whose method `m` is (none: the file's).
+    pub fn owner_of(&self, m: &Method) -> Option<&'a str> {
+        self.owners.get(&std::ptr::from_ref(m).addr()).copied()
+    }
+
+    /// Static field (or constant) `name` of type `of`: its first value, if any.
+    pub fn static_field(&self, of: &str, name: &str) -> Option<Option<&'a Expr>> {
+        let def = self.types.get(of)?;
+        def.statics
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|(_, v)| *v)
+    }
+
+    /// Whether `m` is `async`: what it gives is a task of it.
+    pub fn is_async(&self, m: &Method) -> bool {
+        self.asyncs.contains(&std::ptr::from_ref(m).addr())
+    }
+
     fn add(&mut self, decls: &'a [Decl]) {
         for d in decls {
+            self.note_asyncs(std::slice::from_ref(d));
             match &d.kind {
                 DeclKind::Method(m) => self.methods.entry(&m.name.text).or_default().push(m),
                 DeclKind::Type {
@@ -69,6 +120,8 @@ impl<'a> Program<'a> {
                         ..members(body)
                     };
                     self.types.insert(&name.text, def);
+                    self.note_asyncs(body);
+                    self.note_owner(&name.text, body);
                 }
                 DeclKind::Enum {
                     name,
@@ -81,6 +134,8 @@ impl<'a> Program<'a> {
                         ..members(body)
                     };
                     self.types.insert(&name.text, def);
+                    self.note_asyncs(body);
+                    self.note_owner(&name.text, body);
                 }
                 kind => self.add(kind.members()),
             }
@@ -169,6 +224,10 @@ fn members<'a>(body: &'a [Decl]) -> TypeDef<'a> {
     let mut def = TypeDef::default();
     for d in body {
         match &d.kind {
+            DeclKind::Ctor(c) => def.ctors.push(c),
+            DeclKind::Field(f) if d.has(Modifier::Static) || d.has(Modifier::Const) => {
+                def.statics.push((&f.name.text, f.value.as_ref()));
+            }
             DeclKind::Field(f) => def.fields.push((&f.name.text, f.value.as_ref())),
             DeclKind::Method(m) => def.methods.entry(&m.name.text).or_default().push(Member {
                 method: m,

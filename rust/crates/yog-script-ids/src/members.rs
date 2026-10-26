@@ -106,3 +106,17 @@ pub const GREATER_THAN_OR_EQUAL: &str = "GreaterThanOrEqual";
 pub const NEW: &str = "New";
 pub const MAKE_BINARY: &str = "MakeBinary";
 pub const MAKE_UNARY: &str = "MakeUnary";
+
+/// `Task`'s members (`System.Threading.Tasks`).
+pub const FROM_RESULT: &str = "FromResult";
+pub const YIELD_MEMBER: &str = "Yield";
+pub const DELAY: &str = "Delay";
+pub const WHEN_ALL: &str = "WhenAll";
+pub const WHEN_ANY: &str = "WhenAny";
+pub const COMPLETED_TASK: &str = "CompletedTask";
+pub const RESULT_MEMBER: &str = "Result";
+pub const IS_COMPLETED: &str = "IsCompleted";
+pub const WAIT: &str = "Wait";
+pub const GET_RESULT: &str = "GetResult";
+pub const GET_AWAITER: &str = "GetAwaiter";
+pub const CONFIGURE_AWAIT: &str = "ConfigureAwait";

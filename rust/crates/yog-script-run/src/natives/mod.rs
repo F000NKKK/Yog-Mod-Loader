@@ -1,9 +1,10 @@
 //! What the System library declares without a body, done here: strings',
-//! lists' and results' members, `Math`.
+//! lists', results' and tasks' members, `Math`, `Task`.
 
 mod lists;
 mod math;
 mod results;
+mod tasks;
 mod text;
 
 use crate::value::Value;
@@ -16,6 +17,8 @@ pub(crate) fn member(on: &Value, name: &str) -> Option<Value> {
     match on {
         Value::Str(s) => text::member(s, name),
         Value::List(items) => lists::member(&items.borrow(), name),
+        Value::Done(_) => tasks::member(on, name),
+        Value::Type(of) => tasks::static_member(of, name),
         _ => None,
     }
 }
@@ -27,11 +30,12 @@ pub(crate) fn call(on: &Value, ok: bool, name: &str, args: &[Value]) -> Option<N
         Value::Str(s) => text::call(s, name, args),
         Value::List(items) => lists::call(items, name, args),
         Value::Case(c) => results::call(c, ok, name, args),
+        Value::Done(_) => tasks::call(on, name, args),
         _ => None,
     }
 }
 
 /// `Type.name(args)` done natively.
 pub(crate) fn call_static(of: &str, name: &str, args: &[Value]) -> Option<Native> {
-    math::call(of, name, args)
+    math::call(of, name, args).or_else(|| tasks::call_static(of, name, args))
 }

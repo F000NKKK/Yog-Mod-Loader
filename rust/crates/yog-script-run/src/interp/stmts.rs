@@ -167,7 +167,7 @@ impl<'p> Interp<'p> {
     pub(crate) fn assign(&mut self, place: &Expr, v: Value) -> Run<()> {
         match &place.kind {
             ExprKind::Ident(name) => {
-                if !self.set_local(name, v.clone()) {
+                if !self.set_local(name, v.clone()) && !self.set_static(None, name, v.clone())? {
                     let this = self.this.clone();
                     self.set_field(this.as_ref(), name, v, place.span)?;
                 }
@@ -175,6 +175,11 @@ impl<'p> Interp<'p> {
             }
             ExprKind::Member { expr, name, .. } => {
                 let on = self.eval(expr)?;
+                if let Value::Type(of) = &on
+                    && self.set_static(Some(of), &name.text, v.clone())?
+                {
+                    return Ok(());
+                }
                 self.set_field(Some(&on), &name.text, v, place.span)
             }
             ExprKind::Index { expr, args } => {

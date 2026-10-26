@@ -28,6 +28,9 @@ pub enum Value {
     Fn(Rc<Closure>),
     /// A type named where a value goes (`Math` in `Math.Max`).
     Type(String),
+    /// A task, done (the interpreter runs an `async` method to its end):
+    /// what it finished with.
+    Done(Rc<Value>),
 }
 
 pub struct Object {
@@ -49,9 +52,16 @@ pub struct Closure {
     pub body: LambdaBody,
     pub scopes: Vec<HashMap<String, Value>>,
     pub this: Option<Value>,
+    /// An `async` lambda: what it gives is a task.
+    pub asynchronous: bool,
 }
 
 impl Value {
+    /// A task done with `v`.
+    pub fn done(v: Value) -> Value {
+        Value::Done(Rc::new(v))
+    }
+
     pub fn str(s: &str) -> Value {
         Value::Str(Rc::from(s))
     }
@@ -148,6 +158,7 @@ impl fmt::Display for Value {
             }
             Value::Fn(_) => write!(f, "<lambda>"),
             Value::Type(t) => write!(f, "{t}"),
+            Value::Done(v) => write!(f, "Task({v})"),
         }
     }
 }

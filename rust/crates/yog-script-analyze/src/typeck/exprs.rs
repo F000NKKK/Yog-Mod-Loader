@@ -45,7 +45,7 @@ impl Checker<'_, '_, '_> {
             ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
             ExprKind::With { expr, inits } => self.with(expr, inits, e.span),
             ExprKind::Lambda { params, body, .. } => {
-                self.in_lambda(e, |c| c.lambda_alone(params, body))
+                self.in_lambda(e, |c| c.lambda_alone(e, params, body))
             }
             ExprKind::Macro { name, args } => self.builtin_macro(name, args),
             ExprKind::Unary { op, expr } => self.unary(e, *op, expr),
@@ -107,7 +107,7 @@ impl Checker<'_, '_, '_> {
                 self.expr(to);
             }
             ExprKind::Lambda { params, body, .. } => {
-                self.in_lambda(e, |c| c.lambda_alone(params, body));
+                self.in_lambda(e, |c| c.lambda_alone(e, params, body));
             }
             _ => {}
         }
