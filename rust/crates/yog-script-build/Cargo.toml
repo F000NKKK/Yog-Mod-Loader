@@ -16,4 +16,9 @@ yog-mappings = { workspace = true }
 yog-data = { workspace = true }
 yog-home = { workspace = true }
 yog-ids = { workspace = true }
+# Content kinds (`block`, `item`): defaults and schemas.
+yog-registry = { workspace = true }
+# Problems at a source's lines; PascalCase to snake_case.
+yog-analysis = { workspace = true }
+yog-codegen = { workspace = true }
 zip = { workspace = true }

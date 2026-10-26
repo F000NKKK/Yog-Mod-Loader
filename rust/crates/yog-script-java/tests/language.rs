@@ -185,7 +185,7 @@ fn events_are_handlers() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
     assert!(
-        class.mods.iter().any(|m| m == "p.SampleScript$$Provided"),
+        class.mods.iter().any(|m| m == "p.SampleScript$$Load"),
         "{:?}",
         class.mods
     );

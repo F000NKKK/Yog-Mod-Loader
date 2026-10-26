@@ -62,6 +62,7 @@ pub fn jars(
             work: &work,
             to_server: meta.to_server,
             files: Some(&files),
+            mod_id: &meta.id,
         };
         if let Err(problems) = build_jar(&sources, &b, &jar) {
             diagnostics::report_all(&problems);

@@ -13,6 +13,7 @@ mod builtin;
 mod callees;
 mod calls;
 mod collections;
+mod content;
 mod context;
 mod copy;
 mod ctors;
@@ -68,6 +69,9 @@ pub(crate) struct Checker<'r, 's, 'i> {
     /// Locals and parameters, innermost scope last.
     scopes: Vec<HashMap<String, Slot>>,
     /// The code is a `readonly` member's: `this` is lent read-only.
+    /// The members being checked are a content declaration's: its
+    /// properties its kind's (`content.rs`).
+    in_content: bool,
     readonly_this: bool,
     /// The type whose members the code is in (`this`).
     this: Option<Type>,
@@ -147,6 +151,7 @@ pub(crate) fn check(
         to_server: allowed.to_server,
         type_params: Vec::new(),
         readonly_this: false,
+        in_content: false,
         types: Types::default(),
         bases: lineage::Bases::new(),
         delegates: delegates::Delegates::new(),

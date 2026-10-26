@@ -133,6 +133,26 @@ fn async_methods_give_tasks() {
     }
 }
 
+/// A content declaration's properties are its kind's definition's fields
+/// (`yog-registry`'s), each of its type.
+#[test]
+fn content_props_are_its_definitions() {
+    let ok = "block Lamp {\n    Hardness = 2.0;\n    LightLevel = 15;\n    Sound = \"glass\";\n}\nitem Gem {\n    MaxStack = 16;\n    FireResistant = true;\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    assert_eq!(
+        codes("block Lamp {\n    Glow = 1;\n}\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+    assert_eq!(
+        codes("block Lamp {\n    Hardness = \"hard\";\n}\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+    assert_eq!(
+        codes("item Gem {\n    Id = \"x\";\n}\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+}
+
 /// The game's classes by C#'s names, and their sides.
 fn game() -> ClassIndex {
     let m = |name: &str, desc: &str| Member {

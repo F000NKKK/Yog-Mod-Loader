@@ -1,17 +1,18 @@
-//! `[Provide("…")]` methods: the bus asks them at an address (Rust, another
-//! mod). The request is a record of the method's parameters, as a
-//! `[Service]`'s; the answering registered by the file's `$Provided`, made
-//! when the mods load as a mod is (`YsMod`), so a source without a `mod`
-//! answers too.
+//! What a source does when the mods load, in its `$Load` — made then as a
+//! mod is (`YsMod`), so a source without a `mod` does it too: its content
+//! registered (definitions `yog build` made, `Content.Register`), its
+//! `[Provide("…")]` methods answering the bus (their request a record of
+//! their parameters, as a `[Service]`'s).
 
 use yog_script_analyze::ast::{Decl, Method};
 use yog_script_ids::java::{
-    CLASS, CLASS_LITERAL, FINAL, IMPLEMENTS, NULL, PUBLIC, RECORD, RETURN, STATIC,
+    BYTE, CLASS, CLASS_LITERAL, FINAL, IMPLEMENTS, NEW, NULL, PUBLIC, RANK, RECORD, RETURN, STATIC,
 };
-use yog_script_ids::jvm::{BUS_PROVIDE, PROVIDED, REQUEST};
+use yog_script_ids::jvm::SERVICE_CALL;
+use yog_script_ids::jvm::{BUS_PROVIDE, LOAD, REQUEST};
 use yog_script_ids::system::PROVIDE;
 
-use crate::Gen;
+use crate::{ContentDef, Gen};
 
 impl Gen<'_> {
     /// Method `m` (Java's `name`), when it's `[Provide("…")]`: its request
@@ -43,24 +44,39 @@ impl Gen<'_> {
         } else {
             format!("{q} -> {{ {call}; {RETURN} {NULL}; }}")
         };
-        self.provided.push(format!(
+        self.on_load.push(format!(
             "{BUS_PROVIDE}({}, {owner}.{request}{CLASS_LITERAL}, {answer});",
             self.code.str(&address)
         ));
     }
 
-    /// The file's `$Provided`, when it has `[Provide]` methods: made when
-    /// the mods load, it registers each.
-    pub(crate) fn provided_class(&mut self) -> bool {
-        if self.provided.is_empty() {
+    /// Content `defs` registered when the mods load.
+    pub(crate) fn registered(&mut self, defs: &[ContentDef]) {
+        let Some(record) = yog_script_analyze::yog::content_register() else {
+            return;
+        };
+        for d in defs {
+            let bytes: Vec<String> = d.data.iter().map(|b| (*b as i8).to_string()).collect();
+            self.on_load.push(format!(
+                "{NEW} {record}({}, {}, {NEW} {BYTE}{RANK} {{ {} }}).{SERVICE_CALL}();",
+                self.code.str(&d.kind),
+                self.code.str(&d.id),
+                bytes.join(", ")
+            ));
+        }
+    }
+
+    /// The file's `$Load`, when it has something to do when the mods load.
+    pub(crate) fn load_class(&mut self) -> bool {
+        if self.on_load.is_empty() {
             return false;
         }
         self.code.open(format!(
-            "{PUBLIC} {STATIC} {FINAL} {CLASS} {PROVIDED} {IMPLEMENTS} {}",
+            "{PUBLIC} {STATIC} {FINAL} {CLASS} {LOAD} {IMPLEMENTS} {}",
             crate::MOD_INTERFACE
         ));
-        self.code.open(format!("{PUBLIC} {PROVIDED}()"));
-        for line in std::mem::take(&mut self.provided) {
+        self.code.open(format!("{PUBLIC} {LOAD}()"));
+        for line in std::mem::take(&mut self.on_load) {
             self.code.line(line);
         }
         self.code.close("");

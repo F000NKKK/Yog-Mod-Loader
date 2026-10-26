@@ -3,8 +3,11 @@
 # staged mods included) until it says it's done, then stopped with its own
 # `stop`: whether the host and the mods load on a server, where no client
 # class may be touched. Leaves the run directory as it found it.
+# YOG_SMOKE_COMMANDS (`;`-separated) are typed into its console once it's
+# done; their answers end up in the log, printed after.
 #
 #   tools/server_smoke.sh fabric 1.20.1
+#   YOG_SMOKE_COMMANDS="setblock 0 100 0 mymod:lamp" tools/server_smoke.sh fabric 1.21.1
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOADER="${1:?loader}"; MC="${2:?minecraft version}"
@@ -51,6 +54,13 @@ for _ in $(seq "$WAIT"); do
     sleep 1
 done
 [ "$ok" = 0 ] && sleep "$HOLD"
+# Commands for its console once it's done (`;`-separated): what they answer
+# is printed after the run.
+if [ "$ok" = 0 ] && [ -n "${YOG_SMOKE_COMMANDS:-}" ]; then
+    IFS=';' read -ra commands <<< "$YOG_SMOKE_COMMANDS"
+    for c in "${commands[@]}"; do echo "$c" >&3; done
+    sleep "$HOLD"
+fi
 # A crash report written on the way (after "Done" too) fails it.
 crash="$(comm -13 <(echo "$crashes_before") <(ls -A "$CRASHES" 2>/dev/null | LC_ALL=C sort) | head -1)"
 if [ -n "$crash" ]; then
@@ -77,6 +87,10 @@ wait "$pid" 2>/dev/null
 exec 3>&-
 for f in $(comm -13 <(echo "$before") <(ls -A "$RUN" | LC_ALL=C sort)); do rm -rf "${RUN:?}/$f"; done
 grep -E 'Done \(|ERROR|Cannot load class|Exception' "$log" | grep -v '^\s*at ' | head -20
+if [ -n "${YOG_SMOKE_COMMANDS:-}" ]; then
+    echo "--- after the commands:"
+    sed -n '/Done (/,$p' "$log" | grep -v '^\s*at ' | tail -20
+fi
 echo "log: $log"
 [ -n "$crash" ] && echo "crash report: $crash"
 if [ "$ok" = 0 ]; then echo "==> $LOADER $MC: dedicated server OK"; else echo "==> $LOADER $MC: dedicated server FAILED (log: $log)"; fi

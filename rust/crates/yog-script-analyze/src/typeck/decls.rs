@@ -95,7 +95,8 @@ impl Checker<'_, '_, '_> {
                     }
                 }
             }
-            DeclKind::Prop(p) => {
+            // A content's are checked with its kind's (`content_props`).
+            DeclKind::Prop(p) if !self.in_content => {
                 self.expr(&p.value);
             }
             _ => {}
@@ -128,9 +129,18 @@ impl Checker<'_, '_, '_> {
                     if let Some(this) = &own {
                         c.check_operators(this, body);
                     }
+                    let content = match &d.kind {
+                        DeclKind::Content { kind, .. } => Some(kind.text.clone()),
+                        _ => None,
+                    };
                     c.within(own, side, None, |c| {
                         c.params(header.ctor.as_deref().unwrap_or_default());
+                        let outer = std::mem::replace(&mut c.in_content, content.is_some());
                         c.decls(body);
+                        c.in_content = outer;
+                        if let Some(word) = &content {
+                            c.content_props(word, body);
+                        }
                     });
                 });
             }

@@ -91,6 +91,16 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// Expression `e` computed on its own (a content's property, a
+    /// constant): its value, or the panic that stopped it.
+    pub fn value_of(&mut self, e: &yog_script_analyze::ast::Expr) -> Result<Value, Panic> {
+        match self.eval(e) {
+            Ok(v) => Ok(v),
+            Err(Stop::Panic(p)) => Err(p),
+            Err(_) => Ok(Value::Void),
+        }
+    }
+
     /// A block run on its own (a test's): to its end, or the panic that
     /// stopped it.
     pub fn run_block(&mut self, b: &yog_script_analyze::ast::Block) -> Result<(), Panic> {

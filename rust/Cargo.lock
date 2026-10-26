@@ -2673,6 +2673,7 @@ dependencies = [
  "yog-event",
  "yog-home",
  "yog-ids",
+ "yog-registry",
  "yog-script-ids",
  "yog-sync",
 ]
@@ -2681,10 +2682,13 @@ dependencies = [
 name = "yog-script-build"
 version = "0.2.1"
 dependencies = [
+ "yog-analysis",
+ "yog-codegen",
  "yog-data",
  "yog-home",
  "yog-ids",
  "yog-mappings",
+ "yog-registry",
  "yog-script-analyze",
  "yog-script-ids",
  "yog-script-java",

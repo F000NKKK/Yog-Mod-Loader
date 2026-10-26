@@ -40,7 +40,7 @@ impl Gen<'_> {
         self.code.open(format!("{PUBLIC} {FINAL} {CLASS} {class}"));
         self.code.line(format!("{PRIVATE} {class}() {{}}"));
         self.members(decls, Place::File);
-        self.has_provided = self.provided_class();
+        self.has_load = self.load_class();
         self.kept_types_constants();
         self.code.close("");
     }
@@ -107,6 +107,12 @@ impl Gen<'_> {
                 body,
             } => self.enum_decl(d, (&name.text, generics, base.as_ref()), variants, body),
             DeclKind::Mod { name, body } => self.mod_class(d, &name.text, body),
+            // Its properties are its definition, made by `yog build`.
+            DeclKind::Content { body, .. } => {
+                if let Some(m) = body.iter().find(|m| !matches!(m.kind, DeclKind::Prop(_))) {
+                    self.not_yet("a content's members", decl_span(m));
+                }
+            }
             DeclKind::Namespace {
                 body: Some(body), ..
             } => self.members(body, place),

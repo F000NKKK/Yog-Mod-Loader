@@ -7,6 +7,7 @@
 //! tool any.
 
 mod classfile;
+mod content;
 mod files;
 pub mod index;
 mod jvm;
@@ -15,10 +16,12 @@ mod versions;
 
 use yog_data::Diagnostic;
 
+pub use content::content_defs;
 pub use files::FilesBeside;
 pub use jvm::{JvmBuild, build_jar};
 pub use macros::MacroLibrary;
 pub use yog_script_analyze::versions::targeted;
+pub use yog_script_java::ContentDef;
 
 /// What's wrong with the source `text` of the file `name` (`.ys`, `.yns`);
 /// a `.yns` checked on each version it targets, its classes from the cache

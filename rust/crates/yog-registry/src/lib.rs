@@ -54,6 +54,7 @@ pub fn registration_changes(
 }
 mod crafting;
 mod held;
+mod kinds;
 mod looks;
 mod world;
 
@@ -66,6 +67,7 @@ pub use held::effects::{
 pub use held::item_looks::{ItemLooks, ItemTint, LookModels};
 pub use held::tool_levels::{LevelTag, ToolLadder, ToolLevel};
 pub use held::{effects, item_looks, tool_levels};
+pub use kinds::{ContentKind, KINDS, content_kind};
 pub use looks::atlases::Atlas;
 pub use looks::particles::{Blend, Frames, Lifetime, Particle, ParticleDef, ParticleRender};
 pub use looks::videos::{Clock, Plan, VideoDef};

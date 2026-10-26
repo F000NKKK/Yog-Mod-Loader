@@ -128,10 +128,12 @@ pub const BUS_CALL: &str = concat!(bus_api!(), sep!(), "call");
 pub const BUS_EMIT: &str = concat!(bus_api!(), sep!(), "emit");
 pub const BUS_ON: &str = concat!(bus_api!(), sep!(), "on");
 pub const BUS_PRIORITY: &str = "0";
-/// A `[Provide]` method answering at its address; the file's class
-/// registering them, made as a mod is.
+/// A `[Provide]` method answering at its address; the file's class doing
+/// what it does when the mods load, made as a mod is; a Yog service's
+/// record called.
 pub const BUS_PROVIDE: &str = concat!(bus_api!(), sep!(), "provide");
-pub const PROVIDED: &str = "$Provided";
+pub const LOAD: &str = "$Load";
+pub const SERVICE_CALL: &str = "call";
 /// An `event`'s handlers (the runtime's `Event`): added (by a key),
 /// removed by it, each called, the last's value given; a method's key
 /// made of its object and itself (`List.of(c, "Times#0")`).

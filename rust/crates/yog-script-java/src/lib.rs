@@ -24,11 +24,11 @@ mod indexers;
 mod java_names;
 mod kept;
 mod library;
+mod load;
 mod machine;
 mod macros;
 mod operators;
 mod patterns;
-mod provided;
 mod reflection;
 mod refs;
 mod reified;
@@ -58,12 +58,31 @@ pub struct JavaClass {
     pub mods: Vec<String>,
 }
 
+/// A content definition `yog build` made of a declaration: registered
+/// when the mods load.
+pub struct ContentDef {
+    pub kind: String,
+    pub id: String,
+    /// Its Yog Data, binary.
+    pub data: Vec<u8>,
+}
+
 /// The checked source `src` of file `name` as a Java class in `package`.
 pub fn compile(
     name: &str,
     src: &str,
     checked: &Checked,
     package: &str,
+) -> Result<JavaClass, Vec<Diagnostic>> {
+    compile_in((name, src), checked, package, &[])
+}
+
+/// [`compile`], the source's content `defs` registered when the mods load.
+pub fn compile_in(
+    (name, src): (&str, &str),
+    checked: &Checked,
+    package: &str,
+    defs: &[ContentDef],
 ) -> Result<JavaClass, Vec<Diagnostic>> {
     let class = class_name(name);
     let mut g = Gen::new(
@@ -72,18 +91,19 @@ pub fn compile(
         name,
         src,
     );
+    g.registered(defs);
     g.file(package, &class, &checked.file.decls);
     if g.report.out.is_empty() {
         let mut mods: Vec<String> = mods(&checked.file.decls)
             .into_iter()
             .map(|m| format!("{package}.{class}${m}"))
             .collect();
-        if g.has_provided {
+        if g.has_load {
             // A nested class's binary name: its outer one's, `$`, its own.
             mods.push(format!(
                 "{package}.{class}{}{}",
                 yog_script_ids::jvm::NESTED,
-                yog_script_ids::jvm::PROVIDED
+                yog_script_ids::jvm::LOAD
             ));
         }
         Ok(JavaClass {
@@ -180,10 +200,11 @@ pub(crate) struct Gen<'c> {
     /// The body being written's locals a lambda captures and something
     /// changes: each a cell (`captures.rs`).
     boxed: std::collections::HashSet<String>,
-    /// The `[Provide]` methods' registrations, for the file's `$Provided`.
-    provided: Vec<String>,
-    /// The file has a `$Provided`.
-    has_provided: bool,
+    /// What the file does when the mods load, for its `$Load`: content
+    /// registered, `[Provide]` methods answering.
+    on_load: Vec<String>,
+    /// The file has a `$Load`.
+    has_load: bool,
 }
 
 impl<'c> Gen<'c> {
@@ -213,8 +234,8 @@ impl<'c> Gen<'c> {
             statik: true,
             class_name: String::new(),
             boxed: std::collections::HashSet::new(),
-            provided: Vec::new(),
-            has_provided: false,
+            on_load: Vec::new(),
+            has_load: false,
         }
     }
 }

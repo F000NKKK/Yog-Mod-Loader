@@ -19,6 +19,8 @@ yog-codegen = { workspace = true }
 yog-data = { workspace = true }
 # Yog's surface (its services, handles, events): what a `.ys` reaches.
 yog-event = { workspace = true }
+# The content kinds a source declares (`block`, `item`): their definitions' shapes.
+yog-registry = { workspace = true }
 yog-sync = { workspace = true }
 # Versions compared the one way Yog does (`#if mc >= 1.21`, `targets`).
 yog-home = { workspace = true }

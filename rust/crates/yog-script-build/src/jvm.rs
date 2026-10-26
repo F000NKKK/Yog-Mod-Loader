@@ -30,6 +30,8 @@ pub struct JvmBuild<'a> {
     pub to_server: bool,
     /// The mod's files its sources include.
     pub files: Option<&'a dyn yog_script_analyze::macros::ModFiles>,
+    /// The mod's id: its content's namespace.
+    pub mod_id: &'a str,
 }
 
 /// `sources` (name, text) built into the jar `jar`, or what's wrong.
@@ -60,7 +62,8 @@ pub fn build_jar(
         if checked.problems.iter().any(Diagnostic::is_error) {
             return Err(checked.problems);
         }
-        let class = yog_script_java::compile(name, text, &checked, b.package)?;
+        let defs = crate::content::content_defs((name, text), &checked, b.mod_id)?;
+        let class = yog_script_java::compile_in((name, text), &checked, b.package, &defs)?;
         // The package's folders, joined as the platform joins them.
         let dir = b
             .package
