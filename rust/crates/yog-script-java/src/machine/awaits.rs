@@ -129,6 +129,16 @@ pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
         Stmt::Break(_) | Stmt::Continue(_) => false,
         // A local function's awaits are its own code's.
         Stmt::Function(_) => false,
+        Stmt::Switch { expr, sections } => {
+            awaits(expr)
+                || sections.iter().any(|s| {
+                    s.labels
+                        .iter()
+                        .flatten()
+                        .any(|(_, g)| g.as_ref().is_some_and(awaits))
+                        || all(&s.body)
+                })
+        }
     }
 }
 

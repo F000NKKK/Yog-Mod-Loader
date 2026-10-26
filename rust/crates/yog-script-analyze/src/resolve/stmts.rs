@@ -28,6 +28,7 @@ impl Resolver<'_, '_> {
 
     pub(super) fn stmt(&mut self, s: &Stmt) {
         match s {
+            Stmt::Switch { expr, sections } => self.switch_stmt(expr, sections),
             Stmt::Function(d) => {
                 if let crate::ast::DeclKind::Method(m) = &d.kind {
                     self.method(m, d.has(crate::ast::Modifier::Async));
@@ -85,14 +86,12 @@ impl Resolver<'_, '_> {
                 r.looping(|r| r.stmt(body));
             }),
             Stmt::Block(b) | Stmt::Unsafe(b, _) => self.block(b),
-            Stmt::Break(at) | Stmt::Continue(at) if self.cx.loops == 0 => {
-                self.report.error(
-                    script_problem::OUTSIDE_LOOP,
-                    *at,
-                    "`break` and `continue` go in a loop",
-                );
-            }
-            Stmt::Break(_) | Stmt::Continue(_) => {}
+            Stmt::Break(at) => self.leaving(
+                *at,
+                self.cx.loops + self.cx.switches,
+                "`break` goes in a loop or a `switch`",
+            ),
+            Stmt::Continue(at) => self.leaving(*at, self.cx.loops, "`continue` goes in a loop"),
             Stmt::Return(value, _) | Stmt::Yield(value, _) => self.opt_expr(value.as_ref()),
             Stmt::Lock {
                 target,
@@ -102,6 +101,14 @@ impl Resolver<'_, '_> {
             } => self.lock_stmt(target, value.as_ref(), body),
             Stmt::Skip(value, at) => self.skip(value.as_ref(), *at),
             Stmt::Expr(e) | Stmt::Value(e) => self.expr(e),
+        }
+    }
+
+    /// `break` or `continue` (at `at`): an error unless `around` (what it
+    /// leaves) is.
+    fn leaving(&mut self, at: crate::source::token::Span, around: u32, why: &str) {
+        if around == 0 {
+            self.report.error(script_problem::OUTSIDE_LOOP, at, why);
         }
     }
 
@@ -115,6 +122,27 @@ impl Resolver<'_, '_> {
             );
         }
         self.opt_expr(value);
+    }
+
+    /// `switch (expr) { sections }`: each section's labels' names and its
+    /// statements in a scope of their own, `break` allowed.
+    fn switch_stmt(&mut self, expr: &Expr, sections: &[crate::ast::Section]) {
+        self.expr(expr);
+        let cx = Context {
+            switches: self.cx.switches + 1,
+            ..self.cx
+        };
+        self.within(cx, |r| {
+            for s in sections {
+                r.scoped(|r| {
+                    for (pattern, guard) in s.labels.iter().flatten() {
+                        r.bind_pattern(pattern);
+                        r.opt_expr(guard.as_ref());
+                    }
+                    r.stmts(&s.body);
+                });
+            }
+        });
     }
 
     /// A loop's body: in a scope, `break` allowed.

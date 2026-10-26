@@ -58,6 +58,7 @@ use std::collections::HashMap;
 pub use content::content_path;
 pub use iterators::{body_yields, item_of};
 pub use model::Type;
+pub use nulls::leaves;
 pub use types::{Message, MethodUse, OperatorUse, Quoted, Types};
 
 use crate::ast::File;

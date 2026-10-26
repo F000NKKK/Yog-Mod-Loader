@@ -128,7 +128,7 @@ fn matched_not_null(p: &Pattern) -> Option<bool> {
 
 /// Whether `s` always leaves what it's in (`return`, `break`, `continue`,
 /// `yield break`, a panic), so what follows runs only when it doesn't run.
-pub(super) fn leaves(s: &Stmt) -> bool {
+pub fn leaves(s: &Stmt) -> bool {
     match s {
         Stmt::Return(..) | Stmt::Break(_) | Stmt::Continue(_) | Stmt::Skip(..) => true,
         Stmt::Yield(None, _) => true,

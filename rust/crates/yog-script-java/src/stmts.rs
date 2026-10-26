@@ -234,6 +234,7 @@ impl Gen<'_> {
             },
             Stmt::Expr(e) | Stmt::Value(e) => self.expr_stmt(e),
             Stmt::Function(d) => self.local_function(d),
+            Stmt::Switch { expr, sections } => self.switch_stmt(expr, sections),
             _ => {}
         }
     }

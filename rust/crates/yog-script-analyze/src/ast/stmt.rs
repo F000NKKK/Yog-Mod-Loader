@@ -87,6 +87,13 @@ pub enum Stmt {
     Yield(Option<Expr>, Span),
     /// `unsafe { … }`: the threads checks skipped inside (a warning).
     Unsafe(Block, Span),
+    /// `switch (expr) { case p when g: … break; default: … }` (C#'s
+    /// statement): the first section a label of takes the value runs; its
+    /// `break` leaves the switch.
+    Switch {
+        expr: Expr,
+        sections: Vec<Section>,
+    },
     /// A local function (C#'s): a method declared in a block, reaching the
     /// block's locals, called anywhere in it (before it too).
     Function(Box<super::Decl>),
@@ -112,4 +119,12 @@ pub fn local_functions(stmts: &[Stmt]) -> impl Iterator<Item = &super::Method> {
         },
         _ => None,
     })
+}
+
+/// A `switch` statement's section: its labels (`case p when g:`; `None`:
+/// `default:`) and its statements.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Section {
+    pub labels: Vec<Option<(super::Pattern, Option<Expr>)>>,
+    pub body: Vec<Stmt>,
 }

@@ -24,6 +24,20 @@ impl Checker<'_, '_, '_> {
 
     pub(super) fn stmt(&mut self, s: &Stmt) {
         match s {
+            Stmt::Switch { expr, sections } => {
+                let t = self.expr(expr);
+                for s in sections {
+                    self.scoped(|c| {
+                        for (pattern, guard) in s.labels.iter().flatten() {
+                            c.bind_arm(pattern, &t);
+                            if let Some(g) = guard {
+                                c.condition(g);
+                            }
+                        }
+                        c.stmts(&s.body);
+                    });
+                }
+            }
             Stmt::Function(d) => {
                 if let crate::ast::DeclKind::Method(m) = &d.kind {
                     let side = self.side;

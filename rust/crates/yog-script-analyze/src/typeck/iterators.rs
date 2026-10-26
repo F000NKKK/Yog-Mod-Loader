@@ -51,6 +51,7 @@ pub fn stmt_yields(s: &Stmt) -> bool {
                 || stmt_yields(body)
         }
         Stmt::Block(b) | Stmt::Unsafe(b, _) => b.stmts.iter().any(stmt_yields),
+        Stmt::Switch { sections, .. } => sections.iter().flat_map(|s| &s.body).any(stmt_yields),
         _ => false,
     }
 }

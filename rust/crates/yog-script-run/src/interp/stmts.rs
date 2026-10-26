@@ -108,6 +108,7 @@ impl<'p> Interp<'p> {
             }
             Stmt::Yield(None, _) => Err(Stop::Return(Value::Void)),
             // Threads are the JVM's and the native's: the interpreter has none.
+            Stmt::Switch { expr, sections } => self.switch_stmt(expr, sections),
             Stmt::Lock { at, .. } => self.panic(
                 "a `lock` isn't run by the interpreter: it has no threads",
                 *at,
@@ -227,5 +228,55 @@ fn keep_looping(turn: Run<()>) -> Run<bool> {
         Ok(()) | Err(Stop::Continue) => Ok(true),
         Err(Stop::Break) => Ok(false),
         Err(other) => Err(other),
+    }
+}
+
+impl Interp<'_> {
+    /// `switch (expr) { sections }`: the first section a label of takes the
+    /// value (`default`'s when none does) run; its `break` leaves the switch.
+    fn switch_stmt(
+        &mut self,
+        expr: &Expr,
+        sections: &[yog_script_analyze::ast::Section],
+    ) -> Run<()> {
+        let v = self.eval(expr)?;
+        let mut chosen = None;
+        'sections: for s in sections {
+            for (pattern, guard) in s.labels.iter().flatten() {
+                let taken = self.scoped(|i| -> Run<bool> {
+                    if !i.fits(pattern, &v)? {
+                        return Ok(false);
+                    }
+                    match guard {
+                        Some(g) => Ok(i.eval(g)? == Value::Bool(true)),
+                        None => Ok(true),
+                    }
+                })?;
+                if taken {
+                    chosen = Some((s, Some((pattern, &v))));
+                    break 'sections;
+                }
+            }
+        }
+        let chosen = chosen.or_else(|| {
+            sections
+                .iter()
+                .find(|s| s.labels.iter().any(Option::is_none))
+                .map(|s| (s, None))
+        });
+        let Some((section, label)) = chosen else {
+            return Ok(());
+        };
+        let ran = self.scoped(|i| {
+            // Its label's names, bound again for its statements.
+            if let Some((pattern, v)) = label {
+                i.fits(pattern, v)?;
+            }
+            section.body.iter().try_for_each(|s| i.stmt(s))
+        });
+        match ran {
+            Err(Stop::Break) => Ok(()),
+            other => other,
+        }
     }
 }

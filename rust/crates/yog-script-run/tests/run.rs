@@ -150,3 +150,9 @@ fn local_functions_run_in_their_block() {
     let src = "i32 Run() { let mut total = 0; void Add(i32 x) { total += x; } Add(2); Add(3); return total + Fact(4); i32 Fact(i32 k) => k <= 1 ? 1 : k * Fact(k - 1); }\n";
     assert_eq!(run(src, "Run", vec![]), Ok(int(29)));
 }
+
+#[test]
+fn switch_statements_pick_a_section() {
+    let src = "i32 Run() { let mut t = 0; foreach (let i in 0..4) { switch (i) { case 0: continue; case 1: case 2: t += 10; break; default: t += i; break; } } return t; }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(27)));
+}

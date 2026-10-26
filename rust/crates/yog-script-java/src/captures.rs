@@ -65,9 +65,23 @@ impl Seen {
         self.lambdas.pop();
     }
 
+    /// A `switch` statement: its value, its guards, its sections.
+    fn switch(&mut self, expr: &Expr, sections: &[yog_script_analyze::ast::Section], inside: bool) {
+        self.expr(expr, inside);
+        for s in sections {
+            for (_, guard) in s.labels.iter().flatten() {
+                if let Some(g) = guard {
+                    self.expr(g, inside);
+                }
+            }
+            s.body.iter().for_each(|x| self.stmt(x, inside));
+        }
+    }
+
     fn stmt(&mut self, s: &Stmt, inside: bool) {
         match s {
             Stmt::Function(d) => self.local_function(d),
+            Stmt::Switch { expr, sections } => self.switch(expr, sections, inside),
             Stmt::Local { binding, value, .. } => {
                 match binding {
                     Binding::One(n) => self.declare(&n.text),

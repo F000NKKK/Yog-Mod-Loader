@@ -31,6 +31,8 @@ use yog_analysis::Report;
 struct Context {
     /// Loops around it (in its method or lambda).
     loops: u32,
+    /// `switch` statements around it: `break` leaves one.
+    switches: u32,
     /// A block lambda is around it: `it` is its argument.
     it: bool,
     /// In a patch's `before`: `skip` ends the method.

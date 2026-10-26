@@ -650,3 +650,46 @@ fn local_functions_and_nullables() {
     };
     assert_eq!(out, "125 TrueFalse 5 09 3");
 }
+
+/// The `switch` statement: labels sharing a section, guards, a pattern's
+/// names, `default`, `break` leaving it and `continue` its loop.
+#[test]
+fn switch_statements() {
+    let src = "public static class W {\n\
+                   static string Name(object o) {\n\
+                       switch (o) {\n\
+                           case 1:\n\
+                               return \"one\";\n\
+                           case 2:\n\
+                           case 3:\n\
+                               return \"few\";\n\
+                           case string s when s.Length > 2:\n\
+                               return \"long \" + s;\n\
+                           case string s:\n\
+                               return \"short \" + s;\n\
+                           default:\n\
+                               return \"other\";\n\
+                       }\n\
+                   }\n\
+                   public static string Run() {\n\
+                       let mut seen = \"\";\n\
+                       foreach (let i in 0..5) {\n\
+                           switch (i) {\n\
+                               case 0:\n\
+                                   continue;\n\
+                               case 4:\n\
+                                   seen = seen + \"!\";\n\
+                                   break;\n\
+                               default:\n\
+                                   seen = seen + i;\n\
+                                   break;\n\
+                           }\n\
+                       }\n\
+                       return Name(1) + \" \" + Name(3) + \" \" + Name(\"abc\") + \" \" + Name(\"x\") + \" \" + Name(2.5) + \" \" + seen;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("w.ys", src)], "t.WScript.W.Run()") else {
+        return;
+    };
+    assert_eq!(out, "one few long abc short x other 123!5");
+}

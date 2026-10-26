@@ -34,7 +34,7 @@ impl<'p> Interp<'p> {
         self.fits(p, v).map(Value::Bool)
     }
 
-    fn fits(&mut self, p: &Pattern, v: &Value) -> Run<bool> {
+    pub(crate) fn fits(&mut self, p: &Pattern, v: &Value) -> Run<bool> {
         Ok(match p {
             Pattern::Wild(_) => true,
             Pattern::Let(n) => {

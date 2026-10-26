@@ -97,6 +97,15 @@ fn each_expr(s: &Stmt, f: &mut dyn FnMut(&Expr)) {
     match s {
         // Its own code, apart: what it uses isn't the block's statements'.
         Stmt::Function(_) => {}
+        Stmt::Switch { expr, sections } => {
+            f(expr);
+            for s in sections {
+                for (_, guard) in s.labels.iter().flatten() {
+                    guard.iter().for_each(&mut *f);
+                }
+                s.body.iter().for_each(|x| each_expr(x, f));
+            }
+        }
         Stmt::Local { value, .. } => value.iter().for_each(&mut *f),
         Stmt::Assign { place, value, .. } => {
             f(place);

@@ -48,6 +48,7 @@ impl Checker<'_, '_> {
                 }
                 self.state = after_then.join(self.state.clone());
             }
+            Stmt::Switch { expr, sections } => self.switch_stmt(expr, sections),
             Stmt::Foreach {
                 binding,
                 iter,
@@ -98,6 +99,29 @@ impl Checker<'_, '_> {
             Stmt::Function(d) => self.local_function(d),
             _ => {}
         }
+    }
+
+    /// `switch (expr) { sections }`: each section a branch from the value
+    /// read (none taken: as before), what follows seeing any of them.
+    fn switch_stmt(&mut self, expr: &crate::ast::Expr, sections: &[crate::ast::Section]) {
+        self.expr(expr);
+        let before = self.state.clone();
+        let mut after = before.clone();
+        for s in sections {
+            self.state = before.clone();
+            self.scoped(|c| {
+                for (pattern, guard) in s.labels.iter().flatten() {
+                    pattern.each_binding(&mut |n| {
+                        c.state.declare(&n.text, super::state::Var::default())
+                    });
+                    c.opt_expr(guard.as_ref());
+                }
+                s.body.iter().for_each(|x| c.stmt(x));
+            });
+            // A section that returns leaves nothing after the switch.
+            after = after.join(self.state.clone());
+        }
+        self.state = after;
     }
 
     /// A local function's code: checked on its own, as a lambda's is —
