@@ -148,6 +148,14 @@ impl Gen<'_> {
         if let Some(ev) = self.event_of(raised) {
             return self.raise(e, &ev, args);
         }
+        if let ExprKind::Member {
+            expr,
+            name,
+            safe: true,
+        } = &callee.kind
+        {
+            return self.safe_call(e, expr, &name.text, args);
+        }
         let a = self.call_args(e, args);
         match &callee.kind {
             ExprKind::Ident(name) => match self.types.of(callee) {
@@ -297,8 +305,20 @@ impl Gen<'_> {
 
     /// `on.name(a)`.
     fn method_call(&mut self, e: &Expr, on: &Expr, name: &str, a: &str) -> String {
-        let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
+        self.method_call_on(e, on, target, name, a)
+    }
+
+    /// Call `e` of method `name` on `on`, its value already `target`.
+    pub(crate) fn method_call_on(
+        &mut self,
+        e: &Expr,
+        on: &Expr,
+        target: String,
+        name: &str,
+        a: &str,
+    ) -> String {
+        let on_type = self.types.of(on).cloned();
         let n = self.called_name(e, name);
         // A number's `GetType()`: its type as declared, read after the
         // value is — Java's box can't tell a `u8` from an `i32`.

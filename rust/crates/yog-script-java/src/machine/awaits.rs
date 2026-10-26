@@ -125,18 +125,6 @@ fn hazard(e: &Expr) -> Option<&'static str> {
     if !awaits(e) {
         return None;
     }
-    // A `switch`'s arm and `?.` reach it on some paths; `try` and `with`
-    // compute a value before their statement.
-    let unwritable = matches!(
-        &e.kind,
-        ExprKind::Member { safe: true, .. }
-            | ExprKind::Switch { .. }
-            | ExprKind::Unary { op: UnOp::Try, .. }
-            | ExprKind::With { .. }
-    );
-    if unwritable {
-        return Some("an `await` in a `switch`'s arm, after `?.`, or in `try` or `with`");
-    }
     let mut found = None;
     e.each_child(|c| found = found.or_else(|| hazard(c)));
     found

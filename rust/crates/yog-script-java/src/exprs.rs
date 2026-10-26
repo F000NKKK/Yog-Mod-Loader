@@ -275,9 +275,27 @@ impl Gen<'_> {
     /// `try r`: an `Err` returned from here, else the value.
     fn try_value(&mut self, expr: &Expr) -> String {
         let r = self.expr(expr);
-        let (t, err) = (self.temp(), self.temp());
-        self.code.line(format!("var {t} = {r};"));
-        self.code.line(format!("if ({t} instanceof {RUNTIME}.Result.Err<?, ?> {err}) return new {RUNTIME}.Result.Err<>({err}.Error());"));
+        let err = self.temp();
+        // In a machine: kept in a field (an `await` may come after), its
+        // `Err` finishing the task.
+        let t = if self.machine.is_some() {
+            let t = self.types.of(expr).cloned();
+            self.field_of_type(t.as_ref(), &r)
+        } else {
+            let t = self.temp();
+            self.code.line(format!("var {t} = {r};"));
+            t
+        };
+        let failed = format!("new {RUNTIME}.Result.Err<>({err}.Error())");
+        self.code
+            .open(format!("if ({t} instanceof {RUNTIME}.Result.Err<?, ?> {err})"));
+        if let Some(gives) = self.machine.as_ref().map(|m| m.gives.clone()) {
+            // The task's own `Result`: Java infers none from the `Err` taken.
+            self.async_return(Some(format!("({gives}) ({OBJECT}) {failed}")));
+        } else {
+            self.code.line(format!("return {failed};"));
+        }
+        self.code.close("");
         format!("{t}.Unwrap()")
     }
 

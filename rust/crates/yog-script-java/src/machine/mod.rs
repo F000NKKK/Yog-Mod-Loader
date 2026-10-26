@@ -10,6 +10,7 @@
 mod awaits;
 mod branches;
 mod flow;
+mod switches;
 
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{
@@ -35,6 +36,8 @@ pub(crate) struct Machine {
     pub fields: Vec<String>,
     /// The states it has so far; the first, `0`, where it starts.
     pub states: usize,
+    /// Its task's `T`, boxed: what a `try`'s failure finishes it as.
+    pub gives: String,
 }
 
 /// What a machine is made of: its parameters (each its name in the source
@@ -141,7 +144,10 @@ impl Gen<'_> {
     /// The machine of `shape` made, its parameters given, started; its task
     /// returned (none for an `async void`).
     pub(crate) fn machine_of(&mut self, shape: &Shape<'_>) {
-        let outer_machine = self.machine.replace(Machine::default());
+        let outer_machine = self.machine.replace(Machine {
+            gives: shape.gives.clone(),
+            ..Machine::default()
+        });
         let outer_this = self.this_name.clone();
         if self.this_name.is_none()
             && let Some((owner, _)) = &self.owner

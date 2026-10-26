@@ -11,6 +11,9 @@ use yog_script_ids::jvm::{HELPERS, NO_ARM, OBJECT};
 
 impl Gen<'_> {
     pub(crate) fn switch(&mut self, e: &Expr, on: &Expr, arms: &[Arm]) -> String {
+        if let Some(v) = self.split_switch(e, on, arms) {
+            return v;
+        }
         let t = self
             .types
             .of(e)

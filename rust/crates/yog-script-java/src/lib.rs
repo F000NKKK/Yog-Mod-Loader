@@ -34,6 +34,7 @@ mod patterns;
 mod raisers;
 mod reflection;
 mod refs;
+mod safe_calls;
 mod reified;
 mod stmts;
 mod switch;

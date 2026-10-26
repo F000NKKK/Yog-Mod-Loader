@@ -71,7 +71,7 @@ impl Gen<'_> {
     }
 
     /// The field value `e` is kept in, of its type.
-    fn branch_field(&mut self, e: &Expr) -> String {
+    pub(crate) fn branch_field(&mut self, e: &Expr) -> String {
         let t = self.types.of(e).cloned().unwrap_or(Type::Unknown);
         // Boxed: `a ?? b`'s `a` may be `null`.
         let ty = if t.known() {
