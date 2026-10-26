@@ -1,0 +1,5 @@
+mod $STRUCT$ {
+    $STRUCT$() {
+        Player.Join += e => Chat.Broadcast("$NAME$ greets " + e.PlayerName);
+    }
+}

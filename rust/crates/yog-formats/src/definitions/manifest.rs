@@ -24,6 +24,21 @@ pub struct ModSection {
     pub datapack: Option<String>,
     /// Rust edition (default 2024).
     pub edition: Option<String>,
+    /// The language the tools default to for the mod's code (a new
+    /// `.yui`'s code-behind, handlers designers write, `yog new`'s
+    /// sources): Yog Script unless it says Rust. Both always build.
+    #[data(default)]
+    pub language: Language,
+}
+
+/// A mod's main language: a preference of the tools, never a limit.
+#[derive(Schema, Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Language {
+    /// Yog Script (`.ys`, `.yns`).
+    #[default]
+    Ys,
+    /// Rust (`src/lib.rs`).
+    Rust,
 }
 
 /// `[dev]`.

@@ -5,6 +5,8 @@ version     = "0.1.0"
 description = "A Yog mod."
 authors     = ["Your Name"]
 license     = "MIT OR Apache-2.0"
+# What the tools write the mod's code in by default ("ys" or "rust"); both build.
+language    = "$LANGUAGE$"
 
 # Uncomment for local/monorepo development:
 # [dev]

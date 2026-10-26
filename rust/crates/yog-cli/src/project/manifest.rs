@@ -90,6 +90,8 @@ pub struct YogToml {
     /// It sends to the server (`[network] to_server`): built with yog-api's
     /// feature for it.
     pub to_server: bool,
+    /// The language the tools default to for its code (`[mod] language`).
+    pub language: yog_formats::manifest::Language,
 }
 
 /// One `[external.<namespace>]` section.
@@ -243,6 +245,7 @@ pub(crate) fn parse_yog_toml(text: &str) -> Result<YogToml, String> {
             .map(|(namespace, e)| external(namespace, e))
             .collect(),
         to_server: f.network.is_some_and(|n| n.to_server),
+        language: m.language,
         id: m.id,
     })
 }
