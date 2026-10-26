@@ -412,6 +412,13 @@ fn patterns_are_conditions() {
 }
 
 #[test]
+fn a_local_may_be_set_after() {
+    let src = "i32 F(bool b) {\n    i32 x;\n    if (b) {\n        x = 1;\n    } else {\n        x = 2;\n    }\n    return x;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    assert!(out.contains("int x;"), "{out}");
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));

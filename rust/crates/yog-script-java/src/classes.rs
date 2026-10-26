@@ -48,41 +48,10 @@ impl Gen<'_> {
         let ys = name;
         let java = self.simple_name(name, header);
         let name = java.as_str();
-        let (extends, interfaces) = self.bases(header);
-        let mut implements = interfaces;
-        implements.extend(also.map(str::to_string));
-        if struct_ {
-            implements.push(CLONEABLE.into());
-        }
         // A generic one keeps the type arguments it's made with (`GetType()`).
         let generic = header.generics.iter().any(|g| !g.lifetime);
-        if generic {
-            implements.push(TYPED.into());
-        }
-        let implements = if implements.is_empty() {
-            String::new()
-        } else {
-            format!(" {IMPLEMENTS} {}", implements.join(", "))
-        };
-        let extends = extends
-            .map(|b| format!(" {EXTENDS} {b}"))
-            .unwrap_or_default();
-        let lead = if d.has(Modifier::Abstract) {
-            modifier(ABSTRACT)
-        } else if d.has(Modifier::Sealed) || struct_ {
-            modifier(FINAL)
-        } else {
-            String::new()
-        };
-        let stat = if self.nested {
-            modifier(STATIC)
-        } else {
-            String::new()
-        };
-        self.code.open(format!(
-            "{PUBLIC} {stat}{lead}{CLASS} {name}{}{extends}{implements}",
-            generic_list(&header.generics)
-        ));
+        let head = self.class_head(d, (name, header), (struct_, generic), also);
+        self.code.open(head);
         self.describe(d);
         self.constants(body);
         for f in fields(body) {
@@ -118,6 +87,49 @@ impl Gen<'_> {
             self.code.close("");
         }
         self.code.close("");
+    }
+
+    /// `public static final class Name<T> extends Base implements …`.
+    fn class_head(
+        &self,
+        d: &Decl,
+        (name, header): (&str, &TypeHeader),
+        (struct_, generic): (bool, bool),
+        also: Option<&str>,
+    ) -> String {
+        let (extends, interfaces) = self.bases(header);
+        let mut implements = interfaces;
+        implements.extend(also.map(str::to_string));
+        if struct_ {
+            implements.push(CLONEABLE.into());
+        }
+        if generic {
+            implements.push(TYPED.into());
+        }
+        let implements = if implements.is_empty() {
+            String::new()
+        } else {
+            format!(" {IMPLEMENTS} {}", implements.join(", "))
+        };
+        let extends = extends
+            .map(|b| format!(" {EXTENDS} {b}"))
+            .unwrap_or_default();
+        let lead = if d.has(Modifier::Abstract) {
+            modifier(ABSTRACT)
+        } else if d.has(Modifier::Sealed) || struct_ {
+            modifier(FINAL)
+        } else {
+            String::new()
+        };
+        let stat = if self.nested {
+            modifier(STATIC)
+        } else {
+            String::new()
+        };
+        format!(
+            "{PUBLIC} {stat}{lead}{CLASS} {name}{}{extends}{implements}",
+            generic_list(&header.generics)
+        )
     }
 
     /// What keeps a generic object's type arguments (`Typed`).

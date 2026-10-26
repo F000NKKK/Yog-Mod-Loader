@@ -35,28 +35,7 @@ impl Gen<'_> {
                 binding: Binding::One(n),
                 value,
                 mutable,
-            } => {
-                let fin = if *mutable {
-                    String::new()
-                } else {
-                    modifier(FINAL)
-                };
-                let name = Self::ident(&n.text);
-                match value {
-                    Some(v) => {
-                        // The type written, else a lambda's own (Java's `var`
-                        // can't take one), else `var`.
-                        let ty = match (written, self.types.of(v)) {
-                            (Some(w), _) => self.written(w, false),
-                            (None, Some(t @ Type::Fn(..))) => self.java(t, false),
-                            _ => VAR.to_string(),
-                        };
-                        let v = self.handed_expr(v);
-                        self.code.line(format!("{fin}{ty} {name} = {v};"));
-                    }
-                    None => self.not_yet("a local without a value", n.span),
-                }
-            }
+            } => self.local(n, (written.as_ref(), value.as_ref()), *mutable),
             Stmt::Local {
                 binding: Binding::Tuple(names),
                 value,
@@ -113,6 +92,39 @@ impl Gen<'_> {
             } => self.foreach(binding, iter, body),
             _ => self.simple(s),
         }
+    }
+
+    /// `let x = v;`, `i32 x = v;`, `i32 x;` (its value set after; one that
+    /// doesn't change set once, Java's `final` too).
+    fn local(
+        &mut self,
+        n: &yog_script_analyze::ast::Name,
+        (written, value): (Option<&yog_script_analyze::ast::Type>, Option<&Expr>),
+        mutable: bool,
+    ) {
+        let fin = if mutable {
+            String::new()
+        } else {
+            modifier(FINAL)
+        };
+        let name = Self::ident(&n.text);
+        let Some(v) = value else {
+            let ty = match written {
+                Some(w) => self.written(w, false),
+                None => return self.not_yet("a local of no type written and no value", n.span),
+            };
+            self.code.line(format!("{fin}{ty} {name};"));
+            return;
+        };
+        // The type written, else a lambda's own (Java's `var` can't take
+        // one), else `var`.
+        let ty = match (written, self.types.of(v)) {
+            (Some(w), _) => self.written(w, false),
+            (None, Some(t @ Type::Fn(..))) => self.java(t, false),
+            _ => VAR.to_string(),
+        };
+        let v = self.handed_expr(v);
+        self.code.line(format!("{fin}{ty} {name} = {v};"));
     }
 
     fn simple(&mut self, s: &Stmt) {
