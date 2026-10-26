@@ -10,5 +10,6 @@ public final class IOrderedEnumerableCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
     }
 }

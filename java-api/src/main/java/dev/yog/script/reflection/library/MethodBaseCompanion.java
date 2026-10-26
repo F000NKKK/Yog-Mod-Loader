@@ -10,6 +10,7 @@ public final class MethodBaseCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.reflection.MemberInfo.class));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("IsStatic", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.MethodBase) o).IsStatic(), null);
         d.Property("IsPublic", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.MethodBase) o).IsPublic(), null);
         d.Property("IsPrivate", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.MethodBase) o).IsPrivate(), null);

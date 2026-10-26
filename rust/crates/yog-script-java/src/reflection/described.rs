@@ -83,7 +83,7 @@ impl Gen<'_> {
         self.code.close("");
     }
 
-    fn described_lines(&self, d: &Decl) -> Vec<String> {
+    fn described_lines(&mut self, d: &Decl) -> Vec<String> {
         let Some(what) = declared(d) else {
             return Vec::new();
         };
@@ -91,6 +91,10 @@ impl Gen<'_> {
             return Vec::new();
         };
         let mut out = self.bases_described(&owner, what.bases);
+        let attributes = self.attributes_described(&d.attributes);
+        if !attributes.is_empty() {
+            out.push(format!("{DESCRIPTION}{attributes};"));
+        }
         match &d.kind {
             DeclKind::Type {
                 word, header, body, ..

@@ -11,6 +11,7 @@ public final class BooleanCompanion {
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class) }));
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.Host());
         d.Field("TrueString", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> dev.yog.script.host.Boolean.TrueString, null);
         d.Field("FalseString", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> dev.yog.script.host.Boolean.FalseString, null);
         d.Method("Parse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Boolean.Parse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);

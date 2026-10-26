@@ -53,6 +53,11 @@ final class ConstructedType extends Type {
         return substituted(definition.ownInterfaces(), arguments);
     }
 
+    @Override
+    protected List<java.util.function.Supplier<Object>> attributeMakers() {
+        return definition.description().attributes();
+    }
+
     /** Its definition's, their types made of its arguments. */
     @Override
     public List<MemberInfo> members() {

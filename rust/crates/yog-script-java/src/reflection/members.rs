@@ -42,27 +42,30 @@ impl Gen<'_> {
     /// The description's calls of `owner`'s members (`body`), each a statement.
     /// `made`: its objects are made by its constructors.
     pub(super) fn members_described(
-        &self,
+        &mut self,
         owner: &Owner,
         body: &[Decl],
         made: bool,
     ) -> Vec<String> {
         let mut out = Vec::new();
         for d in body {
-            match &d.kind {
-                DeclKind::Field(f) => out.push(self.field_described(owner, d, &f.name.text, &f.ty)),
+            let line = match &d.kind {
+                DeclKind::Field(f) => Some(self.field_described(owner, d, &f.name.text, &f.ty)),
                 DeclKind::Property {
                     ty,
                     name,
                     accessors,
                     explicit: None,
                     ..
-                } => out.push(self.property_described(owner, d, (&name.text, ty), accessors)),
-                DeclKind::Method(m) => out.extend(self.method_described(owner, d, m)),
+                } => Some(self.property_described(owner, d, (&name.text, ty), accessors)),
+                DeclKind::Method(m) => self.method_described(owner, d, m),
                 DeclKind::Ctor(c) if made => {
-                    out.push(self.constructor_described(owner, &member_traits(d), &c.params));
+                    Some(self.constructor_described(owner, &member_traits(d), &c.params))
                 }
-                _ => {}
+                _ => None,
+            };
+            if let Some(line) = line {
+                out.push(self.with_attributes(line, &d.attributes));
             }
         }
         out

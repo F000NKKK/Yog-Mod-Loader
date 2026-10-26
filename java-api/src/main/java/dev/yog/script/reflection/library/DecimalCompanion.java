@@ -11,6 +11,7 @@ public final class DecimalCompanion {
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class) }));
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.Host());
         d.Field("MinValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), o -> dev.yog.script.host.Decimal.MinValue, null);
         d.Field("MaxValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), o -> dev.yog.script.host.Decimal.MaxValue, null);
         d.Field("Zero", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), o -> dev.yog.script.host.Decimal.Zero, null);

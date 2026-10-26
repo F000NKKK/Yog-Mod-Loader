@@ -9,6 +9,7 @@ public final class LinkedListNodeCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Constructor(0, a -> new dev.yog.script.collections.generic.LinkedListNode(a[0])).Takes("value", d.Parameter(0), false);
         d.Property("Value", 0, d.Parameter(0), o -> ((dev.yog.script.collections.generic.LinkedListNode) o).Value(), (o, v) -> ((dev.yog.script.collections.generic.LinkedListNode) o).set_Value(v));
         d.Property("List", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.LinkedList.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.LinkedListNode) o).List(), null);

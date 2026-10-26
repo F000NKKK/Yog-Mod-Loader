@@ -9,6 +9,7 @@ public final class ObjectCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.Host());
         d.Method("Equals", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Object.Equals((Object) o, (Object) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Object.class), false);
         d.Method("GetHashCode", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Object.GetHashCode((Object) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class));
         d.Method("GetType", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Object.GetType((Object) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class));

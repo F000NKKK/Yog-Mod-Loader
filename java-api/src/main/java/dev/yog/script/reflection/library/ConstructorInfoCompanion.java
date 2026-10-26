@@ -10,6 +10,7 @@ public final class ConstructorInfoCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.reflection.MethodBase.class));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Name", dev.yog.script.reflection.MemberInfo.VIRTUAL, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.reflection.ConstructorInfo) o).Name(), null);
         d.Property("DeclaringType", dev.yog.script.reflection.MemberInfo.VIRTUAL, dev.yog.script.Type.Of(dev.yog.script.Type.class), o -> ((dev.yog.script.reflection.ConstructorInfo) o).DeclaringType(), null);
         d.Property("MemberType", dev.yog.script.reflection.MemberInfo.VIRTUAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> ((dev.yog.script.reflection.ConstructorInfo) o).MemberType(), null);

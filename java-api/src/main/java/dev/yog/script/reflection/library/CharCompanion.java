@@ -11,6 +11,7 @@ public final class CharCompanion {
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Char.class) }));
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Char.class) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.Host());
         d.Field("MinValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Char.class), o -> dev.yog.script.host.Char.MinValue, null);
         d.Field("MaxValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Char.class), o -> dev.yog.script.host.Char.MaxValue, null);
         d.Method("IsDigit", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Char.IsDigit((Character) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("c", dev.yog.script.Type.Of(dev.yog.script.host.Char.class), false);

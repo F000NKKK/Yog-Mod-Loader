@@ -2,6 +2,8 @@ namespace System;
 
 /// Where the attribute class it marks may stand.
 public sealed class AttributeUsage(AttributeTargets on) : Attribute {
+    /// Where it may stand.
+    public readonly AttributeTargets ValidOn = on;
     public bool AllowMultiple;
     public bool Inherited;
 }

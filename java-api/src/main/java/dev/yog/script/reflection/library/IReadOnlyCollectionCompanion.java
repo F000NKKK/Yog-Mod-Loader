@@ -10,6 +10,7 @@ public final class IReadOnlyCollectionCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.IReadOnlyCollection) o).Count(), null);
     }
 }

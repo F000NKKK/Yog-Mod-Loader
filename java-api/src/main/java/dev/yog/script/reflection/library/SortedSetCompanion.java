@@ -11,6 +11,7 @@ public final class SortedSetCompanion {
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.ISet.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlySet.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedSet());
         d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedSet((dev.yog.script.collections.generic.IComparer) a[0])).Takes("comparer", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
         d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedSet((dev.yog.script.collections.generic.IEnumerable) a[0])).Takes("collection", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);

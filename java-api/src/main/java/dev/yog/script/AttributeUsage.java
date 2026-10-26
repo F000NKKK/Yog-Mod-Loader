@@ -6,13 +6,16 @@ public final class AttributeUsage extends dev.yog.script.Attribute {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
+        d.Field("ValidOn", dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> ((dev.yog.script.AttributeUsage) o).ValidOn, null);
         d.Field("AllowMultiple", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.AttributeUsage) o).AllowMultiple, (o, v) -> ((dev.yog.script.AttributeUsage) o).AllowMultiple = (Boolean) v);
         d.Field("Inherited", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.AttributeUsage) o).Inherited, (o, v) -> ((dev.yog.script.AttributeUsage) o).Inherited = (Boolean) v);
         d.Constructor(0, a -> new dev.yog.script.AttributeUsage((dev.yog.script.AttributeTargets) a[0])).Takes("on", dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), false);
     }
+    public dev.yog.script.AttributeTargets ValidOn;
     public boolean AllowMultiple;
     public boolean Inherited;
     public AttributeUsage(dev.yog.script.AttributeTargets on) {
         super();
+        this.ValidOn = on;
     }
 }

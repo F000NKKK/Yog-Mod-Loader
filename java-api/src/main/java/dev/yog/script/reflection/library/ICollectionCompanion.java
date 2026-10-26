@@ -10,6 +10,7 @@ public final class ICollectionCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.ICollection) o).Count(), null);
         d.Property("IsReadOnly", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.collections.generic.ICollection) o).IsReadOnly(), null);
         d.Method("Add", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.ICollection) o).Add(a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("item", d.Parameter(0), false);

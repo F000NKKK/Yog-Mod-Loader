@@ -10,6 +10,7 @@ public final class ComparerCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Default", dev.yog.script.reflection.MemberInfo.STATIC, dev.yog.script.Type.Of(dev.yog.script.collections.generic.Comparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> dev.yog.script.collections.generic.Comparer.Default(), null);
         d.Method("Create", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.collections.generic.Comparer.Create((dev.yog.script.Comparison) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.collections.generic.Comparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })).Takes("comparison", dev.yog.script.Type.Of(dev.yog.script.Comparison.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
         d.Method("Compare", dev.yog.script.reflection.MemberInfo.ABSTRACT, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Comparer) o).Compare(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("x", d.Parameter(0), false).Takes("y", d.Parameter(0), false);

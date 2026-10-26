@@ -65,6 +65,7 @@ public final class Library {
             java.util.Map.entry(Object.class, () -> ObjectCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.Random.class, () -> RandomCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.reflection.ConstructorInfo.class, () -> ConstructorInfoCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.reflection.CustomAttributeExtensions.class, () -> CustomAttributeExtensionsCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.reflection.FieldInfo.class, () -> FieldInfoCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.reflection.MemberInfo.class, () -> MemberInfoCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.reflection.MethodBase.class, () -> MethodBaseCompanion.TYPE),

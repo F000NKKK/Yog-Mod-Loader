@@ -1,0 +1,14 @@
+namespace System.Reflection;
+
+/// A member's attributes by their type, as .NET's: `[Range(0, 100)]` on a
+/// field is `field.GetCustomAttribute<Range>()`, made anew each time.
+[Intrinsic]
+public static class CustomAttributeExtensions {
+    /// Its attribute that's a `T`; `null` for none, a panic for several.
+    [Reified]
+    public static T? GetCustomAttribute<T>(this in MemberInfo element) where T : Attribute;
+    /// Its attributes that are `T`s (a type's base's too).
+    [Reified]
+    public static IEnumerable<T> GetCustomAttributes<T>(this in MemberInfo element) where T : Attribute;
+    public static Attribute? GetCustomAttribute(this in MemberInfo element, Type attributeType);
+}

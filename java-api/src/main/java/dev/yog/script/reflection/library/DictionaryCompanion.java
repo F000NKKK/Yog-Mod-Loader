@@ -11,6 +11,7 @@ public final class DictionaryCompanion {
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }));
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Constructor(0, a -> new dev.yog.script.collections.generic.Dictionary());
         d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.Dictionary) o).Count(), null);
         d.Property("Keys", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.Dictionary) o).Keys(), null);

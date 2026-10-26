@@ -1,6 +1,9 @@
 package dev.yog.script.reflection;
 
 import dev.yog.script.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
 
 /** A type's member as Reflection sees it: Yog Script's {@code System.Reflection.MemberInfo}. */
 public abstract class MemberInfo {
@@ -24,6 +27,40 @@ public abstract class MemberInfo {
     /** Its traits ({@link #STATIC}…); a type's are none of these. */
     protected int memberTraits() {
         return 0;
+    }
+
+    /** What makes each of its attributes, as written on it. */
+    protected abstract List<Supplier<Object>> attributeMakers();
+
+    /** Where its attributes are inherited from ({@code inherit}): a type's base; none for a member. */
+    protected MemberInfo inheritedFrom() {
+        return null;
+    }
+
+    /** Its attributes, made anew; its base's too when {@code inherit}. */
+    public Object[] GetCustomAttributes(boolean inherit) {
+        List<Object> out = new ArrayList<>();
+        for (MemberInfo m = this; m != null; m = inherit ? m.inheritedFrom() : null) {
+            for (Supplier<Object> make : m.attributeMakers()) {
+                out.add(make.get());
+            }
+        }
+        return out.toArray();
+    }
+
+    /** Its attributes of {@code attributeType} (one inheriting it too). */
+    public Object[] GetCustomAttributes(Type attributeType, boolean inherit) {
+        List<Object> out = new ArrayList<>();
+        for (Object a : GetCustomAttributes(inherit)) {
+            if (attributeType.IsInstanceOfType(a)) {
+                out.add(a);
+            }
+        }
+        return out.toArray();
+    }
+
+    public boolean IsDefined(Type attributeType, boolean inherit) {
+        return GetCustomAttributes(attributeType, inherit).length > 0;
     }
 
     /** Neither {@code private} nor {@code protected}: what {@code GetMethods()} and the rest give. */

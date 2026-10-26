@@ -9,6 +9,7 @@ public final class ParameterInfoCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Name", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.reflection.ParameterInfo) o).Name(), null);
         d.Property("ParameterType", 0, dev.yog.script.Type.Of(dev.yog.script.Type.class), o -> ((dev.yog.script.reflection.ParameterInfo) o).ParameterType(), null);
         d.Property("Position", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.reflection.ParameterInfo) o).Position(), null);

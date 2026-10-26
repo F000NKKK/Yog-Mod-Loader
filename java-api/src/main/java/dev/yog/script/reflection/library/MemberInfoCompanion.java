@@ -9,8 +9,12 @@ public final class MemberInfoCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Name", dev.yog.script.reflection.MemberInfo.ABSTRACT, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.reflection.MemberInfo) o).Name(), null);
         d.Property("DeclaringType", dev.yog.script.reflection.MemberInfo.ABSTRACT, dev.yog.script.Type.Of(dev.yog.script.Type.class), o -> ((dev.yog.script.reflection.MemberInfo) o).DeclaringType(), null);
         d.Property("MemberType", dev.yog.script.reflection.MemberInfo.ABSTRACT, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> ((dev.yog.script.reflection.MemberInfo) o).MemberType(), null);
+        d.Method("GetCustomAttributes", 0, new String[] {  }, (o, a) -> ((dev.yog.script.reflection.MemberInfo) o).GetCustomAttributes((Boolean) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Object.class).MakeArrayType(1)).Takes("inherit", dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), false);
+        d.Method("GetCustomAttributes", 0, new String[] {  }, (o, a) -> ((dev.yog.script.reflection.MemberInfo) o).GetCustomAttributes((dev.yog.script.Type) a[0], (Boolean) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Object.class).MakeArrayType(1)).Takes("attributeType", dev.yog.script.Type.Of(dev.yog.script.Type.class), false).Takes("inherit", dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), false);
+        d.Method("IsDefined", 0, new String[] {  }, (o, a) -> ((dev.yog.script.reflection.MemberInfo) o).IsDefined((dev.yog.script.Type) a[0], (Boolean) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("attributeType", dev.yog.script.Type.Of(dev.yog.script.Type.class), false).Takes("inherit", dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), false);
     }
 }

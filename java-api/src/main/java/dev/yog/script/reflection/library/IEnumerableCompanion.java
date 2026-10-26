@@ -9,6 +9,7 @@ public final class IEnumerableCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Method("GetEnumerator", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IEnumerable) o).GetEnumerator()).Returns(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerator.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
     }
 }

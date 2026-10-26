@@ -268,6 +268,26 @@ fn members_are_described_with_their_uses() {
 }
 
 #[test]
+fn attributes_are_made_when_asked_for() {
+    let src = "using System.Reflection;\n\
+               public class Range(i32 min, i32 max) : Attribute {\n    public i32 Max = max;\n}\n\
+               [Obsolete(\"use Charge\")]\n[Derive(Clone)]\nclass Charger {\n    [Range(0, 100)]\n    public i32 Level;\n}\n\
+               i32 Top() => typeof(Charger).GetField(\"Level\")!.GetCustomAttribute<Range>()!.Max;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        // On the type, before its members; on a member, after it.
+        "d.Attribute(() -> new dev.yog.script.Obsolete(\"use Charge\"));",
+        "(o, v) -> ((Charger) o).Level = (Integer) v).Attribute(() -> new Range(0, 100));",
+        // Its class handed first: what it's filtered by.
+        "dev.yog.script.reflection.CustomAttributeExtensions.GetCustomAttribute(Range.class, ",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+    // `[Derive(Clone)]` names macros: no value to make.
+    assert!(!out.contains("new dev.yog.script.Derive"), "{out}");
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));

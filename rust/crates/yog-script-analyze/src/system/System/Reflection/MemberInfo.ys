@@ -9,4 +9,9 @@ public abstract class MemberInfo {
     /// The type declaring it; `null` for a type not nested in one.
     public abstract Type? DeclaringType { get; }
     public abstract MemberTypes MemberType { get; }
+    /// Its attributes, made anew; `inherit`: a type's base's too.
+    public object[] GetCustomAttributes(bool inherit);
+    /// Its attributes that are `attributeType`s (one inheriting it too).
+    public object[] GetCustomAttributes(Type attributeType, bool inherit);
+    public bool IsDefined(Type attributeType, bool inherit);
 }

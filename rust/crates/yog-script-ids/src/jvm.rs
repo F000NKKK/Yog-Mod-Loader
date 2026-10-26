@@ -128,6 +128,8 @@ pub mod reflection {
     pub const TAKES: &str = "Takes";
     pub const CONSTRUCTOR: &str = "Constructor";
     pub const METHOD_PARAMETER: &str = "MethodParameter";
+    /// An attribute's maker: on the member described last; before any, on the type.
+    pub const ATTRIBUTE: &str = "Attribute";
     /// What a member is, `MemberInfo`'s flags.
     pub const MEMBER_INFO: &str = "dev.yog.script.reflection.MemberInfo";
     pub const STATIC: &str = "STATIC";

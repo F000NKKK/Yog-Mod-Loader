@@ -6,9 +6,12 @@ public final class Obsolete extends dev.yog.script.Attribute {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
+        d.Field("Message", dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.Obsolete) o).Message, null);
         d.Constructor(0, a -> new dev.yog.script.Obsolete((String) a[0])).Takes("message", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
+    public String Message;
     public Obsolete(String message) {
         super();
+        this.Message = message;
     }
 }

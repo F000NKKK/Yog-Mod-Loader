@@ -10,6 +10,7 @@ public final class IReadOnlySetCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyCollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Method("Contains", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IReadOnlySet) o).Contains(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("item", d.Parameter(0), false);
         d.Method("IsSubsetOf", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IReadOnlySet) o).IsSubsetOf((dev.yog.script.collections.generic.IEnumerable) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("other", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
         d.Method("IsSupersetOf", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IReadOnlySet) o).IsSupersetOf((dev.yog.script.collections.generic.IEnumerable) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("other", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);

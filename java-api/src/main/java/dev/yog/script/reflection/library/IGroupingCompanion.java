@@ -10,6 +10,7 @@ public final class IGroupingCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Key", 0, d.Parameter(0), o -> ((dev.yog.script.linq.IGrouping) o).Key(), null);
     }
 }

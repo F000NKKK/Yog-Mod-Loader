@@ -9,6 +9,7 @@ public final class RandomCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Constructor(0, a -> new dev.yog.script.Random());
         d.Constructor(0, a -> new dev.yog.script.Random((Integer) a[0])).Takes("seed", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
         d.Property("Shared", dev.yog.script.reflection.MemberInfo.STATIC, dev.yog.script.Type.Of(dev.yog.script.Random.class), o -> dev.yog.script.Random.Shared(), null);

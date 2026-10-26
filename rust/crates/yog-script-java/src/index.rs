@@ -34,6 +34,9 @@ pub(crate) struct Info {
     pub computed: HashSet<String>,
     /// The types it inherits and implements, by name.
     pub bases: Vec<String>,
+    /// Whether it's made with arguments (it declares a constructor taking
+    /// some): an attribute without one takes what a macro reads (`[Derive(Clone)]`).
+    pub takes_args: bool,
 }
 
 #[derive(Default)]
@@ -94,6 +97,7 @@ impl Index {
                         kind: Kind::Delegate,
                         computed: HashSet::new(),
                         bases: Vec::new(),
+                        takes_args: false,
                     };
                     self.types.insert(m.name.text.clone(), info);
                 }
@@ -149,10 +153,15 @@ impl Index {
             computed(body)
         };
         let bases = header.bases.iter().filter_map(base_name).collect();
+        let takes_args = header.ctor.as_ref().is_some_and(|p| !p.is_empty())
+            || body
+                .iter()
+                .any(|m| matches!(&m.kind, DeclKind::Ctor(c) if !c.params.is_empty()));
         let info = Info {
             kind,
             computed,
             bases,
+            takes_args,
         };
         self.types.insert(name.text.clone(), info);
     }
@@ -184,6 +193,7 @@ impl Index {
             kind,
             computed: computed(body),
             bases: Vec::new(),
+            takes_args: false,
         };
         self.types.insert(name.text.clone(), info);
     }
@@ -295,6 +305,11 @@ impl Index {
     /// Whether type `name` is the runtime's, written by hand.
     pub fn is_intrinsic(&self, name: &str) -> bool {
         self.intrinsics.contains(name)
+    }
+
+    /// Whether type `name` is made with arguments.
+    pub fn takes_args(&self, name: &str) -> bool {
+        self.types.get(name).is_some_and(|i| i.takes_args)
     }
 
     pub fn kind(&self, name: &str) -> Option<Kind> {

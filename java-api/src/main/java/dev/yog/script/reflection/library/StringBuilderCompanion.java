@@ -9,6 +9,7 @@ public final class StringBuilderCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Constructor(0, a -> new dev.yog.script.text.StringBuilder());
         d.Constructor(0, a -> new dev.yog.script.text.StringBuilder((String) a[0])).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
         d.Property("Length", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.text.StringBuilder) o).Length(), (o, v) -> ((dev.yog.script.text.StringBuilder) o).set_Length((Integer) v));

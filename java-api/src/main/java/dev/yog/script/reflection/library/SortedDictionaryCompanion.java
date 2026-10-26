@@ -11,6 +11,7 @@ public final class SortedDictionaryCompanion {
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }));
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedDictionary());
         d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedDictionary((dev.yog.script.collections.generic.IComparer) a[0])).Takes("comparer", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
         d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.SortedDictionary) o).Count(), null);

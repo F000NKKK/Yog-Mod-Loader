@@ -11,6 +11,7 @@ public final class SByteCompanion {
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.SByte.class) }));
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.SByte.class) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.Host());
         d.Field("MinValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.SByte.class), o -> dev.yog.script.host.SByte.MinValue, null);
         d.Field("MaxValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.SByte.class), o -> dev.yog.script.host.SByte.MaxValue, null);
         d.Method("Parse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.SByte.Parse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.SByte.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);

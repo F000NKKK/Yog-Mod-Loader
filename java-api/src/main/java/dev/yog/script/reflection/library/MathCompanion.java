@@ -9,6 +9,7 @@ public final class MathCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Field("PI", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.Math.PI, null);
         d.Field("E", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.Math.E, null);
         d.Field("Tau", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.Math.Tau, null);

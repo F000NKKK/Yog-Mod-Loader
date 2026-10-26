@@ -9,6 +9,7 @@ public final class IEqualityComparerCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Method("Equals", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IEqualityComparer) o).Equals(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("x", d.Parameter(0), false).Takes("y", d.Parameter(0), false);
         d.Method("GetHashCode", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IEqualityComparer) o).GetHashCode(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("obj", d.Parameter(0), false);
     }

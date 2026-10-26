@@ -3,6 +3,7 @@
 //! names), a type as a value (`typeof(T)`), and the runtime's hand-written
 //! types' descriptions as companions the library writes.
 
+mod attributes;
 mod companions;
 mod described;
 mod invokers;

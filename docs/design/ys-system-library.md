@@ -307,5 +307,7 @@ an interpreter of the nodes.
    `PropertyInfo`, `MethodInfo`, `ConstructorInfo`, `ParameterInfo` —
    `GetValue`, `SetValue`, `Invoke` by what's written beside each; a
    library member's types read with its own file's `using`s, as .NET's
-   metadata is); `BindingFlags` (needs enums' `|`), attributes, expression
-   trees next.
+   metadata is); attributes (done: `GetCustomAttribute<T>()`,
+   `GetCustomAttributes`, `IsDefined` — each made anew from what's
+   written, a type's base's inherited; `[Derive(…)]`, naming macros, has
+   no value); `BindingFlags` (needs enums' `|`), expression trees next.

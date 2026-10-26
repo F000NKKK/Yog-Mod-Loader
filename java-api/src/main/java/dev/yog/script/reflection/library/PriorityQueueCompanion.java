@@ -9,6 +9,7 @@ public final class PriorityQueueCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Constructor(0, a -> new dev.yog.script.collections.generic.PriorityQueue());
         d.Constructor(0, a -> new dev.yog.script.collections.generic.PriorityQueue((dev.yog.script.collections.generic.IComparer) a[0])).Takes("comparer", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }), false);
         d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.PriorityQueue) o).Count(), null);

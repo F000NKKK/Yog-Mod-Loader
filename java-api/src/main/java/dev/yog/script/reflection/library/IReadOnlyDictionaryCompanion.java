@@ -10,6 +10,7 @@ public final class IReadOnlyDictionaryCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyCollection.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.KeyValuePair.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Keys", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.IReadOnlyDictionary) o).Keys(), null);
         d.Property("Values", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }), o -> ((dev.yog.script.collections.generic.IReadOnlyDictionary) o).Values(), null);
         d.Method("ContainsKey", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IReadOnlyDictionary) o).ContainsKey(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false);

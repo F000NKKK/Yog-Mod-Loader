@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * What the compiler wrote of a declared type beside its name: the class
@@ -18,6 +19,7 @@ public final class TypeDescription {
     private Type base;
     private final List<Type> interfaces = new ArrayList<>();
     private final List<Member> members = new ArrayList<>();
+    private final List<Supplier<Object>> attributes = new ArrayList<>();
     /** The method or constructor its parameters ({@link #Takes}) are added to. */
     private MethodBase last;
 
@@ -82,8 +84,15 @@ public final class TypeDescription {
         return this;
     }
 
+    /** An attribute ({@code make} makes it): on the member described last; before any, on the type. */
+    public TypeDescription Attribute(Supplier<Object> make) {
+        Member to = members.isEmpty() ? null : members.get(members.size() - 1);
+        (to == null ? attributes : to.attributes).add(make);
+        return this;
+    }
+
     private Member.Parts parts(String name, int traits) {
-        return new Member.Parts(name, traits, owner);
+        return new Member.Parts(name, traits, owner, new ArrayList<>());
     }
 
     Type base() {
@@ -92,6 +101,10 @@ public final class TypeDescription {
 
     List<Type> interfaces() {
         return interfaces;
+    }
+
+    List<Supplier<Object>> attributes() {
+        return attributes;
     }
 
     List<Member> members() {

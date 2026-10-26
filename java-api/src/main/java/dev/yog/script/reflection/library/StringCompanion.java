@@ -9,6 +9,7 @@ public final class StringCompanion {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Attribute(() -> new dev.yog.script.Intrinsic()).Attribute(() -> new dev.yog.script.Host());
         d.Field("Empty", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> dev.yog.script.host.String.Empty, null);
         d.Property("Length", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> dev.yog.script.host.String.Length(((String) o)), null);
         d.Method("Substring", 0, new String[] {  }, (o, a) -> dev.yog.script.host.String.Substring((String) o, (Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("startIndex", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);

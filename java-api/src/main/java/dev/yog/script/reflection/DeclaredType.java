@@ -91,6 +91,11 @@ public final class DeclaredType extends Type {
     }
 
     @Override
+    protected List<java.util.function.Supplier<Object>> attributeMakers() {
+        return description().attributes();
+    }
+
+    @Override
     public List<MemberInfo> members() {
         return List.copyOf(description().members());
     }

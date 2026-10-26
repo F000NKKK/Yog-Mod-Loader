@@ -10,6 +10,7 @@ public final class IListCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Method("IndexOf", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IList) o).IndexOf(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("item", d.Parameter(0), false);
         d.Method("Insert", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.IList) o).Insert((Integer) a[0], a[1]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("index", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false).Takes("item", d.Parameter(0), false);
         d.Method("RemoveAt", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.IList) o).RemoveAt((Integer) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("index", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);

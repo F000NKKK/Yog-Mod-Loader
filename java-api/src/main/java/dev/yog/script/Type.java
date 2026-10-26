@@ -97,6 +97,17 @@ public abstract class Type extends MemberInfo {
         return null;
     }
 
+    @Override
+    protected List<java.util.function.Supplier<java.lang.Object>> attributeMakers() {
+        return List.of();
+    }
+
+    /** A type's attributes are inherited from its base's, as .NET's are by default. */
+    @Override
+    protected MemberInfo inheritedFrom() {
+        return BaseType();
+    }
+
     public abstract String Namespace();
 
     public abstract String FullName();

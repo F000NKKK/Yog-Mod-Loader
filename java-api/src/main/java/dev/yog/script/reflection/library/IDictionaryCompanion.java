@@ -10,6 +10,7 @@ public final class IDictionaryCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.KeyValuePair.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }) }));
+        d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Keys", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.IDictionary) o).Keys(), null);
         d.Property("Values", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }), o -> ((dev.yog.script.collections.generic.IDictionary) o).Values(), null);
         d.Method("Add", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.IDictionary) o).Add(a[0], a[1]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("key", d.Parameter(0), false).Takes("value", d.Parameter(1), false);
