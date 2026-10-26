@@ -12,6 +12,8 @@ import java.time.temporal.ChronoUnit;
 public final class DateTime implements IEquatable<DateTime>, IComparable<DateTime> {
     private static final LocalDateTime EPOCH = LocalDateTime.of(1, 1, 1, 0, 0);
     private static final long NANOS_PER_TICK = TimeSpan.NanosecondsPerTick;
+    /** Java's days are 1 (Monday) to 7 (Sunday), .NET's 0 (Sunday) to 6: Sunday wraps to 0. */
+    private static final int DAYS_IN_WEEK = 7;
     private static final DateTimeFormatter INVARIANT = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
     private static final DateTimeFormatter[] READ = {
         DateTimeFormatter.ISO_LOCAL_DATE_TIME, INVARIANT, DateTimeFormatter.ofPattern("MM/dd/yyyy"),
@@ -80,7 +82,7 @@ public final class DateTime implements IEquatable<DateTime>, IComparable<DateTim
 
     /** Sunday first, as .NET's (Java's week starts on Monday). */
     public DayOfWeek DayOfWeek() {
-        return dev.yog.script.DayOfWeek.values()[local().getDayOfWeek().getValue() % 7];
+        return dev.yog.script.DayOfWeek.of(local().getDayOfWeek().getValue() % DAYS_IN_WEEK);
     }
 
     public int DayOfYear() {

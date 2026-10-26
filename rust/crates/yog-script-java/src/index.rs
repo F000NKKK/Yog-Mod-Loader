@@ -21,10 +21,9 @@ pub(crate) enum Kind {
     /// A Java record: its fields read by accessors (`p.X()`).
     Record,
     Interface,
-    /// A Java enum: its cases are constants.
+    /// An enum (`System.Enum`'s): its cases without data its constants,
+    /// those with data its subclasses.
     Enum,
-    /// A sealed interface, a record per case.
-    DataEnum,
     /// A functional interface: its one method `Invoke`.
     Delegate,
 }
@@ -188,13 +187,8 @@ impl Index {
             self.cases
                 .insert((name.text.clone(), v.name.text.clone()), fields);
         }
-        let kind = if variants.iter().any(|v| !v.fields.is_empty()) {
-            Kind::DataEnum
-        } else {
-            Kind::Enum
-        };
         let info = Info {
-            kind,
+            kind: Kind::Enum,
             computed: computed(body),
             bases: Vec::new(),
             takes_args: false,

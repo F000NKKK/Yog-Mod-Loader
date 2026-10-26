@@ -132,8 +132,19 @@ impl Checker<'_, '_, '_> {
         if let Some(written) = own.values.get(name).cloned() {
             return self.type_of(&written);
         }
+        // A case is a value of its enum, of the arguments it's reached with
+        // (`Maybe<i32>.Nothing`); those not given are unknown, as Rust infers.
         if own.cases.iter().any(|c| c == name) {
-            return Type::own(key.name.clone());
+            let args = own
+                .generics
+                .clone()
+                .iter()
+                .map(|g| match self.type_param(g) {
+                    Some(Type::Param(_)) | None => Type::Unknown,
+                    Some(t) => t,
+                })
+                .collect();
+            return Type::Own(key.name.clone(), args);
         }
         let components = own.components.clone();
         if components.iter().any(|c| c == name) {

@@ -12,7 +12,12 @@ impl Parser<'_, '_, '_> {
     pub fn file(&mut self) -> File {
         let mut decls = Vec::new();
         while *self.tok() != Tok::Eof {
+            let at = self.pos;
             self.decl_into(&mut decls);
+            // A `}` recovery stops at closes no block out here: past it.
+            if self.pos == at {
+                self.bump();
+            }
         }
         File { decls }
     }

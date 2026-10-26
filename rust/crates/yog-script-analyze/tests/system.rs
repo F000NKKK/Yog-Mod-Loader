@@ -185,6 +185,27 @@ fn lambdas_are_quoted_as_expression_trees() {
 }
 
 #[test]
+fn enums_are_numbers_their_cases_data() {
+    let ok = "[Flags]\nenum Access : u8 { None = 0, Read = 1, Write = 2 }\n\
+              enum Maybe<T> { Nothing, Just(T Value) }\n\
+              Access Rw() => Access.Read | Access.Write;\n\
+              bool Has(Access a) => a.HasFlag(Access.Read) && (a & Access.Write) != Access.None && ~a != a;\n\
+              i32 Num(Access a) => (i32)a;\n\
+              Access[] All() => Enum.GetValues<Access>();\n\
+              Maybe<i32> None() => Maybe<i32>.Nothing;\n\
+              i32 Or(Maybe<i32> m) => m switch {\n    Maybe.Just(let v) => v + 1,\n    Maybe<i32>.Nothing => 0,\n};\n";
+    let problems = check("a.ys", ok).problems;
+    assert!(problems.is_empty(), "{problems:#?}");
+}
+
+#[test]
+fn a_stray_brace_ends_its_declaration() {
+    // Recovery stopping at a `}` no block opened goes past it, not round.
+    let problems = check("a.ys", "i32 F() => 1;\n}\ni32 G() => 2;\n").problems;
+    assert!(!problems.is_empty());
+}
+
+#[test]
 fn collections_are_the_librarys_own() {
     let ok = "i32 Sum(List<i32> xs) {\n    let mut total = 0;\n    foreach (let x in xs) {\n        total += x;\n    }\n    return total + xs.Count + xs[0];\n}\n\
               bool Has(Dictionary<string, i32> ages, string name) => ages.ContainsKey(name) && ages[name] > 3;\n\

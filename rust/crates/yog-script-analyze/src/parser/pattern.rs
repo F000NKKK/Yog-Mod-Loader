@@ -67,7 +67,8 @@ impl Parser<'_, '_, '_> {
     /// to a value, a case or a type (`Mode.Idle`, `Monster`).
     fn path_pattern(&mut self) -> PResult<Pattern> {
         let start = self.span();
-        let ty = self.ty()?;
+        let written = self.ty()?;
+        let ty = self.generic_case(written)?;
         if self.at(Punct::LParen) {
             let path = self.type_path(&ty, start)?;
             self.bump();
@@ -82,6 +83,28 @@ impl Parser<'_, '_, '_> {
             return Ok(Pattern::Type { ty, bind });
         }
         Ok(Pattern::Type { ty, bind: None })
+    }
+
+    /// `Maybe<i32>.Just`: a generic enum's case, its arguments dropped —
+    /// what's matched gives them.
+    fn generic_case(&mut self, ty: crate::ast::Type) -> PResult<crate::ast::Type> {
+        let crate::ast::TypeKind::Path { path, args } = &ty.kind else {
+            return Ok(ty);
+        };
+        if args.is_empty() || !self.at(Punct::Dot) {
+            return Ok(ty);
+        }
+        let mut path = path.clone();
+        while self.eat(Punct::Dot) {
+            path.push(self.name("a case")?);
+        }
+        Ok(crate::ast::Type {
+            kind: crate::ast::TypeKind::Path {
+                path,
+                args: Vec::new(),
+            },
+            span: ty.span.to(self.prev()),
+        })
     }
 
     /// `{ Name: pattern, … }`, after its type if any.

@@ -29,6 +29,27 @@ static BUILTINS: &[(&Word, Type, &str)] = &[
     (&words::void::WORD, Type::Void, clr::VOID),
 ];
 
+/// Each whole number's width in bits and whether it's signed: Rust's of
+/// its name, the same widths (`i8` is `sbyte`, `u64` `ulong`).
+static INTEGERS: &[(Type, u32, bool)] = &[
+    (Type::I8, i8::BITS, true),
+    (Type::I16, i16::BITS, true),
+    (Type::I32, i32::BITS, true),
+    (Type::I64, i64::BITS, true),
+    (Type::U8, u8::BITS, false),
+    (Type::U16, u16::BITS, false),
+    (Type::U32, u32::BITS, false),
+    (Type::U64, u64::BITS, false),
+];
+
+/// Whole number `t`'s width in bits and whether it's signed.
+pub(super) fn integer_width(t: &Type) -> Option<(u32, bool)> {
+    INTEGERS
+        .iter()
+        .find(|(i, ..)| i == t)
+        .map(|&(_, bits, signed)| (bits, signed))
+}
+
 /// The built-in type its keyword names.
 pub(super) fn by_word(name: &str) -> Option<Type> {
     BUILTINS

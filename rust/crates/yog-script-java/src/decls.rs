@@ -81,10 +81,10 @@ impl Gen<'_> {
             DeclKind::Enum {
                 name,
                 generics,
+                base,
                 variants,
                 body,
-                ..
-            } => self.enum_decl(d, (&name.text, generics), variants, body),
+            } => self.enum_decl(d, (&name.text, generics, base.as_ref()), variants, body),
             DeclKind::Mod { name, body } => self.mod_class(d, &name.text, body),
             DeclKind::Namespace {
                 body: Some(body), ..

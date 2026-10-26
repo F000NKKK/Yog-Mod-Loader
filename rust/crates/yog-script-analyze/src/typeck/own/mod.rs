@@ -77,6 +77,11 @@ pub(crate) struct OwnType {
     pub generics: Vec<String>,
     /// How each may vary (`out T` of `IEnumerable<out T>`), in order.
     pub variance: Vec<Option<ast::Variance>>,
+    /// An enum: an `Enum`, each case of its number (`Wood = 1`), a case's
+    /// data its own (`Charging(i32 Rate)`); its values' numbers combined
+    /// (`A | B`) and cast (`(i32)a`, `(Tier)5`) — a value made of a number
+    /// carries no data.
+    pub is_enum: bool,
     /// An enum's cases that carry data, their fields by case.
     pub variants: HashMap<String, Vec<ast::Param>>,
     /// Its indexers (`this[i32 i]`), still as written.
@@ -168,12 +173,25 @@ impl OwnTypes {
             }
             i += 1;
         }
-        // `object` last: every type's base, as C#'s.
-        let object = TypeKey::new(yog_script_ids::clr::OBJECT, 0);
-        if !out.contains(&object) && self.types.contains_key(&object) {
-            out.push(object);
+        for base in self.implicit_bases(key) {
+            if !out.contains(&base) {
+                out.push(base);
+            }
         }
         out
+    }
+
+    /// What type `key` inherits unwritten, as C#'s: an enum's `Enum`, then
+    /// `object`, every type's base — those the library declares.
+    pub fn implicit_bases(&self, key: &TypeKey) -> Vec<TypeKey> {
+        let is_enum = self.types.get(key).is_some_and(|t| t.is_enum);
+        let enum_base = is_enum.then(|| TypeKey::new(yog_script_ids::system::ENUM, 0));
+        let object = TypeKey::new(yog_script_ids::clr::OBJECT, 0);
+        enum_base
+            .into_iter()
+            .chain([object])
+            .filter(|k| k != key && self.types.contains_key(k))
+            .collect()
     }
 
     /// The lineage of the type named `name` (written without arguments).

@@ -315,5 +315,7 @@ an interpreter of the nodes.
    parameters, members, calls by the method chosen, operators, `?:`,
    casts, an array's item — and as itself, which `Compile()` gives; a
    hand-made tree's `Compile()` runs its nodes; not yet in a tree: `new`,
-   interpolation, nested lambdas, a type's own operators); `BindingFlags`
-   (needs enums' `|`).
+   interpolation, nested lambdas, a type's own operators); `System.Enum`
+   (done: one model for every enum — `ys.md` §3 — its runtime class of
+   numbers and data, `GetValues`, `GetNames`, `Parse`, `TryParse`,
+   `IsDefined`, `[Flags]`); `BindingFlags` next.

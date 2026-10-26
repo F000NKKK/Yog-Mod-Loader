@@ -1,10 +1,48 @@
 package dev.yog.script.linq.expressions;
 
 import dev.yog.script.Type;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 
 /** Two operands and their operator: Yog Script's {@code BinaryExpression}. */
 public class BinaryExpression extends Expression {
+    /** What gives a {@code bool}, whatever it compares. */
+    private static final Set<ExpressionType> TESTS = Set.of(
+            ExpressionType.Equal, ExpressionType.NotEqual,
+            ExpressionType.LessThan, ExpressionType.LessThanOrEqual,
+            ExpressionType.GreaterThan, ExpressionType.GreaterThanOrEqual,
+            ExpressionType.AndAlso, ExpressionType.OrElse);
+
+    /** Comparisons, by what they ask of their operands. */
+    private static final Map<ExpressionType, BiFunction<Object, Object, Object>> COMPARED = Map.of(
+            ExpressionType.Equal, Numbers::equal,
+            ExpressionType.NotEqual, (l, r) -> !Numbers.equal(l, r),
+            ExpressionType.LessThan, (l, r) -> Numbers.compare(l, r) < 0,
+            ExpressionType.LessThanOrEqual, (l, r) -> Numbers.compare(l, r) <= 0,
+            ExpressionType.GreaterThan, (l, r) -> Numbers.compare(l, r) > 0,
+            ExpressionType.GreaterThanOrEqual, (l, r) -> Numbers.compare(l, r) >= 0);
+
+    /** Each operator as .NET writes it in a tree's text; `And`, `Or` of `bool`s by their names. */
+    private static final Map<ExpressionType, String> SYMBOLS = Map.ofEntries(
+            Map.entry(ExpressionType.Add, "+"),
+            Map.entry(ExpressionType.Subtract, "-"),
+            Map.entry(ExpressionType.Multiply, "*"),
+            Map.entry(ExpressionType.Divide, "/"),
+            Map.entry(ExpressionType.Modulo, "%"),
+            Map.entry(ExpressionType.And, "&"),
+            Map.entry(ExpressionType.Or, "|"),
+            Map.entry(ExpressionType.ExclusiveOr, "^"),
+            Map.entry(ExpressionType.LeftShift, "<<"),
+            Map.entry(ExpressionType.RightShift, ">>"),
+            Map.entry(ExpressionType.Equal, "=="),
+            Map.entry(ExpressionType.NotEqual, "!="),
+            Map.entry(ExpressionType.LessThan, "<"),
+            Map.entry(ExpressionType.LessThanOrEqual, "<="),
+            Map.entry(ExpressionType.GreaterThan, ">"),
+            Map.entry(ExpressionType.GreaterThanOrEqual, ">="),
+            Map.entry(ExpressionType.Coalesce, "??"));
+
     private final Expression left;
     private final Expression right;
 
@@ -14,14 +52,18 @@ public class BinaryExpression extends Expression {
         this.right = right;
     }
 
-    /** {@code left op right}: a comparison gives a {@code bool}, {@code ??} the right's type, an array's item its item's, the rest the left's. */
+    /** {@code left op right}: a test gives a {@code bool}, {@code ??} the right's type, an array's item its item's, the rest the left's. */
     static BinaryExpression of(ExpressionType op, Expression left, Expression right) {
-        Type type = switch (op) {
-            case Equal, NotEqual, LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, AndAlso, OrElse -> Type.Of(boolean.class);
-            case Coalesce -> right.Type();
-            case ArrayIndex -> left.Type().GetElementType();
-            default -> left.Type();
-        };
+        Type type;
+        if (TESTS.contains(op)) {
+            type = Type.Of(boolean.class);
+        } else if (op == ExpressionType.Coalesce) {
+            type = right.Type();
+        } else if (op == ExpressionType.ArrayIndex) {
+            type = left.Type().GetElementType();
+        } else {
+            type = left.Type();
+        }
         return new BinaryExpression(op, left, right, type);
     }
 
@@ -36,37 +78,42 @@ public class BinaryExpression extends Expression {
     @Override
     Object evaluate(Scope scope) {
         Object l = left.evaluate(scope);
-        return switch (NodeType()) {
-            case AndAlso -> (Boolean) l && (Boolean) right.evaluate(scope);
-            case OrElse -> (Boolean) l || (Boolean) right.evaluate(scope);
-            case Coalesce -> l != null ? l : right.evaluate(scope);
-            default -> applied(l, right.evaluate(scope));
-        };
+        ExpressionType op = NodeType();
+        if (op == ExpressionType.AndAlso) {
+            return (Boolean) l && (Boolean) right.evaluate(scope);
+        }
+        if (op == ExpressionType.OrElse) {
+            return (Boolean) l || (Boolean) right.evaluate(scope);
+        }
+        if (op == ExpressionType.Coalesce) {
+            return l != null ? l : right.evaluate(scope);
+        }
+        return applied(op, l, right.evaluate(scope));
     }
 
-    private Object applied(Object l, Object r) {
-        return switch (NodeType()) {
-            case Equal -> Numbers.equal(l, r);
-            case NotEqual -> !Numbers.equal(l, r);
-            case LessThan -> Numbers.compare(l, r) < 0;
-            case LessThanOrEqual -> Numbers.compare(l, r) <= 0;
-            case GreaterThan -> Numbers.compare(l, r) > 0;
-            case GreaterThanOrEqual -> Numbers.compare(l, r) >= 0;
-            case ArrayIndex -> java.lang.reflect.Array.get(l, ((Number) r).intValue());
-            case Add -> l instanceof String || r instanceof String
-                    ? dev.yog.script.host.Object.ToString(l) + dev.yog.script.host.Object.ToString(r)
-                    : Numbers.arithmetic(NodeType(), l, r);
-            case And, Or, ExclusiveOr -> l instanceof Boolean a ? logical(a, (Boolean) r) : Numbers.arithmetic(NodeType(), l, r);
-            default -> Numbers.arithmetic(NodeType(), l, r);
-        };
+    private static Object applied(ExpressionType op, Object l, Object r) {
+        BiFunction<Object, Object, Object> compared = COMPARED.get(op);
+        if (compared != null) {
+            return compared.apply(l, r);
+        }
+        if (op == ExpressionType.ArrayIndex) {
+            return java.lang.reflect.Array.get(l, ((Number) r).intValue());
+        }
+        if (op == ExpressionType.Add && (l instanceof String || r instanceof String)) {
+            return dev.yog.script.host.Object.ToString(l) + dev.yog.script.host.Object.ToString(r);
+        }
+        if (l instanceof Boolean a) {
+            return logical(op, a, (Boolean) r);
+        }
+        return Numbers.arithmetic(op, l, r);
     }
 
-    private Object logical(boolean a, boolean b) {
-        return switch (NodeType()) {
-            case And -> a & b;
-            case Or -> a | b;
-            default -> a ^ b;
-        };
+    /** {@code &}, {@code |}, {@code ^} of two {@code bool}s: both evaluated. */
+    private static boolean logical(ExpressionType op, boolean a, boolean b) {
+        if (op == ExpressionType.And) {
+            return a & b;
+        }
+        return op == ExpressionType.Or ? a | b : a ^ b;
     }
 
     /** {@code (x > 10)}, {@code (a AndAlso b)}, {@code xs[i]}, as .NET writes them. */
@@ -79,26 +126,8 @@ public class BinaryExpression extends Expression {
     }
 
     private String symbol() {
-        boolean logical = Objects.equals(left.Type(), Type.Of(boolean.class));
-        return switch (NodeType()) {
-            case Add -> "+";
-            case Subtract -> "-";
-            case Multiply -> "*";
-            case Divide -> "/";
-            case Modulo -> "%";
-            case And -> logical ? "And" : "&";
-            case Or -> logical ? "Or" : "|";
-            case ExclusiveOr -> "^";
-            case LeftShift -> "<<";
-            case RightShift -> ">>";
-            case Equal -> "==";
-            case NotEqual -> "!=";
-            case LessThan -> "<";
-            case LessThanOrEqual -> "<=";
-            case GreaterThan -> ">";
-            case GreaterThanOrEqual -> ">=";
-            case Coalesce -> "??";
-            default -> NodeType().name();
-        };
+        boolean logical = left.Type() == Type.Of(boolean.class);
+        boolean named = logical && (NodeType() == ExpressionType.And || NodeType() == ExpressionType.Or);
+        return named ? NodeType().toString() : SYMBOLS.getOrDefault(NodeType(), NodeType().toString());
     }
 }

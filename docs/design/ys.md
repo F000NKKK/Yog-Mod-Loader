@@ -155,9 +155,17 @@ C#'s type system, with Rust's enums:
   its fields set only where it's made) is shared the same way, and what
   inherits it is `readonly` too: `System.Type`, Reflection's members,
   expression trees.
-- **Enums** are C#'s, values included (`enum Tier { Wood = 1, Stone, Iron }`),
-  and Rust's: a variant may carry data (`enum Mode { Idle, Charging(int
-  Rate), Full }`, `Mode.Charging(4)`).
+- **Enums** are one model, C#'s and Rust's at once: every case has its
+  number (`enum Tier : u8 { Wood = 1, Stone, Iron }`, else one more than
+  the last, from 0) and may carry data (`enum Mode { Idle, Charging(i32
+  Rate), Full }`, `Mode.Charging(4)`). Every enum is a `System.Enum`: its
+  values' numbers are cast (`(i32)t`, `(Tier)5`), combined (`A | B`, `&`,
+  `^`, `~`, `HasFlag`, `[Flags]` naming the bits in its text) and ordered
+  (`<`). A value made of a number carries no data — a number naming a case
+  that does is a panic. A `switch` covers every named case (a value of a
+  number no case names, met by none, panics); a case without data is
+  matched as a value, one with by its pattern (`Mode.Charging(let r)`,
+  `Maybe<i32>.Just(let v)`, its fields typed by what's matched).
 - **Generics**: types and methods (`class Box<T>`, `T Max<T>(T a, T b)`),
   constraints (`where T : class, struct, new(), IComparable<T>, Base`),
   type arguments inferred from a call's arguments; variance on interfaces

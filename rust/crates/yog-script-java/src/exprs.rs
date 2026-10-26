@@ -78,9 +78,10 @@ impl Gen<'_> {
 
     fn compound(&mut self, e: &Expr) -> String {
         match &e.kind {
-            ExprKind::Cast { ty, expr } => {
-                format!("(({}) {})", self.written(ty, false), self.expr(expr))
-            }
+            ExprKind::Cast { ty, expr } => match self.enum_cast(e, expr) {
+                Some(v) => v,
+                None => format!("(({}) {})", self.written(ty, false), self.expr(expr)),
+            },
             ExprKind::NotNull(inner)
             | ExprKind::Move(inner)
             | ExprKind::TypeArgs { expr: inner, .. } => self.expr(inner),
@@ -183,6 +184,9 @@ impl Gen<'_> {
     }
 
     fn unary(&mut self, op: UnOp, expr: &Expr) -> String {
+        if let Some(v) = self.enum_unary(op, expr) {
+            return v;
+        }
         match op {
             UnOp::Neg if self.types.of(expr).map(Type::non_null) == Some(&Type::Decimal) => {
                 Self::decimal_negated(&self.expr(expr))
@@ -213,6 +217,9 @@ impl Gen<'_> {
     }
 
     fn binary(&mut self, e: &Expr, op: BinOp, left: &Expr, right: &Expr) -> String {
+        if let Some(v) = self.enum_binary(op, left, right) {
+            return v;
+        }
         let (l, r) = (self.expr(left), self.expr(right));
         if self.is_decimal(e, left, right)
             && let Some(v) = self.decimal_binary(op, (left, l.clone()), (right, r.clone()))

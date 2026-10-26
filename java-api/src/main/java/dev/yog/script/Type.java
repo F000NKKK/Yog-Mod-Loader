@@ -68,8 +68,8 @@ public abstract class Type extends MemberInfo {
 
     /**
      * Class {@code c}'s type: its own description; the library's companion
-     * of it; for a lambda (a delegate's) or an enum's case (a record of its
-     * sealed interface), what it's of; else Java's class as it is.
+     * of it; for an enum's case carrying data (its sealed enum's subclass)
+     * or a lambda (a delegate's), what it's of; else Java's class as it is.
      */
     private static Type find(Class<?> c) {
         if (c.isArray()) {
@@ -83,8 +83,14 @@ public abstract class Type extends MemberInfo {
         if (known != null) {
             return known;
         }
+        // An enum's case carrying data: its enum's (a sealed class's subclass).
+        Class<?> base = c.getSuperclass();
+        if (base != null && base.isSealed()) {
+            return Of(base);
+        }
+        // A lambda: the delegate it is.
         for (Class<?> of : c.getInterfaces()) {
-            Type made = c.isHidden() || of.isSealed() ? declared(of) : null;
+            Type made = c.isHidden() ? declared(of) : null;
             if (made != null) {
                 return made;
             }

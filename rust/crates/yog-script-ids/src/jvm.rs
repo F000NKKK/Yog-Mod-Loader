@@ -152,3 +152,19 @@ pub mod trees {
     /// The tree's lambda's parameter: the quoted lambda's parameters' nodes.
     pub const PARAMETERS: &str = "$ps";
 }
+
+/// Enums as compiled code has them (`System.Enum`'s runtime class): each a
+/// class of its numbers' `TABLE`, a value made of a number by `of`, read
+/// back by `value()`, two compared by `Enum.compare`.
+pub mod enums {
+    pub const TABLE_CLASS: &str = "Table";
+    pub const TABLE: &str = "TABLE";
+    pub const TABLE_OF: &str = "table";
+    pub const OF: &str = "of";
+    pub const VALUE: &str = "value";
+    pub const COMPARE: &str = "compare";
+    /// The table's: its base type's width, its cases carrying data, `[Flags]`.
+    pub const WIDTH: &str = "Width";
+    pub const CARRYING: &str = "Carrying";
+    pub const FLAGS: &str = "Flags";
+}

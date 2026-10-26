@@ -1,0 +1,27 @@
+namespace System;
+
+/// Every enum's base, as .NET's: a value of its underlying integer, named
+/// or not (`(Mode)5`, `A | B` — `|`, `&`, `^`, `~` are an enum's own).
+[Intrinsic]
+public abstract class Enum : IComparable<Enum> {
+    /// Whether every bit of `flag` is set in it.
+    public readonly bool HasFlag(Enum flag);
+    public readonly i32 CompareTo(Enum? other);
+    /// Its name; a `[Flags]` enum's names of its bits (`"A, B"`); else its number.
+    public override string ToString();
+
+    /// `TEnum`'s named values, in order.
+    [Reified]
+    public static TEnum[] GetValues<TEnum>() where TEnum : Enum;
+    [Reified]
+    public static string[] GetNames<TEnum>() where TEnum : Enum;
+    /// `value` by its name (a `[Flags]` enum's names joined by commas) or
+    /// its number; a panic for neither.
+    [Reified]
+    public static TEnum Parse<TEnum>(string value) where TEnum : Enum;
+    /// …or `null` for neither.
+    [Reified]
+    public static TEnum? TryParse<TEnum>(string value) where TEnum : Enum;
+    [Reified]
+    public static bool IsDefined<TEnum>(TEnum value) where TEnum : Enum;
+}

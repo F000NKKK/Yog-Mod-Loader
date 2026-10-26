@@ -45,6 +45,7 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.host.Double.class, () -> DoubleCompanion.TYPE),
             java.util.Map.entry(double.class, () -> DoubleCompanion.TYPE),
             java.util.Map.entry(Double.class, () -> DoubleCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.Enum.class, () -> EnumCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.Error.class, () -> ErrorCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.host.Int16.class, () -> Int16Companion.TYPE),
             java.util.Map.entry(short.class, () -> Int16Companion.TYPE),

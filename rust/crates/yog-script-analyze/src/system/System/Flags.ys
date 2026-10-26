@@ -1,0 +1,6 @@
+namespace System;
+
+/// An enum whose values are bits, combined (`Read | Write`): its text
+/// names each bit set (`"Read, Write"`), as .NET's `FlagsAttribute`.
+[AttributeUsage(AttributeTargets.Enum)]
+public sealed class Flags : Attribute {}

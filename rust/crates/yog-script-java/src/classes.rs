@@ -3,7 +3,7 @@
 //! body, and an `extern` method's call on the bus.
 
 use yog_script_analyze::ast::{
-    Chain, Ctor, Decl, DeclKind, Generic, Method, MethodBody, Modifier, Param, TypeHeader, Variant,
+    Chain, Ctor, Decl, DeclKind, Method, MethodBody, Modifier, Param, TypeHeader,
 };
 
 use super::Gen;
@@ -226,44 +226,6 @@ impl Gen<'_> {
                 self.code.close("");
             }
         }
-    }
-
-    pub(crate) fn enum_decl(
-        &mut self,
-        d: &Decl,
-        (name, generics): (&str, &[Generic]),
-        variants: &[Variant],
-        body: &[Decl],
-    ) {
-        let arity = generics.iter().filter(|g| !g.lifetime).count();
-        if self.index.kind(&(name.to_string(), arity)) == Some(Kind::Enum) {
-            let cases: Vec<String> = variants.iter().map(|v| Self::ident(&v.name.text)).collect();
-            self.code.open(format!("public enum {name}"));
-            self.code.line(format!("{};", cases.join(", ")));
-            self.describe(d);
-            self.members(body, Place::Fixed);
-            self.code.close("");
-            return;
-        }
-        let g = generic_list(generics);
-        let cases: Vec<String> = variants
-            .iter()
-            .map(|v| format!("{name}.{}", Self::ident(&v.name.text)))
-            .collect();
-        self.code.open(format!(
-            "public sealed interface {name}{g} permits {}",
-            cases.join(", ")
-        ));
-        self.describe(d);
-        for v in variants {
-            let fields = self.params(&v.fields);
-            self.code.line(format!(
-                "record {}{g}({fields}) implements {name}{g} {{}}",
-                Self::ident(&v.name.text)
-            ));
-        }
-        self.members(body, Place::Interface);
-        self.code.close("");
     }
 
     /// A method's body after `head`: a block, or an expression returned.

@@ -156,6 +156,7 @@ impl OwnTypes {
             } => {
                 let t = self.declared(&name.text, generics);
                 t.cases = variants.iter().map(|v| v.name.text.clone()).collect();
+                t.is_enum = true;
                 t.variants = variants
                     .iter()
                     .filter(|v| !v.fields.is_empty())

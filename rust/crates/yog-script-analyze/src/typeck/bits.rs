@@ -18,6 +18,10 @@ impl Checker<'_, '_, '_> {
             return Type::Unknown;
         }
         let fits = match op {
+            // An enum's own: its values' bits, an enum of its type (C#'s).
+            BinOp::BitAnd | BinOp::BitOr | BinOp::BitXor if a == b && self.is_enum(a) => {
+                Some(a.clone())
+            }
             BinOp::Shl | BinOp::Shr => {
                 (a.is_integer() && b.is_integer() && b.converts_to(&Type::I32)).then(|| promoted(a))
             }
@@ -32,10 +36,21 @@ impl Checker<'_, '_, '_> {
         })
     }
 
+    /// Whether `t` is an enum: its values' numbers are bits too.
+    pub(super) fn is_enum(&self, t: &Type) -> bool {
+        match t.non_null() {
+            Type::Own(name, args) => self.own.get(name, args.len()).is_some_and(|o| o.is_enum),
+            _ => false,
+        }
+    }
+
     /// `~x`: its type, or a report.
     pub(super) fn flipped(&mut self, t: &Type, at: Span) -> Type {
         if !t.known() || t.is_integer() {
             return promoted(t);
+        }
+        if self.is_enum(t) {
+            return t.clone();
         }
         self.mismatch(
             at,

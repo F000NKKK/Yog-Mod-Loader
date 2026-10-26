@@ -26,7 +26,7 @@ impl Gen<'_> {
         let target = self.expr(on);
         let host = on_type.as_ref().and_then(|t| self.index.host(t));
         let member = match on_type.as_ref().map(Type::non_null) {
-            Some(Type::Static(of, _)) => return self.static_member(e, of, name),
+            Some(Type::Static(of, _)) => return self.static_member(of, name),
             // A built-in type's property: its companion's static, the value first.
             Some(t) if let Some(host) = host => {
                 let n = Self::ident(name);
@@ -59,17 +59,13 @@ impl Gen<'_> {
     }
 
     /// `Type.Name`: an enum's case, a static field.
-    fn static_member(&mut self, e: &Expr, of: &str, name: &str) -> String {
+    fn static_member(&self, of: &str, name: &str) -> String {
         let n = Self::ident(name);
-        let named = self.index.named(of);
-        match self.index.kind(&named) {
-            Some(Kind::DataEnum) => {
-                let _ = e;
-                format!("new {of}.{n}<>()")
-            }
-            // A property the runtime computes: its getter.
-            _ if self.index.called(&named, name) => format!("{}.{n}()", self.own(of)),
-            _ => format!("{}.{n}", self.own(of)),
+        // A property the runtime computes: its getter.
+        if self.index.called(&self.index.named(of), name) {
+            format!("{}.{n}()", self.own(of))
+        } else {
+            format!("{}.{n}", self.own(of))
         }
     }
 
@@ -257,7 +253,12 @@ impl Gen<'_> {
         let a = &self.with_classes(e, Vec::new(), a.to_string());
         match on_type.as_ref().map(Type::non_null) {
             Some(Type::Static(of, _)) => match self.index.kind(&self.index.named(of)) {
-                Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),
+                // A case carrying data, made of it (`Mode.Charging(4)`).
+                Some(Kind::Enum) if !self.index.case_fields(Some(of), name).is_empty() => {
+                    // A generic enum's case: its arguments inferred (`<>`).
+                    let diamond = if self.index.named(of).1 > 0 { "<>" } else { "" };
+                    format!("new {}.{n}{diamond}({a})", self.own(of))
+                }
                 _ => format!("{}.{n}({a})", self.own(of)),
             },
             // A method of a `[Host]` type (`string`'s, `object`'s): its

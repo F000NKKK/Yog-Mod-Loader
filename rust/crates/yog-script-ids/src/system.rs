@@ -31,6 +31,11 @@ pub const TYPE: &str = "Type";
 /// a lambda given where one is wanted is quoted.
 pub const EXPRESSION: &str = "Expression";
 
+/// Every enum of values' base (`System.Enum`), and the attribute making
+/// one's values bits (`[Flags]`).
+pub const ENUM: &str = "Enum";
+pub const FLAGS: &str = "Flags";
+
 /// The base of every attribute class.
 pub const ATTRIBUTE: &str = "Attribute";
 

@@ -122,7 +122,12 @@ impl Gen<'_> {
             DeclKind::Enum { variants, .. }
                 if self.index.kind(&(what.name.to_string(), owner.arity)) == Some(Kind::Enum) =>
             {
-                let cases: Vec<String> = variants.iter().map(|v| v.name.text.clone()).collect();
+                // Its cases without data: its constant fields, as .NET's.
+                let cases: Vec<String> = variants
+                    .iter()
+                    .filter(|v| v.fields.is_empty())
+                    .map(|v| v.name.text.clone())
+                    .collect();
                 out.extend(self.cases_described(&owner, &cases));
             }
             DeclKind::Mod { body, .. } => out.extend(self.members_described(&owner, body, false)),

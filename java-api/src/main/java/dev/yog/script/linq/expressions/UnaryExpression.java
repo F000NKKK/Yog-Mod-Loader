@@ -18,20 +18,18 @@ public class UnaryExpression extends Expression {
     @Override
     Object evaluate(Scope scope) {
         Object v = operand.evaluate(scope);
-        return switch (NodeType()) {
-            case Not -> v instanceof Boolean b ? !b : Numbers.complement(v);
-            case Negate -> Numbers.negate(v);
-            default -> Numbers.convert(v, Type());
-        };
+        if (NodeType() == ExpressionType.Not) {
+            return v instanceof Boolean b ? !b : Numbers.complement(v);
+        }
+        return NodeType() == ExpressionType.Negate ? Numbers.negate(v) : Numbers.convert(v, Type());
     }
 
     /** {@code Not(x)}, {@code -x}, {@code Convert(x, Int32)}, as .NET writes them. */
     @Override
     public String toString() {
-        return switch (NodeType()) {
-            case Not -> "Not(" + operand + ")";
-            case Negate -> "-" + operand;
-            default -> "Convert(" + operand + ", " + Type().Name() + ")";
-        };
+        if (NodeType() == ExpressionType.Not) {
+            return "Not(" + operand + ")";
+        }
+        return NodeType() == ExpressionType.Negate ? "-" + operand : "Convert(" + operand + ", " + Type().Name() + ")";
     }
 }

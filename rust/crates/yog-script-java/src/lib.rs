@@ -13,6 +13,7 @@ mod collections;
 mod decimals;
 mod decls;
 mod delegates;
+mod enums;
 mod exprs;
 mod identity;
 mod index;

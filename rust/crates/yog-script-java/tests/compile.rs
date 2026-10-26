@@ -21,9 +21,14 @@ fn a_program_compiles() {
     for want in [
         "package yogscript.test;",
         "public final class SampleScript {",
-        "public sealed interface Mode permits Mode.Idle, Mode.Charging, Mode.Full {",
-        "record Charging(int Rate) implements Mode {}",
-        "public enum Tier {",
+        // One model of enum: a class of numbers, a case's data its subclass's.
+        "public static sealed class Mode extends dev.yog.script.Enum permits Mode.Charging {",
+        "public static final Mode Idle = TABLE.of(0L);",
+        "public static final Mode Full = TABLE.of(2L);",
+        "public static final class Charging extends Mode {",
+        "super(1L);",
+        "public int Rate() { return Rate; }",
+        "public static final class Tier extends dev.yog.script.Enum {",
         "public static abstract class Machine {",
         "public static class Battery extends Machine {",
         "public record Pos(int X, int Y) {",
@@ -306,6 +311,34 @@ fn a_quoted_lambda_is_its_tree_and_its_code() {
     ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
+}
+
+#[test]
+fn enums_are_numbers_their_cases_data() {
+    let src = "[Flags]\nenum Access : u8 { None = 0, Read = 1, Write = 2, Both = Read | Write }\n\
+               enum Maybe<T> { Nothing, Just(T Value) }\n\
+               Access Rw() => Access.Read | Access.Write;\n\
+               i32 Num(Access a) => (i32)a;\n\
+               Access Back(i32 n) => (Access)n;\n\
+               bool Less(Access a, Access b) => a < b;\n\
+               Maybe<i32> Three() => Maybe<i32>.Just(3);\n\
+               i32 Or(Maybe<i32> m) => m switch {\n    Maybe<i32>.Just(let v) => v,\n    _ => 0,\n};\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "new long[] { 0L, 1L, 2L, 3L }).Width(8, false).Flags();",
+        "Access.of(Access.Read.value() | Access.Write.value())",
+        "((int) a.value())",
+        "Access.of((long) n)",
+        "(dev.yog.script.Enum.compare(a, b) < 0)",
+        "TABLE = new dev.yog.script.Enum.Table<>(Maybe.class, Maybe::new, new String[] { \"Nothing\", \"Just\" }, new long[] { 0L, 1L }).Width(32, true).Carrying(1);",
+        "new Maybe.Just<>(3)",
+        // A generic case tested with what's matched's arguments: its field typed.
+        "instanceof Maybe.Just<Integer> ",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+    // After `_ =>` nothing is reached: no panic written for no arm.
+    assert!(!out.contains("noArm"), "{out}");
 }
 
 #[test]

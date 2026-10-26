@@ -62,17 +62,23 @@ impl Checker<'_, '_, '_> {
         match p {
             Pattern::Let(n) => self.bind_as(&n.text, on.clone(), true),
             Pattern::Variant { path, args } => {
-                let fields = match (on.non_null(), path.last()) {
-                    (Type::Own(of, args), Some(case)) => self
-                        .own
-                        .get(of, args.len())
-                        .and_then(|t| t.variants.get(&case.text))
-                        .cloned()
-                        .unwrap_or_default(),
-                    _ => Vec::new(),
+                let (fields, context) = match (on.non_null(), path.last()) {
+                    (Type::Own(of, of_args), Some(case)) => (
+                        self.own
+                            .get(of, of_args.len())
+                            .and_then(|t| t.variants.get(&case.text))
+                            .cloned()
+                            .unwrap_or_default(),
+                        // Its fields' types as what's matched gives its parameters.
+                        Some(self.context_of(of, of_args)),
+                    ),
+                    _ => (Vec::new(), None),
                 };
                 for (i, arg) in args.iter().enumerate() {
-                    let ft = fields.get(i).map_or(Type::Unknown, |f| self.type_of(&f.ty));
+                    let ft = match (fields.get(i), &context) {
+                        (Some(f), Some(c)) => self.in_context(c, |c| c.type_of(&f.ty)),
+                        _ => Type::Unknown,
+                    };
                     self.bind_arm(arg, &ft);
                 }
             }

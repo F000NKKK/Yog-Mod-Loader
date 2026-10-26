@@ -19,8 +19,9 @@ impl Gen<'_> {
         self.code.line(format!("{t} {result};"));
         self.code.open(format!("{label}:"));
         self.code.line(format!("var {value} = {v};"));
+        let matched = self.types.of(on).cloned();
         for arm in arms {
-            let depth = self.pattern_open(&arm.pattern, &value);
+            let depth = self.pattern_open(&arm.pattern, (&value, matched.as_ref()));
             if let Some(g) = &arm.guard {
                 let g = self.expr(g);
                 self.code.open(format!("if ({g})"));
@@ -33,6 +34,11 @@ impl Gen<'_> {
             }
             for _ in 0..depth {
                 self.code.close("");
+            }
+            // An arm taking anything (`_ =>`, `let x =>`): nothing after it is reached.
+            if depth == 0 && arm.guard.is_none() {
+                self.code.close("");
+                return result;
             }
         }
         self.code.line(format!(
@@ -68,7 +74,13 @@ impl Gen<'_> {
 
     /// The `if`s that pattern `p` on `v` opens (its names bound inside):
     /// how many to close.
-    fn pattern_open(&mut self, p: &Pattern, v: &str) -> usize {
+    /// `v` (of type `on`, when known: a generic enum's case is tested with
+    /// its arguments, its fields read as theirs).
+    fn pattern_open(
+        &mut self,
+        p: &Pattern,
+        (v, on): (&str, Option<&yog_script_analyze::Type>),
+    ) -> usize {
         match p {
             Pattern::Wild(_) => 0,
             Pattern::Let(n) => {
@@ -88,15 +100,23 @@ impl Gen<'_> {
             Pattern::Variant { path, args } => {
                 let (of, case) = self.case_path(path);
                 let c = self.temp();
+                let given = match on.map(yog_script_analyze::Type::non_null) {
+                    Some(yog_script_analyze::Type::Own(_, of_args)) if !of_args.is_empty() => {
+                        let java: Vec<String> =
+                            of_args.iter().map(|a| self.java(a, true)).collect();
+                        format!("<{}>", java.join(", "))
+                    }
+                    _ => String::new(),
+                };
                 self.code.open(format!(
-                    "if ({v} instanceof {} {c})",
+                    "if ({v} instanceof {}{given} {c})",
                     self.qualified(of.as_deref(), &case)
                 ));
                 let fields = self.index.case_fields(of.as_deref(), &case);
                 let mut depth = 1;
                 for (arg, field) in args.iter().zip(fields) {
                     let inner = format!("{c}.{}()", Self::ident(&field));
-                    depth += self.pattern_open(arg, &inner);
+                    depth += self.pattern_open(arg, (&inner, None));
                 }
                 depth
             }
@@ -134,11 +154,15 @@ impl Gen<'_> {
             .map(|n| n.text.as_str())
             .collect::<Vec<_>>()
             .join(".");
+        let case = path.last().map(|n| n.text.as_str()).unwrap_or_default();
         let cond = match of
             .as_deref()
             .and_then(|o| self.index.kind(&self.index.named(o)))
         {
-            Some(Kind::Enum) => format!("{v} == {written}"),
+            // A case without data: its one object.
+            Some(Kind::Enum) if self.index.case_fields(of.as_deref(), case).is_empty() => {
+                format!("{v} == {written}")
+            }
             _ => match bind {
                 Some(b) => format!("{v} instanceof {written} {}", Self::ident(b)),
                 None => format!("{v} instanceof {written}"),

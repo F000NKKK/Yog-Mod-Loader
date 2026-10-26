@@ -132,6 +132,11 @@ impl Type {
     }
 
     /// The type both of two numbers become in an operation (`i32 + f64` is `f64`).
+    /// A whole number's width in bits and whether it's signed (`u8`: 8, no).
+    pub fn integer_width(&self) -> Option<(u32, bool)> {
+        builtin::integer_width(self)
+    }
+
     pub fn wider(a: &Type, b: &Type) -> Type {
         match (a, b) {
             (Type::Unit(_), _) => a.clone(),

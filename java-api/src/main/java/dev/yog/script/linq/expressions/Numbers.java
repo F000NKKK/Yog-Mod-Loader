@@ -2,7 +2,12 @@ package dev.yog.script.linq.expressions;
 
 import dev.yog.script.Type;
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.BinaryOperator;
+import java.util.function.DoubleBinaryOperator;
+import java.util.function.LongBinaryOperator;
 
 /** Numbers' arithmetic as a tree runs it: both operands at the wider of their types, as C#'s. */
 final class Numbers {
@@ -10,6 +15,35 @@ final class Numbers {
 
     /** How wide a number is: what it's worked out as. */
     private enum Width { INT, LONG, FLOAT, DOUBLE, DECIMAL }
+
+    /** An {@code int}'s shift counts are its low bits only, as Java's and C#'s. */
+    private static final long INT_SHIFT = Integer.SIZE - 1;
+
+    private static final Map<ExpressionType, LongBinaryOperator> WHOLE = Map.ofEntries(
+            Map.entry(ExpressionType.Add, (a, b) -> a + b),
+            Map.entry(ExpressionType.Subtract, (a, b) -> a - b),
+            Map.entry(ExpressionType.Multiply, (a, b) -> a * b),
+            Map.entry(ExpressionType.Divide, (a, b) -> a / b),
+            Map.entry(ExpressionType.Modulo, (a, b) -> a % b),
+            Map.entry(ExpressionType.And, (a, b) -> a & b),
+            Map.entry(ExpressionType.Or, (a, b) -> a | b),
+            Map.entry(ExpressionType.ExclusiveOr, (a, b) -> a ^ b),
+            Map.entry(ExpressionType.LeftShift, (a, b) -> a << b),
+            Map.entry(ExpressionType.RightShift, (a, b) -> a >> b));
+
+    private static final Map<ExpressionType, DoubleBinaryOperator> REAL = Map.of(
+            ExpressionType.Add, (a, b) -> a + b,
+            ExpressionType.Subtract, (a, b) -> a - b,
+            ExpressionType.Multiply, (a, b) -> a * b,
+            ExpressionType.Divide, (a, b) -> a / b,
+            ExpressionType.Modulo, (a, b) -> a % b);
+
+    private static final Map<ExpressionType, BinaryOperator<BigDecimal>> DECIMAL = Map.of(
+            ExpressionType.Add, BigDecimal::add,
+            ExpressionType.Subtract, BigDecimal::subtract,
+            ExpressionType.Multiply, BigDecimal::multiply,
+            ExpressionType.Divide, (a, b) -> a.divide(b, MathContext.DECIMAL128),
+            ExpressionType.Modulo, BigDecimal::remainder);
 
     private static Width width(Object n) {
         if (n instanceof BigDecimal) {
@@ -34,74 +68,28 @@ final class Numbers {
         Number a = (Number) l;
         Number b = (Number) r;
         return switch (wider(l, r)) {
-            case INT -> ints(op, a.intValue(), b.intValue());
-            case LONG -> longs(op, a.longValue(), b.longValue());
-            case FLOAT -> (float) doubles(op, a.doubleValue(), b.doubleValue());
-            case DOUBLE -> doubles(op, a.doubleValue(), b.doubleValue());
-            case DECIMAL -> decimals(op, decimal(a), decimal(b));
+            case INT -> (int) of(WHOLE, op).applyAsLong(a.intValue(), shifts(op) ? b.intValue() & INT_SHIFT : b.intValue());
+            case LONG -> of(WHOLE, op).applyAsLong(a.longValue(), b.longValue());
+            case FLOAT -> (float) of(REAL, op).applyAsDouble(a.doubleValue(), b.doubleValue());
+            case DOUBLE -> of(REAL, op).applyAsDouble(a.doubleValue(), b.doubleValue());
+            case DECIMAL -> of(DECIMAL, op).apply(decimal(a), decimal(b));
         };
     }
 
-    private static int ints(ExpressionType op, int a, int b) {
-        return switch (op) {
-            case Add -> a + b;
-            case Subtract -> a - b;
-            case Multiply -> a * b;
-            case Divide -> a / b;
-            case Modulo -> a % b;
-            case And -> a & b;
-            case Or -> a | b;
-            case ExclusiveOr -> a ^ b;
-            case LeftShift -> a << b;
-            case RightShift -> a >> b;
-            default -> throw unknown(op);
-        };
+    private static boolean shifts(ExpressionType op) {
+        return op == ExpressionType.LeftShift || op == ExpressionType.RightShift;
     }
 
-    private static long longs(ExpressionType op, long a, long b) {
-        return switch (op) {
-            case Add -> a + b;
-            case Subtract -> a - b;
-            case Multiply -> a * b;
-            case Divide -> a / b;
-            case Modulo -> a % b;
-            case And -> a & b;
-            case Or -> a | b;
-            case ExclusiveOr -> a ^ b;
-            case LeftShift -> a << b;
-            case RightShift -> a >> b;
-            default -> throw unknown(op);
-        };
-    }
-
-    private static double doubles(ExpressionType op, double a, double b) {
-        return switch (op) {
-            case Add -> a + b;
-            case Subtract -> a - b;
-            case Multiply -> a * b;
-            case Divide -> a / b;
-            case Modulo -> a % b;
-            default -> throw unknown(op);
-        };
-    }
-
-    private static BigDecimal decimals(ExpressionType op, BigDecimal a, BigDecimal b) {
-        return switch (op) {
-            case Add -> a.add(b);
-            case Subtract -> a.subtract(b);
-            case Multiply -> a.multiply(b);
-            case Divide -> a.divide(b, java.math.MathContext.DECIMAL128);
-            case Modulo -> a.remainder(b);
-            default -> throw unknown(op);
-        };
+    private static <F> F of(Map<ExpressionType, F> ops, ExpressionType op) {
+        F f = ops.get(op);
+        if (f == null) {
+            throw new IllegalStateException("`" + op + "` isn't an operator of these numbers");
+        }
+        return f;
     }
 
     private static BigDecimal decimal(Number n) {
         return n instanceof BigDecimal d ? d : new BigDecimal(n.toString());
-    }
-
-    private static IllegalStateException unknown(ExpressionType op) {
-        return new IllegalStateException("`" + op + "` isn't an operator of numbers");
     }
 
     static boolean equal(Object l, Object r) {
