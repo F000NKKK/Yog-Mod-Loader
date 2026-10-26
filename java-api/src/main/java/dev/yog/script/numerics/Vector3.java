@@ -46,6 +46,17 @@ public final class Vector3 implements dev.yog.script.IEquatable<dev.yog.script.n
     public static dev.yog.script.numerics.Vector3 Max(dev.yog.script.numerics.Vector3 a, dev.yog.script.numerics.Vector3 b) {
         return new dev.yog.script.numerics.Vector3(dev.yog.script.Math.Max(a.X, b.X), dev.yog.script.Math.Max(a.Y, b.Y), dev.yog.script.Math.Max(a.Z, b.Z));
     }
+    public static dev.yog.script.numerics.Vector3 Transform(dev.yog.script.numerics.Vector3 position, dev.yog.script.numerics.Matrix4x4 matrix) {
+        return new dev.yog.script.numerics.Vector3(((((position.X * matrix.M11) + (position.Y * matrix.M21)) + (position.Z * matrix.M31)) + matrix.M41), ((((position.X * matrix.M12) + (position.Y * matrix.M22)) + (position.Z * matrix.M32)) + matrix.M42), ((((position.X * matrix.M13) + (position.Y * matrix.M23)) + (position.Z * matrix.M33)) + matrix.M43));
+    }
+    public static dev.yog.script.numerics.Vector3 TransformNormal(dev.yog.script.numerics.Vector3 normal, dev.yog.script.numerics.Matrix4x4 matrix) {
+        return new dev.yog.script.numerics.Vector3((((normal.X * matrix.M11) + (normal.Y * matrix.M21)) + (normal.Z * matrix.M31)), (((normal.X * matrix.M12) + (normal.Y * matrix.M22)) + (normal.Z * matrix.M32)), (((normal.X * matrix.M13) + (normal.Y * matrix.M23)) + (normal.Z * matrix.M33)));
+    }
+    public static dev.yog.script.numerics.Vector3 Transform(dev.yog.script.numerics.Vector3 value, dev.yog.script.numerics.Quaternion rotation) {
+        final var u = new dev.yog.script.numerics.Vector3(rotation.X, rotation.Y, rotation.Z);
+        final var t = dev.yog.script.numerics.Vector3.op_Multiply(Cross(u.copy(), value.copy()), 2);
+        return dev.yog.script.numerics.Vector3.op_Addition(dev.yog.script.numerics.Vector3.op_Addition(value.copy(), dev.yog.script.numerics.Vector3.op_Multiply(t.copy(), rotation.W)), Cross(u.copy(), t.copy()));
+    }
     public boolean Equals(dev.yog.script.numerics.Vector3 other) {
         return dev.yog.script.numerics.Vector3.op_Equality(this, other.copy());
     }

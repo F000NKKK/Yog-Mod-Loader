@@ -123,6 +123,20 @@ fn vectors_are_numerics_by_their_operators() {
 }
 
 #[test]
+fn matrices_and_quaternions_move_vectors() {
+    let ok = "using System.Numerics;\n\
+              Vector3 Moved(Vector3 v, Quaternion q) =>\n\
+                  Vector3.Transform(v, Matrix4x4.CreateFromQuaternion(q) * Matrix4x4.CreateTranslation(Vector3.One));\n\
+              Vector3 Turned(Vector3 v) => Vector3.Transform(v, Quaternion.CreateFromAxisAngle(Vector3.UnitY, 1));\n\
+              Matrix4x4? Back(Matrix4x4 m) => Matrix4x4.Invert(Matrix4x4.Transpose(m));\n\
+              Vector2 Flat(Vector2 v) => Vector2.Transform(v, Matrix3x2.CreateRotation(1) * Matrix3x2.Identity);\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    // A matrix moves a vector, it isn't added to one.
+    let bad = "using System.Numerics;\nVector3 F(Vector3 v) => v + Matrix4x4.Identity;\n";
+    assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH]);
+}
+
+#[test]
 fn collections_are_the_librarys_own() {
     let ok = "i32 Sum(List<i32> xs) {\n    let mut total = 0;\n    foreach (let x in xs) {\n        total += x;\n    }\n    return total + xs.Count + xs[0];\n}\n\
               bool Has(Dictionary<string, i32> ages, string name) => ages.ContainsKey(name) && ages[name] > 3;\n\

@@ -1,0 +1,77 @@
+namespace System.Numerics;
+
+/// A rotation in three dimensions, as .NET's: `X`, `Y`, `Z` the axis part,
+/// `W` the angle's; combined by `*` (the right one first).
+public struct Quaternion(f32 x, f32 y, f32 z, f32 w) : IEquatable<Quaternion> {
+    public f32 X = x;
+    public f32 Y = y;
+    public f32 Z = z;
+    public f32 W = w;
+
+    /// No rotation.
+    public static readonly Quaternion Identity = new Quaternion(0, 0, 0, 1);
+
+    public readonly f32 LengthSquared() => X * X + Y * Y + Z * Z + W * W;
+    public readonly f32 Length() => (f32)Math.Sqrt(LengthSquared());
+
+    /// Turning by `angle` radians about `axis` (of length one).
+    public static Quaternion CreateFromAxisAngle(Vector3 axis, f32 angle) {
+        let half = angle / 2;
+        let s = (f32)Math.Sin(half);
+        return new Quaternion(axis.X * s, axis.Y * s, axis.Z * s, (f32)Math.Cos(half));
+    }
+
+    /// Turning by `yaw` about Y, then `pitch` about X, then `roll` about Z.
+    public static Quaternion CreateFromYawPitchRoll(f32 yaw, f32 pitch, f32 roll) {
+        let (sr, cr) = ((f32)Math.Sin(roll / 2), (f32)Math.Cos(roll / 2));
+        let (sp, cp) = ((f32)Math.Sin(pitch / 2), (f32)Math.Cos(pitch / 2));
+        let (sy, cy) = ((f32)Math.Sin(yaw / 2), (f32)Math.Cos(yaw / 2));
+        return new Quaternion(
+            cy * sp * cr + sy * cp * sr,
+            sy * cp * cr - cy * sp * sr,
+            cy * cp * sr - sy * sp * cr,
+            cy * cp * cr + sy * sp * sr);
+    }
+
+    public static f32 Dot(Quaternion a, Quaternion b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z + a.W * b.W;
+    /// The turn the other way (for one of length one, its inverse).
+    public static Quaternion Conjugate(Quaternion q) => new Quaternion(-q.X, -q.Y, -q.Z, q.W);
+    public static Quaternion Inverse(Quaternion q) {
+        let n = q.LengthSquared();
+        return new Quaternion(-q.X / n, -q.Y / n, -q.Z / n, q.W / n);
+    }
+    public static Quaternion Normalize(Quaternion q) {
+        let n = q.Length();
+        return new Quaternion(q.X / n, q.Y / n, q.Z / n, q.W / n);
+    }
+    /// `amount` of the way from `a` to `b`, along the sphere: a steady turn.
+    public static Quaternion Slerp(Quaternion a, Quaternion b, f32 amount) {
+        let mut cos = Dot(a, b);
+        let mut sign = 1.0f32;
+        if (cos < 0) {
+            cos = -cos;
+            sign = -1.0f32;
+        }
+        let mut from = 1 - amount;
+        let mut to = amount * sign;
+        if (cos < 0.999999f32) {
+            let angle = (f32)Math.Acos(cos);
+            let sin = (f32)Math.Sin(angle);
+            from = (f32)Math.Sin((1 - amount) * angle) / sin;
+            to = sign * (f32)Math.Sin(amount * angle) / sin;
+        }
+        return new Quaternion(from * a.X + to * b.X, from * a.Y + to * b.Y, from * a.Z + to * b.Z, from * a.W + to * b.W);
+    }
+
+    public readonly bool Equals(Quaternion other) => this == other;
+
+    /// `b`'s turn, then `a`'s (.NET's order).
+    public static Quaternion operator *(Quaternion a, Quaternion b) => new Quaternion(
+        a.W * b.X + a.X * b.W + a.Y * b.Z - a.Z * b.Y,
+        a.W * b.Y - a.X * b.Z + a.Y * b.W + a.Z * b.X,
+        a.W * b.Z + a.X * b.Y - a.Y * b.X + a.Z * b.W,
+        a.W * b.W - a.X * b.X - a.Y * b.Y - a.Z * b.Z);
+    public static Quaternion operator -(Quaternion q) => new Quaternion(-q.X, -q.Y, -q.Z, -q.W);
+    public static bool operator ==(Quaternion a, Quaternion b) => a.X == b.X && a.Y == b.Y && a.Z == b.Z && a.W == b.W;
+    public static bool operator !=(Quaternion a, Quaternion b) => !(a == b);
+}

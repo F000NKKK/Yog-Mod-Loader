@@ -30,6 +30,23 @@ public struct Vector3(f32 x, f32 y, f32 z) : IEquatable<Vector3> {
     public static Vector3 Max(Vector3 a, Vector3 b) =>
         new Vector3(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
 
+    /// `position` moved, turned and scaled by `matrix` (its translation too).
+    public static Vector3 Transform(Vector3 position, Matrix4x4 matrix) => new Vector3(
+        position.X * matrix.M11 + position.Y * matrix.M21 + position.Z * matrix.M31 + matrix.M41,
+        position.X * matrix.M12 + position.Y * matrix.M22 + position.Z * matrix.M32 + matrix.M42,
+        position.X * matrix.M13 + position.Y * matrix.M23 + position.Z * matrix.M33 + matrix.M43);
+    /// `normal` turned and scaled by `matrix` (no translation: a direction).
+    public static Vector3 TransformNormal(Vector3 normal, Matrix4x4 matrix) => new Vector3(
+        normal.X * matrix.M11 + normal.Y * matrix.M21 + normal.Z * matrix.M31,
+        normal.X * matrix.M12 + normal.Y * matrix.M22 + normal.Z * matrix.M32,
+        normal.X * matrix.M13 + normal.Y * matrix.M23 + normal.Z * matrix.M33);
+    /// `value` turned by `rotation`.
+    public static Vector3 Transform(Vector3 value, Quaternion rotation) {
+        let u = new Vector3(rotation.X, rotation.Y, rotation.Z);
+        let t = Cross(u, value) * 2;
+        return value + t * rotation.W + Cross(u, t);
+    }
+
     public readonly bool Equals(Vector3 other) => this == other;
 
     public static Vector3 operator +(Vector3 a, Vector3 b) => new Vector3(a.X + b.X, a.Y + b.Y, a.Z + b.Z);

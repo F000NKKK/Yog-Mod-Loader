@@ -24,6 +24,11 @@ public struct Vector2(f32 x, f32 y) : IEquatable<Vector2> {
     public static Vector2 Min(Vector2 a, Vector2 b) => new Vector2(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y));
     public static Vector2 Max(Vector2 a, Vector2 b) => new Vector2(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
 
+    /// `position` moved, turned and scaled by `matrix`.
+    public static Vector2 Transform(Vector2 position, Matrix3x2 matrix) => new Vector2(
+        position.X * matrix.M11 + position.Y * matrix.M21 + matrix.M31,
+        position.X * matrix.M12 + position.Y * matrix.M22 + matrix.M32);
+
     public readonly bool Equals(Vector2 other) => this == other;
 
     public static Vector2 operator +(Vector2 a, Vector2 b) => new Vector2(a.X + b.X, a.Y + b.Y);

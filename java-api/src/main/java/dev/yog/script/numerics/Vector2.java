@@ -40,6 +40,9 @@ public final class Vector2 implements dev.yog.script.IEquatable<dev.yog.script.n
     public static dev.yog.script.numerics.Vector2 Max(dev.yog.script.numerics.Vector2 a, dev.yog.script.numerics.Vector2 b) {
         return new dev.yog.script.numerics.Vector2(dev.yog.script.Math.Max(a.X, b.X), dev.yog.script.Math.Max(a.Y, b.Y));
     }
+    public static dev.yog.script.numerics.Vector2 Transform(dev.yog.script.numerics.Vector2 position, dev.yog.script.numerics.Matrix3x2 matrix) {
+        return new dev.yog.script.numerics.Vector2((((position.X * matrix.M11) + (position.Y * matrix.M21)) + matrix.M31), (((position.X * matrix.M12) + (position.Y * matrix.M22)) + matrix.M32));
+    }
     public boolean Equals(dev.yog.script.numerics.Vector2 other) {
         return dev.yog.script.numerics.Vector2.op_Equality(this, other.copy());
     }

@@ -1,0 +1,51 @@
+namespace System.Numerics;
+
+/// A 3×2 matrix of `f32`s, as .NET's: what moves, turns and scales
+/// `Vector2`s (`Vector2.Transform(v, m)`; `a * b` is `a`, then `b`), its
+/// translation in `M31`, `M32`.
+public struct Matrix3x2(f32 m11, f32 m12, f32 m21, f32 m22, f32 m31, f32 m32) : IEquatable<Matrix3x2> {
+    public f32 M11 = m11;
+    public f32 M12 = m12;
+    public f32 M21 = m21;
+    public f32 M22 = m22;
+    public f32 M31 = m31;
+    public f32 M32 = m32;
+
+    public static readonly Matrix3x2 Identity = new Matrix3x2(1, 0, 0, 1, 0, 0);
+
+    public readonly Vector2 Translation => new Vector2(M31, M32);
+
+    public static Matrix3x2 CreateTranslation(Vector2 position) => new Matrix3x2(1, 0, 0, 1, position.X, position.Y);
+    public static Matrix3x2 CreateScale(Vector2 scales) => new Matrix3x2(scales.X, 0, 0, scales.Y, 0, 0);
+    public static Matrix3x2 CreateScale(f32 scale) => new Matrix3x2(scale, 0, 0, scale, 0, 0);
+    /// Turning by `radians`, about the origin.
+    public static Matrix3x2 CreateRotation(f32 radians) {
+        let (c, s) = ((f32)Math.Cos(radians), (f32)Math.Sin(radians));
+        return new Matrix3x2(c, s, -s, c, 0, 0);
+    }
+
+    public readonly f32 GetDeterminant() => M11 * M22 - M21 * M12;
+
+    /// What undoes `m`; `null` when nothing does.
+    public static Matrix3x2? Invert(Matrix3x2 m) {
+        let det = m.GetDeterminant();
+        if (det == 0) {
+            return null;
+        }
+        let inv = 1 / det;
+        return new Matrix3x2(
+            m.M22 * inv, -m.M12 * inv,
+            -m.M21 * inv, m.M11 * inv,
+            (m.M21 * m.M32 - m.M31 * m.M22) * inv, (m.M31 * m.M12 - m.M11 * m.M32) * inv);
+    }
+
+    public readonly bool Equals(Matrix3x2 other) => this == other;
+
+    /// `a`, then `b`.
+    public static Matrix3x2 operator *(Matrix3x2 a, Matrix3x2 b) => new Matrix3x2(
+        a.M11 * b.M11 + a.M12 * b.M21, a.M11 * b.M12 + a.M12 * b.M22,
+        a.M21 * b.M11 + a.M22 * b.M21, a.M21 * b.M12 + a.M22 * b.M22,
+        a.M31 * b.M11 + a.M32 * b.M21 + b.M31, a.M31 * b.M12 + a.M32 * b.M22 + b.M32);
+    public static bool operator ==(Matrix3x2 a, Matrix3x2 b) => a.M11 == b.M11 && a.M12 == b.M12 && a.M21 == b.M21 && a.M22 == b.M22 && a.M31 == b.M31 && a.M32 == b.M32;
+    public static bool operator !=(Matrix3x2 a, Matrix3x2 b) => !(a == b);
+}

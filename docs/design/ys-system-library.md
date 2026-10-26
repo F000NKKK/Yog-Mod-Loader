@@ -113,7 +113,12 @@ System.Linq
 
 System.Numerics
   Vector2, Vector3            X Y Z, Zero, One, UnitX…, Length, Dot, Cross, Distance, Normalize,
-                              Lerp, Min, Max, + - * / == (operators)   : IEquatable
+                              Lerp, Min, Max, Transform, TransformNormal, + - * / ==   : IEquatable
+  Quaternion                  Identity, CreateFromAxisAngle, CreateFromYawPitchRoll, Dot,
+                              Conjugate, Inverse, Normalize, Slerp, * -
+  Matrix4x4, Matrix3x2        Identity, Translation, CreateTranslation/Scale/Rotation*,
+                              CreateFromQuaternion, CreateLookAt, CreatePerspectiveFieldOfView,
+                              Transpose, Invert, GetDeterminant, * + - ==   (row vectors, as .NET)
 
 System.Text                   StringBuilder (Append, AppendLine, Insert, Remove, Clear, Length)
 System.Reflection             Type, MethodInfo, PropertyInfo, FieldInfo (`ys.md` §3)
@@ -249,6 +254,6 @@ surface's delegates.
    its implicit conversion), `Random`, `StringBuilder` (`System.Text`, an
    implicit `using`), `Lazy` (done; numbers and `bool`s put in text are
    written as .NET writes them: `2`, `1E+20`, `True`, `∞`), `TimeSpan`, `DateTime` with `DayOfWeek`, `Void` (done), `System.Numerics`' vectors
-   (done; matrices, quaternions next); query syntax (done: every clause, more
+   (done, matrices and quaternions too); query syntax (done: every clause, more
    than one range variable carried as a tuple, C#'s transparent identifiers).
 4. `System.Reflection`, `System.Linq.Expressions`.
