@@ -13,7 +13,7 @@ impl Gen<'_> {
     /// An indexer declared: its accessors as methods.
     pub(crate) fn indexer(&mut self, d: &Decl, ix: &Indexer, place: Place) {
         for m in ix.getter().into_iter().chain(ix.setter()) {
-            self.method(d, &m, place);
+            self.method(d, m, place);
         }
     }
 

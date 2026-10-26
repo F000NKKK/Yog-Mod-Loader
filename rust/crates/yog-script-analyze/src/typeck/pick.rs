@@ -146,6 +146,12 @@ impl Checker<'_, '_, '_> {
                 return None;
             }
         }
+        // Each argument must convert to its parameter (C#'s applicability).
+        for ((g, p), a) in given.iter().zip(&s.params).zip(args) {
+            if !self.takes(g, &p.substitute(&found), a) {
+                return None;
+            }
+        }
         for ((p, a), _) in s
             .params
             .iter()
@@ -172,6 +178,27 @@ impl Checker<'_, '_, '_> {
             }
         }
         Some(found)
+    }
+
+    /// Whether one of `sigs` takes `given` (as written, or `params` expanded).
+    pub(super) fn fits_any(&mut self, sigs: &[Signature], given: &[Type], args: &[&Arg]) -> bool {
+        sigs.iter().any(|s| {
+            let as_written = !s.rest || given.len() == s.params.len();
+            (as_written && self.fit(s, given, args).is_some())
+                || expanded(s, given.len()).is_some_and(|x| self.fit(&x, given, args).is_some())
+        })
+    }
+
+    /// Whether parameter `p` takes argument `a` (of type `g`): what's
+    /// typed by it (a lambda, a method, `[…]`, `out let`, a number as
+    /// written) or isn't known aside.
+    fn takes(&mut self, g: &Type, p: &Type, a: &Arg) -> bool {
+        let typed_by_it = is_lambda(&a.value)
+            || is_collection(&a.value)
+            || self.is_group(&a.value)
+            || matches!(a.value.kind, ExprKind::Declare { .. })
+            || (super::exprs::is_number_literal(&a.value) && p.non_null().is_numeric());
+        typed_by_it || !g.known() || !p.known() || self.converts(g, p)
     }
 
     /// No overload fits: one taking as many checked against, or a report.

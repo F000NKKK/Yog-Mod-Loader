@@ -1,0 +1,51 @@
+namespace System.Logging;
+
+/// A logger writing nothing (.NET's `NullLogger`): where one is wanted and
+/// nothing's to be written.
+public sealed class NullLogger : ILogger {
+    public static readonly NullLogger Instance = new NullLogger();
+
+    public readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) { }
+
+    public readonly bool IsEnabled(LogLevel logLevel) => false;
+
+    public readonly IDisposable? BeginScope<TState>(TState state) => NullScope.Instance;
+}
+
+/// A logger of `T`'s category writing nothing (.NET's `NullLogger<T>`).
+public sealed class NullLogger<T> : ILogger<T> {
+    public static readonly NullLogger<T> Instance = new NullLogger<T>();
+
+    public readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) { }
+
+    public readonly bool IsEnabled(LogLevel logLevel) => false;
+
+    public readonly IDisposable? BeginScope<TState>(TState state) => NullScope.Instance;
+}
+
+/// A scope that holds nothing (.NET's `NullScope`).
+public readonly sealed class NullScope : IDisposable {
+    public static readonly NullScope Instance = new NullScope();
+
+    public void Dispose() { }
+}
+
+/// A factory of loggers writing nothing (.NET's `NullLoggerFactory`).
+public sealed class NullLoggerFactory : ILoggerFactory {
+    public static readonly NullLoggerFactory Instance = new NullLoggerFactory();
+
+    public readonly ILogger CreateLogger(string categoryName) => NullLogger.Instance;
+
+    public readonly void AddProvider(ILoggerProvider provider) { }
+
+    public void Dispose() { }
+}
+
+/// A provider of loggers writing nothing (.NET's `NullLoggerProvider`).
+public sealed class NullLoggerProvider : ILoggerProvider {
+    public static readonly NullLoggerProvider Instance = new NullLoggerProvider();
+
+    public readonly ILogger CreateLogger(string categoryName) => NullLogger.Instance;
+
+    public void Dispose() { }
+}

@@ -1,0 +1,131 @@
+namespace System.Logging;
+
+/// Writing log entries of a message template and its values (.NET's
+/// `LoggerExtensions`): `logger.LogInformation("Moved {Count} items", count)`;
+/// each level with an event, an error, both, or neither.
+public static class LoggerExtensions {
+    /// a `Trace` entry.
+    public static void LogTrace(this in ILogger logger, EventId eventId, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Trace, eventId, error, message, move args);
+    }
+
+    public static void LogTrace(this in ILogger logger, EventId eventId, string? message, params object?[] args) {
+        logger.Log(LogLevel.Trace, eventId, null, message, move args);
+    }
+
+    public static void LogTrace(this in ILogger logger, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Trace, 0, error, message, move args);
+    }
+
+    public static void LogTrace(this in ILogger logger, string? message, params object?[] args) {
+        logger.Log(LogLevel.Trace, 0, null, message, move args);
+    }
+
+    /// a `Debug` entry.
+    public static void LogDebug(this in ILogger logger, EventId eventId, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Debug, eventId, error, message, move args);
+    }
+
+    public static void LogDebug(this in ILogger logger, EventId eventId, string? message, params object?[] args) {
+        logger.Log(LogLevel.Debug, eventId, null, message, move args);
+    }
+
+    public static void LogDebug(this in ILogger logger, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Debug, 0, error, message, move args);
+    }
+
+    public static void LogDebug(this in ILogger logger, string? message, params object?[] args) {
+        logger.Log(LogLevel.Debug, 0, null, message, move args);
+    }
+
+    /// an `Information` entry.
+    public static void LogInformation(this in ILogger logger, EventId eventId, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Information, eventId, error, message, move args);
+    }
+
+    public static void LogInformation(this in ILogger logger, EventId eventId, string? message, params object?[] args) {
+        logger.Log(LogLevel.Information, eventId, null, message, move args);
+    }
+
+    public static void LogInformation(this in ILogger logger, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Information, 0, error, message, move args);
+    }
+
+    public static void LogInformation(this in ILogger logger, string? message, params object?[] args) {
+        logger.Log(LogLevel.Information, 0, null, message, move args);
+    }
+
+    /// a `Warning` entry.
+    public static void LogWarning(this in ILogger logger, EventId eventId, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Warning, eventId, error, message, move args);
+    }
+
+    public static void LogWarning(this in ILogger logger, EventId eventId, string? message, params object?[] args) {
+        logger.Log(LogLevel.Warning, eventId, null, message, move args);
+    }
+
+    public static void LogWarning(this in ILogger logger, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Warning, 0, error, message, move args);
+    }
+
+    public static void LogWarning(this in ILogger logger, string? message, params object?[] args) {
+        logger.Log(LogLevel.Warning, 0, null, message, move args);
+    }
+
+    /// an `Error` entry.
+    public static void LogError(this in ILogger logger, EventId eventId, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Error, eventId, error, message, move args);
+    }
+
+    public static void LogError(this in ILogger logger, EventId eventId, string? message, params object?[] args) {
+        logger.Log(LogLevel.Error, eventId, null, message, move args);
+    }
+
+    public static void LogError(this in ILogger logger, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Error, 0, error, message, move args);
+    }
+
+    public static void LogError(this in ILogger logger, string? message, params object?[] args) {
+        logger.Log(LogLevel.Error, 0, null, message, move args);
+    }
+
+    /// a `Critical` entry.
+    public static void LogCritical(this in ILogger logger, EventId eventId, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Critical, eventId, error, message, move args);
+    }
+
+    public static void LogCritical(this in ILogger logger, EventId eventId, string? message, params object?[] args) {
+        logger.Log(LogLevel.Critical, eventId, null, message, move args);
+    }
+
+    public static void LogCritical(this in ILogger logger, Error? error, string? message, params object?[] args) {
+        logger.Log(LogLevel.Critical, 0, error, message, move args);
+    }
+
+    public static void LogCritical(this in ILogger logger, string? message, params object?[] args) {
+        logger.Log(LogLevel.Critical, 0, null, message, move args);
+    }
+
+    public static void Log(this in ILogger logger, LogLevel logLevel, string? message, params object?[] args) {
+        logger.Log(logLevel, 0, null, message, move args);
+    }
+
+    public static void Log(this in ILogger logger, LogLevel logLevel, EventId eventId, string? message, params object?[] args) {
+        logger.Log(logLevel, eventId, null, message, move args);
+    }
+
+    public static void Log(this in ILogger logger, LogLevel logLevel, Error? error, string? message, params object?[] args) {
+        logger.Log(logLevel, 0, error, message, move args);
+    }
+
+    /// An entry of `logLevel`: its state the template's values, its message
+    /// the template filled.
+    public static void Log(this in ILogger logger, LogLevel logLevel, EventId eventId, Error? error, string? message, params object?[] args) {
+        logger.Log(logLevel, eventId, new FormattedLogValues(message, move args), error, FormattedLogValues.Message);
+    }
+
+    /// A scope of a message template and its values (`"Request {Id}"`).
+    public static IDisposable? BeginScope(this in ILogger logger, string messageFormat, params object?[] args) {
+        return logger.BeginScope(new FormattedLogValues(messageFormat, move args));
+    }
+}

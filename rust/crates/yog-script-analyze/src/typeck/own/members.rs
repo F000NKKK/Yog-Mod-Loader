@@ -35,7 +35,7 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
             DeclKind::Indexer(ix) => {
                 if let Some(get) = ix.getter() {
                     t.indexers.push(Indexer {
-                        get,
+                        get: get.clone(),
                         settable: ix.setter().is_some(),
                     });
                 }

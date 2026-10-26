@@ -1,5 +1,5 @@
-//! Null state (C#'s nullable analysis, for names): a local or parameter of
-//! a nullable type is known not null where a condition proves it — the
+//! Null state (C#'s nullable analysis, for names): a local, a parameter or
+//! a member by its name alone, of a nullable type, is known not null where a condition proves it — the
 //! branch of `x != null`, `x is not null`, `x is T`, the other of
 //! `x == null`, past `&&`/`||`, in `?:` — and after an `if` whose branch
 //! proving the opposite always leaves (`if (x == null) return;`), until

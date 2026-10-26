@@ -26,6 +26,7 @@ use yog_script_ids::jvm::tasks::{
     ASYNC, ASYNC_ITERATION, ASYNC_ITERATION_SOURCE, FINISH, ITERATION, ITERATION_SOURCE, LOOP,
     MACHINE, MADE, PARAM_FIELD, RUN, START, STATE, STEP, TASK, YIELD,
 };
+use yog_script_ids::system::{ASYNC_ENUMERATOR, ENUMERATOR};
 
 use super::Gen;
 
@@ -57,6 +58,9 @@ pub(crate) struct Shape<'a> {
     pub iterator: bool,
     /// An `async` iterator's (`IAsyncEnumerable<T>`): awaits between its items.
     pub async_iterator: bool,
+    /// An iterator giving its enumerator (`IEnumerator<T>`), not a sequence:
+    /// the machine itself, walked once.
+    pub enumerator: bool,
 }
 
 /// An async method's or lambda's code.
@@ -96,6 +100,7 @@ impl Gen<'_> {
             gives_value: task_arg.is_some(),
             iterator: false,
             async_iterator: false,
+            enumerator: false,
         };
         self.code.open(head);
         self.machine_of(&shape);
@@ -109,9 +114,13 @@ impl Gen<'_> {
         let Some(MethodBody::Block(b)) = &m.body else {
             return self.not_yet("an iterator without a block", m.name.span);
         };
-        let item = match m.ret.as_ref().map(|t| &t.kind) {
-            Some(TypeKind::Path { args, .. }) => args.first(),
-            _ => None,
+        let (item, enumerator) = match m.ret.as_ref().map(|t| &t.kind) {
+            Some(TypeKind::Path { args, path }) => (
+                args.first(),
+                path.last()
+                    .is_some_and(|n| [ENUMERATOR, ASYNC_ENUMERATOR].contains(&n.text.as_str())),
+            ),
+            _ => (None, false),
         };
         let shape = Shape {
             params: m
@@ -125,6 +134,7 @@ impl Gen<'_> {
             gives_value: false,
             iterator: true,
             async_iterator: is_async,
+            enumerator,
         };
         self.code.open(head);
         self.machine_of(&shape);
@@ -181,6 +191,7 @@ impl Gen<'_> {
             gives_value: task_arg.is_some(),
             iterator: false,
             async_iterator: false,
+            enumerator: false,
         };
         // Written apart, as a lambda's body: what it computes stays inside.
         let outer = std::mem::take(&mut self.code);
@@ -236,7 +247,7 @@ impl Gen<'_> {
         });
         self.code.line(step);
         self.code.close("");
-        if shape.iterator {
+        if shape.iterator && !shape.enumerator {
             // A machine for each walk, each its own copy of the arguments.
             let source = if shape.async_iterator {
                 ASYNC_ITERATION_SOURCE
@@ -258,7 +269,10 @@ impl Gen<'_> {
         for (param, field) in &params {
             self.code.line(format!("{made}.{field} = {param};"));
         }
-        if shape.task {
+        if shape.iterator {
+            // An enumerator: the machine itself, walked once.
+            self.code.line(format!("{RETURN} {made};"));
+        } else if shape.task {
             self.code.line(format!("{made}.{RUN}();"));
             self.code.line(format!("{RETURN} {made}.{TASK}();"));
         } else {

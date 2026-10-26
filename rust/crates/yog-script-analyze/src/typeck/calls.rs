@@ -42,6 +42,7 @@ impl Checker<'_, '_, '_> {
             })
             .collect();
         let mut args: Vec<&Arg> = args.iter().collect();
+        let target = self.instance_or_extension(target, callee, (&given, &args), &explicit);
         // `xs.Where(…)`, an extension method: the receiver its first argument.
         let receiver = match (&target, &callee.kind) {
             (Callee::Extension(_), ExprKind::Member { expr, .. }) => {
@@ -118,6 +119,37 @@ impl Checker<'_, '_, '_> {
             }
             Callee::Typed(sigs) => (self.pick(&sigs, given, args, at).0, None),
             Callee::Unknown => (Type::Unknown, None),
+        }
+    }
+
+    /// `on.name(args)`'s methods (C#'s): its type's when one of them takes
+    /// the arguments, else the extension methods of the name.
+    fn instance_or_extension(
+        &mut self,
+        target: Callee,
+        callee: &Expr,
+        (given, args): (&[Type], &[&Arg]),
+        explicit: &[Type],
+    ) -> Callee {
+        let (Callee::Own(methods), ExprKind::Member { expr, name, .. }) = (&target, &callee.kind)
+        else {
+            return target;
+        };
+        if matches!(self.types.of(expr), Some(Type::Static(..)) | None) {
+            return target;
+        }
+        let sigs: Vec<Signature> = methods
+            .iter()
+            .map(|(m, context)| self.in_context(context, |c| c.signature(m)))
+            .map(|s| s.given(explicit))
+            .collect();
+        let fits = self.quietly(|c| c.fits_any(&sigs, given, args));
+        if fits {
+            return target;
+        }
+        match self.quietly(|c| c.extension_or_unknown(&Type::Unknown, name)) {
+            Callee::Extension(ext) => Callee::Extension(ext),
+            _ => target,
         }
     }
 

@@ -44,14 +44,12 @@ impl Checker<'_, '_, '_> {
                 value,
                 ..
             } => {
-                let t = self.accessors(ty, Of::Property, accessors, side);
+                let t = self.accessors(ty, accessors, side);
                 if let Some(v) = value {
                     self.fits(v, &t);
                 }
             }
-            DeclKind::Indexer(ix) => {
-                self.accessors(&ix.ty, Of::Indexer(&ix.params), &ix.accessors, side);
-            }
+            DeclKind::Indexer(ix) => self.indexer_decl(ix, side),
             DeclKind::Operator(op) => self.method(&op.method, side, false),
             DeclKind::Method(m) => self.method_decl(d, m, side),
             DeclKind::Ctor(c) => {
@@ -277,29 +275,13 @@ fn side_of(d: &Decl) -> Option<Side> {
     })
 }
 
-/// Whose accessors these are: a property's, or an indexer's (its parameters).
-enum Of<'a> {
-    Property,
-    Indexer(&'a [Param]),
-}
-
 impl Checker<'_, '_, '_> {
-    /// A member's accessors checked, each with what it has in scope; the
-    /// member's type.
-    fn accessors(
-        &mut self,
-        ty: &crate::ast::Type,
-        of: Of,
-        accessors: &[Accessor],
-        side: Side,
-    ) -> Type {
+    /// A property's accessors checked, each with what it has in scope; the
+    /// property's type.
+    fn accessors(&mut self, ty: &crate::ast::Type, accessors: &[Accessor], side: Side) -> Type {
         let t = self.type_of(ty);
-        let (params, property) = match of {
-            Of::Property => (&[][..], true),
-            Of::Indexer(params) => (params, false),
-        };
         for a in accessors {
-            let scope = [params.to_vec(), accessor_scope(ty, a, property)].concat();
+            let scope = accessor_scope(ty, a, true);
             self.body(
                 (a.body.as_ref(), None),
                 &scope,
@@ -308,6 +290,24 @@ impl Checker<'_, '_, '_> {
             );
         }
         t
+    }
+}
+
+impl Checker<'_, '_, '_> {
+    /// An indexer's accessors, as the methods they're compiled as.
+    fn indexer_decl(&mut self, ix: &crate::ast::Indexer, side: Side) {
+        let t = self.type_of(&ix.ty);
+        if let Some(get) = ix.getter() {
+            self.body((get.body.as_ref(), None), &get.params, Some(t), side);
+        }
+        if let Some(set) = ix.setter() {
+            self.body(
+                (set.body.as_ref(), None),
+                &set.params,
+                Some(Type::Void),
+                side,
+            );
+        }
     }
 }
 

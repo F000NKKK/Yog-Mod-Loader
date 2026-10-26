@@ -637,3 +637,30 @@ fn defaults_nested_and_null_state() {
     };
     assert_eq!(out, "a2Fast- b5Fast- 7 -12 1");
 }
+
+/// An indexer's body typed as the method it's compiled as; an iterator
+/// giving its enumerator (`IEnumerator<T>`) gives the machine itself.
+#[test]
+fn indexers_and_enumerators() {
+    let src = "public readonly sealed class Vals : IReadOnlyList<string> {\n\
+                   private readonly object?[] _values;\n\
+                   public Vals(object?[] values) { _values = move values; }\n\
+                   public i32 Count => _values.Length;\n\
+                   public string this[i32 index] { get { let v = index < _values.Length ? _values[index] : null; return v == null ? \"\" : v.ToString(); } }\n\
+                   public IEnumerator<string> GetEnumerator() { for (let mut i = 0; i < Count; i += 1) { yield return this[i]; } }\n\
+               }\n\
+               public static class Z {\n\
+                   public static string Run() {\n\
+                       let v = new Vals(new object?[] { 1, \"b\" });\n\
+                       let mut s = \"\";\n\
+                       foreach (let x in v) { s = s + x; }\n\
+                       object o = v.GetEnumerator() as object ?? \"\";\n\
+                       let n = o is IEnumerator<string> e ? 1 : 0;\n\
+                       return s + v[1] + n;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("z.ys", src)], "t.ZScript.Z.Run()") else {
+        return;
+    };
+    assert_eq!(out, "1bb1");
+}

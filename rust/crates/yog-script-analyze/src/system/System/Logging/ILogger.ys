@@ -1,0 +1,18 @@
+namespace System.Logging;
+
+/// What writes log entries (.NET's `ILogger`): each entry a state and a
+/// formatter making its message, written when its level is enabled, inside
+/// the scopes begun around it.
+public interface ILogger {
+    /// Writes an entry: `formatter` makes its message of `state` and `error`.
+    readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter);
+
+    /// Whether entries of `logLevel` are written.
+    readonly bool IsEnabled(LogLevel logLevel);
+
+    /// A scope `state` holds the entries written until it's disposed.
+    readonly IDisposable? BeginScope<TState>(TState state);
+}
+
+/// A logger of the category `TCategoryName` names (.NET's `ILogger<T>`).
+public interface ILogger<out TCategoryName> : ILogger { }

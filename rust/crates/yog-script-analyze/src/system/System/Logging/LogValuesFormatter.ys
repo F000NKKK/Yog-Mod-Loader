@@ -1,0 +1,123 @@
+namespace System.Logging;
+
+using System.Collections.Generic;
+using System.Text;
+
+/// A message template read once (.NET's `LogValuesFormatter`): its text and
+/// its holes (`"Moved {Count} items to {Target}"`), each named; `{{` and
+/// `}}` are braces. A hole's alignment (`{Count,5}`) pads its value; a
+/// format (`{Count:N2}`) is kept with the template.
+public readonly sealed class LogValuesFormatter {
+    /// What a log entry's state names its template by.
+    public const string OriginalFormat = """{OriginalFormat}""";
+    /// What a `null` value is written as.
+    public const string NullValue = "(null)";
+
+    public readonly string Template;
+    /// Its holes' names, in order.
+    public readonly List<string> ValueNames = new List<string>();
+    private readonly List<string> _texts = new List<string>();
+    private readonly List<i32> _alignments = new List<i32>();
+
+    public LogValuesFormatter(string format) {
+        Template = format;
+        let mut text = new StringBuilder();
+        let mut i = 0;
+        while (i < format.Length) {
+            let c = format[i];
+            if ((c == '{' || c == '}') && i + 1 < format.Length && format[i + 1] == c) {
+                text.Append(c);
+                i += 2;
+            } else if (c == '{') {
+                let end = HoleEnd(format, i + 1);
+                if (end < 0) {
+                    text.Append(format.Substring(i));
+                    i = format.Length;
+                } else {
+                    _texts.Add(text.ToString());
+                    text.Clear();
+                    Hole(format.Substring(i + 1, end - i - 1));
+                    i = end + 1;
+                }
+            } else {
+                text.Append(c);
+                i += 1;
+            }
+        }
+        _texts.Add(text.ToString());
+    }
+
+    /// Where the hole opened before `from` closes (`-1`: it doesn't).
+    private static i32 HoleEnd(string format, i32 from) {
+        for (let mut j = from; j < format.Length; j += 1) {
+            if (format[j] == '}') {
+                return j;
+            }
+        }
+        return -1;
+    }
+
+    /// Hole `inside` (`Name`, `Name,5`, `Name:N2`): its name and alignment noted.
+    private void Hole(string inside) {
+        let mut name = inside;
+        let colon = name.IndexOf(':');
+        if (colon >= 0) {
+            name = name.Substring(0, colon);
+        }
+        let mut alignment = 0;
+        let comma = name.IndexOf(',');
+        if (comma >= 0) {
+            alignment = i32.Parse(name.Substring(comma + 1).Trim());
+            name = name.Substring(0, comma);
+        }
+        ValueNames.Add(name.Trim());
+        _alignments.Add(alignment);
+    }
+
+    /// The message: its holes filled with `values`, in order.
+    public string Format(object?[] values) {
+        let mut written = new StringBuilder();
+        for (let mut i = 0; i < _texts.Count; i += 1) {
+            written.Append(_texts[i]);
+            if (i < ValueNames.Count) {
+                let value = i < values.Length ? FormatValue(values[i]) : "";
+                written.Append(Aligned(value, _alignments[i]));
+            }
+        }
+        return written.ToString();
+    }
+
+    /// `value` padded to `alignment` (right when positive, left when negative).
+    private static string Aligned(string value, i32 alignment) {
+        if (alignment > 0) {
+            return value.PadLeft(alignment);
+        }
+        if (alignment < 0) {
+            return value.PadRight(-alignment);
+        }
+        return value;
+    }
+
+    /// `value` as a message writes it: `(null)`; a sequence's items joined.
+    public static string FormatValue(object? value) {
+        if (value == null) {
+            return NullValue;
+        }
+        if (value is string s) {
+            return s;
+        }
+        if (value is IEnumerable<object?> items) {
+            let mut written = new StringBuilder();
+            let mut first = true;
+            foreach (let item in items) {
+                if (!first) {
+                    written.Append(", ");
+                }
+                written.Append(item == null ? NullValue : item.ToString());
+                first = false;
+            }
+            return written.ToString();
+        }
+        return value.ToString();
+    }
+}

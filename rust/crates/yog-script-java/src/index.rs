@@ -65,8 +65,8 @@ pub(crate) struct Index {
     /// Walking another source of the project: its Java class, which its
     /// types are nested in.
     elsewhere: Option<String>,
-    /// The project's own types (not the library's): what this compiler
-    /// writes, its generic ones taking their type arguments when made.
+    /// The types this compiler writes (a source's, the library's not
+    /// written by hand): its generic ones taking their type arguments when made.
     own: HashSet<TypeRef>,
     /// Each type's static methods, by name: a generic own type's take its
     /// type arguments (`$typeT`) as a generic method its own.
@@ -210,17 +210,15 @@ impl Index {
             crate::java_names::shape_of(header, body),
         );
         self.nested_types(&name.text, body);
-        let ctors = body
-            .iter()
-            .filter_map(|m| match &m.kind {
-                DeclKind::Ctor(c) => Some(c.params.clone()),
-                _ => None,
-            })
-            .collect();
-        self.ctors
-            .insert((name.text.clone(), arity(&header.generics)), ctors);
+        self.note_ctors(&(name.text.clone(), arity(&header.generics)), body);
         if self.library && crate::library::is_intrinsic(d) {
             self.intrinsics.insert(name.text.clone());
+        } else if self.library && name.text != yog_script_ids::system::VALUE_TUPLE {
+            // Written by this compiler too: made with its type arguments as
+            // a source's own are (`typeof(T)` in its constructor). A tuple's
+            // are its items' own, made by `tuples.rs`.
+            self.own
+                .insert((name.text.clone(), arity(&header.generics)));
         }
         if self.library && crate::library::is_host(d) {
             // Apart, so it doesn't hide Java's of its name (`String`) in
@@ -428,6 +426,18 @@ impl Index {
     }
 
     /// Type `name`'s shape, if it's one of the library's or the source's.
+    /// Type `t`'s body's constructors' parameters noted.
+    fn note_ctors(&mut self, t: &TypeRef, body: &[Decl]) {
+        let ctors = body
+            .iter()
+            .filter_map(|m| match &m.kind {
+                DeclKind::Ctor(c) => Some(c.params.clone()),
+                _ => None,
+            })
+            .collect();
+        self.ctors.insert(t.clone(), ctors);
+    }
+
     /// The types declared in type `outer`'s `body`: placed in its Java class
     /// (`LoggerExternalScopeProvider.Scope`).
     fn nested_types(&mut self, outer: &str, body: &[Decl]) {

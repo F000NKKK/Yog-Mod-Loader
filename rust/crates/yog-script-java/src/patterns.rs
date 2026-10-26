@@ -266,7 +266,9 @@ impl Gen<'_> {
                 None => format!("{v} {INSTANCEOF} {written}"),
             });
         }
-        let t = self.written(ty, true);
+        // A generic type tested raw: Java checks no type arguments (they're
+        // erased), and binds what it can't prove of them only so.
+        let t = crate::reified::erased(&self.written(ty, true));
         Some(match bind {
             Some(b) => format!("{v} {INSTANCEOF} {t} {}", Self::ident(b)),
             None => format!("{v} {INSTANCEOF} {t}"),

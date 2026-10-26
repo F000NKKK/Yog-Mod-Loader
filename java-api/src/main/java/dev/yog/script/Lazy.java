@@ -7,7 +7,7 @@ public class Lazy<T> implements dev.yog.script.Typed {
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Field("_make", dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.Func1.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.Lazy) o)._make, null);
         d.Field("_value", dev.yog.script.reflection.MemberInfo.PRIVATE | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.Once.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.Lazy) o)._value, null);
-        d.Constructor(0, a -> new dev.yog.script.Lazy((dev.yog.script.Func1) a[0])).Takes("valueFactory", dev.yog.script.Type.Of(dev.yog.script.Func1.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
+        d.Constructor(0, a -> new dev.yog.script.Lazy((dev.yog.script.Type[]) null, (dev.yog.script.Func1) a[0])).Takes("valueFactory", dev.yog.script.Type.Of(dev.yog.script.Func1.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
         d.Property("Value", 0, d.Parameter(0), o -> ((dev.yog.script.Lazy) o).Value(), null);
         d.Property("IsValueCreated", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Lazy) o).IsValueCreated(), null);
     }
@@ -16,9 +16,10 @@ public class Lazy<T> implements dev.yog.script.Typed {
     private dev.yog.script.Type[] $types;
     @Override public dev.yog.script.Type[] $types() { return $types; }
     @Override public void $types(dev.yog.script.Type[] arguments) { this.$types = arguments; }
-    public Lazy(dev.yog.script.Func1<T> valueFactory) {
+    public Lazy(dev.yog.script.Type[] $types, dev.yog.script.Func1<T> valueFactory) {
         super();
-        this._value = new dev.yog.script.Once<T>();
+        this.$types = $types;
+        this._value = dev.yog.script.Type.made(new dev.yog.script.Once<T>(), new dev.yog.script.Type[] { $types[0] });
         _make = valueFactory;
     }
     public T Value() {

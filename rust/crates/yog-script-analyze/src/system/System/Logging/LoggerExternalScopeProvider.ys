@@ -1,0 +1,51 @@
+namespace System.Logging;
+
+using System.Threading;
+
+/// The scopes begun in the code's flow (.NET's `LoggerExternalScopeProvider`):
+/// each flow (an `async` method and what it awaits) its own, as `AsyncLocal` keeps them.
+public readonly sealed class LoggerExternalScopeProvider : IExternalScopeProvider {
+    private readonly AsyncLocal<LogScope?> _current = new AsyncLocal<LogScope?>();
+
+    public readonly void ForEachScope<TState>(Action<object?, TState> callback, TState state) {
+        Report(in _current.Value, callback, state);
+    }
+
+    /// `callback` of `scope`'s state, after its outer ones'.
+    private static void Report<TState>(in LogScope? scope, Action<object?, TState> callback, TState state) {
+        if (scope == null) {
+            return;
+        }
+        Report(in scope.Parent, callback, state);
+        callback(scope.State, state);
+    }
+
+    public readonly IDisposable Push(object? state) {
+        let scope = new LogScope(this, move state, _current.Value);
+        _current.Value = scope;
+        return scope;
+    }
+
+    /// One scope begun: its state, the one it's in. Shared by the flow and
+    /// whoever began it, so never changed but for being ended.
+    private readonly sealed class LogScope : IDisposable {
+        private readonly LoggerExternalScopeProvider _provider;
+        private readonly Cell<bool> _disposed = new Cell<bool>(false);
+        public readonly object? State;
+        public readonly LogScope? Parent;
+
+        public LogScope(LoggerExternalScopeProvider provider, object? state, LogScope? parent) {
+            _provider = move provider;
+            State = move state;
+            Parent = move parent;
+        }
+
+        public override string? ToString() => State?.ToString();
+
+        public void Dispose() {
+            if (!_disposed.Replace(true)) {
+                _provider._current.Value = Parent;
+            }
+        }
+    }
+}

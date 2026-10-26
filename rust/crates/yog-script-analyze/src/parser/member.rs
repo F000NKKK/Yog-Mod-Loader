@@ -290,12 +290,8 @@ impl Parser<'_, '_, '_> {
         let start = ty.span;
         let params = self.index_params()?;
         let accessors = self.accessors()?;
-        Ok(DeclKind::Indexer(Indexer {
-            span: start.to(self.prev()),
-            ty,
-            params,
-            accessors,
-        }))
+        let span = start.to(self.prev());
+        Ok(DeclKind::Indexer(Indexer::new(ty, params, accessors, span)))
     }
 
     /// `{ get; set { … } }` and maybe `= value;`.

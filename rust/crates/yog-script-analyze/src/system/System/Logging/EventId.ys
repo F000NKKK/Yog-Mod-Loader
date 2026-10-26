@@ -1,0 +1,27 @@
+namespace System.Logging;
+
+/// What a log entry is about, by its number and name (.NET's `EventId`): `0`
+/// when nothing says; an `i32` is one of the number.
+public readonly struct EventId : IEquatable<EventId> {
+    public readonly i32 Id;
+    public readonly string? Name;
+
+    public EventId(i32 id, string? name = null) {
+        Id = id;
+        Name = name;
+    }
+
+    public static implicit operator EventId(i32 i) => new EventId(i);
+
+    public bool Equals(EventId other) => Id == other.Id;
+
+    public override bool Equals(object? obj) => obj is EventId other && Equals(other);
+
+    public override i32 GetHashCode() => Id;
+
+    public override string ToString() => Name ?? Id.ToString();
+
+    public static bool operator ==(EventId left, EventId right) => left.Equals(right);
+
+    public static bool operator !=(EventId left, EventId right) => !left.Equals(right);
+}

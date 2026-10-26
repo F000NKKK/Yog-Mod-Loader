@@ -145,6 +145,10 @@ impl Checker<'_, '_, '_> {
         }
         let t = self.name(name, e.span);
         self.member_read(name, &t, e.span);
+        // A member by its name alone: known not null as a local is.
+        if self.is_narrowed(name, 0) {
+            return t.non_null().clone();
+        }
         t
     }
 

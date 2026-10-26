@@ -1,0 +1,42 @@
+namespace System.Logging;
+
+using System.Collections.Generic;
+
+/// A log entry's state made of a message template and its values (.NET's
+/// `FormattedLogValues`): each value by its hole's name, then the
+/// template as `{OriginalFormat}`; written, the message.
+public readonly sealed class FormattedLogValues : IReadOnlyList<KeyValuePair<string, object?>> {
+    private readonly LogValuesFormatter? _formatter;
+    private readonly object?[] _values;
+    private readonly string _original;
+
+    public FormattedLogValues(string? format, object?[] values) {
+        _original = format ?? LogValuesFormatter.NullValue;
+        _formatter = values.Length > 0 && format != null ? new LogValuesFormatter(format) : null;
+        _values = move values;
+    }
+
+    public i32 Count => _formatter == null ? 1 : _formatter.ValueNames.Count + 1;
+
+    public KeyValuePair<string, object?> this[i32 index] {
+        get {
+            if (index == Count - 1) {
+                return new KeyValuePair<string, object?>(LogValuesFormatter.OriginalFormat, _original);
+            }
+            let name = _formatter == null ? "" : _formatter.ValueNames[index];
+            let value = index < _values.Length ? _values[index] : null;
+            return new KeyValuePair<string, object?>(name, value);
+        }
+    }
+
+    public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() {
+        for (let mut i = 0; i < Count; i += 1) {
+            yield return this[i];
+        }
+    }
+
+    public override string ToString() => _formatter == null ? _original : _formatter.Format(_values);
+
+    /// What makes an entry's message of its state: the state written.
+    public static string Message(FormattedLogValues state, Error? error) => state.ToString();
+}

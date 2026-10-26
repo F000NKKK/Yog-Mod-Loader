@@ -1,0 +1,29 @@
+namespace System.Logging;
+
+/// A logger of the category `T` names (.NET's `Logger<T>`): its type's full
+/// name, made by the factory's providers.
+public sealed class Logger<T> : ILogger<T> {
+    private readonly ILogger _logger;
+
+    public Logger(in ILoggerFactory factory) {
+        _logger = factory.CreateLogger(CategoryOf(typeof(T)));
+    }
+
+    /// The category a type names: its full name.
+    public static string CategoryOf(Type type) => type.FullName ?? type.Name;
+
+    public readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) {
+        _logger.Log(logLevel, eventId, state, error, formatter);
+    }
+
+    public readonly bool IsEnabled(LogLevel logLevel) => _logger.IsEnabled(logLevel);
+
+    public readonly IDisposable? BeginScope<TState>(TState state) => _logger.BeginScope(state);
+}
+
+/// Loggers made of a factory by a type or a name (.NET's `LoggerFactoryExtensions`).
+public static class LoggerFactoryExtensions {
+    public static ILogger<T> CreateLogger<T>(this in ILoggerFactory factory) => new Logger<T>(in factory);
+
+    public static ILogger CreateLogger(this in ILoggerFactory factory, Type type) => factory.CreateLogger(Logger<object>.CategoryOf(type));
+}

@@ -1,0 +1,15 @@
+namespace System.Logging;
+
+/// What holds the scopes begun, shared by every provider (.NET's `IExternalScopeProvider`).
+public interface IExternalScopeProvider {
+    /// `callback` of each scope's state, outermost first.
+    readonly void ForEachScope<TState>(Action<object?, TState> callback, TState state);
+
+    /// A scope of `state` begun: disposed, it ends.
+    readonly IDisposable Push(object? state);
+}
+
+/// A provider whose loggers write the scopes a factory holds (.NET's `ISupportExternalScope`).
+public interface ISupportExternalScope {
+    readonly void SetScopeProvider(IExternalScopeProvider scopeProvider);
+}

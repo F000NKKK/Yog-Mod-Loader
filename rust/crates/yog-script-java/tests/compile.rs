@@ -597,7 +597,7 @@ fn random_text_and_lazy_are_the_runtimes() {
     for want in [
         "ys = rng.Shuffle(ys);",
         "b.set_Length(1);",
-        "new dev.yog.script.Lazy<Integer>(() -> {",
+        "new dev.yog.script.Lazy<Integer>($kept1, () -> {",
         "dev.yog.script.host.Double.ToString(x)",
         "dev.yog.script.host.Boolean.ToString(b)",
     ] {

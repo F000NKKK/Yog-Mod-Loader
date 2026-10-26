@@ -17,6 +17,10 @@ pub struct Indexer {
     pub params: Vec<Param>,
     pub accessors: Vec<Accessor>,
     pub span: Span,
+    /// Its `get` and its `set` as methods, made once: what's checked and
+    /// compiled is these (one tree, so what's found of it is found once).
+    get: Option<Box<Method>>,
+    set: Option<Box<Method>>,
 }
 
 /// An indexer's accessor's method name: `get_Item`, `set_Item`.
@@ -25,27 +29,40 @@ pub fn accessor_name(word: &str) -> String {
 }
 
 impl Indexer {
+    /// Indexer `ty this[params] { accessors }` (at `span`), its accessors
+    /// made methods.
+    pub fn new(ty: Type, params: Vec<Param>, accessors: Vec<Accessor>, span: Span) -> Self {
+        let mut ix = Indexer {
+            ty,
+            params,
+            accessors,
+            span,
+            get: None,
+            set: None,
+        };
+        ix.get = ix.accessor(get::WORD.text).map(|body| {
+            Box::new(ix.method(get::WORD.text, Some(ix.ty.clone()), ix.params.clone(), body))
+        });
+        ix.set = ix.accessor(set::WORD.text).map(|body| {
+            let mut params = ix.params.clone();
+            let at = Name {
+                text: set::WORD.text.to_string(),
+                span: ix.span,
+            };
+            params.push(value_param(&ix.ty, &at));
+            Box::new(ix.method(set::WORD.text, None, params, body))
+        });
+        ix
+    }
+
     /// Its `get` as a method: what `x[i]` calls.
-    pub fn getter(&self) -> Option<Method> {
-        let body = self.accessor(get::WORD.text)?;
-        Some(self.method(
-            get::WORD.text,
-            Some(self.ty.clone()),
-            self.params.clone(),
-            body,
-        ))
+    pub fn getter(&self) -> Option<&Method> {
+        self.get.as_deref()
     }
 
     /// Its `set` as a method, the value its last parameter: what `x[i] = v` calls.
-    pub fn setter(&self) -> Option<Method> {
-        let body = self.accessor(set::WORD.text)?;
-        let mut params = self.params.clone();
-        let at = Name {
-            text: set::WORD.text.to_string(),
-            span: self.span,
-        };
-        params.push(value_param(&self.ty, &at));
-        Some(self.method(set::WORD.text, None, params, body))
+    pub fn setter(&self) -> Option<&Method> {
+        self.set.as_deref()
     }
 
     /// Accessor `word`'s body (none when it has none), if it has that accessor.

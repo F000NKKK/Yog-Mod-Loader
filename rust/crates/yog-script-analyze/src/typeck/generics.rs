@@ -104,6 +104,8 @@ impl Checker<'_, '_, '_> {
             {
                 self.unify(&ys[0], x, free, found)
             }
+            // `null` where a nullable is wanted: nothing to bind.
+            (Type::Nullable(_), Type::Null) => true,
             (Type::Nullable(x), y) => self.unify(x, y, free, found),
             _ => self.converts(given, param),
         }

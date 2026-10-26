@@ -1,0 +1,25 @@
+namespace System.Logging;
+
+/// One log entry, as a provider that writes later keeps it (.NET's
+/// `LogEntry<TState>`): its level, category, event, state, error and the
+/// formatter making its message.
+public readonly struct LogEntry<TState> {
+    public readonly LogLevel LogLevel;
+    public readonly string Category;
+    public readonly EventId EventId;
+    public readonly TState State;
+    public readonly Error? Error;
+    public readonly Func<TState, Error?, string> Formatter;
+
+    public LogEntry(LogLevel logLevel, string category, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) {
+        LogLevel = logLevel;
+        Category = category;
+        EventId = eventId;
+        State = state;
+        Error = move error;
+        Formatter = formatter;
+    }
+
+    /// Its message.
+    public string Message() => Formatter(State, Error);
+}
