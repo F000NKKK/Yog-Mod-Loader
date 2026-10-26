@@ -4,13 +4,15 @@
 //! it calls each. An `[Event("…")]` one is on the bus: `+=` listens to the
 //! address, raising it emits there.
 
+use std::fmt::Write as _;
+
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Arg, BinOp, Decl, Expr, ExprKind, Modifier};
 use yog_script_ids::clr::INVOKE;
-use yog_script_ids::java::{CLASS_LITERAL, FINAL, NEW, NULL, RETURN};
+use yog_script_ids::java::{CLASS_LITERAL, FINAL, FOR, INT, NEW, NULL, RETURN, VAR};
 use yog_script_ids::jvm::{
-    BUS_EMIT, BUS_ON, BUS_PRIORITY, EVENT_ADD, EVENT_CLASS, EVENT_EACH, EVENT_LAST, EVENT_REMOVE,
-    KEY_OF, OVERLOAD_SEP,
+    BUS_EMIT, BUS_ON, BUS_PRIORITY, EVENT_ADD, EVENT_CLASS, EVENT_HANDLERS, EVENT_REMOVE, KEY_OF,
+    LIST_GET, LIST_SIZE, OVERLOAD_SEP, RUNNABLE, SUPPLIER,
 };
 use yog_script_ids::system::EVENT;
 
@@ -110,16 +112,51 @@ impl Gen<'_> {
     }
 
     /// Event `ev` raised with `args`: each handler called (giving the
-    /// last's value, as C#'s); a bus one's emitted.
+    /// last's value, as C#'s) by the file's raiser of its signature; a bus
+    /// one's emitted.
     pub(crate) fn raise(&mut self, e: &Expr, ev: &EventRef, args: &[Arg]) -> String {
-        let a = self.args(args);
         if let Some(address) = &ev.address {
+            let a = self.args(args);
             return format!("{BUS_EMIT}({address}, {}, {a})", self.payload(ev));
         }
-        let h = self.temp();
-        let gives = self.types.of(e).is_some_and(|t| *t != Type::Void);
-        let each = if gives { EVENT_LAST } else { EVENT_EACH };
-        format!("{}.{each}(({h}) -> {h}.{INVOKE}({a}))", ev.holder)
+        let gives = self
+            .types
+            .of(e)
+            .filter(|t| **t != Type::Void)
+            .cloned();
+        if let Some(raiser) = self.raiser(&ev.delegate, args, gives.as_ref()) {
+            let a = self.args(args);
+            let sep = if a.is_empty() { "" } else { ", " };
+            return format!("{raiser}({}{sep}{a})", ev.holder);
+        }
+        self.raised_inline(ev, args, gives.as_ref())
+    }
+
+    /// Event `ev` raised where no raiser can be written (a type parameter
+    /// in its signature): a loop over its handlers in a lambda called at
+    /// once, each argument computed first, once.
+    fn raised_inline(&mut self, ev: &EventRef, args: &[Arg], gives: Option<&Type>) -> String {
+        let mut take = String::new();
+        let mut names = Vec::new();
+        for a in args {
+            let v = self.args(std::slice::from_ref(a));
+            let name = self.temp();
+            let _ = write!(take, "{VAR} {name} = {v}; ");
+            names.push(name);
+        }
+        let (hs, i, n) = (self.temp(), self.temp(), self.temp());
+        let _ = write!(take, "{VAR} {hs} = {}.{EVENT_HANDLERS}();", ev.holder);
+        let call = format!("{hs}.{LIST_GET}({i}).{INVOKE}({})", names.join(", "));
+        let each = format!("{FOR} ({INT} {i} = 0, {n} = {hs}.{LIST_SIZE}(); {i} < {n}; {i}++)");
+        match gives {
+            Some(t) => {
+                let (t, out) = (self.java(t, true), self.temp());
+                format!(
+                    "(({SUPPLIER}<{t}>) () -> {{ {take} {t} {out} = {NULL}; {each} {out} = {call}; {RETURN} {out}; }}).get()"
+                )
+            }
+            None => format!("(({RUNNABLE}) () -> {{ {take} {each} {call}; }}).run()"),
+        }
     }
 
     /// What a bus event carries, as a Java class literal: its delegate's

@@ -51,6 +51,8 @@ pub const RUNTIME: &str = runtime!();
 /// Java's classes compiled code names.
 pub const OBJECTS: &str = concat!(java_util!(), sep!(), "Objects");
 pub const MAP: &str = concat!(java_util!(), sep!(), "Map");
+/// What runs a block of code in place of an expression (`java.lang`'s).
+pub const RUNNABLE: &str = "Runnable";
 pub const SUPPLIER: &str = concat!(java_util!(), sep!(), "function", sep!(), "Supplier");
 /// The precision a `decimal`'s division keeps (.NET's 28–29 digits: 34).
 pub const DIVISION_CONTEXT: &str =
@@ -129,11 +131,9 @@ pub const BUS_EMIT: &str = concat!(bus_api!(), sep!(), "emit");
 pub const BUS_ON: &str = concat!(bus_api!(), sep!(), "on");
 pub const BUS_PRIORITY: &str = "0";
 /// A `[Provide]` method answering at its address; the file's class doing
-/// what it does when the mods load, made as a mod is; a Yog service's
-/// record called.
+/// what it does when the mods load, made as a mod is.
 pub const BUS_PROVIDE: &str = concat!(bus_api!(), sep!(), "provide");
 pub const LOAD: &str = "$Load";
-pub const SERVICE_CALL: &str = "call";
 /// A content's objects made by its class once registered (`BlockObject.register`).
 pub const OBJECTS_REGISTER: &str = "register";
 /// A `command`'s class (`ChargeCommand`), its ways of running declared
@@ -194,13 +194,17 @@ pub const PARSE_INT: &str = "Integer.parseInt";
 pub const PARSE_FLOAT: &str = "Float.parseFloat";
 pub const PARSE_DOUBLE: &str = "Double.parseDouble";
 /// An `event`'s handlers (the runtime's `Event`): added (by a key),
-/// removed by it, each called, the last's value given; a method's key
-/// made of its object and itself (`List.of(c, "Times#0")`).
+/// removed by it, the list of them as they are; a method's key made of its
+/// object and itself (`List.of(c, "Times#0")`).
 pub const EVENT_CLASS: &str = concat!(runtime!(), sep!(), "Event");
 pub const EVENT_ADD: &str = "add";
 pub const EVENT_REMOVE: &str = "remove";
-pub const EVENT_EACH: &str = "each";
-pub const EVENT_LAST: &str = "last";
+pub const EVENT_HANDLERS: &str = "handlers";
+/// A list's size and its item at an index (`java.util.List`'s).
+pub const LIST_SIZE: &str = "size";
+pub const LIST_GET: &str = "get";
+/// The file class's helper raising events of one signature (`$raise1`).
+pub const RAISER: &str = "$raise";
 pub const KEY_OF: &str = concat!(java_util!(), sep!(), "List", sep!(), "of");
 pub const OVERLOAD_SEP: &str = "#";
 

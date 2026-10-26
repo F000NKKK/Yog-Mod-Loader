@@ -5,6 +5,7 @@ import dev.yog.bus.YogEvents;
 import dev.yog.bus.YogTypes;
 import dev.yog.script.Action1;
 import dev.yog.script.Event;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -101,7 +102,8 @@ public abstract class BlockObject {
             return;
         }
         try {
-            which.apply(o).each(h -> h.Invoke(player));
+            List<Action1<String>> hs = which.apply(o).handlers();
+            for (int i = 0, n = hs.size(); i < n; i++) hs.get(i).Invoke(player);
         } catch (RuntimeException e) {
             YogLog.error("Yog Script: a block's handler panicked: " + e.getMessage());
         }

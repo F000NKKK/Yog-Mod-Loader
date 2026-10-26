@@ -174,7 +174,11 @@ fn events_are_handlers() {
     let out = class.source;
     for want in [
         "public final dev.yog.script.Event<dev.yog.script.Action1<String>> Clicked = new dev.yog.script.Event<>();",
-        "Clicked.each(($t",
+        // Raised by the file's raiser of its signature: no lambda, its
+        // arguments computed once.
+        "$raise1(Clicked, \"me\")",
+        "private static void $raise1(dev.yog.script.Event<dev.yog.script.Action1<String>> ",
+        ".handlers();",
         "b.Clicked.add(java.util.List.of(b, \"Saw#0\"), b::Saw);",
         "b.Clicked.remove(java.util.List.of(b, \"Saw#0\"));",
         "dev.yog.api.YogBus.on(\"charge:overloaded\", 0, Overloaded.class,",

@@ -4,6 +4,7 @@ import dev.yog.YogLog;
 import dev.yog.bus.YogEvents;
 import dev.yog.script.Action1;
 import dev.yog.script.Event;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -28,7 +29,9 @@ public abstract class ItemObject {
                 Supplier<? extends ItemObject> m = MAKERS.get(e.itemId());
                 if (m != null) {
                     try {
-                        m.get().Use.each(h -> h.Invoke(e.playerName()));
+                        List<Action1<String>> hs = m.get().Use.handlers();
+                        String player = e.playerName();
+                        for (int i = 0, n = hs.size(); i < n; i++) hs.get(i).Invoke(player);
                     } catch (RuntimeException ex) {
                         YogLog.error("Yog Script: an item's handler panicked: " + ex.getMessage());
                     }

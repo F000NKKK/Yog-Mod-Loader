@@ -25,6 +25,8 @@ public final class Scheduler {
     /** Due at a moment of real time ({@link System#nanoTime}). */
     private final PriorityQueue<Timer> clock = new PriorityQueue<>();
     private List<Waiting> waiting = new ArrayList<>();
+    /** The list {@link #waiting} is checked into next: the last tick's, emptied. */
+    private List<Waiting> spare = new ArrayList<>();
 
     private Scheduler() {}
 
@@ -91,8 +93,13 @@ public final class Scheduler {
         now++;
         runDue(ticks, now);
         runDue(clock, System.nanoTime());
+        if (waiting.isEmpty()) {
+            return;
+        }
+        // The two lists take turns: nothing allocated a tick.
         List<Waiting> checked = waiting;
-        waiting = new ArrayList<>();
+        waiting = spare;
+        spare = checked;
         for (Waiting w : checked) {
             boolean holds;
             try {
@@ -107,6 +114,7 @@ public final class Scheduler {
                 waiting.add(w);
             }
         }
+        checked.clear();
     }
 
     /** What's due in {@code queue} by {@code at}, run. */
