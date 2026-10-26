@@ -28,12 +28,15 @@ fn values_fit_their_types() {
     );
     // Widening, literals of any number, units.
     let fine =
-        "f64 F(i32 a) {\n    i64 b = a;\n    f32 c = 2.0;\n    Ticks t = 5s;\n    return a;\n}\n";
+        "f64 F(i32 a) {\n    i64 b = a;\n    f32 c = 2.0;\n    Ticks t = 5;\n    Seconds s = 250ms;\n    return a;\n}\n";
     assert!(codes(fine).is_empty(), "{:?}", codes(fine));
-    assert_eq!(
-        codes("void F() {\n    Seconds s = 5t;\n}\n"),
-        [script_problem::TYPE_MISMATCH]
-    );
+    // Real time and the game's ticks never mix (its tick rate changes).
+    for mixed in ["Seconds s = 5t;", "Ticks t = 5s;"] {
+        assert_eq!(
+            codes(&format!("void F() {{\n    {mixed}\n}}\n")),
+            [script_problem::TYPE_MISMATCH]
+        );
+    }
 }
 
 #[test]

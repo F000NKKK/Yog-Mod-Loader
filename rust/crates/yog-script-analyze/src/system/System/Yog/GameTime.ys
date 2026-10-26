@@ -1,0 +1,18 @@
+namespace System.Yog;
+
+using System.Threading.Tasks;
+
+/// The game's time: its side's ticks, which stop with the game (paused,
+/// lagging) where real time doesn't.
+[Intrinsic]
+public static class GameTime {
+    /// Done once `delay` ticks of its side have passed (`GameTime.Delay(20t)`).
+    public static Task Delay(Ticks delay);
+    /// Done at its side's next tick.
+    public static Task NextTick();
+    /// Done at the first tick `condition` holds, checked each tick.
+    public static Task Until(Func<bool> condition);
+    /// `action` run every `period` ticks of its side; the task finishes
+    /// only when `action` panics.
+    public static Task Every(Ticks period, Action action);
+}

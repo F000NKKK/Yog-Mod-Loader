@@ -120,7 +120,10 @@ impl Type {
             (Type::Null, Type::Nullable(_)) => true,
             (Type::Nullable(a), Type::Nullable(b)) => a.converts_to(b),
             (a, Type::Nullable(b)) => a.converts_to(b),
-            (Type::Unit(a), Type::Unit(b)) => a == SECONDS && b == TICKS,
+            // Quantities of different units never mix: seconds are real
+            // time, ticks the game's (its rate changes), made one another
+            // only by the game.
+            (Type::Unit(_), Type::Unit(_)) => false,
             // A plain number is a quantity of any unit (`20` ticks), as
             // literals are; quantities of different units never mix.
             (n, Type::Unit(_)) => builtin::is_number(n),

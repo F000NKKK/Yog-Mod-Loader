@@ -31,6 +31,8 @@ public final class YsMods {
 
     /** Every {@code .yog} in {@code modsDir}: its scripts for game version {@code mcVersion} loaded. */
     public static void load(Path modsDir, String mcVersion) {
+        // Each side's ticks drive its tasks (what an `await` goes on on).
+        dev.yog.script.threading.tasks.Scheduler.listen();
         String folder = YogNames.Archive.SCRIPTS + ZIP_SEP + mcVersion + ZIP_SEP;
         try (DirectoryStream<Path> mods = Files.newDirectoryStream(modsDir, "*" + MOD_EXT)) {
             for (Path mod : mods) {

@@ -95,13 +95,15 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.host.String.class, () -> StringCompanion.TYPE),
             java.util.Map.entry(String.class, () -> StringCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.text.StringBuilder.class, () -> StringBuilderCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.threading.tasks.Task.class, () -> TaskCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.threading.tasks.Task1.class, () -> Task1Companion.TYPE),
             java.util.Map.entry(dev.yog.script.Type.class, () -> TypeCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.host.UInt16.class, () -> UInt16Companion.TYPE),
             java.util.Map.entry(dev.yog.script.host.UInt32.class, () -> UInt32Companion.TYPE),
             java.util.Map.entry(dev.yog.script.host.UInt64.class, () -> UInt64Companion.TYPE),
-            java.util.Map.entry(dev.yog.script.Units.class, () -> UnitsCompanion.TYPE),
             java.util.Map.entry(Void.class, () -> VoidCompanion.TYPE),
-            java.util.Map.entry(void.class, () -> VoidCompanion.TYPE));
+            java.util.Map.entry(void.class, () -> VoidCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.yog.GameTime.class, () -> GameTimeCompanion.TYPE));
 
     public static dev.yog.script.Type of(Class<?> c) {
         java.util.function.Supplier<dev.yog.script.Type> t = TYPES.get(c);

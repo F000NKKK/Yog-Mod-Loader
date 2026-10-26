@@ -1,0 +1,40 @@
+namespace System.Threading.Tasks;
+
+/// Work that finishes later — a delay, an `async` method — awaited without
+/// stopping what runs: what awaits it goes on on its own side (in the
+/// game, at that side's tick it's done by). Its panic is its awaiter's.
+/// Game time (ticks) is `System.Yog.GameTime`'s.
+[Intrinsic]
+public class Task {
+    /// Done: it finished or it failed.
+    public bool IsCompleted { get; }
+    public bool IsCompletedSuccessfully { get; }
+    /// It failed: awaiting it panics as it did.
+    public bool IsFaulted { get; }
+
+    /// A task already done.
+    public static Task CompletedTask { get; }
+    /// Done once `delay` has passed, in real time (`Task.Delay(5s)`); what
+    /// awaits it goes on on its own side, as .NET's synchronization context.
+    public static Task Delay(Seconds delay);
+    public static Task Delay(TimeSpan delay);
+    /// Done at the next turn of its side (in the game, its next tick).
+    public static Task Yield();
+    /// A task already done with `result`.
+    public static Task<TResult> FromResult<TResult>(TResult result);
+    /// Done when every one of `tasks` is; failed as the first that fails.
+    public static Task WhenAll(Task[] tasks);
+    /// Done when one of `tasks` is: that one.
+    public static Task<Task> WhenAny(Task[] tasks);
+
+    /// `continuation` run with it once it's done; done after it.
+    public Task ContinueWith(Action<Task> continuation);
+}
+
+/// A task that finishes with a `TResult`.
+[Intrinsic]
+public class Task<TResult> : Task {
+    /// What it finished with; a panic while it isn't done (await it), and
+    /// its failure's when it failed.
+    public TResult Result { get; }
+}
