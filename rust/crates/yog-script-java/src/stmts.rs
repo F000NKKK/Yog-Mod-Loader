@@ -252,11 +252,7 @@ impl Gen<'_> {
             Some(op) => self.op_value(place, op, &format!("{target}.{n}()"), v),
             None => v.to_string(),
         };
-        let setter = format!(
-            "{}{ACCESSOR_SEP}{n}",
-            yog_script_analyze::words::set::WORD.text
-        );
-        Some(format!("{target}.{setter}({value})"))
+        Some(format!("{target}.{}({value})", setter(&n)))
     }
 
     /// `p op= v` (`p` the place written): Java's, or — when the place's type
@@ -461,4 +457,12 @@ impl Gen<'_> {
         self.code.line(format!("{RETURN} {NULL};"));
         self.code.close(");");
     }
+}
+
+/// Property `n`'s setter in Java: the CLR's `set_Name`.
+pub(crate) fn setter(n: &str) -> String {
+    format!(
+        "{}{ACCESSOR_SEP}{n}",
+        yog_script_analyze::words::set::WORD.text
+    )
 }

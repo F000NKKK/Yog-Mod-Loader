@@ -63,6 +63,10 @@ impl Expr {
                     f(&arm.value);
                 }
             }
+            ExprKind::With { expr, inits } => {
+                f(expr);
+                inits.iter().for_each(|(_, v)| f(v));
+            }
             _ => self.each_wrapped(f),
         }
     }

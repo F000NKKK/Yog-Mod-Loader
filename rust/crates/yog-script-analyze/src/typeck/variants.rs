@@ -175,3 +175,33 @@ fn cases_of(p: &Pattern, covered: &mut Vec<String>) -> bool {
         _ => true,
     }
 }
+
+impl Checker<'_, '_, '_> {
+    /// `x with { Y = 64 }`: a copy of a record or a struct (`x`'s type),
+    /// each member named one of it, its value fitting it.
+    pub(super) fn with(&mut self, on: &Expr, inits: &[(crate::ast::Name, Expr)], at: Span) -> Type {
+        let t = self.expr(on);
+        let copied = match t.non_null() {
+            Type::Own(name, args) => self
+                .own
+                .get(name, args.len())
+                .is_some_and(|o| o.record || !o.heap),
+            _ => !t.known(),
+        };
+        if !copied {
+            self.report.error(
+                script_problem::TYPE_MISMATCH,
+                at,
+                format!("`with` copies a record or a struct, not a `{t}`"),
+            );
+        }
+        for (name, value) in inits {
+            let member = self.own_member(&t, &name.text);
+            if !member.known() && t.known() {
+                self.unknown_member(&t, &name.text, name.span);
+            }
+            self.fits(value, &member);
+        }
+        t
+    }
+}

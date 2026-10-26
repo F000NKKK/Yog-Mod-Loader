@@ -129,6 +129,11 @@ impl Resolver<'_, '_> {
                 self.expr(then);
                 self.expr(otherwise);
             }
+            // A member's name is the copied type's: only its values resolved.
+            ExprKind::With { expr, inits } => {
+                self.expr(expr);
+                inits.iter().for_each(|(_, v)| self.expr(v));
+            }
             ExprKind::Switch { expr, arms } => {
                 self.expr(expr);
                 for a in arms {

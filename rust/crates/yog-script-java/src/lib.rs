@@ -30,6 +30,7 @@ mod switch;
 mod trees;
 mod tuples;
 mod types;
+mod with;
 
 use yog_codegen::Code;
 use yog_codegen_java::Java;

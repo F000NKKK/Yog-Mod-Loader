@@ -52,11 +52,12 @@ impl Gen<'_> {
 }
 
 /// Whether `e` computes a value before its statement (a `switch`, a
-/// `try`): it can't stand where Java evaluates it apart.
+/// `try`, a `with`): it can't stand where Java evaluates it apart.
 pub(crate) fn hoists(e: &Expr) -> bool {
     let mut found = matches!(
         e.kind,
         ExprKind::Switch { .. }
+            | ExprKind::With { .. }
             | ExprKind::Unary {
                 op: yog_script_analyze::ast::UnOp::Try,
                 ..

@@ -6,7 +6,7 @@ use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
 use yog_script_ids::java::{BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NULL, ZERO, ZERO_CHAR};
-use yog_script_ids::jvm::{EQUALS, HELPERS, OBJECT, OBJECTS, REQUIRE_NON_NULL_ELSE};
+use yog_script_ids::jvm::{COPY, EQUALS, HELPERS, OBJECT, OBJECTS, REQUIRE_NON_NULL_ELSE};
 use yog_script_ids::members::TO_STRING;
 
 use super::Gen;
@@ -21,7 +21,7 @@ impl Gen<'_> {
         let is_struct = matches!(self.types.of(e), Some(Type::Own(n, args)) if self.index.kind(&(n.clone(), args.len())) == Some(Kind::Struct))
             || Self::is_tuple(self.types.of(e));
         if is_struct && matches!(e.kind, ExprKind::Ident(_) | ExprKind::Member { .. }) {
-            format!("{v}.copy()")
+            format!("{v}.{COPY}()")
         } else {
             v
         }
@@ -113,6 +113,7 @@ impl Gen<'_> {
                 None => self.lambda(e, params, body),
             },
             ExprKind::Switch { expr, arms } => self.switch(e, expr, arms),
+            ExprKind::With { expr, inits } => self.with(e, expr, inits),
             ExprKind::Is { expr, pattern } => self.is(expr, pattern),
             ExprKind::As { expr, ty } => {
                 let (v, t, tmp) = (self.expr(expr), self.written(ty, true), self.temp());

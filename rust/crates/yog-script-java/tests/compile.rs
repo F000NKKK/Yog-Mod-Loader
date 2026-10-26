@@ -38,6 +38,22 @@ fn a_program_compiles() {
     }
 }
 
+/// `with`: a record made again of its components, a struct's copy set.
+#[test]
+fn with_makes_a_changed_copy() {
+    let src = "record Pos(i32 X, i32 Y) {\n    public string Tag = \"t\";\n}\n\
+               struct Pt {\n    public i32 X;\n}\n\
+               Pos F(Pos p) => p with { Y = 64 };\nPt G(Pt p) => p with { X = 2 };\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "return new Pos($t1.X(), $t2, $t1.Tag());",
+        "var $t3 = p.copy();",
+        "$t3.X = $t4;",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
 #[test]
 fn what_isnt_written_yet_is_said() {
     let src = "void F(ref i32 x) { }\n";

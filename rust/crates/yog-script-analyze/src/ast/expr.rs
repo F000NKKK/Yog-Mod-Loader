@@ -114,6 +114,11 @@ pub enum ExprKind {
         then: Box<Expr>,
         otherwise: Box<Expr>,
     },
+    /// `x with { Y = 64 }`: a copy, members changed.
+    With {
+        expr: Box<Expr>,
+        inits: Vec<(Name, Expr)>,
+    },
     /// `x switch { … }`.
     Switch {
         expr: Box<Expr>,

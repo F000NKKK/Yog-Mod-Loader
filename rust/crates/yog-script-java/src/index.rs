@@ -42,6 +42,9 @@ pub(crate) struct Info {
     /// A record's constructor's parameters, by name, in order: what taking
     /// one apart gives (`let (k, v) = pair`).
     pub record_params: Vec<String>,
+    /// A record's own fields, components after its parameters (`with`
+    /// makes it of them all).
+    pub record_fields: Vec<String>,
 }
 
 #[derive(Default)]
@@ -106,6 +109,7 @@ impl Index {
                         takes_args: false,
                         is_abstract: false,
                         record_params: Vec::new(),
+                        record_fields: Vec::new(),
                     };
                     self.types
                         .insert((m.name.text.clone(), arity(&m.generics)), info);
@@ -178,6 +182,7 @@ impl Index {
                 .flatten()
                 .map(|p| p.name.text.clone())
                 .collect(),
+            record_fields: own_fields(body),
         };
         self.types
             .insert((name.text.clone(), arity(&header.generics)), info);
@@ -208,6 +213,7 @@ impl Index {
             takes_args: false,
             is_abstract: false,
             record_params: Vec::new(),
+            record_fields: Vec::new(),
         };
         self.types
             .insert((name.text.clone(), arity(generics)), info);
@@ -333,6 +339,20 @@ impl Index {
             .map_or(&[], |i| i.record_params.as_slice())
     }
 
+    /// Record `t`'s components, in order: its parameters, then its own fields.
+    pub fn record_components(&self, t: &TypeRef) -> Vec<&str> {
+        self.types
+            .get(t)
+            .filter(|i| i.kind == Kind::Record)
+            .map_or_else(Vec::new, |i| {
+                i.record_params
+                    .iter()
+                    .chain(&i.record_fields)
+                    .map(String::as_str)
+                    .collect()
+            })
+    }
+
     /// Whether type `t` is made by `new` and keeps the type arguments it's
     /// made with (`Typed`): a generic class or struct, not abstract — the
     /// compiler's, or one the runtime writes by hand.
@@ -368,6 +388,18 @@ impl Index {
                 || i.bases.iter().any(|b| self.called(b, name))
         })
     }
+}
+
+/// A type's own fields: neither static nor constant.
+fn own_fields(body: &[Decl]) -> Vec<String> {
+    use yog_script_analyze::ast::Modifier;
+    body.iter()
+        .filter(|m| !m.has(Modifier::Static) && !m.has(Modifier::Const))
+        .filter_map(|m| match &m.kind {
+            DeclKind::Field(f) => Some(f.name.text.clone()),
+            _ => None,
+        })
+        .collect()
 }
 
 /// A base as written: its name and arity (`ICollection<T>` is `("ICollection", 1)`).

@@ -62,6 +62,20 @@ fn members_and_calls_are_the_types() {
     assert!(codes(src).is_empty(), "{:?}", codes(src));
 }
 
+/// `with` copies a record or a struct, its members named and fitting.
+#[test]
+fn with_copies_records_and_structs() {
+    let types = "record Pos(i32 X, i32 Y);\nstruct Pt {\n    public i32 X;\n}\nclass Box {\n    public i32 X;\n}\n";
+    let ok = format!("{types}Pos F(Pos p) => p with {{ Y = 1 }};\nPt G(Pt p) => p with {{ X = 2 }};\n");
+    assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+    let class = format!("{types}Box F(Box b) => b with {{ X = 1 }};\n");
+    assert_eq!(codes(&class), [script_problem::TYPE_MISMATCH]);
+    let unknown = format!("{types}Pos F(Pos p) => p with {{ Z = 1 }};\n");
+    assert_eq!(codes(&unknown), [script_problem::UNKNOWN_MEMBER]);
+    let wrong = format!("{types}Pos F(Pos p) => p with {{ X = \"1\" }};\n");
+    assert_eq!(codes(&wrong), [script_problem::TYPE_MISMATCH]);
+}
+
 /// The game's classes by C#'s names, and their sides.
 fn game() -> ClassIndex {
     let m = |name: &str, desc: &str| Member {
