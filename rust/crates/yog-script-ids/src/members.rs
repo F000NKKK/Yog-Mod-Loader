@@ -39,3 +39,16 @@ pub const IS_ERR: &str = "IsErr";
 pub const UNWRAP: &str = "Unwrap";
 pub const EXPECT: &str = "Expect";
 pub const UNWRAP_OR: &str = "UnwrapOr";
+
+// `System.Linq.Enumerable`'s, a query's clauses become (`from … select`).
+pub const WHERE: &str = "Where";
+pub const SELECT: &str = "Select";
+pub const SELECT_MANY: &str = "SelectMany";
+pub const ORDER_BY: &str = "OrderBy";
+pub const ORDER_BY_DESCENDING: &str = "OrderByDescending";
+pub const THEN_BY: &str = "ThenBy";
+pub const THEN_BY_DESCENDING: &str = "ThenByDescending";
+pub const GROUP_BY: &str = "GroupBy";
+pub const JOIN: &str = "Join";
+pub const GROUP_JOIN: &str = "GroupJoin";
+pub const CAST: &str = "Cast";

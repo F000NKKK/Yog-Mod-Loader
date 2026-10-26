@@ -385,3 +385,18 @@ fn tuples_are_value_tuples() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn a_query_is_linqs_calls() {
+    let src = "record Player(string Name, i32 Level);\n\
+               IEnumerable<string> High(List<Player> ps) => from p in ps where p.Level > 10 orderby p.Name select p.Name;\n\
+               IEnumerable<i32> Pairs(i32[] xs, i32[] ys) => from x in xs from y in ys select x * y;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "dev.yog.script.linq.Enumerable.Select(dev.yog.script.linq.Enumerable.OrderBy(dev.yog.script.linq.Enumerable.Where(ps, (p) -> {",
+        "dev.yog.script.linq.Enumerable.SelectMany(dev.yog.script.host.Array.AsList(xs), (x) -> {",
+        "final var x = $t",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

@@ -13,6 +13,8 @@ public static class Enumerable {
     public static IEnumerable<TResult> Select<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, TResult> selector);
     public static IEnumerable<TResult> Select<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, i32, TResult> selector);
     public static IEnumerable<TResult> SelectMany<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector);
+    /// Each item paired with each of what `collectionSelector` gives for it, made one by `resultSelector`.
+    public static IEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this in IEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector);
     /// Its items that are `TResult`s.
     [Reified]
     public static IEnumerable<TResult> OfType<TResult>(this in IEnumerable<object> source);

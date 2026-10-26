@@ -13,6 +13,7 @@ pub(crate) mod patch;
 mod pattern;
 mod postfix;
 mod primary;
+mod query;
 mod types;
 
 use yog_ids::script_problem;

@@ -143,4 +143,6 @@ words! {
     // Patches: items, points, selectors.
     add, before, after, inside, replace, read, write, priority, uses, local,
     around, at, call, constant, first, last,
+    // Queries.
+    from, select, group, by, orderby, ascending, descending, into, join, on, equals,
 }

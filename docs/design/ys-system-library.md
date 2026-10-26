@@ -249,5 +249,6 @@ surface's delegates.
    its implicit conversion), `Random`, `StringBuilder` (`System.Text`, an
    implicit `using`), `Lazy` (done; numbers and `bool`s put in text are
    written as .NET writes them: `2`, `1E+20`, `True`, `∞`), `TimeSpan`, `DateTime` with `DayOfWeek`, `Void` (done), `System.Numerics`' vectors
-   (done; matrices, quaternions next); query syntax.
+   (done; matrices, quaternions next); query syntax (done: every clause, more
+   than one range variable carried as a tuple, C#'s transparent identifiers).
 4. `System.Reflection`, `System.Linq.Expressions`.

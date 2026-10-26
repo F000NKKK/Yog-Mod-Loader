@@ -422,3 +422,21 @@ fn tuples_are_csharps() {
         assert_eq!(codes(bad), [code], "{bad}");
     }
 }
+
+#[test]
+fn queries_are_linqs_calls() {
+    let ok = "record Player(string Name, i32 Level, string Team);\nrecord Team(string Name, i32 Rank);\n\
+              List<string> High(List<Player> ps) => (from p in ps where p.Level > 10 orderby p.Level descending, p.Name select p.Name).ToList();\n\
+              IEnumerable<string> Teams(List<Player> ps, List<Team> ts) =>\n\
+                  from p in ps join t in ts on p.Team equals t.Name where t.Rank < 3 select p.Name + t.Name;\n\
+              IEnumerable<i32> Pairs(i32[] xs, i32[] ys) => from x in xs from y in ys let s = x + y where s > 2 select s * x;\n\
+              IEnumerable<IGrouping<i32, string>> ByLevel(List<Player> ps) => from p in ps group p.Name by p.Level;\n\
+              IEnumerable<i32> Sizes(List<Player> ps) => from p in ps group p by p.Team into g select g.Count();\n\
+              IEnumerable<i32> Counts(List<Player> ps, List<Team> ts) => from t in ts join p in ps on t.Name equals p.Team into members select members.Count();\n\
+              i32 Name(i32 from) => from + 1;\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert_eq!(
+        codes("IEnumerable<i32> F(List<string> xs) => from x in xs select x.Length + x;\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}

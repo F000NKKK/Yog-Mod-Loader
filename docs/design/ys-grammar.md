@@ -409,6 +409,12 @@ literal     = INT | FLOAT | UNIT | STRING | RAW_STRING | CHAR | TEXT | CONTENT |
 tuple       = '(' expr ',' expr (',' expr)* ')' ;
 collection  = '[' (element (',' element)* ','?)? ']' ;            (* a list, a set or a map, by its target type *)
 element     = expr ('=>' expr)? | '..' expr ;                     (* k => v in a map; ..xs spreads *)
+query       = 'from' type? IDENT 'in' expr query_body ;             (* C#'s query: the LINQ calls it reads as *)
+query_body  = ( 'from' type? IDENT 'in' expr | 'let' IDENT '=' expr | 'where' expr
+              | 'join' type? IDENT 'in' expr 'on' expr 'equals' expr ('into' IDENT)?
+              | 'orderby' expr ('ascending' | 'descending')? (',' expr ('ascending' | 'descending')?)* )*
+              ( 'select' expr | 'group' expr 'by' expr ) ('into' IDENT query_body)? ;
+                                                                     (* its words name things outside a query *)
 new_expr    = 'new' type? call_args? initializer?                  (* new Pos(1, 2, 3); new(4) where the type is known *)
             | 'new' type '[' expr (',' expr)* ']' rank* array_init?   (* new i32[16], new i32[4, 4], new i32[3][] *)
             | 'new' type rank array_init                           (* new string[] { "a", "b" } *)

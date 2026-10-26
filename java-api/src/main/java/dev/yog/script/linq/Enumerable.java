@@ -60,6 +60,12 @@ public final class Enumerable {
         return Sequence.of(() -> stream(source).flatMap(x -> stream(selector.Invoke(x))));
     }
 
+    public static <T, C, R> IEnumerable<R> SelectMany(
+            IEnumerable<T> source, Func2<T, IEnumerable<C>> collectionSelector, Func3<T, C, R> resultSelector) {
+        return Sequence.of(() -> stream(source)
+                .flatMap(x -> stream(collectionSelector.Invoke(x)).map(c -> resultSelector.Invoke(x, c))));
+    }
+
     /** Its items that are {@code type}'s ({@code [Reified]}: the class handed first). */
     @SuppressWarnings("unchecked")
     public static <R> IEnumerable<R> OfType(Class<?> type, IEnumerable<Object> source) {
