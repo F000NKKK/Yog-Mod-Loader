@@ -245,3 +245,37 @@ fn locals_are_dropped_at_their_scopes_end() {
     };
     assert_eq!(out, "b;a;|early;", "the last made dropped first; made, c moved on");
 }
+
+/// Iterators, as C#'s: items given one at a time as they're asked for
+/// (an endless one taken from), `yield break` ending it, each walk its own.
+#[test]
+fn iterators_yield_their_items() {
+    let src = "public static class I {\n\
+                   public static i32 Made = 0;\n\
+                   static IEnumerable<i32> Squares(i32 upTo) {\n\
+                       for (let mut i = 1; i <= upTo; i += 1) {\n\
+                           Made += 1;\n\
+                           if (i * i > 50) { yield break; }\n\
+                           yield return i * i;\n\
+                       }\n\
+                   }\n\
+                   static IEnumerable<string> Endless() {\n\
+                       let mut n = 0;\n\
+                       while (true) { n += 1; yield return \"x\" + n; }\n\
+                   }\n\
+                   public static string Run() {\n\
+                       let mut text = \"\";\n\
+                       foreach (let s in Squares(100)) { text += s + \",\"; }\n\
+                       let squares = Squares(3);\n\
+                       let mut twice = 0;\n\
+                       foreach (let s in squares) { twice += s; }\n\
+                       foreach (let s in squares) { twice += s; }\n\
+                       let first = Endless().Take(3).ToList();\n\
+                       return text + \" \" + twice + \" \" + first.Count + first[2] + \" \" + Made;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("i.ys", src)], "t.IScript.I.Run()") else {
+        return;
+    };
+    assert_eq!(out, "1,4,9,16,25,36,49, 28 3x3 14");
+}

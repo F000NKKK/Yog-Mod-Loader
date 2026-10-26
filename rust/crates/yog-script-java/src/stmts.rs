@@ -202,6 +202,10 @@ impl Gen<'_> {
                     self.code.line(format!("{CONTINUE};"));
                 }
             },
+            // An iterator's item given (its machine leaving until the next
+            // is asked for), or its end.
+            Stmt::Yield(Some(v), _) => self.yield_item(v),
+            Stmt::Yield(None, _) => self.async_return(None),
             // An `async` method's: its task finished.
             Stmt::Return(value, _) if self.machine.is_some() => {
                 let v = value.as_ref().map(|v| self.handed_expr(v));

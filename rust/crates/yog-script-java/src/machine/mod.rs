@@ -22,7 +22,8 @@ use yog_script_ids::java::{
 };
 use yog_script_ids::jvm::OBJECT;
 use yog_script_ids::jvm::tasks::{
-    ASYNC, FINISH, LOOP, MACHINE, MADE, PARAM_FIELD, RUN, START, STATE, STEP, TASK,
+    ASYNC, FINISH, ITERATION, ITERATION_SOURCE, LOOP, MACHINE, MADE, PARAM_FIELD, RUN, START,
+    STATE, STEP, TASK, YIELD,
 };
 
 use super::Gen;
@@ -51,6 +52,8 @@ pub(crate) struct Shape<'a> {
     /// it's an `async void`, started, its panic logged.
     pub task: bool,
     pub gives_value: bool,
+    /// An iterator's: `gives` its items' type, each `yield return` one.
+    pub iterator: bool,
 }
 
 /// An async method's or lambda's code.
@@ -88,10 +91,49 @@ impl Gen<'_> {
             gives: task_arg.map_or_else(|| OBJECT.to_string(), |t| self.written(t, true)),
             task: m.ret.is_some(),
             gives_value: task_arg.is_some(),
+            iterator: false,
         };
         self.code.open(head);
         self.machine_of(&shape);
         self.code.close("");
+    }
+
+    /// Iterator method `m` (Java's `head`): a sequence making its machine
+    /// for each walk, each `yield return` an item it gives.
+    pub(crate) fn iterator_method(&mut self, head: &str, m: &Method) {
+        let Some(MethodBody::Block(b)) = &m.body else {
+            return self.not_yet("an iterator without a block", m.name.span);
+        };
+        let item = match m.ret.as_ref().map(|t| &t.kind) {
+            Some(TypeKind::Path { args, .. }) => args.first(),
+            _ => None,
+        };
+        let shape = Shape {
+            params: m
+                .params
+                .iter()
+                .map(|p| (p.name.text.clone(), self.written(&p.ty, false)))
+                .collect(),
+            body: Body::Block(&b.stmts),
+            gives: item.map_or_else(|| OBJECT.to_string(), |t| self.written(t, true)),
+            task: false,
+            gives_value: false,
+            iterator: true,
+        };
+        self.code.open(head);
+        self.machine_of(&shape);
+        self.code.close("");
+    }
+
+    /// `yield return v;` in an iterator's machine: `v` given, the machine
+    /// leaving until the next item is asked for.
+    pub(crate) fn yield_item(&mut self, v: &Expr) {
+        let v = self.handed_expr(v);
+        let state = self.new_state();
+        self.code.line(format!("{YIELD}({v});"));
+        self.code.line(format!("{STATE} = {state};"));
+        self.code.line(format!("{RETURN};"));
+        self.state_starts(state);
     }
 
     /// An `async` lambda (`e`, of a delegate's type): Java's lambda making
@@ -131,6 +173,7 @@ impl Gen<'_> {
                 .map_or_else(|| OBJECT.to_string(), |t| self.java(t, true)),
             task: *ret != Type::Void,
             gives_value: task_arg.is_some(),
+            iterator: false,
         };
         // Written apart, as a lambda's body: what it computes stays inside.
         let outer = std::mem::take(&mut self.code);
@@ -172,8 +215,9 @@ impl Gen<'_> {
         // Named apart: an async lambda's machine may be inside another's.
         let n = self.temp();
         let (class, made) = (format!("{MACHINE}{n}"), format!("{MADE}{n}"));
+        let base = if shape.iterator { ITERATION } else { ASYNC };
         self.code.open(format!(
-            "{FINAL} {CLASS} {class} {EXTENDS} {ASYNC}<{}>",
+            "{FINAL} {CLASS} {class} {EXTENDS} {base}<{}>",
             shape.gives
         ));
         machine.fields.iter().for_each(|f| {
@@ -181,6 +225,19 @@ impl Gen<'_> {
         });
         self.code.line(step);
         self.code.close("");
+        if shape.iterator {
+            // A machine for each walk, each its own copy of the arguments.
+            self.code
+                .open(format!("{RETURN} {NEW} {ITERATION_SOURCE}<>(() ->"));
+            self.code
+                .line(format!("{FINAL} {VAR} {made} = {NEW} {class}();"));
+            for (param, field) in &params {
+                self.code.line(format!("{made}.{field} = {param};"));
+            }
+            self.code.line(format!("{RETURN} {made};"));
+            self.code.close(");");
+            return;
+        }
         self.code
             .line(format!("{FINAL} {VAR} {made} = {NEW} {class}();"));
         for (param, field) in &params {

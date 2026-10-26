@@ -26,6 +26,7 @@ mod generics;
 mod groups;
 mod indexers;
 mod inherit;
+mod iterators;
 mod lambdas;
 mod lineage;
 mod macro_calls;
@@ -51,6 +52,7 @@ mod written;
 use std::collections::HashMap;
 
 pub use content::content_path;
+pub use iterators::{body_yields, item_of};
 pub use model::Type;
 pub use types::{Message, MethodUse, OperatorUse, Quoted, Types};
 
@@ -82,6 +84,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     side: Side,
     /// What a `return` in the code must give (`None`: not in a method).
     returns: Option<Type>,
+    /// An iterator's item type, while its body is checked (`yield`).
+    yields: Option<Type>,
     /// While a lambda's result is inferred: what its `return`s give.
     inferred: Option<Vec<Type>>,
     /// The file's `using` directives.
@@ -155,6 +159,7 @@ pub(crate) fn check<'d>(
         this: None,
         side: Side::Shared,
         returns: None,
+        yields: None,
         inferred: None,
         directives: names::Directives::collect(&file.decls),
         ns: Vec::new(),

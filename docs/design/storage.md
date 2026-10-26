@@ -11,7 +11,7 @@ implemented), F3 mirrors (`yog-mirror`, implemented), and ys.md §4.2
 |---|---|---|
 | S1 | **Scopes as web storage** (user, 2026-10-21): `session` (while the game runs), `game` (the install), `world`, and the world's parts: `dimension`, `player`, `entity`, `chunk`. A block's state is its chunk's. An item's state is its stack's. | One mental model, and one per place state really lives. |
 | S2 | **State is declared** (ys.md principle 4): `saved` writes it to its owner's scope, `synced` mirrors it to clients that see the owner. Codecs, keys, packets and mirrors are generated. A mod never names a file, a key or a packet. | The language's reason to exist. |
-| S3 | **Yog Data only**: a saved or synced member's type must be Data-able: numbers, `bool`, `string`, `Text`, quantities, enums, records, lists, dictionaries of those, ids, positions, `Player?` (as its uuid). Anything else is a build error, YS0039. | One format everywhere (D1); binary, versioned, small. |
+| S3 | **Yog Data only**: a saved or synced member's type must be Data-able: numbers, `bool`, `string`, `Text`, quantities, enums, records, lists, dictionaries of those, ids, positions, `Player?` (as its uuid). Anything else is a build error, YS0040. | One format everywhere (D1); binary, versioned, small. |
 | S4 | **One store per mod and scope instance**, which yog-storage already has. In it, an owner's state is one record **per declaring type** (a component, or an `extend`'s unnamed one), keyed by owner. | Adding a component never rewrites another's data. A removed component's record is dropped on load, with a warning. |
 | S5 | **Migrations in the declaration**: `saved Energy Energy = 0 was Power: i32;` (ys.md §4.2). The generated reader tries the field, then each `was`, then the default. | Old saves load. No migration scripts. |
 | S6 | **The JVM keeps live state; the native keeps storage.** YS objects hold their fields on the JVM. They are read in when their owner loads and written out when the world saves, over a storage domain on the bus. | Reads and writes are plain field accesses: nothing crosses per access. |
@@ -99,8 +99,8 @@ For each type with `synced` members, the build generates a mirror spec
 
 ## 5. Checks
 
-- **YS0039**: a saved or synced member whose type isn't Data-able (S3).
-- **YS0040**: `was` naming a type the old value can't be read as.
+- **YS0040**: a saved or synced member whose type isn't Data-able (S3).
+- **YS0041**: `was` naming a type the old value can't be read as.
 - A `saved` member of a type with no owner scope (a plain class) is an
   error: state needs an owner.
 - `synced` on client-only code is an error: the server owns state.

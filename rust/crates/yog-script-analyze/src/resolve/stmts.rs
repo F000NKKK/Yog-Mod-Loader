@@ -96,7 +96,7 @@ impl Resolver<'_, '_> {
                 );
             }
             Stmt::Break(_) | Stmt::Continue(_) => {}
-            Stmt::Return(value, _) => self.opt_expr(value.as_ref()),
+            Stmt::Return(value, _) | Stmt::Yield(value, _) => self.opt_expr(value.as_ref()),
             Stmt::Skip(value, at) => self.skip(value.as_ref(), *at),
             Stmt::Expr(e) | Stmt::Value(e) => self.expr(e),
         }

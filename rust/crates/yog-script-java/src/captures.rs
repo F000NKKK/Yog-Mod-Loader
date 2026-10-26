@@ -79,7 +79,7 @@ impl Seen {
                 self.stmt(body, inside);
             }
             Stmt::Block(b) => b.stmts.iter().for_each(|s| self.stmt(s, inside)),
-            Stmt::Return(v, _) | Stmt::Skip(v, _) => {
+            Stmt::Return(v, _) | Stmt::Skip(v, _) | Stmt::Yield(v, _) => {
                 if let Some(v) = v {
                     self.expr(v, inside);
                 }

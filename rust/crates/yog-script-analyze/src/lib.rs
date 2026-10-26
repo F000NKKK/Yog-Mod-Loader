@@ -19,8 +19,8 @@ mod typeck;
 
 pub use typeck::commands::command_arg;
 pub use typeck::{
-    Message, MethodUse, OperatorUse, Quoted, Type, Types, builtin_type, content_path, system_name,
-    system_type,
+    Message, MethodUse, OperatorUse, Quoted, Type, Types, body_yields, builtin_type, content_path,
+    item_of, system_name, system_type,
 };
 pub mod versions;
 pub mod words;

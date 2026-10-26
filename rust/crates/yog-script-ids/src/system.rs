@@ -105,6 +105,10 @@ pub const MATH: &str = "Math";
 pub const LIST: &str = "List";
 pub const DICTIONARY: &str = "Dictionary";
 pub const ENUMERABLE: &str = "IEnumerable";
+/// What an iterator may give besides an `IEnumerable<T>`: its walk, an
+/// async sequence.
+pub const ENUMERATOR: &str = "IEnumerator";
+pub const ASYNC_ENUMERABLE: &str = "IAsyncEnumerable";
 pub const KEY_VALUE_PAIR: &str = "KeyValuePair";
 
 /// A tuple's type (`ValueTuple<T1, …, T7>`), as many items as it may hold.

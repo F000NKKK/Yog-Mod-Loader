@@ -68,6 +68,9 @@ pub enum Stmt {
     Return(Option<Expr>, Span),
     /// `skip value;` in a patch's `before`: the method ends with it.
     Skip(Option<Expr>, Span),
+    /// `yield return value;` (`Some`) or `yield break;` (`None`), in an
+    /// iterator.
+    Yield(Option<Expr>, Span),
     Expr(Expr),
     /// A block lambda's last expression, without `;`: its value.
     Value(Expr),

@@ -191,7 +191,12 @@ impl Gen<'_> {
         }
         let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&m.params));
         let generics = Self::method_type_params(m);
-        if d.has(Modifier::Async) {
+        let yields = yog_script_analyze::body_yields(m.body.as_ref());
+        if yields && d.has(Modifier::Async) {
+            self.not_yet("an `async` iterator", m.name.span);
+        } else if yields {
+            self.with_type_params(generics, |g| g.iterator_method(&head, m));
+        } else if d.has(Modifier::Async) {
             self.with_type_params(generics, |g| g.async_method(&head, m));
         } else {
             self.with_type_params(generics, |g| g.body(&head, m.body.as_ref(), void));

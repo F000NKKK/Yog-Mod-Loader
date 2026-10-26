@@ -87,7 +87,8 @@ pub(crate) fn awaits(e: &Expr) -> bool {
     found
 }
 
-/// Whether statement `s` awaits anywhere in it.
+/// Whether statement `s` leaves its machine anywhere in it: awaits, or
+/// (an iterator's) yields.
 pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
     let all = |stmts: &[Stmt]| stmts.iter().any(stmt_awaits);
     match s {
@@ -115,6 +116,8 @@ pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
         }
         Stmt::Block(b) => all(&b.stmts),
         Stmt::Return(v, _) | Stmt::Skip(v, _) => v.as_ref().is_some_and(awaits),
+        // An iterator's `yield` leaves its machine as an `await` does.
+        Stmt::Yield(..) => true,
         Stmt::Expr(e) | Stmt::Value(e) => awaits(e),
         Stmt::Break(_) | Stmt::Continue(_) => false,
     }

@@ -393,6 +393,11 @@ pub mod tasks {
     pub const TASK: &str = "$task";
     pub const LOCAL_FIELD: &str = "$v";
     pub const PARAM_FIELD: &str = "$p";
+    /// An iterator's machine (`IEnumerator<T>`), the sequence making one
+    /// for each walk (`IEnumerable<T>`), and what gives its next item.
+    pub const ITERATION: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "Iteration");
+    pub const ITERATION_SOURCE: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "IterationSource");
+    pub const YIELD: &str = "$yield";
     /// What a task gives (`Task<T>`'s), and a `Task`'s failure thrown again.
     pub const RESULT: &str = "Result";
     pub const CHECK: &str = "check";

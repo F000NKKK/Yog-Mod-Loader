@@ -72,6 +72,11 @@ impl Checker<'_, '_, '_> {
                 c.branch(body);
             }),
             Stmt::Block(b) => self.block(b),
+            Stmt::Yield(v, at) => self.yielded(v.as_ref(), *at),
+            Stmt::Return(Some(v), at) if self.yields.is_some() => {
+                self.expr(v);
+                self.returned_from_iterator(*at);
+            }
             Stmt::Return(Some(v), _) => match self.returns.clone() {
                 Some(r) if r != Type::Void => self.fits(v, &r),
                 _ => {

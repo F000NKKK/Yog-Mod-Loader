@@ -168,17 +168,23 @@ impl Checker<'_, '_, '_> {
     fn method(&mut self, m: &Method, side: Side, is_async: bool) {
         self.with_types(generics::params_of(&m.generics), |c| {
             let ret = m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t));
-            let ret = if is_async {
+            // An iterator: its items checked by `yield`, not its `return`s.
+            let item = super::iterators::body_yields(m.body.as_ref())
+                .then(|| super::iterators::item_of(&ret).cloned())
+                .flatten();
+            let ret = if is_async && item.is_none() {
                 c.async_returns(&ret, m.name.span)
             } else {
                 ret
             };
+            let outer = std::mem::replace(&mut c.yields, item);
             c.body(
                 (m.body.as_ref(), m.requires.as_ref()),
                 &m.params,
                 Some(ret),
                 side,
             );
+            c.yields = outer;
         });
     }
 

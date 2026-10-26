@@ -368,6 +368,9 @@ names! {
         /// A content declaration without its file (`block Lamp` without a
         /// `lamp.yblock` under `content/`).
         NO_CONTENT_FILE = "YS0038",
+        /// `yield` outside an iterator (a method giving an `IEnumerable<T>`,
+        /// `IEnumerator<T>` or `IAsyncEnumerable<T>`), or `return value` in one.
+        ITERATOR = "YS0039",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the
