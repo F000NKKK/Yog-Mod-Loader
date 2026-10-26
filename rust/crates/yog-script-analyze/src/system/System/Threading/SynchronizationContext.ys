@@ -1,0 +1,22 @@
+namespace System.Threading;
+
+/// Where work handed to a thread runs (.NET's): each side's game thread
+/// has its own (its ticks run what's posted), a thread may set its own (a
+/// UI loop's). `await` goes on in the context it awaited in. The base class
+/// posts to the pool and sends in place; a mod's own overrides both.
+[Intrinsic]
+public readonly class SynchronizationContext {
+    public SynchronizationContext() {}
+
+    /// The context of the thread asking: its own set, else its side's;
+    /// `null` on another thread.
+    public static SynchronizationContext? Current { get; }
+    /// `context` this thread's from now on (`null`: its side's again).
+    public static void SetSynchronizationContext(SynchronizationContext? context);
+    /// `work` run in the context, later.
+    public virtual void Post(Action work);
+    /// `work` run in the context, waited for.
+    public virtual void Send(Action work);
+    /// Whether the thread asking is the one it runs work on.
+    public bool IsCurrent { get; }
+}

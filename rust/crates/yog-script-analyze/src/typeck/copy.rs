@@ -55,8 +55,10 @@ impl Checker<'_, '_, '_> {
         let Some(own) = self.own.of_key(key) else {
             return true;
         };
-        // Never changed, so shared: a record, a `readonly class`.
-        if own.shared() {
+        // Never changed, so shared: a record, a `readonly class` (the
+        // library's thread-safe handles: a task, a lock, a token); a
+        // delegate, which never changes either.
+        if own.shared() || own.delegate.is_some() {
             return true;
         }
         if own.heap || !seen.insert(key.clone()) {

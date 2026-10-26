@@ -306,3 +306,53 @@ fn async_iterators_and_await_foreach() {
     };
     assert_eq!(out, "2,4,6,8,[2]");
 }
+
+/// Tasks across threads: work on the pool awaited, waited for, its
+/// awaiter's result; `ConfigureAwait(false)`; `async void` run; an
+/// `await` going on in the context it started in (a loop of the code's own).
+#[test]
+fn tasks_across_threads_and_contexts() {
+    let src = "using System.Threading;\nusing System.Threading.Tasks;\n\
+               public readonly class Loop : SynchronizationContext {\n\
+                   public Lock<List<Action>> Queue = new Lock<List<Action>>(new List<Action>());\n\
+                   public override void Post(Action work) { let mut g = Queue.Enter(); g.Value.Add(work); }\n\
+                   public i32 RunAll() {\n\
+                       let mut ran = 0;\n\
+                       while (true) {\n\
+                           let mut items = new List<Action>();\n\
+                           { let mut g = Queue.Enter(); items = g.Value; g.Value = new List<Action>(); }\n\
+                           if (items.Count == 0) { return ran; }\n\
+                           foreach (let a in items) { a(); ran += 1; }\n\
+                       }\n\
+                   }\n\
+               }\n\
+               public static class T {\n\
+                   public static i32 Fired = 0;\n\
+                   public static bool OnLoop = false;\n\
+                   static async void Fire() { Fired += 1; }\n\
+                   static async Task<i32> Off() => await Task.Run(() => 20).ConfigureAwait(false) + 1;\n\
+                   static async Task<i32> Back(Loop loop) {\n\
+                       let v = await Task.Run(() => 5);\n\
+                       OnLoop = SynchronizationContext.Current == loop;\n\
+                       return v;\n\
+                   }\n\
+                   public static string Run() {\n\
+                       let a = Task.Run(() => 21 * 2);\n\
+                       let b = Task.Run(() => 1);\n\
+                       Task.WaitAll(a, b);\n\
+                       let first = Task.WaitAny(Task.Run(() => 3));\n\
+                       Fire();\n\
+                       let off = Off().GetAwaiter().GetResult();\n\
+                       let loop = new Loop();\n\
+                       SynchronizationContext.SetSynchronizationContext(loop);\n\
+                       let back = Back(loop);\n\
+                       while (!back.IsCompleted) { loop.RunAll(); Thread.Yield(); }\n\
+                       SynchronizationContext.SetSynchronizationContext(null);\n\
+                       return a.Result + \" \" + b.Result + \" \" + first + \" \" + Fired + \" \" + off + \" \" + back.Result + \" \" + OnLoop;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("t.ys", src)], "t.TScript.T.Run()") else {
+        return;
+    };
+    assert_eq!(out, "42 1 0 1 21 5 True");
+}

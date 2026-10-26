@@ -38,7 +38,7 @@ public sealed class Thread {
 
 /// A thread `Thread.Run` started: what it gives.
 [Intrinsic]
-public sealed class ThreadHandle<T> {
+public readonly sealed class ThreadHandle<T> {
     /// Waits for it: its value; its panic, panicked again here.
     public readonly T Join();
     public bool IsFinished { get; }
@@ -46,6 +46,6 @@ public sealed class ThreadHandle<T> {
 
 /// What `Thread.Scope` gives its body: threads joined at its end.
 [Intrinsic]
-public sealed class ThreadScope {
+public readonly sealed class ThreadScope {
     public readonly void Run(Action work);
 }

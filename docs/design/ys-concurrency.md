@@ -114,6 +114,16 @@ Thread.Yield();
 | `ThreadPool` | C#, rayon | `QueueUserWorkItem`, and the pool `Task.Run` uses. |
 | `Task`, `Task<T>` | C# (already in the library) | Tasks run on the thread that started them (its scheduler). `Task.Run(f)` runs `f` on the pool and is awaited back on the caller's thread: the way off the game thread for heavy work. |
 | `Parallel` | C# `Parallel.For/ForEach`, rayon | Over the pool. The checker requires the body's captures to be shareable. |
+| `SynchronizationContext` | C# | Where work handed to a thread runs: each side's game thread has its own (its ticks run what's posted), and a thread may set one (a UI loop's). `await` goes on in the context it awaited in. `Post`/`Send` can be overridden. |
+| `TaskScheduler`, `TaskFactory` | C# | `Default` (the pool), `Current`, `FromCurrentSynchronizationContext()`, or a mod's own (`QueueTask`); `StartNew`. `Task.Run` is the default factory's. |
+| `ConfigureAwait(false)` | C# | An await going on wherever the task is finished, not in the awaiting context: for library code, so it never needs the UI's thread back. |
+| `Wait`, `Result`, `GetAwaiter().GetResult()`, `WaitAll`, `WaitAny` | C# | Blocking waits. On a side's thread, what's posted to it runs meanwhile, so a thread waiting on a task whose continuation is its own doesn't deadlock. Awaiting is still the way not to block. |
+
+The library's thread-safe handles (tasks and their awaiters, schedulers,
+cancellation, `Lock`, `ReadWriteLock`, `Atomic`, `Once`, `Shared`, `Weak`,
+thread handles, contexts) are `readonly class`es. They're shared, so they
+go anywhere without `move`, as a record does. Delegates never change, so
+they're shared too.
 
 Game time (`Yog.GameTime`) stays Yog's: it is ticks of a side's game
 thread. Everything above is real time, and none of it depends on Yog.

@@ -4,7 +4,7 @@ namespace System.Threading;
 /// by entering it, the guard giving the value until it's dropped; its
 /// condition waited on and notified (Rust's `Condvar`, `Monitor.Wait`/`Pulse`).
 [Intrinsic]
-public sealed class Lock<T> {
+public readonly sealed class Lock<T> {
     public Lock(T value) {}
 
     /// Waits for it: the guard holding it.

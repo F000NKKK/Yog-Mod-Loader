@@ -1,0 +1,9 @@
+namespace System.Threading;
+
+/// The threads work runs on off the game's (`Task.Run`, `Parallel`): as
+/// many as the processors.
+[Intrinsic]
+public static class ThreadPool {
+    public static void QueueUserWorkItem(Action work);
+    public static i32 ThreadCount { get; }
+}

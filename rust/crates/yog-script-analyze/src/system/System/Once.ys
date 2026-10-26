@@ -3,7 +3,7 @@ namespace System;
 /// A value set once, by whoever comes first (Rust's `OnceCell`/`OnceLock`,
 /// .NET's `LazyInitializer`); thread-safe.
 [Intrinsic]
-public sealed class Once<T> {
+public readonly sealed class Once<T> {
     public Once() {}
 
     /// Sets it unless it's set: whether this did.

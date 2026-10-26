@@ -12,5 +12,7 @@ public final class Task1Companion {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.threading.tasks.Task.class));
         d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Result", 0, d.Parameter(0), o -> ((dev.yog.script.threading.tasks.Task1) o).Result(), null);
+        d.Method("ConfigureAwait", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.tasks.Task1) o).Task$ConfigureAwait((Boolean) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.tasks.Task1.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })).Takes("continueOnCapturedContext", dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), false);
+        d.Method("GetAwaiter", 0, new String[] {  }, (o, a) -> ((dev.yog.script.threading.tasks.Task1) o).Task$GetAwaiter()).Returns(dev.yog.script.Type.Of(dev.yog.script.threading.tasks.TaskAwaiter1.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
     }
 }

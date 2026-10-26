@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -27,8 +28,67 @@ public final class Scheduler {
     private List<Waiting> waiting = new ArrayList<>();
     /** The list {@link #waiting} is checked into next: the last tick's, emptied. */
     private List<Waiting> spare = new ArrayList<>();
+    /** What other threads hand this one: run first at its next tick. */
+    private final ConcurrentLinkedQueue<Runnable> posted = new ConcurrentLinkedQueue<>();
+    /** Whether the game's ticks drive it: only such a thread's tasks go on there. */
+    private volatile boolean driven;
 
     private Scheduler() {}
+
+    /**
+     * The scheduler of the thread asking, when the game's ticks drive it
+     * (a side's thread, the loading one); {@code null} on any other (a
+     * thread of the mod's own, the pool's), where nothing would run it.
+     */
+    public static Scheduler current() {
+        Scheduler s = OF_THREAD.get(Thread.currentThread());
+        return s != null && s.driven ? s : null;
+    }
+
+    /** {@code then} run on this scheduler's thread at its next tick: from any thread. */
+    public void post(Runnable then) {
+        posted.add(then);
+    }
+
+    /** What's posted to it so far, run now: what a thread blocked on a task does meanwhile. */
+    public void runPosted() {
+        for (Runnable r = posted.poll(); r != null; r = posted.poll()) {
+            run(r);
+        }
+    }
+
+    /** Its side's synchronization context: work posted runs at its ticks. */
+    public dev.yog.script.threading.SynchronizationContext context() {
+        return context;
+    }
+
+    private final dev.yog.script.threading.SynchronizationContext context = new SideContext();
+
+    /** A side's context: posting is this scheduler's, sending waits for its tick. */
+    private final class SideContext extends dev.yog.script.threading.SynchronizationContext {
+        @Override
+        public void Post(dev.yog.script.Action work) {
+            post(work::Invoke);
+        }
+
+        @Override
+        public void Send(dev.yog.script.Action work) {
+            if (IsCurrent()) {
+                work.Invoke();
+                return;
+            }
+            Task done = new Task();
+            post(() -> {
+                try {
+                    work.Invoke();
+                    done.finish();
+                } catch (RuntimeException e) {
+                    done.fail(e);
+                }
+            });
+            done.Wait();
+        }
+    }
 
     /** The scheduler of the thread asking. */
     public static Scheduler here() {
@@ -44,6 +104,7 @@ public final class Scheduler {
         // the loading thread: the client's, where a client runs; else (a
         // dedicated server) the server's ticks drive it.
         Scheduler loading = here();
+        loading.driven = true;
         boolean[] client = {false};
         dev.yog.bus.YogEvents.Server.Game.Tick.on(0, e -> {
             Scheduler server = here();
@@ -90,6 +151,8 @@ public final class Scheduler {
 
     /** One tick: the timers due and the conditions that hold run. */
     void tick() {
+        driven = true;
+        runPosted();
         now++;
         runDue(ticks, now);
         runDue(clock, System.nanoTime());

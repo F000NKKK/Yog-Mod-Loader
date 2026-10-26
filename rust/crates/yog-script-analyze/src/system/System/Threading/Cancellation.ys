@@ -2,7 +2,7 @@ namespace System.Threading;
 
 /// What cancels: its token handed to the work that should stop (.NET's).
 [Intrinsic]
-public sealed class CancellationTokenSource : IDisposable {
+public readonly sealed class CancellationTokenSource : IDisposable {
     public CancellationTokenSource() {}
 
     public CancellationToken Token { get; }
@@ -17,7 +17,7 @@ public sealed class CancellationTokenSource : IDisposable {
 
 /// Whether work should stop: asked, or a callback registered (.NET's).
 [Intrinsic]
-public sealed class CancellationToken {
+public readonly sealed class CancellationToken {
     /// A token never cancelled.
     public static CancellationToken None { get; }
     public bool IsCancellationRequested { get; }

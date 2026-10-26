@@ -1,11 +1,12 @@
 namespace System.Threading.Tasks;
 
-/// Work that finishes later — a delay, an `async` method — awaited without
-/// stopping what runs: what awaits it goes on on its own side (in the
-/// game, at that side's tick it's done by). Its panic is its awaiter's.
-/// Game time (ticks) is `Yog.GameTime`'s.
+/// Work that finishes later — a delay, an `async` method, work on the pool
+/// — awaited without stopping what runs. What awaits it goes on in the
+/// synchronization context it awaited in (a side's thread, a UI's), unless
+/// `ConfigureAwait(false)` says anywhere will do. Its panic is its
+/// awaiter's. Safe across threads. Game time (ticks) is `Yog.GameTime`'s.
 [Intrinsic]
-public class Task {
+public readonly class Task {
     /// Done: it finished or it failed.
     public bool IsCompleted { get; }
     public bool IsCompletedSuccessfully { get; }
@@ -14,27 +15,65 @@ public class Task {
 
     /// A task already done.
     public static Task CompletedTask { get; }
-    /// Done once `delay` has passed, in real time (`Task.Delay(5s)`); what
-    /// awaits it goes on on its own side, as .NET's synchronization context.
+    /// The factory of tasks on the pool.
+    public static TaskFactory Factory { get; }
+    /// Done once `delay` has passed, in real time (`Task.Delay(5s)`).
     public static Task Delay(Seconds delay);
     public static Task Delay(TimeSpan delay);
     /// Done at the next turn of its side (in the game, its next tick).
     public static Task Yield();
+    /// `work` run on the pool (`TaskScheduler.Default`): the way off a
+    /// side's thread for heavy work, awaited back in the caller's context.
+    public static Task<TResult> Run<TResult>(Func<TResult> work);
+    public static Task Run(Action work);
     /// A task already done with `result`.
     public static Task<TResult> FromResult<TResult>(TResult result);
     /// Done when every one of `tasks` is; failed as the first that fails.
-    public static Task WhenAll(Task[] tasks);
+    public static Task WhenAll(params Task[] tasks);
     /// Done when one of `tasks` is: that one.
-    public static Task<Task> WhenAny(Task[] tasks);
+    public static Task<Task> WhenAny(params Task[] tasks);
+    /// Waits for every one of `tasks` (blocking; see `Wait`).
+    public static void WaitAll(params Task[] tasks);
+    /// Waits for one of `tasks` (blocking): its index.
+    public static i32 WaitAny(params Task[] tasks);
 
     /// `continuation` run with it once it's done; done after it.
     public Task ContinueWith(Action<Task> continuation);
+    /// As it is (`true`), or awaited without the awaiting context (`false`):
+    /// what awaits it goes on wherever it's finished.
+    public Task ConfigureAwait(bool continueOnCapturedContext);
+    /// Waits for it, blocking; its failure panics here. On a side's thread
+    /// what's posted to it meanwhile runs, so the thread doesn't wait for
+    /// itself; awaiting is still the way not to block.
+    public void Wait();
+    /// As `Wait()`, at most `timeout`: whether it's done.
+    public bool Wait(TimeSpan timeout);
+    /// What `await` uses: `GetAwaiter().GetResult()` waits as `Wait()`.
+    public TaskAwaiter GetAwaiter();
 }
 
 /// A task that finishes with a `TResult`.
 [Intrinsic]
-public class Task<TResult> : Task {
-    /// What it finished with; a panic while it isn't done (await it), and
-    /// its failure's when it failed.
+public readonly class Task<TResult> : Task {
+    /// What it finished with, waited for as `Wait()` does; its failure
+    /// panics here.
     public TResult Result { get; }
+    public new Task<TResult> ConfigureAwait(bool continueOnCapturedContext);
+    public new TaskAwaiter<TResult> GetAwaiter();
+}
+
+/// What awaits a `Task`: whether it's done, what runs once it is, its end.
+[Intrinsic]
+public readonly class TaskAwaiter {
+    public bool IsCompleted { get; }
+    /// `continuation` run once the task is done, in the awaiting context.
+    public void OnCompleted(Action continuation);
+    /// Waits for the task (as `Task.Wait()`); its failure panics here.
+    public void GetResult();
+}
+
+/// What awaits a `Task<TResult>`: its result.
+[Intrinsic]
+public readonly class TaskAwaiter<TResult> : TaskAwaiter {
+    public new TResult GetResult();
 }

@@ -1,0 +1,28 @@
+namespace System.Threading.Tasks;
+
+/// Where tasks a `TaskFactory` starts run (.NET's): the pool's
+/// (`Default`), a synchronization context's
+/// (`FromCurrentSynchronizationContext()`, a UI's thread), or a mod's own
+/// (`QueueTask` overridden).
+[Intrinsic]
+public readonly abstract class TaskScheduler {
+    /// Runs `work` where this scheduler runs tasks.
+    public abstract void QueueTask(Action work);
+    /// The pool's.
+    public static TaskScheduler Default { get; }
+    /// The scheduler of the task running here; the pool's outside one.
+    public static TaskScheduler Current { get; }
+    /// One posting to the context of the thread asking; a panic without one.
+    public static TaskScheduler FromCurrentSynchronizationContext();
+}
+
+/// Tasks started on a scheduler (.NET's `TaskFactory`).
+[Intrinsic]
+public readonly sealed class TaskFactory {
+    public TaskFactory() {}
+    public TaskFactory(TaskScheduler scheduler) {}
+
+    public TaskScheduler Scheduler { get; }
+    public Task<TResult> StartNew<TResult>(Func<TResult> work);
+    public Task StartNew(Action work);
+}

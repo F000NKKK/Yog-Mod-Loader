@@ -8,7 +8,7 @@ public enum MemoryOrder { Relaxed, Acquire, Release, AcqRel, SeqCst }
 /// `Atomic*`, .NET's `Interlocked` and `Volatile`): a whole number, a
 /// `bool`, a `char`, a reference.
 [Intrinsic]
-public sealed class Atomic<T> {
+public readonly sealed class Atomic<T> {
     public Atomic(T value) {}
 
     public readonly T Load(MemoryOrder order = MemoryOrder.SeqCst);

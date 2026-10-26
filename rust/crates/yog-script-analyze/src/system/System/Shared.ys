@@ -5,7 +5,7 @@ namespace System;
 /// thread). What's shared is read; changing it is a `Cell`'s or a
 /// `Lock`'s inside.
 [Intrinsic]
-public sealed class Shared<T> {
+public readonly sealed class Shared<T> {
     public Shared(T value) {}
 
     /// The value shared.

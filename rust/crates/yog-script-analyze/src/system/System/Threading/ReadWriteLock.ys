@@ -3,7 +3,7 @@ namespace System.Threading;
 /// A value many threads read at once or one writes (Rust's `RwLock`, .NET's
 /// `ReaderWriterLockSlim`).
 [Intrinsic]
-public sealed class ReadWriteLock<T> {
+public readonly sealed class ReadWriteLock<T> {
     public ReadWriteLock(T value) {}
 
     public readonly ReadGuard<T> Read();
