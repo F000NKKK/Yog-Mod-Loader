@@ -5,5 +5,22 @@ package dev.yog.script.reflection.library;
 public final class StackCompanion {
     private StackCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.Stack.class, "System.Collections.Generic.Stack", dev.yog.script.Type.CLASS, new String[] { "T" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyCollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.Stack.class, "System.Collections.Generic.Stack", dev.yog.script.Type.CLASS, new String[] { "T" }, StackCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyCollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.Stack());
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.Stack((dev.yog.script.collections.generic.IEnumerable) a[0])).Takes("collection", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
+        d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.Stack) o).Count(), null);
+        d.Method("GetEnumerator", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Stack) o).GetEnumerator()).Returns(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerator.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Method("Push", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.Stack) o).Push(a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("item", d.Parameter(0), false);
+        d.Method("Pop", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Stack) o).Pop()).Returns(d.Parameter(0));
+        d.Method("Peek", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Stack) o).Peek()).Returns(d.Parameter(0));
+        d.Method("TryPop", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Stack) o).TryPop()).Returns(d.Parameter(0));
+        d.Method("TryPeek", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Stack) o).TryPeek()).Returns(d.Parameter(0));
+        d.Method("Clear", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.Stack) o).Clear(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
+        d.Method("Contains", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Stack) o).Contains(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("item", d.Parameter(0), false);
+        d.Method("ToArray", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Stack) o).ToArray()).Returns(d.Parameter(0).MakeArrayType(1));
+    }
 }

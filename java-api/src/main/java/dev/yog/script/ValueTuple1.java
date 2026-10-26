@@ -2,7 +2,13 @@
 package dev.yog.script;
 
 public final class ValueTuple1<T1> implements Cloneable {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.ValueTuple1.class, "System.ValueTuple", dev.yog.script.Type.STRUCT, new String[] { "T1" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.ValueTuple1.class, "System.ValueTuple", dev.yog.script.Type.STRUCT, new String[] { "T1" }, dev.yog.script.ValueTuple1::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Field("Item1", 0, d.Parameter(0), o -> ((dev.yog.script.ValueTuple1) o).Item1, (o, v) -> ((dev.yog.script.ValueTuple1) o).Item1 = v);
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> ((dev.yog.script.ValueTuple1) o).ToString()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+        d.Constructor(0, a -> new dev.yog.script.ValueTuple1(a[0])).Takes("item1", d.Parameter(0), false);
+    }
     public T1 Item1;
     public ValueTuple1(T1 item1) {
         super();

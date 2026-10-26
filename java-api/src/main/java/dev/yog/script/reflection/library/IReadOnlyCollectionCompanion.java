@@ -5,5 +5,11 @@ package dev.yog.script.reflection.library;
 public final class IReadOnlyCollectionCompanion {
     private IReadOnlyCollectionCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IReadOnlyCollection.class, "System.Collections.Generic.IReadOnlyCollection", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IReadOnlyCollection.class, "System.Collections.Generic.IReadOnlyCollection", dev.yog.script.Type.INTERFACE, new String[] { "T" }, IReadOnlyCollectionCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.IReadOnlyCollection) o).Count(), null);
+    }
 }

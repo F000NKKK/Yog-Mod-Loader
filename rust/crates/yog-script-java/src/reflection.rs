@@ -5,6 +5,8 @@
 
 mod companions;
 mod described;
+mod invokers;
+mod members;
 mod values;
 
 pub(crate) use companions::Companions;

@@ -76,6 +76,14 @@ impl Index {
             .is_some_and(|(_, reified)| *reified)
     }
 
+    /// Which of its name `m` is among `owner`'s methods (explicit
+    /// implementations aside), as a call names it.
+    pub(crate) fn overload_of(&self, owner: &TypeRef, m: &Method) -> usize {
+        self.methods_named(owner, &m.name.text)
+            .position(|x| x == m)
+            .unwrap_or_default()
+    }
+
     /// The Java name of `owner`'s method `name`, the `overload`-th of its
     /// name (explicit implementations aside), as a call chose it.
     pub(crate) fn java_name_of(

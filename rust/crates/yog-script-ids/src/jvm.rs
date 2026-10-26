@@ -115,4 +115,26 @@ pub mod reflection {
     pub const LIBRARY_OF: &str = "of";
     pub const LIBRARY_ARRAY: &str = "array";
     pub const LIBRARY_ARRAY_INTERFACES: &str = "arrayInterfaces";
+    /// What fills a type's description, beside `$TYPE` (`Box::$describe`).
+    pub const DESCRIBE: &str = "$describe";
+    pub const DESCRIPTION: &str = "dev.yog.script.reflection.TypeDescription";
+    /// The description's members, each a call: a field, a property, a method
+    /// (its result and parameters after it), a constructor, a method's own
+    /// type parameter.
+    pub const FIELD_MEMBER: &str = "Field";
+    pub const PROPERTY: &str = "Property";
+    pub const METHOD: &str = "Method";
+    pub const RETURNS: &str = "Returns";
+    pub const TAKES: &str = "Takes";
+    pub const CONSTRUCTOR: &str = "Constructor";
+    pub const METHOD_PARAMETER: &str = "MethodParameter";
+    /// What a member is, `MemberInfo`'s flags.
+    pub const MEMBER_INFO: &str = "dev.yog.script.reflection.MemberInfo";
+    pub const STATIC: &str = "STATIC";
+    pub const PRIVATE: &str = "PRIVATE";
+    pub const PROTECTED: &str = "PROTECTED";
+    pub const ABSTRACT_MEMBER: &str = "ABSTRACT";
+    pub const VIRTUAL: &str = "VIRTUAL";
+    pub const INIT_ONLY: &str = "INIT_ONLY";
+    pub const LITERAL: &str = "LITERAL";
 }

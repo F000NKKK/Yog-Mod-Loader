@@ -5,5 +5,25 @@ package dev.yog.script.reflection.library;
 public final class SortedDictionaryCompanion {
     private SortedDictionaryCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.SortedDictionary.class, "System.Collections.Generic.SortedDictionary", dev.yog.script.Type.CLASS, new String[] { "TKey", "TValue" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) })).Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.SortedDictionary.class, "System.Collections.Generic.SortedDictionary", dev.yog.script.Type.CLASS, new String[] { "TKey", "TValue" }, SortedDictionaryCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }));
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }));
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedDictionary());
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedDictionary((dev.yog.script.collections.generic.IComparer) a[0])).Takes("comparer", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
+        d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.SortedDictionary) o).Count(), null);
+        d.Property("Keys", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.SortedDictionary) o).Keys(), null);
+        d.Property("Values", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }), o -> ((dev.yog.script.collections.generic.SortedDictionary) o).Values(), null);
+        d.Method("GetEnumerator", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedDictionary) o).GetEnumerator()).Returns(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerator.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.KeyValuePair.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }) }));
+        d.Method("Add", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.SortedDictionary) o).Add(a[0], a[1]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("key", d.Parameter(0), false).Takes("value", d.Parameter(1), false);
+        d.Method("TryAdd", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedDictionary) o).TryAdd(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false).Takes("value", d.Parameter(1), false);
+        d.Method("ContainsKey", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedDictionary) o).ContainsKey(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false);
+        d.Method("ContainsValue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedDictionary) o).ContainsValue(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("value", d.Parameter(1), false);
+        d.Method("Remove", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedDictionary) o).IDictionary$Remove(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false);
+        d.Method("TryGetValue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedDictionary) o).TryGetValue(a[0])).Returns(d.Parameter(1)).Takes("key", d.Parameter(0), false);
+        d.Method("GetValueOrDefault", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedDictionary) o).GetValueOrDefault(a[0], a[1])).Returns(d.Parameter(1)).Takes("key", d.Parameter(0), false).Takes("fallback", d.Parameter(1), false);
+        d.Method("Clear", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.SortedDictionary) o).Clear(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
+    }
 }

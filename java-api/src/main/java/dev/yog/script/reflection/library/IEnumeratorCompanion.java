@@ -5,5 +5,13 @@ package dev.yog.script.reflection.library;
 public final class IEnumeratorCompanion {
     private IEnumeratorCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IEnumerator.class, "System.Collections.Generic.IEnumerator", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IDisposable.class)));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IEnumerator.class, "System.Collections.Generic.IEnumerator", dev.yog.script.Type.INTERFACE, new String[] { "T" }, IEnumeratorCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IDisposable.class));
+        d.Property("Current", 0, d.Parameter(0), o -> ((dev.yog.script.collections.generic.IEnumerator) o).Current(), null);
+        d.Method("MoveNext", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IEnumerator) o).MoveNext()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class));
+        d.Method("Reset", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.IEnumerator) o).Reset(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
+    }
 }

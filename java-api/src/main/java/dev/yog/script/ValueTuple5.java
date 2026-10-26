@@ -2,7 +2,17 @@
 package dev.yog.script;
 
 public final class ValueTuple5<T1, T2, T3, T4, T5> implements Cloneable {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.ValueTuple5.class, "System.ValueTuple", dev.yog.script.Type.STRUCT, new String[] { "T1", "T2", "T3", "T4", "T5" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.ValueTuple5.class, "System.ValueTuple", dev.yog.script.Type.STRUCT, new String[] { "T1", "T2", "T3", "T4", "T5" }, dev.yog.script.ValueTuple5::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Field("Item1", 0, d.Parameter(0), o -> ((dev.yog.script.ValueTuple5) o).Item1, (o, v) -> ((dev.yog.script.ValueTuple5) o).Item1 = v);
+        d.Field("Item2", 0, d.Parameter(1), o -> ((dev.yog.script.ValueTuple5) o).Item2, (o, v) -> ((dev.yog.script.ValueTuple5) o).Item2 = v);
+        d.Field("Item3", 0, d.Parameter(2), o -> ((dev.yog.script.ValueTuple5) o).Item3, (o, v) -> ((dev.yog.script.ValueTuple5) o).Item3 = v);
+        d.Field("Item4", 0, d.Parameter(3), o -> ((dev.yog.script.ValueTuple5) o).Item4, (o, v) -> ((dev.yog.script.ValueTuple5) o).Item4 = v);
+        d.Field("Item5", 0, d.Parameter(4), o -> ((dev.yog.script.ValueTuple5) o).Item5, (o, v) -> ((dev.yog.script.ValueTuple5) o).Item5 = v);
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> ((dev.yog.script.ValueTuple5) o).ToString()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+        d.Constructor(0, a -> new dev.yog.script.ValueTuple5(a[0], a[1], a[2], a[3], a[4])).Takes("item1", d.Parameter(0), false).Takes("item2", d.Parameter(1), false).Takes("item3", d.Parameter(2), false).Takes("item4", d.Parameter(3), false).Takes("item5", d.Parameter(4), false);
+    }
     public T1 Item1;
     public T2 Item2;
     public T3 Item3;

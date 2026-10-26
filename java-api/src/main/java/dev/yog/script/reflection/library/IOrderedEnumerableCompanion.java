@@ -5,5 +5,10 @@ package dev.yog.script.reflection.library;
 public final class IOrderedEnumerableCompanion {
     private IOrderedEnumerableCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.linq.IOrderedEnumerable.class, "System.Linq.IOrderedEnumerable", dev.yog.script.Type.INTERFACE, new String[] { "TElement" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.linq.IOrderedEnumerable.class, "System.Linq.IOrderedEnumerable", dev.yog.script.Type.INTERFACE, new String[] { "TElement" }, IOrderedEnumerableCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+    }
 }

@@ -2,7 +2,12 @@
 package dev.yog.script;
 
 public final class Host extends dev.yog.script.Attribute {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Host.class, "System.Host", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class)));
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Host.class, "System.Host", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, dev.yog.script.Host::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
+        d.Constructor(0, a -> new dev.yog.script.Host());
+    }
     public Host() {
         super();
     }

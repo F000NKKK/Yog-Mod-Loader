@@ -2,7 +2,14 @@
 package dev.yog.script;
 
 public final class AttributeUsage extends dev.yog.script.Attribute {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.AttributeUsage.class, "System.AttributeUsage", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class)));
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.AttributeUsage.class, "System.AttributeUsage", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, dev.yog.script.AttributeUsage::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
+        d.Field("AllowMultiple", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.AttributeUsage) o).AllowMultiple, (o, v) -> ((dev.yog.script.AttributeUsage) o).AllowMultiple = (Boolean) v);
+        d.Field("Inherited", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.AttributeUsage) o).Inherited, (o, v) -> ((dev.yog.script.AttributeUsage) o).Inherited = (Boolean) v);
+        d.Constructor(0, a -> new dev.yog.script.AttributeUsage((dev.yog.script.AttributeTargets) a[0])).Takes("on", dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), false);
+    }
     public boolean AllowMultiple;
     public boolean Inherited;
     public AttributeUsage(dev.yog.script.AttributeTargets on) {

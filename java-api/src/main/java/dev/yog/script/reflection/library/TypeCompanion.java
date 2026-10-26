@@ -5,5 +5,51 @@ package dev.yog.script.reflection.library;
 public final class TypeCompanion {
     private TypeCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.Type.class, "System.Type", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> d.Base(dev.yog.script.Type.Of(dev.yog.script.reflection.MemberInfo.class)));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.Type.class, "System.Type", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, TypeCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Base(dev.yog.script.Type.Of(dev.yog.script.reflection.MemberInfo.class));
+        d.Property("Name", dev.yog.script.reflection.MemberInfo.VIRTUAL, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.Type) o).Name(), null);
+        d.Property("DeclaringType", dev.yog.script.reflection.MemberInfo.VIRTUAL, dev.yog.script.Type.Of(dev.yog.script.Type.class), o -> ((dev.yog.script.Type) o).DeclaringType(), null);
+        d.Property("MemberType", dev.yog.script.reflection.MemberInfo.VIRTUAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> ((dev.yog.script.Type) o).MemberType(), null);
+        d.Property("Namespace", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.Type) o).Namespace(), null);
+        d.Property("FullName", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.Type) o).FullName(), null);
+        d.Property("BaseType", 0, dev.yog.script.Type.Of(dev.yog.script.Type.class), o -> ((dev.yog.script.Type) o).BaseType(), null);
+        d.Property("IsClass", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsClass(), null);
+        d.Property("IsInterface", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsInterface(), null);
+        d.Property("IsValueType", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsValueType(), null);
+        d.Property("IsEnum", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsEnum(), null);
+        d.Property("IsArray", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsArray(), null);
+        d.Property("IsAbstract", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsAbstract(), null);
+        d.Property("IsSealed", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsSealed(), null);
+        d.Property("IsPrimitive", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsPrimitive(), null);
+        d.Property("IsGenericType", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsGenericType(), null);
+        d.Property("IsGenericTypeDefinition", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsGenericTypeDefinition(), null);
+        d.Property("IsConstructedGenericType", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsConstructedGenericType(), null);
+        d.Property("IsGenericParameter", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Type) o).IsGenericParameter(), null);
+        d.Property("GenericParameterPosition", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.Type) o).GenericParameterPosition(), null);
+        d.Method("GetGenericArguments", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetGenericArguments()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class).MakeArrayType(1));
+        d.Method("GetGenericTypeDefinition", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetGenericTypeDefinition()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class));
+        d.Method("MakeGenericType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).MakeGenericType((dev.yog.script.Type[]) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class)).Takes("typeArguments", dev.yog.script.Type.Of(dev.yog.script.Type.class).MakeArrayType(1), false);
+        d.Method("GetElementType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetElementType()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class));
+        d.Method("GetArrayRank", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetArrayRank()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class));
+        d.Method("MakeArrayType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).MakeArrayType()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class));
+        d.Method("MakeArrayType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).MakeArrayType((Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class)).Takes("rank", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Method("GetInterfaces", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetInterfaces()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class).MakeArrayType(1));
+        d.Method("IsAssignableFrom", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).IsAssignableFrom((dev.yog.script.Type) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("c", dev.yog.script.Type.Of(dev.yog.script.Type.class), false);
+        d.Method("IsInstanceOfType", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).IsInstanceOfType((Object) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("o", dev.yog.script.Type.Of(dev.yog.script.host.Object.class), false);
+        d.Method("IsSubclassOf", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).IsSubclassOf((dev.yog.script.Type) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("c", dev.yog.script.Type.Of(dev.yog.script.Type.class), false);
+        d.Method("GetMembers", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetMembers()).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.MemberInfo.class).MakeArrayType(1));
+        d.Method("GetFields", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetFields()).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.FieldInfo.class).MakeArrayType(1));
+        d.Method("GetField", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetField((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.FieldInfo.class)).Takes("name", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("GetProperties", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetProperties()).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.PropertyInfo.class).MakeArrayType(1));
+        d.Method("GetProperty", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetProperty((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.PropertyInfo.class)).Takes("name", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("GetMethods", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetMethods()).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.MethodInfo.class).MakeArrayType(1));
+        d.Method("GetMethod", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetMethod((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.MethodInfo.class)).Takes("name", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("GetMethod", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetMethod((String) a[0], (dev.yog.script.Type[]) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.MethodInfo.class)).Takes("name", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("types", dev.yog.script.Type.Of(dev.yog.script.Type.class).MakeArrayType(1), false);
+        d.Method("GetConstructors", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetConstructors()).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.ConstructorInfo.class).MakeArrayType(1));
+        d.Method("GetConstructor", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).GetConstructor((dev.yog.script.Type[]) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.ConstructorInfo.class)).Takes("types", dev.yog.script.Type.Of(dev.yog.script.Type.class).MakeArrayType(1), false);
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> ((dev.yog.script.Type) o).ToString()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+    }
 }

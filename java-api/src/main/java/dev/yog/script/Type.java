@@ -1,10 +1,15 @@
 package dev.yog.script;
 
 import dev.yog.script.reflection.ArrayType;
+import dev.yog.script.reflection.ConstructorInfo;
 import dev.yog.script.reflection.DeclaredType;
+import dev.yog.script.reflection.FieldInfo;
 import dev.yog.script.reflection.ForeignType;
 import dev.yog.script.reflection.MemberInfo;
 import dev.yog.script.reflection.MemberTypes;
+import dev.yog.script.reflection.Members;
+import dev.yog.script.reflection.MethodInfo;
+import dev.yog.script.reflection.PropertyInfo;
 import dev.yog.script.reflection.TypeDescription;
 import dev.yog.script.reflection.library.Library;
 import java.util.ArrayList;
@@ -220,6 +225,53 @@ public abstract class Type extends MemberInfo {
             }
         }
         return false;
+    }
+
+    // Its members.
+
+    /** Its own members as described: none for what isn't declared. */
+    public List<MemberInfo> members() {
+        return List.of();
+    }
+
+    public MemberInfo[] GetMembers() {
+        return Members.of(this, MemberInfo.class).toArray(new MemberInfo[0]);
+    }
+
+    public FieldInfo[] GetFields() {
+        return Members.of(this, FieldInfo.class).toArray(new FieldInfo[0]);
+    }
+
+    public FieldInfo GetField(String name) {
+        return Members.named(this, FieldInfo.class, name);
+    }
+
+    public PropertyInfo[] GetProperties() {
+        return Members.of(this, PropertyInfo.class).toArray(new PropertyInfo[0]);
+    }
+
+    public PropertyInfo GetProperty(String name) {
+        return Members.named(this, PropertyInfo.class, name);
+    }
+
+    public MethodInfo[] GetMethods() {
+        return Members.of(this, MethodInfo.class).toArray(new MethodInfo[0]);
+    }
+
+    public MethodInfo GetMethod(String name) {
+        return Members.named(this, MethodInfo.class, name);
+    }
+
+    public MethodInfo GetMethod(String name, Type[] types) {
+        return Members.taking(this, MethodInfo.class, name, types);
+    }
+
+    public ConstructorInfo[] GetConstructors() {
+        return Members.of(this, ConstructorInfo.class).toArray(new ConstructorInfo[0]);
+    }
+
+    public ConstructorInfo GetConstructor(Type[] types) {
+        return Members.taking(this, ConstructorInfo.class, ConstructorInfo.NAME, types);
     }
 
     /** {@code types} each as {@code arguments} say. */

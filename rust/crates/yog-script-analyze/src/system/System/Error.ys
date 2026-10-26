@@ -3,5 +3,5 @@ namespace System;
 /// A failure's description: what `Err` carries unless a method says otherwise.
 [Intrinsic]
 public class Error(string message) {
-    public string Message = message;
+    public readonly string Message = message;
 }

@@ -5,5 +5,16 @@ package dev.yog.script.reflection.library;
 public final class ICollectionCompanion {
     private ICollectionCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.ICollection.class, "System.Collections.Generic.ICollection", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.ICollection.class, "System.Collections.Generic.ICollection", dev.yog.script.Type.INTERFACE, new String[] { "T" }, ICollectionCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.ICollection) o).Count(), null);
+        d.Property("IsReadOnly", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.collections.generic.ICollection) o).IsReadOnly(), null);
+        d.Method("Add", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.ICollection) o).Add(a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("item", d.Parameter(0), false);
+        d.Method("Clear", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.ICollection) o).Clear(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
+        d.Method("Contains", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.ICollection) o).Contains(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("item", d.Parameter(0), false);
+        d.Method("Remove", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.ICollection) o).Remove(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("item", d.Parameter(0), false);
+    }
 }

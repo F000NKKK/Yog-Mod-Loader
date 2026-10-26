@@ -5,5 +5,18 @@ package dev.yog.script.reflection.library;
 public final class Int16Companion {
     private Int16Companion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Int16.class, "System.Int16", dev.yog.script.Type.STRUCT | dev.yog.script.Type.PRIMITIVE, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int16.class) })).Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int16.class) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Int16.class, "System.Int16", dev.yog.script.Type.STRUCT | dev.yog.script.Type.PRIMITIVE, new String[] {  }, Int16Companion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int16.class) }));
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int16.class) }));
+        d.Field("MinValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Int16.class), o -> dev.yog.script.host.Int16.MinValue, null);
+        d.Field("MaxValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Int16.class), o -> dev.yog.script.host.Int16.MaxValue, null);
+        d.Method("Parse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Int16.Parse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int16.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("TryParse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Int16.TryParse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int16.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("CompareTo", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Int16.CompareTo((Short) o, (Short) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Int16.class), false);
+        d.Method("Equals", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Int16.Equals((Short) o, (Short) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Int16.class), false);
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Int16.ToString((Short) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+    }
 }

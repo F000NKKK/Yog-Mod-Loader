@@ -5,5 +5,19 @@ package dev.yog.script.reflection.library;
 public final class RandomCompanion {
     private RandomCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.Random.class, "System.Random", dev.yog.script.Type.CLASS, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.Random.class, "System.Random", dev.yog.script.Type.CLASS, new String[] {  }, RandomCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Constructor(0, a -> new dev.yog.script.Random());
+        d.Constructor(0, a -> new dev.yog.script.Random((Integer) a[0])).Takes("seed", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Property("Shared", dev.yog.script.reflection.MemberInfo.STATIC, dev.yog.script.Type.Of(dev.yog.script.Random.class), o -> dev.yog.script.Random.Shared(), null);
+        d.Method("Next", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).Next()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class));
+        d.Method("Next", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).Next((Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("maxValue", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Method("Next", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).Next((Integer) a[0], (Integer) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("minValue", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false).Takes("maxValue", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Method("NextInt64", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).NextInt64()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int64.class));
+        d.Method("NextInt64", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).NextInt64((Long) a[0], (Long) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int64.class)).Takes("minValue", dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), false).Takes("maxValue", dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), false);
+        d.Method("NextDouble", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).NextDouble()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Double.class));
+        d.Method("NextSingle", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Random) o).NextSingle()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Single.class));
+    }
 }

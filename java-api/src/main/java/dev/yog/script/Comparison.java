@@ -3,6 +3,9 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface Comparison<T> {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Comparison.class, "System.Comparison", dev.yog.script.Type.DELEGATE, new String[] { "T" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Comparison.class, "System.Comparison", dev.yog.script.Type.DELEGATE, new String[] { "T" }, dev.yog.script.Comparison::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+    }
     int Invoke(T x, T y);
 }

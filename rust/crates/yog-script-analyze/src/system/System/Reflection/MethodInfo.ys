@@ -1,0 +1,17 @@
+namespace System.Reflection;
+
+/// A method, called by what the compiler wrote beside it.
+[Intrinsic]
+public class MethodInfo : MethodBase {
+    public override string Name { get; }
+    public override Type? DeclaringType { get; }
+    public override MemberTypes MemberType { get; }
+    /// What it gives (`Void` for nothing).
+    public Type ReturnType { get; }
+    /// Generic: it has type parameters of its own (called erased on the JVM).
+    public bool IsGenericMethod { get; }
+    public Type[] GetGenericArguments();
+    /// It called on `obj` (`null` for a static one) with `parameters`;
+    /// what it gives (`null` for nothing).
+    public object? Invoke(object? obj, object?[]? parameters);
+}

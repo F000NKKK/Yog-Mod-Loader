@@ -5,5 +5,10 @@ package dev.yog.script.reflection.library;
 public final class IComparerCompanion {
     private IComparerCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IComparer.class, "System.Collections.Generic.IComparer", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IComparer.class, "System.Collections.Generic.IComparer", dev.yog.script.Type.INTERFACE, new String[] { "T" }, IComparerCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Method("Compare", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IComparer) o).Compare(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("x", d.Parameter(0), false).Takes("y", d.Parameter(0), false);
+    }
 }

@@ -5,5 +5,16 @@ package dev.yog.script.reflection.library;
 public final class IDictionaryCompanion {
     private IDictionaryCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IDictionary.class, "System.Collections.Generic.IDictionary", dev.yog.script.Type.INTERFACE, new String[] { "TKey", "TValue" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.KeyValuePair.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IDictionary.class, "System.Collections.Generic.IDictionary", dev.yog.script.Type.INTERFACE, new String[] { "TKey", "TValue" }, IDictionaryCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.KeyValuePair.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }) }));
+        d.Property("Keys", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.IDictionary) o).Keys(), null);
+        d.Property("Values", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }), o -> ((dev.yog.script.collections.generic.IDictionary) o).Values(), null);
+        d.Method("Add", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.IDictionary) o).Add(a[0], a[1]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("key", d.Parameter(0), false).Takes("value", d.Parameter(1), false);
+        d.Method("ContainsKey", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IDictionary) o).ContainsKey(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false);
+        d.Method("Remove", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IDictionary) o).IDictionary$Remove(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false);
+        d.Method("TryGetValue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IDictionary) o).TryGetValue(a[0])).Returns(d.Parameter(1)).Takes("key", d.Parameter(0), false);
+    }
 }

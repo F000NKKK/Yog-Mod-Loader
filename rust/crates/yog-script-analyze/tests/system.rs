@@ -155,7 +155,9 @@ fn types_are_values() {
     let ok = "class Box<T> {\n    public T Item;\n}\n\
               bool Same(object o) => o.GetType() == typeof(Box<i32>) || typeof(List<string>).IsGenericType;\n\
               string Name(Box<string> b) => b.GetType().Name + typeof(i32[]).FullName + typeof(i32).Namespace;\n\
-              bool Kinds(Type t) => t.IsAssignableFrom(typeof(string)) && t.GetGenericArguments().Length == 1;\n";
+              bool Kinds(Type t) => t.IsAssignableFrom(typeof(string)) && t.GetGenericArguments().Length == 1;\n\
+              object? Call(object box) => box.GetType().GetMethod(\"Area\")!.Invoke(box, null);\n\
+              i32 Count(Type t) => t.GetFields().Length + t.GetProperties().Length + t.GetConstructors()[0].GetParameters().Length;\n";
     let problems = check("a.ys", ok).problems;
     assert!(problems.is_empty(), "{problems:#?}");
     // A type isn't a string.

@@ -5,5 +5,9 @@ package dev.yog.script.reflection.library;
 public final class ArrayCompanion {
     private ArrayCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Array.class, "System.Array", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Array.class, "System.Array", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, ArrayCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+    }
 }

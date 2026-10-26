@@ -5,5 +5,11 @@ package dev.yog.script.reflection.library;
 public final class ErrorCompanion {
     private ErrorCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.Error.class, "System.Error", dev.yog.script.Type.CLASS, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.Error.class, "System.Error", dev.yog.script.Type.CLASS, new String[] {  }, ErrorCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Field("Message", dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.Error) o).Message, null);
+        d.Constructor(0, a -> new dev.yog.script.Error((String) a[0])).Takes("message", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+    }
 }

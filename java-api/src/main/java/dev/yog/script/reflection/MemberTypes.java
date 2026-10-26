@@ -3,5 +3,17 @@ package dev.yog.script.reflection;
 
 public enum MemberTypes {
     Constructor, Event, Field, Method, Property, TypeInfo, Custom, NestedType, All;
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.reflection.MemberTypes.class, "System.Reflection.MemberTypes", dev.yog.script.Type.ENUM, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.reflection.MemberTypes.class, "System.Reflection.MemberTypes", dev.yog.script.Type.ENUM, new String[] {  }, dev.yog.script.reflection.MemberTypes::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Field("Constructor", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.Constructor, null);
+        d.Field("Event", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.Event, null);
+        d.Field("Field", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.Field, null);
+        d.Field("Method", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.Method, null);
+        d.Field("Property", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.Property, null);
+        d.Field("TypeInfo", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.TypeInfo, null);
+        d.Field("Custom", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.Custom, null);
+        d.Field("NestedType", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.NestedType, null);
+        d.Field("All", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> dev.yog.script.reflection.MemberTypes.All, null);
+    }
 }

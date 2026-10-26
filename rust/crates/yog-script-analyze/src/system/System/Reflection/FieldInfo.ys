@@ -1,0 +1,20 @@
+namespace System.Reflection;
+
+/// A field, read and written by what the compiler wrote beside it.
+[Intrinsic]
+public class FieldInfo : MemberInfo {
+    public override string Name { get; }
+    public override Type? DeclaringType { get; }
+    public override MemberTypes MemberType { get; }
+    public Type FieldType { get; }
+    public bool IsStatic { get; }
+    public bool IsPublic { get; }
+    public bool IsPrivate { get; }
+    /// Set only where it's made (`readonly`).
+    public bool IsInitOnly { get; }
+    /// A `const`.
+    public bool IsLiteral { get; }
+    /// Its value in `obj` (`null` for a static one).
+    public object? GetValue(object? obj);
+    public void SetValue(object? obj, object? value);
+}

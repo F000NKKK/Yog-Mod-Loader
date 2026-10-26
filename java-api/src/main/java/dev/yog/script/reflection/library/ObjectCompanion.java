@@ -5,5 +5,13 @@ package dev.yog.script.reflection.library;
 public final class ObjectCompanion {
     private ObjectCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Object.class, "System.Object", dev.yog.script.Type.CLASS, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Object.class, "System.Object", dev.yog.script.Type.CLASS, new String[] {  }, ObjectCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Method("Equals", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Object.Equals((Object) o, (Object) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Object.class), false);
+        d.Method("GetHashCode", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Object.GetHashCode((Object) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class));
+        d.Method("GetType", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Object.GetType((Object) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class));
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Object.ToString((Object) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+    }
 }

@@ -60,5 +60,21 @@ public sealed class Type : MemberInfo {
     /// Whether it inherits class `c` (not itself, not an interface).
     public bool IsSubclassOf(Type c);
 
+    /// Its public members — its own, and the instance ones it inherits
+    /// that nothing nearer hides — as .NET's `GetMethods()` and the rest.
+    public MemberInfo[] GetMembers();
+    public FieldInfo[] GetFields();
+    /// `null` when it has none of `name`.
+    public FieldInfo? GetField(string name);
+    public PropertyInfo[] GetProperties();
+    public PropertyInfo? GetProperty(string name);
+    public MethodInfo[] GetMethods();
+    /// `null` when it has none of `name`; a panic when it has several (say
+    /// which by their parameters' types).
+    public MethodInfo? GetMethod(string name);
+    public MethodInfo? GetMethod(string name, Type[] types);
+    public ConstructorInfo[] GetConstructors();
+    public ConstructorInfo? GetConstructor(Type[] types);
+
     public override string ToString();
 }

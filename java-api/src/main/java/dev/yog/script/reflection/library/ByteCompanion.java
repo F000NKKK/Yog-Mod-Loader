@@ -5,5 +5,18 @@ package dev.yog.script.reflection.library;
 public final class ByteCompanion {
     private ByteCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Byte.class, "System.Byte", dev.yog.script.Type.STRUCT | dev.yog.script.Type.PRIMITIVE, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Byte.class) })).Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Byte.class) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Byte.class, "System.Byte", dev.yog.script.Type.STRUCT | dev.yog.script.Type.PRIMITIVE, new String[] {  }, ByteCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Byte.class) }));
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Byte.class) }));
+        d.Field("MinValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Byte.class), o -> dev.yog.script.host.Byte.MinValue, null);
+        d.Field("MaxValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Byte.class), o -> dev.yog.script.host.Byte.MaxValue, null);
+        d.Method("Parse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Byte.Parse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Byte.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("TryParse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Byte.TryParse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Byte.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("CompareTo", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Byte.CompareTo((Integer) o, (Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Byte.class), false);
+        d.Method("Equals", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Byte.Equals((Integer) o, (Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Byte.class), false);
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Byte.ToString((Integer) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+    }
 }

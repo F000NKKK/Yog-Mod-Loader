@@ -3,6 +3,9 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface Converter<TInput, TOutput> {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Converter.class, "System.Converter", dev.yog.script.Type.DELEGATE, new String[] { "TInput", "TOutput" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Converter.class, "System.Converter", dev.yog.script.Type.DELEGATE, new String[] { "TInput", "TOutput" }, dev.yog.script.Converter::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+    }
     TOutput Invoke(TInput input);
 }

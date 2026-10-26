@@ -3,6 +3,9 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface EventHandler1<TEventArgs> {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.EventHandler1.class, "System.EventHandler", dev.yog.script.Type.DELEGATE, new String[] { "TEventArgs" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.EventHandler1.class, "System.EventHandler", dev.yog.script.Type.DELEGATE, new String[] { "TEventArgs" }, dev.yog.script.EventHandler1::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+    }
     void Invoke(Object sender, TEventArgs e);
 }

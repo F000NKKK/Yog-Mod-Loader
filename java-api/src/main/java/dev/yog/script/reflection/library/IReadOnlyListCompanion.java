@@ -5,5 +5,10 @@ package dev.yog.script.reflection.library;
 public final class IReadOnlyListCompanion {
     private IReadOnlyListCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IReadOnlyList.class, "System.Collections.Generic.IReadOnlyList", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyCollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IReadOnlyList.class, "System.Collections.Generic.IReadOnlyList", dev.yog.script.Type.INTERFACE, new String[] { "T" }, IReadOnlyListCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyCollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+    }
 }

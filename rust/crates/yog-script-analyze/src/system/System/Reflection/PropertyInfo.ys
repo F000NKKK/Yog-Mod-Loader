@@ -1,0 +1,14 @@
+namespace System.Reflection;
+
+/// A property, read and written through its accessors.
+[Intrinsic]
+public class PropertyInfo : MemberInfo {
+    public override string Name { get; }
+    public override Type? DeclaringType { get; }
+    public override MemberTypes MemberType { get; }
+    public Type PropertyType { get; }
+    public bool CanRead { get; }
+    public bool CanWrite { get; }
+    public object? GetValue(object? obj);
+    public void SetValue(object? obj, object? value);
+}

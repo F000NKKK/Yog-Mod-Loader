@@ -5,5 +5,30 @@ package dev.yog.script.reflection.library;
 public final class DoubleCompanion {
     private DoubleCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Double.class, "System.Double", dev.yog.script.Type.STRUCT | dev.yog.script.Type.PRIMITIVE, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Double.class) })).Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Double.class) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Double.class, "System.Double", dev.yog.script.Type.STRUCT | dev.yog.script.Type.PRIMITIVE, new String[] {  }, DoubleCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Double.class) }));
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Double.class) }));
+        d.Field("MinValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.MinValue, null);
+        d.Field("MaxValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.MaxValue, null);
+        d.Field("Epsilon", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.Epsilon, null);
+        d.Field("NaN", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.NaN, null);
+        d.Field("PositiveInfinity", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.PositiveInfinity, null);
+        d.Field("NegativeInfinity", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.NegativeInfinity, null);
+        d.Field("Pi", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.Pi, null);
+        d.Field("E", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.E, null);
+        d.Field("Tau", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> dev.yog.script.host.Double.Tau, null);
+        d.Method("IsNaN", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Double.IsNaN((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("f", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("IsInfinity", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Double.IsInfinity((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("f", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("IsPositiveInfinity", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Double.IsPositiveInfinity((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("f", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("IsNegativeInfinity", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Double.IsNegativeInfinity((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("f", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("IsFinite", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Double.IsFinite((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("f", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("Parse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Double.Parse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Double.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("TryParse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Double.TryParse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Double.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("CompareTo", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Double.CompareTo((Double) o, (Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("Equals", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Double.Equals((Double) o, (Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Double.ToString((Double) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+    }
 }

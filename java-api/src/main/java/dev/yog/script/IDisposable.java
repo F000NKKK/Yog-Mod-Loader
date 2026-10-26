@@ -2,6 +2,10 @@
 package dev.yog.script;
 
 public interface IDisposable {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.IDisposable.class, "System.IDisposable", dev.yog.script.Type.INTERFACE, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.IDisposable.class, "System.IDisposable", dev.yog.script.Type.INTERFACE, new String[] {  }, dev.yog.script.IDisposable::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Method("Dispose", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.IDisposable) o).Dispose(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
+    }
     void Dispose();
 }

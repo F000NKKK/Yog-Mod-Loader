@@ -5,5 +5,11 @@ package dev.yog.script.reflection.library;
 public final class IGroupingCompanion {
     private IGroupingCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.linq.IGrouping.class, "System.Linq.IGrouping", dev.yog.script.Type.INTERFACE, new String[] { "TKey", "TElement" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.linq.IGrouping.class, "System.Linq.IGrouping", dev.yog.script.Type.INTERFACE, new String[] { "TKey", "TElement" }, IGroupingCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }));
+        d.Property("Key", 0, d.Parameter(0), o -> ((dev.yog.script.linq.IGrouping) o).Key(), null);
+    }
 }

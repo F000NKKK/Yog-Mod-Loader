@@ -5,5 +5,24 @@ package dev.yog.script.reflection.library;
 public final class DecimalCompanion {
     private DecimalCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Decimal.class, "System.Decimal", dev.yog.script.Type.STRUCT, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class) })).Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.host.Decimal.class, "System.Decimal", dev.yog.script.Type.STRUCT, new String[] {  }, DecimalCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class) }));
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class) }));
+        d.Field("MinValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), o -> dev.yog.script.host.Decimal.MinValue, null);
+        d.Field("MaxValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), o -> dev.yog.script.host.Decimal.MaxValue, null);
+        d.Field("Zero", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), o -> dev.yog.script.host.Decimal.Zero, null);
+        d.Field("One", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), o -> dev.yog.script.host.Decimal.One, null);
+        d.Method("Round", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.Round((java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class)).Takes("d", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
+        d.Method("Floor", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.Floor((java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class)).Takes("d", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
+        d.Method("Ceiling", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.Ceiling((java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class)).Takes("d", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
+        d.Method("Truncate", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.Truncate((java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class)).Takes("d", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
+        d.Method("Parse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.Parse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("TryParse", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.TryParse((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class)).Takes("s", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("CompareTo", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.CompareTo((java.math.BigDecimal) o, (java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
+        d.Method("Equals", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.Equals((java.math.BigDecimal) o, (java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.ToString((java.math.BigDecimal) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+    }
 }

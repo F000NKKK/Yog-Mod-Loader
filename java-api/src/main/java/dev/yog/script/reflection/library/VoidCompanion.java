@@ -5,5 +5,9 @@ package dev.yog.script.reflection.library;
 public final class VoidCompanion {
     private VoidCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(Void.class, "System.Void", dev.yog.script.Type.STRUCT, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(Void.class, "System.Void", dev.yog.script.Type.STRUCT, new String[] {  }, VoidCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+    }
 }

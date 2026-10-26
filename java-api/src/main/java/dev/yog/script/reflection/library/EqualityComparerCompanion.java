@@ -5,5 +5,13 @@ package dev.yog.script.reflection.library;
 public final class EqualityComparerCompanion {
     private EqualityComparerCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.EqualityComparer.class, "System.Collections.Generic.EqualityComparer", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] { "T" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEqualityComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.EqualityComparer.class, "System.Collections.Generic.EqualityComparer", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] { "T" }, EqualityComparerCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEqualityComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Property("Default", dev.yog.script.reflection.MemberInfo.STATIC, dev.yog.script.Type.Of(dev.yog.script.collections.generic.EqualityComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> dev.yog.script.collections.generic.EqualityComparer.Default(), null);
+        d.Method("Equals", dev.yog.script.reflection.MemberInfo.ABSTRACT, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.EqualityComparer) o).Equals(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("x", d.Parameter(0), false).Takes("y", d.Parameter(0), false);
+        d.Method("GetHashCode", dev.yog.script.reflection.MemberInfo.ABSTRACT, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.EqualityComparer) o).GetHashCode(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("obj", d.Parameter(0), false);
+    }
 }

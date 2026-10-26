@@ -5,5 +5,30 @@ package dev.yog.script.reflection.library;
 public final class SortedListCompanion {
     private SortedListCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.SortedList.class, "System.Collections.Generic.SortedList", dev.yog.script.Type.CLASS, new String[] { "TKey", "TValue" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) })).Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.SortedList.class, "System.Collections.Generic.SortedList", dev.yog.script.Type.CLASS, new String[] { "TKey", "TValue" }, SortedListCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }));
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyDictionary.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }));
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedList());
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.SortedList((dev.yog.script.collections.generic.IComparer) a[0])).Takes("comparer", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
+        d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.SortedList) o).Count(), null);
+        d.Property("Keys", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.SortedList) o).Keys(), null);
+        d.Property("Values", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.ICollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }), o -> ((dev.yog.script.collections.generic.SortedList) o).Values(), null);
+        d.Method("GetEnumerator", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).GetEnumerator()).Returns(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerator.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.collections.generic.KeyValuePair.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }) }));
+        d.Method("Add", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.SortedList) o).Add(a[0], a[1]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("key", d.Parameter(0), false).Takes("value", d.Parameter(1), false);
+        d.Method("TryAdd", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).TryAdd(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false).Takes("value", d.Parameter(1), false);
+        d.Method("ContainsKey", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).ContainsKey(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false);
+        d.Method("ContainsValue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).ContainsValue(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("value", d.Parameter(1), false);
+        d.Method("Remove", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).IDictionary$Remove(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false);
+        d.Method("TryGetValue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).TryGetValue(a[0])).Returns(d.Parameter(1)).Takes("key", d.Parameter(0), false);
+        d.Method("GetValueOrDefault", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).GetValueOrDefault(a[0], a[1])).Returns(d.Parameter(1)).Takes("key", d.Parameter(0), false).Takes("fallback", d.Parameter(1), false);
+        d.Method("Clear", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.SortedList) o).Clear(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
+        d.Method("IndexOfKey", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).IndexOfKey(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("key", d.Parameter(0), false);
+        d.Method("IndexOfValue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).IndexOfValue(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("value", d.Parameter(1), false);
+        d.Method("GetKeyAtIndex", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).GetKeyAtIndex((Integer) a[0])).Returns(d.Parameter(0)).Takes("index", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Method("GetValueAtIndex", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.SortedList) o).GetValueAtIndex((Integer) a[0])).Returns(d.Parameter(1)).Takes("index", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Method("RemoveAt", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.SortedList) o).RemoveAt((Integer) a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("index", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+    }
 }

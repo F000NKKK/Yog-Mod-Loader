@@ -5,5 +5,22 @@ package dev.yog.script.reflection.library;
 public final class QueueCompanion {
     private QueueCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.Queue.class, "System.Collections.Generic.Queue", dev.yog.script.Type.CLASS, new String[] { "T" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyCollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.Queue.class, "System.Collections.Generic.Queue", dev.yog.script.Type.CLASS, new String[] { "T" }, QueueCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IReadOnlyCollection.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.Queue());
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.Queue((dev.yog.script.collections.generic.IEnumerable) a[0])).Takes("collection", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
+        d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.Queue) o).Count(), null);
+        d.Method("GetEnumerator", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Queue) o).GetEnumerator()).Returns(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerator.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Method("Enqueue", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.Queue) o).Enqueue(a[0]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("item", d.Parameter(0), false);
+        d.Method("Dequeue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Queue) o).Dequeue()).Returns(d.Parameter(0));
+        d.Method("Peek", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Queue) o).Peek()).Returns(d.Parameter(0));
+        d.Method("TryDequeue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Queue) o).TryDequeue()).Returns(d.Parameter(0));
+        d.Method("TryPeek", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Queue) o).TryPeek()).Returns(d.Parameter(0));
+        d.Method("Clear", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.Queue) o).Clear(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
+        d.Method("Contains", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Queue) o).Contains(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("item", d.Parameter(0), false);
+        d.Method("ToArray", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Queue) o).ToArray()).Returns(d.Parameter(0).MakeArrayType(1));
+    }
 }

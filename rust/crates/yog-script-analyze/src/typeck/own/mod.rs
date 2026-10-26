@@ -102,8 +102,13 @@ pub(crate) struct OwnTypes {
     pub extension_methods: HashMap<String, Vec<(TypeKey, Method)>>,
     /// Each type's namespace (`namespace A.B;`), by its name.
     pub namespaces: HashMap<String, Vec<String>>,
-    /// The namespace the declarations being collected are in.
+    /// The `using`s of the file each type is declared in: what its
+    /// members' written types are read with, wherever they're reached.
+    pub usings: HashMap<String, Vec<Vec<String>>>,
+    /// The namespace the declarations being collected are in, and the
+    /// file's `using`s.
     current: Vec<String>,
+    current_usings: Vec<Vec<String>>,
 }
 
 impl OwnTypes {

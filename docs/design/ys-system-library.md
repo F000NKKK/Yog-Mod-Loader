@@ -303,6 +303,9 @@ an interpreter of the nodes.
 4. `System.Reflection`, `System.Linq.Expressions`: `System.Type`
    (done: `typeof`, `GetType()`, names as the CLR writes them, generics
    and arrays made, what a type inherits, `$TYPE` beside each compiled
-   type, companions of the runtime's); members (`FieldInfo`,
-   `PropertyInfo`, `MethodInfo`, `ConstructorInfo`) next, then attributes,
-   then expression trees.
+   type, companions of the runtime's); members (done: `FieldInfo`,
+   `PropertyInfo`, `MethodInfo`, `ConstructorInfo`, `ParameterInfo` —
+   `GetValue`, `SetValue`, `Invoke` by what's written beside each; a
+   library member's types read with its own file's `using`s, as .NET's
+   metadata is); `BindingFlags` (needs enums' `|`), attributes, expression
+   trees next.

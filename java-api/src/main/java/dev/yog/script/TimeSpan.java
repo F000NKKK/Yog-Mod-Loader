@@ -2,7 +2,49 @@
 package dev.yog.script;
 
 public final class TimeSpan implements dev.yog.script.IEquatable<dev.yog.script.TimeSpan>, dev.yog.script.IComparable<dev.yog.script.TimeSpan>, Cloneable {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.TimeSpan.class, "System.TimeSpan", dev.yog.script.Type.STRUCT, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class) })).Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class) })));
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.TimeSpan.class, "System.TimeSpan", dev.yog.script.Type.STRUCT, new String[] {  }, dev.yog.script.TimeSpan::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class) }));
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class) }));
+        d.Field("NanosecondsPerTick", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), o -> dev.yog.script.TimeSpan.NanosecondsPerTick, null);
+        d.Field("TicksPerMicrosecond", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), o -> dev.yog.script.TimeSpan.TicksPerMicrosecond, null);
+        d.Field("TicksPerMillisecond", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), o -> dev.yog.script.TimeSpan.TicksPerMillisecond, null);
+        d.Field("TicksPerSecond", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), o -> dev.yog.script.TimeSpan.TicksPerSecond, null);
+        d.Field("TicksPerMinute", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), o -> dev.yog.script.TimeSpan.TicksPerMinute, null);
+        d.Field("TicksPerHour", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), o -> dev.yog.script.TimeSpan.TicksPerHour, null);
+        d.Field("TicksPerDay", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), o -> dev.yog.script.TimeSpan.TicksPerDay, null);
+        d.Field("Zero", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), o -> dev.yog.script.TimeSpan.Zero, null);
+        d.Property("Ticks", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), o -> ((dev.yog.script.TimeSpan) o).Ticks, null);
+        d.Property("Days", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.TimeSpan) o).Days(), null);
+        d.Property("Hours", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.TimeSpan) o).Hours(), null);
+        d.Property("Minutes", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.TimeSpan) o).Minutes(), null);
+        d.Property("Seconds", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.TimeSpan) o).Seconds(), null);
+        d.Property("Milliseconds", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.TimeSpan) o).Milliseconds(), null);
+        d.Property("TotalDays", 0, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> ((dev.yog.script.TimeSpan) o).TotalDays(), null);
+        d.Property("TotalHours", 0, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> ((dev.yog.script.TimeSpan) o).TotalHours(), null);
+        d.Property("TotalMinutes", 0, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> ((dev.yog.script.TimeSpan) o).TotalMinutes(), null);
+        d.Property("TotalSeconds", 0, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> ((dev.yog.script.TimeSpan) o).TotalSeconds(), null);
+        d.Property("TotalMilliseconds", 0, dev.yog.script.Type.Of(dev.yog.script.host.Double.class), o -> ((dev.yog.script.TimeSpan) o).TotalMilliseconds(), null);
+        d.Method("FromDays", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.TimeSpan.FromDays((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("FromHours", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.TimeSpan.FromHours((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("FromMinutes", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.TimeSpan.FromMinutes((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("FromSeconds", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.TimeSpan.FromSeconds((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("FromMilliseconds", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.TimeSpan.FromMilliseconds((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("FromTicks", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.TimeSpan.FromTicks((Long) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), false);
+        d.Method("Interval", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.PRIVATE, new String[] {  }, (o, a) -> dev.yog.script.TimeSpan.Interval((Double) a[0], (Long) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false).Takes("scale", dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), false);
+        d.Method("Add", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).Add((dev.yog.script.TimeSpan) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("ts", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false);
+        d.Method("Subtract", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).Subtract((dev.yog.script.TimeSpan) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("ts", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false);
+        d.Method("Negate", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).Negate()).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class));
+        d.Method("Duration", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).Duration()).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class));
+        d.Method("Multiply", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).Multiply((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("factor", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("Divide", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).Divide((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class)).Takes("divisor", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("Divide", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).Divide((dev.yog.script.TimeSpan) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Double.class)).Takes("ts", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false);
+        d.Method("Compare", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.TimeSpan.Compare((dev.yog.script.TimeSpan) a[0], (dev.yog.script.TimeSpan) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("t1", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false).Takes("t2", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false);
+        d.Method("CompareTo", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).CompareTo((dev.yog.script.TimeSpan) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("other", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false);
+        d.Method("Equals", 0, new String[] {  }, (o, a) -> ((dev.yog.script.TimeSpan) o).Equals((dev.yog.script.TimeSpan) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("other", dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class), false);
+        d.Constructor(0, a -> new dev.yog.script.TimeSpan((Long) a[0])).Takes("ticks", dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), false);
+    }
     public static final long NanosecondsPerTick = 100L;
     public static final long TicksPerMicrosecond = 10L;
     public static final long TicksPerMillisecond = 10000L;

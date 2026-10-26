@@ -2,5 +2,11 @@
 package dev.yog.script.meta;
 
 public record Field(String Name, String Type) {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.meta.Field.class, "System.Meta.Field", dev.yog.script.Type.CLASS, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.meta.Field.class, "System.Meta.Field", dev.yog.script.Type.CLASS, new String[] {  }, dev.yog.script.meta.Field::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Property("Name", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.meta.Field) o).Name(), null);
+        d.Property("Type", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.meta.Field) o).Type(), null);
+        d.Constructor(0, a -> new dev.yog.script.meta.Field((String) a[0], (String) a[1])).Takes("Name", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("Type", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+    }
 }

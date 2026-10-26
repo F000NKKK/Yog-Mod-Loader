@@ -2,5 +2,11 @@
 package dev.yog.script.collections.generic;
 
 public record KeyValuePair<TKey, TValue>(TKey Key, TValue Value) {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.KeyValuePair.class, "System.Collections.Generic.KeyValuePair", dev.yog.script.Type.STRUCT, new String[] { "TKey", "TValue" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.KeyValuePair.class, "System.Collections.Generic.KeyValuePair", dev.yog.script.Type.STRUCT, new String[] { "TKey", "TValue" }, dev.yog.script.collections.generic.KeyValuePair::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Property("Key", 0, d.Parameter(0), o -> ((dev.yog.script.collections.generic.KeyValuePair) o).Key(), null);
+        d.Property("Value", 0, d.Parameter(1), o -> ((dev.yog.script.collections.generic.KeyValuePair) o).Value(), null);
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.KeyValuePair(a[0], a[1])).Takes("Key", d.Parameter(0), false).Takes("Value", d.Parameter(1), false);
+    }
 }

@@ -30,7 +30,7 @@ public final class DeclaredType extends Type {
         this.traits = traits;
         this.parameters = new Type[parameters.length];
         for (int i = 0; i < parameters.length; i++) {
-            this.parameters[i] = new GenericParameterType(parameters[i], i, this);
+            this.parameters[i] = new GenericParameterType(parameters[i], i, this, false);
         }
         this.describe = describe;
     }
@@ -88,6 +88,11 @@ public final class DeclaredType extends Type {
     @Override
     protected List<Type> ownInterfaces() {
         return description().interfaces();
+    }
+
+    @Override
+    public List<MemberInfo> members() {
+        return List.copyOf(description().members());
     }
 
     @Override

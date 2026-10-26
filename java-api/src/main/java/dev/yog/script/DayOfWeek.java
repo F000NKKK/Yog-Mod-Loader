@@ -3,5 +3,15 @@ package dev.yog.script;
 
 public enum DayOfWeek {
     Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday;
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.DayOfWeek.class, "System.DayOfWeek", dev.yog.script.Type.ENUM, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.DayOfWeek.class, "System.DayOfWeek", dev.yog.script.Type.ENUM, new String[] {  }, dev.yog.script.DayOfWeek::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Field("Sunday", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.DayOfWeek.class), o -> dev.yog.script.DayOfWeek.Sunday, null);
+        d.Field("Monday", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.DayOfWeek.class), o -> dev.yog.script.DayOfWeek.Monday, null);
+        d.Field("Tuesday", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.DayOfWeek.class), o -> dev.yog.script.DayOfWeek.Tuesday, null);
+        d.Field("Wednesday", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.DayOfWeek.class), o -> dev.yog.script.DayOfWeek.Wednesday, null);
+        d.Field("Thursday", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.DayOfWeek.class), o -> dev.yog.script.DayOfWeek.Thursday, null);
+        d.Field("Friday", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.DayOfWeek.class), o -> dev.yog.script.DayOfWeek.Friday, null);
+        d.Field("Saturday", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.DayOfWeek.class), o -> dev.yog.script.DayOfWeek.Saturday, null);
+    }
 }

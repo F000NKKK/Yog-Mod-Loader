@@ -1,0 +1,11 @@
+namespace System.Reflection;
+
+/// A constructor (named `.ctor`, as the CLR's).
+[Intrinsic]
+public class ConstructorInfo : MethodBase {
+    public override string Name { get; }
+    public override Type? DeclaringType { get; }
+    public override MemberTypes MemberType { get; }
+    /// A new object made with `parameters`.
+    public object Invoke(object?[]? parameters);
+}

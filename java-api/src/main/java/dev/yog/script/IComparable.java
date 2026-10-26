@@ -2,6 +2,10 @@
 package dev.yog.script;
 
 public interface IComparable<T> {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.IComparable.class, "System.IComparable", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.IComparable.class, "System.IComparable", dev.yog.script.Type.INTERFACE, new String[] { "T" }, dev.yog.script.IComparable::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Method("CompareTo", 0, new String[] {  }, (o, a) -> ((dev.yog.script.IComparable) o).CompareTo(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("other", d.Parameter(0), false);
+    }
     int CompareTo(T other);
 }

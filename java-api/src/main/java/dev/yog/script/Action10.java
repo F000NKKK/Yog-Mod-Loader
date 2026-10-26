@@ -3,6 +3,9 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface Action10<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Action10.class, "System.Action", dev.yog.script.Type.DELEGATE, new String[] { "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Action10.class, "System.Action", dev.yog.script.Type.DELEGATE, new String[] { "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10" }, dev.yog.script.Action10::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+    }
     void Invoke(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10);
 }

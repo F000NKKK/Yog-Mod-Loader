@@ -5,5 +5,12 @@ package dev.yog.script.reflection.library;
 public final class MemberInfoCompanion {
     private MemberInfoCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.reflection.MemberInfo.class, "System.Reflection.MemberInfo", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.reflection.MemberInfo.class, "System.Reflection.MemberInfo", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, MemberInfoCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Property("Name", dev.yog.script.reflection.MemberInfo.ABSTRACT, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((dev.yog.script.reflection.MemberInfo) o).Name(), null);
+        d.Property("DeclaringType", dev.yog.script.reflection.MemberInfo.ABSTRACT, dev.yog.script.Type.Of(dev.yog.script.Type.class), o -> ((dev.yog.script.reflection.MemberInfo) o).DeclaringType(), null);
+        d.Property("MemberType", dev.yog.script.reflection.MemberInfo.ABSTRACT, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> ((dev.yog.script.reflection.MemberInfo) o).MemberType(), null);
+    }
 }

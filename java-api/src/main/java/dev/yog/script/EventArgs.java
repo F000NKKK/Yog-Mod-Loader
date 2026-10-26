@@ -2,7 +2,12 @@
 package dev.yog.script;
 
 public class EventArgs {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.EventArgs.class, "System.EventArgs", dev.yog.script.Type.CLASS, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.EventArgs.class, "System.EventArgs", dev.yog.script.Type.CLASS, new String[] {  }, dev.yog.script.EventArgs::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Field("Empty", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.EventArgs.class), o -> dev.yog.script.EventArgs.Empty, null);
+        d.Constructor(0, a -> new dev.yog.script.EventArgs());
+    }
     public static final dev.yog.script.EventArgs Empty = new dev.yog.script.EventArgs();
     public EventArgs() {
         super();

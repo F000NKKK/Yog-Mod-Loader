@@ -2,7 +2,27 @@
 package dev.yog.script.numerics;
 
 public final class Matrix3x2 implements dev.yog.script.IEquatable<dev.yog.script.numerics.Matrix3x2>, Cloneable {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.numerics.Matrix3x2.class, "System.Numerics.Matrix3x2", dev.yog.script.Type.STRUCT, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class) })));
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.numerics.Matrix3x2.class, "System.Numerics.Matrix3x2", dev.yog.script.Type.STRUCT, new String[] {  }, dev.yog.script.numerics.Matrix3x2::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class) }));
+        d.Field("M11", 0, dev.yog.script.Type.Of(dev.yog.script.host.Single.class), o -> ((dev.yog.script.numerics.Matrix3x2) o).M11, (o, v) -> ((dev.yog.script.numerics.Matrix3x2) o).M11 = (Float) v);
+        d.Field("M12", 0, dev.yog.script.Type.Of(dev.yog.script.host.Single.class), o -> ((dev.yog.script.numerics.Matrix3x2) o).M12, (o, v) -> ((dev.yog.script.numerics.Matrix3x2) o).M12 = (Float) v);
+        d.Field("M21", 0, dev.yog.script.Type.Of(dev.yog.script.host.Single.class), o -> ((dev.yog.script.numerics.Matrix3x2) o).M21, (o, v) -> ((dev.yog.script.numerics.Matrix3x2) o).M21 = (Float) v);
+        d.Field("M22", 0, dev.yog.script.Type.Of(dev.yog.script.host.Single.class), o -> ((dev.yog.script.numerics.Matrix3x2) o).M22, (o, v) -> ((dev.yog.script.numerics.Matrix3x2) o).M22 = (Float) v);
+        d.Field("M31", 0, dev.yog.script.Type.Of(dev.yog.script.host.Single.class), o -> ((dev.yog.script.numerics.Matrix3x2) o).M31, (o, v) -> ((dev.yog.script.numerics.Matrix3x2) o).M31 = (Float) v);
+        d.Field("M32", 0, dev.yog.script.Type.Of(dev.yog.script.host.Single.class), o -> ((dev.yog.script.numerics.Matrix3x2) o).M32, (o, v) -> ((dev.yog.script.numerics.Matrix3x2) o).M32 = (Float) v);
+        d.Field("Identity", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.INIT_ONLY, dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class), o -> dev.yog.script.numerics.Matrix3x2.Identity, null);
+        d.Property("Translation", 0, dev.yog.script.Type.Of(dev.yog.script.numerics.Vector2.class), o -> ((dev.yog.script.numerics.Matrix3x2) o).Translation(), null);
+        d.Method("CreateTranslation", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.numerics.Matrix3x2.CreateTranslation((dev.yog.script.numerics.Vector2) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class)).Takes("position", dev.yog.script.Type.Of(dev.yog.script.numerics.Vector2.class), false);
+        d.Method("CreateScale", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.numerics.Matrix3x2.CreateScale((dev.yog.script.numerics.Vector2) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class)).Takes("scales", dev.yog.script.Type.Of(dev.yog.script.numerics.Vector2.class), false);
+        d.Method("CreateScale", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.numerics.Matrix3x2.CreateScale((Float) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class)).Takes("scale", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false);
+        d.Method("CreateRotation", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.numerics.Matrix3x2.CreateRotation((Float) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class)).Takes("radians", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false);
+        d.Method("GetDeterminant", 0, new String[] {  }, (o, a) -> ((dev.yog.script.numerics.Matrix3x2) o).GetDeterminant()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Single.class));
+        d.Method("Invert", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.numerics.Matrix3x2.Invert((dev.yog.script.numerics.Matrix3x2) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class)).Takes("m", dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class), false);
+        d.Method("Equals", 0, new String[] {  }, (o, a) -> ((dev.yog.script.numerics.Matrix3x2) o).Equals((dev.yog.script.numerics.Matrix3x2) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("other", dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix3x2.class), false);
+        d.Constructor(0, a -> new dev.yog.script.numerics.Matrix3x2((Float) a[0], (Float) a[1], (Float) a[2], (Float) a[3], (Float) a[4], (Float) a[5])).Takes("m11", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m12", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m21", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m22", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m31", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false).Takes("m32", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false);
+    }
     public static final dev.yog.script.numerics.Matrix3x2 Identity = new dev.yog.script.numerics.Matrix3x2(1, 0, 0, 1, 0, 0);
     public float M11;
     public float M12;

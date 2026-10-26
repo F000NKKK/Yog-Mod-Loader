@@ -5,5 +5,28 @@ package dev.yog.script.reflection.library;
 public final class StringBuilderCompanion {
     private StringBuilderCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.text.StringBuilder.class, "System.Text.StringBuilder", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.text.StringBuilder.class, "System.Text.StringBuilder", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, StringBuilderCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Constructor(0, a -> new dev.yog.script.text.StringBuilder());
+        d.Constructor(0, a -> new dev.yog.script.text.StringBuilder((String) a[0])).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Property("Length", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.text.StringBuilder) o).Length(), (o, v) -> ((dev.yog.script.text.StringBuilder) o).set_Length((Integer) v));
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((Character) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Char.class), false);
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((Boolean) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), false);
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((Long) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Int64.class), false);
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((Float) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Single.class), false);
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
+        d.Method("Append", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Append((Object) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Object.class), false);
+        d.Method("AppendLine", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).AppendLine()).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class));
+        d.Method("AppendLine", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).AppendLine((String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("Insert", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Insert((Integer) a[0], (String) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("index", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("Remove", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Remove((Integer) a[0], (Integer) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("startIndex", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false).Takes("length", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), false);
+        d.Method("Replace", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Replace((String) a[0], (String) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class)).Takes("oldValue", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false).Takes("newValue", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+        d.Method("Clear", 0, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).Clear()).Returns(dev.yog.script.Type.Of(dev.yog.script.text.StringBuilder.class));
+        d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> ((dev.yog.script.text.StringBuilder) o).ToString()).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+    }
 }

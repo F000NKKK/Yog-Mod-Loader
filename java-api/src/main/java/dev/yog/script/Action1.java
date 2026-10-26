@@ -3,6 +3,9 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface Action1<T> {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Action1.class, "System.Action", dev.yog.script.Type.DELEGATE, new String[] { "T" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Action1.class, "System.Action", dev.yog.script.Type.DELEGATE, new String[] { "T" }, dev.yog.script.Action1::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+    }
     void Invoke(T obj);
 }

@@ -2,7 +2,12 @@
 package dev.yog.script.meta;
 
 public final class DeriveMacro extends dev.yog.script.Attribute {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.meta.DeriveMacro.class, "System.Meta.DeriveMacro", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class)));
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.meta.DeriveMacro.class, "System.Meta.DeriveMacro", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, dev.yog.script.meta.DeriveMacro::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
+        d.Constructor(0, a -> new dev.yog.script.meta.DeriveMacro());
+    }
     public DeriveMacro() {
         super();
     }

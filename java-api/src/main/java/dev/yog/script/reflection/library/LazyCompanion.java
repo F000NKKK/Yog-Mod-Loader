@@ -5,5 +5,12 @@ package dev.yog.script.reflection.library;
 public final class LazyCompanion {
     private LazyCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.Lazy.class, "System.Lazy", dev.yog.script.Type.CLASS, new String[] { "T" }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.Lazy.class, "System.Lazy", dev.yog.script.Type.CLASS, new String[] { "T" }, LazyCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Constructor(0, a -> new dev.yog.script.Lazy((dev.yog.script.Func1) a[0])).Takes("valueFactory", dev.yog.script.Type.Of(dev.yog.script.Func1.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
+        d.Property("Value", 0, d.Parameter(0), o -> ((dev.yog.script.Lazy) o).Value(), null);
+        d.Property("IsValueCreated", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Lazy) o).IsValueCreated(), null);
+    }
 }

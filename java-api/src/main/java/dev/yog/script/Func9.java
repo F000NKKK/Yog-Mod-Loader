@@ -3,6 +3,9 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface Func9<T1, T2, T3, T4, T5, T6, T7, T8, TResult> {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Func9.class, "System.Func", dev.yog.script.Type.DELEGATE, new String[] { "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TResult" }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Func9.class, "System.Func", dev.yog.script.Type.DELEGATE, new String[] { "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TResult" }, dev.yog.script.Func9::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+    }
     TResult Invoke(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8);
 }

@@ -2,7 +2,12 @@
 package dev.yog.script.yog.native_;
 
 public final class Event extends dev.yog.script.Attribute {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.native_.Event.class, "System.Yog.Native.Event", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class)));
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.native_.Event.class, "System.Yog.Native.Event", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, dev.yog.script.yog.native_.Event::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));
+        d.Constructor(0, a -> new dev.yog.script.yog.native_.Event((String) a[0])).Takes("address", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
+    }
     public Event(String address) {
         super();
     }

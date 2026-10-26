@@ -3,5 +3,19 @@ package dev.yog.script;
 
 public enum AttributeTargets {
     Class, Struct, Enum, Interface, Method, Property, Field, Parameter, ReturnValue, Module, All;
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.AttributeTargets.class, "System.AttributeTargets", dev.yog.script.Type.ENUM, new String[] {  }, d -> {});
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.AttributeTargets.class, "System.AttributeTargets", dev.yog.script.Type.ENUM, new String[] {  }, dev.yog.script.AttributeTargets::$describe);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Field("Class", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Class, null);
+        d.Field("Struct", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Struct, null);
+        d.Field("Enum", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Enum, null);
+        d.Field("Interface", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Interface, null);
+        d.Field("Method", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Method, null);
+        d.Field("Property", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Property, null);
+        d.Field("Field", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Field, null);
+        d.Field("Parameter", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Parameter, null);
+        d.Field("ReturnValue", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.ReturnValue, null);
+        d.Field("Module", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.Module, null);
+        d.Field("All", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.AttributeTargets.class), o -> dev.yog.script.AttributeTargets.All, null);
+    }
 }

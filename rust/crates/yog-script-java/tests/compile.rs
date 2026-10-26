@@ -230,13 +230,38 @@ fn types_are_described_beside_them() {
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         // Its description: its name as declared, what it is, its parameters, its bases.
-        "public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(Box.class, \"My.Mod.Box\", dev.yog.script.Type.CLASS, new String[] { \"T\" }, d -> d.Interface(dev.yog.script.Type.Of(IShape.class)));",
+        "public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(Box.class, \"My.Mod.Box\", dev.yog.script.Type.CLASS, new String[] { \"T\" }, Box::$describe);",
+        "d.Interface(dev.yog.script.Type.Of(IShape.class));",
         "dev.yog.script.Type.Declare(IShape.class, \"My.Mod.IShape\", dev.yog.script.Type.INTERFACE",
         "dev.yog.script.host.Object.GetType(o)",
         "dev.yog.script.Type.Of(Box.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int32.class) })",
         "dev.yog.script.Type.Of(dev.yog.script.host.String.class).MakeArrayType(1)",
         // A number's: as declared, Java's `int` can't say `u8`.
         "dev.yog.script.Ys.before(dev.yog.script.Type.Of(dev.yog.script.host.Byte.class), b)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
+fn members_are_described_with_their_uses() {
+    let src = "class Box<T> {\n    public T Item;\n    public const i32 Max = 9;\n    public string Label => \"box\";\n\
+               public Box(T item) {\n        Item = item;\n    }\n\
+               public void Set(T item, i32 times = 1) {\n        Item = item;\n    }\n}\n\
+               record Pos(i32 X, i32 Y);\nenum Mode { Idle, Run }\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "Box::$describe);",
+        "private static void $describe(dev.yog.script.reflection.TypeDescription d) {",
+        // Each member with what reads, writes or calls it, as code uses it.
+        "d.Field(\"Item\", 0, d.Parameter(0), o -> ((Box) o).Item, (o, v) -> ((Box) o).Item = v);",
+        "d.Field(\"Max\", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> Box.Max, null);",
+        "d.Property(\"Label\", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((Box) o).Label(), null);",
+        "d.Constructor(0, a -> new Box(a[0])).Takes(\"item\", d.Parameter(0), false);",
+        "d.Method(\"Set\", 0, new String[] {  }, (o, a) -> { ((Box) o).Set(a[0], (Integer) a[1]); return null; })",
+        ".Takes(\"times\", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), true);",
+        "d.Property(\"X\", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((Pos) o).X(), null);",
+        "d.Field(\"Idle\", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(Mode.class), o -> Mode.Idle, null);",
     ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }

@@ -9,6 +9,7 @@ impl OwnTypes {
         let mut out = OwnTypes::default();
         for decls in sources {
             out.current.clear();
+            out.current_usings = super::super::names::Directives::collect(decls).usings;
             out.file(decls);
         }
         out
@@ -78,6 +79,8 @@ impl OwnTypes {
     fn declared(&mut self, name: &str, generics: &[ast::Generic]) -> &mut OwnType {
         self.namespaces
             .insert(name.to_string(), self.current.clone());
+        self.usings
+            .insert(name.to_string(), self.current_usings.clone());
         let params = type_params(generics);
         let t = self
             .types

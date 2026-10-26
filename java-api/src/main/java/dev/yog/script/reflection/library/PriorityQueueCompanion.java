@@ -5,5 +5,19 @@ package dev.yog.script.reflection.library;
 public final class PriorityQueueCompanion {
     private PriorityQueueCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.PriorityQueue.class, "System.Collections.Generic.PriorityQueue", dev.yog.script.Type.CLASS, new String[] { "TElement", "TPriority" }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.PriorityQueue.class, "System.Collections.Generic.PriorityQueue", dev.yog.script.Type.CLASS, new String[] { "TElement", "TPriority" }, PriorityQueueCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.PriorityQueue());
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.PriorityQueue((dev.yog.script.collections.generic.IComparer) a[0])).Takes("comparer", dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(1) }), false);
+        d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.collections.generic.PriorityQueue) o).Count(), null);
+        d.Method("Enqueue", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.PriorityQueue) o).Enqueue(a[0], a[1]); return null; }).Returns(dev.yog.script.Type.Of(Void.class)).Takes("element", d.Parameter(0), false).Takes("priority", d.Parameter(1), false);
+        d.Method("Dequeue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.PriorityQueue) o).Dequeue()).Returns(d.Parameter(0));
+        d.Method("Peek", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.PriorityQueue) o).Peek()).Returns(d.Parameter(0));
+        d.Method("TryDequeue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.PriorityQueue) o).TryDequeue()).Returns(d.Parameter(0));
+        d.Method("TryPeek", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.PriorityQueue) o).TryPeek()).Returns(d.Parameter(0));
+        d.Method("EnqueueDequeue", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.PriorityQueue) o).EnqueueDequeue(a[0], a[1])).Returns(d.Parameter(0)).Takes("element", d.Parameter(0), false).Takes("priority", d.Parameter(1), false);
+        d.Method("Clear", 0, new String[] {  }, (o, a) -> { ((dev.yog.script.collections.generic.PriorityQueue) o).Clear(); return null; }).Returns(dev.yog.script.Type.Of(Void.class));
+    }
 }

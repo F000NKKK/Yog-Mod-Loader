@@ -1,0 +1,13 @@
+namespace System.Reflection;
+
+/// A method's or a constructor's parameter.
+[Intrinsic]
+public class ParameterInfo {
+    public string Name { get; }
+    public Type ParameterType { get; }
+    /// Its place among its method's, from 0.
+    public i32 Position { get; }
+    /// Whether a call may leave it out: it has a default.
+    public bool HasDefaultValue { get; }
+    public bool IsOptional { get; }
+}

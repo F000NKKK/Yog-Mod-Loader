@@ -5,5 +5,11 @@ package dev.yog.script.reflection.library;
 public final class IEqualityComparerCompanion {
     private IEqualityComparerCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IEqualityComparer.class, "System.Collections.Generic.IEqualityComparer", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.IEqualityComparer.class, "System.Collections.Generic.IEqualityComparer", dev.yog.script.Type.INTERFACE, new String[] { "T" }, IEqualityComparerCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Method("Equals", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IEqualityComparer) o).Equals(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("x", d.Parameter(0), false).Takes("y", d.Parameter(0), false);
+        d.Method("GetHashCode", 0, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.IEqualityComparer) o).GetHashCode(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("obj", d.Parameter(0), false);
+    }
 }

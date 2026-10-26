@@ -5,5 +5,14 @@ package dev.yog.script.reflection.library;
 public final class LinkedListNodeCompanion {
     private LinkedListNodeCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.LinkedListNode.class, "System.Collections.Generic.LinkedListNode", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] { "T" }, d -> {});
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.LinkedListNode.class, "System.Collections.Generic.LinkedListNode", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] { "T" }, LinkedListNodeCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Constructor(0, a -> new dev.yog.script.collections.generic.LinkedListNode(a[0])).Takes("value", d.Parameter(0), false);
+        d.Property("Value", 0, d.Parameter(0), o -> ((dev.yog.script.collections.generic.LinkedListNode) o).Value(), (o, v) -> ((dev.yog.script.collections.generic.LinkedListNode) o).set_Value(v));
+        d.Property("List", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.LinkedList.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.LinkedListNode) o).List(), null);
+        d.Property("Next", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.LinkedListNode.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.LinkedListNode) o).Next(), null);
+        d.Property("Previous", 0, dev.yog.script.Type.Of(dev.yog.script.collections.generic.LinkedListNode.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> ((dev.yog.script.collections.generic.LinkedListNode) o).Previous(), null);
+    }
 }

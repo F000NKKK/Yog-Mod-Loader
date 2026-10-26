@@ -5,5 +5,12 @@ package dev.yog.script.reflection.library;
 public final class ILookupCompanion {
     private ILookupCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.linq.ILookup.class, "System.Linq.ILookup", dev.yog.script.Type.INTERFACE, new String[] { "TKey", "TElement" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.linq.IGrouping.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.linq.ILookup.class, "System.Linq.ILookup", dev.yog.script.Type.INTERFACE, new String[] { "TKey", "TElement" }, ILookupCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IEnumerable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.linq.IGrouping.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0), d.Parameter(1) }) }));
+        d.Property("Count", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((dev.yog.script.linq.ILookup) o).Count(), null);
+        d.Method("Contains", 0, new String[] {  }, (o, a) -> ((dev.yog.script.linq.ILookup) o).Contains(a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("key", d.Parameter(0), false);
+    }
 }

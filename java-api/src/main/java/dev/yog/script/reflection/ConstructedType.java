@@ -1,6 +1,7 @@
 package dev.yog.script.reflection;
 
 import dev.yog.script.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -8,6 +9,7 @@ import java.util.function.Function;
 final class ConstructedType extends Type {
     private final DeclaredType definition;
     private final Type[] arguments;
+    private volatile List<MemberInfo> members;
 
     ConstructedType(DeclaredType definition, Type[] arguments) {
         this.definition = definition;
@@ -49,6 +51,21 @@ final class ConstructedType extends Type {
     @Override
     protected List<Type> ownInterfaces() {
         return substituted(definition.ownInterfaces(), arguments);
+    }
+
+    /** Its definition's, their types made of its arguments. */
+    @Override
+    public List<MemberInfo> members() {
+        List<MemberInfo> made = members;
+        if (made == null) {
+            List<MemberInfo> out = new ArrayList<>();
+            for (Member m : definition.description().members()) {
+                out.add(m.of(this, arguments));
+            }
+            made = List.copyOf(out);
+            members = made;
+        }
+        return made;
     }
 
     @Override

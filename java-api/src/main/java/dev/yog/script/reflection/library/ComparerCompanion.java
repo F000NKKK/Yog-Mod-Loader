@@ -5,5 +5,13 @@ package dev.yog.script.reflection.library;
 public final class ComparerCompanion {
     private ComparerCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.Comparer.class, "System.Collections.Generic.Comparer", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] { "T" }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })));
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.Comparer.class, "System.Collections.Generic.Comparer", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] { "T" }, ComparerCompanion::$describe);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void $describe(dev.yog.script.reflection.TypeDescription d) {
+        d.Interface(dev.yog.script.Type.Of(dev.yog.script.collections.generic.IComparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }));
+        d.Property("Default", dev.yog.script.reflection.MemberInfo.STATIC, dev.yog.script.Type.Of(dev.yog.script.collections.generic.Comparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), o -> dev.yog.script.collections.generic.Comparer.Default(), null);
+        d.Method("Create", dev.yog.script.reflection.MemberInfo.STATIC, new String[] {  }, (o, a) -> dev.yog.script.collections.generic.Comparer.Create((dev.yog.script.Comparison) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.collections.generic.Comparer.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) })).Takes("comparison", dev.yog.script.Type.Of(dev.yog.script.Comparison.class).MakeGenericType(new dev.yog.script.Type[] { d.Parameter(0) }), false);
+        d.Method("Compare", dev.yog.script.reflection.MemberInfo.ABSTRACT, new String[] {  }, (o, a) -> ((dev.yog.script.collections.generic.Comparer) o).Compare(a[0], a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("x", d.Parameter(0), false).Takes("y", d.Parameter(0), false);
+    }
 }

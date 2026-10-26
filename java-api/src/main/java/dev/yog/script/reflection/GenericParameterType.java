@@ -3,16 +3,19 @@ package dev.yog.script.reflection;
 import dev.yog.script.Type;
 import java.util.List;
 
-/** A type parameter ({@code T}) of a generic type: its name, its place. */
+/** A type parameter ({@code T}) of a generic type or method: its name, its place. */
 final class GenericParameterType extends Type {
     private final String name;
     private final int position;
     private final Type declaring;
+    /** A method's: its type's arguments don't stand for it. */
+    private final boolean ofMethod;
 
-    GenericParameterType(String name, int position, Type declaring) {
+    GenericParameterType(String name, int position, Type declaring, boolean ofMethod) {
         this.name = name;
         this.position = position;
         this.declaring = declaring;
+        this.ofMethod = ofMethod;
     }
 
     @Override
@@ -60,10 +63,10 @@ final class GenericParameterType extends Type {
         return position;
     }
 
-    /** What stands for it where {@code arguments} are its type's. */
+    /** What stands for it where {@code arguments} are its type's (a method's stays). */
     @Override
     public Type substitute(Type[] arguments) {
-        return position < arguments.length ? arguments[position] : this;
+        return !ofMethod && position < arguments.length ? arguments[position] : this;
     }
 
     @Override
