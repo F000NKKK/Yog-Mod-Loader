@@ -9,7 +9,7 @@ public final class CustomAttributeExtensions {
     private CustomAttributeExtensions() {}
 
     /** {@code element}'s attribute of {@code type} (its class handed first, {@code [Reified]}); {@code null} for none, a panic for several. */
-    public static <T> T GetCustomAttribute(Class<?> type, MemberInfo element) {
+    public static <T> T GetCustomAttribute(Class<T> type, MemberInfo element) {
         Object found = null;
         for (Object a : element.GetCustomAttributes(true)) {
             if (type.isInstance(a)) {
@@ -19,19 +19,15 @@ public final class CustomAttributeExtensions {
                 found = a;
             }
         }
-        @SuppressWarnings("unchecked")
-        T typed = (T) found;
-        return typed;
+        return type.cast(found);
     }
 
     /** {@code element}'s attributes of {@code type}. */
-    public static <T> List<T> GetCustomAttributes(Class<?> type, MemberInfo element) {
+    public static <T> List<T> GetCustomAttributes(Class<T> type, MemberInfo element) {
         List<T> out = new List<>();
         for (Object a : element.GetCustomAttributes(true)) {
             if (type.isInstance(a)) {
-                @SuppressWarnings("unchecked")
-                T typed = (T) a;
-                out.Add(typed);
+                out.Add(type.cast(a));
             }
         }
         return out;
