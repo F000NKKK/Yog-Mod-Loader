@@ -28,7 +28,7 @@ impl Checker<'_, '_> {
                 self.args(args.as_deref().unwrap_or_default());
                 init.iter().for_each(|(_, v)| self.expr(v));
             }
-            ExprKind::Lambda { params, body } => {
+            ExprKind::Lambda { params, body, .. } => {
                 // Its code runs later: what it moves isn't moved here, its
                 // `return` isn't the method's.
                 let outer = self.state.clone();

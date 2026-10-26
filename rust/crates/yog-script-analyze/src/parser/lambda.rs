@@ -8,11 +8,16 @@ use crate::source::token::{Punct, Tok};
 impl Parser<'_, '_, '_> {
     /// Whether `name =>` or `( … ) =>` starts here.
     pub(super) fn lambda_ahead(&self) -> bool {
-        match self.tok() {
-            Tok::Ident(_) => self.nth_is(1, Punct::FatArrow),
+        self.lambda_ahead_at(0)
+    }
+
+    /// Whether `name =>` or `( … ) =>` starts `skip` tokens on.
+    pub(super) fn lambda_ahead_at(&self, skip: usize) -> bool {
+        match self.nth(skip) {
+            Tok::Ident(_) => self.nth_is(skip + 1, Punct::FatArrow),
             Tok::Punct(Punct::LParen) => {
                 let mut depth = 0usize;
-                let mut n = 0;
+                let mut n = skip;
                 loop {
                     match self.nth(n) {
                         Tok::Punct(Punct::LParen) => depth += 1,
@@ -54,7 +59,11 @@ impl Parser<'_, '_, '_> {
             LambdaBody::Expr(Box::new(self.expr()?))
         };
         Ok(Expr {
-            kind: ExprKind::Lambda { params, body },
+            kind: ExprKind::Lambda {
+                params,
+                body,
+                asynchronous: false,
+            },
             span: start.to(self.prev()),
         })
     }
@@ -84,6 +93,7 @@ impl Parser<'_, '_, '_> {
             kind: ExprKind::Lambda {
                 params: Vec::new(),
                 body: LambdaBody::Block(body),
+                asynchronous: false,
             },
             span: start.to(self.prev()),
         })

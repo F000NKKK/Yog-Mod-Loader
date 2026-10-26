@@ -47,7 +47,7 @@ impl Checker<'_, '_, '_> {
             ExprKind::Call { callee, args } => self.call(e, callee, args),
             ExprKind::Switch { expr, arms } => self.switch(expr, arms, e.span),
             ExprKind::With { expr, inits } => self.with(expr, inits, e.span),
-            ExprKind::Lambda { params, body } => self.lambda_alone(params, body),
+            ExprKind::Lambda { params, body, .. } => self.lambda_alone(params, body),
             ExprKind::Macro { name, args } => self.builtin_macro(name, args),
             ExprKind::Unary { op, expr } => self.unary(e, *op, expr),
             ExprKind::Binary { op, left, right } => self.binary(e, *op, left, right),
@@ -104,7 +104,7 @@ impl Checker<'_, '_, '_> {
                 self.expr(from);
                 self.expr(to);
             }
-            ExprKind::Lambda { params, body } => {
+            ExprKind::Lambda { params, body, .. } => {
                 self.lambda_alone(params, body);
             }
             _ => {}
@@ -162,7 +162,7 @@ impl Checker<'_, '_, '_> {
                 }
                 _ => Type::Unknown,
             },
-            UnOp::Await => Type::Unknown,
+            UnOp::Await => self.awaits(&t, expr.span),
         }
     }
 

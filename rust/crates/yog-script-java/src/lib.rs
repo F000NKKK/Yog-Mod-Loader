@@ -22,6 +22,7 @@ mod indexers;
 mod java_names;
 mod kept;
 mod library;
+mod machine;
 mod macros;
 mod operators;
 mod patterns;
@@ -136,7 +137,8 @@ pub(crate) struct Gen<'c> {
     /// the source's class (`$types1`): worked out once, not per object.
     kept_types: Vec<String>,
     /// The loops being written, innermost last: a loop written in steps
-    /// its label a `continue` leaves its body by; Java's own none.
+    /// what leaves its body for a `continue` (`break $t1;`, a split one's
+    /// jump); Java's own none.
     continues: Vec<Option<String>>,
     /// The method's `ref` and `out` parameters: cells (`x.value`).
     cells: std::collections::HashSet<String>,
@@ -151,6 +153,15 @@ pub(crate) struct Gen<'c> {
     type_params: Vec<(String, String)>,
     /// The type being written's own type parameters, by name.
     owner_generics: Vec<String>,
+    /// The `async` method being written's machine (none in a lambda of it).
+    machine: Option<machine::Machine>,
+    /// The method's names that are its machine's fields, innermost last.
+    renamed: Vec<(String, String)>,
+    /// Where `this` is when the code is the machine's: its method's class's.
+    this_name: Option<String>,
+    /// The loops being written, innermost last: a loop split in states
+    /// the jump a `break` leaves it by; Java's own none.
+    breaks: Vec<Option<String>>,
 }
 
 impl<'c> Gen<'c> {
@@ -173,6 +184,10 @@ impl<'c> Gen<'c> {
             runtime_call: false,
             type_params: Vec::new(),
             owner_generics: Vec::new(),
+            machine: None,
+            renamed: Vec::new(),
+            this_name: None,
+            breaks: Vec::new(),
         }
     }
 }

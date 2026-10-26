@@ -58,7 +58,11 @@ impl Resolver<'_, '_> {
                 args.iter().flatten().for_each(|a| self.expr(&a.value));
                 init.iter().for_each(|(_, v)| self.expr(v));
             }
-            ExprKind::Lambda { params, body } => self.lambda(params, body),
+            ExprKind::Lambda {
+                params,
+                body,
+                asynchronous,
+            } => self.lambda(params, body, *asynchronous),
             ExprKind::Unary { op, expr } => {
                 if *op == UnOp::Await && !self.cx.awaits {
                     self.report.error(
@@ -167,9 +171,11 @@ impl Resolver<'_, '_> {
     }
 
     /// A lambda: its parameters (none: `it`), its own loops.
-    fn lambda(&mut self, params: &[LambdaParam], body: &LambdaBody) {
+    /// A lambda: its own scope; it awaits only when it's `async` (C#'s).
+    fn lambda(&mut self, params: &[LambdaParam], body: &LambdaBody, asynchronous: bool) {
         let cx = Context {
             loops: 0,
+            awaits: asynchronous,
             it: params.is_empty() || self.cx.it,
             before: false,
             ..self.cx

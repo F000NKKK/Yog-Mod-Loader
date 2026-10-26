@@ -7,6 +7,7 @@
 
 mod arrays;
 mod attributes;
+mod awaits;
 mod bits;
 mod builtin;
 mod callees;

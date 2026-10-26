@@ -88,7 +88,9 @@ impl Gen<'_> {
                 args: Some(args),
                 init,
             } if init.is_empty() => self.new_node(e, args, scopes)?,
-            ExprKind::Lambda { params, body } => self.nested_lambda(e, (params, body), scopes)?,
+            ExprKind::Lambda { params, body, .. } => {
+                self.nested_lambda(e, (params, body), scopes)?
+            }
             _ => return self.not_tree(e),
         };
         Some(node)

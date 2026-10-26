@@ -27,8 +27,7 @@ fn values_fit_their_types() {
         [script_problem::TYPE_MISMATCH]
     );
     // Widening, literals of any number, units.
-    let fine =
-        "f64 F(i32 a) {\n    i64 b = a;\n    f32 c = 2.0;\n    Ticks t = 5;\n    Seconds s = 250ms;\n    return a;\n}\n";
+    let fine = "f64 F(i32 a) {\n    i64 b = a;\n    f32 c = 2.0;\n    Ticks t = 5;\n    Seconds s = 250ms;\n    return a;\n}\n";
     assert!(codes(fine).is_empty(), "{:?}", codes(fine));
     // Real time and the game's ticks never mix (its tick rate changes).
     for mixed in ["Seconds s = 5t;", "Ticks t = 5s;"] {
@@ -104,6 +103,32 @@ fn method_groups_are_delegates() {
         "{base}void F(List<i32> xs) {{\n    List<string> ys = xs.Select(Twice).ToList();\n}}\n"
     );
     assert_eq!(codes(&inferred), [script_problem::TYPE_MISMATCH]);
+}
+
+/// `async` and `await`: a `Task<T>`'s method returns a `T`, `await` of it
+/// is one; what isn't a task can't be awaited.
+#[test]
+fn async_methods_give_tasks() {
+    let base = "using System.Threading.Tasks;\n\
+                async Task<i32> Two() {\n    await Task.Delay(1s);\n    return 2;\n}\n";
+    let ok =
+        format!("{base}async Task F() {{\n    i32 x = await Two();\n    await Task.Yield();\n}}\n");
+    assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+    // An `async` lambda's `return` gives its task's value.
+    let lambda = format!("{base}void F() {{\n    Func<i32, Task<i32>> f = async x => {{\n        await Task.Yield();\n        return x * 2;\n    }};\n}}\n");
+    assert!(codes(&lambda).is_empty(), "{:?}", codes(&lambda));
+    for wrong in [
+        "async Task F() {\n    string s = await Two();\n}\n",
+        "async Task<i32> F() {\n    return \"x\";\n}\n",
+        "async i32 F() {\n    return 1;\n}\n",
+        "async Task F() {\n    await 3;\n}\n",
+    ] {
+        assert_eq!(
+            codes(&format!("{base}{wrong}")),
+            [script_problem::TYPE_MISMATCH],
+            "{wrong}"
+        );
+    }
 }
 
 /// The game's classes by C#'s names, and their sides.

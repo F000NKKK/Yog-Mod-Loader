@@ -13,6 +13,7 @@ pub const ZERO_CHAR: &str = "'\\0'";
 // Its keywords.
 pub const ABSTRACT: &str = "abstract";
 pub const BREAK: &str = "break";
+pub const CASE: &str = "case";
 pub const CLASS: &str = "class";
 pub const CONTINUE: &str = "continue";
 pub const DEFAULT: &str = "default";
@@ -35,6 +36,7 @@ pub const PUBLIC: &str = "public";
 pub const RECORD: &str = "record";
 pub const RETURN: &str = "return";
 pub const SEALED: &str = "sealed";
+pub const SWITCH: &str = "switch";
 pub const STATIC: &str = "static";
 pub const SUPER: &str = "super";
 pub const THIS: &str = "this";

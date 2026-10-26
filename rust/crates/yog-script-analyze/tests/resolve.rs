@@ -176,3 +176,16 @@ fn a_use_names_its_definition() {
     assert_eq!((def.name.as_str(), def.kind), ("Area", DefKind::Method));
     assert_eq!(def.span.start, src.find("Area").unwrap() as u32);
 }
+
+/// `await` waits in an `async` method or lambda only, as C#'s: a lambda
+/// inside an `async` method isn't one.
+#[test]
+fn await_needs_an_async_lambda_too() {
+    let src = "using System.Threading.Tasks;\nasync Task F() {\n    Action a = () => {\n        await Task.Yield();\n    };\n}\n";
+    let codes: Vec<_> = yog_script_analyze::check("a.ys", src)
+        .problems
+        .into_iter()
+        .filter_map(|d| d.code)
+        .collect();
+    assert!(codes.iter().any(|c| c == yog_ids::script_problem::AWAIT_OUTSIDE_ASYNC), "{codes:?}");
+}

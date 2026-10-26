@@ -140,18 +140,28 @@ impl Gen<'_> {
                 self.block_stmts(b);
                 self.code.close("");
             }
-            Stmt::Break(_) => {
-                self.code.line(format!("{BREAK};"));
-            }
+            Stmt::Break(_) => match self.breaks.last().cloned().flatten() {
+                Some(jump) => {
+                    self.code.line(jump);
+                }
+                None => {
+                    self.code.line(format!("{BREAK};"));
+                }
+            },
             // In a loop written in steps: past its body, to its step.
             Stmt::Continue(_) => match self.continues.last().cloned().flatten() {
-                Some(label) => {
-                    self.code.line(format!("{BREAK} {label};"));
+                Some(leave) => {
+                    self.code.line(leave);
                 }
                 None => {
                     self.code.line(format!("{CONTINUE};"));
                 }
             },
+            // An `async` method's: its task finished.
+            Stmt::Return(value, _) if self.machine.is_some() => {
+                let v = value.as_ref().map(|v| self.handed_expr(v));
+                self.async_return(v);
+            }
             Stmt::Return(value, _) | Stmt::Skip(value, _) => match value {
                 Some(v) => {
                     let v = self.handed_expr(v);
@@ -335,12 +345,14 @@ impl Gen<'_> {
         }
         let label = self.temp();
         self.code.open(format!("{label}:"));
-        self.continues.push(Some(label));
+        self.continues.push(Some(format!("{BREAK} {label};")));
+        self.breaks.push(None);
         match body {
             Stmt::Block(b) => self.block_stmts(b),
             other => self.stmt(other),
         }
         self.continues.pop();
+        self.breaks.pop();
         self.code.close("");
         if let Some(s) = step {
             self.stmt(s);
@@ -354,7 +366,9 @@ impl Gen<'_> {
     /// A loop's body written by `f`, its `continue` Java's own.
     fn loop_body(&mut self, f: impl FnOnce(&mut Self)) {
         self.continues.push(None);
+        self.breaks.push(None);
         f(self);
+        self.breaks.pop();
         self.continues.pop();
     }
 
@@ -389,7 +403,10 @@ impl Gen<'_> {
     fn gone_through(&mut self, iter: &Expr) -> (String, usize) {
         let items = self.expr(iter);
         match self.types.of(iter).map(Type::non_null) {
-            Some(Type::String) => (format!("{items}.toCharArray()"), 0),
+            Some(Type::String) => (
+                format!("{items}.{}()", yog_script_ids::jvm::TO_CHAR_ARRAY),
+                0,
+            ),
             Some(Type::Array(_, rank)) => self.array_loops(&items, *rank),
             _ => (items, 0),
         }
@@ -441,7 +458,12 @@ impl Gen<'_> {
     /// changing nothing (its listener gives `null`). A method or a
     /// delegate's value made once, then called with each event's.
     fn listen(&mut self, event: &str, handler: &Expr) {
-        let ExprKind::Lambda { params, body } = &handler.kind else {
+        let ExprKind::Lambda {
+            params,
+            body,
+            asynchronous: false,
+        } = &handler.kind
+        else {
             let Some(t @ Type::Fn(..)) = self.types.of(handler).cloned() else {
                 return self.not_yet("this handler", handler.span);
             };

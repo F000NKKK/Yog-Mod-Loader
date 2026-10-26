@@ -16,15 +16,20 @@ use yog_script_ids::jvm::OBJECT;
 
 impl Gen<'_> {
     pub(crate) fn args(&mut self, args: &[Arg]) -> String {
-        args.iter()
-            .map(|a| match a.pass {
+        let mut out = Vec::new();
+        for (i, a) in args.iter().enumerate() {
+            let v = match a.pass {
                 Some(pass @ (Pass::Ref | Pass::Out)) if !self.runtime_call => {
                     self.cell_arg(&a.value, pass)
                 }
                 _ => self.handed_expr(&a.value),
-            })
-            .collect::<Vec<_>>()
-            .join(", ")
+            };
+            let later_awaits = args[i + 1..]
+                .iter()
+                .any(|b| crate::machine::awaits(&b.value));
+            out.push(self.kept_before(v, &a.value, later_awaits));
+        }
+        out.join(", ")
     }
 
     pub(crate) fn member(&mut self, e: &Expr, on: &Expr, name: &str, safe: bool) -> String {
@@ -105,7 +110,7 @@ impl Gen<'_> {
         match &callee.kind {
             ExprKind::Ident(name) => match self.types.of(callee) {
                 // A delegate held: called by its interface's method.
-                t if self.is_delegate(t) => format!("{}.{INVOKE}({a})", Self::ident(name)),
+                t if self.is_delegate(t) => format!("{}.{INVOKE}({a})", self.expr(callee)),
                 _ if self.is_result_case(name) => {
                     format!("{NEW} {}.{}<>({a})", self.own(RESULT), Self::ident(name))
                 }

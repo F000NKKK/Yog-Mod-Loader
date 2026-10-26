@@ -71,7 +71,7 @@ impl<'p> Interp<'p> {
                 items.iter().map(|i| self.eval(i)).collect::<Run<_>>()?,
             )),
             ExprKind::Collection(items) => self.collection(items),
-            ExprKind::Lambda { params, body } => Ok(Value::Fn(Rc::new(Closure {
+            ExprKind::Lambda { params, body, .. } => Ok(Value::Fn(Rc::new(Closure {
                 params: params.clone(),
                 body: body.clone(),
                 scopes: self.scopes.clone(),

@@ -73,6 +73,8 @@ pub enum ExprKind {
     Lambda {
         params: Vec<LambdaParam>,
         body: LambdaBody,
+        /// `async x => …`: it awaits; it gives a `Task`.
+        asynchronous: bool,
     },
     Unary {
         op: UnOp,

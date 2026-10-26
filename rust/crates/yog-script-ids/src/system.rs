@@ -23,6 +23,8 @@ pub const FOLDER_SEP: char = '/';
 /// The enum whose cases a source calls without its name (`Ok(v)`,
 /// `Err(e)`), as Rust's prelude brings them.
 pub const RESULT: &str = "Result";
+/// What an `async` method gives and `await` waits for.
+pub const TASK: &str = "Task";
 
 /// A value type's `T?` as Reflection names it (`Nullable<Int32>`).
 pub const NULLABLE: &str = "Nullable";

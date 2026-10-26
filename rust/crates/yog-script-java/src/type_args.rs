@@ -50,7 +50,7 @@ impl Gen<'_> {
             .iter()
             .enumerate()
             .map(|(i, g)| {
-                let v = format!("{TYPE}.{ARGUMENT_OF}(this, {class}, {i})");
+                let v = format!("{TYPE}.{ARGUMENT_OF}({}, {class}, {i})", self.this_ref());
                 (g.clone(), v)
             })
             .collect()

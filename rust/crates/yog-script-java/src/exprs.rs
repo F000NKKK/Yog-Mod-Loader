@@ -64,12 +64,13 @@ impl Gen<'_> {
             ExprKind::RawStr(s) | ExprKind::Text(s) | ExprKind::Tag(s) => self.code.str(s),
             ExprKind::Content { id, .. } => self.code.str(id),
             ExprKind::Str(segs) => self.interpolated(segs),
+            ExprKind::Ident(name) if let Some(field) = self.field_of(name) => field.to_string(),
             ExprKind::Ident(name) if self.cells.contains(name) => {
                 format!("{}.{REF_VALUE}", Self::ident(name))
             }
             ExprKind::Ident(name) => Self::ident(name),
-            ExprKind::This => "this".into(),
-            ExprKind::Base => "super".into(),
+            ExprKind::This => self.this_ref(),
+            ExprKind::Base => self.base_ref(),
             ExprKind::Member { expr, name, safe } => self.member(e, expr, &name.text, *safe),
             ExprKind::Call { callee, args } => self.giving_back(e, |g| g.call(e, callee, args)),
             ExprKind::New { ty, args, init } => self.giving_back(e, |g| {
@@ -119,7 +120,12 @@ impl Gen<'_> {
             ExprKind::NewArray { sizes, init, .. } => self.new_array(e, sizes, init.as_deref()),
             ExprKind::Collection(items) => self.collection(e, items),
             ExprKind::Tuple { items, .. } => self.tuple(items),
-            ExprKind::Lambda { params, body } => match self.types.quoted(e).cloned() {
+            ExprKind::Lambda {
+                params,
+                body,
+                asynchronous: true,
+            } => self.async_lambda(e, params, body),
+            ExprKind::Lambda { params, body, .. } => match self.types.quoted(e).cloned() {
                 Some(quoted) => self.quoted_lambda(e, (params, body), &quoted),
                 None => self.lambda(e, params, body),
             },
@@ -235,10 +241,7 @@ impl Gen<'_> {
             UnOp::PostIncrement => format!("{}++", self.expr(expr)),
             UnOp::PostDecrement => format!("{}--", self.expr(expr)),
             UnOp::Try => self.try_value(expr),
-            UnOp::Await => {
-                self.not_yet("`await`", expr.span);
-                String::new()
-            }
+            UnOp::Await => self.await_value(expr, expr),
         }
     }
 
@@ -255,7 +258,9 @@ impl Gen<'_> {
         if let Some(v) = self.enum_binary(op, left, right) {
             return v;
         }
-        let (l, r) = (self.expr(left), self.expr(right));
+        let l = self.expr(left);
+        let l = self.kept_before(l, left, crate::machine::awaits(right));
+        let r = self.expr(right);
         if self.is_decimal(e, left, right)
             && let Some(v) = self.decimal_binary(op, (left, l.clone()), (right, r.clone()))
         {
@@ -331,8 +336,10 @@ impl Gen<'_> {
     /// Java's lambda of `names` running `body`; `void`: it gives nothing.
     pub(crate) fn lambda_of(&mut self, names: &[String], body: &LambdaBody, void: bool) -> String {
         let head = format!("({}) ->", names.join(", "));
-        // Its body written apart: what it computes first stays inside it.
+        // Its body written apart: what it computes first stays inside it,
+        // its `return` its own (not an `async` method's around it).
         let outer = std::mem::take(&mut self.code);
+        let machine = self.machine.take();
         self.code.open(&head);
         match body {
             // A value given to nothing: a statement, as one written alone.
@@ -356,6 +363,7 @@ impl Gen<'_> {
             }
         }
         self.code.close("");
+        self.machine = machine;
         let text = std::mem::replace(&mut self.code, outer).finish();
         text.trim_end().to_string()
     }

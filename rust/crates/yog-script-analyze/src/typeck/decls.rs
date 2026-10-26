@@ -23,7 +23,7 @@ impl Checker<'_, '_, '_> {
             || self.this_readonly()
             || (!d.has(Modifier::Static) && self.implements_readonly(m));
         let outer = std::mem::replace(&mut self.readonly_this, readonly);
-        self.method(m, side);
+        self.method(m, side, d.has(Modifier::Async));
         self.readonly_this = outer;
     }
 
@@ -52,7 +52,7 @@ impl Checker<'_, '_, '_> {
             DeclKind::Indexer(ix) => {
                 self.accessors(&ix.ty, Of::Indexer(&ix.params), &ix.accessors, side);
             }
-            DeclKind::Operator(op) => self.method(&op.method, side),
+            DeclKind::Operator(op) => self.method(&op.method, side, false),
             DeclKind::Method(m) => self.method_decl(d, m, side),
             DeclKind::Ctor(c) => {
                 let this = self.this.clone();
@@ -154,9 +154,14 @@ impl Checker<'_, '_, '_> {
         }
     }
 
-    fn method(&mut self, m: &Method, side: Side) {
+    fn method(&mut self, m: &Method, side: Side, is_async: bool) {
         self.with_types(generics::params_of(&m.generics), |c| {
             let ret = m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t));
+            let ret = if is_async {
+                c.async_returns(&ret, m.name.span)
+            } else {
+                ret
+            };
             c.body(m.body.as_ref(), &m.params, Some(ret), side);
         });
     }

@@ -56,6 +56,14 @@ pub const SUPPLIER: &str = concat!(java_util!(), sep!(), "function", sep!(), "Su
 pub const DIVISION_CONTEXT: &str =
     concat!(java_math!(), sep!(), "MathContext", sep!(), "DECIMAL128");
 pub const ARRAY_LIST: &str = concat!(java_util!(), sep!(), "ArrayList");
+/// Going through items: an `Iterable`'s iterator, whether it has one more,
+/// the next; a string's chars as an array, an array's length.
+pub const ITERATOR: &str = concat!(java_util!(), sep!(), "Iterator");
+pub const ITERATOR_OF: &str = "iterator";
+pub const HAS_NEXT: &str = "hasNext";
+pub const NEXT: &str = "next";
+pub const TO_CHAR_ARRAY: &str = "toCharArray";
+pub const LENGTH: &str = "length";
 
 /// Their members compiled code calls: `Objects`' equality, hash and
 /// fallback, a map's entries.
@@ -273,4 +281,35 @@ pub mod enums {
     pub const CARRYING: &str = "Carrying";
     /// Named after the `[Flags]` attribute it stands for.
     pub const FLAGS: &str = system::FLAGS;
+}
+
+/// `async` methods as compiled code has them: a local class of the
+/// runtime's `Async<T>` (`$Async`), its state (`$state`), its code
+/// (`$step`, a `$loop` of a `switch`), what it awaits (`$suspend`) and
+/// finishes with (`$finish`); the method making one (`$m`), starting it
+/// (`run`, an `async void`'s `$start`) and giving its task (`$task`); its
+/// fields of the method's locals (`x$v1`) and parameters (`x$p`), and
+/// of the tasks it awaits (temporaries).
+pub mod tasks {
+    macro_rules! tasks {
+        () => {
+            concat!(runtime!(), sep!(), "threading", sep!(), "tasks")
+        };
+    }
+    pub const ASYNC: &str = concat!(tasks!(), sep!(), "Async");
+    pub const MACHINE: &str = "$Async";
+    pub const STATE: &str = "$state";
+    pub const STEP: &str = "$step";
+    pub const LOOP: &str = "$loop";
+    pub const SUSPEND: &str = "$suspend";
+    pub const FINISH: &str = "$finish";
+    pub const MADE: &str = "$m";
+    pub const RUN: &str = "run";
+    pub const START: &str = "$start";
+    pub const TASK: &str = "$task";
+    pub const LOCAL_FIELD: &str = "$v";
+    pub const PARAM_FIELD: &str = "$p";
+    /// What a task gives (`Task<T>`'s), and a `Task`'s failure thrown again.
+    pub const RESULT: &str = "Result";
+    pub const CHECK: &str = "check";
 }

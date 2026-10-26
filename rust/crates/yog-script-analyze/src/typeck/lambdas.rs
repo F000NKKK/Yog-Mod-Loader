@@ -17,8 +17,15 @@ impl Checker<'_, '_, '_> {
             ExprKind::Lambda {
                 params: written,
                 body,
+                asynchronous,
             } => {
-                self.lambda_as(written, body, params, ret, e.span);
+                // An `async` one's `return` gives what its task finishes with.
+                let gives = if *asynchronous {
+                    self.async_returns(ret, e.span)
+                } else {
+                    ret.clone()
+                };
+                self.lambda_as(written, body, params, &gives, e.span);
                 // Its type the delegate's, not what it was alone.
                 let own = Type::Fn(params.to_vec(), Box::new(ret.clone()));
                 self.types.set(e, own);
@@ -121,6 +128,7 @@ impl Checker<'_, '_, '_> {
         let ExprKind::Lambda {
             params: written,
             body,
+            asynchronous,
         } = &e.kind
         else {
             return Type::Unknown;
@@ -149,6 +157,11 @@ impl Checker<'_, '_, '_> {
         });
         self.returns = returns;
         self.inferred = inferred;
+        if *asynchronous {
+            // An `async` one gives a task of it.
+            let args = if t == Type::Void { Vec::new() } else { vec![t] };
+            return Type::Own(yog_script_ids::system::TASK.to_string(), args);
+        }
         t
     }
 

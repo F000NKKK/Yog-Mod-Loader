@@ -259,6 +259,7 @@ fn lambda(params: Vec<Name>, body: Expr) -> Expr {
         kind: ExprKind::Lambda {
             params,
             body: LambdaBody::Expr(Box::new(body)),
+            asynchronous: false,
         },
         span,
     }
@@ -292,6 +293,7 @@ fn row_lambda(vars: &[Name], body: Expr, extra: Option<Name>) -> Expr {
             kind: ExprKind::Lambda {
                 params,
                 body: LambdaBody::Block(vec![apart, Stmt::Return(Some(body), span)]),
+                asynchronous: false,
             },
             span,
         };

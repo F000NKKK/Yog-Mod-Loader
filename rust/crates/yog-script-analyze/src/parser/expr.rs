@@ -119,6 +119,17 @@ impl Parser<'_, '_, '_> {
         if self.lambda_ahead() {
             return self.arrow_lambda();
         }
+        // `async x => …`: a lambda that awaits.
+        if self.at_word(&crate::words::r#async::WORD) && self.lambda_ahead_at(1) {
+            let start = self.span();
+            self.bump();
+            let mut lambda = self.arrow_lambda()?;
+            if let ExprKind::Lambda { asynchronous, .. } = &mut lambda.kind {
+                *asynchronous = true;
+            }
+            lambda.span = start.to(lambda.span);
+            return Ok(lambda);
+        }
         self.conditional()
     }
 
