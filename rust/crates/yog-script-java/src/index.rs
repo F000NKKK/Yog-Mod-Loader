@@ -156,6 +156,21 @@ impl Index {
         }
     }
 
+    /// Type `of`'s events (their addresses) and static methods, from its `body`.
+    fn body_members(&mut self, of: &TypeRef, body: &[Decl]) {
+        for m in body {
+            if let DeclKind::Method(method) = &m.kind
+                && m.has(yog_script_analyze::ast::Modifier::Static)
+            {
+                self.statics.insert((of.clone(), method.name.text.clone()));
+            }
+            if let DeclKind::Event { name: e, .. } = &m.kind {
+                self.events
+                    .insert((of.0.clone(), e.text.clone()), attribute_text(m, EVENT));
+            }
+        }
+    }
+
     /// A class, struct, record or interface.
     fn type_decl(&mut self, d: &Decl) {
         let DeclKind::Type {
@@ -170,22 +185,7 @@ impl Index {
             return;
         };
         self.declared(&name.text, arity(&header.generics));
-        for m in body {
-            if let DeclKind::Method(method) = &m.kind
-                && m.has(yog_script_analyze::ast::Modifier::Static)
-            {
-                self.statics.insert((
-                    (name.text.clone(), arity(&header.generics)),
-                    method.name.text.clone(),
-                ));
-            }
-            if let DeclKind::Event { name: e, .. } = &m.kind {
-                self.events.insert(
-                    (name.text.clone(), e.text.clone()),
-                    attribute_text(m, EVENT),
-                );
-            }
-        }
+        self.body_members(&(name.text.clone(), arity(&header.generics)), body);
         self.shapes.insert(
             (name.text.clone(), arity(&header.generics)),
             crate::java_names::shape_of(header, body),
