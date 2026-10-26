@@ -7,7 +7,7 @@ import java.util.NoSuchElementException;
 import java.util.TreeSet;
 
 /** Items each there once, in their order: Yog Script's {@code SortedSet<T>}. */
-public class SortedSet<T> extends AbstractSet<T> implements ISet<T>, IReadOnlyCollection<T> {
+public class SortedSet<T> extends AbstractSet<T> implements ISet<T>, IReadOnlySet<T> {
     private static final String EMPTY = "the set is empty";
 
     private final NavigableSet<T> items;
@@ -157,6 +157,16 @@ public class SortedSet<T> extends AbstractSet<T> implements ISet<T>, IReadOnlyCo
     @Override
     public boolean IsSupersetOf(IEnumerable<T> other) {
         return items.containsAll(copy(other));
+    }
+
+    @Override
+    public boolean IsProperSubsetOf(IEnumerable<T> other) {
+        return IsSubsetOf(other) && !SetEquals(other);
+    }
+
+    @Override
+    public boolean IsProperSupersetOf(IEnumerable<T> other) {
+        return IsSupersetOf(other) && !SetEquals(other);
     }
 
     @Override

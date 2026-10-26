@@ -7,15 +7,15 @@ public class Stack<T> : IReadOnlyCollection<T> {
     public Stack(in IEnumerable<T> collection) {}
 
     public i32 Count { get; }
-    public IEnumerator<T> GetEnumerator();
+    public readonly IEnumerator<T> GetEnumerator();
     public void Push(T item);
     /// The top item, taken away; a panic when there's none.
     public T Pop();
     /// The top item, left there; a panic when there's none.
-    public T Peek();
+    public readonly T Peek();
     public T? TryPop();
-    public T? TryPeek();
+    public readonly T? TryPeek();
     public void Clear();
-    public bool Contains(T item);
-    public T[] ToArray();
+    public readonly bool Contains(T item);
+    public readonly T[] ToArray();
 }

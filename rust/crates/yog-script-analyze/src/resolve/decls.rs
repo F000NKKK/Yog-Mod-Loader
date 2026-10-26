@@ -51,6 +51,10 @@ impl Resolver<'_, '_> {
             }
             DeclKind::Event { name, .. } => self.define(name, DefKind::Field, Case::Pascal, again),
             DeclKind::Field(f) => self.define(&f.name, field_kind(d), field_case(d), again),
+            // An explicit implementation is its interface's: no name of the type's.
+            DeclKind::Property {
+                explicit: Some(_), ..
+            } => {}
             DeclKind::Property {
                 name, accessors, ..
             } => {

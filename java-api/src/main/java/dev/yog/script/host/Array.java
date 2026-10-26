@@ -52,8 +52,11 @@ public final class Array {
 
     // What generic code gave as an array of the type wanted.
 
-    /** {@code items} (any array) as a new array of {@code type} ({@code int[].class}). */
+    /** {@code items} (any array) as an array of {@code type} ({@code int[].class}): itself when it is one. */
     public static <A> A Of(java.lang.Object items, Class<A> type) {
+        if (type.isInstance(items)) {
+            return type.cast(items);
+        }
         int length = java.lang.reflect.Array.getLength(items);
         java.lang.Object made = java.lang.reflect.Array.newInstance(type.getComponentType(), length);
         for (int i = 0; i < length; i++) {

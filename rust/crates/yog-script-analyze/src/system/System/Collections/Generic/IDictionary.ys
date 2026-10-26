@@ -9,9 +9,9 @@ public interface IDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TVal
     ICollection<TValue> Values { get; }
     /// `key`'s value added; a panic when `key` has one already.
     void Add(TKey key, TValue value);
-    bool ContainsKey(TKey key);
+    readonly bool ContainsKey(TKey key);
     /// Whether `key` was there to take away.
     bool Remove(TKey key);
     /// `key`'s value, or `null` when it has none.
-    TValue? TryGetValue(TKey key);
+    readonly TValue? TryGetValue(TKey key);
 }

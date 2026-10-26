@@ -17,6 +17,10 @@ public interface ISet<T> extends ICollection<T> {
 
     boolean IsSupersetOf(IEnumerable<T> other);
 
+    boolean IsProperSubsetOf(IEnumerable<T> other);
+
+    boolean IsProperSupersetOf(IEnumerable<T> other);
+
     boolean Overlaps(IEnumerable<T> other);
 
     boolean SetEquals(IEnumerable<T> other);

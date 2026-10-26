@@ -2,27 +2,30 @@ namespace System.Collections.Generic;
 
 /// Items each there once, unordered: .NET's `HashSet<T>`.
 [Intrinsic]
-public class HashSet<T> : ISet<T> {
+public class HashSet<T> : ISet<T>, IReadOnlySet<T> {
     public HashSet() {}
     /// A set of `collection`'s items.
     public HashSet(in IEnumerable<T> collection) {}
 
     public i32 Count { get; }
     public bool IsReadOnly { get; }
-    public IEnumerator<T> GetEnumerator();
+    public readonly IEnumerator<T> GetEnumerator();
     /// `item` added; whether it was (it wasn't there).
     public bool Add(T item);
     void ICollection<T>.Add(T item);
     public void Clear();
-    public bool Contains(T item);
+    public readonly bool Contains(T item);
     public bool Remove(T item);
     public i32 RemoveWhere(Predicate<T> match);
     public void UnionWith(in IEnumerable<T> other);
     public void IntersectWith(in IEnumerable<T> other);
     public void ExceptWith(in IEnumerable<T> other);
     public void SymmetricExceptWith(in IEnumerable<T> other);
-    public bool IsSubsetOf(in IEnumerable<T> other);
-    public bool IsSupersetOf(in IEnumerable<T> other);
-    public bool Overlaps(in IEnumerable<T> other);
-    public bool SetEquals(in IEnumerable<T> other);
+    public readonly bool IsSubsetOf(in IEnumerable<T> other);
+    public readonly bool IsSupersetOf(in IEnumerable<T> other);
+    /// A subset of `other` that isn't all of it.
+    public readonly bool IsProperSubsetOf(in IEnumerable<T> other);
+    public readonly bool IsProperSupersetOf(in IEnumerable<T> other);
+    public readonly bool Overlaps(in IEnumerable<T> other);
+    public readonly bool SetEquals(in IEnumerable<T> other);
 }

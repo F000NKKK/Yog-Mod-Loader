@@ -11,7 +11,7 @@ import java.util.Set;
  * entries it holds — its own, or a Java map's it's a view of ({@link #view}).
  */
 public class Dictionary<K, V> extends AbstractMap<K, V>
-        implements IDictionary<K, V>, IReadOnlyCollection<KeyValuePair<K, V>> {
+        implements IDictionary<K, V>, IReadOnlyDictionary<K, V> {
     private final Map<K, V> items;
 
     public Dictionary() {

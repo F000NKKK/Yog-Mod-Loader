@@ -9,7 +9,7 @@ import java.util.Set;
  * Items each there once: Yog Script's {@code HashSet<T>} — gone through in
  * the order they were added, so a game's runs repeat. Also a {@link java.util.Set}.
  */
-public class HashSet<T> extends AbstractSet<T> implements ISet<T> {
+public class HashSet<T> extends AbstractSet<T> implements ISet<T>, IReadOnlySet<T> {
     private final Set<T> items = new LinkedHashSet<>();
 
     public HashSet() {}
@@ -122,6 +122,16 @@ public class HashSet<T> extends AbstractSet<T> implements ISet<T> {
     @Override
     public boolean IsSupersetOf(IEnumerable<T> other) {
         return items.containsAll(copy(other));
+    }
+
+    @Override
+    public boolean IsProperSubsetOf(IEnumerable<T> other) {
+        return IsSubsetOf(other) && !SetEquals(other);
+    }
+
+    @Override
+    public boolean IsProperSupersetOf(IEnumerable<T> other) {
+        return IsSupersetOf(other) && !SetEquals(other);
     }
 
     @Override

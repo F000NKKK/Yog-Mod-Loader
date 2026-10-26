@@ -131,7 +131,8 @@ fn bits_and_steps_are_javas() {
                public struct Mask(i32 bits) {\n    public i32 Bits = bits;\n\
                public static Mask operator &(Mask a, Mask b) => new Mask(a.Bits & b.Bits);\n\
                public static Mask operator ++(Mask a) => new Mask(a.Bits + 1);\n}\n\
-               Mask K(Mask a) {\n    let mut m = a;\n    m++;\n    m &= a;\n    return ++m;\n}\n";
+               Mask K(Mask a) {\n    let mut m = a;\n    m++;\n    m &= a;\n    return ++m;\n}\n\
+               Mask Old(Mask a) {\n    let mut m = a;\n    return m++;\n}\n";
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "return ((a & b) | (((a ^ (~b)) << 2) >> 1));",
@@ -143,6 +144,8 @@ fn bits_and_steps_are_javas() {
         "m = Mask.op_Increment(m);",
         "m = Mask.op_BitwiseAnd(m, a.copy());",
         "return (m = Mask.op_Increment(m));",
+        // A postfix's value is the old one.
+        "return dev.yog.script.Ys.before(m, m = Mask.op_Increment(m));",
     ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
@@ -198,10 +201,13 @@ fn arrays_are_javas() {
                void Sorted(i32[] xs) {\n    let mut ys = move xs;\n    Array.Sort(ref ys);\n}\n\
                i32 Count(in IEnumerable<i32> xs) => 0;\n\
                i32 Viewed(i32[] xs) => Count(in xs);\n\
-               i32[] Back(List<i32> xs) => xs.ToArray();\n";
+               i32[] Back(List<i32> xs) => xs.ToArray();\n\
+               string[] Grown() {\n    string[]? names = null;\n    Array.Resize(ref names, 3);\n    return names!;\n}\n";
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "new int[3][4]",
+        // A null `T[]?` resized: generic code made it, the place's type it's made.
+        "names = dev.yog.script.host.Array.Of(dev.yog.script.host.Array.Resize(names, 3), String[].class);",
         "g[1][2] = 5;",
         "for (var v : $t",
         "dev.yog.script.host.Array.GetLength(g, 2, 1)",

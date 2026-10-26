@@ -5,7 +5,7 @@ namespace System.Collections.Generic;
 public interface IList<T> : ICollection<T> {
     T this[i32 index] { get; set; }
     /// Where `item` first is; -1 when it isn't.
-    i32 IndexOf(T item);
+    readonly i32 IndexOf(T item);
     void Insert(i32 index, T item);
     void RemoveAt(i32 index);
 }

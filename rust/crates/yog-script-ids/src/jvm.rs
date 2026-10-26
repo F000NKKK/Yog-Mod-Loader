@@ -12,6 +12,9 @@ pub const HOST_PACKAGE: &str = "host";
 /// The runtime's helpers compiled code calls (`Ys.at`, `Ys.noArm`).
 pub const HELPERS: &str = "Ys";
 
+/// The helper giving a type's own `x++` its old value (`Ys.before(x, x = …)`).
+pub const BEFORE: &str = "before";
+
 /// What every mod's class implements, the runtime finding it by.
 pub const MOD_INTERFACE: &str = "dev.yog.script.YsMod";
 

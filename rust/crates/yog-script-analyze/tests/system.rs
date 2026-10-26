@@ -137,6 +137,20 @@ fn matrices_and_quaternions_move_vectors() {
 }
 
 #[test]
+fn read_only_collections_are_read_through_in() {
+    let ok = "i32 Total(in IReadOnlyDictionary<string, i32> ages) {\n\
+              \x20   let mut total = 0;\n    foreach (let k in ages.Keys) {\n        total += ages[k];\n    }\n\
+              \x20   return ages.ContainsKey(\"a\") ? total : ages.TryGetValue(\"b\") ?? 0;\n}\n\
+              bool Inside(in IReadOnlySet<i32> a, in IReadOnlySet<i32> b) => a.IsProperSubsetOf(b) && a.Contains(1);\n\
+              i32 Use() {\n    let d = new Dictionary<string, i32>();\n    let s = new HashSet<i32>();\n\
+              \x20   let t = new SortedSet<i32>();\n    return Inside(in s, in t) ? Total(in d) : 0;\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    // Read only: nothing to set.
+    let bad = "void F(in IReadOnlyDictionary<string, i32> ages) {\n    ages[\"a\"] = 1;\n}\n";
+    assert!(!codes(bad).is_empty());
+}
+
+#[test]
 fn collections_are_the_librarys_own() {
     let ok = "i32 Sum(List<i32> xs) {\n    let mut total = 0;\n    foreach (let x in xs) {\n        total += x;\n    }\n    return total + xs.Count + xs[0];\n}\n\
               bool Has(Dictionary<string, i32> ages, string name) => ages.ContainsKey(name) && ages[name] > 3;\n\

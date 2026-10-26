@@ -69,7 +69,7 @@ impl Gen<'_> {
 }
 
 /// Whether `t` names a type parameter somewhere.
-fn names_parameter(t: &Type) -> bool {
+pub(crate) fn names_parameter(t: &Type) -> bool {
     match t {
         Type::Param(_) => true,
         Type::Own(_, args) | Type::Tuple(args, _) => args.iter().any(names_parameter),

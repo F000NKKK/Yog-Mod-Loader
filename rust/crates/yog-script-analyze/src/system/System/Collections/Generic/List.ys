@@ -10,13 +10,13 @@ public class List<T> : IList<T>, IReadOnlyList<T> {
     public i32 Count { get; }
     public bool IsReadOnly { get; }
     public T this[i32 index] { get; set; }
-    public IEnumerator<T> GetEnumerator();
+    public readonly IEnumerator<T> GetEnumerator();
     public void Add(T item);
     public void AddRange(in IEnumerable<T> collection);
     public void Clear();
-    public bool Contains(T item);
+    public readonly bool Contains(T item);
     public bool Remove(T item);
-    public i32 IndexOf(T item);
+    public readonly i32 IndexOf(T item);
     public void Insert(i32 index, T item);
     public void InsertRange(i32 index, in IEnumerable<T> collection);
     public void RemoveAt(i32 index);
@@ -24,16 +24,16 @@ public class List<T> : IList<T>, IReadOnlyList<T> {
     /// How many items `match` took away.
     public i32 RemoveAll(Predicate<T> match);
     /// The first item `match` takes, or `null`.
-    public T? Find(Predicate<T> match);
-    public List<T> FindAll(Predicate<T> match);
+    public readonly T? Find(Predicate<T> match);
+    public readonly List<T> FindAll(Predicate<T> match);
     /// Where the first item `match` takes is; -1 when none is.
-    public i32 FindIndex(Predicate<T> match);
-    public bool Exists(Predicate<T> match);
-    public bool TrueForAll(Predicate<T> match);
+    public readonly i32 FindIndex(Predicate<T> match);
+    public readonly bool Exists(Predicate<T> match);
+    public readonly bool TrueForAll(Predicate<T> match);
     public void ForEach(Action<T> action);
-    public List<T> GetRange(i32 index, i32 count);
+    public readonly List<T> GetRange(i32 index, i32 count);
     /// Its items, in a new array.
-    public T[] ToArray();
+    public readonly T[] ToArray();
     public void Reverse();
     /// In the items' own order (`IComparable<T>`).
     public void Sort();

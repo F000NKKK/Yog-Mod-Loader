@@ -164,12 +164,7 @@ impl Gen<'_> {
             .method(e)
             .is_some_and(|m| of_type_parameter(&m.ret));
         match self.types.of(e).map(Type::non_null) {
-            Some(t @ Type::Array(..)) if generic => format!(
-                "{}.{}({called}, {}.class)",
-                self.array_host(),
-                yog_script_ids::jvm::TYPED_ARRAY,
-                self.java(t, false)
-            ),
+            Some(t @ Type::Array(..)) if generic => self.as_array(called, t),
             _ => called,
         }
     }
@@ -183,10 +178,41 @@ impl Gen<'_> {
             .method(e)
             .and_then(|m| m.owner.as_deref())
             .is_some_and(|o| self.index.is_intrinsic(o));
-        match args.iter().find(|a| a.pass == Some(Pass::Ref)) {
-            Some(place) if runtime => format!("{} = {called}", self.expr(&place.value)),
+        let Some((at, place)) = args
+            .iter()
+            .enumerate()
+            .find(|(_, a)| a.pass == Some(Pass::Ref))
+            .filter(|_| runtime)
+        else {
+            return called;
+        };
+        // An array of the method's type parameter that may be null given
+        // back (`Resize`'s `ref T[]?`): made out of nothing by generic code,
+        // so made the place's own array, as a result is.
+        let generic = self
+            .types
+            .method(e)
+            .and_then(|m| m.params.get(at))
+            .is_some_and(|t| matches!(t, Type::Nullable(inner) if of_type_parameter(inner)));
+        let value = match self.types.of(&place.value).map(Type::non_null) {
+            Some(t @ Type::Array(..))
+                if generic && t.known() && !crate::reified::names_parameter(t) =>
+            {
+                self.as_array(called, t)
+            }
             _ => called,
-        }
+        };
+        format!("{} = {value}", self.expr(&place.value))
+    }
+
+    /// `called`, an array generic code gave, made Java's array of `t`.
+    fn as_array(&self, called: String, t: &Type) -> String {
+        format!(
+            "{}.{}({called}, {}.class)",
+            self.array_host(),
+            yog_script_ids::jvm::TYPED_ARRAY,
+            self.java(t, false)
+        )
     }
 
     fn is_result_case(&self, name: &str) -> bool {

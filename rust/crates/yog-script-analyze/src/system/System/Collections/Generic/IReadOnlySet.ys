@@ -1,0 +1,14 @@
+namespace System.Collections.Generic;
+
+/// Items each there once, compared as sets, read only.
+[Intrinsic]
+public interface IReadOnlySet<T> : IReadOnlyCollection<T> {
+    readonly bool Contains(T item);
+    readonly bool IsSubsetOf(in IEnumerable<T> other);
+    readonly bool IsSupersetOf(in IEnumerable<T> other);
+    /// A subset of `other` that isn't all of it.
+    readonly bool IsProperSubsetOf(in IEnumerable<T> other);
+    readonly bool IsProperSupersetOf(in IEnumerable<T> other);
+    readonly bool Overlaps(in IEnumerable<T> other);
+    readonly bool SetEquals(in IEnumerable<T> other);
+}

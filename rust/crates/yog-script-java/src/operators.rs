@@ -6,6 +6,7 @@
 
 use yog_script_analyze::ast::{Expr, ExprKind, UnOp};
 use yog_script_analyze::{OperatorUse, Type};
+use yog_script_ids::jvm::{BEFORE, HELPERS, RUNTIME};
 
 use super::Gen;
 
@@ -32,19 +33,19 @@ impl Gen<'_> {
         let ExprKind::Unary { op, expr } = &e.kind else {
             return String::new();
         };
-        if !alone && matches!(op, UnOp::PostIncrement | UnOp::PostDecrement) {
-            self.not_yet(
-                "the old value of a type's own `x++` (`++x` gives the new one)",
-                e.span,
-            );
-            return String::new();
-        }
         let place = self.expr(expr);
         let set = format!(
             "{place} = {}",
             self.applied(used, std::slice::from_ref(&place))
         );
-        if alone { set } else { format!("({set})") }
+        if alone {
+            set
+        } else if matches!(op, UnOp::PostIncrement | UnOp::PostDecrement) {
+            // Its value is the old one: read first, Java's arguments in order.
+            format!("{RUNTIME}.{HELPERS}.{BEFORE}({place}, {set})")
+        } else {
+            format!("({set})")
+        }
     }
 
     /// Value `v` through the implicit conversion `used`.

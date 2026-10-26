@@ -161,8 +161,10 @@ one hiding it (`ISet<T>`'s `new bool Add(T)` over `ICollection<T>`'s
 `void Add(T)`, `IDictionary<K, V>`'s `Remove(K)` over
 `ICollection<KeyValuePair<K, V>>`'s `Remove(T)`), is named after its type
 in Java (`ISet$Add`, `IDictionary$Remove`); what implements it takes that
-name, explicit implementations theirs. Not
-there yet: `IReadOnlyDictionary`, `IReadOnlySet`.
+name, explicit implementations theirs. `IReadOnlyDictionary<K, V>` and
+`IReadOnlySet<T>` as .NET's (`Dictionary`'s `Keys` an `ICollection<K>`,
+its read-only one an `IEnumerable<K>` by explicit implementation); what
+only reads a collection is `readonly`, so it's called through `in`.
 
 ## Delegates and events
 

@@ -13,9 +13,9 @@ public class PriorityQueue<TElement, TPriority> {
     /// The item of the least priority, taken away; a panic when there's none.
     public TElement Dequeue();
     /// The item of the least priority, left there; a panic when there's none.
-    public TElement Peek();
+    public readonly TElement Peek();
     public TElement? TryDequeue();
-    public TElement? TryPeek();
+    public readonly TElement? TryPeek();
     /// `element` added, then the least taken away (`element` itself, when it's the least).
     public TElement EnqueueDequeue(TElement element, TPriority priority);
     public void Clear();

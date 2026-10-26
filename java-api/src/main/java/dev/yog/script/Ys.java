@@ -36,6 +36,14 @@ public final class Ys {
         return value;
     }
 
+    /**
+     * A type's own {@code x++} as a value: {@code x} as it was, read before
+     * {@code stepped} (its step's assignment, an argument after it) changed it.
+     */
+    public static <T> T before(T was, Object stepped) {
+        return was;
+    }
+
     /** A {@code switch} no arm of which takes {@code value}. */
     public static YsPanic noArm(Object value, String at) {
         return new YsPanic("no arm of this `switch` takes `" + value + "`", at);

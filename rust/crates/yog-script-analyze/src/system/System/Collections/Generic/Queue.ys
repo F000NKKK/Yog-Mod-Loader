@@ -7,16 +7,16 @@ public class Queue<T> : IReadOnlyCollection<T> {
     public Queue(in IEnumerable<T> collection) {}
 
     public i32 Count { get; }
-    public IEnumerator<T> GetEnumerator();
+    public readonly IEnumerator<T> GetEnumerator();
     public void Enqueue(T item);
     /// The first item, taken away; a panic when there's none.
     public T Dequeue();
     /// The first item, left there; a panic when there's none.
-    public T Peek();
+    public readonly T Peek();
     /// The first item, taken away, or `null` when there's none.
     public T? TryDequeue();
-    public T? TryPeek();
+    public readonly T? TryPeek();
     public void Clear();
-    public bool Contains(T item);
-    public T[] ToArray();
+    public readonly bool Contains(T item);
+    public readonly T[] ToArray();
 }

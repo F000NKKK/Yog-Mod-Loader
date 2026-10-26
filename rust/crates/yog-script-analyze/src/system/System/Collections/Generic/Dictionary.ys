@@ -3,23 +3,23 @@ namespace System.Collections.Generic;
 /// Values by their keys, in the order they were added: .NET's
 /// `Dictionary<TKey, TValue>`.
 [Intrinsic]
-public class Dictionary<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>> {
+public class Dictionary<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue> {
     public Dictionary() {}
 
     public i32 Count { get; }
     public TValue this[TKey key] { get; set; }
     public ICollection<TKey> Keys { get; }
     public ICollection<TValue> Values { get; }
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator();
+    public readonly IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator();
     public void Add(TKey key, TValue value);
     /// Whether `key`'s value was added (it had none).
     public bool TryAdd(TKey key, TValue value);
-    public bool ContainsKey(TKey key);
-    public bool ContainsValue(TValue value);
+    public readonly bool ContainsKey(TKey key);
+    public readonly bool ContainsValue(TValue value);
     public bool Remove(TKey key);
-    public TValue? TryGetValue(TKey key);
+    public readonly TValue? TryGetValue(TKey key);
     /// `key`'s value, or `fallback` when it has none.
-    public TValue GetValueOrDefault(TKey key, TValue fallback);
+    public readonly TValue GetValueOrDefault(TKey key, TValue fallback);
     public void Clear();
 
     // Its pairs as a collection's, through `ICollection<KeyValuePair<…>>` only.
@@ -27,4 +27,7 @@ public class Dictionary<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyColl
     void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item);
     bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item);
     bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item);
+    // Its keys and values as a read-only dictionary's.
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
 }

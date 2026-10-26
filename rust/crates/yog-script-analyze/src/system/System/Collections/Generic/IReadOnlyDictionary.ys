@@ -1,0 +1,14 @@
+namespace System.Collections.Generic;
+
+/// Values by their keys, read only: what a dictionary is to those that
+/// mustn't change it.
+[Intrinsic]
+public interface IReadOnlyDictionary<TKey, TValue> : IReadOnlyCollection<KeyValuePair<TKey, TValue>> {
+    /// The value of `key`; a panic when it has none.
+    TValue this[TKey key] { get; }
+    IEnumerable<TKey> Keys { get; }
+    IEnumerable<TValue> Values { get; }
+    readonly bool ContainsKey(TKey key);
+    /// `key`'s value, or `null` when it has none.
+    readonly TValue? TryGetValue(TKey key);
+}

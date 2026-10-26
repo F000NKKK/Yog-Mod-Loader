@@ -9,8 +9,10 @@ public interface ISet<T> : ICollection<T> {
     void IntersectWith(in IEnumerable<T> other);
     void ExceptWith(in IEnumerable<T> other);
     void SymmetricExceptWith(in IEnumerable<T> other);
-    bool IsSubsetOf(in IEnumerable<T> other);
-    bool IsSupersetOf(in IEnumerable<T> other);
-    bool Overlaps(in IEnumerable<T> other);
-    bool SetEquals(in IEnumerable<T> other);
+    readonly bool IsSubsetOf(in IEnumerable<T> other);
+    readonly bool IsSupersetOf(in IEnumerable<T> other);
+    readonly bool IsProperSubsetOf(in IEnumerable<T> other);
+    readonly bool IsProperSupersetOf(in IEnumerable<T> other);
+    readonly bool Overlaps(in IEnumerable<T> other);
+    readonly bool SetEquals(in IEnumerable<T> other);
 }
