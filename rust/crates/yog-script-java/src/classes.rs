@@ -39,7 +39,8 @@ impl Gen<'_> {
         body: &[Decl],
         also: Option<&str>,
     ) {
-        let struct_ = self.index.kind(name) == Some(Kind::Struct);
+        let arity = header.generics.iter().filter(|g| !g.lifetime).count();
+        let struct_ = self.index.kind(&(name.to_string(), arity)) == Some(Kind::Struct);
         // Its name in Java: the arity's too, when its name has several
         // (`ValueTuple2` for `ValueTuple<T1, T2>`).
         let ys = name;
@@ -80,7 +81,7 @@ impl Gen<'_> {
         }
         self.constructors(name, header, body);
         self.members(body, Place::Class);
-        self.inherited_getters(ys, body);
+        self.inherited_getters(&(ys.to_string(), arity), body);
         let stored: Vec<&str> = fields(body).into_iter().map(|(_, f)| f).collect();
         // `instanceof` takes a generic one with its arguments unknown: `Box<?>`.
         let arity = header.generics.iter().filter(|g| !g.lifetime).count();
@@ -137,9 +138,11 @@ impl Gen<'_> {
         let mut interfaces = Vec::new();
         for b in &header.bases {
             let is_interface = match &b.kind {
-                yog_script_analyze::ast::TypeKind::Path { path, .. } => path
-                    .last()
-                    .is_some_and(|n| self.index.kind(&n.text) == Some(Kind::Interface)),
+                yog_script_analyze::ast::TypeKind::Path { path, args } => {
+                    path.last().is_some_and(|n| {
+                        self.index.kind(&(n.text.clone(), args.len())) == Some(Kind::Interface)
+                    })
+                }
                 _ => false,
             };
             if is_interface || extends.is_some() {
@@ -214,7 +217,7 @@ impl Gen<'_> {
 
     /// A stored property an interface it implements reads by a getter
     /// (`ICollection<T>.Count`): that getter, beside its field.
-    fn inherited_getters(&mut self, name: &str, body: &[Decl]) {
+    fn inherited_getters(&mut self, name: &crate::java_names::TypeRef, body: &[Decl]) {
         for (ty, field) in fields(body) {
             if self.index.inherited_call(name, field) {
                 let (t, f) = (self.written(ty, false), Self::ident(field));
@@ -232,7 +235,8 @@ impl Gen<'_> {
         variants: &[Variant],
         body: &[Decl],
     ) {
-        if self.index.kind(name) == Some(Kind::Enum) {
+        let arity = generics.iter().filter(|g| !g.lifetime).count();
+        if self.index.kind(&(name.to_string(), arity)) == Some(Kind::Enum) {
             let cases: Vec<String> = variants.iter().map(|v| Self::ident(&v.name.text)).collect();
             self.code.open(format!("public enum {name}"));
             self.code.line(format!("{};", cases.join(", ")));

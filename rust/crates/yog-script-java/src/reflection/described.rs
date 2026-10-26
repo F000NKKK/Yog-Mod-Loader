@@ -119,7 +119,9 @@ impl Gen<'_> {
                     _ => {}
                 }
             }
-            DeclKind::Enum { variants, .. } if self.index.kind(what.name) == Some(Kind::Enum) => {
+            DeclKind::Enum { variants, .. }
+                if self.index.kind(&(what.name.to_string(), owner.arity)) == Some(Kind::Enum) =>
+            {
                 let cases: Vec<String> = variants.iter().map(|v| v.name.text.clone()).collect();
                 out.extend(self.cases_described(&owner, &cases));
             }
@@ -176,9 +178,9 @@ impl Gen<'_> {
 
     fn is_interface(&self, t: &Written) -> bool {
         match &t.kind {
-            TypeKind::Path { path, .. } => path
-                .last()
-                .is_some_and(|n| self.index.kind(&n.text) == Some(Kind::Interface)),
+            TypeKind::Path { path, args } => path.last().is_some_and(|n| {
+                self.index.kind(&(n.text.clone(), args.len())) == Some(Kind::Interface)
+            }),
             _ => false,
         }
     }

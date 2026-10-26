@@ -2,7 +2,7 @@ namespace System.Reflection;
 
 /// A method, called by what the compiler wrote beside it.
 [Intrinsic]
-public class MethodInfo : MethodBase {
+public readonly class MethodInfo : MethodBase {
     public override string Name { get; }
     public override Type? DeclaringType { get; }
     public override MemberTypes MemberType { get; }

@@ -9,14 +9,19 @@ use crate::words::{class, interface, record};
 
 pub(super) struct Info<'d> {
     pub name: &'d str,
+    /// How many type parameters it takes: one name, several types (C#'s).
+    pub arity: usize,
     pub span: Span,
     /// A class (or a `record class`): it may have a base class.
     pub class: bool,
     pub interface: bool,
     pub is_abstract: bool,
     pub sealed: bool,
-    /// Its bases as written, plain names only (the game's aren't here).
-    pub bases: Vec<&'d Name>,
+    /// A `readonly class` or a record: never changed, so shared.
+    pub readonly: bool,
+    /// Its bases as written, plain names only (the game's aren't here),
+    /// each with as many arguments as it's written with.
+    pub bases: Vec<(&'d Name, usize)>,
     pub members: Vec<Member>,
     /// The library's (its rules were checked with it), the runtime's
     /// (`[Intrinsic]`: implemented by hand).
@@ -39,7 +44,7 @@ pub(super) struct Member {
 }
 
 pub(super) struct Index<'d> {
-    pub types: HashMap<&'d str, Info<'d>>,
+    pub types: HashMap<(&'d str, usize), Info<'d>>,
 }
 
 impl<'d> Index<'d> {
@@ -74,14 +79,17 @@ impl<'d> Index<'d> {
                 let class =
                     !value && (word.text == class::WORD.text || word.text == record::WORD.text);
                 let interface = word.text == interface::WORD.text;
+                let arity = header.generics.iter().filter(|g| !g.lifetime).count();
                 let info = Info {
                     name: &name.text,
+                    arity,
                     span: name.span,
                     class,
                     interface,
                     is_abstract: d.has(Modifier::Abstract),
                     sealed: d.has(Modifier::Sealed),
-                    bases: header.bases.iter().filter_map(plain_name).collect(),
+                    readonly: d.has(Modifier::Readonly) || word.text == record::WORD.text,
+                    bases: header.bases.iter().filter_map(plain_base).collect(),
                     members: body.iter().filter_map(|m| member(m, interface)).collect(),
                     library: false,
                     intrinsic: d.attributes.iter().any(|a| {
@@ -90,45 +98,60 @@ impl<'d> Index<'d> {
                             .is_some_and(|n| n.text == yog_script_ids::system::INTRINSIC)
                     }),
                 };
-                self.types.insert(&name.text, info);
+                self.types.insert((&name.text, arity), info);
             }
             self.walk(d.kind.members());
         }
     }
 
-    /// The own types `name` inherits or implements, nearest first, each
+    /// Base `b` as written: the type of its name and arity.
+    pub fn base(&self, (b, arity): &(&'d Name, usize)) -> Option<&Info<'d>> {
+        self.types.get(&(b.text.as_str(), *arity))
+    }
+
+    /// The own types `info` inherits or implements, nearest first, each
     /// once — `object` last, every type's base.
-    pub fn ancestors(&self, name: &str) -> Vec<&Info<'d>> {
-        let mut out = self.written_ancestors(name);
-        if let Some(object) = self.types.get(yog_script_ids::clr::OBJECT)
-            && name != object.name
-            && !out.iter().any(|o| o.name == object.name)
+    pub fn ancestors(&self, info: &Info<'d>) -> Vec<&Info<'d>> {
+        let mut out = self.written_ancestors(info);
+        if let Some(object) = self.types.get(&(yog_script_ids::clr::OBJECT, 0))
+            && !same(info, object)
+            && !out.iter().any(|o| same(o, object))
         {
             out.push(object);
         }
         out
     }
 
-    fn written_ancestors(&self, name: &str) -> Vec<&Info<'d>> {
+    fn written_ancestors(&self, start: &Info<'d>) -> Vec<&Info<'d>> {
         let mut out: Vec<&Info<'d>> = Vec::new();
-        let mut next = vec![name];
+        let mut next = vec![start];
         while let Some(n) = next.pop() {
-            for b in self
-                .types
-                .get(n)
-                .map(|i| i.bases.as_slice())
-                .unwrap_or_default()
-            {
-                if let Some(info) = self.types.get(b.text.as_str())
-                    && b.text != name
-                    && !out.iter().any(|o| o.name == info.name)
+            for b in &n.bases {
+                if let Some(info) = self.base(b)
+                    && !same(info, start)
+                    && !out.iter().any(|o| same(o, info))
                 {
                     out.push(info);
-                    next.push(info.name);
+                    next.push(info);
                 }
             }
         }
         out
+    }
+}
+
+/// Whether `a` and `b` are one type: one name, one arity.
+fn same(a: &Info, b: &Info) -> bool {
+    a.name == b.name && a.arity == b.arity
+}
+
+/// A base by its plain name and how many arguments it's written with.
+fn plain_base(t: &Type) -> Option<(&Name, usize)> {
+    match &t.kind {
+        crate::ast::TypeKind::Path { path, args } if path.len() == 1 => {
+            path.first().map(|n| (n, args.len()))
+        }
+        _ => None,
     }
 }
 

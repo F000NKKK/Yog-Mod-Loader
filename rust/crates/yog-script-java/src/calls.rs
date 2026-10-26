@@ -33,7 +33,7 @@ impl Gen<'_> {
                 let rank = array_rank(t);
                 return self.maybe_null(&target, safe, |v| format!("{host}.{n}({v}{rank})"));
             }
-            Some(Type::Own(of, _)) if self.index.called(of, name) => {
+            Some(Type::Own(of, args)) if self.index.called(&(of.clone(), args.len()), name) => {
                 Some(format!("{}()", Self::ident(name)))
             }
             Some(Type::Yog(_)) => Some(format!("{}()", yog::field(name))),
@@ -61,13 +61,14 @@ impl Gen<'_> {
     /// `Type.Name`: an enum's case, a static field.
     fn static_member(&mut self, e: &Expr, of: &str, name: &str) -> String {
         let n = Self::ident(name);
-        match self.index.kind(of) {
+        let named = self.index.named(of);
+        match self.index.kind(&named) {
             Some(Kind::DataEnum) => {
                 let _ = e;
                 format!("new {of}.{n}<>()")
             }
             // A property the runtime computes: its getter.
-            _ if self.index.called(of, name) => format!("{}.{n}()", self.own(of)),
+            _ if self.index.called(&named, name) => format!("{}.{n}()", self.own(of)),
             _ => format!("{}.{n}", self.own(of)),
         }
     }
@@ -255,7 +256,7 @@ impl Gen<'_> {
         }
         let a = &self.with_classes(e, Vec::new(), a.to_string());
         match on_type.as_ref().map(Type::non_null) {
-            Some(Type::Static(of, _)) => match self.index.kind(of) {
+            Some(Type::Static(of, _)) => match self.index.kind(&self.index.named(of)) {
                 Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),
                 _ => format!("{}.{n}({a})", self.own(of)),
             },
@@ -363,7 +364,9 @@ impl Gen<'_> {
     fn is_delegate(&self, t: Option<&Type>) -> bool {
         match t.map(Type::non_null) {
             Some(Type::Fn(..)) => true,
-            Some(Type::Own(name, _)) => self.index.kind(name) == Some(Kind::Delegate),
+            Some(Type::Own(name, args)) => {
+                self.index.kind(&(name.clone(), args.len())) == Some(Kind::Delegate)
+            }
             _ => false,
         }
     }

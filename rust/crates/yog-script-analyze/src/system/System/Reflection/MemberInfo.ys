@@ -4,7 +4,7 @@ namespace System.Reflection;
 /// nested type, the type itself — as Reflection sees it: .NET's
 /// `MemberInfo`.
 [Intrinsic]
-public abstract class MemberInfo {
+public readonly abstract class MemberInfo {
     public abstract string Name { get; }
     /// The type declaring it; `null` for a type not nested in one.
     public abstract Type? DeclaringType { get; }

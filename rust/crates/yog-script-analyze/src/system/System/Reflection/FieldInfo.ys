@@ -2,7 +2,7 @@ namespace System.Reflection;
 
 /// A field, read and written by what the compiler wrote beside it.
 [Intrinsic]
-public class FieldInfo : MemberInfo {
+public readonly class FieldInfo : MemberInfo {
     public override string Name { get; }
     public override Type? DeclaringType { get; }
     public override MemberTypes MemberType { get; }

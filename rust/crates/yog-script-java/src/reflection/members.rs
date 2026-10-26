@@ -137,7 +137,10 @@ impl Gen<'_> {
         let readable = accessors.is_empty() || has(get::WORD.text);
         let writable = has(set::WORD.text) || has(init::WORD.text);
         let stat = d.has(Modifier::Static);
-        let called = self.index.called(owner.name, name) || owner.host.is_some();
+        let called = self
+            .index
+            .called(&(owner.name.to_string(), owner.arity), name)
+            || owner.host.is_some();
         let target = match (&owner.host, stat) {
             (_, true) => owner.raw.clone(),
             (Some((_, value)), false) => format!("(({value}) {OBJECT})"),
@@ -302,6 +305,6 @@ impl Owner<'_> {
         self.host.is_none()
             && !d.has(Modifier::Abstract)
             && !d.has(Modifier::Static)
-            && g.index.kind(self.name) != Some(Kind::Interface)
+            && g.index.kind(&(self.name.to_string(), self.arity)) != Some(Kind::Interface)
     }
 }

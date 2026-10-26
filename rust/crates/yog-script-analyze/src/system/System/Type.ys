@@ -7,7 +7,7 @@ using System.Reflection;
 /// inherits; one object per type, so `==` tells them apart. Its
 /// description is its declaration's, written beside it by the compiler.
 [Intrinsic]
-public sealed class Type : MemberInfo {
+public readonly sealed class Type : MemberInfo {
     /// Its name, a generic one's arity after a backtick (`List`1`), an
     /// array's ranks after it (`Int32[]`).
     public override string Name { get; }

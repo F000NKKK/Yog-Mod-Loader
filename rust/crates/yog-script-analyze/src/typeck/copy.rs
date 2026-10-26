@@ -55,7 +55,8 @@ impl Checker<'_, '_, '_> {
         let Some(own) = self.own.of_key(key) else {
             return true;
         };
-        if own.record {
+        // Never changed, so shared: a record, a `readonly class`.
+        if own.shared() {
             return true;
         }
         if own.heap || !seen.insert(key.clone()) {

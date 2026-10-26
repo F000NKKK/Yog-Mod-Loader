@@ -33,7 +33,8 @@ pub(super) fn check(library: &[Decl], decls: &[Decl], report: &mut Report<'_>) {
 fn bases(index: &Index, info: &Info, report: &mut Report<'_>) {
     let mut classes = 0;
     for (i, b) in info.bases.iter().enumerate() {
-        let Some(base) = index.types.get(b.text.as_str()) else {
+        let name = &b.0;
+        let Some(base) = index.base(b) else {
             continue;
         };
         if base.interface {
@@ -43,25 +44,30 @@ fn bases(index: &Index, info: &Info, report: &mut Report<'_>) {
         let problem = if !info.class {
             Some(format!(
                 "`{}` inherits interfaces only: `{}` is a class",
-                info.name, b.text
+                info.name, name.text
             ))
         } else if classes > 1 {
             Some(format!(
                 "`{}` inherits one class; `{}` is a second",
-                info.name, b.text
+                info.name, name.text
             ))
         } else if i > 0 {
             Some(format!(
                 "the base class `{}` comes first, before the interfaces",
-                b.text
+                name.text
             ))
         } else if base.sealed {
-            Some(format!("`{}` is sealed: nothing inherits it", b.text))
+            Some(format!("`{}` is sealed: nothing inherits it", name.text))
+        } else if base.readonly && !info.readonly {
+            Some(format!(
+                "`{}` is never changed, so shared: what inherits it is `readonly` too",
+                name.text
+            ))
         } else {
             None
         };
         if let Some(message) = problem {
-            report.error(script_problem::INHERIT, b.span, message);
+            report.error(script_problem::INHERIT, name.span, message);
         }
     }
 }
@@ -70,7 +76,7 @@ fn bases(index: &Index, info: &Info, report: &mut Report<'_>) {
 fn overrides(index: &Index, info: &Info, report: &mut Report<'_>) {
     for m in info.members.iter().filter(|m| m.overrides) {
         let replaced = index
-            .ancestors(info.name)
+            .ancestors(info)
             .iter()
             .flat_map(|a| &a.members)
             .any(|b| b.name == m.name && (b.is_abstract || b.is_virtual || b.overrides));
@@ -95,7 +101,7 @@ fn explicit(index: &Index, info: &Info, report: &mut Report<'_>) {
         let Some(of) = &m.explicit else {
             continue;
         };
-        let ancestors = index.ancestors(info.name);
+        let ancestors = index.ancestors(info);
         let problem = match ancestors.iter().find(|a| a.name == of) {
             None => Some(format!("`{}` doesn't implement `{of}`", info.name)),
             Some(a) if !a.interface => Some(format!("`{of}` isn't an interface")),
@@ -116,9 +122,7 @@ fn explicit(index: &Index, info: &Info, report: &mut Report<'_>) {
 
 /// A class that's made implements what its bases leave to it.
 fn implemented(index: &Index, info: &Info, report: &mut Report<'_>) {
-    let lineage: Vec<&Info> = std::iter::once(info)
-        .chain(index.ancestors(info.name))
-        .collect();
+    let lineage: Vec<&Info> = std::iter::once(info).chain(index.ancestors(info)).collect();
     // An explicit implementation implements its own interface's only.
     let has = |name: &str, of: &str| {
         lineage

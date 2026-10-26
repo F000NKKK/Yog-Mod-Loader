@@ -2,7 +2,7 @@ namespace System.Reflection;
 
 /// A method's or a constructor's parameter.
 [Intrinsic]
-public class ParameterInfo {
+public readonly class ParameterInfo {
     public string Name { get; }
     public Type ParameterType { get; }
     /// Its place among its method's, from 0.

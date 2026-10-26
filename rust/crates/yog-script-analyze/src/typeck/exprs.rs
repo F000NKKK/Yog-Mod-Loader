@@ -223,6 +223,9 @@ impl Checker<'_, '_, '_> {
     /// `e`'s value where `wanted` is: reported when it doesn't fit. A
     /// number written as a literal fits any number and any quantity.
     pub(super) fn fits(&mut self, e: &Expr, wanted: &Type) {
+        if self.quoted_as(e, wanted) {
+            return;
+        }
         if let Some((params, ret)) = self.delegate_sig(wanted)
             && self.as_delegate(e, &params, &ret)
         {

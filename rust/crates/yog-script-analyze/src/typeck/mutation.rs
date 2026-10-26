@@ -19,9 +19,9 @@ impl Checker<'_, '_, '_> {
             self.index_written(expr, place.span);
         }
         let why = match &place.kind {
-            ExprKind::Member { expr, .. } if self.is_record(expr) => {
-                Some("a record (changed only by `with`)".to_string())
-            }
+            ExprKind::Member { expr, .. } if self.is_record(expr) => Some(
+                "a record or a `readonly class` (never changed; a record by `with`)".to_string(),
+            ),
             ExprKind::Member { expr, .. } | ExprKind::Index { expr, .. } => self.fixed_root(expr),
             // A field of `this` by its name.
             ExprKind::Ident(name) if self.local(name).is_none() => {
@@ -118,7 +118,9 @@ impl Checker<'_, '_, '_> {
             _ => None,
         };
         match t.map(Type::non_null) {
-            Some(Type::Own(name, args)) => self.own.get(name, args.len()).is_some_and(|t| t.record),
+            Some(Type::Own(name, args)) => {
+                self.own.get(name, args.len()).is_some_and(|t| t.shared())
+            }
             _ => false,
         }
     }

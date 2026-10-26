@@ -27,7 +27,7 @@ impl Gen<'_> {
         };
         // An interface wanted (`IEnumerable<T>`): a list, as C#'s; a
         // dictionary for one of a key and a value.
-        let made = if self.index.kind(&name) == Some(Kind::Interface) {
+        let made = if self.index.kind(&(name.clone(), args.len())) == Some(Kind::Interface) {
             let concrete = if args.len() == 2 { DICTIONARY } else { LIST };
             Type::Own(concrete.to_string(), args)
         } else {

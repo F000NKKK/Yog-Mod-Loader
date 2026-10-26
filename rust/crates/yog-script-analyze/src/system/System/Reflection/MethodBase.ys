@@ -2,7 +2,7 @@ namespace System.Reflection;
 
 /// What a method and a constructor share: their parameters.
 [Intrinsic]
-public abstract class MethodBase : MemberInfo {
+public readonly abstract class MethodBase : MemberInfo {
     public bool IsStatic { get; }
     /// Neither `private` nor `protected`.
     public bool IsPublic { get; }

@@ -201,11 +201,12 @@ impl Gen<'_> {
         let ExprKind::Member { expr, name, .. } = &place.kind else {
             return None;
         };
-        let Some(Type::Own(of, _)) = self.types.of(expr).map(Type::non_null) else {
+        let Some(Type::Own(of, args)) = self.types.of(expr).map(Type::non_null) else {
             return None;
         };
-        if self.index.kind(of) == Some(crate::index::Kind::Record)
-            || !self.index.called(of, &name.text)
+        let of = (of.clone(), args.len());
+        if self.index.kind(&of) == Some(crate::index::Kind::Record)
+            || !self.index.called(&of, &name.text)
         {
             return None;
         }

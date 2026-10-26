@@ -134,7 +134,10 @@ impl Gen<'_> {
             .map(|n| n.text.as_str())
             .collect::<Vec<_>>()
             .join(".");
-        let cond = match of.as_deref().and_then(|o| self.index.kind(o)) {
+        let cond = match of
+            .as_deref()
+            .and_then(|o| self.index.kind(&self.index.named(o)))
+        {
             Some(Kind::Enum) => format!("{v} == {written}"),
             _ => match bind {
                 Some(b) => format!("{v} instanceof {written} {}", Self::ident(b)),

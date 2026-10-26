@@ -1,0 +1,56 @@
+namespace System.Linq.Expressions;
+
+using System.Reflection;
+
+/// Code as a tree to read — a lambda given where an `Expression<Func<…>>`
+/// is wanted, or one made by these factories — as .NET's expression trees.
+[Intrinsic]
+public readonly abstract class Expression {
+    public ExpressionType NodeType { get; }
+    /// What it gives.
+    public Type Type { get; }
+
+    public static ConstantExpression Constant(object? value);
+    public static ConstantExpression Constant(object? value, Type type);
+    public static ParameterExpression Parameter(Type type);
+    public static ParameterExpression Parameter(Type type, string? name);
+
+    public static BinaryExpression Add(Expression left, Expression right);
+    public static BinaryExpression Subtract(Expression left, Expression right);
+    public static BinaryExpression Multiply(Expression left, Expression right);
+    public static BinaryExpression Divide(Expression left, Expression right);
+    public static BinaryExpression Modulo(Expression left, Expression right);
+    public static BinaryExpression And(Expression left, Expression right);
+    public static BinaryExpression Or(Expression left, Expression right);
+    public static BinaryExpression ExclusiveOr(Expression left, Expression right);
+    public static BinaryExpression LeftShift(Expression left, Expression right);
+    public static BinaryExpression RightShift(Expression left, Expression right);
+    public static BinaryExpression AndAlso(Expression left, Expression right);
+    public static BinaryExpression OrElse(Expression left, Expression right);
+    public static BinaryExpression Equal(Expression left, Expression right);
+    public static BinaryExpression NotEqual(Expression left, Expression right);
+    public static BinaryExpression LessThan(Expression left, Expression right);
+    public static BinaryExpression LessThanOrEqual(Expression left, Expression right);
+    public static BinaryExpression GreaterThan(Expression left, Expression right);
+    public static BinaryExpression GreaterThanOrEqual(Expression left, Expression right);
+    /// `left ?? right`.
+    public static BinaryExpression Coalesce(Expression left, Expression right);
+    public static BinaryExpression ArrayIndex(Expression array, Expression index);
+
+    public static UnaryExpression Not(Expression expression);
+    public static UnaryExpression Negate(Expression expression);
+    public static UnaryExpression Convert(Expression expression, Type type);
+
+    public static MemberExpression Field(Expression? expression, FieldInfo field);
+    public static MemberExpression Property(Expression? expression, PropertyInfo property);
+    /// Its property `propertyOrFieldName`, else its field of the name.
+    public static MemberExpression PropertyOrField(Expression expression, string propertyOrFieldName);
+    public static MethodCallExpression Call(Expression? instance, MethodInfo method, Expression[] arguments);
+    public static ConditionalExpression Condition(Expression condition, Expression ifTrue, Expression ifFalse);
+    public static NewExpression New(ConstructorInfo constructor, Expression[] arguments);
+    /// A lambda of `parameters` giving `body`, a `TDelegate` when compiled.
+    [Reified]
+    public static Expression<TDelegate> Lambda<TDelegate>(Expression body, ParameterExpression[] parameters);
+
+    public override string ToString();
+}

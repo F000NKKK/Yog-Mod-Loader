@@ -2,7 +2,7 @@ namespace System.Reflection;
 
 /// A property, read and written through its accessors.
 [Intrinsic]
-public class PropertyInfo : MemberInfo {
+public readonly class PropertyInfo : MemberInfo {
     public override string Name { get; }
     public override Type? DeclaringType { get; }
     public override MemberTypes MemberType { get; }

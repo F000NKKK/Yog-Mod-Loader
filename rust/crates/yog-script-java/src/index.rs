@@ -8,6 +8,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use yog_script_analyze::ast::{Decl, DeclKind, MethodBody};
 use yog_script_analyze::words;
 
+use crate::java_names::TypeRef;
 use crate::types::RUNTIME;
 
 use yog_script_ids::jvm::HOST_PACKAGE;
@@ -32,8 +33,8 @@ pub(crate) struct Info {
     pub kind: Kind,
     /// Properties computed on reading: Java methods (`x.Room()`).
     pub computed: HashSet<String>,
-    /// The types it inherits and implements, by name.
-    pub bases: Vec<String>,
+    /// The types it inherits and implements, by name and arity.
+    pub bases: Vec<TypeRef>,
     /// Whether it's made with arguments (it declares a constructor taking
     /// some): an attribute without one takes what a macro reads (`[Derive(Clone)]`).
     pub takes_args: bool,
@@ -41,7 +42,8 @@ pub(crate) struct Info {
 
 #[derive(Default)]
 pub(crate) struct Index {
-    pub types: HashMap<String, Info>,
+    /// Each type by its name and arity: one name, several types (C#'s).
+    pub types: HashMap<TypeRef, Info>,
     /// Each enum's cases' fields, by (enum, case).
     pub cases: HashMap<(String, String), Vec<String>>,
     /// The arities each name is declared of (`Action`: 0 to 16).
@@ -99,7 +101,8 @@ impl Index {
                         bases: Vec::new(),
                         takes_args: false,
                     };
-                    self.types.insert(m.name.text.clone(), info);
+                    self.types
+                        .insert((m.name.text.clone(), arity(&m.generics)), info);
                 }
                 DeclKind::Type { .. } => self.type_decl(d),
                 DeclKind::Enum { .. } => self.enum_decl(d),
@@ -163,7 +166,8 @@ impl Index {
             bases,
             takes_args,
         };
-        self.types.insert(name.text.clone(), info);
+        self.types
+            .insert((name.text.clone(), arity(&header.generics)), info);
     }
 
     /// An enum: its cases' fields, whether any case holds data.
@@ -195,7 +199,8 @@ impl Index {
             bases: Vec::new(),
             takes_args: false,
         };
-        self.types.insert(name.text.clone(), info);
+        self.types
+            .insert((name.text.clone(), arity(generics)), info);
     }
 
     /// Case `case`'s fields' names (of enum `of`, or whichever has it).
@@ -258,12 +263,8 @@ impl Index {
     /// Where type `name` is, named without its arguments (`Math.Max`): the
     /// one of the fewest.
     pub fn place_named(&self, name: &str) -> String {
-        let arity = self
-            .arities
-            .get(name)
-            .and_then(|a| a.first().copied())
-            .unwrap_or_default();
-        self.place(name, arity)
+        let (name, arity) = self.named(name);
+        self.place(&name, arity)
     }
 
     /// Where built-in type `t`'s members' companion is (`string`'s), if
@@ -278,7 +279,7 @@ impl Index {
 
     /// Whether `name` of type `of` is read by calling it in what `of`
     /// inherits (an interface's property `of` stores in a field).
-    pub fn inherited_call(&self, of: &str, name: &str) -> bool {
+    pub fn inherited_call(&self, of: &TypeRef, name: &str) -> bool {
         self.types
             .get(of)
             .is_some_and(|i| i.bases.iter().any(|b| self.called(b, name)))
@@ -307,18 +308,31 @@ impl Index {
         self.intrinsics.contains(name)
     }
 
-    /// Whether type `name` is made with arguments.
+    /// Whether type `name` (of no type parameters: an attribute) is made with arguments.
     pub fn takes_args(&self, name: &str) -> bool {
-        self.types.get(name).is_some_and(|i| i.takes_args)
+        self.types
+            .get(&(name.to_string(), 0))
+            .is_some_and(|i| i.takes_args)
     }
 
-    pub fn kind(&self, name: &str) -> Option<Kind> {
-        self.types.get(name).map(|i| i.kind)
+    pub fn kind(&self, t: &TypeRef) -> Option<Kind> {
+        self.types.get(t).map(|i| i.kind)
+    }
+
+    /// Type `name` written without its arguments (`Math`, a case's enum):
+    /// the one of the fewest, as `place_named` finds it.
+    pub fn named(&self, name: &str) -> TypeRef {
+        let arity = self
+            .arities
+            .get(name)
+            .and_then(|a| a.first().copied())
+            .unwrap_or_default();
+        (name.to_string(), arity)
     }
 
     /// Whether `name` of type `of` is read by calling it (a computed
     /// property, a record's field).
-    pub fn called(&self, of: &str, name: &str) -> bool {
+    pub fn called(&self, of: &TypeRef, name: &str) -> bool {
         self.types.get(of).is_some_and(|i| {
             i.kind == Kind::Record
                 || i.computed.contains(name)
@@ -327,10 +341,12 @@ impl Index {
     }
 }
 
-/// A base's name as written (`ICollection<T>` is `ICollection`).
-fn base_name(t: &yog_script_analyze::ast::Type) -> Option<String> {
+/// A base as written: its name and arity (`ICollection<T>` is `("ICollection", 1)`).
+fn base_name(t: &yog_script_analyze::ast::Type) -> Option<TypeRef> {
     match &t.kind {
-        yog_script_analyze::ast::TypeKind::Path { path, .. } => path.last().map(|n| n.text.clone()),
+        yog_script_analyze::ast::TypeKind::Path { path, args } => {
+            path.last().map(|n| (n.text.clone(), args.len()))
+        }
         _ => None,
     }
 }

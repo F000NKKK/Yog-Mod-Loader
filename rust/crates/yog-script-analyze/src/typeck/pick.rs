@@ -41,7 +41,7 @@ impl Checker<'_, '_, '_> {
             self.check_passing(&s.passes, args, given);
             let params: Vec<Type> = s.params.iter().map(|p| p.substitute(&found)).collect();
             for ((arg, g), p) in args.iter().zip(given).zip(&params) {
-                if is_lambda(&arg.value) {
+                if is_lambda(&arg.value) || is_collection(&arg.value) {
                     self.fits(&arg.value, p);
                 } else {
                     self.note_conversion(&arg.value, g, p);
@@ -73,6 +73,10 @@ impl Checker<'_, '_, '_> {
         }
         let mut found = s.bound.clone();
         for ((g, p), a) in given.iter().zip(&s.params).zip(args) {
+            // `[a, b]` is what's wanted: an array, a list, a set (C# 12's).
+            if is_collection(&a.value) && collection_target(p) {
+                continue;
+            }
             if !is_lambda(&a.value) && !self.unify(p, g, &s.generics, &mut found) {
                 return None;
             }
@@ -83,7 +87,7 @@ impl Checker<'_, '_, '_> {
             .zip(args)
             .filter(|(_, a)| is_lambda(&a.value))
         {
-            let Some((params, ret)) = self.delegate_sig(&p.substitute(&found)) else {
+            let Some((params, ret)) = self.lambda_sig(&p.substitute(&found)) else {
                 continue;
             };
             // A lambda naming its parameters takes as many as the delegate gives.
@@ -190,4 +194,14 @@ fn takes_as_many(e: &Expr, count: usize) -> bool {
         ExprKind::Lambda { params, .. } => params.len() == count,
         _ => true,
     }
+}
+
+/// `[a, b]`: a collection expression, typed by where it goes.
+fn is_collection(e: &Expr) -> bool {
+    matches!(e.kind, ExprKind::Collection(_))
+}
+
+/// Whether a collection expression can be what `p` is: an array or a type.
+fn collection_target(p: &Type) -> bool {
+    matches!(p.non_null(), Type::Array(..) | Type::Own(..))
 }

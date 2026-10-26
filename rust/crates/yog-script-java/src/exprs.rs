@@ -16,7 +16,7 @@ impl Gen<'_> {
     /// `e` as handed on: a struct's object copied, as Yog Script copies it.
     pub(crate) fn handed_expr(&mut self, e: &Expr) -> String {
         let v = self.expr(e);
-        let is_struct = matches!(self.types.of(e), Some(Type::Own(n, _)) if self.index.kind(n) == Some(Kind::Struct))
+        let is_struct = matches!(self.types.of(e), Some(Type::Own(n, args)) if self.index.kind(&(n.clone(), args.len())) == Some(Kind::Struct))
             || Self::is_tuple(self.types.of(e));
         if is_struct && matches!(e.kind, ExprKind::Ident(_) | ExprKind::Member { .. }) {
             format!("{v}.copy()")

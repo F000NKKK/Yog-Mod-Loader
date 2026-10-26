@@ -1,0 +1,73 @@
+namespace System.Linq.Expressions;
+
+using System.Reflection;
+
+/// A lambda's parameter, or a variable.
+[Intrinsic]
+public readonly class ParameterExpression : Expression {
+    public string? Name { get; }
+}
+
+/// A value.
+[Intrinsic]
+public readonly class ConstantExpression : Expression {
+    public object? Value { get; }
+}
+
+/// Two operands and their operator (`NodeType`).
+[Intrinsic]
+public readonly class BinaryExpression : Expression {
+    public Expression Left { get; }
+    public Expression Right { get; }
+}
+
+/// One operand and its operator.
+[Intrinsic]
+public readonly class UnaryExpression : Expression {
+    public Expression Operand { get; }
+}
+
+/// A field or a property read; `Expression` `null` for a static one.
+[Intrinsic]
+public readonly class MemberExpression : Expression {
+    public Expression? Expression { get; }
+    public MemberInfo Member { get; }
+}
+
+/// A method called; `Object` `null` for a static one.
+[Intrinsic]
+public readonly class MethodCallExpression : Expression {
+    public Expression? Object { get; }
+    public MethodInfo Method { get; }
+    public IReadOnlyList<Expression> Arguments { get; }
+}
+
+/// `Test ? IfTrue : IfFalse`.
+[Intrinsic]
+public readonly class ConditionalExpression : Expression {
+    public Expression Test { get; }
+    public Expression IfTrue { get; }
+    public Expression IfFalse { get; }
+}
+
+/// A new object made.
+[Intrinsic]
+public readonly class NewExpression : Expression {
+    public ConstructorInfo Constructor { get; }
+    public IReadOnlyList<Expression> Arguments { get; }
+}
+
+/// A lambda: its parameters, what it gives.
+[Intrinsic]
+public readonly class LambdaExpression : Expression {
+    public Expression Body { get; }
+    public IReadOnlyList<ParameterExpression> Parameters { get; }
+    public Type ReturnType { get; }
+}
+
+/// A lambda of delegate `TDelegate`: `Compile()` gives one — a lambda the
+/// compiler wrote as code itself, one made by hand run by its nodes.
+[Intrinsic]
+public readonly sealed class Expression<TDelegate> : LambdaExpression {
+    public TDelegate Compile();
+}

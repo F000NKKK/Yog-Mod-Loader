@@ -151,7 +151,10 @@ C#'s type system, with Rust's enums:
   value; `with` gives a copy with some properties changed (`pos with { Y =
   64 }`). Nothing changes one, so sharing it is safe: a record is `Copy`
   — a `record class` shares its object (as `string` does), a `record
-  struct` copies its bytes.
+  struct` copies its bytes. A `readonly class` (every member `readonly`,
+  its fields set only where it's made) is shared the same way, and what
+  inherits it is `readonly` too: `System.Type`, Reflection's members,
+  expression trees.
 - **Enums** are C#'s, values included (`enum Tier { Wood = 1, Stone, Iron }`),
   and Rust's: a variant may carry data (`enum Mode { Idle, Charging(int
   Rate), Full }`, `Mode.Charging(4)`).

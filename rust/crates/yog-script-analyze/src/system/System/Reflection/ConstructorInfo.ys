@@ -2,7 +2,7 @@ namespace System.Reflection;
 
 /// A constructor (named `.ctor`, as the CLR's).
 [Intrinsic]
-public class ConstructorInfo : MethodBase {
+public readonly class ConstructorInfo : MethodBase {
     public override string Name { get; }
     public override Type? DeclaringType { get; }
     public override MemberTypes MemberType { get; }

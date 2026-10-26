@@ -22,6 +22,9 @@ pub struct Types {
     /// The types values are recast to where they go by variance only (the
     /// JVM's generics have none), by expression.
     recasts: HashMap<usize, Type>,
+    /// The lambdas given where an expression tree is wanted
+    /// (`Expression<Func<i32, bool>>`), each with its delegate's type.
+    quoted: HashMap<usize, Type>,
     /// The method each call chose, by the call.
     methods: HashMap<usize, MethodUse>,
     /// The operators `op=` applies (`v += w` on a `Vec`), by the place it
@@ -60,6 +63,15 @@ pub struct MethodUse {
 impl Types {
     /// The type `e`'s value is recast to, going where it's wanted by
     /// variance (`IEnumerable<string>` as an `IEnumerable<object>`).
+    /// Lambda `e`'s delegate, when it's given as an expression tree.
+    pub fn quoted(&self, e: &Expr) -> Option<&Type> {
+        self.quoted.get(&key(e))
+    }
+
+    pub(super) fn set_quoted(&mut self, e: &Expr, delegate: Type) {
+        self.quoted.insert(key(e), delegate);
+    }
+
     pub fn recast(&self, e: &Expr) -> Option<&Type> {
         self.recasts.get(&key(e))
     }

@@ -215,7 +215,8 @@ impl Gen<'_> {
         header: &TypeHeader,
         body: &[Decl],
     ) {
-        match self.index.kind(name) {
+        let arity = header.generics.iter().filter(|g| !g.lifetime).count();
+        match self.index.kind(&(name.to_string(), arity)) {
             Some(Kind::Record) => self.record(d, name, header, body),
             Some(Kind::Interface) => {
                 let bases = header

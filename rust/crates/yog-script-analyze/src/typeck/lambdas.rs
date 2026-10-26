@@ -31,6 +31,32 @@ impl Checker<'_, '_, '_> {
         }
     }
 
+    /// Lambda `e` where expression tree `wanted` is: typed as its
+    /// delegate's, noted as quoted; one of a block can't be a tree (C#'s
+    /// CS0834). Whether it was one.
+    pub(super) fn quoted_as(&mut self, e: &Expr, wanted: &Type) -> bool {
+        let (ExprKind::Lambda { body, .. }, Some(delegate)) =
+            (&e.kind, Self::quoted_delegate(wanted))
+        else {
+            return false;
+        };
+        let delegate = delegate.clone();
+        let Some((params, ret)) = self.delegate_sig(&delegate) else {
+            return false;
+        };
+        if matches!(body, LambdaBody::Block(_)) {
+            self.report.error(
+                script_problem::TYPE_MISMATCH,
+                e.span,
+                "an expression tree is a lambda of an expression, not of a block".to_string(),
+            );
+        }
+        self.as_delegate(e, &params, &ret);
+        self.types.set(e, wanted.non_null().clone());
+        self.types.set_quoted(e, delegate);
+        true
+    }
+
     fn lambda_as(
         &mut self,
         written: &[LambdaParam],

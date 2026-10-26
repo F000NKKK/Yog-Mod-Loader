@@ -37,6 +37,27 @@ impl Checker<'_, '_, '_> {
 
     /// `t`'s signature when it's a delegate: a declared one's (its type
     /// arguments bound), or a lambda's or a method's own.
+    /// The delegate an expression tree `t` (`Expression<TDelegate>`) is of.
+    pub(super) fn quoted_delegate(t: &Type) -> Option<&Type> {
+        match t.non_null() {
+            Type::Own(name, args)
+                if name == yog_script_ids::system::EXPRESSION && args.len() == 1 =>
+            {
+                args.first()
+            }
+            _ => None,
+        }
+    }
+
+    /// What a lambda given where `t` is wanted is typed as: a delegate's
+    /// signature, an expression tree's delegate's.
+    pub(super) fn lambda_sig(&self, t: &Type) -> Option<Sig> {
+        match Self::quoted_delegate(t) {
+            Some(d) => self.delegate_sig(d),
+            None => self.delegate_sig(t),
+        }
+    }
+
     pub(super) fn delegate_sig(&self, t: &Type) -> Option<Sig> {
         match t.non_null() {
             Type::Fn(params, ret) => Some((params.clone(), (**ret).clone())),

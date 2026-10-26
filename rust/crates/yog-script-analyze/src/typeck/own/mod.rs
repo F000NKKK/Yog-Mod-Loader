@@ -38,6 +38,14 @@ impl TypeKey {
     }
 }
 
+impl OwnType {
+    /// Never changed, so shared rather than owned: a record, a `readonly
+    /// class` (`Type`, an expression tree) — `Copy`, as `string` is.
+    pub fn shared(&self) -> bool {
+        self.record || (self.heap && self.readonly_all)
+    }
+}
+
 /// A declared type's members, still as written (typed when looked up).
 #[derive(Default)]
 pub(crate) struct OwnType {
@@ -57,7 +65,7 @@ pub(crate) struct OwnType {
     pub heap: bool,
     /// Its `readonly` methods (Rust's `&self`): the others change it.
     pub readonly: Vec<String>,
-    /// A `readonly struct` or a record: every member is.
+    /// A `readonly struct`, a `readonly class` or a record: every member is.
     pub readonly_all: bool,
     /// A record: set once, never changed; shared, so `Copy`.
     pub record: bool,

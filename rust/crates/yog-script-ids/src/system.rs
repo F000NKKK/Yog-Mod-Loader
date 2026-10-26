@@ -27,6 +27,10 @@ pub const RESULT: &str = "Result";
 /// What `typeof(T)` and `x.GetType()` give: a type as a value (`System.Type`).
 pub const TYPE: &str = "Type";
 
+/// An expression tree of a delegate (`System.Linq.Expressions.Expression<TDelegate>`):
+/// a lambda given where one is wanted is quoted.
+pub const EXPRESSION: &str = "Expression";
+
 /// The base of every attribute class.
 pub const ATTRIBUTE: &str = "Attribute";
 
