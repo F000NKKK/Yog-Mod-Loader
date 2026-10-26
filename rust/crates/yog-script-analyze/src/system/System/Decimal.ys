@@ -1,0 +1,29 @@
+namespace System;
+
+/// `decimal`'s members, as .NET's `System.Decimal`: a decimal number, exact.
+[Intrinsic]
+[Host]
+public readonly struct Decimal : IComparable<decimal>, IEquatable<decimal> {
+    public static readonly decimal MinValue;
+    public static readonly decimal MaxValue;
+    public static readonly decimal Zero;
+    public static readonly decimal One;
+
+    /// A whole number or a floating-point one as a `decimal`.
+    public static implicit operator decimal(i64 value);
+    public static implicit operator decimal(f64 value);
+
+    /// `d` to the nearest whole number, a half to the even one.
+    public static decimal Round(decimal d);
+    public static decimal Floor(decimal d);
+    public static decimal Ceiling(decimal d);
+    public static decimal Truncate(decimal d);
+    /// `s` read as one; a panic when it isn't one.
+    public static decimal Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static decimal? TryParse(string s);
+
+    public i32 CompareTo(decimal value);
+    public bool Equals(decimal obj);
+    public override string ToString();
+}

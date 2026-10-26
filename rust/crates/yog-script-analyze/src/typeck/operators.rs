@@ -141,6 +141,20 @@ impl Checker<'_, '_, '_> {
     /// goes through noted, when it needs one.
     pub(super) fn note_conversion(&mut self, e: &Expr, got: &Type, wanted: &Type) {
         self.note_array_view(e, got, wanted);
+        // A number where a `decimal` is wanted: `decimal`'s own implicit
+        // conversion (C#'s), what makes one where it's kept apart (the
+        // JVM's `BigDecimal`).
+        if *wanted.non_null() == Type::Decimal
+            && got.non_null().is_numeric()
+            && *got.non_null() != Type::Decimal
+        {
+            let used = OperatorUse {
+                owner: Type::own(yog_script_ids::clr::DECIMAL.to_string()),
+                method: yog_script_ids::clr::OP_IMPLICIT.to_string(),
+            };
+            self.types.set_conversion(e, used);
+            return;
+        }
         self.note_variance(e, got, wanted);
         if !self.converts_plainly(got, wanted)
             && let Some(used) = self.implicit(got, wanted)
@@ -176,7 +190,11 @@ impl Checker<'_, '_, '_> {
                 self.bad_operator(at, "an operator is `public static`");
             }
             let (params, ret) = self.signature_types(&op.method);
-            let own = |t: &Type| t.non_null() == this.non_null();
+            // Its own type, or the built-in one it's the members of (`decimal`'s `Decimal`).
+            let own = |t: &Type| {
+                t.non_null() == this.non_null()
+                    || self.hosted(t.non_null()).as_ref() == Some(this.non_null())
+            };
             let of_this = match op.kind {
                 OperatorKind::Implicit | OperatorKind::Explicit => {
                     params.iter().any(own) || own(&ret)

@@ -1,0 +1,17 @@
+namespace System;
+
+/// `u64`'s members, as .NET's `System.UInt64`: a whole number.
+[Intrinsic]
+[Host]
+public readonly struct UInt64 : IComparable<u64>, IEquatable<u64> {
+    public static readonly u64 MinValue;
+    public static readonly u64 MaxValue;
+    /// `s` read as one; a panic when it isn't one.
+    public static u64 Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static u64? TryParse(string s);
+
+    public i32 CompareTo(u64 value);
+    public bool Equals(u64 obj);
+    public override string ToString();
+}

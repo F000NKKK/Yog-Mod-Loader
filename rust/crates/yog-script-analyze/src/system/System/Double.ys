@@ -1,0 +1,31 @@
+namespace System;
+
+/// `f64`'s members, as .NET's `System.Double`: a floating-point number.
+[Intrinsic]
+[Host]
+public readonly struct Double : IComparable<f64>, IEquatable<f64> {
+    public static readonly f64 MinValue;
+    public static readonly f64 MaxValue;
+    /// The least above zero.
+    public static readonly f64 Epsilon;
+    public static readonly f64 NaN;
+    public static readonly f64 PositiveInfinity;
+    public static readonly f64 NegativeInfinity;
+    public static readonly f64 Pi;
+    public static readonly f64 E;
+    public static readonly f64 Tau;
+
+    public static bool IsNaN(f64 f);
+    public static bool IsInfinity(f64 f);
+    public static bool IsPositiveInfinity(f64 f);
+    public static bool IsNegativeInfinity(f64 f);
+    public static bool IsFinite(f64 f);
+    /// `s` read as one; a panic when it isn't one.
+    public static f64 Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static f64? TryParse(string s);
+
+    public i32 CompareTo(f64 value);
+    public bool Equals(f64 obj);
+    public override string ToString();
+}

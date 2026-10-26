@@ -320,3 +320,18 @@ fn a_reified_method_is_handed_its_types() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn numbers_members_are_their_companions() {
+    let src = "i32 F(string s) => i32.Parse(s) + Int32.MaxValue;\n\
+               bool G(char c) => char.IsDigit(c);\n\
+               decimal P(decimal a, i32 n) => -(a + n) / 2;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "dev.yog.script.host.Int32.Parse(s) + dev.yog.script.host.Int32.MaxValue",
+        "dev.yog.script.host.Char.IsDigit(c)",
+        "a.add(dev.yog.script.host.Decimal.op_Implicit(n)).negate().divide(dev.yog.script.host.Decimal.op_Implicit(2), java.math.MathContext.DECIMAL128)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

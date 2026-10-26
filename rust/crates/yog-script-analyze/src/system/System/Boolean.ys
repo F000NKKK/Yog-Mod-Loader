@@ -1,0 +1,18 @@
+namespace System;
+
+/// `bool`'s members, as .NET's `System.Boolean`: true or false.
+[Intrinsic]
+[Host]
+public readonly struct Boolean : IComparable<bool>, IEquatable<bool> {
+    /// How each is written: `True`, `False` (.NET's).
+    public static readonly string TrueString;
+    public static readonly string FalseString;
+    /// `s` read as one; a panic when it isn't one.
+    public static bool Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static bool? TryParse(string s);
+
+    public i32 CompareTo(bool value);
+    public bool Equals(bool obj);
+    public override string ToString();
+}

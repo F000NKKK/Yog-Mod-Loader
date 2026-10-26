@@ -1,0 +1,17 @@
+namespace System;
+
+/// `i32`'s members, as .NET's `System.Int32`: a whole number.
+[Intrinsic]
+[Host]
+public readonly struct Int32 : IComparable<i32>, IEquatable<i32> {
+    public static readonly i32 MinValue;
+    public static readonly i32 MaxValue;
+    /// `s` read as one; a panic when it isn't one.
+    public static i32 Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static i32? TryParse(string s);
+
+    public i32 CompareTo(i32 value);
+    public bool Equals(i32 obj);
+    public override string ToString();
+}

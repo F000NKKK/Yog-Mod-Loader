@@ -10,6 +10,7 @@ mod arrays;
 mod calls;
 mod classes;
 mod collections;
+mod decimals;
 mod decls;
 mod delegates;
 mod exprs;

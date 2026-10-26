@@ -1,0 +1,17 @@
+namespace System;
+
+/// `u16`'s members, as .NET's `System.UInt16`: a whole number.
+[Intrinsic]
+[Host]
+public readonly struct UInt16 : IComparable<u16>, IEquatable<u16> {
+    public static readonly u16 MinValue;
+    public static readonly u16 MaxValue;
+    /// `s` read as one; a panic when it isn't one.
+    public static u16 Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static u16? TryParse(string s);
+
+    public i32 CompareTo(u16 value);
+    public bool Equals(u16 obj);
+    public override string ToString();
+}

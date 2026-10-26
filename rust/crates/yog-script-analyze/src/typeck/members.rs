@@ -56,7 +56,15 @@ impl Checker<'_, '_, '_> {
         let t = match on.non_null() {
             Type::Static(of, args) => {
                 let t = self.statics_type(of, args);
-                self.own_member(&t, name)
+                let found = self.own_member(&t, name);
+                let case = self
+                    .own
+                    .named(of)
+                    .is_some_and(|(_, o)| o.cases.iter().any(|c| c == name));
+                if !found.known() && !case && !self.own_has_method(&t, name) {
+                    self.unknown_member(on.non_null(), name, at);
+                }
+                found
             }
             Type::Own(..) => {
                 let t = self.own_member(on.non_null(), name);

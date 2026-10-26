@@ -125,6 +125,12 @@ impl Checker<'_, '_, '_> {
         if self.own.has(name) && self.own_in_reach(name) {
             return Type::Static(name.to_string(), Vec::new());
         }
+        // `i32` before its statics: `System.Int32`.
+        if let Some(Type::Own(host, _)) =
+            super::builtin::by_word(name).and_then(|b| self.hosted(&b))
+        {
+            return Type::Static(host, Vec::new());
+        }
         self.imported(name, at)
     }
 
@@ -227,6 +233,7 @@ impl Checker<'_, '_, '_> {
         }
         let t = self.expr(e);
         if is_number_literal(e) && (wanted.non_null().is_numeric()) {
+            self.note_conversion(e, &t, wanted);
             return;
         }
         self.want(&t, wanted, e.span);

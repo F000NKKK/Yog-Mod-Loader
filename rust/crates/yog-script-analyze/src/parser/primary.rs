@@ -18,6 +18,10 @@ impl Parser<'_, '_, '_> {
             Tok::Tag(id) => ExprKind::Tag(id),
             Tok::Ident(_) if self.macro_ahead() => return self.macro_call(),
             Tok::Ident(name) => ExprKind::Ident(name),
+            // `i32.Parse(…)`, `char.IsDigit(c)`: a built-in type's statics, C#'s `int.Parse`.
+            Tok::Keyword(w) if w.is_type() && self.nth_is(1, Punct::Dot) => {
+                ExprKind::Ident(w.text.to_string())
+            }
             Tok::Str(parts) => {
                 self.bump();
                 return Ok(Expr {

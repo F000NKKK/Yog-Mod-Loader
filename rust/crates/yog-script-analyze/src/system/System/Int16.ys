@@ -1,0 +1,17 @@
+namespace System;
+
+/// `i16`'s members, as .NET's `System.Int16`: a whole number.
+[Intrinsic]
+[Host]
+public readonly struct Int16 : IComparable<i16>, IEquatable<i16> {
+    public static readonly i16 MinValue;
+    public static readonly i16 MaxValue;
+    /// `s` read as one; a panic when it isn't one.
+    public static i16 Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static i16? TryParse(string s);
+
+    public i32 CompareTo(i16 value);
+    public bool Equals(i16 obj);
+    public override string ToString();
+}

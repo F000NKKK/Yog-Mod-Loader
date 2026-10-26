@@ -1,0 +1,30 @@
+namespace System;
+
+/// `char`'s members, as .NET's `System.Char`: a character.
+[Intrinsic]
+[Host]
+public readonly struct Char : IComparable<char>, IEquatable<char> {
+    public static readonly char MinValue;
+    public static readonly char MaxValue;
+
+    public static bool IsDigit(char c);
+    public static bool IsLetter(char c);
+    public static bool IsLetterOrDigit(char c);
+    public static bool IsWhiteSpace(char c);
+    public static bool IsUpper(char c);
+    public static bool IsLower(char c);
+    public static bool IsPunctuation(char c);
+    public static bool IsControl(char c);
+    public static char ToUpper(char c);
+    public static char ToLower(char c);
+    /// The number `c` stands for (`'7'` is 7), -1 when it stands for none.
+    public static f64 GetNumericValue(char c);
+    /// `s` read as one; a panic when it isn't one.
+    public static char Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static char? TryParse(string s);
+
+    public i32 CompareTo(char value);
+    public bool Equals(char obj);
+    public override string ToString();
+}

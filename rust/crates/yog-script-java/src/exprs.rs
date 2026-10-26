@@ -61,7 +61,7 @@ impl Gen<'_> {
                 self.new_object(e, ty.as_ref(), args.as_deref().unwrap_or_default(), init)
             }
             ExprKind::Unary { op, expr } => self.unary(*op, expr),
-            ExprKind::Binary { op, left, right } => self.binary(*op, left, right),
+            ExprKind::Binary { op, left, right } => self.binary(e, *op, left, right),
             ExprKind::Conditional {
                 cond,
                 then,
@@ -150,6 +150,9 @@ impl Gen<'_> {
 
     fn unary(&mut self, op: UnOp, expr: &Expr) -> String {
         match op {
+            UnOp::Neg if self.types.of(expr).map(Type::non_null) == Some(&Type::Decimal) => {
+                Self::decimal_negated(&self.expr(expr))
+            }
             UnOp::Neg => format!("(-{})", self.expr(expr)),
             UnOp::Not => format!("(!{})", self.expr(expr)),
             UnOp::BitNot => format!("(~{})", self.expr(expr)),
@@ -175,8 +178,13 @@ impl Gen<'_> {
         format!("{t}.Unwrap()")
     }
 
-    fn binary(&mut self, op: BinOp, left: &Expr, right: &Expr) -> String {
+    fn binary(&mut self, e: &Expr, op: BinOp, left: &Expr, right: &Expr) -> String {
         let (l, r) = (self.expr(left), self.expr(right));
+        if self.is_decimal(e, left, right)
+            && let Some(v) = self.decimal_binary(op, (left, l.clone()), (right, r.clone()))
+        {
+            return v;
+        }
         let objects =
             !matches!(self.types.of(left).map(|t| t.non_null()), Some(t) if primitive(t).is_some());
         match op {

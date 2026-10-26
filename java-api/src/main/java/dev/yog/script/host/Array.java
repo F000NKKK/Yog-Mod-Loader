@@ -67,28 +67,28 @@ public final class Array {
     }
 
     // An array as its interfaces.
-    public static ArrayView<Integer> AsList(int[] array) {
+    public static ArrayView<java.lang.Integer> AsList(int[] array) {
         return new ArrayView<>(array.length, i -> array[i], (i, v) -> array[i] = v);
     }
-    public static ArrayView<Long> AsList(long[] array) {
+    public static ArrayView<java.lang.Long> AsList(long[] array) {
         return new ArrayView<>(array.length, i -> array[i], (i, v) -> array[i] = v);
     }
-    public static ArrayView<Short> AsList(short[] array) {
+    public static ArrayView<java.lang.Short> AsList(short[] array) {
         return new ArrayView<>(array.length, i -> array[i], (i, v) -> array[i] = v);
     }
-    public static ArrayView<Byte> AsList(byte[] array) {
+    public static ArrayView<java.lang.Byte> AsList(byte[] array) {
         return new ArrayView<>(array.length, i -> array[i], (i, v) -> array[i] = v);
     }
-    public static ArrayView<Character> AsList(char[] array) {
+    public static ArrayView<java.lang.Character> AsList(char[] array) {
         return new ArrayView<>(array.length, i -> array[i], (i, v) -> array[i] = v);
     }
-    public static ArrayView<Float> AsList(float[] array) {
+    public static ArrayView<java.lang.Float> AsList(float[] array) {
         return new ArrayView<>(array.length, i -> array[i], (i, v) -> array[i] = v);
     }
-    public static ArrayView<Double> AsList(double[] array) {
+    public static ArrayView<java.lang.Double> AsList(double[] array) {
         return new ArrayView<>(array.length, i -> array[i], (i, v) -> array[i] = v);
     }
-    public static ArrayView<Boolean> AsList(boolean[] array) {
+    public static ArrayView<java.lang.Boolean> AsList(boolean[] array) {
         return new ArrayView<>(array.length, i -> array[i], (i, v) -> array[i] = v);
     }
     public static <T> ArrayView<T> AsList(T[] array) {
@@ -100,7 +100,7 @@ public final class Array {
         java.util.Arrays.sort(array);
         return array;
     }
-    public static int[] Sort(int[] array, Comparison<Integer> comparison) {
+    public static int[] Sort(int[] array, Comparison<java.lang.Integer> comparison) {
         AsList(array).Sort(comparison);
         return array;
     }
@@ -108,7 +108,7 @@ public final class Array {
         java.util.Arrays.sort(array);
         return array;
     }
-    public static long[] Sort(long[] array, Comparison<Long> comparison) {
+    public static long[] Sort(long[] array, Comparison<java.lang.Long> comparison) {
         AsList(array).Sort(comparison);
         return array;
     }
@@ -116,7 +116,7 @@ public final class Array {
         java.util.Arrays.sort(array);
         return array;
     }
-    public static short[] Sort(short[] array, Comparison<Short> comparison) {
+    public static short[] Sort(short[] array, Comparison<java.lang.Short> comparison) {
         AsList(array).Sort(comparison);
         return array;
     }
@@ -124,7 +124,7 @@ public final class Array {
         java.util.Arrays.sort(array);
         return array;
     }
-    public static byte[] Sort(byte[] array, Comparison<Byte> comparison) {
+    public static byte[] Sort(byte[] array, Comparison<java.lang.Byte> comparison) {
         AsList(array).Sort(comparison);
         return array;
     }
@@ -132,7 +132,7 @@ public final class Array {
         java.util.Arrays.sort(array);
         return array;
     }
-    public static char[] Sort(char[] array, Comparison<Character> comparison) {
+    public static char[] Sort(char[] array, Comparison<java.lang.Character> comparison) {
         AsList(array).Sort(comparison);
         return array;
     }
@@ -140,7 +140,7 @@ public final class Array {
         java.util.Arrays.sort(array);
         return array;
     }
-    public static float[] Sort(float[] array, Comparison<Float> comparison) {
+    public static float[] Sort(float[] array, Comparison<java.lang.Float> comparison) {
         AsList(array).Sort(comparison);
         return array;
     }
@@ -148,7 +148,7 @@ public final class Array {
         java.util.Arrays.sort(array);
         return array;
     }
-    public static double[] Sort(double[] array, Comparison<Double> comparison) {
+    public static double[] Sort(double[] array, Comparison<java.lang.Double> comparison) {
         AsList(array).Sort(comparison);
         return array;
     }
@@ -161,7 +161,7 @@ public final class Array {
         java.util.Arrays.fill(array, falses, array.length, true);
         return array;
     }
-    public static boolean[] Sort(boolean[] array, Comparison<Boolean> comparison) {
+    public static boolean[] Sort(boolean[] array, Comparison<java.lang.Boolean> comparison) {
         AsList(array).Sort(comparison);
         return array;
     }
@@ -477,220 +477,220 @@ public final class Array {
     }
 
     // Matched.
-    public static boolean Exists(int[] array, Predicate<Integer> match) {
+    public static boolean Exists(int[] array, Predicate<java.lang.Integer> match) {
         return AsList(array).Exists(match);
     }
 
-    public static Integer Find(int[] array, Predicate<Integer> match) {
+    public static java.lang.Integer Find(int[] array, Predicate<java.lang.Integer> match) {
         return AsList(array).Find(match);
     }
 
-    public static java.lang.Object[] FindAll(int[] array, Predicate<Integer> match) {
+    public static java.lang.Object[] FindAll(int[] array, Predicate<java.lang.Integer> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
-    public static int FindIndex(int[] array, Predicate<Integer> match) {
+    public static int FindIndex(int[] array, Predicate<java.lang.Integer> match) {
         return AsList(array).FindIndex(match);
     }
 
-    public static boolean TrueForAll(int[] array, Predicate<Integer> match) {
+    public static boolean TrueForAll(int[] array, Predicate<java.lang.Integer> match) {
         return AsList(array).TrueForAll(match);
     }
 
-    public static void ForEach(int[] array, Action1<Integer> action) {
+    public static void ForEach(int[] array, Action1<java.lang.Integer> action) {
         AsList(array).ForEach(action);
     }
 
-    public static <O> java.lang.Object[] ConvertAll(int[] array, Converter<Integer, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(int[] array, Converter<java.lang.Integer, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
-    public static boolean Exists(long[] array, Predicate<Long> match) {
+    public static boolean Exists(long[] array, Predicate<java.lang.Long> match) {
         return AsList(array).Exists(match);
     }
 
-    public static Long Find(long[] array, Predicate<Long> match) {
+    public static java.lang.Long Find(long[] array, Predicate<java.lang.Long> match) {
         return AsList(array).Find(match);
     }
 
-    public static java.lang.Object[] FindAll(long[] array, Predicate<Long> match) {
+    public static java.lang.Object[] FindAll(long[] array, Predicate<java.lang.Long> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
-    public static int FindIndex(long[] array, Predicate<Long> match) {
+    public static int FindIndex(long[] array, Predicate<java.lang.Long> match) {
         return AsList(array).FindIndex(match);
     }
 
-    public static boolean TrueForAll(long[] array, Predicate<Long> match) {
+    public static boolean TrueForAll(long[] array, Predicate<java.lang.Long> match) {
         return AsList(array).TrueForAll(match);
     }
 
-    public static void ForEach(long[] array, Action1<Long> action) {
+    public static void ForEach(long[] array, Action1<java.lang.Long> action) {
         AsList(array).ForEach(action);
     }
 
-    public static <O> java.lang.Object[] ConvertAll(long[] array, Converter<Long, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(long[] array, Converter<java.lang.Long, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
-    public static boolean Exists(short[] array, Predicate<Short> match) {
+    public static boolean Exists(short[] array, Predicate<java.lang.Short> match) {
         return AsList(array).Exists(match);
     }
 
-    public static Short Find(short[] array, Predicate<Short> match) {
+    public static java.lang.Short Find(short[] array, Predicate<java.lang.Short> match) {
         return AsList(array).Find(match);
     }
 
-    public static java.lang.Object[] FindAll(short[] array, Predicate<Short> match) {
+    public static java.lang.Object[] FindAll(short[] array, Predicate<java.lang.Short> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
-    public static int FindIndex(short[] array, Predicate<Short> match) {
+    public static int FindIndex(short[] array, Predicate<java.lang.Short> match) {
         return AsList(array).FindIndex(match);
     }
 
-    public static boolean TrueForAll(short[] array, Predicate<Short> match) {
+    public static boolean TrueForAll(short[] array, Predicate<java.lang.Short> match) {
         return AsList(array).TrueForAll(match);
     }
 
-    public static void ForEach(short[] array, Action1<Short> action) {
+    public static void ForEach(short[] array, Action1<java.lang.Short> action) {
         AsList(array).ForEach(action);
     }
 
-    public static <O> java.lang.Object[] ConvertAll(short[] array, Converter<Short, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(short[] array, Converter<java.lang.Short, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
-    public static boolean Exists(byte[] array, Predicate<Byte> match) {
+    public static boolean Exists(byte[] array, Predicate<java.lang.Byte> match) {
         return AsList(array).Exists(match);
     }
 
-    public static Byte Find(byte[] array, Predicate<Byte> match) {
+    public static java.lang.Byte Find(byte[] array, Predicate<java.lang.Byte> match) {
         return AsList(array).Find(match);
     }
 
-    public static java.lang.Object[] FindAll(byte[] array, Predicate<Byte> match) {
+    public static java.lang.Object[] FindAll(byte[] array, Predicate<java.lang.Byte> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
-    public static int FindIndex(byte[] array, Predicate<Byte> match) {
+    public static int FindIndex(byte[] array, Predicate<java.lang.Byte> match) {
         return AsList(array).FindIndex(match);
     }
 
-    public static boolean TrueForAll(byte[] array, Predicate<Byte> match) {
+    public static boolean TrueForAll(byte[] array, Predicate<java.lang.Byte> match) {
         return AsList(array).TrueForAll(match);
     }
 
-    public static void ForEach(byte[] array, Action1<Byte> action) {
+    public static void ForEach(byte[] array, Action1<java.lang.Byte> action) {
         AsList(array).ForEach(action);
     }
 
-    public static <O> java.lang.Object[] ConvertAll(byte[] array, Converter<Byte, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(byte[] array, Converter<java.lang.Byte, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
-    public static boolean Exists(char[] array, Predicate<Character> match) {
+    public static boolean Exists(char[] array, Predicate<java.lang.Character> match) {
         return AsList(array).Exists(match);
     }
 
-    public static Character Find(char[] array, Predicate<Character> match) {
+    public static java.lang.Character Find(char[] array, Predicate<java.lang.Character> match) {
         return AsList(array).Find(match);
     }
 
-    public static java.lang.Object[] FindAll(char[] array, Predicate<Character> match) {
+    public static java.lang.Object[] FindAll(char[] array, Predicate<java.lang.Character> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
-    public static int FindIndex(char[] array, Predicate<Character> match) {
+    public static int FindIndex(char[] array, Predicate<java.lang.Character> match) {
         return AsList(array).FindIndex(match);
     }
 
-    public static boolean TrueForAll(char[] array, Predicate<Character> match) {
+    public static boolean TrueForAll(char[] array, Predicate<java.lang.Character> match) {
         return AsList(array).TrueForAll(match);
     }
 
-    public static void ForEach(char[] array, Action1<Character> action) {
+    public static void ForEach(char[] array, Action1<java.lang.Character> action) {
         AsList(array).ForEach(action);
     }
 
-    public static <O> java.lang.Object[] ConvertAll(char[] array, Converter<Character, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(char[] array, Converter<java.lang.Character, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
-    public static boolean Exists(float[] array, Predicate<Float> match) {
+    public static boolean Exists(float[] array, Predicate<java.lang.Float> match) {
         return AsList(array).Exists(match);
     }
 
-    public static Float Find(float[] array, Predicate<Float> match) {
+    public static java.lang.Float Find(float[] array, Predicate<java.lang.Float> match) {
         return AsList(array).Find(match);
     }
 
-    public static java.lang.Object[] FindAll(float[] array, Predicate<Float> match) {
+    public static java.lang.Object[] FindAll(float[] array, Predicate<java.lang.Float> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
-    public static int FindIndex(float[] array, Predicate<Float> match) {
+    public static int FindIndex(float[] array, Predicate<java.lang.Float> match) {
         return AsList(array).FindIndex(match);
     }
 
-    public static boolean TrueForAll(float[] array, Predicate<Float> match) {
+    public static boolean TrueForAll(float[] array, Predicate<java.lang.Float> match) {
         return AsList(array).TrueForAll(match);
     }
 
-    public static void ForEach(float[] array, Action1<Float> action) {
+    public static void ForEach(float[] array, Action1<java.lang.Float> action) {
         AsList(array).ForEach(action);
     }
 
-    public static <O> java.lang.Object[] ConvertAll(float[] array, Converter<Float, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(float[] array, Converter<java.lang.Float, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
-    public static boolean Exists(double[] array, Predicate<Double> match) {
+    public static boolean Exists(double[] array, Predicate<java.lang.Double> match) {
         return AsList(array).Exists(match);
     }
 
-    public static Double Find(double[] array, Predicate<Double> match) {
+    public static java.lang.Double Find(double[] array, Predicate<java.lang.Double> match) {
         return AsList(array).Find(match);
     }
 
-    public static java.lang.Object[] FindAll(double[] array, Predicate<Double> match) {
+    public static java.lang.Object[] FindAll(double[] array, Predicate<java.lang.Double> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
-    public static int FindIndex(double[] array, Predicate<Double> match) {
+    public static int FindIndex(double[] array, Predicate<java.lang.Double> match) {
         return AsList(array).FindIndex(match);
     }
 
-    public static boolean TrueForAll(double[] array, Predicate<Double> match) {
+    public static boolean TrueForAll(double[] array, Predicate<java.lang.Double> match) {
         return AsList(array).TrueForAll(match);
     }
 
-    public static void ForEach(double[] array, Action1<Double> action) {
+    public static void ForEach(double[] array, Action1<java.lang.Double> action) {
         AsList(array).ForEach(action);
     }
 
-    public static <O> java.lang.Object[] ConvertAll(double[] array, Converter<Double, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(double[] array, Converter<java.lang.Double, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
-    public static boolean Exists(boolean[] array, Predicate<Boolean> match) {
+    public static boolean Exists(boolean[] array, Predicate<java.lang.Boolean> match) {
         return AsList(array).Exists(match);
     }
 
-    public static Boolean Find(boolean[] array, Predicate<Boolean> match) {
+    public static java.lang.Boolean Find(boolean[] array, Predicate<java.lang.Boolean> match) {
         return AsList(array).Find(match);
     }
 
-    public static java.lang.Object[] FindAll(boolean[] array, Predicate<Boolean> match) {
+    public static java.lang.Object[] FindAll(boolean[] array, Predicate<java.lang.Boolean> match) {
         return AsList(array).FindAll(match).toArray();
     }
 
-    public static int FindIndex(boolean[] array, Predicate<Boolean> match) {
+    public static int FindIndex(boolean[] array, Predicate<java.lang.Boolean> match) {
         return AsList(array).FindIndex(match);
     }
 
-    public static boolean TrueForAll(boolean[] array, Predicate<Boolean> match) {
+    public static boolean TrueForAll(boolean[] array, Predicate<java.lang.Boolean> match) {
         return AsList(array).TrueForAll(match);
     }
 
-    public static void ForEach(boolean[] array, Action1<Boolean> action) {
+    public static void ForEach(boolean[] array, Action1<java.lang.Boolean> action) {
         AsList(array).ForEach(action);
     }
 
-    public static <O> java.lang.Object[] ConvertAll(boolean[] array, Converter<Boolean, O> converter) {
+    public static <O> java.lang.Object[] ConvertAll(boolean[] array, Converter<java.lang.Boolean, O> converter) {
         return AsList(array).ConvertAll(converter);
     }
     public static <T> boolean Exists(T[] array, Predicate<T> match) {

@@ -329,3 +329,22 @@ fn of_type_and_chunk_know_their_types() {
               IEnumerable<string> All(List<object> things) => things.Cast<string>();\n";
     assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
 }
+
+#[test]
+fn numbers_and_chars_have_their_members() {
+    let ok = "i32 F(string s) => i32.Parse(s) + (i32.TryParse(\"x\") ?? 0) + Int32.MaxValue;\n\
+              bool G(char c) => char.IsDigit(c) || Char.IsLetter(c) && char.ToUpper(c) == 'A';\n\
+              bool H(f64 x) => f64.IsNaN(x) || x < f64.Epsilon || x > Double.Pi;\n\
+              i32 K(i64 a, i64 b) => a.CompareTo(b) + u8.MaxValue;\n\
+              string L(bool b, i32 n) => b.ToString() + n.ToString() + bool.TrueString;\n\
+              decimal M(decimal d) => decimal.Round(d) + Decimal.One;\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert_eq!(
+        codes("string F(string s) => i32.Parse(s);\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+    assert_eq!(
+        codes("i32 G() => i32.Size;\n"),
+        [script_problem::UNKNOWN_MEMBER]
+    );
+}

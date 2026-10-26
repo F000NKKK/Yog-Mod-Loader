@@ -1,0 +1,31 @@
+namespace System;
+
+/// `f32`'s members, as .NET's `System.Single`: a floating-point number.
+[Intrinsic]
+[Host]
+public readonly struct Single : IComparable<f32>, IEquatable<f32> {
+    public static readonly f32 MinValue;
+    public static readonly f32 MaxValue;
+    /// The least above zero.
+    public static readonly f32 Epsilon;
+    public static readonly f32 NaN;
+    public static readonly f32 PositiveInfinity;
+    public static readonly f32 NegativeInfinity;
+    public static readonly f32 Pi;
+    public static readonly f32 E;
+    public static readonly f32 Tau;
+
+    public static bool IsNaN(f32 f);
+    public static bool IsInfinity(f32 f);
+    public static bool IsPositiveInfinity(f32 f);
+    public static bool IsNegativeInfinity(f32 f);
+    public static bool IsFinite(f32 f);
+    /// `s` read as one; a panic when it isn't one.
+    public static f32 Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static f32? TryParse(string s);
+
+    public i32 CompareTo(f32 value);
+    public bool Equals(f32 obj);
+    public override string ToString();
+}

@@ -242,7 +242,11 @@ surface's delegates.
    type's statics take its arguments (`Comparer<i32>.Default`); a runtime
    type's property is set by its setter (`set_Value`), an own computed
    one's too.
-3. The numbers' and `char`'s members, `Random`, `StringBuilder`,
+3. The numbers' and `char`'s members (done: `System.Int32`… `Char`,
+   `[Host]` — `i32.Parse`, `TryParse` giving `T?`, `MaxValue`, `char.IsDigit`…,
+   a type's keyword before its statics as C#'s `int.Parse`; `decimal` is
+   Java's `BigDecimal`, its arithmetic methods, numbers made one through
+   its implicit conversion), `Random`, `StringBuilder`,
    `Lazy`, `TimeSpan` (done), `DateTime`, `System.Numerics`' vectors
    (done; matrices, quaternions next); query syntax.
 4. `System.Reflection`, `System.Linq.Expressions`.

@@ -1,0 +1,17 @@
+namespace System;
+
+/// `u8`'s members, as .NET's `System.Byte`: a whole number.
+[Intrinsic]
+[Host]
+public readonly struct Byte : IComparable<u8>, IEquatable<u8> {
+    public static readonly u8 MinValue;
+    public static readonly u8 MaxValue;
+    /// `s` read as one; a panic when it isn't one.
+    public static u8 Parse(string s);
+    /// `s` read as one, or `null` when it isn't one.
+    public static u8? TryParse(string s);
+
+    public i32 CompareTo(u8 value);
+    public bool Equals(u8 obj);
+    public override string ToString();
+}
