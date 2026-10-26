@@ -228,7 +228,7 @@ fn arrays_are_javas() {
         "dev.yog.script.host.Array.GetLength(g, 2, 1)",
         "new String[] { \"a\", \"b\" }",
         "dev.yog.script.host.Array.Of($t",
-        "ys = dev.yog.script.host.Array.Sort(ys);",
+        "ys = dev.yog.script.host.Array.<Integer>Sort(ys);",
         "Count(dev.yog.script.host.Array.AsList(xs))",
         "dev.yog.script.host.Array.Of(xs.ToArray(), int[].class)",
     ] {
