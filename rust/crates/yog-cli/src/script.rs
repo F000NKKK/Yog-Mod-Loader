@@ -77,7 +77,7 @@ mod tests {
         let root = std::env::temp_dir().join(format!("yog-script-check-{}", std::process::id()));
         let src = root.join(SOURCES).join("power");
         std::fs::create_dir_all(&src).unwrap();
-        std::fs::write(src.join("ok.ys"), "int Area(int w, int h) => w * h;\n").unwrap();
+        std::fs::write(src.join("ok.ys"), "i32 Area(i32 w, i32 h) => w * h;\n").unwrap();
         assert_eq!(check(&root), Ok(()));
         std::fs::write(src.join("bad.ys"), "void F() {\n    break;\n}\n").unwrap();
         assert!(check(&root).is_err());

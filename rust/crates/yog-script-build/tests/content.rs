@@ -4,6 +4,15 @@
 
 use yog_data::Value;
 
+/// What a test's source is compiled for: package `p`, mod `test`.
+fn target(defs: &[yog_script_java::ContentDef]) -> yog_script_java::Target<'_> {
+    yog_script_java::Target {
+        package: "p",
+        mod_id: Some("test"),
+        defs,
+    }
+}
+
 const SRC: &str = "block Lamp {\n    Hardness = 2.0;\n    LightLevel = 15;\n}\nitem Gem {\n    MaxStack = 16;\n}\n";
 
 #[test]
@@ -25,7 +34,7 @@ fn content_is_its_kinds_definition() {
     assert_eq!(fields.get("light_level"), Some(&Value::Int(15)));
     // The rest its defaults: stone's resistance.
     assert!(matches!(fields.get("resistance"), Some(Value::Float(_))));
-    let java = yog_script_java::compile_in(("a.ys", SRC), &checked, "p", &defs)
+    let java = yog_script_java::compile_in(("a.ys", SRC), &checked, &target(&defs))
         .unwrap_or_else(|p| panic!("{p:#?}"));
     assert!(
         java.source.contains(
@@ -59,7 +68,7 @@ fn content_with_members_is_its_kinds_object() {
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
     let defs = yog_script_build::content_defs(("a.ys", src), &checked, "test")
         .unwrap_or_else(|p| panic!("{p:#?}"));
-    let java = yog_script_java::compile_in(("a.ys", src), &checked, "p", &defs)
+    let java = yog_script_java::compile_in(("a.ys", src), &checked, &target(&defs))
         .unwrap_or_else(|p| panic!("{p:#?}"))
         .source;
     for want in [

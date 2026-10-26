@@ -30,6 +30,7 @@ mod lambdas;
 mod lineage;
 mod macro_calls;
 mod members;
+mod messages;
 mod model;
 mod mutation;
 mod names;
@@ -50,7 +51,7 @@ mod written;
 use std::collections::HashMap;
 
 pub use model::Type;
-pub use types::{MethodUse, OperatorUse, Quoted, Types};
+pub use types::{Message, MethodUse, OperatorUse, Quoted, Types};
 
 use crate::ast::File;
 use crate::index::{ClassIndex, Lookup, Side};

@@ -205,7 +205,6 @@ fn a_changed_capture_is_a_cell() {
     }
 }
 
-
 /// A command: its methods' class, a way of running per how many arguments
 /// it's given, declared when the mods load.
 #[test]
@@ -213,7 +212,8 @@ fn commands_are_ways_of_running() {
     let src = "command \"charge\" {\n    server string Fill(Sender source, i32 amount = 1) requires !source.IsConsole => \"filled \" + amount;\n}\n";
     let checked = yog_script_analyze::check("sample.ys", src);
     assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
-    let class = yog_script_java::compile("sample.ys", src, &checked, "p").unwrap_or_else(|p| panic!("{p:#?}"));
+    let class = yog_script_java::compile("sample.ys", src, &checked, "p")
+        .unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "public static final class ChargeCommand {",
         "static boolean $runFill0(dev.yog.script.yog.Sender source, java.util.List<String> $t",
@@ -224,6 +224,10 @@ fn commands_are_ways_of_running() {
         "dev.yog.script.yog.Commands.declare(\"charge\", \"fill\", new String[] {  }, ChargeCommand::$runFill0);",
         "dev.yog.script.yog.Commands.declare(\"charge\", \"fill\", new String[] { \"int\" }, ChargeCommand::$runFill1);",
     ] {
-        assert!(class.source.contains(want), "missing `{want}` in:\n{}", class.source);
+        assert!(
+            class.source.contains(want),
+            "missing `{want}` in:\n{}",
+            class.source
+        );
     }
 }

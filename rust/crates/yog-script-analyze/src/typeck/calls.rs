@@ -13,6 +13,9 @@ use crate::source::token::Span;
 impl Checker<'_, '_, '_> {
     /// A call: its arguments checked against the callee's parameters; its result.
     pub(super) fn call(&mut self, e: &Expr, callee: &Expr, args: &[Arg]) -> Type {
+        if let Some(t) = self.message_call(e, callee, args) {
+            return t;
+        }
         // `F<T>(…)`: the method's type parameters given, not inferred.
         let (callee, explicit) = match &callee.kind {
             ExprKind::TypeArgs { expr, args } => {
@@ -61,6 +64,18 @@ impl Checker<'_, '_, '_> {
         if let Some(used) = used {
             self.types.set_method(e, used);
         }
+        t
+    }
+
+    /// Own `target` called with `args` (typed `given`): its result; the
+    /// method chosen noted as a call's.
+    pub(super) fn called_with_own(
+        &mut self,
+        target: Callee,
+        (given, args): (&[Type], &[&Arg]),
+        at: Span,
+    ) -> Type {
+        let (t, _) = self.called_with(target, (given, args), &[], at);
         t
     }
 

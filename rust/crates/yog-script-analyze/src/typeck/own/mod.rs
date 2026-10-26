@@ -109,6 +109,9 @@ pub(crate) struct OwnTypes {
     pub units: Vec<String>,
     /// The file's own methods (outside types), by name.
     pub methods: HashMap<String, Vec<Method>>,
+    /// The side each of the file's methods runs on, by name (a `client` or
+    /// a `server` one; none: shared).
+    pub sides: HashMap<String, crate::index::Side>,
     pub values: HashMap<String, ast::Type>,
     /// What `extend` adds to the game's types, by their names.
     pub extended: HashMap<String, OwnType>,

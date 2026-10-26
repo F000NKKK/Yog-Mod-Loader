@@ -150,6 +150,45 @@ pub const COMMANDS_DECLARE: &str = concat!(
     "declare"
 );
 pub const RUN_WAY: &str = "$run";
+/// A call across sides: its method's arguments' record (`ShowChargeMessage`),
+/// sent to a player's client or the server, run where it arrives.
+pub const MESSAGE_SUFFIX: &str = "Message";
+pub const MESSAGES_TO_CLIENT: &str = concat!(
+    runtime!(),
+    sep!(),
+    "yog",
+    sep!(),
+    "Messages",
+    sep!(),
+    "toClient"
+);
+pub const MESSAGES_TO_SERVER: &str = concat!(
+    runtime!(),
+    sep!(),
+    "yog",
+    sep!(),
+    "Messages",
+    sep!(),
+    "toServer"
+);
+pub const MESSAGES_ON_CLIENT: &str = concat!(
+    runtime!(),
+    sep!(),
+    "yog",
+    sep!(),
+    "Messages",
+    sep!(),
+    "onClient"
+);
+pub const MESSAGES_ON_SERVER: &str = concat!(
+    runtime!(),
+    sep!(),
+    "yog",
+    sep!(),
+    "Messages",
+    sep!(),
+    "onServer"
+);
 pub const LIST: &str = concat!(java_util!(), sep!(), "List");
 pub const PARSE_INT: &str = "Integer.parseInt";
 pub const PARSE_FLOAT: &str = "Float.parseFloat";

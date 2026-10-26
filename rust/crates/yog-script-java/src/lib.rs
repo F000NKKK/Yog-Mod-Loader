@@ -28,6 +28,7 @@ mod library;
 mod load;
 mod machine;
 mod macros;
+mod messages;
 mod operators;
 mod patterns;
 mod reflection;
@@ -77,16 +78,31 @@ pub fn compile(
     checked: &Checked,
     package: &str,
 ) -> Result<JavaClass, Vec<Diagnostic>> {
-    compile_in((name, src), checked, package, &[])
+    let target = Target {
+        package,
+        mod_id: None,
+        defs: &[],
+    };
+    compile_in((name, src), checked, &target)
 }
 
-/// [`compile`], the source's content `defs` registered when the mods load.
+/// What a source is compiled for: its Java package, its mod (whose id
+/// names its messages' channels), the content definitions `yog build`
+/// made of it.
+pub struct Target<'a> {
+    pub package: &'a str,
+    pub mod_id: Option<&'a str>,
+    pub defs: &'a [ContentDef],
+}
+
+/// [`compile`] for `target`: its content registered when the mods load,
+/// its calls across sides messages on its mod's channels.
 pub fn compile_in(
     (name, src): (&str, &str),
     checked: &Checked,
-    package: &str,
-    defs: &[ContentDef],
+    target: &Target<'_>,
 ) -> Result<JavaClass, Vec<Diagnostic>> {
+    let (package, defs) = (target.package, target.defs);
     let class = class_name(name);
     let mut g = Gen::new(
         &checked.types,
@@ -94,6 +110,7 @@ pub fn compile_in(
         name,
         src,
     );
+    g.mod_id = target.mod_id.map(str::to_string);
     g.registered(defs);
     g.file(package, &class, &checked.file.decls);
     if g.report.out.is_empty() {
@@ -208,6 +225,10 @@ pub(crate) struct Gen<'c> {
     on_load: Vec<String>,
     /// Each content declaration's id (`Lamp`: `mymod:lamp`).
     content_ids: std::collections::HashMap<String, String>,
+    /// The members being written are a command's (not the file's own).
+    in_command: bool,
+    /// The mod the source is of: its messages' channels' namespace.
+    mod_id: Option<String>,
     /// The file has a `$Load`.
     has_load: bool,
 }
@@ -242,6 +263,8 @@ impl<'c> Gen<'c> {
             on_load: Vec::new(),
             content_ids: std::collections::HashMap::new(),
             has_load: false,
+            mod_id: None,
+            in_command: false,
         }
     }
 }

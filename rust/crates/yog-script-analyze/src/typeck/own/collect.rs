@@ -18,11 +18,15 @@ impl OwnTypes {
     fn file(&mut self, decls: &[Decl]) {
         for d in decls {
             match &d.kind {
-                DeclKind::Method(m) => self
-                    .methods
-                    .entry(m.name.text.clone())
-                    .or_default()
-                    .push(m.clone()),
+                DeclKind::Method(m) => {
+                    if let Some(side) = side_of(d) {
+                        self.sides.insert(m.name.text.clone(), side);
+                    }
+                    self.methods
+                        .entry(m.name.text.clone())
+                        .or_default()
+                        .push(m.clone());
+                }
                 DeclKind::Field(f) => {
                     self.values.insert(f.name.text.clone(), f.ty.clone());
                 }
@@ -209,4 +213,14 @@ fn component_name(e: &ast::Expr) -> Option<String> {
         ExprKind::Member { name, .. } => Some(name.text.clone()),
         _ => None,
     }
+}
+
+/// The side declaration `d` says it runs on (`client`, `server`), if any.
+fn side_of(d: &ast::Decl) -> Option<crate::index::Side> {
+    use crate::index::Side;
+    d.modifiers.iter().find_map(|m| match m {
+        ast::Modifier::Server => Some(Side::Server),
+        ast::Modifier::Client => Some(Side::Client),
+        _ => None,
+    })
 }

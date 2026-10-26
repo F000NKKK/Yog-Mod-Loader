@@ -168,6 +168,10 @@ impl Gen<'_> {
         };
         let head = format!("{lead}{generics}{ret} {name}({params})");
         self.provided(d, m, &name);
+        // The file's own (a command's are its ways of running).
+        if place == Place::File && !self.in_command {
+            self.message_endpoint(d, m);
+        }
         if m.body.is_none() {
             self.code.line(format!("{head};"));
             return;

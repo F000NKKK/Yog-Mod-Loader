@@ -63,7 +63,12 @@ pub fn build_jar(
             return Err(checked.problems);
         }
         let defs = crate::content::content_defs((name, text), &checked, b.mod_id)?;
-        let class = yog_script_java::compile_in((name, text), &checked, b.package, &defs)?;
+        let target = yog_script_java::Target {
+            package: b.package,
+            mod_id: Some(b.mod_id),
+            defs: &defs,
+        };
+        let class = yog_script_java::compile_in((name, text), &checked, &target)?;
         // The package's folders, joined as the platform joins them.
         let dir = b
             .package

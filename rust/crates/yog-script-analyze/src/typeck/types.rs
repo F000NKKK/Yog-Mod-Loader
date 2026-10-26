@@ -34,6 +34,8 @@ pub struct Types {
     constructors: HashMap<usize, usize>,
     /// The method each call chose, by the call.
     methods: HashMap<usize, MethodUse>,
+    /// Calls across sides, by the call.
+    messages: HashMap<usize, Message>,
     /// The operators `op=` applies (`v += w` on a `Vec`), by the place it
     /// writes.
     assigned: HashMap<usize, OperatorUse>,
@@ -59,6 +61,15 @@ pub struct OperatorUse {
 /// A method as a call chose it: its type (none: the file's), its name,
 /// which of the type's methods of that name (in declaration order), its
 /// parameters and result as declared (its type parameters unbound).
+/// A call across sides: the file's method it runs on the other side, and
+/// which way it goes.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Message {
+    pub method: String,
+    /// From a client to the server (else from the server to a client).
+    pub to_server: bool,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct MethodUse {
     pub owner: Option<String>,
@@ -128,6 +139,15 @@ impl Types {
 
     pub fn method(&self, e: &Expr) -> Option<&MethodUse> {
         self.methods.get(&key(e))
+    }
+
+    /// Call `e` across sides, when it's one.
+    pub fn message(&self, e: &Expr) -> Option<&Message> {
+        self.messages.get(&key(e))
+    }
+
+    pub(super) fn set_message(&mut self, e: &Expr, m: Message) {
+        self.messages.insert(key(e), m);
     }
 
     pub(super) fn set_method(&mut self, e: &Expr, used: MethodUse) {

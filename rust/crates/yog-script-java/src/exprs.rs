@@ -81,6 +81,9 @@ impl Gen<'_> {
             ExprKind::This => self.this_ref(),
             ExprKind::Base => self.base_ref(),
             ExprKind::Member { expr, name, safe } => self.member(e, expr, &name.text, *safe),
+            ExprKind::Call { callee, args } if let Some(m) = self.types.message(e).cloned() => {
+                self.message_sent(e, (callee, args), &m)
+            }
             ExprKind::Call { callee, args } => self.giving_back(e, |g| g.call(e, callee, args)),
             ExprKind::New { ty, args, init } => self.giving_back(e, |g| {
                 g.new_object(e, ty.as_ref(), args.as_deref().unwrap_or_default(), init)

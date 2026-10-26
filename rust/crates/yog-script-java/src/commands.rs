@@ -26,7 +26,9 @@ impl Gen<'_> {
         self.code
             .open(format!("{PUBLIC} {STATIC} {FINAL} {CLASS} {class}"));
         self.code.line(format!("{PRIVATE} {class}() {{}}"));
+        let outer = std::mem::replace(&mut self.in_command, true);
         self.members(body, Place::File);
+        self.in_command = outer;
         for d in body {
             if let DeclKind::Method(m) = &d.kind {
                 self.command_ways(name, &class, m);

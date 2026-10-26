@@ -19,7 +19,7 @@ mod typeck;
 
 pub use typeck::commands::command_arg;
 pub use typeck::{
-    MethodUse, OperatorUse, Quoted, Type, Types, builtin_type, system_name, system_type,
+    Message, MethodUse, OperatorUse, Quoted, Type, Types, builtin_type, system_name, system_type,
 };
 pub mod versions;
 pub mod words;

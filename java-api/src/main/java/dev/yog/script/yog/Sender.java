@@ -13,6 +13,11 @@ public final class Sender {
         this.dimension = dimension;
     }
 
+    /** Player {@code name}, who sent a message (its world not known here). */
+    public static Sender of(String name) {
+        return new Sender(name, name, "");
+    }
+
     public String Name() {
         return name;
     }

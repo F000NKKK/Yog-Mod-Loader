@@ -96,6 +96,21 @@ public final class YogBus {
         });
     }
 
+    /** {@code value} (a record) as a frame's bytes: what a packet carries. */
+    public static byte[] bytes(Object value) {
+        YogFrame.Packer p = new YogFrame.Packer();
+        YogRecordFrames.pack(p, value, value.getClass());
+        return p.finish();
+    }
+
+    /** A {@code type} (a record) read back from a frame's {@code bytes}. */
+    public static <T> T fromBytes(byte[] bytes, Class<T> type) {
+        YogFrame.Unpacker u = new YogFrame.Unpacker(bytes);
+        Object v = YogRecordFrames.unpack(u, type);
+        u.finish();
+        return type.cast(v);
+    }
+
     /** {@code value} packed by one of this thread's packers (given back by the bus once sent). */
     private static YogFrame.Packer packed(Object value) {
         YogFrame.Packer p = YogFrame.Packer.take();
