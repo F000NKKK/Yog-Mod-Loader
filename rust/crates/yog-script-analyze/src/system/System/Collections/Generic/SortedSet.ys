@@ -1,0 +1,35 @@
+namespace System.Collections.Generic;
+
+/// Items each there once, in their order: .NET's `SortedSet<T>`.
+[Intrinsic]
+public class SortedSet<T> : ISet<T>, IReadOnlyCollection<T> {
+    public SortedSet() {}
+    public SortedSet(IComparer<T> comparer) {}
+    public SortedSet(in IEnumerable<T> collection) {}
+
+    public i32 Count { get; }
+    public bool IsReadOnly { get; }
+    /// The least item, and the greatest; a panic when there's none.
+    public T Min { get; }
+    public T Max { get; }
+    public IEnumerator<T> GetEnumerator();
+    public bool Add(T item);
+    void ICollection<T>.Add(T item);
+    public void Clear();
+    public bool Contains(T item);
+    public bool Remove(T item);
+    public i32 RemoveWhere(Predicate<T> match);
+    /// Its items from the greatest down.
+    public IEnumerable<T> Reverse();
+    /// Its items from `lowerValue` to `upperValue` (both in): changes go
+    /// through, both ways.
+    public SortedSet<T> GetViewBetween(T lowerValue, T upperValue);
+    public void UnionWith(in IEnumerable<T> other);
+    public void IntersectWith(in IEnumerable<T> other);
+    public void ExceptWith(in IEnumerable<T> other);
+    public void SymmetricExceptWith(in IEnumerable<T> other);
+    public bool IsSubsetOf(in IEnumerable<T> other);
+    public bool IsSupersetOf(in IEnumerable<T> other);
+    public bool Overlaps(in IEnumerable<T> other);
+    public bool SetEquals(in IEnumerable<T> other);
+}

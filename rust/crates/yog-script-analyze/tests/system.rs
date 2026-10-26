@@ -300,3 +300,24 @@ fn linq_is_csharps() {
         assert!(!codes(bad).is_empty(), "{bad}");
     }
 }
+
+#[test]
+fn the_other_collections_are_dotnets() {
+    let ok = "i32 Q() {\n    let mut q = new Queue<i32>();\n    q.Enqueue(1);\n    let first = q.Dequeue();\n    return first + (q.TryPeek() ?? 0) + q.Count;\n}\n\
+              string S() {\n    let mut s = new Stack<string>();\n    s.Push(\"a\");\n    return s.Pop();\n}\n\
+              i32 Sorted() {\n    let mut set = new SortedSet<i32>();\n    let added = set.Add(3);\n    return set.Min + set.Max + set.GetViewBetween(1, 2).Count;\n}\n\
+              string? Ranked(SortedDictionary<i32, string> d) => d.TryGetValue(1);\n\
+              string Next() {\n    let mut pq = new PriorityQueue<string, i32>();\n    pq.Enqueue(\"low\", 5);\n    pq.Enqueue(\"high\", 1);\n    return pq.Dequeue();\n}\n\
+              i32 Linked() {\n    let mut list = new LinkedList<i32>();\n    let node = list.AddLast(2);\n    list.AddBefore(node, 1);\n    return list.First!.Value + (list.Find(2)?.Next?.Value ?? 0);\n}\n\
+              i32 Order(i32 a, i32 b) => Comparer<i32>.Default.Compare(a, b);\n\
+              IComparer<string> ByLength() => Comparer<string>.Create((x, y) => x.Length - y.Length);\n\
+              SortedSet<string> Named() => new SortedSet<string>(Comparer<string>.Create((x, y) => x.Length - y.Length));\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    for bad in [
+        "string F(Queue<i32> q) => q.Dequeue();\n",
+        "void G(Stack<i32> s) {\n    s.Push(\"a\");\n}\n",
+        "string H(PriorityQueue<string, i32> pq) {\n    pq.Enqueue(\"a\", \"b\");\n    return pq.Peek();\n}\n",
+    ] {
+        assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH], "{bad}");
+    }
+}

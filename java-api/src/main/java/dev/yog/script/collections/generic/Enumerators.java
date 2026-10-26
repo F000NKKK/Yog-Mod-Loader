@@ -36,6 +36,21 @@ public final class Enumerators {
         };
     }
 
+    /** What {@code items} iterates, gone through anew each time, as an {@link IEnumerable}. */
+    public static <T> IEnumerable<T> enumerable(Supplier<Iterator<T>> items) {
+        return new IEnumerable<>() {
+            @Override
+            public Iterator<T> iterator() {
+                return items.get();
+            }
+
+            @Override
+            public IEnumerator<T> GetEnumerator() {
+                return of(items);
+            }
+        };
+    }
+
     /** An enumerator walked as Java's iterator. */
     public static <T> Iterator<T> iterator(IEnumerator<T> e) {
         return new Iterator<>() {

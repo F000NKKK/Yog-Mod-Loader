@@ -1,0 +1,11 @@
+namespace System.Collections.Generic;
+
+/// An order of `T`s as a value: their own (`Default`), or one made of a
+/// comparison (`Create`).
+[Intrinsic]
+public abstract class Comparer<T> : IComparer<T> {
+    /// `T`'s own order (`IComparable<T>`).
+    public static Comparer<T> Default { get; }
+    public static Comparer<T> Create(Comparison<T> comparison);
+    public abstract i32 Compare(T x, T y);
+}

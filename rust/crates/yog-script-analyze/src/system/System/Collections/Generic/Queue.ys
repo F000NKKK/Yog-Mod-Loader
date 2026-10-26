@@ -1,0 +1,22 @@
+namespace System.Collections.Generic;
+
+/// Items first in, first out: .NET's `Queue<T>`.
+[Intrinsic]
+public class Queue<T> : IReadOnlyCollection<T> {
+    public Queue() {}
+    public Queue(in IEnumerable<T> collection) {}
+
+    public i32 Count { get; }
+    public IEnumerator<T> GetEnumerator();
+    public void Enqueue(T item);
+    /// The first item, taken away; a panic when there's none.
+    public T Dequeue();
+    /// The first item, left there; a panic when there's none.
+    public T Peek();
+    /// The first item, taken away, or `null` when there's none.
+    public T? TryDequeue();
+    public T? TryPeek();
+    public void Clear();
+    public bool Contains(T item);
+    public T[] ToArray();
+}

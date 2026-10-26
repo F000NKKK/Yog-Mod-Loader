@@ -52,7 +52,10 @@ impl Checker<'_, '_, '_> {
             );
         }
         let t = match on.non_null() {
-            Type::Static(of) => self.own_member(&Type::own(of.clone()), name),
+            Type::Static(of, args) => {
+                let t = self.statics_type(of, args);
+                self.own_member(&t, name)
+            }
             Type::Own(..) => {
                 let t = self.own_member(on.non_null(), name);
                 if !t.known() && !self.own_has_method(on.non_null(), name) {
@@ -445,7 +448,7 @@ fn signature_of(params: &[Type], ret: &Type) -> Signature {
 /// An own type's type arguments (none for any other type).
 pub(super) fn own_args(t: &Type) -> &[Type] {
     match t {
-        Type::Own(_, args) => args,
+        Type::Own(_, args) | Type::Static(_, args) => args,
         _ => &[],
     }
 }
@@ -502,5 +505,21 @@ impl Checker<'_, '_, '_> {
             self.unknown_member(on, &name.text, name.span);
         }
         Callee::Unknown
+    }
+}
+
+impl Checker<'_, '_, '_> {
+    /// Own type `of` named for its statics, with the arguments written (or
+    /// its parameters, none written: `Comparer.Create` is `Comparer<T>`'s).
+    pub(super) fn statics_type(&self, of: &str, args: &[Type]) -> Type {
+        if !args.is_empty() {
+            return Type::Own(of.to_string(), args.to_vec());
+        }
+        let params = self
+            .own
+            .named(of)
+            .map(|(_, t)| t.generics.iter().map(|g| Type::Param(g.clone())).collect())
+            .unwrap_or_default();
+        Type::Own(of.to_string(), params)
     }
 }

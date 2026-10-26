@@ -233,9 +233,13 @@ surface's delegates.
    width, `Aggregate`, `To*`, `Range`/`Repeat`/`Empty` — a generic
    method's type parameters inferred from its lambdas' results as C#'s;
    `OfType` and `Chunk` wait for a type known at run time on the JVM),
-   `Queue`, `Stack`,
-   `SortedSet`, `SortedDictionary`, `PriorityQueue`, `LinkedList`,
-   comparers.
+   `Queue`, `Stack`, `SortedSet` (live `GetViewBetween`),
+   `SortedDictionary`, `SortedList`, `PriorityQueue`, `LinkedList` /
+   `LinkedListNode`, `IComparer` / `Comparer<T>` (`Default`, `Create`),
+   `IEqualityComparer` / `EqualityComparer<T>.Default` (done). A generic
+   type's statics take its arguments (`Comparer<i32>.Default`); a runtime
+   type's property is set by its setter (`set_Value`), an own computed
+   one's too.
 3. The numbers' and `char`'s members, `Random`, `StringBuilder`,
    `Lazy`, `TimeSpan` (done), `DateTime`, `System.Numerics`' vectors
    (done; matrices, quaternions next); query syntax.

@@ -4,6 +4,8 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Binding, Block, Expr, ExprKind, Stmt};
 
+use yog_script_ids::clr::ACCESSOR_SEP;
+
 use super::Gen;
 
 impl Gen<'_> {
@@ -176,9 +178,40 @@ impl Gen<'_> {
             self.code.line(format!("{set};"));
             return;
         }
+        if let Some(setter) = self.property_setter(place, op.copied(), &v) {
+            self.code.line(format!("{setter};"));
+            return;
+        }
         let p = self.expr(place);
         let set = self.set(place, op.copied(), &p, &v);
         self.code.line(format!("{set};"));
+    }
+
+    /// `x.Name = v` of a property Java reads by its getter (a runtime
+    /// type's): its setter, the CLR's `set_Name` (`x.set_Name(x.Name() op v)`).
+    fn property_setter(&mut self, place: &Expr, op: Option<BinOp>, v: &str) -> Option<String> {
+        let ExprKind::Member { expr, name, .. } = &place.kind else {
+            return None;
+        };
+        let Some(Type::Own(of, _)) = self.types.of(expr).map(Type::non_null) else {
+            return None;
+        };
+        if self.index.kind(of) == Some(crate::index::Kind::Record)
+            || !self.index.called(of, &name.text)
+        {
+            return None;
+        }
+        let target = self.expr(expr);
+        let n = Self::ident(&name.text);
+        let value = match op {
+            Some(op) => self.op_value(place, op, &format!("{target}.{n}()"), v),
+            None => v.to_string(),
+        };
+        let setter = format!(
+            "{}{ACCESSOR_SEP}{n}",
+            yog_script_analyze::words::set::WORD.text
+        );
+        Some(format!("{target}.{setter}({value})"))
     }
 
     /// `p op= v` (`p` the place written): Java's, or — when the place's type

@@ -26,7 +26,8 @@ impl Gen<'_> {
             Type::Void => if boxed { BOXED_VOID } else { VOID }.into(),
             Type::Unit(_) => self.java(&Type::F64, boxed),
             Type::Own(name, args) => self.generic(&self.index.place(name, args.len()), args),
-            Type::Static(name) => self.index.place_named(name),
+            Type::Static(name, args) if args.is_empty() => self.index.place_named(name),
+            Type::Static(name, args) => self.index.place(name, args.len()),
             Type::Param(name) => name.clone(),
             Type::Game(class) => class.replace(['/', '$'], "."),
             Type::Array(item, rank) => {

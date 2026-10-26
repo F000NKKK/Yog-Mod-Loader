@@ -1,0 +1,8 @@
+namespace System.Collections.Generic;
+
+/// An order of `T`s: less than zero when `x` goes before `y`, zero when
+/// they're level, more after.
+[Intrinsic]
+public interface IComparer<in T> {
+    i32 Compare(T x, T y);
+}

@@ -18,7 +18,8 @@ public class Dictionary<K, V> extends AbstractMap<K, V>
         this(new LinkedHashMap<>());
     }
 
-    private Dictionary(Map<K, V> items) {
+    /** A dictionary over {@code items} (a sorted one's {@code TreeMap}). */
+    protected Dictionary(Map<K, V> items) {
         this.items = items;
     }
 

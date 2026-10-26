@@ -1,0 +1,13 @@
+namespace System.Collections.Generic;
+
+/// A place in a `LinkedList<T>`: its item, and its neighbours.
+[Intrinsic]
+public sealed class LinkedListNode<T> {
+    public LinkedListNode(T value) {}
+
+    public T Value { get; set; }
+    /// The list it's in; `null` when it's in none.
+    public LinkedList<T>? List { get; }
+    public LinkedListNode<T>? Next { get; }
+    public LinkedListNode<T>? Previous { get; }
+}

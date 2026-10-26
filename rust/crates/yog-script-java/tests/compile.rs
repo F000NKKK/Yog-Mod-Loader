@@ -291,3 +291,19 @@ fn linq_is_enumerables_statics() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn the_runtimes_properties_are_got_and_set() {
+    let src = "i32 Linked() {\n    let mut list = new LinkedList<i32>();\n    let mut node = list.AddLast(2);\n    node.Value = 7;\n    return list.First!.Value;\n}\n\
+               i32 Order(i32 a, i32 b) => Comparer<i32>.Default.Compare(a, b);\n\
+               i32 Least(SortedSet<i32> set) => set.Min;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "node.set_Value(7);",
+        "list.First().Value()",
+        "dev.yog.script.collections.generic.Comparer.Default().Compare(a, b)",
+        "return set.Min();",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

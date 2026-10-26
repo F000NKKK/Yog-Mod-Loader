@@ -1,0 +1,21 @@
+namespace System.Collections.Generic;
+
+/// Items last in, first out: .NET's `Stack<T>`, gone through from its top.
+[Intrinsic]
+public class Stack<T> : IReadOnlyCollection<T> {
+    public Stack() {}
+    public Stack(in IEnumerable<T> collection) {}
+
+    public i32 Count { get; }
+    public IEnumerator<T> GetEnumerator();
+    public void Push(T item);
+    /// The top item, taken away; a panic when there's none.
+    public T Pop();
+    /// The top item, left there; a panic when there's none.
+    public T Peek();
+    public T? TryPop();
+    public T? TryPeek();
+    public void Clear();
+    public bool Contains(T item);
+    public T[] ToArray();
+}

@@ -1,0 +1,22 @@
+namespace System.Collections.Generic;
+
+/// Items taken least priority first: .NET's
+/// `PriorityQueue<TElement, TPriority>` (a min-heap; items of one priority
+/// in no promised order).
+[Intrinsic]
+public class PriorityQueue<TElement, TPriority> {
+    public PriorityQueue() {}
+    public PriorityQueue(IComparer<TPriority> comparer) {}
+
+    public i32 Count { get; }
+    public void Enqueue(TElement element, TPriority priority);
+    /// The item of the least priority, taken away; a panic when there's none.
+    public TElement Dequeue();
+    /// The item of the least priority, left there; a panic when there's none.
+    public TElement Peek();
+    public TElement? TryDequeue();
+    public TElement? TryPeek();
+    /// `element` added, then the least taken away (`element` itself, when it's the least).
+    public TElement EnqueueDequeue(TElement element, TPriority priority);
+    public void Clear();
+}

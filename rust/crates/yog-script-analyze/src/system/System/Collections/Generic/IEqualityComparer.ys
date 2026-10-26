@@ -1,0 +1,8 @@
+namespace System.Collections.Generic;
+
+/// What makes two `T`s equal, and the number equal ones share.
+[Intrinsic]
+public interface IEqualityComparer<in T> {
+    bool Equals(T x, T y);
+    i32 GetHashCode(T obj);
+}

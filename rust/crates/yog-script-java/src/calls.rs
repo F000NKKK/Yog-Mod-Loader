@@ -26,7 +26,7 @@ impl Gen<'_> {
         let target = self.expr(on);
         let host = on_type.as_ref().and_then(|t| self.index.host(t));
         let member = match on_type.as_ref().map(Type::non_null) {
-            Some(Type::Static(of)) => return self.static_member(e, of, name),
+            Some(Type::Static(of, _)) => return self.static_member(e, of, name),
             // A built-in type's property: its companion's static, the value first.
             Some(t) if let Some(host) = host => {
                 let n = Self::ident(name);
@@ -65,6 +65,8 @@ impl Gen<'_> {
                 let _ = e;
                 format!("new {of}.{n}<>()")
             }
+            // A property the runtime computes: its getter.
+            _ if self.index.called(of, name) => format!("{}.{n}()", self.own(of)),
             _ => format!("{}.{n}", self.own(of)),
         }
     }
@@ -190,7 +192,7 @@ impl Gen<'_> {
             return format!("{}.{n}({target}{sep}{a})", self.index.place(owner, 0));
         }
         match on_type.as_ref().map(Type::non_null) {
-            Some(Type::Static(of)) => match self.index.kind(of) {
+            Some(Type::Static(of, _)) => match self.index.kind(of) {
                 Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),
                 _ => format!("{}.{n}({a})", self.own(of)),
             },

@@ -1,0 +1,29 @@
+namespace System.Collections.Generic;
+
+/// Items linked each to the next and the one before: .NET's
+/// `LinkedList<T>`, added and taken away anywhere at once.
+[Intrinsic]
+public class LinkedList<T> : ICollection<T>, IReadOnlyCollection<T> {
+    public LinkedList() {}
+    public LinkedList(in IEnumerable<T> collection) {}
+
+    public i32 Count { get; }
+    public bool IsReadOnly { get; }
+    public LinkedListNode<T>? First { get; }
+    public LinkedListNode<T>? Last { get; }
+    public IEnumerator<T> GetEnumerator();
+    public LinkedListNode<T> AddFirst(T value);
+    public LinkedListNode<T> AddLast(T value);
+    public LinkedListNode<T> AddBefore(in LinkedListNode<T> node, T value);
+    public LinkedListNode<T> AddAfter(in LinkedListNode<T> node, T value);
+    void ICollection<T>.Add(T item);
+    /// The first node of `value`, or `null`.
+    public LinkedListNode<T>? Find(T value);
+    public LinkedListNode<T>? FindLast(T value);
+    public bool Remove(T value);
+    public void Remove(in LinkedListNode<T> node);
+    public void RemoveFirst();
+    public void RemoveLast();
+    public void Clear();
+    public bool Contains(T value);
+}

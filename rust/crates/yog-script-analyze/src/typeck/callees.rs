@@ -12,7 +12,7 @@ impl Checker<'_, '_, '_> {
     pub(super) fn method_of(&mut self, expr: &Expr, name: &Name) -> Callee {
         let on = self.expr(expr);
         match on.non_null() {
-            Type::Own(of, _) | Type::Static(of) => self.own_method_of(expr, &on, of, name),
+            Type::Own(of, _) | Type::Static(of, _) => self.own_method_of(expr, &on, of, name),
             Type::Yog(group) => match self.extension_methods(group, &name.text) {
                 Some(m) => Callee::Own(m),
                 None => self.yog_methods(group, &name.text, name.span),
@@ -35,7 +35,10 @@ impl Checker<'_, '_, '_> {
     /// `on.name(…)`, `on` of own type `of` (or `of` itself, a static's).
     fn own_method_of(&mut self, expr: &Expr, on: &Type, of: &str, name: &Name) -> Callee {
         let instance = matches!(on.non_null(), Type::Own(..));
-        let on_type = Type::Own(of.to_string(), own_args(on.non_null()).to_vec());
+        let on_type = match on.non_null() {
+            Type::Static(_, args) => self.statics_type(of, args),
+            other => Type::Own(of.to_string(), own_args(other).to_vec()),
+        };
         if let Some(methods) = self.own_methods(&on_type, &name.text) {
             if instance {
                 self.called_on(Some(expr), of, &name.text, name.span);

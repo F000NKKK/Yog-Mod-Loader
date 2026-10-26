@@ -44,7 +44,9 @@ pub enum Type {
     Param(String),
     /// An own type named where a value goes (`Mode` in `Mode.Idle`): its
     /// static members and its cases.
-    Static(String),
+    /// A type named where a value goes (`Math` in `Math.Max`), with the
+    /// type arguments written (`Comparer<i32>` in `Comparer<i32>.Default`).
+    Static(String, Vec<Type>),
     /// A game class, by its internal name (`.yns` only).
     Game(String),
     /// Yog's: a handle (`Player`), a domain's group (`Chat`), a struct or
@@ -166,7 +168,7 @@ impl fmt::Display for Type {
             }
             Type::Unit(u)
             | Type::Own(u, _)
-            | Type::Static(u)
+            | Type::Static(u, _)
             | Type::Param(u)
             | Type::Yog(u)
             | Type::Namespace(u) => {

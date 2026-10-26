@@ -70,6 +70,7 @@ impl Checker<'_, '_, '_> {
             }
             ExprKind::NotNull(inner) => self.expr(inner).non_null().clone(),
             ExprKind::Collection(items) => self.collection(items),
+            ExprKind::TypeArgs { expr, args } => self.type_args_expr(expr, args),
             ExprKind::Index { expr, args } => {
                 let on = self.expr(expr);
                 self.indexed(on, args, e.span)
@@ -90,9 +91,7 @@ impl Checker<'_, '_, '_> {
     /// The parts of an expression whose type isn't known yet, checked inside.
     fn walk_inner(&mut self, e: &Expr) {
         match &e.kind {
-            ExprKind::Is { expr, .. }
-            | ExprKind::Has { expr, .. }
-            | ExprKind::TypeArgs { expr, .. } => {
+            ExprKind::Is { expr, .. } | ExprKind::Has { expr, .. } => {
                 self.expr(expr);
             }
             ExprKind::Tuple(items) => items.iter().for_each(|i| {
@@ -124,7 +123,7 @@ impl Checker<'_, '_, '_> {
             return self.type_of(&t);
         }
         if self.own.has(name) && self.own_in_reach(name) {
-            return Type::Static(name.to_string());
+            return Type::Static(name.to_string(), Vec::new());
         }
         self.imported(name, at)
     }
@@ -294,6 +293,16 @@ impl Checker<'_, '_, '_> {
         let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
         self.made(&t, e.span);
         t
+    }
+
+    /// `Comparer<i32>` where a value goes: the type, for its statics; a
+    /// generic method's name before its call is the call's (`calls.rs`).
+    fn type_args_expr(&mut self, expr: &Expr, args: &[crate::ast::Type]) -> Type {
+        let typed: Vec<Type> = args.iter().map(|t| self.type_of(t)).collect();
+        match self.expr(expr) {
+            Type::Static(name, _) => Type::Static(name, typed),
+            other => other,
+        }
     }
 
     /// `nameof(x)`: a string, `x` checked.

@@ -3,14 +3,16 @@
 //! interface, an enum (with data: a sealed interface, a record per case).
 
 use yog_script_analyze::ast::{
-    Decl, DeclKind, Generic, Method, Modifier, Param, Pass, Type, TypeHeader,
+    Accessor, Decl, DeclKind, Generic, Method, Modifier, Param, Pass, Type, TypeHeader,
 };
+use yog_script_analyze::words::{get, set, value};
+use yog_script_ids::clr::ACCESSOR_SEP;
 
 use super::Gen;
+use crate::index::Kind;
 
 /// What a Java interface's method with a body starts with.
 const DEFAULT: &str = "default ";
-use crate::index::Kind;
 
 /// Where a member is written.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -64,18 +66,7 @@ impl Gen<'_> {
                 ..
             } => {
                 let (t, n) = (self.written(ty, false), Self::ident(&name.text));
-                let interface = place == Place::Interface;
-                if let Some(body) = accessors.iter().find_map(|a| a.body.as_ref()) {
-                    let lead = if interface {
-                        DEFAULT.to_string()
-                    } else {
-                        format!("public {}", stat(place))
-                    };
-                    self.body(&format!("{lead}{t} {n}()"), Some(body), false);
-                } else if interface {
-                    // An interface's: its getter, its implementers'.
-                    self.code.line(format!("{t} {n}();"));
-                }
+                self.property_accessors(place, (&t, &n), accessors);
             }
             DeclKind::Indexer(ix) => self.indexer(d, ix, place),
             DeclKind::Delegate(m) => self.delegate_decl(m),
@@ -153,6 +144,40 @@ impl Gen<'_> {
             return;
         }
         self.body(&head, m.body.as_ref(), void);
+    }
+
+    /// A property's accessors with bodies as Java's methods: its getter
+    /// `Name()`, its setter `set_Name(value)` (the CLR's); an interface's
+    /// getter without one.
+    fn property_accessors(&mut self, place: Place, (t, n): (&str, &str), accessors: &[Accessor]) {
+        let interface = place == Place::Interface;
+        let lead = if interface {
+            DEFAULT.to_string()
+        } else {
+            format!("public {}", stat(place))
+        };
+        let body_of = |word: &str| {
+            accessors
+                .iter()
+                .find(|a| a.name.text == word)
+                .and_then(|a| a.body.as_ref())
+        };
+        match body_of(get::WORD.text) {
+            Some(body) => self.body(&format!("{lead}{t} {n}()"), Some(body), false),
+            // An interface's: its getter, its implementers'.
+            None if interface => {
+                self.code.line(format!("{t} {n}();"));
+            }
+            None => {}
+        }
+        if let Some(body) = body_of(set::WORD.text) {
+            let head = format!(
+                "{lead}void {}{ACCESSOR_SEP}{n}({t} {})",
+                set::WORD.text,
+                value::WORD.text
+            );
+            self.body(&head, Some(body), true);
+        }
     }
 
     /// `T a, U b`.
