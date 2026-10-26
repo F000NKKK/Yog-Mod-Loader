@@ -4174,6 +4174,84 @@ public final class YogTypes {
         }
     }
 
+    /** A record's bytes. */
+    public record Record(byte[] bytes) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("bytes", bytes);
+            return m;
+        }
+
+        public static Record fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Record((m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+        }
+
+        public static Record fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putBytes(this.bytes);
+            p.end(at);
+        }
+
+        public static Record unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            byte[] f_bytes = u.more(end) ? u.getBytes() : new byte[0];
+            u.leave(end);
+            return new Record(f_bytes);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Record fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Record fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Record readFrame(YogFrame.Unpacker u) {
+            Record v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Record} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.skipBytes(); } else { o0 = -1; }
+                u.leave(end);
+            }
+
+            public byte[] bytes() {
+                if (o0 < 0) return new byte[0];
+                u.seek(o0);
+                return u.getBytes();
+            }
+        }
+    }
+
     /** A player's picture and where it is. */
     public record Picture(String texture, long width, long height, double seconds, double length, boolean playing) {
         public java.util.Map<String, Object> toData() {
@@ -4697,6 +4775,95 @@ public final class YogTypes {
                 if (o2 < 0) return null;
                 u.seek(o2);
                 return (u.getBool() ? Float.valueOf(u.getF32()) : null);
+            }
+        }
+    }
+
+    /** Which of the mod's stores (the mod: the request's key): a scope's (`yog_ids::storage`'s words: `world`, `player`, `chunk`, …) and its instance (a uuid, a dimension, a chunk's `<dim>_<cx>_<cz>`; empty for `game` and `world`). */
+    public record Where(String scope, String instance) {
+        public java.util.Map<String, Object> toData() {
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("scope", scope);
+            m.put("instance", instance);
+            return m;
+        }
+
+        public static Where fromData(Object data) {
+            java.util.Map<String, Object> m = YogData.map(data);
+            return new Where(YogData.str(m.get("scope"), ""), YogData.str(m.get("instance"), ""));
+        }
+
+        public static Where fromBytes(byte[] bytes) {
+            return fromData(YogData.decode(bytes));
+        }
+
+        public void pack(YogFrame.Packer p) {
+            int at = p.begin();
+            p.putStr(this.scope);
+            p.putStr(this.instance);
+            p.end(at);
+        }
+
+        public static Where unpack(YogFrame.Unpacker u) {
+            int end = u.begin();
+            String f_scope = u.more(end) ? u.getStr() : "";
+            String f_instance = u.more(end) ? u.getStr() : "";
+            u.leave(end);
+            return new Where(f_scope, f_instance);
+        }
+
+        public byte[] toFrame() {
+            YogFrame.Packer p = new YogFrame.Packer();
+            pack(p);
+            return p.finish();
+        }
+
+        /** Packed by one of this thread's packers: what the bus sends in place. */
+        public YogFrame.Packer packedFrame() {
+            YogFrame.Packer p = YogFrame.Packer.take();
+            pack(p);
+            return p;
+        }
+
+        public static Where fromFrame(byte[] bytes) {
+            return readFrame(new YogFrame.Unpacker(bytes));
+        }
+
+        /** Read where the message is (the arena, in place). */
+        public static Where fromFrame(YogMessage m) {
+            return readFrame(m.frame());
+        }
+
+        private static Where readFrame(YogFrame.Unpacker u) {
+            Where v = unpack(u);
+            u.finish();
+            return v;
+        }
+
+        /** {@code Where} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+        public static final class View {
+            private final YogFrame.Unpacker u;
+            private final int o0;
+            private final int o1;
+
+            public View(YogFrame.Unpacker u) {
+                this.u = u;
+                int end = u.begin();
+                if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                if (u.more(end)) { o1 = u.position(); u.getU(); } else { o1 = -1; }
+                u.leave(end);
+            }
+
+            public String scope() {
+                if (o0 < 0) return "";
+                u.seek(o0);
+                return u.getStr();
+            }
+
+            public String instance() {
+                if (o1 < 0) return "";
+                u.seek(o1);
+                return u.getStr();
             }
         }
     }

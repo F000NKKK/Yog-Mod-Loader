@@ -20213,6 +20213,544 @@ public final class YogServices {
         }
     }
 
+    /** `storage`. */
+    public static final class Storage {
+        private Storage() {}
+
+        /** The record of type `ty` (its full Yog Script name) of `owner` (a block's position in its chunk; empty when the store is the owner's own). */
+        public record Read(String modId, YogTypes.Where at, String owner, String ty) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("mod_id", modId);
+                m.put("at", at.toData());
+                m.put("owner", owner);
+                m.put("ty", ty);
+                return m;
+            }
+
+            public static Read fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Read(YogData.str(m.get("mod_id"), ""), YogTypes.Where.fromData(m.get("at")), YogData.str(m.get("owner"), ""), YogData.str(m.get("ty"), ""));
+            }
+
+            public static Read fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.modId);
+                this.at.pack(p);
+                p.putStr(this.owner);
+                p.putStr(this.ty);
+                p.end(at);
+            }
+
+            public static Read unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_modId = u.more(end) ? u.getStr() : "";
+                YogTypes.Where f_at = u.more(end) ? YogTypes.Where.unpack(u) : null;
+                String f_owner = u.more(end) ? u.getStr() : "";
+                String f_ty = u.more(end) ? u.getStr() : "";
+                u.leave(end);
+                return new Read(f_modId, f_at, f_owner, f_ty);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Read fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Read fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Read readFrame(YogFrame.Unpacker u) {
+                Read v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Read} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String modId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Where.View at() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Where.View(u);
+                }
+
+                public String owner() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public String ty() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+            }
+
+            public YogTypes.Record call() {
+                YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceStorage.READ, modId), packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        YogTypes.Record v = (u.getBool() ? YogTypes.Record.unpack(u) : null);
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return null;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(String key, dev.yog.api.YogBus.Provider<Read, YogTypes.Record> provider) {
+                return YogBus.provide(YogBus.keyed(YogNames.ServiceStorage.READ, key), (in, out) -> {
+                    YogTypes.Record v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v != null); if (v != null) { v.pack(p); }
+                    return YogBus.OK;
+                });
+            }
+        }
+
+        /** Writes a record: kept as its bytes, written as the world saves. */
+        public record Write(String modId, YogTypes.Where at, String owner, String ty, byte[] bytes) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("mod_id", modId);
+                m.put("at", at.toData());
+                m.put("owner", owner);
+                m.put("ty", ty);
+                m.put("bytes", bytes);
+                return m;
+            }
+
+            public static Write fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Write(YogData.str(m.get("mod_id"), ""), YogTypes.Where.fromData(m.get("at")), YogData.str(m.get("owner"), ""), YogData.str(m.get("ty"), ""), (m.get("bytes") instanceof byte[] e0 ? e0 : new byte[0]));
+            }
+
+            public static Write fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.modId);
+                this.at.pack(p);
+                p.putStr(this.owner);
+                p.putStr(this.ty);
+                p.putBytes(this.bytes);
+                p.end(at);
+            }
+
+            public static Write unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_modId = u.more(end) ? u.getStr() : "";
+                YogTypes.Where f_at = u.more(end) ? YogTypes.Where.unpack(u) : null;
+                String f_owner = u.more(end) ? u.getStr() : "";
+                String f_ty = u.more(end) ? u.getStr() : "";
+                byte[] f_bytes = u.more(end) ? u.getBytes() : new byte[0];
+                u.leave(end);
+                return new Write(f_modId, f_at, f_owner, f_ty, f_bytes);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Write fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Write fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Write readFrame(YogFrame.Unpacker u) {
+                Write v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Write} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+                private final int o4;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); u.getU(); } else { o3 = -1; }
+                    if (u.more(end)) { o4 = u.position(); u.skipBytes(); } else { o4 = -1; }
+                    u.leave(end);
+                }
+
+                public String modId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Where.View at() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Where.View(u);
+                }
+
+                public String owner() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public String ty() {
+                    if (o3 < 0) return "";
+                    u.seek(o3);
+                    return u.getStr();
+                }
+
+                public byte[] bytes() {
+                    if (o4 < 0) return new byte[0];
+                    u.seek(o4);
+                    return u.getBytes();
+                }
+            }
+
+            public boolean call() {
+                YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceStorage.WRITE, modId), packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(String key, dev.yog.api.YogBus.Provider<Write, Boolean> provider) {
+                return YogBus.provide(YogBus.keyed(YogNames.ServiceStorage.WRITE, key), (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+        }
+
+        /** Removes `owner`'s records: every type's, or `ty`'s alone. */
+        public record Remove(String modId, YogTypes.Where at, String owner, String ty) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("mod_id", modId);
+                m.put("at", at.toData());
+                m.put("owner", owner);
+                if (ty != null) m.put("ty", ty);
+                return m;
+            }
+
+            public static Remove fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Remove(YogData.str(m.get("mod_id"), ""), YogTypes.Where.fromData(m.get("at")), YogData.str(m.get("owner"), ""), (m.get("ty") == null ? null : YogData.str(m.get("ty"), "")));
+            }
+
+            public static Remove fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.modId);
+                this.at.pack(p);
+                p.putStr(this.owner);
+                p.putBool(this.ty != null); if (this.ty != null) { p.putStr(this.ty); }
+                p.end(at);
+            }
+
+            public static Remove unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_modId = u.more(end) ? u.getStr() : "";
+                YogTypes.Where f_at = u.more(end) ? YogTypes.Where.unpack(u) : null;
+                String f_owner = u.more(end) ? u.getStr() : "";
+                String f_ty = u.more(end) ? (u.getBool() ? u.getStr() : null) : null;
+                u.leave(end);
+                return new Remove(f_modId, f_at, f_owner, f_ty);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Remove fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Remove fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Remove readFrame(YogFrame.Unpacker u) {
+                Remove v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Remove} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+                private final int o2;
+                private final int o3;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    if (u.more(end)) { o2 = u.position(); u.getU(); } else { o2 = -1; }
+                    if (u.more(end)) { o3 = u.position(); if (u.getBool()) { u.getU(); } } else { o3 = -1; }
+                    u.leave(end);
+                }
+
+                public String modId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Where.View at() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Where.View(u);
+                }
+
+                public String owner() {
+                    if (o2 < 0) return "";
+                    u.seek(o2);
+                    return u.getStr();
+                }
+
+                public String ty() {
+                    if (o3 < 0) return null;
+                    u.seek(o3);
+                    return (u.getBool() ? u.getStr() : null);
+                }
+            }
+
+            public boolean call() {
+                YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceStorage.REMOVE, modId), packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        boolean v = u.getBool();
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return false;
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(String key, dev.yog.api.YogBus.Provider<Remove, Boolean> provider) {
+                return YogBus.provide(YogBus.keyed(YogNames.ServiceStorage.REMOVE, key), (in, out) -> {
+                    boolean v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    p.putBool(v);
+                    return YogBus.OK;
+                });
+            }
+        }
+
+        /** The owners with records in a store (a chunk's positions). */
+        public record Owners(String modId, YogTypes.Where at) {
+            public java.util.Map<String, Object> toData() {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("mod_id", modId);
+                m.put("at", at.toData());
+                return m;
+            }
+
+            public static Owners fromData(Object data) {
+                java.util.Map<String, Object> m = YogData.map(data);
+                return new Owners(YogData.str(m.get("mod_id"), ""), YogTypes.Where.fromData(m.get("at")));
+            }
+
+            public static Owners fromBytes(byte[] bytes) {
+                return fromData(YogData.decode(bytes));
+            }
+
+            public void pack(YogFrame.Packer p) {
+                int at = p.begin();
+                p.putStr(this.modId);
+                this.at.pack(p);
+                p.end(at);
+            }
+
+            public static Owners unpack(YogFrame.Unpacker u) {
+                int end = u.begin();
+                String f_modId = u.more(end) ? u.getStr() : "";
+                YogTypes.Where f_at = u.more(end) ? YogTypes.Where.unpack(u) : null;
+                u.leave(end);
+                return new Owners(f_modId, f_at);
+            }
+
+            public byte[] toFrame() {
+                YogFrame.Packer p = new YogFrame.Packer();
+                pack(p);
+                return p.finish();
+            }
+
+            /** Packed by one of this thread's packers: what the bus sends in place. */
+            public YogFrame.Packer packedFrame() {
+                YogFrame.Packer p = YogFrame.Packer.take();
+                pack(p);
+                return p;
+            }
+
+            public static Owners fromFrame(byte[] bytes) {
+                return readFrame(new YogFrame.Unpacker(bytes));
+            }
+
+            /** Read where the message is (the arena, in place). */
+            public static Owners fromFrame(YogMessage m) {
+                return readFrame(m.frame());
+            }
+
+            private static Owners readFrame(YogFrame.Unpacker u) {
+                Owners v = unpack(u);
+                u.finish();
+                return v;
+            }
+
+            /** {@code Owners} read where its frame is, each field when it's asked for ({@code yog-event}'s {@code java/views.rs}). */
+            public static final class View {
+                private final YogFrame.Unpacker u;
+                private final int o0;
+                private final int o1;
+
+                public View(YogFrame.Unpacker u) {
+                    this.u = u;
+                    int end = u.begin();
+                    if (u.more(end)) { o0 = u.position(); u.getU(); } else { o0 = -1; }
+                    if (u.more(end)) { o1 = u.position(); { int r0 = u.begin(); u.leave(r0); } } else { o1 = -1; }
+                    u.leave(end);
+                }
+
+                public String modId() {
+                    if (o0 < 0) return "";
+                    u.seek(o0);
+                    return u.getStr();
+                }
+
+                public YogTypes.Where.View at() {
+                    if (o1 < 0) return null;
+                    u.seek(o1);
+                    return new YogTypes.Where.View(u);
+                }
+            }
+
+            public java.util.List<String> call() {
+                YogMessage r = YogBus.call(YogBus.keyed(YogNames.ServiceStorage.KEYS, modId), packedFrame());
+                if (r.ok() && !r.isEmpty()) {
+                    try {
+                        YogFrame.Unpacker u = r.frame();
+                        java.util.List<String> v = YogFrame.list(u, () -> u.getStr());
+                        u.finish();
+                        return v;
+                    } catch (YogData.DecodeException e) {
+                        // Not a reply: as if no one answered.
+                    }
+                }
+                return java.util.List.of();
+            }
+
+            /** Answers it: the request in, the reply out; false if someone answers it already. */
+            public static boolean provide(String key, dev.yog.api.YogBus.Provider<Owners, java.util.List<String>> provider) {
+                return YogBus.provide(YogBus.keyed(YogNames.ServiceStorage.KEYS, key), (in, out) -> {
+                    java.util.List<String> v = provider.answer(fromFrame(in));
+                    YogFrame.Packer p = out.frame();
+                    { int l0 = p.beginList(v.size()); for (var e0 : v) { p.putStr(e0); } p.end(l0); }
+                    return YogBus.OK;
+                });
+            }
+        }
+    }
+
     /** `tag`. */
     public static final class Tag {
         private Tag() {}

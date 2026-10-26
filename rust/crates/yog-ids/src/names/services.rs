@@ -199,7 +199,7 @@ names! {
     service_bossbar {
         DOMAIN = crate::concatcp!(crate::service::PREFIX, "bossbar", crate::sep::PATH),
         CREATE = crate::concatcp!(DOMAIN, "create"),
-        REMOVE = crate::concatcp!(DOMAIN, "remove"),
+        REMOVE = crate::concatcp!(DOMAIN, crate::word::REMOVE),
         SET_TITLE = crate::concatcp!(DOMAIN, "set_title"),
         SET_PROGRESS = crate::concatcp!(DOMAIN, "set_progress"),
         SET_COLOR = crate::concatcp!(DOMAIN, "set_color"),
@@ -292,6 +292,16 @@ names! {
         DESCRIBE = crate::concatcp!(DOMAIN, "describe"),
         LIST = crate::concatcp!(DOMAIN, crate::shape_kind::LIST),
         FIND = crate::concatcp!(DOMAIN, "find"),
+    }
+
+    /// `yog:storage/…/<mod>`: a mod's declared state in its stores (each
+    /// mod's native provides its own, keyed by its id).
+    service_storage {
+        DOMAIN = crate::concatcp!(crate::service::PREFIX, crate::word::STORAGE, crate::sep::PATH),
+        READ = crate::concatcp!(DOMAIN, "read"),
+        WRITE = crate::concatcp!(DOMAIN, crate::word::WRITE),
+        REMOVE = crate::concatcp!(DOMAIN, crate::word::REMOVE),
+        KEYS = crate::concatcp!(DOMAIN, crate::mirror_word::KEYS),
     }
 
     /// `yog:content/…`: what mods register (provided by the runtime).

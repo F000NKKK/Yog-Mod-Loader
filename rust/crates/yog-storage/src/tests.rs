@@ -82,3 +82,23 @@ fn a_session_is_never_written_and_updates_count() {
     assert!(!session.contains("opened"));
     session.flush().unwrap();
 }
+
+/// A record is kept as its bytes, across a save and a reload; a prefix's
+/// records go together (a chunk's block, every type of it).
+#[test]
+fn records_are_kept_as_given() {
+    let dir = root("records");
+    let store = Store::open(&dir, "mymod", Scope::Chunk("minecraft:overworld", 0, 0));
+    store.set_record("1_64_2/charge.Charger", &[1, 2, 3]);
+    store.set_record("1_64_2/charge.Owned", &[4]);
+    store.set_record("5_64_5/charge.Charger", &[9]);
+    // A rewrite keeps the newer bytes, shorter or longer.
+    store.set_record("5_64_5/charge.Charger", &[7, 8]);
+    let again = reopened(&dir, Scope::Chunk("minecraft:overworld", 0, 0));
+    assert_eq!(again.record("1_64_2/charge.Charger"), Some(vec![1, 2, 3]));
+    assert_eq!(again.record("5_64_5/charge.Charger"), Some(vec![7, 8]));
+    assert_eq!(again.remove_under("1_64_2/"), 2);
+    assert_eq!(again.record("1_64_2/charge.Owned"), None);
+    assert_eq!(again.keys(), ["5_64_5/charge.Charger"]);
+    let _ = std::fs::remove_dir_all(dir);
+}

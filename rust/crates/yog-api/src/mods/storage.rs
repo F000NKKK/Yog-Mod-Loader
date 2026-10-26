@@ -24,6 +24,7 @@
 //! so it's saved with the world it belongs to.
 
 mod kept;
+mod records;
 
 use std::path::PathBuf;
 
@@ -31,6 +32,8 @@ use yog_sync::Mutex;
 use yog_sync::atomic::{AtomicBool, Ordering};
 
 pub use kept::{GameData, PlayerData, WorldData};
+#[doc(hidden)]
+pub use records::__provide_records;
 pub use yog_storage::{Scope, Store, close_under, flush_all};
 
 use crate::Registry;

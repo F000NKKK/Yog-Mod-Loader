@@ -12,3 +12,10 @@ yog-ids = { workspace = true }
 yog-data = { workspace = true }
 # A store shared by its handles.
 yog-sync = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "records"
+harness = false

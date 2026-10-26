@@ -54,6 +54,10 @@ names! {
     /// Words other names are made of, said once: sides and places, yes and no,
     /// the common fields' names.
     word {
+        WRITE = "write",
+        REMOVE = "remove",
+        SESSION = "session",
+        STORAGE = "storage",
         VIDEO = "video",
         DISPLAY = "display",
         MESSAGE = "message",
@@ -358,6 +362,12 @@ names! {
         /// A local read before it's given a value, or an `out` parameter
         /// not given one on a path out of its method (C#'s CS0165, CS0177).
         UNASSIGNED = "YS0036",
+        /// A property in a content declaration (`block Lamp { Hardness = 2; }`):
+        /// they're its file's (`lamp.yblock`), the declaration only its behaviour.
+        CONTENT_PROPERTY = "YS0037",
+        /// A content declaration without its file (`block Lamp` without a
+        /// `lamp.yblock` under `content/`).
+        NO_CONTENT_FILE = "YS0038",
     }
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the
@@ -370,6 +380,8 @@ names! {
         PLAYER = crate::word::PLAYER,
         ENTITY = crate::kind::ENTITY,
         CHUNK = crate::word::CHUNK,
+        /// The store kept while the game runs, never written.
+        SESSION = crate::word::SESSION,
         /// What a name's separators become in a store's file name, and
         /// what parts a chunk store's name (`<dim>_<cx>_<cz>`).
         SEP = crate::sep::WORD,

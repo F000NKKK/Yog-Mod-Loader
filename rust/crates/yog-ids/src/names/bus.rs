@@ -55,7 +55,7 @@ names! {
 
     /// `yog:event/player/session/…`.
     event_player_session {
-        PLANE = crate::concatcp!(crate::event::PREFIX, crate::word::PLAYER, crate::sep::PATH, "session", crate::sep::PATH),
+        PLANE = crate::concatcp!(crate::event::PREFIX, crate::word::PLAYER, crate::sep::PATH, crate::word::SESSION, crate::sep::PATH),
         JOIN = crate::concatcp!(PLANE, "join"),
         LEAVE = crate::concatcp!(PLANE, "leave"),
     }

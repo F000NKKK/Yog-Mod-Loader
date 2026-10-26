@@ -48,6 +48,41 @@ impl Store {
         shelf.dirty = true;
     }
 
+    /// The record at `key`: bytes kept as they were given ([`Store::set_record`]),
+    /// never decoded — what a Yog Script object's state is.
+    pub fn record(&self, key: &str) -> Option<Vec<u8>> {
+        match self.shelf.lock().values.get(key)? {
+            yog_data::Value::Bytes(bytes) => Some(bytes.clone()),
+            _ => None,
+        }
+    }
+
+    /// `bytes` at `key` as a record: kept and written as they are (its
+    /// owner's codec reads them back).
+    pub fn set_record(&self, key: &str, bytes: &[u8]) {
+        let mut shelf = self.shelf.lock();
+        shelf.dirty = true;
+        // The record already there keeps its buffer: no allocation once
+        // it's grown to the record's size.
+        if let Some(yog_data::Value::Bytes(old)) = shelf.values.get_mut(key) {
+            old.clear();
+            old.extend_from_slice(bytes);
+            return;
+        }
+        shelf.values.insert(key, yog_data::Value::Bytes(bytes.to_vec()));
+    }
+
+    /// Takes out every value whose key starts with `prefix`; how many.
+    pub fn remove_under(&self, prefix: &str) -> usize {
+        let mut shelf = self.shelf.lock();
+        let before = shelf.values.len();
+        // One pass, whatever how many go.
+        shelf.values.retain(|k, _| !k.starts_with(prefix));
+        let removed = before - shelf.values.len();
+        shelf.dirty |= removed > 0;
+        removed
+    }
+
     /// The value at `key` changed by `change` (its default when there's none); what `change` returns.
     pub fn update<T: Schema + Default, R>(&self, key: &str, change: impl FnOnce(&mut T) -> R) -> R {
         let mut value = self.get_or_default(key);

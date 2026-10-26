@@ -53,6 +53,10 @@ public final class YogNames {
     public static final class Word {
         private Word() {}
 
+        public static final String WRITE = "write";
+        public static final String REMOVE = "remove";
+        public static final String SESSION = "session";
+        public static final String STORAGE = "storage";
         public static final String VIDEO = "video";
         public static final String DISPLAY = "display";
         public static final String MESSAGE = "message";
@@ -146,7 +150,7 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FLOAT, FRAME, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, CUTSCENE, DATA, DEFAULT, DOC, DYNAMIC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(WRITE, REMOVE, SESSION, STORAGE, VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FLOAT, FRAME, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, CUTSCENE, DATA, DEFAULT, DOC, DYNAMIC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
     }
 
     public static final class CommandArg {
@@ -315,9 +319,11 @@ public final class YogNames {
         public static final String OPERATOR = "YS0034";
         public static final String UNKNOWN_TYPE = "YS0035";
         public static final String UNASSIGNED = "YS0036";
+        public static final String CONTENT_PROPERTY = "YS0037";
+        public static final String NO_CONTENT_FILE = "YS0038";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS, TARGETS, NO_VERSION, AMBIGUOUS, DIRECTIVE, LIFETIME, MOVED, BORROW, PASS, INHERIT, NOT_EXHAUSTIVE, MACRO, ATTRIBUTE, NOT_COMPILED, UNDECLARED, OPERATOR, UNKNOWN_TYPE, UNASSIGNED);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS, TARGETS, NO_VERSION, AMBIGUOUS, DIRECTIVE, LIFETIME, MOVED, BORROW, PASS, INHERIT, NOT_EXHAUSTIVE, MACRO, ATTRIBUTE, NOT_COMPILED, UNDECLARED, OPERATOR, UNKNOWN_TYPE, UNASSIGNED, CONTENT_PROPERTY, NO_CONTENT_FILE);
     }
 
     public static final class Storage {
@@ -330,10 +336,11 @@ public final class YogNames {
         public static final String PLAYER = "player";
         public static final String ENTITY = "entity";
         public static final String CHUNK = "chunk";
+        public static final String SESSION = "session";
         public static final String SEP = "_";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIR, GAME, WORLD, DIMENSION, PLAYER, ENTITY, CHUNK, SEP);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DIR, GAME, WORLD, DIMENSION, PLAYER, ENTITY, CHUNK, SESSION, SEP);
     }
 
     public static final class DataAttr {
@@ -1088,6 +1095,19 @@ public final class YogNames {
 
         /** Every name of the group, in order. */
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, DECLARE, DESCRIBE, LIST, FIND);
+    }
+
+    public static final class ServiceStorage {
+        private ServiceStorage() {}
+
+        public static final String DOMAIN = "yog:storage/";
+        public static final String READ = "yog:storage/read";
+        public static final String WRITE = "yog:storage/write";
+        public static final String REMOVE = "yog:storage/remove";
+        public static final String KEYS = "yog:storage/keys";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(DOMAIN, READ, WRITE, REMOVE, KEYS);
     }
 
     public static final class ServiceContent {

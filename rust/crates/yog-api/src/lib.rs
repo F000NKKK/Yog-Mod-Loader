@@ -143,6 +143,8 @@ macro_rules! export_mod {
 
                 // What it keeps, saved with the world (after the mod's own handlers).
                 $crate::storage::__save_with_world(&mut registry);
+                // Its Yog Script objects' records, kept in its stores.
+                $crate::storage::__provide_records(&mut registry);
             }));
             if outcome.is_err() {
                 $crate::error!(

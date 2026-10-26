@@ -7,7 +7,7 @@ use yog_ids as ids;
 use crate::wire::message::{Message, branch, last_segment};
 use crate::{
     block, bus, client, command, content, entity, game, item, key_binding, media, menu, mirror,
-    video,
+    storage, video,
 };
 
 /// A call the bus carries: its payload is `Self`, its answer a [`Service::Reply`].
@@ -119,6 +119,10 @@ services! {
     bus::List => ids::service_bus::LIST, Vec<String>;
     bus::Find => ids::service_bus::FIND, Vec<String>;
     content::Register => ids::service_content::REGISTER, bool;
+    storage::Read => ids::service_storage::READ, Option<storage::Record>, key = mod_id;
+    storage::Write => ids::service_storage::WRITE, bool, key = mod_id;
+    storage::Remove => ids::service_storage::REMOVE, bool, key = mod_id;
+    storage::Owners => ids::service_storage::KEYS, Vec<String>, key = mod_id;
     command::CommandSpec => ids::service_command::DECLARE, bool;
     command::Declared => ids::service_command::DECLARED, Vec<command::CommandSpec>;
     menu::MenuEntry => ids::service_menu::DECLARE, bool;
