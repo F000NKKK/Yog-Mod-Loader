@@ -60,10 +60,18 @@ public final class Enumerable {
         return Sequence.of(() -> stream(source).flatMap(x -> stream(selector.Invoke(x))));
     }
 
-    /** Each item as an {@code R}: Java's generics can't check it here; a wrong one fails where it's used. */
+    /** Its items that are {@code type}'s ({@code [Reified]}: the class handed first). */
     @SuppressWarnings("unchecked")
-    public static <R> IEnumerable<R> Cast(IEnumerable<Object> source) {
-        return Sequence.of(() -> stream(source).map(x -> (R) x));
+    public static <R> IEnumerable<R> OfType(Class<?> type, IEnumerable<Object> source) {
+        Class<?> boxed = boxed(type);
+        return Sequence.of(() -> stream(source).filter(boxed::isInstance).map(x -> (R) x));
+    }
+
+    /** Each item as a {@code type}: a panic at one that isn't. */
+    @SuppressWarnings("unchecked")
+    public static <R> IEnumerable<R> Cast(Class<?> type, IEnumerable<Object> source) {
+        Class<?> boxed = boxed(type);
+        return Sequence.of(() -> stream(source).map(x -> (R) boxed.cast(x)));
     }
 
     // Taken, skipped.
@@ -247,6 +255,27 @@ public final class Enumerable {
 
     public static <T> IEnumerable<T> Prepend(IEnumerable<T> source, T element) {
         return Sequence.of(() -> Stream.concat(Stream.of(element), stream(source)));
+    }
+
+    /**
+     * Its items in arrays of {@code size} (the last may be shorter), each a
+     * Java array of {@code item} ({@code int[]} for {@code int.class}).
+     */
+    public static <T> IEnumerable<Object> Chunk(Class<?> item, IEnumerable<T> source, int size) {
+        if (size < 1) {
+            throw new IllegalArgumentException("chunks of " + size + " items");
+        }
+        return Sequence.of(() -> {
+            java.util.List<T> all = stream(source).toList();
+            return IntStream.range(0, (all.size() + size - 1) / size).mapToObj(c -> {
+                java.util.List<T> part = all.subList(c * size, Math.min(all.size(), (c + 1) * size));
+                Object chunk = java.lang.reflect.Array.newInstance(item, part.size());
+                for (int i = 0; i < part.size(); i++) {
+                    java.lang.reflect.Array.set(chunk, i, part.get(i));
+                }
+                return chunk;
+            });
+        });
     }
 
     public static <T> IEnumerable<T> DefaultIfEmpty(IEnumerable<T> source, T defaultValue) {
@@ -501,6 +530,11 @@ public final class Enumerable {
     }
 
     // What the rest is made of.
+
+    /** {@code type}, a primitive's as its box ({@code int} as {@code Integer}): what its values are as objects. */
+    private static Class<?> boxed(Class<?> type) {
+        return java.lang.invoke.MethodType.methodType(type).wrap().returnType();
+    }
 
     /** Items ordered by their keys, in the keys' own order. */
     private static <T, K> Comparator<T> by(Func2<T, K> keySelector) {

@@ -36,6 +36,8 @@ pub(super) struct Signature {
     pub ret: Type,
     /// A generic method's type parameters, inferred from a call.
     pub generics: Vec<String>,
+    /// Those of them given before (`F<i32>(…)`).
+    pub bound: super::generics::Bound,
 }
 
 impl Checker<'_, '_, '_> {
@@ -393,6 +395,7 @@ impl Checker<'_, '_, '_> {
                     required: m.params.iter().take_while(|p| p.required).count(),
                     ret: Type::of_shape(&m.reply),
                     generics: Vec::new(),
+                    bound: Default::default(),
                 })
                 .collect(),
         )
@@ -414,6 +417,7 @@ impl Checker<'_, '_, '_> {
                         params,
                         ret,
                         generics: Vec::new(),
+                        bound: Default::default(),
                     })
                     .collect(),
             ),
@@ -442,6 +446,7 @@ fn signature_of(params: &[Type], ret: &Type) -> Signature {
         required: params.len(),
         ret: ret.clone(),
         generics: Vec::new(),
+        bound: Default::default(),
     }
 }
 

@@ -32,6 +32,7 @@ impl Checker<'_, '_, '_> {
             params,
             ret,
             generics,
+            bound: Default::default(),
         }])
     }
 

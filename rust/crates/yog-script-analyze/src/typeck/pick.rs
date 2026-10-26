@@ -17,6 +17,8 @@ use crate::source::token::Span;
 pub(super) struct Chosen {
     pub index: usize,
     pub params: Vec<Type>,
+    /// Its own type parameters' types, in order (unknown where nothing said).
+    pub type_args: Vec<Type>,
 }
 
 impl Checker<'_, '_, '_> {
@@ -46,7 +48,19 @@ impl Checker<'_, '_, '_> {
                 }
             }
             let ret = s.ret.substitute(&found);
-            return (ret, Some(Chosen { index: i, params }));
+            let type_args = s
+                .generics
+                .iter()
+                .map(|g| found.get(g).cloned().unwrap_or(Type::Unknown))
+                .collect();
+            return (
+                ret,
+                Some(Chosen {
+                    index: i,
+                    params,
+                    type_args,
+                }),
+            );
         }
         self.none_fits(sigs, given, args, at)
     }
@@ -57,7 +71,7 @@ impl Checker<'_, '_, '_> {
         if !(s.required..=s.params.len()).contains(&given.len()) {
             return None;
         }
-        let mut found = Bound::new();
+        let mut found = s.bound.clone();
         for ((g, p), a) in given.iter().zip(&s.params).zip(args) {
             if !is_lambda(&a.value) && !self.unify(p, g, &s.generics, &mut found) {
                 return None;
@@ -117,7 +131,19 @@ impl Checker<'_, '_, '_> {
                     }
                 }
                 let params = one.params.clone();
-                (one.ret.clone(), Some(Chosen { index: i, params }))
+                let type_args = one
+                    .generics
+                    .iter()
+                    .map(|g| one.bound.get(g).cloned().unwrap_or(Type::Unknown))
+                    .collect();
+                (
+                    one.ret.clone(),
+                    Some(Chosen {
+                        index: i,
+                        params,
+                        type_args,
+                    }),
+                )
             }
             _ => {
                 self.lambdas_alone(args);

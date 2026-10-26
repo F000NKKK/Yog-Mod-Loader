@@ -117,6 +117,7 @@ impl Checker<'_, '_, '_> {
             MethodUse {
                 extension,
                 taken: c.params,
+                type_args: c.type_args,
                 ..self.method_use(m, context)
             }
         });
@@ -151,6 +152,7 @@ impl Checker<'_, '_, '_> {
             params,
             ret,
             taken: Vec::new(),
+            type_args: Vec::new(),
             extension: false,
         }
     }
@@ -172,6 +174,7 @@ impl Checker<'_, '_, '_> {
             required: m.params.iter().take_while(|p| p.default.is_none()).count(),
             ret: m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t)),
             generics,
+            bound: Default::default(),
         })
     }
 }
@@ -190,7 +193,7 @@ impl Signature {
                 ..self
             };
         }
-        let bound = self
+        let bound: super::generics::Bound = self
             .generics
             .iter()
             .cloned()
@@ -199,7 +202,7 @@ impl Signature {
         Signature {
             params: self.params.iter().map(|p| p.substitute(&bound)).collect(),
             ret: self.ret.substitute(&bound),
-            generics: Vec::new(),
+            bound,
             ..self
         }
     }

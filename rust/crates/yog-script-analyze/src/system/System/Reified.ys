@@ -1,0 +1,7 @@
+namespace System;
+
+/// A runtime method whose type parameters are known when it runs, as the
+/// CLR's always are (`OfType<string>()` tests each item against `string`):
+/// where the runtime's generics forget them (the JVM's), each is handed to
+/// it, first.
+public sealed class Reified : Attribute {}

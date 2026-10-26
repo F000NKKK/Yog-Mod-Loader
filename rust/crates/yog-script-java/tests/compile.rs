@@ -307,3 +307,16 @@ fn the_runtimes_properties_are_got_and_set() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn a_reified_method_is_handed_its_types() {
+    let src = "List<string> Texts(List<object> things) => things.OfType<string>().ToList();\n\
+               i32 Firsts(List<i32> xs) {\n    let mut n = 0;\n    foreach (let c in xs.Chunk(3)) {\n        n += c[0];\n    }\n    return n;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "((dev.yog.script.collections.generic.IEnumerable<String>) (Object) dev.yog.script.linq.Enumerable.OfType(String.class, things))",
+        "((dev.yog.script.collections.generic.IEnumerable<int[]>) (Object) dev.yog.script.linq.Enumerable.Chunk(int.class, xs, 3))",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

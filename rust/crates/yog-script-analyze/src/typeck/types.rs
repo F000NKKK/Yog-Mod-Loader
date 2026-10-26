@@ -49,6 +49,8 @@ pub struct MethodUse {
     pub ret: Type,
     /// Its parameters as the call takes them (its type parameters bound).
     pub taken: Vec<Type>,
+    /// Its own type parameters' types in this call, in order.
+    pub type_args: Vec<Type>,
     /// An extension method (`xs.Where(…)`): the receiver its first argument.
     pub extension: bool,
 }

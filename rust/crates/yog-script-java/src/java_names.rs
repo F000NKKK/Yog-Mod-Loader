@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 use yog_script_analyze::ast::{Decl, DeclKind, Method, Type, TypeHeader, TypeKind};
 use yog_script_ids::jvm::{MEMBER_SEP, OBJECT};
+use yog_script_ids::system::REIFIED;
 
 use yog_script_analyze::builtin_type;
 
@@ -23,6 +24,8 @@ pub(crate) struct Shape {
     generics: Vec<String>,
     bases: Vec<Type>,
     methods: Vec<Method>,
+    /// Which of its methods are `[Reified]`: handed their type parameters.
+    reified: Vec<bool>,
 }
 
 /// Each type parameter of a type and what it is where it's seen from.
@@ -38,17 +41,37 @@ pub(crate) fn shape_of(header: &TypeHeader, body: &[Decl]) -> Shape {
             .map(|g| g.name.text.clone())
             .collect(),
         bases: header.bases.clone(),
-        methods: body
-            .iter()
-            .filter_map(|d| match &d.kind {
-                DeclKind::Method(m) => Some(m.clone()),
-                _ => None,
-            })
+        methods: methods(body).map(|(_, m)| m.clone()).collect(),
+        reified: methods(body)
+            .map(|(d, _)| crate::library::marked(d, REIFIED))
             .collect(),
     }
 }
 
+/// A body's methods, each with its declaration.
+fn methods(body: &[Decl]) -> impl Iterator<Item = (&Decl, &Method)> {
+    body.iter().filter_map(|d| match &d.kind {
+        DeclKind::Method(m) => Some((d, m)),
+        _ => None,
+    })
+}
+
 impl Index {
+    /// Whether `owner`'s method `name`, the `overload`-th of its name, is
+    /// `[Reified]`: handed its type parameters first.
+    pub(crate) fn is_reified(&self, owner: &str, name: &str, overload: usize) -> bool {
+        let Some(shape) = self.shape(owner) else {
+            return false;
+        };
+        shape
+            .methods
+            .iter()
+            .zip(&shape.reified)
+            .filter(|(m, _)| m.explicit.is_none() && m.name.text == name)
+            .nth(overload)
+            .is_some_and(|(_, reified)| *reified)
+    }
+
     /// The Java name of `owner`'s method `name`, the `overload`-th of its
     /// name (explicit implementations aside), as a call chose it.
     pub(crate) fn java_name_of(&self, owner: &str, name: &str, overload: usize) -> Option<String> {

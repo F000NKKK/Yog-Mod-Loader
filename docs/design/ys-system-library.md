@@ -232,7 +232,9 @@ surface's delegates.
    operators, `First`…`Single`, `Sum`/`Average`/`Min`/`Max` of every
    width, `Aggregate`, `To*`, `Range`/`Repeat`/`Empty` — a generic
    method's type parameters inferred from its lambdas' results as C#'s;
-   `OfType` and `Chunk` wait for a type known at run time on the JVM),
+   `OfType`, `Cast` and `Chunk` are `[Reified]`: on the JVM handed their
+   type parameters as classes, first, their results made the call's own
+   types),
    `Queue`, `Stack`, `SortedSet` (live `GetViewBetween`),
    `SortedDictionary`, `SortedList`, `PriorityQueue`, `LinkedList` /
    `LinkedListNode`, `IComparer` / `Comparer<T>` (`Default`, `Create`),

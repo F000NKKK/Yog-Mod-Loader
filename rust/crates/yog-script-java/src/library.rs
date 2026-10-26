@@ -104,7 +104,7 @@ pub(crate) fn is_host(d: &Decl) -> bool {
     marked(d, yog_script_ids::system::HOST)
 }
 
-fn marked(d: &Decl, attribute: &str) -> bool {
+pub(crate) fn marked(d: &Decl, attribute: &str) -> bool {
     d.attributes
         .iter()
         .any(|a| a.path.last().is_some_and(|n| n.text == attribute))

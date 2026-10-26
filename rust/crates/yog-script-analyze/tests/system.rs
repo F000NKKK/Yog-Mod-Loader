@@ -321,3 +321,11 @@ fn the_other_collections_are_dotnets() {
         assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH], "{bad}");
     }
 }
+
+#[test]
+fn of_type_and_chunk_know_their_types() {
+    let ok = "List<string> Texts(List<object> things) => things.OfType<string>().ToList();\n\
+              i32 Firsts(List<i32> xs) {\n    let mut n = 0;\n    foreach (let c in xs.Chunk(3)) {\n        n += c[0] + c.Length;\n    }\n    return n;\n}\n\
+              IEnumerable<string> All(List<object> things) => things.Cast<string>();\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+}

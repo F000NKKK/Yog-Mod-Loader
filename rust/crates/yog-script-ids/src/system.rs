@@ -37,6 +37,10 @@ pub const FIELD: &str = "Field";
 pub const PROC_MACRO: &str = "ProcMacro";
 pub const DERIVE_MACRO: &str = "DeriveMacro";
 
+/// The attribute marking a runtime method whose type parameters are
+/// known when it runs (`OfType<T>`): on the JVM, handed to it.
+pub const REIFIED: &str = "Reified";
+
 /// The attribute marking an attribute class as an attribute macro.
 pub const MACRO: &str = "Macro";
 

@@ -74,10 +74,16 @@ impl Gen<'_> {
     pub(crate) fn call(&mut self, e: &Expr, callee: &Expr, args: &[Arg]) -> String {
         let called = self.called(e, callee, args);
         let called = self.typed_array(e, called);
+        let called = self.reified_result(e, called);
         self.given_back(e, args, called)
     }
 
     fn called(&mut self, e: &Expr, callee: &Expr, args: &[Arg]) -> String {
+        // `F<T>(…)`: Java infers what's given (a `[Reified]` one's handed).
+        let callee = match &callee.kind {
+            ExprKind::TypeArgs { expr, .. } => &**expr,
+            _ => callee,
+        };
         let a = self.args(args);
         match &callee.kind {
             ExprKind::Ident(name) => match self.types.of(callee) {
@@ -86,7 +92,10 @@ impl Gen<'_> {
                 _ if self.is_result_case(name) => {
                     format!("new {}.{}<>({a})", self.own(RESULT), Self::ident(name))
                 }
-                _ => format!("{}({a})", self.called_name(e, name)),
+                _ => {
+                    let a = self.with_classes(e, Vec::new(), a);
+                    format!("{}({a})", self.called_name(e, name))
+                }
             },
             ExprKind::Member { expr, name, .. } => self.method_call(e, expr, &name.text, &a),
             _ => {
@@ -98,6 +107,17 @@ impl Gen<'_> {
                 }
             }
         }
+    }
+
+    /// Call `e`'s arguments: a `[Reified]` method's classes first, then
+    /// `before` (an extension's receiver), then `args`, written.
+    fn with_classes(&mut self, e: &Expr, before: Vec<String>, args: String) -> String {
+        let mut all = self.reified_classes(e);
+        all.extend(before);
+        if !args.is_empty() {
+            all.push(args);
+        }
+        all.join(", ")
     }
 
     /// The Java name of the method call `e` chose (`name` in Yog Script):
@@ -188,9 +208,11 @@ impl Gen<'_> {
             .filter(|m| m.extension)
             .and_then(|m| m.owner.as_deref())
         {
-            let sep = if a.is_empty() { "" } else { ", " };
-            return format!("{}.{n}({target}{sep}{a})", self.index.place(owner, 0));
+            let place = self.index.place(owner, 0);
+            let a = self.with_classes(e, vec![target], a.to_string());
+            return format!("{place}.{n}({a})");
         }
+        let a = &self.with_classes(e, Vec::new(), a.to_string());
         match on_type.as_ref().map(Type::non_null) {
             Some(Type::Static(of, _)) => match self.index.kind(of) {
                 Some(Kind::DataEnum) => format!("new {of}.{n}<>({a})"),

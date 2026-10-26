@@ -13,7 +13,11 @@ public static class Enumerable {
     public static IEnumerable<TResult> Select<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, TResult> selector);
     public static IEnumerable<TResult> Select<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, i32, TResult> selector);
     public static IEnumerable<TResult> SelectMany<TSource, TResult>(this in IEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector);
+    /// Its items that are `TResult`s.
+    [Reified]
+    public static IEnumerable<TResult> OfType<TResult>(this in IEnumerable<object> source);
     /// Each item as a `TResult`: a panic at one that isn't.
+    [Reified]
     public static IEnumerable<TResult> Cast<TResult>(this in IEnumerable<object> source);
 
     // Taken, skipped.
@@ -57,6 +61,9 @@ public static class Enumerable {
     public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this in IEnumerable<TSource> source, Func<TSource, TKey> keySelector);
     public static IEnumerable<TSource> Append<TSource>(this in IEnumerable<TSource> source, TSource element);
     public static IEnumerable<TSource> Prepend<TSource>(this in IEnumerable<TSource> source, TSource element);
+    /// Its items in arrays of `size` (the last may be shorter).
+    [Reified]
+    public static IEnumerable<TSource[]> Chunk<TSource>(this in IEnumerable<TSource> source, i32 size);
     public static IEnumerable<TSource> DefaultIfEmpty<TSource>(this in IEnumerable<TSource> source, TSource defaultValue);
 
     // One item.
