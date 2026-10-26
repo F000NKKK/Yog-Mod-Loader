@@ -48,6 +48,9 @@ pub struct Types {
     /// The bound a type parameter's value is reached through, by the
     /// value (`t.Score()` of `where T : IScore`: `IScore`).
     bounded: HashMap<usize, Type>,
+    /// The locals each lambda handed to another thread takes from its
+    /// owner (not `Copy`): moved there, by the lambda.
+    moved_away: HashMap<usize, Vec<String>>,
     /// What each lambda captures, by the lambda (`threads/captures.rs`).
     captures: HashMap<usize, Vec<super::threads::Capture>>,
 }
@@ -183,6 +186,16 @@ impl Types {
     /// statics it reaches.
     pub(super) fn captures(&self, e: &Expr) -> &[super::threads::Capture] {
         self.captures.get(&key(e)).map_or(&[], Vec::as_slice)
+    }
+
+    /// The locals lambda `e` takes with it to another thread: moved away
+    /// from the code around it.
+    pub fn moved_away(&self, e: &Expr) -> &[String] {
+        self.moved_away.get(&key(e)).map_or(&[], Vec::as_slice)
+    }
+
+    pub(super) fn set_moved_away(&mut self, e: &Expr, names: Vec<String>) {
+        self.moved_away.insert(key(e), names);
     }
 
     /// Lambda `lambda` (by its key) captures `c` (once, by its name).

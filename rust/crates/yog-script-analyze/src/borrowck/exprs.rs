@@ -43,6 +43,12 @@ impl Checker<'_, '_> {
                 }
                 self.state = outer;
                 self.outs = outs;
+                // Handed to another thread: what it takes is moved there.
+                for name in self.types.moved_away(e) {
+                    if let Some(var) = self.state.get_mut(name) {
+                        var.moved = Some(e.span);
+                    }
+                }
             }
             ExprKind::Is { expr, pattern } => {
                 self.expr(expr);

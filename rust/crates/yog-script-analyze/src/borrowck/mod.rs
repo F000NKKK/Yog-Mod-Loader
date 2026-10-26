@@ -17,9 +17,10 @@ use state::{State, Var};
 use yog_analysis::Report;
 use yog_ids::script_problem;
 
-pub(crate) fn check(file: &File, report: &mut Report<'_>) {
+pub(crate) fn check(file: &File, types: &crate::typeck::Types, report: &mut Report<'_>) {
     Checker {
         report,
+        types,
         state: State::new(),
         reported: HashSet::new(),
         outs: Vec::new(),
@@ -29,6 +30,8 @@ pub(crate) fn check(file: &File, report: &mut Report<'_>) {
 
 struct Checker<'r, 's> {
     report: &'r mut Report<'s>,
+    /// The types checked: what a lambda handed to another thread takes.
+    types: &'r crate::typeck::Types,
     state: State,
     /// Where a problem was reported already: a loop's body is read twice.
     reported: HashSet<(u32, u32)>,

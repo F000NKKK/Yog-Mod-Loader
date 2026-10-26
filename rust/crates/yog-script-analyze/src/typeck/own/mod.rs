@@ -103,6 +103,8 @@ pub(crate) struct OwnType {
     /// (`[ThreadStatic]`).
     pub statics: Vec<String>,
     pub thread_statics: Vec<String>,
+    /// Its static methods' names.
+    pub static_methods: Vec<String>,
     /// How what its methods' parameters take crosses threads
     /// (`[Crosses("work", Crossing.Moved)]`), by name and overload as
     /// `methods`: each parameter's name and crossing.

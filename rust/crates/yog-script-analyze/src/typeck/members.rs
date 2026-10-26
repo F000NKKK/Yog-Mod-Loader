@@ -312,6 +312,7 @@ impl Checker<'_, '_, '_> {
                         && self.own_methods(&Type::own(of.clone()), name).is_some()
                     {
                         self.called_on(None, &of, name, callee.span);
+                        self.method_read(&of, name, callee.span);
                     }
                     Callee::Own(methods)
                 }

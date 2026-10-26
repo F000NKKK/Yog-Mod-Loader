@@ -10,7 +10,7 @@ mod safety;
 pub use captures::{Capture, Captured};
 
 use yog_ids::script_problem;
-use yog_script_ids::system::threads::CONCURRENT;
+use yog_script_ids::system::threads::{CONCURRENT, MOVED};
 
 use self::safety::{Blame, Need};
 use super::Checker;
@@ -92,15 +92,18 @@ impl Checker<'_, '_, '_> {
                 } else {
                     Need::Send
                 };
-                self.crossing(&arg.value, need);
+                self.crossing(&arg.value, (need, crossing == MOVED));
             }
         }
     }
 
     /// `value` going to another thread as `need` asks: a lambda's captures
     /// (its owner keeps reaching `this` and statics: shareable), else itself.
-    fn crossing(&mut self, value: &Expr, need: Need) {
+    fn crossing(&mut self, value: &Expr, (need, moves): (Need, bool)) {
         if matches!(value.kind, ExprKind::Lambda { .. }) {
+            if moves {
+                self.moves_away(value);
+            }
             for c in self.types.captures(value).to_vec() {
                 let need = if c.kind == Captured::Local {
                     need
@@ -123,6 +126,19 @@ impl Checker<'_, '_, '_> {
             };
             self.crossing_error((name, &t), need, &b, value.span);
         }
+    }
+
+    /// Lambda `value`, moved to another thread: the locals it captures that
+    /// aren't `Copy` go with it (the code around it can't use them after).
+    fn moves_away(&mut self, value: &Expr) {
+        let names = self
+            .types
+            .captures(value)
+            .iter()
+            .filter(|c| c.kind == Captured::Local && !self.is_copy(&c.ty))
+            .map(|c| c.name.clone())
+            .collect();
+        self.types.set_moved_away(value, names);
     }
 
     /// `name` (a `t`) can't cross as `need` asks, blamed on `b`.

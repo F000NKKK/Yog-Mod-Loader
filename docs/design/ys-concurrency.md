@@ -167,10 +167,11 @@ As built (step 3):
   `this` (or a member of it by name) and statics must always be shareable,
   since their owner keeps reaching them. A value that isn't a lambda is
   checked itself (a channel's item).
-- Not yet: a captured local isn't marked moved for the caller after a
-  `Moved` crossing (borrowck), a method of `this` called by its name alone
-  doesn't count as capturing `this`, and `Scoped` doesn't allow anything
-  `Moved` refuses, since the model has no borrow types yet.
+- After a `Moved` crossing, the captured locals that aren't `Copy` are
+  moved for the code around it (borrowck): using them after is an error.
+  A method of `this` called by its name alone captures `this`.
+- Not yet: `Scoped` doesn't allow anything `Moved` refuses, since the
+  model has no borrow types yet.
 
 ## 3. Lowering
 

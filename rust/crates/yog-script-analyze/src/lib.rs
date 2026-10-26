@@ -144,7 +144,7 @@ pub fn check_in(name: &str, src: &str, env: Env<'_>) -> Checked {
             content: env.content.map(<[_]>::to_vec),
         };
         types = typeck::check(&file, side, (game, env.others), &mut report);
-        borrowck::check(&file, &mut report);
+        borrowck::check(&file, &types, &mut report);
     }
     Checked {
         file,

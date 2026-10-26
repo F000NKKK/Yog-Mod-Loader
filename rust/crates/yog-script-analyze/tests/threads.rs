@@ -55,13 +55,20 @@ fn this_and_statics_must_be_shareable() {
                    public i32 Done;\n\
                    public static i32 Total;\n\
                    [ThreadStatic] public static i32 Mine;\n\
+                   public i32 Step() => Done;\n\
+                   public static i32 Helper() => 1;\n\
                    public void Go() {\n\
                        Task.Run(() => Done + 1);\n\
+                       Task.Run(() => Step());\n\
+                       Task.Run(() => Helper());\n\
                        Task.Run(() => Total + Mine);\n\
                        Task.Run(() => Mine);\n\
                    }\n\
                }\n";
-    assert_eq!(codes(src), [script_problem::THREADS]);
+    assert_eq!(
+        codes(src),
+        [script_problem::THREADS, script_problem::THREADS]
+    );
 }
 
 #[test]
@@ -86,4 +93,18 @@ fn unsafe_skips_the_checks_with_a_warning() {
                    }\n\
                }\n";
     assert_eq!(codes(src), [script_problem::UNSAFE]);
+}
+
+#[test]
+fn what_a_thread_takes_is_moved_there() {
+    let src = "public static class A {\n\
+                   public static void Run() {\n\
+                       let items = new List<i32>();\n\
+                       let n = 3;\n\
+                       Task.Run(() => items.Count + n);\n\
+                       let again = n + 1;\n\
+                       let gone = items.Count;\n\
+                   }\n\
+               }\n";
+    assert_eq!(codes(src), [script_problem::MOVED]);
 }

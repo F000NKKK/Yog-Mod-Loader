@@ -90,6 +90,18 @@ impl Checker<'_, '_, '_> {
         }
     }
 
+    /// Method `name` of `this`'s type `owner` called by its name alone at
+    /// `at`: `this` captured, unless it's static.
+    pub(in super::super) fn method_read(&mut self, owner: &str, name: &str, at: Span) {
+        let instance = self
+            .own
+            .named(owner)
+            .is_some_and(|(_, o)| !o.static_methods.iter().any(|s| s == name));
+        if instance {
+            self.this_read(at);
+        }
+    }
+
     /// Static field `owner.name` (of type `ty`) read at `at`: reached by
     /// each lambda being checked, unless each thread has its own.
     pub(in super::super) fn static_field_read(
