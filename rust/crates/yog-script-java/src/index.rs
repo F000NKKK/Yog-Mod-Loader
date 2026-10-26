@@ -65,6 +65,12 @@ pub(crate) struct Index {
     /// Walking another source of the project: its Java class, which its
     /// types are nested in.
     elsewhere: Option<String>,
+    /// The project's own types (not the library's): what this compiler
+    /// writes, its generic ones taking their type arguments when made.
+    own: HashSet<TypeRef>,
+    /// Each type's static methods, by name: a generic own type's take its
+    /// type arguments (`$typeT`) as a generic method its own.
+    statics: HashSet<(TypeRef, String)>,
     /// The units the source declares (`unit Energy;`), beside the game's.
     units: HashSet<String>,
     /// Each `event`, by its type's name (the file's or a mod's: none) and
@@ -165,6 +171,14 @@ impl Index {
         };
         self.declared(&name.text, arity(&header.generics));
         for m in body {
+            if let DeclKind::Method(method) = &m.kind
+                && m.has(yog_script_analyze::ast::Modifier::Static)
+            {
+                self.statics.insert((
+                    (name.text.clone(), arity(&header.generics)),
+                    method.name.text.clone(),
+                ));
+            }
             if let DeclKind::Event { name: e, .. } = &m.kind {
                 self.events.insert(
                     (name.text.clone(), e.text.clone()),
@@ -319,6 +333,9 @@ impl Index {
     /// Type `name` of `arity` declared here: its arity noted, and its
     /// package when it's the library's.
     fn declared(&mut self, name: &str, arity: usize) {
+        if !self.library {
+            self.own.insert((name.to_string(), arity));
+        }
         self.namespaces.insert(
             name.to_string(),
             self.namespace.join(yog_script_ids::system::NAMESPACE_SEP),
@@ -461,6 +478,19 @@ impl Index {
                 .types
                 .get(t)
                 .is_some_and(|i| matches!(i.kind, Kind::Class | Kind::Struct) && !i.is_abstract)
+    }
+
+    /// Whether `t` is one of the project's own generic classes or structs:
+    /// made with its type arguments handed to its constructor (`T` known
+    /// there, as C#'s), not set on it after.
+    pub fn takes_types(&self, t: &TypeRef) -> bool {
+        self.keeps_types(t) && self.own.contains(t)
+    }
+
+    /// Whether `name` is a static method of `t` that takes `t`'s type
+    /// arguments first: one of an own generic type.
+    pub fn static_taking_types(&self, t: &TypeRef, name: &str) -> bool {
+        self.takes_types(t) && self.statics.contains(&(t.clone(), name.to_string()))
     }
 
     pub fn kind(&self, t: &TypeRef) -> Option<Kind> {

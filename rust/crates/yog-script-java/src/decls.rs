@@ -16,6 +16,7 @@ use yog_script_ids::java::{
     ABSTRACT, CLASS, DEFAULT, EXTENDS, FINAL, IMPLEMENTS, INTERFACE, NULL, OVERRIDE, PACKAGE,
     PRIVATE, PROTECTED, PUBLIC, RECORD, RETURN, STATIC, THIS, VOID,
 };
+use yog_script_ids::jvm::reflection::TYPE;
 use yog_script_ids::jvm::{OBJECTS, REF, TO_STRING};
 
 /// Where a member is written.
@@ -142,13 +143,24 @@ impl Gen<'_> {
             .as_ref()
             .map_or_else(|| VOID.to_string(), |t| self.written(t, false));
         let void = m.ret.is_none();
-        let generics = generic_list(&m.generics);
-        let generics = if generics.is_empty() {
+        // A static one of an own generic type: generic over its type's
+        // parameters too (Java's statics can't reach a class's), handed
+        // their values first.
+        let class_handed = self.static_type_params(d).unwrap_or_default();
+        let mut names: Vec<String> = class_handed.iter().map(|(g, _)| g.clone()).collect();
+        names.extend(m.generics.iter().filter(|g| !g.lifetime).map(|g| g.name.text.clone()));
+        let generics = if names.is_empty() {
             String::new()
         } else {
-            format!("{generics} ")
+            format!("<{}> ", names.join(", "))
         };
         let params = self.method_params(m);
+        let params = class_handed
+            .iter()
+            .map(|(_, v)| format!("{TYPE} {v}"))
+            .chain((!params.is_empty()).then_some(params))
+            .collect::<Vec<_>>()
+            .join(", ");
         let name = match &self.owner {
             Some(owner) => Self::ident(&self.index.java_name(owner, m)),
             None => Self::ident(&m.name.text),

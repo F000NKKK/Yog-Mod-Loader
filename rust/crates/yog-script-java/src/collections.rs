@@ -35,7 +35,7 @@ impl Gen<'_> {
             Type::Own(name, args)
         };
         let java = self.java(&made, false);
-        let new = self.made_of_type(&made, format!("{NEW} {java}()"));
+        let new = self.new_of(&made, &java, "");
         let t = self.temp();
         self.code.line(format!("{VAR} {t} = {new};"));
         for i in items {

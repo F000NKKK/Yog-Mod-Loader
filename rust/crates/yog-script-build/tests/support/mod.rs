@@ -32,11 +32,10 @@ pub fn run(sources: &[(&str, &str)], expr: &str) -> Option<String> {
         eprintln!("SKIPPED: no JDK at {} or no {}", jdk.display(), jar.display());
         return None;
     }
-    let work = std::env::temp_dir().join(format!(
-        "yog-script-jvm-{}-{}",
-        std::process::id(),
-        expr.len() ^ sources.len() << 8
-    ));
+    // One folder a run: tests run side by side.
+    static RUNS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let n = RUNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let work = std::env::temp_dir().join(format!("yog-script-jvm-{}-{n}", std::process::id()));
     let _ = std::fs::remove_dir_all(&work);
     let src = work.join("src").join(PACKAGE);
     std::fs::create_dir_all(&src).unwrap();

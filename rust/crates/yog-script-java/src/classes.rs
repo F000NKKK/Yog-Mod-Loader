@@ -199,7 +199,9 @@ impl Gen<'_> {
     }
 
     /// The primary constructor (when there's no other, or it has
-    /// parameters) and each written one.
+    /// parameters) and each written one. An own generic type's take its
+    /// type arguments first (`Type[] $types`): kept on it at once, its `T`
+    /// is known in them as anywhere (C#'s).
     fn constructors(&mut self, name: &str, header: &TypeHeader, body: &[Decl]) {
         let ctors: Vec<&Ctor> = body
             .iter()
@@ -208,35 +210,114 @@ impl Gen<'_> {
                 _ => None,
             })
             .collect();
-        let primary = header.ctor.as_deref().unwrap_or_default();
-        if ctors.is_empty() || !primary.is_empty() {
-            let params = self.params(primary);
-            self.code.open(format!("{PUBLIC} {name}({params})"));
-            self.code.line(format!("{SUPER}();"));
-            self.first_values(body);
-            self.code.close("");
-        }
-        for c in ctors {
-            let params = self.params(&c.params);
-            self.code.open(format!("{PUBLIC} {name}({params})"));
-            match &c.chain {
-                Some((Chain::This, args)) => {
-                    let args = self.args(args);
-                    self.code.line(format!("{THIS}({args});"));
-                }
-                other => {
-                    let args = match other {
-                        Some((_, args)) => self.args(args),
-                        None => String::new(),
-                    };
-                    self.code.line(format!("{SUPER}({args});"));
-                    self.first_values(body);
-                }
+        let taking = self.made_with_types(header);
+        // `T` in them: the arguments handed.
+        let mapping: Vec<(String, String)> = header
+            .generics
+            .iter()
+            .filter(|g| !g.lifetime)
+            .enumerate()
+            .filter(|_| taking)
+            .map(|(i, g)| (g.name.text.clone(), format!("{TYPES_FIELD}[{i}]")))
+            .collect();
+        self.with_type_params(mapping, |g| {
+            let primary = header.ctor.as_deref().unwrap_or_default();
+            if ctors.is_empty() || !primary.is_empty() {
+                let params = g.ctor_params(primary, taking);
+                g.code.open(format!("{PUBLIC} {name}({params})"));
+                let base = g.base_types(header);
+                g.code.line(format!("{SUPER}({base});"));
+                g.keep_types(taking);
+                g.first_values(body);
+                g.code.close("");
             }
-            let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&c.params));
-            self.with_boxed(&c.body.stmts, |g| g.block_stmts(&c.body));
-            self.cells = outer;
-            self.code.close("");
+            for c in ctors {
+                g.constructor(name, (header, body), c, taking);
+            }
+        });
+    }
+
+    /// Written constructor `c` of a type (`taking` its type arguments).
+    fn constructor(&mut self, name: &str, (header, body): (&TypeHeader, &[Decl]), c: &Ctor, taking: bool) {
+        let params = self.ctor_params(&c.params, taking);
+        self.code.open(format!("{PUBLIC} {name}({params})"));
+        match &c.chain {
+            Some((Chain::This, args)) => {
+                let args = self.args(args);
+                let args = if taking {
+                    joined(TYPES_FIELD, &args)
+                } else {
+                    args
+                };
+                self.code.line(format!("{THIS}({args});"));
+            }
+            other => {
+                let args = match other {
+                    Some((_, args)) => self.args(args),
+                    None => String::new(),
+                };
+                let base = self.base_types(header);
+                let args = if base.is_empty() { args } else { joined(&base, &args) };
+                self.code.line(format!("{SUPER}({args});"));
+                self.keep_types(taking);
+                self.first_values(body);
+            }
+        }
+        let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&c.params));
+        self.with_boxed(&c.body.stmts, |g| g.block_stmts(&c.body));
+        self.cells = outer;
+        self.code.close("");
+    }
+
+    /// Whether the type of `header` (the one being written) is an own
+    /// generic one: made with its type arguments handed.
+    fn made_with_types(&self, header: &TypeHeader) -> bool {
+        self.owner
+            .as_ref()
+            .is_some_and(|key| self.index.takes_types(key))
+            && header.generics.iter().any(|g| !g.lifetime)
+    }
+
+    /// A constructor's parameters, its type arguments' first when `taking`.
+    fn ctor_params(&mut self, params: &[Param], taking: bool) -> String {
+        let params = self.params(params);
+        if taking {
+            joined(&format!("{TYPE}[] {TYPES_FIELD}"), &params)
+        } else {
+            params
+        }
+    }
+
+    /// The type arguments handed on to the base's constructor, when it's an
+    /// own generic one (its own written in terms of this one's `T`).
+    fn base_types(&mut self, header: &TypeHeader) -> String {
+        let Some(base) = header.bases.first() else {
+            return String::new();
+        };
+        let yog_script_analyze::ast::TypeKind::Path { path, args } = &base.kind else {
+            return String::new();
+        };
+        let Some(last) = path.last() else {
+            return String::new();
+        };
+        if !self.index.takes_types(&(last.text.clone(), args.len())) {
+            return String::new();
+        }
+        let values: Vec<String> = args
+            .iter()
+            .map(|a| {
+                self.type_value(a, &|_| None)
+                    .unwrap_or_else(|| yog_script_ids::java::NULL.into())
+            })
+            .collect();
+        format!("{NEW} {TYPE}[] {{ {} }}", values.join(", "))
+    }
+
+    /// `this.$types = $types;`: the arguments kept as soon as the base is made.
+    fn keep_types(&mut self, taking: bool) {
+        if taking {
+            self.code
+                .line(format!("{THIS}.{TYPES_FIELD} = {TYPES_FIELD};"));
         }
     }
 
@@ -350,4 +431,13 @@ fn fields(body: &[Decl]) -> Vec<(&yog_script_analyze::ast::Type, &str)> {
             _ => None,
         })
         .collect()
+}
+
+/// `first` and then `rest` (a list of arguments or parameters), as Java writes them.
+fn joined(first: &str, rest: &str) -> String {
+    if rest.is_empty() {
+        first.to_string()
+    } else {
+        format!("{first}, {rest}")
+    }
 }

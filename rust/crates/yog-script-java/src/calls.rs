@@ -354,15 +354,6 @@ impl Gen<'_> {
         }
     }
 
-    /// `made`, a generic own type's object, keeping the type arguments it's
-    /// made with when they're known here (`GetType()` gives them).
-    fn made_keeping_types(&mut self, e: &Expr, made: String) -> String {
-        match self.types.of(e).cloned() {
-            Some(t) => self.made_of_type(&t, made),
-            None => made,
-        }
-    }
-
     pub(crate) fn new_object(
         &mut self,
         e: &Expr,
@@ -382,7 +373,10 @@ impl Gen<'_> {
         if matches!(self.types.of(e), Some(Type::Yog(h)) if yog::is_handle(h)) {
             return a;
         }
-        let made = self.made_keeping_types(e, format!("{NEW} {t}({a})"));
+        let made = match self.types.of(e).cloned() {
+            Some(of) => self.new_of(&of, &t, &a),
+            None => format!("{NEW} {t}({a})"),
+        };
         if init.is_empty() {
             return made;
         }

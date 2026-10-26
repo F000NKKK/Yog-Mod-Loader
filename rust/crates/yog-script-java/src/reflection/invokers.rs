@@ -74,7 +74,20 @@ impl Gen<'_> {
                 let sep = if args.is_empty() { "" } else { ", " };
                 format!("{host}.{n}(({value}) {OBJECT}{sep}{args})")
             }
-            _ if stat => format!("{}.{n}({args})", owner.raw),
+            _ if stat => {
+                // An own generic type's take its type arguments first: not
+                // known to a reflective call.
+                let class_args = if self.index.static_taking_types(&owner_ref, &m.name.text) {
+                    vec![NULL; owner.arity]
+                } else {
+                    Vec::new()
+                };
+                let all: Vec<&str> = class_args
+                    .into_iter()
+                    .chain((!args.is_empty()).then_some(args.as_str()))
+                    .collect();
+                format!("{}.{n}({})", owner.raw, all.join(", "))
+            }
             _ => format!("(({}) {OBJECT}).{n}({args})", owner.raw),
         };
         let gives = m.ret.is_some();

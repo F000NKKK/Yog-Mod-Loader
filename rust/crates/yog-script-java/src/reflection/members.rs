@@ -175,6 +175,14 @@ impl Gen<'_> {
         params: &[Param],
     ) -> String {
         let args = self.args_cast(owner, (params, 0), &[]);
+        // An own generic type's take its type arguments first: not known
+        // to a reflective call (its `MakeGenericType` keeps them after).
+        let args = if self.index.takes_types(&(owner.name.to_string(), owner.arity)) {
+            let sep = if args.is_empty() { "" } else { ", " };
+            format!("({}[]) {}{sep}{args}", yog_script_ids::jvm::reflection::TYPE, yog_script_ids::java::NULL)
+        } else {
+            args
+        };
         let made = format!("{NEW} {}({args})", owner.raw);
         let runtime = self.index.is_intrinsic(owner.name);
         let make = match around_cells((params, 0), &made, (true, runtime)) {

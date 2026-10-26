@@ -272,7 +272,7 @@ fn members_are_described_with_their_uses() {
         "d.Field(\"Item\", 0, d.Parameter(0), o -> ((Box) o).Item, (o, v) -> ((Box) o).Item = v);",
         "d.Field(\"Max\", dev.yog.script.reflection.MemberInfo.STATIC | dev.yog.script.reflection.MemberInfo.LITERAL, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> Box.Max, null);",
         "d.Property(\"Label\", 0, dev.yog.script.Type.Of(dev.yog.script.host.String.class), o -> ((Box) o).Label(), null);",
-        "d.Constructor(0, a -> new Box(a[0])).Takes(\"item\", d.Parameter(0), false);",
+        "d.Constructor(0, a -> new Box((dev.yog.script.Type[]) null, a[0])).Takes(\"item\", d.Parameter(0), false);",
         "d.Method(\"Set\", 0, new String[] {  }, (o, a) -> { ((Box) o).Set(a[0], (Integer) a[1]); return null; })",
         ".Takes(\"times\", dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), true);",
         "d.Property(\"X\", 0, dev.yog.script.Type.Of(dev.yog.script.host.Int32.class), o -> ((Pos) o).X(), null);",
@@ -388,7 +388,7 @@ fn generic_objects_keep_their_arguments() {
     for want in [
         "implements dev.yog.script.Typed",
         "private dev.yog.script.Type[] $types;",
-        "dev.yog.script.Type.made(new Box<Integer>(1), $kept1)",
+        "new Box<Integer>($kept1, 1)",
         // Each list of arguments a constant of the class, worked out once.
         "private static final dev.yog.script.Type[] $kept1 = new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int32.class) };",
         // The runtime's collections keep theirs too.
