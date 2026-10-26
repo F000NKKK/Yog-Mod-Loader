@@ -10,6 +10,7 @@ use super::Gen;
 use crate::decls::{Place, generic_list};
 use crate::index::Kind;
 
+use yog_script_ids::jvm::reflection::{TYPE, TYPED, TYPES_FIELD};
 use yog_script_ids::jvm::{BUS_CALL, CLONEABLE, COPY, REQUEST};
 
 /// A type argument not known (`Box<?>`).
@@ -52,6 +53,11 @@ impl Gen<'_> {
         if struct_ {
             implements.push(CLONEABLE.into());
         }
+        // A generic one keeps the type arguments it's made with (`GetType()`).
+        let generic = header.generics.iter().any(|g| !g.lifetime);
+        if generic {
+            implements.push(TYPED.into());
+        }
         let implements = if implements.is_empty() {
             String::new()
         } else {
@@ -79,6 +85,9 @@ impl Gen<'_> {
                 Self::ident(f.1)
             ));
         }
+        if generic {
+            self.typed_members();
+        }
         self.constructors(name, header, body);
         self.members(body, Place::Class);
         self.inherited_getters(&(ys.to_string(), arity), body);
@@ -102,6 +111,17 @@ impl Gen<'_> {
             self.code.close("");
         }
         self.code.close("");
+    }
+
+    /// What keeps a generic object's type arguments (`Typed`).
+    fn typed_members(&mut self) {
+        self.code.line(format!("private {TYPE}[] {TYPES_FIELD};"));
+        self.code.line(format!(
+            "@Override public {TYPE}[] {TYPES_FIELD}() {{ return {TYPES_FIELD}; }}"
+        ));
+        self.code.line(format!(
+            "@Override public void {TYPES_FIELD}({TYPE}[] arguments) {{ this.{TYPES_FIELD} = arguments; }}"
+        ));
     }
 
     /// Type `name`'s own name in Java (`header`'s arity told apart, as

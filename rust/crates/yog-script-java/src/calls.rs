@@ -282,6 +282,32 @@ impl Gen<'_> {
         }
     }
 
+    /// `made`, a generic own type's object, keeping the type arguments it's
+    /// made with when they're known here (`GetType()` gives them).
+    fn made_keeping_types(&self, e: &Expr, made: String) -> String {
+        let Some(Type::Own(name, args)) = self.types.of(e) else {
+            return made;
+        };
+        let compiled = matches!(
+            self.index.kind(&(name.clone(), args.len())),
+            Some(Kind::Class | Kind::Struct)
+        ) && !self.index.is_intrinsic(name);
+        let values = args
+            .iter()
+            .map(|a| self.value_of(a))
+            .collect::<Option<Vec<_>>>();
+        match values {
+            Some(values) if compiled && !values.is_empty() => {
+                use yog_script_ids::jvm::reflection::{MADE, TYPE};
+                format!(
+                    "{TYPE}.{MADE}({made}, new {TYPE}[] {{ {} }})",
+                    values.join(", ")
+                )
+            }
+            _ => made,
+        }
+    }
+
     pub(crate) fn new_object(
         &mut self,
         e: &Expr,
@@ -301,7 +327,7 @@ impl Gen<'_> {
         if matches!(self.types.of(e), Some(Type::Yog(h)) if yog::is_handle(h)) {
             return a;
         }
-        let made = format!("new {t}({a})");
+        let made = self.made_keeping_types(e, format!("new {t}({a})"));
         if init.is_empty() {
             return made;
         }

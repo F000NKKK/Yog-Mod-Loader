@@ -4,10 +4,12 @@
 
 use yog_script_analyze::ast::{Type as Written, TypeKind};
 use yog_script_analyze::{Type, builtin_type, system_name, system_type};
-use yog_script_ids::jvm::reflection::{OF, TYPE};
+use yog_script_ids::jvm::reflection::{OF_TYPE, TYPE};
 use yog_script_ids::members::{MAKE_ARRAY_TYPE, MAKE_GENERIC_TYPE};
+use yog_script_ids::system::NULLABLE;
 
 use crate::Gen;
+use crate::index::Kind;
 
 /// What names a Java class as a value.
 const CLASS: &str = ".class";
@@ -45,8 +47,15 @@ impl Gen<'_> {
                     &args,
                 ))
             }
-            // A reference's `?` is the type; a number's isn't there yet (`Nullable<T>`).
-            TypeKind::Nullable(inner) => self.type_value(inner, param),
+            // A value type's `?` is `Nullable<T>`; a reference's, the type.
+            TypeKind::Nullable(inner) => {
+                let v = self.type_value(inner, param)?;
+                Some(if self.written_value_type(inner) {
+                    self.nullable(v)
+                } else {
+                    v
+                })
+            }
             TypeKind::Array { item, rank } => self
                 .type_value(item, param)
                 .map(|i| format!("{i}.{MAKE_ARRAY_TYPE}({rank})")),
@@ -66,7 +75,14 @@ impl Gen<'_> {
     pub(crate) fn value_of(&self, t: &Type) -> Option<String> {
         match t {
             Type::Param(_) | Type::Unknown => None,
-            Type::Nullable(inner) => self.value_of(inner),
+            Type::Nullable(inner) => {
+                let v = self.value_of(inner)?;
+                Some(if self.value_type(inner) {
+                    self.nullable(v)
+                } else {
+                    v
+                })
+            }
             Type::Array(item, rank) => self
                 .value_of(item)
                 .map(|i| format!("{i}.{MAKE_ARRAY_TYPE}({rank})")),
@@ -115,9 +131,47 @@ impl Gen<'_> {
     }
 }
 
+impl Gen<'_> {
+    /// `Nullable<T>` of type value `inner`.
+    fn nullable(&self, inner: String) -> String {
+        made_of(of_class(&self.index.place(NULLABLE, 1)), &[inner])
+    }
+
+    /// Whether `t` is a value type: a number, `bool`, `char`, `decimal`, a
+    /// struct, an enum, a tuple.
+    fn value_type(&self, t: &Type) -> bool {
+        match t {
+            Type::Own(name, args) => matches!(
+                self.index.kind(&(name.clone(), args.len())),
+                Some(Kind::Struct | Kind::Enum)
+            ),
+            Type::Tuple(..) | Type::Decimal => true,
+            other => crate::types::primitive(other).is_some(),
+        }
+    }
+
+    /// Whether written type `t` is a value type.
+    fn written_value_type(&self, t: &Written) -> bool {
+        match &t.kind {
+            TypeKind::Path { path, args } => {
+                let name = path.last().map_or("", |n| n.text.as_str());
+                match builtin_type(name).or_else(|| system_type(name)) {
+                    Some(b) if args.is_empty() => self.value_type(&b),
+                    _ => matches!(
+                        self.index.kind(&(name.to_string(), args.len())),
+                        Some(Kind::Struct | Kind::Enum)
+                    ),
+                }
+            }
+            TypeKind::Tuple(_) => true,
+            _ => false,
+        }
+    }
+}
+
 /// `Type.Of(class.class)`.
 pub(crate) fn of_class(class: &str) -> String {
-    format!("{TYPE}.{OF}({class}{CLASS})")
+    format!("{TYPE}.{OF_TYPE}({class}{CLASS})")
 }
 
 /// Definition `def` made of `args`, when there are any.

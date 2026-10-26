@@ -5,7 +5,9 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
-use yog_script_ids::jvm::{DOUBLE, FLOAT, HELPERS, INT, LONG, OBJECT};
+use yog_script_ids::jvm::{
+    DOUBLE, EQUALS, FLOAT, HELPERS, INT, LONG, OBJECT, OBJECTS, REQUIRE_NON_NULL_ELSE,
+};
 use yog_script_ids::members::TO_STRING;
 
 use super::Gen;
@@ -235,9 +237,9 @@ impl Gen<'_> {
         let objects =
             !matches!(self.types.of(left).map(|t| t.non_null()), Some(t) if primitive(t).is_some());
         match op {
-            BinOp::Eq if objects => format!("java.util.Objects.equals({l}, {r})"),
-            BinOp::NotEq if objects => format!("!java.util.Objects.equals({l}, {r})"),
-            BinOp::Coalesce => format!("java.util.Objects.requireNonNullElse({l}, {r})"),
+            BinOp::Eq if objects => format!("{OBJECTS}.{EQUALS}({l}, {r})"),
+            BinOp::NotEq if objects => format!("!{OBJECTS}.{EQUALS}({l}, {r})"),
+            BinOp::Coalesce => format!("{OBJECTS}.{REQUIRE_NON_NULL_ELSE}({l}, {r})"),
             BinOp::In => self.contains(right, &l, &r),
             // A `u64`'s bits shift in zeros: Java's unsigned shift.
             BinOp::Shr if self.types.of(left).map(Type::non_null) == Some(&Type::U64) => {

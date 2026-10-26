@@ -24,8 +24,19 @@ pub const FOLDER_SEP: char = '/';
 /// `Err(e)`), as Rust's prelude brings them.
 pub const RESULT: &str = "Result";
 
+/// A value type's `T?` as Reflection names it (`Nullable<Int32>`).
+pub const NULLABLE: &str = "Nullable";
+
 /// What `typeof(T)` and `x.GetType()` give: a type as a value (`System.Type`).
-pub const TYPE: &str = "Type";
+pub const TYPE: &str = type_name!();
+
+/// `System.Type`'s name as a literal, for names composed of it (`concat!`).
+macro_rules! type_name {
+    () => {
+        "Type"
+    };
+}
+pub(crate) use type_name;
 
 /// An expression tree of a delegate (`System.Linq.Expressions.Expression<TDelegate>`):
 /// a lambda given where one is wanted is quoted.

@@ -1,9 +1,74 @@
 //! Where Yog Script's runtime is on the JVM (`java-api`'s
-//! `dev.yog.script`), and the names of it compiled code calls.
+//! `dev.yog.script`), and the names of it compiled code calls. A name of a
+//! package or a class is composed of the one above it — Yog's Java root,
+//! the runtime under it, Reflection under that — by literal macros.
+
+use crate::system;
+use crate::system::type_name;
+
+/// Each part of the names below as a literal, a macro each, so `concat!`
+/// joins them at build time: what joins a package's names, Yog's Java root
+/// (`java-api`'s and `java-common`'s packages are under it), the runtime
+/// under it, its Reflection, Java's packages compiled code names classes of.
+macro_rules! sep {
+    () => {
+        "."
+    };
+}
+macro_rules! java_root {
+    () => {
+        "dev.yog"
+    };
+}
+macro_rules! runtime {
+    () => {
+        concat!(java_root!(), sep!(), "script")
+    };
+}
+macro_rules! reflection {
+    () => {
+        concat!(runtime!(), sep!(), "reflection")
+    };
+}
+macro_rules! java_util {
+    () => {
+        "java.util"
+    };
+}
+macro_rules! java_math {
+    () => {
+        "java.math"
+    };
+}
+
+/// What joins a Java package's names, a class's to it, a member's to a class.
+pub const SEP: &str = sep!();
 
 /// The runtime's package: the System library's, its sub-namespaces under
 /// it by their lowercased names.
-pub const RUNTIME: &str = "dev.yog.script";
+pub const RUNTIME: &str = runtime!();
+
+/// Java's classes compiled code names.
+pub const OBJECTS: &str = concat!(java_util!(), sep!(), "Objects");
+pub const MAP: &str = concat!(java_util!(), sep!(), "Map");
+pub const SUPPLIER: &str = concat!(java_util!(), sep!(), "function", sep!(), "Supplier");
+/// The precision a `decimal`'s division keeps (.NET's 28–29 digits: 34).
+pub const DIVISION_CONTEXT: &str =
+    concat!(java_math!(), sep!(), "MathContext", sep!(), "DECIMAL128");
+pub const ARRAY_LIST: &str = concat!(java_util!(), sep!(), "ArrayList");
+
+/// Their members compiled code calls: `Objects`' equality, hash and
+/// fallback, a map's entries.
+pub const HASH: &str = "hash";
+pub const REQUIRE_NON_NULL_ELSE: &str = "requireNonNullElse";
+pub const ENTRY: &str = "entry";
+pub const OF_ENTRIES: &str = "ofEntries";
+
+/// What a Java-only helper of the runtime making or finding a value by its
+/// key is named (`Library.of(c)`, `Mode.of(5)`); a library type's own
+/// (`Type.Of(c)`, `Array.Of(items, int[].class)`) as its members are.
+pub const OF: &str = "of";
+pub const OF_MEMBER: &str = "Of";
 
 /// The runtime's package of built-in types' members' companions
 /// (`[Host]`), apart so `String` there doesn't hide Java's.
@@ -17,13 +82,21 @@ pub const HELPERS: &str = "Ys";
 pub const BEFORE: &str = "before";
 
 /// What every mod's class implements, the runtime finding it by.
-pub const MOD_INTERFACE: &str = "dev.yog.script.YsMod";
+pub const MOD_INTERFACE: &str = concat!(runtime!(), sep!(), "YsMod");
 
 /// What a source's class is named after its file: `Glassy` + this.
 pub const CLASS_SUFFIX: &str = "Script";
 
 /// The bus's call for Java code (`java-common`'s `dev.yog.api.YogBus`).
-pub const BUS_CALL: &str = "dev.yog.api.YogBus.call";
+pub const BUS_CALL: &str = concat!(
+    java_root!(),
+    sep!(),
+    "api",
+    sep!(),
+    "YogBus",
+    sep!(),
+    "call"
+);
 
 /// A request record's name: its method's, and this.
 pub const REQUEST: &str = "Request";
@@ -37,7 +110,7 @@ pub const VIEW: &str = "view";
 
 /// `System.Array`'s companion's maker of a typed array out of what
 /// generic code gave (`Object[]`): `Array.Of(items, int[].class)`.
-pub const TYPED_ARRAY: &str = "Of";
+pub const TYPED_ARRAY: &str = OF_MEMBER;
 
 /// `java.lang.Object`'s members a type's own `Equals`, `GetHashCode` and
 /// `ToString` stand behind, so Java's collections and strings use them.
@@ -52,7 +125,7 @@ pub const MEMBER_SEP: char = '$';
 /// Java's types compiled code names.
 pub const STRING: &str = "String";
 pub const OBJECT: &str = "Object";
-pub const BIG_DECIMAL: &str = "java.math.BigDecimal";
+pub const BIG_DECIMAL: &str = concat!(java_math!(), sep!(), "BigDecimal");
 pub const CLONEABLE: &str = "Cloneable";
 /// What separates a package's segments in a class file's names
 /// (`net/minecraft/world`), and a nested class from its outer one.
@@ -87,10 +160,12 @@ pub const BOXED: [(&str, &str); 8] = [
 /// Reflection as compiled code reaches it: a type's description is in its
 /// class's `$TYPE` (`Type.Declare(…)`), a type as a value is `Type.Of(X.class)`.
 pub mod reflection {
+    use super::{OF, OF_MEMBER, system, type_name};
+
     /// `System.Type`'s class, in full: a source's own `Type` doesn't hide it.
-    pub const TYPE: &str = "dev.yog.script.Type";
+    pub const TYPE: &str = concat!(runtime!(), sep!(), type_name!());
     pub const FIELD: &str = "$TYPE";
-    pub const OF: &str = "Of";
+    pub const OF_TYPE: &str = OF_MEMBER;
     pub const DECLARE: &str = "Declare";
     /// The description's: the class it inherits, an interface, a type parameter.
     pub const BASE: &str = "Base";
@@ -102,22 +177,28 @@ pub mod reflection {
     pub const INTERFACE_TRAIT: &str = "INTERFACE";
     pub const ENUM: &str = "ENUM";
     pub const DELEGATE: &str = "DELEGATE";
+    /// Abstract: a type's flag and a member's, of one name.
     pub const ABSTRACT: &str = "ABSTRACT";
     pub const SEALED: &str = "SEALED";
     pub const PRIMITIVE: &str = "PRIMITIVE";
     /// The runtime's hand-written types' descriptions: a companion each
     /// (`Int32Companion.TYPE`) in this package, found by their classes through
     /// `Library.of`; `System.Array`'s and an array's interfaces' there too.
-    pub const PACKAGE: &str = "dev.yog.script.reflection.library";
+    pub const PACKAGE: &str = concat!(reflection!(), sep!(), "library");
     pub const COMPANION_SUFFIX: &str = "Companion";
     pub const COMPANION_FIELD: &str = "TYPE";
     pub const LIBRARY: &str = "Library";
-    pub const LIBRARY_OF: &str = "of";
+    pub const LIBRARY_OF: &str = OF;
     pub const LIBRARY_ARRAY: &str = "array";
     pub const LIBRARY_ARRAY_INTERFACES: &str = "arrayInterfaces";
+    /// A generic object keeping the type arguments it was made with:
+    /// `Type.made(new Box<>(…), args)`, its class `Typed` by its `$types`.
+    pub const TYPED: &str = concat!(runtime!(), sep!(), "Typed");
+    pub const TYPES_FIELD: &str = "$types";
+    pub const MADE: &str = "made";
     /// What fills a type's description, beside `$TYPE` (`Box::$describe`).
     pub const DESCRIBE: &str = "$describe";
-    pub const DESCRIPTION: &str = "dev.yog.script.reflection.TypeDescription";
+    pub const DESCRIPTION: &str = concat!(reflection!(), sep!(), "TypeDescription");
     /// The description's members, each a call: a field, a property, a method
     /// (its result and parameters after it), a constructor, a method's own
     /// type parameter.
@@ -128,14 +209,14 @@ pub mod reflection {
     pub const TAKES: &str = "Takes";
     pub const CONSTRUCTOR: &str = "Constructor";
     pub const METHOD_PARAMETER: &str = "MethodParameter";
-    /// An attribute's maker: on the member described last; before any, on the type.
-    pub const ATTRIBUTE: &str = "Attribute";
+    /// An attribute's maker, named after `System.Attribute`: on the member
+    /// described last; before any, on the type.
+    pub const ATTRIBUTE: &str = system::ATTRIBUTE;
     /// What a member is, `MemberInfo`'s flags.
-    pub const MEMBER_INFO: &str = "dev.yog.script.reflection.MemberInfo";
+    pub const MEMBER_INFO: &str = concat!(reflection!(), sep!(), "MemberInfo");
     pub const STATIC: &str = "STATIC";
     pub const PRIVATE: &str = "PRIVATE";
     pub const PROTECTED: &str = "PROTECTED";
-    pub const ABSTRACT_MEMBER: &str = "ABSTRACT";
     pub const VIRTUAL: &str = "VIRTUAL";
     pub const INIT_ONLY: &str = "INIT_ONLY";
     pub const LITERAL: &str = "LITERAL";
@@ -162,14 +243,17 @@ pub mod trees {
 /// class of its numbers' `TABLE`, a value made of a number by `of`, read
 /// back by `value()`, two compared by `Enum.compare`.
 pub mod enums {
+    use super::{OF as JAVA_OF, system};
+
     pub const TABLE_CLASS: &str = "Table";
     pub const TABLE: &str = "TABLE";
     pub const TABLE_OF: &str = "table";
-    pub const OF: &str = "of";
+    pub const OF: &str = JAVA_OF;
     pub const VALUE: &str = "value";
     pub const COMPARE: &str = "compare";
     /// The table's: its base type's width, its cases carrying data, `[Flags]`.
     pub const WIDTH: &str = "Width";
     pub const CARRYING: &str = "Carrying";
-    pub const FLAGS: &str = "Flags";
+    /// Named after the `[Flags]` attribute it stands for.
+    pub const FLAGS: &str = system::FLAGS;
 }

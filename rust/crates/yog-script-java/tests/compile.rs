@@ -369,6 +369,23 @@ fn a_tree_has_news_text_lambdas_and_operators() {
 }
 
 #[test]
+fn generic_objects_keep_their_arguments() {
+    let src = "class Box<T>(T item) {\n    public T Item = item;\n}\n\
+               object Made() => new Box<i32>(1);\n\
+               Type Nullable() => typeof(i32?);\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "implements dev.yog.script.Typed",
+        "private dev.yog.script.Type[] $types;",
+        "dev.yog.script.Type.made(new Box<Integer>(1), new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int32.class) })",
+        // A value type's `?` is `Nullable<T>`.
+        "dev.yog.script.Type.Of(dev.yog.script.Nullable.class).MakeGenericType(",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));

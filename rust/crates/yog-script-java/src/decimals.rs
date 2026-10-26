@@ -9,7 +9,7 @@ use yog_script_ids::clr::{DECIMAL, OP_IMPLICIT};
 use super::Gen;
 
 /// The precision a `decimal` division keeps (.NET's 28-29 digits).
-const DIVISION: &str = "java.math.MathContext.DECIMAL128";
+const DIVISION: &str = yog_script_ids::jvm::DIVISION_CONTEXT;
 
 impl Gen<'_> {
     /// Whether `left op right` is a `decimal`'s (`e` its whole).

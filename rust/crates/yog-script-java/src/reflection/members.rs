@@ -6,7 +6,7 @@ use yog_script_analyze::ast::{Accessor, Decl, DeclKind, Modifier, Param, Type as
 use yog_script_analyze::words::{get, init, set};
 use yog_script_ids::clr::ACCESSOR_SEP;
 use yog_script_ids::jvm::reflection::{
-    ABSTRACT_MEMBER, CONSTRUCTOR, FIELD_MEMBER, INIT_ONLY, LITERAL, MEMBER_INFO, METHOD_PARAMETER,
+    ABSTRACT, CONSTRUCTOR, FIELD_MEMBER, INIT_ONLY, LITERAL, MEMBER_INFO, METHOD_PARAMETER,
     PARAMETER, PRIVATE, PROPERTY, PROTECTED, STATIC, TAKES, VIRTUAL,
 };
 
@@ -259,7 +259,7 @@ pub(super) fn member_traits(d: &Decl) -> String {
         (d.has(Modifier::Static) || d.has(Modifier::Const), STATIC),
         (d.has(Modifier::Private), PRIVATE),
         (d.has(Modifier::Protected), PROTECTED),
-        (d.has(Modifier::Abstract), ABSTRACT_MEMBER),
+        (d.has(Modifier::Abstract), ABSTRACT),
         (
             d.has(Modifier::Virtual) || d.has(Modifier::Override),
             VIRTUAL,

@@ -4,7 +4,7 @@
 //! so a set or a dictionary's key finds a struct by its value.
 
 use yog_script_analyze::ast::{Decl, DeclKind, Method, Modifier};
-use yog_script_ids::jvm::{EQUALS, HASH_CODE, INT, OBJECT, STRING, TO_STRING};
+use yog_script_ids::jvm::{EQUALS, HASH, HASH_CODE, INT, OBJECT, OBJECTS, STRING, TO_STRING};
 use yog_script_ids::members::{EQUALS as YS_EQUALS, GET_HASH_CODE, TO_STRING as YS_TO_STRING};
 
 use super::Gen;
@@ -26,14 +26,14 @@ impl Gen<'_> {
         } else if let Some(fields) = &fields {
             let same: Vec<String> = fields
                 .iter()
-                .map(|f| format!("java.util.Objects.equals({f}, that.{f})"))
+                .map(|f| format!("{OBJECTS}.{EQUALS}({f}, that.{f})"))
                 .collect();
             self.equals(name, &all_of(&same));
         }
         if own_method(body, GET_HASH_CODE, 0) {
             self.bridge(INT, HASH_CODE, &format!("{GET_HASH_CODE}()"));
         } else if let Some(fields) = &fields {
-            let hash = format!("java.util.Objects.hash({})", fields.join(", "));
+            let hash = format!("{OBJECTS}.{HASH}({})", fields.join(", "));
             self.bridge(INT, HASH_CODE, &hash);
         }
         if own_method(body, YS_TO_STRING, 0) {

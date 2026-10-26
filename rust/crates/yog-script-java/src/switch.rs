@@ -7,6 +7,7 @@ use yog_script_analyze::ast::{Arm, Expr, ExprKind, Pattern, TypeKind};
 use super::Gen;
 use crate::index::Kind;
 use crate::types::RUNTIME;
+use yog_script_ids::jvm::{EQUALS, OBJECTS};
 
 impl Gen<'_> {
     pub(crate) fn switch(&mut self, e: &Expr, on: &Expr, arms: &[Arm]) -> String {
@@ -90,8 +91,7 @@ impl Gen<'_> {
             }
             Pattern::Value(x) => {
                 let x = self.expr(x);
-                self.code
-                    .open(format!("if (java.util.Objects.equals({v}, {x}))"));
+                self.code.open(format!("if ({OBJECTS}.{EQUALS}({v}, {x}))"));
                 1
             }
             Pattern::Type { ty, bind } => {

@@ -10,7 +10,7 @@ use yog_script_ids::system::{DICTIONARY, LIST};
 use super::Gen;
 use crate::index::Kind;
 
-use yog_script_ids::jvm::VIEW;
+use yog_script_ids::jvm::{ARRAY_LIST, VIEW};
 
 impl Gen<'_> {
     /// `[a, ..rest]`, `[k => v]`: made where it's met, its temporary its value.
@@ -65,7 +65,7 @@ impl Gen<'_> {
         };
         let t = self.temp();
         self.code
-            .line(format!("var {t} = new java.util.ArrayList<{item}>();"));
+            .line(format!("var {t} = new {ARRAY_LIST}<{item}>();"));
         for i in items {
             match i {
                 Element::Item(x) | Element::Entry(x, _) => {

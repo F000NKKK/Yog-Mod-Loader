@@ -10,6 +10,7 @@ use yog_script_ids::jvm::reflection::{
     COMPANION_FIELD, COMPANION_SUFFIX, LIBRARY, LIBRARY_ARRAY, LIBRARY_ARRAY_INTERFACES,
     LIBRARY_OF, PACKAGE, TYPE,
 };
+use yog_script_ids::jvm::{ENTRY, MAP, OF_ENTRIES, SUPPLIER};
 use yog_script_ids::members::MAKE_GENERIC_TYPE;
 use yog_script_ids::system::{ARRAY, ARRAY_INTERFACES};
 
@@ -69,7 +70,7 @@ impl Companions {
             .iter()
             .flat_map(|(companion, classes)| {
                 classes.iter().map(move |c| {
-                    format!("java.util.Map.entry({c}.class, () -> {companion}.{COMPANION_FIELD})")
+                    format!("{MAP}.{ENTRY}({c}.class, () -> {companion}.{COMPANION_FIELD})")
                 })
             })
             .collect();
@@ -82,7 +83,7 @@ impl Companions {
         g.code.line(format!("private {LIBRARY}() {{}}"));
         g.code.blank();
         g.code.line(format!(
-            "private static final java.util.Map<Class<?>, java.util.function.Supplier<{TYPE}>> TYPES = java.util.Map.ofEntries("
+            "private static final {MAP}<Class<?>, {SUPPLIER}<{TYPE}>> TYPES = {MAP}.{OF_ENTRIES}("
         ));
         let last = entries.len().saturating_sub(1);
         for (i, e) in entries.iter().enumerate() {
@@ -92,9 +93,7 @@ impl Companions {
         g.code.blank();
         g.code
             .open(format!("public static {TYPE} {LIBRARY_OF}(Class<?> c)"));
-        g.code.line(format!(
-            "java.util.function.Supplier<{TYPE}> t = TYPES.get(c);"
-        ));
+        g.code.line(format!("{SUPPLIER}<{TYPE}> t = TYPES.get(c);"));
         g.code.line("return t == null ? null : t.get();");
         g.code.close("");
         g.code.blank();

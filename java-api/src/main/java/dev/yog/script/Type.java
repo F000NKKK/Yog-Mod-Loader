@@ -59,12 +59,22 @@ public abstract class Type extends MemberInfo {
         return OF_CLASS.get(c);
     }
 
-    /** What {@code value} is. */
+    /** What {@code value} is: a generic object's type with the arguments it was made with, when it kept them. */
     public static Type Of(java.lang.Object value) {
         if (value == null) {
             throw new NullPointerException("`null` has no type");
         }
-        return Of(value.getClass());
+        Type type = Of(value.getClass());
+        if (value instanceof Typed typed && typed.$types() != null && type.IsGenericTypeDefinition()) {
+            return type.MakeGenericType(typed.$types());
+        }
+        return type;
+    }
+
+    /** {@code made}, keeping the type {@code arguments} it was made with. */
+    public static <T extends Typed> T made(T made, Type[] arguments) {
+        made.$types(arguments);
+        return made;
     }
 
     /**

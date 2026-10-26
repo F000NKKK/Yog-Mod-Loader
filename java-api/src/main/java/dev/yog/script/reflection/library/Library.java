@@ -73,6 +73,7 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.linq.ILookup.class, () -> ILookupCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.linq.IOrderedEnumerable.class, () -> IOrderedEnumerableCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.Math.class, () -> MathCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.Nullable.class, () -> NullableCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.host.Object.class, () -> ObjectCompanion.TYPE),
             java.util.Map.entry(Object.class, () -> ObjectCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.Random.class, () -> RandomCompanion.TYPE),

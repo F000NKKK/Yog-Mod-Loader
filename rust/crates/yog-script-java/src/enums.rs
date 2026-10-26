@@ -13,6 +13,8 @@ use yog_script_analyze::{Type, builtin_type};
 use yog_script_ids::jvm::enums::{
     CARRYING, COMPARE, FLAGS, OF, TABLE, TABLE_CLASS, TABLE_OF, VALUE, WIDTH,
 };
+use yog_script_ids::jvm::{EQUALS, HASH, OBJECTS};
+use yog_script_ids::members::TO_STRING;
 use yog_script_ids::system::{ENUM, FLAGS as FLAGS_ATTRIBUTE};
 
 use crate::Gen;
@@ -164,7 +166,7 @@ impl Gen<'_> {
         };
         let same: Vec<String> = fields
             .iter()
-            .map(|(_, f)| format!(" && java.util.Objects.equals({f}, that.{f})"))
+            .map(|(_, f)| format!(" && {OBJECTS}.{EQUALS}({f}, that.{f})"))
             .collect();
         self.code.line(format!(
             "@Override public boolean equals(Object other) {{ return other instanceof {tested} that{}; }}",
@@ -172,12 +174,14 @@ impl Gen<'_> {
         ));
         let hashed: Vec<&str> = fields.iter().map(|(_, f)| f.as_str()).collect();
         self.code.line(format!(
-            "@Override public int hashCode() {{ return java.util.Objects.hash({VALUE}(), {}); }}",
+            "@Override public int hashCode() {{ return {OBJECTS}.{HASH}({VALUE}(), {}); }}",
             hashed.join(", ")
         ));
+        // Each field as text, as `object`'s `ToString` writes it.
+        let shown_by = self.index.host(&Type::Object).unwrap_or_default();
         let shown: Vec<String> = fields
             .iter()
-            .map(|(_, f)| format!("dev.yog.script.host.Object.ToString({f})"))
+            .map(|(_, f)| format!("{shown_by}.{TO_STRING}({f})"))
             .collect();
         self.code.line(format!(
             "@Override public String toString() {{ return \"{}(\" + {} + \")\"; }}",

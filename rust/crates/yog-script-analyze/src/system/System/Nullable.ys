@@ -1,0 +1,7 @@
+namespace System;
+
+/// A value type's `T?` as Reflection sees it: `typeof(i32?)` is
+/// `Nullable<Int32>`, as .NET's. Written `T?`; a reference type's `?` is
+/// the type itself.
+[Intrinsic]
+public struct Nullable<T> {}
