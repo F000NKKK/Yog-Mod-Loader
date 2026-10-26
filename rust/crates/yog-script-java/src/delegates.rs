@@ -21,7 +21,7 @@ impl Gen<'_> {
             .as_ref()
             .map_or_else(|| VOID.to_string(), |t| self.written(t, false));
         let params = self.params(&m.params);
-        let stat = if self.nested {
+        let stat = if self.nested || self.owner.is_some() {
             modifier(STATIC)
         } else {
             String::new()

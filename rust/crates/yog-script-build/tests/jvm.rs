@@ -612,3 +612,28 @@ fn collection_initializers() {
     };
     assert_eq!(out, "3 3 2 8 2");
 }
+
+/// Optional parameters given their defaults at the call, nested types,
+/// names known not null where a condition proves it.
+#[test]
+fn defaults_nested_and_null_state() {
+    let src = "public enum Mode { Slow, Fast }\n\
+               public class Outer {\n\
+                   public class Inner { public i32 N; public Inner(i32 n = 7) { N = n; } }\n\
+                   public static Inner Make() => new Inner();\n\
+               }\n\
+               public static class D {\n\
+                   static string Say(string what, i32 times = 2, Mode mode = Mode.Fast, string? tail = null) => what + times + mode + (tail ?? \"-\");\n\
+                   static i32 Len(string? s) { if (s == null) { return -1; } return s.Length; }\n\
+                   public static string Run() {\n\
+                       let o = Outer.Make();\n\
+                       string? maybe = \"abc\";\n\
+                       let n = maybe != null && maybe.Length == 3 ? 1 : 0;\n\
+                       return Say(\"a\") + \" \" + Say(\"b\", 5) + \" \" + o.N + \" \" + Len(null) + Len(\"xy\") + \" \" + n;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("d.ys", src)], "t.DScript.D.Run()") else {
+        return;
+    };
+    assert_eq!(out, "a2Fast- b5Fast- 7 -12 1");
+}

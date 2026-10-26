@@ -56,8 +56,8 @@ impl Checker<'_, '_, '_> {
                 otherwise,
             } => {
                 self.condition(cond);
-                let t = self.expr(then);
-                self.expr(otherwise);
+                let t = self.expr_with(super::nulls::proven(cond, true), then);
+                self.expr_with(super::nulls::proven(cond, false), otherwise);
                 t
             }
             ExprKind::Cast { ty, expr } => {
@@ -136,8 +136,11 @@ impl Checker<'_, '_, '_> {
     fn ident(&mut self, e: &Expr, name: &str) -> Type {
         if let Some(depth) = self.scopes.iter().rposition(|s| s.contains_key(name)) {
             self.types.set_local(e);
-            let t = self.scopes[depth][name].ty.clone();
+            let mut t = self.scopes[depth][name].ty.clone();
             self.local_read(name, &t, depth, e.span);
+            if self.is_narrowed(name, depth) {
+                t = t.non_null().clone();
+            }
             return t;
         }
         let t = self.name(name, e.span);
@@ -200,7 +203,13 @@ impl Checker<'_, '_, '_> {
     }
 
     fn binary(&mut self, e: &Expr, op: BinOp, left: &Expr, right: &Expr) -> Type {
-        let (a, b) = (self.expr(left), self.expr(right));
+        let a = self.expr(left);
+        // `x != null && x.F`: the right side runs only when the left proves it.
+        let b = match op {
+            BinOp::And => self.expr_with(super::nulls::proven(left, true), right),
+            BinOp::Or => self.expr_with(super::nulls::proven(left, false), right),
+            _ => self.expr(right),
+        };
         if let Some((used, ret)) = self.declared_binary(op, &a, &b) {
             self.types.set_operator(e, used);
             return ret;

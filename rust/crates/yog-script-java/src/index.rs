@@ -85,6 +85,11 @@ pub(crate) struct Index {
     intrinsics: HashSet<String>,
     /// Each type's namespace, as written (`System.Collections.Generic`).
     namespaces: HashMap<String, String>,
+    /// Each type's constructors written in its body, by their parameters
+    /// (what a `new` leaving some out is given their defaults from).
+    ctors: HashMap<TypeRef, Vec<Vec<yog_script_analyze::ast::Param>>>,
+    /// The source's own methods (outside types), by name.
+    file_methods: HashMap<String, Vec<yog_script_analyze::ast::Method>>,
     /// Each type's shape, for its methods' Java names.
     shapes: HashMap<crate::java_names::TypeRef, crate::java_names::Shape>,
 }
@@ -150,6 +155,12 @@ impl Index {
                 DeclKind::Unit { name, .. } => {
                     self.units.insert(name.text.clone());
                 }
+                DeclKind::Method(m) if !self.library && self.elsewhere.is_none() => {
+                    self.file_methods
+                        .entry(m.name.text.clone())
+                        .or_default()
+                        .push(m.clone());
+                }
                 DeclKind::Event { name, .. } => {
                     self.events
                         .insert((String::new(), name.text.clone()), attribute_text(d, EVENT));
@@ -198,6 +209,16 @@ impl Index {
             (name.text.clone(), arity(&header.generics)),
             crate::java_names::shape_of(header, body),
         );
+        self.nested_types(&name.text, body);
+        let ctors = body
+            .iter()
+            .filter_map(|m| match &m.kind {
+                DeclKind::Ctor(c) => Some(c.params.clone()),
+                _ => None,
+            })
+            .collect();
+        self.ctors
+            .insert((name.text.clone(), arity(&header.generics)), ctors);
         if self.library && crate::library::is_intrinsic(d) {
             self.intrinsics.insert(name.text.clone());
         }
@@ -407,6 +428,54 @@ impl Index {
     }
 
     /// Type `name`'s shape, if it's one of the library's or the source's.
+    /// The types declared in type `outer`'s `body`: placed in its Java class
+    /// (`LoggerExternalScopeProvider.Scope`).
+    fn nested_types(&mut self, outer: &str, body: &[Decl]) {
+        let nested: Vec<&Decl> = body
+            .iter()
+            .filter(|d| {
+                matches!(
+                    d.kind,
+                    DeclKind::Type { .. } | DeclKind::Enum { .. } | DeclKind::Delegate(_)
+                )
+            })
+            .collect();
+        if nested.is_empty() {
+            return;
+        }
+        let place = self.place_named(outer);
+        for d in &nested {
+            self.walk(std::slice::from_ref(*d));
+            if let Some(name) = decl_name(d) {
+                self.packages.insert(name, place.clone());
+            }
+        }
+    }
+
+    /// The parameters of method `name` (its `overload`-th of the name) of
+    /// type `owner` (none: the source's own).
+    pub(crate) fn method_params(
+        &self,
+        owner: Option<&TypeRef>,
+        name: &str,
+        overload: usize,
+    ) -> Option<&[yog_script_analyze::ast::Param]> {
+        let m = match owner {
+            Some(o) => self.shape(o)?.method_named(name, overload)?,
+            None => self.file_methods.get(name)?.get(overload)?,
+        };
+        Some(&m.params)
+    }
+
+    /// The parameters of type `t`'s body's `index`-th constructor.
+    pub(crate) fn ctor_params(
+        &self,
+        t: &TypeRef,
+        index: usize,
+    ) -> Option<&[yog_script_analyze::ast::Param]> {
+        self.ctors.get(t)?.get(index).map(Vec::as_slice)
+    }
+
     pub(crate) fn shape(
         &self,
         name: &crate::java_names::TypeRef,
@@ -644,4 +713,13 @@ fn package(namespace: &[String]) -> String {
         }))
         .collect::<Vec<_>>()
         .join(".")
+}
+
+/// A type declaration's name.
+fn decl_name(d: &Decl) -> Option<String> {
+    match &d.kind {
+        DeclKind::Type { name, .. } | DeclKind::Enum { name, .. } => Some(name.text.clone()),
+        DeclKind::Delegate(m) => Some(m.name.text.clone()),
+        _ => None,
+    }
 }

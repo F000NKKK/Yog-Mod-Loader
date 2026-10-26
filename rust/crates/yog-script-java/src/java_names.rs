@@ -60,6 +60,16 @@ fn methods(body: &[Decl]) -> impl Iterator<Item = (&Decl, &Method)> {
     })
 }
 
+impl Shape {
+    /// Its `overload`-th method named `name` (explicit implementations aside).
+    pub(crate) fn method_named(&self, name: &str, overload: usize) -> Option<&Method> {
+        self.methods
+            .iter()
+            .filter(|m| m.explicit.is_none() && m.name.text == name)
+            .nth(overload)
+    }
+}
+
 impl Index {
     /// Whether `owner`'s method `name`, the `overload`-th of its name, is
     /// `[Reified]`: handed its type parameters first.
@@ -260,7 +270,9 @@ fn erase(t: &Type, params: &[&str]) -> String {
         // it (`Func<T, bool>` is `Func2`, `Func<T, i32, bool>` `Func3`).
         TypeKind::Path { path, args } => {
             let name = path.last().map(|n| n.text.as_str()).unwrap_or_default();
-            if args.is_empty() && params.contains(&name) {
+            // `object` is Java's `Object`, as a type parameter erases to.
+            let object = builtin_type(name) == Some(yog_script_analyze::Type::Object);
+            if args.is_empty() && (params.contains(&name) || object) {
                 OBJECT.to_string()
             } else {
                 format!("{name}{}", args.len())

@@ -37,6 +37,7 @@ mod messages;
 mod model;
 mod mutation;
 mod names;
+mod nulls;
 mod operators;
 mod overloads;
 mod own;
@@ -120,6 +121,9 @@ pub(crate) struct Checker<'r, 's, 'i> {
     constraints: Vec<constraints::Constraints>,
     /// Constraints are being checked (a bound's own type isn't, again).
     meeting: bool,
+    /// The names known not null (`nulls.rs`), each with how many scopes
+    /// deep it was proven: it holds for locals of the scopes outside that.
+    non_null: Vec<(usize, String)>,
 }
 
 /// What a source may reach: the game's classes (a `.yns`), sending to the
@@ -189,6 +193,7 @@ pub(crate) fn check<'d>(
         unsafe_code: 0,
         constraints: Vec::new(),
         meeting: false,
+        non_null: Vec::new(),
     };
     c.type_bases();
     c.type_delegates();
@@ -204,6 +209,7 @@ impl Checker<'_, '_, '_> {
         self.scopes.push(HashMap::new());
         let out = f(self);
         self.scopes.pop();
+        self.scopes_left(self.scopes.len());
         out
     }
 
@@ -214,6 +220,8 @@ impl Checker<'_, '_, '_> {
     /// `name` bound to a `t`; `fixed`: what it holds is read-only here (a
     /// `let`, an `in` parameter, a `foreach` item, a pattern's name).
     fn bind_as(&mut self, name: &str, ty: Type, fixed: bool) {
+        // A new local of the name: nothing proven of an older one holds.
+        self.non_null.retain(|(_, n)| n != name);
         if let Some(s) = self.scopes.last_mut() {
             s.insert(name.to_string(), Slot { ty, fixed });
         }

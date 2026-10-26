@@ -41,7 +41,7 @@ impl Gen<'_> {
         };
         let g = generic_list(generics);
         let base_class = self.index.place(ENUM, 0);
-        let stat = if self.nested {
+        let stat = if self.nested || self.owner.is_some() {
             modifier(STATIC)
         } else {
             String::new()

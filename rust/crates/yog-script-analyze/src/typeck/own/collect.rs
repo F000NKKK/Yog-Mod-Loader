@@ -205,6 +205,23 @@ impl OwnTypes {
         };
         t.components.extend(has.iter().filter_map(component_name));
         members(t, body);
+        self.nested(body);
+    }
+
+    /// The types declared in a type's `body`: types of their own (C#'s
+    /// `Outer.Inner`), by their names.
+    fn nested(&mut self, body: &[Decl]) {
+        for inner in body {
+            if !matches!(
+                inner.kind,
+                DeclKind::Method(_)
+                    | DeclKind::Field(_)
+                    | DeclKind::Property { .. }
+                    | DeclKind::Event { .. }
+            ) {
+                self.type_decl(inner);
+            }
+        }
     }
 
     /// `extend T { … }`'s members and components: added to `T` when it's

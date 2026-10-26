@@ -57,7 +57,8 @@ impl Gen<'_> {
     pub(crate) fn call_args(&mut self, e: &Expr, args: &[Arg]) -> String {
         let used = self.types.method(e).cloned();
         let Some((from, used)) = used.and_then(|u| u.rest_from.map(|k| (k, u))) else {
-            return self.args(args);
+            let defaults = self.call_defaults(e, args.len());
+            return joined_args(self.args(args), &defaults);
         };
         // Its item type: an argument's as taken, else the array's declared.
         let item = used
@@ -77,7 +78,10 @@ impl Gen<'_> {
     pub(crate) fn new_args(&mut self, e: &Expr, args: &[Arg]) -> String {
         match self.types.constructor_rest(e).cloned() {
             Some((from, item)) => self.packed_args(args, from, &item),
-            None => self.args(args),
+            None => {
+                let defaults = self.new_defaults(e, args.len());
+                joined_args(self.args(args), &defaults)
+            }
         }
     }
 
@@ -530,4 +534,14 @@ fn of_type_parameter(t: &Type) -> bool {
         Type::Array(item, _) => matches!(**item, Type::Param(_)) || of_type_parameter(item),
         _ => false,
     }
+}
+
+/// Arguments `written` and then `more`, as Java lists them.
+fn joined_args(written: String, more: &[String]) -> String {
+    let mut all: Vec<String> = Vec::new();
+    if !written.is_empty() {
+        all.push(written);
+    }
+    all.extend(more.iter().cloned());
+    all.join(", ")
 }

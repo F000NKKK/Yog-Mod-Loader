@@ -15,6 +15,7 @@ mod collections;
 mod commands;
 mod decimals;
 mod decls;
+mod defaults;
 mod delegates;
 mod drops;
 mod enums;
@@ -231,6 +232,9 @@ pub(crate) struct Gen<'c> {
     mod_id: Option<String>,
     /// The file has a `$Load`.
     has_load: bool,
+    /// The type being written is declared in another type (a `static`
+    /// nested class in Java, wherever its file is).
+    inner_type: bool,
     /// The code being written is a `$Statics`' (`statics.rs`): its type's
     /// static fields are its own.
     in_statics: bool,
@@ -266,6 +270,7 @@ impl<'c> Gen<'c> {
             boxed: std::collections::HashSet::new(),
             on_load: Vec::new(),
             has_load: false,
+            inner_type: false,
             in_statics: false,
             mod_id: None,
             in_command: false,

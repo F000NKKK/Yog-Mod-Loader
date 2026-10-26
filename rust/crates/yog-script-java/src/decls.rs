@@ -268,6 +268,7 @@ impl Gen<'_> {
     ) {
         let arity = header.generics.iter().filter(|g| !g.lifetime).count();
         let outer = self.owner.replace((name.to_string(), arity));
+        let inner = std::mem::replace(&mut self.inner_type, outer.is_some());
         let generics = header
             .generics
             .iter()
@@ -281,6 +282,7 @@ impl Gen<'_> {
         self.type_params = outer_params;
         self.owner_generics = outer_generics;
         self.owner = outer;
+        self.inner_type = inner;
     }
 
     fn type_of_kind(
@@ -304,8 +306,11 @@ impl Gen<'_> {
                 } else {
                     format!(" {EXTENDS} {}", bases.join(", "))
                 };
+                // Its name in Java: the arity's too, when its name has several
+                // (`ILogger1` for `ILogger<T>`).
+                let java = self.simple_name(name, header);
                 self.code.open(format!(
-                    "{PUBLIC} {INTERFACE} {name}{}{extends}",
+                    "{PUBLIC} {INTERFACE} {java}{}{extends}",
                     generic_list(&header.generics)
                 ));
                 self.describe(d);

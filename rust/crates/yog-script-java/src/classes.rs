@@ -122,7 +122,7 @@ impl Gen<'_> {
         } else {
             String::new()
         };
-        let stat = if self.nested {
+        let stat = if self.nested || self.inner_type {
             modifier(STATIC)
         } else {
             String::new()

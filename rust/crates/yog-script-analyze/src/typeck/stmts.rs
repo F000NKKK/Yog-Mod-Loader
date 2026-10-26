@@ -17,7 +17,7 @@ impl Checker<'_, '_, '_> {
         }
     }
 
-    fn stmt(&mut self, s: &Stmt) {
+    pub(super) fn stmt(&mut self, s: &Stmt) {
         match s {
             Stmt::Local {
                 ty,
@@ -37,6 +37,11 @@ impl Checker<'_, '_, '_> {
                     _ => {
                         self.fits(value, &t);
                         self.handed(value, &t);
+                        if let ExprKind::Ident(name) = &place.kind
+                            && let Some(v) = self.types.of(value).cloned()
+                        {
+                            self.assigned_to(name, &v);
+                        }
                     }
                 }
             }
@@ -45,14 +50,7 @@ impl Checker<'_, '_, '_> {
                 then,
                 otherwise,
             } => {
-                self.scoped(|c| {
-                    c.patterns_in(cond);
-                    c.condition(cond);
-                    c.branch(then);
-                });
-                if let Some(o) = otherwise {
-                    self.branch(o);
-                }
+                self.if_stmt(cond, then, otherwise.as_deref());
             }
             Stmt::Foreach {
                 ty,
@@ -68,7 +66,11 @@ impl Checker<'_, '_, '_> {
                 step,
                 body,
             } => self.for_loop((init.as_deref(), cond.as_ref(), step.as_deref()), body),
-            Stmt::While { cond, body } | Stmt::DoWhile { body, cond } => self.scoped(|c| {
+            Stmt::While { cond, body } => self.scoped(|c| {
+                c.condition(cond);
+                c.branch_with(super::nulls::proven(cond, true), body);
+            }),
+            Stmt::DoWhile { body, cond } => self.scoped(|c| {
                 c.condition(cond);
                 c.branch(body);
             }),
@@ -175,6 +177,27 @@ impl Checker<'_, '_, '_> {
             }
             c.branch(body);
         });
+    }
+
+    /// `if (cond) then else otherwise`: each branch with what `cond` proves
+    /// not null there; what follows with what the branch that doesn't
+    /// always leave proves (`if (x == null) return;` → `x` isn't after).
+    fn if_stmt(&mut self, cond: &Expr, then: &Stmt, otherwise: Option<&Stmt>) {
+        use super::nulls::{leaves, proven};
+        self.scoped(|c| {
+            c.patterns_in(cond);
+            c.condition(cond);
+            c.branch_with(proven(cond, true), then);
+        });
+        if let Some(o) = otherwise {
+            self.branch_with(proven(cond, false), o);
+        }
+        let (then_leaves, else_leaves) = (leaves(then), otherwise.is_some_and(leaves));
+        if then_leaves && !else_leaves {
+            self.narrow(proven(cond, false));
+        } else if else_leaves && !then_leaves {
+            self.narrow(proven(cond, true));
+        }
     }
 
     /// `for (init; cond; step) body`, in a scope of its own.
