@@ -43,10 +43,12 @@ pub(crate) fn prepare() -> Result<Prepared, String> {
     yui::set_resource_refs(&resources.refs);
     // Blocks and items: models, states, loot, lang and their Rust glue.
     let content = content::compile(&root, &meta.id, &resources.refs)?;
-    // Yog Script: read and resolved, its errors stop the build.
-    yog_cli::script::check(&root)?;
     warn_all(&content.warnings);
+    // Before the Yog Script's check: its generated source is one of the
+    // mod's sources.
     content::write_source(&root, &content)?;
+    // Yog Script: read and resolved, its errors stop the build.
+    yog_cli::script::check(&root, &content.ids)?;
     script_lib::write(&root, content.source.is_some())?;
     let build_dir = write_build_dir(&root, &meta)?;
     settle_lock(&root, &build_dir)?;

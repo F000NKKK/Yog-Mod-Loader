@@ -15,8 +15,36 @@ impl OwnTypes {
         out
     }
 
+    /// The library's types, the project's other sources' (`others`: their
+    /// types only — a file's own methods and fields are its class's in
+    /// Java, not reached by name from another), then `file`'s.
+    pub fn collect_project(library: &[Decl], others: &[&[Decl]], file: &[Decl]) -> Self {
+        let mut out = OwnTypes::collect(&[library]);
+        for decls in others {
+            out.current.clear();
+            out.current_usings = super::super::names::Directives::collect(decls).usings;
+            out.types_only = true;
+            out.file(decls);
+        }
+        out.types_only = false;
+        out.current.clear();
+        out.current_usings = super::super::names::Directives::collect(file).usings;
+        out.file(file);
+        out
+    }
+
     fn file(&mut self, decls: &[Decl]) {
         for d in decls {
+            let file_level = matches!(
+                &d.kind,
+                DeclKind::Method(_)
+                    | DeclKind::Field(_)
+                    | DeclKind::Property { .. }
+                    | DeclKind::Event { .. }
+            );
+            if self.types_only && file_level {
+                continue;
+            }
             match &d.kind {
                 DeclKind::Method(m) => {
                     if let Some(side) = side_of(d) {

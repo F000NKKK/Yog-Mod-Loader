@@ -22,11 +22,13 @@ const JAVAC: &str = "javac";
 /// Where a JDK keeps its tools.
 const JDK_BIN: &str = "bin";
 
-/// The mod's scripts' jars as `.yog` entries; none when it has no `.ys`.
+/// The mod's scripts' jars as `.yog` entries, their content declarations
+/// bound to `content` (each file's (kind, id)); none when it has no `.ys`.
 pub fn jars(
     root: &Path,
     meta: &YogToml,
     build_dir: &Path,
+    content: &[(String, String)],
 ) -> Result<Vec<(String, Vec<u8>)>, String> {
     let sources = sources(root)?;
     if sources.is_empty() {
@@ -63,6 +65,7 @@ pub fn jars(
             to_server: meta.to_server,
             files: Some(&files),
             mod_id: &meta.id,
+            content,
         };
         if let Err(problems) = build_jar(&sources, &b, &jar) {
             diagnostics::report_all(&problems);
@@ -79,11 +82,14 @@ pub fn jars(
     Ok(out)
 }
 
-/// The mod's `.ys` sources (name, text). A `.yns` (nanites) isn't built for
-/// the JVM this way.
-fn sources(root: &Path) -> Result<Vec<(String, String)>, String> {
+/// The mod's `.ys` sources (name, text), those the build generates
+/// (`obj/generated/**`: the content's ids, the resources) among them. A
+/// `.yns` (nanites) isn't built for the JVM this way.
+pub(crate) fn sources(root: &Path) -> Result<Vec<(String, String)>, String> {
+    let generated = crate::files::of(&root.join(yog_ids::project::GENERATED), Format::Script);
     crate::files::of(&root.join(SOURCES_DIR), Format::Script)
         .into_iter()
+        .chain(generated)
         .map(|f| {
             let text = std::fs::read_to_string(&f).map_err(|e| format!("{}: {e}", f.display()))?;
             Ok((crate::shown_path(root, &f), text))

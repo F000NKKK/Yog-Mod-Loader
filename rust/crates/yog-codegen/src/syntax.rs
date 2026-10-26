@@ -18,15 +18,15 @@ pub trait Literals {
 /// The language's names: its reserved words, and how a name spelled like
 /// one is made an identifier.
 pub trait Identifiers {
-    /// The reserved words.
-    const KEYWORDS: &'static [&'static str];
+    /// Whether `name` is a reserved word.
+    fn is_keyword(name: &str) -> bool;
 
     /// `keyword` made an identifier.
     fn escape_keyword(keyword: &str) -> String;
 
     /// `name` as an identifier: escaped when it's a reserved word.
     fn ident(name: &str) -> String {
-        if Self::KEYWORDS.contains(&name) {
+        if Self::is_keyword(name) {
             Self::escape_keyword(name)
         } else {
             name.to_string()

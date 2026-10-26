@@ -13,9 +13,19 @@ use index::{Index, Info};
 use yog_analysis::Report;
 
 /// Every rule checked over the source's own types (`decls`), what they
-/// inherit from the library's (`library`) too.
-pub(super) fn check(library: &[Decl], decls: &[Decl], report: &mut Report<'_>) {
+/// inherit from the library's (`library`) and the project's other
+/// sources' (`others`) too.
+pub(super) fn check<'d>(
+    (library, others): (&'d [Decl], &[&'d [Decl]]),
+    decls: &'d [Decl],
+    report: &mut Report<'_>,
+) {
+    // The project's other sources' types are known, not checked here:
+    // their own checks report them.
     let mut index = Index::collect(library);
+    for other in others {
+        index.add(other);
+    }
     index.mark_library();
     index.add(decls);
     for info in index.types.values().filter(|i| !i.library) {

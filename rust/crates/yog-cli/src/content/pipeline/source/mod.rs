@@ -2,6 +2,9 @@
 
 mod blocks;
 mod register;
+mod script;
+
+pub(in crate::content) use script::ys_source;
 
 pub(in crate::content) use register::included;
 
@@ -12,7 +15,7 @@ use crate::content::formats::recipe::registration::Recipe;
 use crate::content::pipeline::entry::{BlockProps, Entry};
 use crate::content::pipeline::files::{BodyFile, BookFile, EntityFile, FontFile};
 use crate::content::pipeline::outputs::write_tags;
-use crate::content::{Compiled, GENERATED_FILE, formats::table};
+use crate::content::{Compiled, GENERATED_FILE, GENERATED_SCRIPT, formats::table};
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::Path;
@@ -202,6 +205,76 @@ impl Content<'_> {
     }
 }
 
+/// A set of the content's ids the mod's code names its content by: its
+/// name (`Entities`), what it holds, its ids — the same in each language
+/// the code is generated in.
+pub(in crate::content) struct IdSet<'a> {
+    pub(in crate::content) name: &'static str,
+    pub(in crate::content) doc: String,
+    pub(in crate::content) ids: Vec<&'a str>,
+}
+
+/// The sets of ids beside the blocks' and items' (whose Rust has their
+/// definitions too).
+fn id_sets<'a>(c: &'a Content) -> Vec<IdSet<'a>> {
+    let mut sets = vec![
+        IdSet {
+            name: code_set::ENTITIES,
+            doc: "The entity types of `content/` (`.yentity`), by id.".into(),
+            ids: c.entities.iter().map(|e| e.id.as_str()).collect(),
+        },
+        IdSet {
+            name: code_set::ADVANCEMENTS,
+            doc: "The advancements of `content/` (`.ydef` kind `advancement`), by id\n/// (`yog_api::advancements::grant`/`done`).".into(),
+            ids: c.defs.advancements.iter().map(String::as_str).collect(),
+        },
+    ];
+    for (model, name, what) in [
+        (true, code_set::MODELS, "models (`.ymodel`)"),
+        (false, code_set::ANIMS, "animations (`.yanim`)"),
+    ] {
+        sets.push(IdSet {
+            name,
+            doc: format!("The {what} of `content/`, by id (`yog_api::body::model`/`clip`)."),
+            ids: c
+                .bodies
+                .iter()
+                .filter(|b| b.model == model)
+                .map(|b| b.id.as_str())
+                .collect(),
+        });
+    }
+    sets.push(IdSet {
+        name: code_set::TEXTURES,
+        doc: "The textures of `resources/` (`.ytexture`), by id — what the mod's code draws.".into(),
+        ids: c.textures.iter().map(String::as_str).collect(),
+    });
+    sets
+}
+
+/// Every set of the content's ids, the blocks' and items' first: what the
+/// mod's Yog Script names its content by.
+pub(in crate::content) fn all_id_sets<'a>(c: &'a Content) -> Vec<IdSet<'a>> {
+    let mut sets: Vec<IdSet> = [
+        (Format::Block, code_set::BLOCKS, "blocks (`.yblock`)"),
+        (Format::Item, code_set::ITEMS, "items (`.yitem`)"),
+    ]
+    .into_iter()
+    .map(|(format, name, what)| IdSet {
+        name,
+        doc: format!("The {what} of `content/`, by id."),
+        ids: c
+            .entries
+            .iter()
+            .filter(|e| e.kind == format)
+            .map(|e| e.id.as_str())
+            .collect(),
+    })
+    .collect();
+    sets.extend(id_sets(c));
+    sets
+}
+
 /// The content's code, part by part.
 pub(in crate::content) fn rust_source(c: &Content) -> Source {
     let mut parts: Vec<(String, String)> = Vec::new();
@@ -213,50 +286,12 @@ pub(in crate::content) fn rust_source(c: &Content) -> Source {
             ));
         }
     };
-    let doc = "The entity types of `content/` (`.yentity`), by id.";
-    part(
-        "entities",
-        id_consts(
-            doc,
-            code_set::ENTITIES,
-            c.entities.iter().map(|e| e.id.as_str()),
-        ),
-    );
-    let doc = "The advancements of `content/` (`.ydef` kind `advancement`), by id\n/// (`yog_api::advancements::grant`/`done`).";
-    part(
-        "advancements",
-        id_consts(
-            doc,
-            code_set::ADVANCEMENTS,
-            c.defs.advancements.iter().map(String::as_str),
-        ),
-    );
-    for (model, set, what) in [
-        (true, code_set::MODELS, "models (`.ymodel`)"),
-        (false, code_set::ANIMS, "animations (`.yanim`)"),
-    ] {
-        let doc = format!("The {what} of `content/`, by id (`yog_api::body::model`/`clip`).");
+    for set in id_sets(c) {
         part(
-            &set.to_ascii_lowercase(),
-            id_consts(
-                &doc,
-                set,
-                c.bodies
-                    .iter()
-                    .filter(|b| b.model == model)
-                    .map(|b| b.id.as_str()),
-            ),
+            &set.name.to_ascii_lowercase(),
+            id_consts(&set.doc, set.name, set.ids.into_iter()),
         );
     }
-    let doc = "The textures of `resources/` (`.ytexture`), by id — what the mod's code draws.";
-    part(
-        "textures",
-        id_consts(
-            doc,
-            code_set::TEXTURES,
-            c.textures.iter().map(String::as_str),
-        ),
-    );
     let idents = blocks::entry_idents(c.entries);
     for (name, code) in blocks::entries_code(c.entries, &idents) {
         part(&name, code);
@@ -283,7 +318,7 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
     let Some(source) = &compiled.source else {
         crate::files::remove(&out);
         crate::files::remove(&parts_dir);
-        return Ok(());
+        return write_script(root, None);
     };
     std::fs::create_dir_all(&parts_dir).map_err(|e| format!("{}: {e}", parts_dir.display()))?;
     let wanted: Vec<std::path::PathBuf> = source
@@ -304,6 +339,7 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
         }
     }
     crate::write_if_changed(&out, &source.root)?;
+    write_script(root, compiled.script.as_deref())?;
     for (path, bytes) in &compiled.data_files {
         let file = dir.join(path);
         if std::fs::read(&file).ok().as_deref() != Some(bytes.as_slice()) {
@@ -315,6 +351,19 @@ pub fn write_source(root: &Path, compiled: &Compiled) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Writes the content's Yog Script ([`GENERATED_SCRIPT`]) when it has
+/// one (only when it changed), deletes it when it hasn't.
+fn write_script(root: &Path, script: Option<&str>) -> Result<(), String> {
+    let file = root.join(GENERATED_SCRIPT);
+    match script {
+        Some(code) => crate::write_if_changed(&file, code),
+        None => {
+            crate::files::remove(&file);
+            Ok(())
+        }
+    }
 }
 
 /// The generated files' header; `yog_api::content!()` includes them.

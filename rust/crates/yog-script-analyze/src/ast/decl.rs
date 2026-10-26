@@ -163,7 +163,8 @@ pub enum DeclKind {
         header: TypeHeader,
         body: Vec<Decl>,
     },
-    /// `Hardness = 2.0f;` in a content or mod body.
+    /// `Version = "1.0.0";` in a mod body, `Pattern = […];` in a recipe's
+    /// (a block's or an item's is an error: its file's).
     Prop(Prop),
     Screen {
         name: Name,

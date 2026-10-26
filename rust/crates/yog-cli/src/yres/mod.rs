@@ -22,6 +22,7 @@ mod names;
 mod outputs;
 mod placeholders;
 mod resource_ids;
+mod script;
 
 pub use compile::compile;
 pub(crate) use names::{accessor_name, default_key, name_problem};
@@ -42,6 +43,13 @@ pub const GENERATED_FILE: &str = yog_ids::concatcp!(
     yog_ids::project::GENERATED,
     yog_ids::sep::PATH,
     "resources.g.rs"
+);
+/// The generated Yog Script of every set (`Res.<Set>.<Entry>`).
+pub const GENERATED_SCRIPT: &str = yog_ids::concatcp!(
+    yog_ids::project::GENERATED,
+    yog_ids::sep::PATH,
+    "res.g.",
+    yog_ids::Format::Script.ext()
 );
 /// Where the per-set `<Set>.g.rs` files go.
 pub const GENERATED_DIR: &str =
@@ -124,6 +132,9 @@ pub struct Compiled {
     pub outputs: Vec<Output>,
     /// `<Set>` → generated Rust source.
     pub sources: BTreeMap<String, String>,
+    /// `<Set>` → where it's read from and its Yog Script members
+    /// ([`GENERATED_SCRIPT`]).
+    pub scripts: BTreeMap<String, (String, Vec<String>)>,
     /// What screens and `yog.toml` can refer to (`@<Set>.<name>`).
     pub refs: Refs,
     /// What to warn of.

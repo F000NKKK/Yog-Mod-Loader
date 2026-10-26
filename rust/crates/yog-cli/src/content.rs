@@ -48,6 +48,15 @@ pub const GENERATED_FILE: &str = yog_ids::concatcp!(
     "yog-content.g.rs"
 );
 
+/// The generated Yog Script, under the mod root: the content's ids by name
+/// for the mod's `.ys` (one of its sources when it's built).
+pub const GENERATED_SCRIPT: &str = yog_ids::concatcp!(
+    yog_ids::project::GENERATED,
+    yog_ids::sep::PATH,
+    "yog-content.g.",
+    yog_ids::Format::Script.ext()
+);
+
 /// A generated file: path inside the `.yog` and its bytes.
 pub(crate) type Output = (String, Vec<u8>);
 
@@ -83,9 +92,15 @@ pub struct Compiled {
     tags: BTreeMap<String, formats::defs::data::TagEntries>,
     /// The generated Rust code; `None` when the mod has no content files.
     pub source: Option<Source>,
+    /// The generated Yog Script ([`GENERATED_SCRIPT`]); `None` when the
+    /// content has no ids to name.
+    pub script: Option<String>,
     /// Data the code includes (`include_bytes!`), by path under
     /// `obj/generated/`: the books, as Yog Data.
     pub data_files: Vec<(String, Vec<u8>)>,
+    /// Each block, item and entity file's (kind, id): what the mod's
+    /// Yog Script content declarations bind to.
+    pub ids: Vec<(String, String)>,
     /// What's suspect but builds.
     pub warnings: Vec<crate::diagnostics::Diagnostic>,
     /// [`yog_registry::REGISTRATIONS_FILE`]: what the mod registers at the

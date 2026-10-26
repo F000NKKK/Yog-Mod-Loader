@@ -113,5 +113,14 @@ pub fn write_sources(root: &Path, compiled: &Compiled) -> Result<(), String> {
             "include!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/generated/resources/{set}{SOURCE_EXT}\"));"
         );
     }
-    crate::write_if_changed(&root.join(GENERATED_FILE), &index)
+    crate::write_if_changed(&root.join(GENERATED_FILE), &index)?;
+    // The same sets for the mod's Yog Script.
+    let script = root.join(super::GENERATED_SCRIPT);
+    match super::script::source(&compiled.scripts) {
+        Some(code) => crate::write_if_changed(&script, &code),
+        None => {
+            crate::files::remove(&script);
+            Ok(())
+        }
+    }
 }

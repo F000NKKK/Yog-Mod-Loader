@@ -7,7 +7,6 @@
 //! tool any.
 
 mod classfile;
-mod content;
 mod files;
 pub mod index;
 mod jvm;
@@ -16,12 +15,10 @@ mod versions;
 
 use yog_data::Diagnostic;
 
-pub use content::content_defs;
 pub use files::FilesBeside;
 pub use jvm::{JvmBuild, build_jar};
 pub use macros::MacroLibrary;
 pub use yog_script_analyze::versions::targeted;
-pub use yog_script_java::ContentDef;
 
 /// What's wrong with the source `text` of the file `name` (`.ys`, `.yns`);
 /// a `.yns` checked on each version it targets, its classes from the cache
@@ -48,6 +45,11 @@ pub struct Project<'a> {
     /// The mod's files its sources include.
     pub files: Option<&'a dyn yog_script_analyze::macros::ModFiles>,
     pub to_server: bool,
+    /// The mod's content files, each (kind, id): what its content
+    /// declarations bind to.
+    pub content: Option<&'a [(String, String)]>,
+    /// The mod's other sources' declarations: the types it reaches.
+    pub others: &'a [&'a [yog_script_analyze::ast::Decl]],
 }
 
 /// [`check_source_with`] in its mod's `project`.
@@ -64,6 +66,8 @@ pub fn check_source_using(
             .map(|m| m as &dyn yog_script_analyze::macros::ProcMacros),
         files: project.files,
         to_server: project.to_server,
+        content: project.content,
+        others: project.others,
     };
     if !yog_script_analyze::is_nanites(name) {
         return yog_script_analyze::check_in(name, text, env).problems;

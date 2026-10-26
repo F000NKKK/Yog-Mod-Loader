@@ -96,7 +96,7 @@ impl Checker<'_, '_, '_> {
                     }
                 }
             }
-            // A content's are checked with its kind's (`content_props`).
+            // A content's are an error (`content_decl`): its file's.
             DeclKind::Prop(p) if !self.in_content => {
                 self.expr(&p.value);
             }
@@ -140,7 +140,7 @@ impl Checker<'_, '_, '_> {
                         c.decls(body);
                         c.in_content = outer;
                         if let Some(word) = &content {
-                            c.content_props(word, body);
+                            c.content_decl(word, name, body);
                         }
                     });
                 });

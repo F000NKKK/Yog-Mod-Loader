@@ -19,10 +19,24 @@ mod typeck;
 
 pub use typeck::commands::command_arg;
 pub use typeck::{
-    Message, MethodUse, OperatorUse, Quoted, Type, Types, builtin_type, system_name, system_type,
+    Message, MethodUse, OperatorUse, Quoted, Type, Types, builtin_type, content_path, system_name,
+    system_type,
 };
 pub mod versions;
 pub mod words;
+
+/// How Yog Script spells what its reader reads: what a writer of it
+/// (`yog-codegen-ys`) writes the same way.
+pub mod spelling {
+    pub use crate::lexer::{TEXT_PREFIX, VERBATIM};
+    pub use crate::lexer::string::{CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE, UNICODE_OPEN};
+
+    /// Whether `name` is reserved: a keyword, written `@name` as a name.
+    #[must_use]
+    pub fn is_keyword(name: &str) -> bool {
+        crate::words::reserved(name).is_some()
+    }
+}
 pub mod yog;
 
 use std::path::Path;
@@ -91,6 +105,23 @@ pub struct Env<'a> {
     pub files: Option<&'a dyn macros::ModFiles>,
     /// The mod says it sends to the server (`yog.toml`: `[network] to_server`).
     pub to_server: bool,
+    /// The mod's content files, each (kind, id) — what its content
+    /// declarations bind to; `None`: not known (not checked).
+    pub content: Option<&'a [(String, String)]>,
+    /// The mod's other sources' declarations ([`declarations`]): its
+    /// project, whose types, extensions and events this source reaches as
+    /// a C# project's files reach each other's.
+    pub others: &'a [&'a [ast::Decl]],
+}
+
+/// Source `src`'s declarations, read (macros expanded) as its check reads
+/// them: what the other sources of its mod reach ([`Env::others`]). What's
+/// wrong with it is its own check's to report.
+#[must_use]
+pub fn declarations(name: &str, src: &str, env: Env<'_>) -> Vec<ast::Decl> {
+    let mut report = yog_analysis::Report::new(name, src);
+    let mc = env.game.map_or(versions::newest(), |g| g.mc.as_str());
+    read(name, src, (mc, env), &mut report).decls
 }
 
 /// [`check_with`] in `env`.
@@ -110,8 +141,9 @@ pub fn check_in(name: &str, src: &str, env: Env<'_>) -> Checked {
         let side = typeck::Allowed {
             nanites: is_nanites(name),
             to_server: env.to_server,
+            content: env.content.map(<[_]>::to_vec),
         };
-        types = typeck::check(&file, side, game, &mut report);
+        types = typeck::check(&file, side, (game, env.others), &mut report);
         borrowck::check(&file, &mut report);
     }
     Checked {

@@ -62,6 +62,9 @@ pub(crate) struct Index {
     /// they're the library's.
     namespace: Vec<String>,
     library: bool,
+    /// Walking another source of the project: its Java class, which its
+    /// types are nested in.
+    elsewhere: Option<String>,
     /// The units the source declares (`unit Energy;`), beside the game's.
     units: HashSet<String>,
     /// Each `event`, by its type's name (the file's or a mod's: none) and
@@ -80,12 +83,24 @@ pub(crate) struct Index {
 impl Index {
     /// The types of the library and of `decls`.
     pub fn collect(decls: &[Decl]) -> Self {
+        Self::collect_project(decls, &[])
+    }
+
+    /// The types of the library, of the project's other sources (`others`:
+    /// each its Java class, in full, and its declarations) and of `decls`.
+    pub fn collect_project(decls: &[Decl], others: &[(String, &[Decl])]) -> Self {
         let mut index = Index {
             library: true,
             ..Index::default()
         };
         index.walk(&yog_script_analyze::system::DECLS);
         index.library = false;
+        for (class, other) in others {
+            index.elsewhere = Some(class.clone());
+            index.namespace.clear();
+            index.walk(other);
+        }
+        index.elsewhere = None;
         index.namespace.clear();
         index.walk(decls);
         index
@@ -315,6 +330,8 @@ impl Index {
         if self.library {
             self.packages
                 .insert(name.to_string(), package(&self.namespace));
+        } else if let Some(class) = &self.elsewhere {
+            self.packages.insert(name.to_string(), class.clone());
         } else {
             // The source's own type hides the library's of its name, as C#'s.
             self.packages.remove(name);
@@ -322,7 +339,8 @@ impl Index {
     }
 
     /// Where type `name` of `arity` is in Java: the library's at its
-    /// package, the source's nested in its class; a name several arities
+    /// package, the source's nested in its class, another source's in that
+    /// one's; a name several arities
     /// share told apart as the CLR does, by its arity (`Action2`), the
     /// one of none keeping its name.
     pub fn place(&self, name: &str, arity: usize) -> String {

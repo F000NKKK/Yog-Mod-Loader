@@ -32,6 +32,9 @@ pub struct JvmBuild<'a> {
     pub files: Option<&'a dyn yog_script_analyze::macros::ModFiles>,
     /// The mod's id: its content's namespace.
     pub mod_id: &'a str,
+    /// The mod's content files, each (kind, id): what its content
+    /// declarations bind to.
+    pub content: &'a [(String, String)],
 }
 
 /// `sources` (name, text) built into the jar `jar`, or what's wrong.
@@ -52,21 +55,37 @@ pub fn build_jar(
     std::fs::create_dir_all(&classes).map_err(fail)?;
     let mut files = Vec::new();
     let mut mods = Vec::new();
-    for (name, text) in sources {
+    let env = yog_script_analyze::Env {
+        to_server: b.to_server,
+        files: b.files,
+        content: Some(b.content),
+        ..Default::default()
+    };
+    // Every source's declarations first: each source reaches the others'
+    // types, as a C# project's files do.
+    let decls: Vec<Vec<yog_script_analyze::ast::Decl>> = sources
+        .iter()
+        .map(|(name, text)| yog_script_analyze::declarations(name, text, env))
+        .collect();
+    for (i, (name, text)) in sources.iter().enumerate() {
+        let others: Vec<&[yog_script_analyze::ast::Decl]> = project_but(&decls, i)
+            .map(|(_, d)| d)
+            .collect();
         let env = yog_script_analyze::Env {
-            to_server: b.to_server,
-            files: b.files,
-            ..Default::default()
+            others: &others,
+            ..env
         };
         let checked = yog_script_analyze::check_in(name, text, env);
         if checked.problems.iter().any(Diagnostic::is_error) {
             return Err(checked.problems);
         }
-        let defs = crate::content::content_defs((name, text), &checked, b.mod_id)?;
+        let named: Vec<(&str, &[yog_script_analyze::ast::Decl])> = project_but(&decls, i)
+            .map(|(j, d)| (sources[j].0.as_str(), d))
+            .collect();
         let target = yog_script_java::Target {
             package: b.package,
             mod_id: Some(b.mod_id),
-            defs: &defs,
+            others: &named,
         };
         let class = yog_script_java::compile_in((name, text), &checked, &target)?;
         // The package's folders, joined as the platform joins them.
@@ -82,6 +101,18 @@ pub fn build_jar(
     }
     javac(b, &files, &classes)?;
     write_jar(&classes, &mods, jar).map_err(fail)
+}
+
+/// Every source's declarations but the `skip`th's, each with its index.
+fn project_but(
+    decls: &[Vec<yog_script_analyze::ast::Decl>],
+    skip: usize,
+) -> impl Iterator<Item = (usize, &[yog_script_analyze::ast::Decl])> {
+    decls
+        .iter()
+        .enumerate()
+        .filter(move |(j, _)| *j != skip)
+        .map(|(j, d)| (j, d.as_slice()))
 }
 
 /// `javac` on `files`, its classes into `classes`.

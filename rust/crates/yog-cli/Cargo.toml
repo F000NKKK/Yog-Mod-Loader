@@ -25,6 +25,10 @@ yog-ids = { workspace = true }
 yog-mappings = { workspace = true }
 # Yog Script's compiler: a mod's .ys/.yns checked by `yog build`/`yog check` and the editors.
 yog-script-build = { workspace = true }
+# Its sources read for their declarations: a mod's sources are one project.
+yog-script-analyze = { workspace = true }
+# The content's Yog Script (`yog-content.g.ys`), as the Rust is written.
+yog-codegen-ys = { workspace = true }
 # `yog control`: the running game's control channel.
 yog-hot-reload = { workspace = true }
 yog-media = { workspace = true }

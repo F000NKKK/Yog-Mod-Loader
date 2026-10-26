@@ -2320,6 +2320,7 @@ dependencies = [
  "yog-book",
  "yog-codegen",
  "yog-codegen-rust",
+ "yog-codegen-ys",
  "yog-data",
  "yog-event",
  "yog-font",
@@ -2333,6 +2334,7 @@ dependencies = [
  "yog-mappings",
  "yog-media",
  "yog-registry",
+ "yog-script-analyze",
  "yog-script-build",
  "yog-sync",
  "yog-ui",
@@ -2363,6 +2365,14 @@ name = "yog-codegen-typescript"
 version = "0.1.0"
 dependencies = [
  "yog-codegen",
+]
+
+[[package]]
+name = "yog-codegen-ys"
+version = "0.1.0"
+dependencies = [
+ "yog-codegen",
+ "yog-script-analyze",
 ]
 
 [[package]]
@@ -2676,7 +2686,6 @@ dependencies = [
  "yog-event",
  "yog-home",
  "yog-ids",
- "yog-registry",
  "yog-script-ids",
  "yog-sync",
 ]
@@ -2685,13 +2694,11 @@ dependencies = [
 name = "yog-script-build"
 version = "0.2.1"
 dependencies = [
- "yog-analysis",
- "yog-codegen",
+ "criterion",
  "yog-data",
  "yog-home",
  "yog-ids",
  "yog-mappings",
- "yog-registry",
  "yog-script-analyze",
  "yog-script-ids",
  "yog-script-java",
@@ -2729,6 +2736,7 @@ dependencies = [
 name = "yog-storage"
 version = "0.5.0"
 dependencies = [
+ "criterion",
  "yog-data",
  "yog-ids",
  "yog-sync",

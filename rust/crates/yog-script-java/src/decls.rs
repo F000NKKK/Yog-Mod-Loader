@@ -40,6 +40,7 @@ impl Gen<'_> {
         self.code.open(format!("{PUBLIC} {FINAL} {CLASS} {class}"));
         self.code.line(format!("{PRIVATE} {class}() {{}}"));
         self.members(decls, Place::File);
+        self.raisers_code();
         self.has_load = self.load_class();
         self.kept_types_constants();
         self.code.close("");

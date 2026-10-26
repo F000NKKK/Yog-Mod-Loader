@@ -31,6 +31,7 @@ mod macros;
 mod messages;
 mod operators;
 mod patterns;
+mod raisers;
 mod reflection;
 mod refs;
 mod reified;
@@ -60,17 +61,6 @@ pub struct JavaClass {
     pub mods: Vec<String>,
 }
 
-/// A content definition `yog build` made of a declaration: registered
-/// when the mods load.
-pub struct ContentDef {
-    /// Its declaration's name (`Lamp`).
-    pub name: String,
-    pub kind: String,
-    pub id: String,
-    /// Its Yog Data, binary.
-    pub data: Vec<u8>,
-}
-
 /// The checked source `src` of file `name` as a Java class in `package`.
 pub fn compile(
     name: &str,
@@ -81,37 +71,42 @@ pub fn compile(
     let target = Target {
         package,
         mod_id: None,
-        defs: &[],
+        others: &[],
     };
     compile_in((name, src), checked, &target)
 }
 
 /// What a source is compiled for: its Java package, its mod (whose id
-/// names its messages' channels), the content definitions `yog build`
-/// made of it.
+/// names its messages' channels and its content), the mod's other sources
+/// (each its file's name and declarations: their types reached in their
+/// classes).
 pub struct Target<'a> {
     pub package: &'a str,
     pub mod_id: Option<&'a str>,
-    pub defs: &'a [ContentDef],
+    pub others: &'a [(&'a str, &'a [yog_script_analyze::ast::Decl])],
 }
 
-/// [`compile`] for `target`: its content registered when the mods load,
-/// its calls across sides messages on its mod's channels.
+/// [`compile`] for `target`: its content's objects bound to its mod's
+/// content, its calls across sides messages on its mod's channels.
 pub fn compile_in(
     (name, src): (&str, &str),
     checked: &Checked,
     target: &Target<'_>,
 ) -> Result<JavaClass, Vec<Diagnostic>> {
-    let (package, defs) = (target.package, target.defs);
+    let package = target.package;
     let class = class_name(name);
+    let others: Vec<(String, &[yog_script_analyze::ast::Decl])> = target
+        .others
+        .iter()
+        .map(|(file, decls)| (format!("{package}.{}", class_name(file)), *decls))
+        .collect();
     let mut g = Gen::new(
         &checked.types,
-        index::Index::collect(&checked.file.decls),
+        index::Index::collect_project(&checked.file.decls, &others),
         name,
         src,
     );
     g.mod_id = target.mod_id.map(str::to_string);
-    g.registered(defs);
     g.file(package, &class, &checked.file.decls);
     if g.report.out.is_empty() {
         let mut mods: Vec<String> = mods(&checked.file.decls)
@@ -187,6 +182,8 @@ pub(crate) struct Gen<'c> {
     /// The type arguments objects are made with, each list a constant of
     /// the source's class (`$types1`): worked out once, not per object.
     kept_types: Vec<String>,
+    /// The file's event raisers, written at its class's end (`raisers`).
+    raisers: Vec<crate::raisers::Raiser>,
     /// The loops being written, innermost last: a loop written in steps
     /// what leaves its body for a `continue` (`break $t1;`, a split one's
     /// jump); Java's own none.
@@ -223,8 +220,6 @@ pub(crate) struct Gen<'c> {
     /// What the file does when the mods load, for its `$Load`: content
     /// registered, `[Provide]` methods answering.
     on_load: Vec<String>,
-    /// Each content declaration's id (`Lamp`: `mymod:lamp`).
-    content_ids: std::collections::HashMap<String, String>,
     /// The members being written are a command's (not the file's own).
     in_command: bool,
     /// The mod the source is of: its messages' channels' namespace.
@@ -247,6 +242,7 @@ impl<'c> Gen<'c> {
             nested: true,
             owner: None,
             kept_types: Vec::new(),
+            raisers: Vec::new(),
             continues: Vec::new(),
             cells: std::collections::HashSet::new(),
             given_back: Vec::new(),
@@ -261,7 +257,6 @@ impl<'c> Gen<'c> {
             class_name: String::new(),
             boxed: std::collections::HashSet::new(),
             on_load: Vec::new(),
-            content_ids: std::collections::HashMap::new(),
             has_load: false,
             mod_id: None,
             in_command: false,

@@ -50,6 +50,7 @@ mod written;
 
 use std::collections::HashMap;
 
+pub use content::content_path;
 pub use model::Type;
 pub use types::{Message, MethodUse, OperatorUse, Quoted, Types};
 
@@ -91,6 +92,8 @@ pub(crate) struct Checker<'r, 's, 'i> {
     nanites: bool,
     /// Its mod says it sends to the server.
     to_server: bool,
+    /// The mod's content files, each (kind, id); `None`: not known.
+    content: Option<Vec<(String, String)>>,
     /// The type parameters in scope, innermost last.
     type_params: Vec<generics::Bound>,
     /// Each expression's type found.
@@ -103,13 +106,14 @@ pub(crate) struct Checker<'r, 's, 'i> {
     operators: operators::Operators,
 }
 
-/// `file`'s types checked against `index` (a targeted version's), what
-/// doesn't fit reported.
 /// What a source may reach: the game's classes (a `.yns`), sending to the
 /// server (its mod says so).
 pub(crate) struct Allowed {
     pub nanites: bool,
     pub to_server: bool,
+    /// The mod's content files, each (kind, id), when known: what its
+    /// content declarations bind to.
+    pub content: Option<Vec<(String, String)>>,
 }
 
 /// The built-in type its keyword names (`i32`, `string`): the one table
@@ -130,13 +134,18 @@ pub fn system_name(t: &Type) -> Option<&'static str> {
     builtin::system_name(t)
 }
 
-pub(crate) fn check(
-    file: &File,
+/// `file`'s types checked against `index` (a targeted version's) and its
+/// project's `others`, what doesn't fit reported.
+pub(crate) fn check<'d>(
+    file: &'d File,
     allowed: Allowed,
-    index: Option<&ClassIndex>,
+    (index, others): (Option<&ClassIndex>, &[&'d [crate::ast::Decl]]),
     report: &mut Report<'_>,
 ) -> Types {
-    let mut own = OwnTypes::collect(&[&crate::system::DECLS, &file.decls]);
+    let mut own = OwnTypes::collect_project(&crate::system::DECLS, others, &file.decls);
+    for decls in others {
+        own.extensions(decls);
+    }
     own.extensions(&file.decls);
     let mut c = Checker {
         report,
@@ -151,6 +160,7 @@ pub(crate) fn check(
         ns: Vec::new(),
         nanites: allowed.nanites,
         to_server: allowed.to_server,
+        content: allowed.content,
         type_params: Vec::new(),
         readonly_this: false,
         in_content: false,
@@ -163,7 +173,7 @@ pub(crate) fn check(
     c.type_delegates();
     c.type_operators();
     c.decls(&file.decls);
-    inherit::check(&crate::system::DECLS, &file.decls, c.report);
+    inherit::check((&crate::system::DECLS, others), &file.decls, c.report);
     c.types
 }
 

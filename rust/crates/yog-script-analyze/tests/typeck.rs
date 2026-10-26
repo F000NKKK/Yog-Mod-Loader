@@ -133,30 +133,51 @@ fn async_methods_give_tasks() {
     }
 }
 
-/// A content declaration's properties are its kind's definition's fields
-/// (`yog-registry`'s), each of its type.
+/// A content declaration is its file's behaviour: what the block is is
+/// said in its `.yblock`, so a property here is an error.
 #[test]
-fn content_props_are_its_definitions() {
-    let ok = "block Lamp {\n    Hardness = 2.0;\n    LightLevel = 15;\n    Sound = \"glass\";\n}\nitem Gem {\n    MaxStack = 16;\n    FireResistant = true;\n}\n";
-    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+fn content_props_are_its_files() {
     assert_eq!(
-        codes("block Lamp {\n    Glow = 1;\n}\n"),
-        [script_problem::UNKNOWN_MEMBER]
+        codes("block Lamp {\n    Hardness = 2.0;\n}\n"),
+        [script_problem::CONTENT_PROPERTY]
     );
     assert_eq!(
-        codes("block Lamp {\n    Hardness = \"hard\";\n}\n"),
-        [script_problem::TYPE_MISMATCH]
+        codes("item Gem {\n    MaxStack = 16;\n    FireResistant = true;\n}\n"),
+        [script_problem::CONTENT_PROPERTY, script_problem::CONTENT_PROPERTY]
+    );
+}
+
+/// With the mod's content files known, a declaration without its file
+/// (`lamp.yblock`) is an error; one with it, of the same kind, binds.
+#[test]
+fn content_binds_to_its_file() {
+    let content = [
+        ("block".to_string(), "test:lamp".to_string()),
+        ("item".to_string(), "test:gem".to_string()),
+    ];
+    let check = |src: &str| {
+        let env = yog_script_analyze::Env {
+            content: Some(&content),
+            ..Default::default()
+        };
+        codes_of(yog_script_analyze::check_in("a.ys", src, env).problems)
+    };
+    assert!(check("block Lamp {\n    public i32 Uses = 0;\n}\nitem Gem { }\n").is_empty());
+    assert_eq!(
+        check("block Glow { }\n"),
+        [script_problem::NO_CONTENT_FILE]
     );
     assert_eq!(
-        codes("item Gem {\n    Id = \"x\";\n}\n"),
-        [script_problem::UNKNOWN_MEMBER]
+        check("item Lamp { }\n"),
+        [script_problem::NO_CONTENT_FILE],
+        "a block's file isn't an item's"
     );
 }
 
 /// Content is its kind's object (`BlockObject`): its events, its place.
 #[test]
 fn content_inherits_its_kinds_object() {
-    let src = "block Lamp {\n    LightLevel = 15;\n    public i32 Uses = 0;\n    Lamp() {\n        Use += player => {\n            Uses += 1;\n        };\n    }\n    i32 Height() => Pos.Y;\n}\n\
+    let src = "block Lamp {\n    public i32 Uses = 0;\n    Lamp() {\n        Use += player => {\n            Uses += 1;\n        };\n    }\n    i32 Height() => Pos.Y;\n}\n\
                item Gem {\n    Gem() {\n        Use += player => { };\n    }\n}\n";
     assert!(codes(src).is_empty(), "{:?}", codes(src));
 }

@@ -140,8 +140,9 @@ pub(crate) fn build(
     if new_lock.exists() {
         std::fs::copy(&new_lock, root.join(yog_ids::file::LOCK)).map_err(|e| e.to_string())?;
     }
+    let ids = content.ids.clone();
     let mut assets = assets(&root, resources, content, dev)?;
-    assets.extend(yog_cli::script::jvm::jars(&root, &meta, &build_dir)?);
+    assets.extend(yog_cli::script::jvm::jars(&root, &meta, &build_dir, &ids)?);
     let bin = root.join(yog_ids::project::BIN);
     std::fs::create_dir_all(&bin).map_err(|e| e.to_string())?;
     let bundled = match symbols {

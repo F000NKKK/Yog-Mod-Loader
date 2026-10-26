@@ -1,7 +1,7 @@
 //! Source text into tokens (`docs/design/ys-grammar.md` §1).
 
 mod number;
-mod string;
+pub(crate) mod string;
 
 use yog_ids::script_problem;
 
@@ -36,10 +36,11 @@ const DOC_COMMENT: &str = "///";
 const BLOCK_OPEN: &str = "/*";
 const BLOCK_CLOSE: &str = "*/";
 const RAW_QUOTES: &str = "\"\"\"";
-const TEXT_PREFIX: &str = "t\"";
+/// Before a translatable text's key (`t"charge.title"`).
+pub const TEXT_PREFIX: &str = "t\"";
 use crate::source::token::QUOTE as CHAR_QUOTE;
 /// Before a name: the name even when it's a keyword (`@this`).
-const VERBATIM: char = '@';
+pub const VERBATIM: char = '@';
 /// Hexadecimal: `0x…` numbers, `\u{…}` escapes.
 const HEX: u32 = 16;
 

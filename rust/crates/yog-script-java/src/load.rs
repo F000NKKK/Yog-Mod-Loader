@@ -1,19 +1,18 @@
 //! What a source does when the mods load, in its `$Load` — made then as a
-//! mod is (`YsMod`), so a source without a `mod` does it too: its content
-//! registered (definitions `yog build` made, `Content.Register`), its
-//! `[Provide("…")]` methods answering the bus (their request a record of
-//! their parameters, as a `[Service]`'s).
+//! mod is (`YsMod`), so a source without a `mod` does it too: its content's
+//! objects bound to the content its files register (the generated Rust
+//! does), its `[Provide("…")]` methods answering the bus (their request a
+//! record of their parameters, as a `[Service]`'s).
 
 use yog_script_analyze::ast::{Decl, Method};
 use yog_script_ids::java::METHOD_REF;
 use yog_script_ids::java::{
-    BYTE, CLASS, CLASS_LITERAL, FINAL, IMPLEMENTS, NEW, NULL, PUBLIC, RANK, RECORD, RETURN, STATIC,
+    CLASS, CLASS_LITERAL, FINAL, IMPLEMENTS, NEW, NULL, PUBLIC, RECORD, RETURN, STATIC,
 };
-use yog_script_ids::jvm::SERVICE_CALL;
 use yog_script_ids::jvm::{BUS_PROVIDE, LOAD, OBJECTS_REGISTER, REQUEST};
 use yog_script_ids::system::PROVIDE;
 
-use crate::{ContentDef, Gen};
+use crate::Gen;
 
 impl Gen<'_> {
     /// Method `m` (Java's `name`), when it's `[Provide("…")]`: its request
@@ -51,26 +50,6 @@ impl Gen<'_> {
         ));
     }
 
-    /// Content `defs` registered when the mods load.
-    pub(crate) fn registered(&mut self, defs: &[ContentDef]) {
-        self.content_ids = defs
-            .iter()
-            .map(|d| (d.name.clone(), d.id.clone()))
-            .collect();
-        let Some(record) = yog_script_analyze::yog::content_register() else {
-            return;
-        };
-        for d in defs {
-            let bytes: Vec<String> = d.data.iter().map(|b| (*b as i8).to_string()).collect();
-            self.on_load.push(format!(
-                "{NEW} {record}({}, {}, {NEW} {BYTE}{RANK} {{ {} }}).{SERVICE_CALL}();",
-                self.code.str(&d.kind),
-                self.code.str(&d.id),
-                bytes.join(", ")
-            ));
-        }
-    }
-
     /// The file's `$Load`, when it has something to do when the mods load.
     pub(crate) fn load_class(&mut self) -> bool {
         if self.on_load.is_empty() {
@@ -92,7 +71,8 @@ impl Gen<'_> {
 
 impl Gen<'_> {
     /// Content `name` of kind `kind` with members: a class of its kind's
-    /// object (`BlockObject`), its objects made by it once registered.
+    /// object (`BlockObject`), its objects made by it for the content of
+    /// its id (`Lamp`: `mymod:lamp`, its `lamp.yblock`'s).
     pub(crate) fn content_class(
         &mut self,
         d: &Decl,
@@ -109,9 +89,10 @@ impl Gen<'_> {
         let mut header = header.clone();
         header.bases.insert(0, written_named(base));
         self.type_decl(d, (yog_script_ids::java::CLASS, name), &header, body);
-        let Some(id) = self.content_ids.get(name).cloned() else {
+        let Some(mod_id) = &self.mod_id else {
             return;
         };
+        let id = yog_ids::qualify_in(mod_id, &yog_script_analyze::content_path(name));
         let line = format!(
             "{}.{OBJECTS_REGISTER}({}, {name}{METHOD_REF}{NEW});",
             self.index.place(base, 0),

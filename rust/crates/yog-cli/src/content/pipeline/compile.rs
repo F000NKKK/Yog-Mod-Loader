@@ -24,7 +24,7 @@ use crate::content::pipeline::entry::Entry;
 use crate::content::pipeline::files::{BodyFile, BookFile, EntityFile, FontFile};
 use crate::content::pipeline::outputs::version_overlays;
 use crate::content::pipeline::source::{
-    Content, mentions_content_macro, registrations, rust_source,
+    Content, mentions_content_macro, registrations, rust_source, ys_source,
 };
 use crate::content::{
     CONTENT_DIR, Compiled, content_format, find, media::looks, media::particles, media::sounds,
@@ -518,11 +518,12 @@ impl<'a> Build<'a> {
             self.out.warnings.push(caveat("the mod has content (blocks, items, particles, videos, …), but src/ never calls `yog_api::content!();` — it isn't registered"));
         }
         self.out.source = Some(rust_source(&content));
+        self.out.script = ys_source(&content);
         version_overlays(&mut self.out, &known.datapack);
         Ok(self.out)
     }
 
-    /// How many of each the build says it made.
+    /// How many of each the build says it made, and their ids.
     fn count(&mut self) {
         self.out.blocks = self
             .entries
@@ -530,6 +531,16 @@ impl<'a> Build<'a> {
             .filter(|e| e.kind == Format::Block)
             .count();
         self.out.items = self.entries.len() - self.out.blocks;
+        self.out.ids = self
+            .entries
+            .iter()
+            .map(|e| (e.kind.noun().to_string(), e.id.clone()))
+            .chain(
+                self.entities
+                    .iter()
+                    .map(|e| (yog_ids::kind::ENTITY.to_string(), e.id.clone())),
+            )
+            .collect();
         self.out.recipes = self.recipes.len();
         self.out.books = self.books.len();
     }

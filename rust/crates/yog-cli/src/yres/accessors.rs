@@ -95,20 +95,24 @@ pub(super) fn medium(acc: &str, id: &str, doc: &str) -> String {
 pub(super) fn value(e: &Entry, upper: &str, doc: &str) -> Option<String> {
     let (ty, v) = match (e.kind, &e.value) {
         (Kind::Color, _) => ("u32", format!("0x{:08X}", super::color_of(e)?)),
-        (Kind::Number, Value::Num(lit)) => number(lit),
+        (Kind::Number, Value::Num(lit)) => match number(lit) {
+            (true, v) => ("i64", v),
+            (false, v) => ("f64", v),
+        },
         (Kind::Bool, v) => ("bool", matches!(v, Value::Bool(true)).to_string()),
         _ => return None,
     };
     Some(format!("{doc}    pub const {upper}: {ty} = {v};\n"))
 }
 
-/// A number's type and literal: a whole one as `i64`, any other as `f64`.
-fn number(lit: &str) -> (&'static str, String) {
+/// A number's literal, and whether it's whole (then 64-bit integer, else
+/// a 64-bit float): the same in each language the sets are written in.
+pub(super) fn number(lit: &str) -> (bool, String) {
     let whole = !lit.contains(['.', 'e', 'E']);
     match (whole, lit.parse::<i64>()) {
-        (true, Ok(v)) => ("i64", v.to_string()),
+        (true, Ok(v)) => (true, v.to_string()),
         _ => (
-            "f64",
+            false,
             format!("{:?}", lit.parse::<f64>().unwrap_or_default()),
         ),
     }

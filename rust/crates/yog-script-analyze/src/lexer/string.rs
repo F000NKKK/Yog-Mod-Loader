@@ -6,13 +6,17 @@ use yog_ids::script_problem;
 use super::{HEX, Lexer};
 use crate::source::token::{Span, StrPart, Tok, Token};
 
-const QUOTE: char = '"';
+pub const QUOTE: char = '"';
 const RAW_QUOTES: &str = "\"\"\"";
-use crate::source::token::QUOTE as CHAR_QUOTE;
-const ESCAPE: char = '\\';
-const OPEN: char = '{';
-const CLOSE: char = '}';
-const UNICODE_OPEN: &str = "u{";
+pub use crate::source::token::QUOTE as CHAR_QUOTE;
+pub const ESCAPE: char = '\\';
+/// A string's interpolation's ends (`{name}`); doubled, the character.
+pub const OPEN: char = '{';
+pub const CLOSE: char = '}';
+/// A character by its code, after `\\`: `u{e9}`.
+pub const UNICODE_OPEN: &str = "u{";
+/// The escapes after `\\` of a character each: the letter, the character.
+pub const ESCAPES: [(char, char); 4] = [('n', '\n'), ('t', '\t'), ('r', '\r'), ('0', '\0')];
 
 impl Lexer<'_, '_, '_> {
     pub(super) fn string(&mut self, start: usize) {
@@ -67,10 +71,6 @@ impl Lexer<'_, '_, '_> {
     fn escaped(&mut self) -> Option<char> {
         let at = self.pos;
         let c = match self.bump() {
-            Some('n') => '\n',
-            Some('t') => '\t',
-            Some('r') => '\r',
-            Some('0') => '\0',
             Some(c @ (ESCAPE | QUOTE | CHAR_QUOTE | OPEN | CLOSE)) => c,
             Some('u') if self.src[at..].starts_with(UNICODE_OPEN) => match self.unicode() {
                 Some(c) => c,
@@ -79,10 +79,13 @@ impl Lexer<'_, '_, '_> {
                     return None;
                 }
             },
-            _ => {
-                self.bad_escape(at);
-                return None;
-            }
+            letter => match ESCAPES.iter().find(|(e, _)| Some(*e) == letter) {
+                Some((_, c)) => *c,
+                None => {
+                    self.bad_escape(at);
+                    return None;
+                }
+            },
         };
         Some(c)
     }

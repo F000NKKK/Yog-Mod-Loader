@@ -64,6 +64,13 @@ fn compiles_a_cube_block() {
         src.contains("registry.register_block(Blocks::ruby_ore());"),
         "{src}"
     );
+    // The mod's Yog Script names it the same way.
+    let ys = c.script.as_deref().unwrap_or_default();
+    assert!(ys.contains("public static class Blocks {"), "{ys}");
+    assert!(
+        ys.contains("    public const string RubyOre = \"mymod:ruby_ore\";"),
+        "{ys}"
+    );
 
     let mut outputs = Vec::new();
     merge_outputs(&root, &mut outputs, c).unwrap();

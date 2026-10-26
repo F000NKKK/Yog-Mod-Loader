@@ -44,7 +44,9 @@ impl Literals for Java {
 }
 
 impl Identifiers for Java {
-    const KEYWORDS: &'static [&'static str] = keywords::ALL;
+    fn is_keyword(name: &str) -> bool {
+        keywords::ALL.contains(&name)
+    }
 
     fn escape_keyword(keyword: &str) -> String {
         format!("{keyword}{KEYWORD_SUFFIX}")

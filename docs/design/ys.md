@@ -423,14 +423,11 @@ component Owned {
 }
 
 block Charger has Charge(Res.Charger.Capacity), Owned {
-    Hardness = Res.Charger.Hardness;
     public Slots<Battery> Inventory = new(4);
     Charger() { Use += player => player.Open(new ChargerScreen(this)); }
 }
 
-item Battery has Charge(Res.Battery.Capacity) {
-    StackSize = 1;
-}
+item Battery has Charge(Res.Battery.Capacity) { }
 
 extend Player has Charge(Res.Suit.Capacity);     // the game's objects carry them too
 
@@ -550,8 +547,8 @@ block Charger {
     }
 }
 
-Task.Every(10s) { … };
-await Task.Until { door.IsOpen };
+GameTime.Every(10t, () => { … });     // game time: System.Yog
+await GameTime.Until(() => door.IsOpen);
 ```
 
 Searching the world is a library chain the compiler knows, so it compiles
@@ -624,11 +621,11 @@ mod Charge {
     Resources = "charge.yres";           // sounds, numbers, text: no magic values
 }
 
+// What the block is (strength, tool, drops, model, name) is said once, in
+// `content/charger.yblock`; the declaration is its behaviour, bound to it
+// by id (`Charger`: `charge:charger`). A property here is an error
+// (YS0037), a declaration without its file too (YS0038).
 block Charger has Charge(Res.Charger.Capacity) {
-    Hardness = Res.Charger.Hardness;
-    Tool = Tool.Pickaxe;
-    Drops = this;
-
     public Slots<Battery> Inventory = new(4);
 
     Charger() {
@@ -637,10 +634,7 @@ block Charger has Charge(Res.Charger.Capacity) {
     }
 }
 
-item Battery has Charge(Res.Battery.Capacity) {
-    StackSize = 1;
-    Tooltip = t"charge.battery.tooltip"(Charge.Energy, Charge.Capacity);
-}
+item Battery has Charge(Res.Battery.Capacity) { }   // content/battery.yitem
 
 recipe Battery : Shaped {
     Pattern = ["RIR", "IGI", "RIR"];
@@ -823,8 +817,10 @@ static i64 Double(i64 x) => x * 2;
 - The class index is the game's jars read per MC version: classes,
   signatures, hierarchy, sides and local names. Only a `.yns` is checked
   against it, on each version its `targets` takes.
-- A pure-JVM mod has no native library: no cross-compilation, builds in
-  seconds. Rust lowering is chosen per mod or per method.
+- Every mod has a native: the generated Rust of its content and `.yui`
+  design, with a crate root `yog build` writes when the mod has no
+  `src/lib.rs`. Its Yog Script reaches it through generated bindings
+  (`ys-bindings.md`). Rust lowering is chosen per mod or per method.
 - Line numbers: bytecode carries `SourceFile` = the `.ys` and its lines.
 
 ## 9. Steps

@@ -213,6 +213,25 @@ fn compiles_a_mod() {
     );
     assert!(icons.contains("pub const MAX: i64 = 3;"), "{icons}");
     assert!(icons.contains("pub const ON: bool = true;"), "{icons}");
+    // The same sets for the mod's Yog Script: `Res.Icons.Max`.
+    let members = |set: &str| c.scripts[set].1.join("\n");
+    assert!(
+        members("Strings").contains("public static string Title => t\"m.title\";"),
+        "{}",
+        members("Strings")
+    );
+    let icons_ys = members("Icons");
+    for want in [
+        "public const string ImagesLogo = \"m:images/logo\";",
+        "public const u32 Accent = 0xFFFF8800;",
+        "public const i64 Max = 3;",
+        "public const bool On = true;",
+    ] {
+        assert!(icons_ys.contains(want), "missing `{want}` in:\n{icons_ys}");
+    }
+    let file = super::script::source(&c.scripts).unwrap_or_default();
+    assert!(file.contains("public static class Res {"), "{file}");
+    assert!(file.contains("    public static class Icons {"), "{file}");
     assert!(icons.contains("\"m:sounds/click\""), "{icons}");
     assert_eq!(c.warnings.len(), 2, "{:?}", c.warnings);
     assert!(

@@ -127,6 +127,8 @@ pub(crate) struct OwnTypes {
     /// file's `using`s.
     current: Vec<String>,
     current_usings: Vec<Vec<String>>,
+    /// Collecting another source of the project: its types only.
+    types_only: bool,
 }
 
 impl OwnTypes {

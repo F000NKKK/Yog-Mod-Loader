@@ -20,7 +20,7 @@ pub(crate) fn check(path: &str, text: &str) -> Checked {
         Some(yog_ids::Format::Script | yog_ids::Format::Nanites)
     ) {
         let problems = match crate::script::mod_root(std::path::Path::new(path)) {
-            Some(root) => crate::script::check_text(path, text, root),
+            Some(root) => crate::script::check_text(path, text, root, None),
             None => yog_script_build::check_source(path, text),
         };
         return Checked { problems };

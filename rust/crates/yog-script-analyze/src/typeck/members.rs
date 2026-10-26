@@ -393,6 +393,16 @@ impl Checker<'_, '_, '_> {
                 return self.yog_methods(&group, name, at);
             }
         }
+        // Nothing of that name: a method of the game's class a `.yns`
+        // reaches through `this` can't be told apart without its classes.
+        let game_this = matches!(self.this, Some(Type::Game(_)));
+        if !(self.nanites || game_this) {
+            self.report.error(
+                script_problem::UNKNOWN_MEMBER,
+                at,
+                format!("no method `{name}` here (another file's are its own: a type's are reached through it)"),
+            );
+        }
         Callee::Unknown
     }
 

@@ -115,6 +115,14 @@ fn preview(names: &[&str]) -> String {
     text
 }
 
+/// A medium's accessor, in Rust and Yog Script: its id.
+fn media_accessors(a: &Accessor, id: &str) -> (String, String) {
+    (
+        accessors::medium(&a.acc, id, &a.doc),
+        super::script::medium(&a.acc, id),
+    )
+}
+
 /// How many names a warning shows.
 const PREVIEW: usize = 5;
 
@@ -125,6 +133,8 @@ impl Build<'_> {
         let mut code = accessors::set_header(&shown, &set.name);
         let mut names: HashMap<String, usize> = HashMap::new();
         let mut texts = Texts::new();
+        // Each entry's Yog Script member, beside its Rust accessor.
+        let mut members = Vec::new();
         for e in &set.neutral.entries {
             let at = Place {
                 file: shown.clone(),
@@ -148,10 +158,14 @@ impl Build<'_> {
                 k if k.holds_bytes() => self.medium(e, &a),
                 _ => self.value(e, &a),
             };
-            code.push_str(&written.unwrap_or_default());
+            if let Some((rust, ys)) = written {
+                code.push_str(&rust);
+                members.push(ys);
+            }
         }
         code.push_str("}\n");
         self.c.sources.insert(set.name.clone(), code);
+        self.c.scripts.insert(set.name.clone(), (shown, members));
         texts
     }
 
@@ -178,8 +192,9 @@ impl Build<'_> {
     }
 
     /// A text: its key (its own, or the set's default) used once, its
-    /// placeholders the accessor's parameters, its words into the neutral lang.
-    fn text(&mut self, e: &Entry, a: &Accessor, texts: &mut Texts) -> Option<String> {
+    /// placeholders the accessor's parameters, its words into the neutral
+    /// lang. Its accessor's Rust and Yog Script.
+    fn text(&mut self, e: &Entry, a: &Accessor, texts: &mut Texts) -> Option<(String, String)> {
         let key = e
             .key
             .clone()
@@ -206,13 +221,14 @@ impl Build<'_> {
             .refs
             .texts
             .insert(a.reference.clone(), (key.clone(), e.text().to_string()));
+        let ys = super::script::text(&a.acc, &key);
         texts.insert(e.name.clone(), (key, ps));
-        Some(code)
+        Some((code, ys))
     }
 
     /// An image, file or sound: its bytes into the pack where its name
     /// (dotted: `block.ruby` → `block/ruby`) says, its accessor its id.
-    fn medium(&mut self, e: &Entry, a: &Accessor) -> Option<String> {
+    fn medium(&mut self, e: &Entry, a: &Accessor) -> Option<(String, String)> {
         let Value::Bytes(bytes) = &e.value else {
             return None;
         };
@@ -220,7 +236,7 @@ impl Build<'_> {
         let id = yog_ids::join(self.mod_id, &path);
         if e.kind == Kind::Video {
             // Not bundled: `.yvideo` files render it.
-            return Some(accessors::medium(&a.acc, &id, &a.doc));
+            return Some(media_accessors(a, &id));
         }
         let (target, id, data) = match e.kind {
             Kind::Image => self.image(e, a, bytes, &path)?,
@@ -233,7 +249,7 @@ impl Build<'_> {
             self.errors
                 .push(a.at.problem(format!("{:?} goes to {target}, like {:?}", e.name, other.0)));
         }
-        Some(accessors::medium(&a.acc, &id, &a.doc))
+        Some(media_accessors(a, &id))
     }
 
     /// An image: as a PNG texture, its picture kept for what draws it.
@@ -288,15 +304,16 @@ impl Build<'_> {
         (yog_ids::asset_file(self.mod_id, &file), id, ogg)
     }
 
-    /// A color, number or flag: a const.
-    fn value(&mut self, e: &Entry, a: &Accessor) -> Option<String> {
+    /// A color, number or flag: a const, in Rust and Yog Script.
+    fn value(&mut self, e: &Entry, a: &Accessor) -> Option<(String, String)> {
         if e.kind == Kind::Color {
             self.c
                 .refs
                 .colors
                 .insert(a.reference.clone(), super::color_of(e)?);
         }
-        accessors::value(e, &a.acc.to_ascii_uppercase(), &a.doc)
+        let rust = accessors::value(e, &a.acc.to_ascii_uppercase(), &a.doc)?;
+        Some((rust, super::script::value(e, &a.acc)?))
     }
 
     /// Set `set`'s culture variants: their texts into their langs, with the

@@ -29,24 +29,6 @@ pub fn service(group: &str, method: &str) -> Option<Service> {
     })
 }
 
-/// The record of the service at `address`, in full (what calls it).
-pub fn service_at(address: &str) -> Option<String> {
-    let info = yog_event::services()
-        .into_iter()
-        .find(|s| s.address == address)?;
-    Some(format!(
-        "{}.{}.{}",
-        java::PACKAGE,
-        java::SERVICES,
-        java::record_path(info.domain, info.name)
-    ))
-}
-
-/// The record registering content (`Content.Register`), in full.
-pub fn content_register() -> Option<String> {
-    service_at(<yog_event::content::Register as yog_event::Service>::ADDRESS)
-}
-
 /// Group `group`'s event `name`'s record, in full (`…YogEvents.Block.Break`).
 pub fn event(group: &str, name: &str) -> Option<String> {
     let plane = SURFACE.groups.get(group)?.planes.get(name)?;

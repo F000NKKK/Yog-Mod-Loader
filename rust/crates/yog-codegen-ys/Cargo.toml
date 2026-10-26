@@ -1,0 +1,13 @@
+[package]
+name = "yog-codegen-ys"
+version = "0.1.0"
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = "MIT OR Apache-2.0"
+description = "Yog Script for yog-codegen: its comments, string literals, reserved words and blocks."
+
+[dependencies]
+yog-codegen = { workspace = true }
+# How Yog Script is spelled: its reader's words and escapes.
+yog-script-analyze = { workspace = true }

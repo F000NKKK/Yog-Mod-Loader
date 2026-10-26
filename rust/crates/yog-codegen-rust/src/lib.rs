@@ -34,7 +34,9 @@ impl Literals for Rust {
 }
 
 impl Identifiers for Rust {
-    const KEYWORDS: &'static [&'static str] = keywords::ALL;
+    fn is_keyword(name: &str) -> bool {
+        keywords::ALL.contains(&name)
+    }
 
     fn escape_keyword(keyword: &str) -> String {
         format!("{RAW_IDENT}{keyword}")

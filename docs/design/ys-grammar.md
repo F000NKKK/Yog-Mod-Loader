@@ -268,13 +268,12 @@ content_decl = content_kind IDENT primary_ctor? bases? has? '{' content_item* '}
 content_kind = 'block' | 'item' | 'entity' | 'fluid' | 'recipe' | IDENT ;   (* open: a mod's own content kinds *)
 has          = 'has' component_use (',' component_use)* ;
 component_use = path call_args? ;                                    (* a component and its arguments *)
-content_item = IDENT '=' expr ';'                                    (* a property: Hardness = 2.0f32; *)
+content_item = IDENT '=' expr ';'                                    (* a property: a recipe's (Pattern = …;); a block's or an item's are its file's *)
              | member ;
 ```
 
 ```ys
-block Charger has Charge(Res.Charger.Capacity) {
-    Hardness = Res.Charger.Hardness;
+block Charger has Charge(Res.Charger.Capacity) {      // content/charger.yblock's behaviour
     public Slots<Battery> Inventory = new(4);
 
     Charger() {
@@ -616,8 +615,6 @@ extend Player {
 }
 
 block Charger has Charge(Res.Charger.Capacity) {
-    Hardness = Res.Charger.Hardness;
-    Drops = this;
 
     public saved Mode Mode = Mode.Idle;
     public Slots<Battery> Inventory = new(4);
@@ -642,10 +639,7 @@ server system Solar(Charge charge, Block block) every 1t {
     if (block.Level.IsDay) charge.Energy += Res.SolarRate;
 }
 
-item Battery has Charge(Res.Battery.Capacity) {
-    StackSize = 1;
-    Tooltip = t"charge.battery.tooltip"(Charge.Energy, Charge.Room);
-}
+item Battery has Charge(Res.Battery.Capacity) { }    // content/battery.yitem's behaviour
 
 recipe Battery : Shaped {
     Pattern = ["RIR", "IGI", "RIR"];

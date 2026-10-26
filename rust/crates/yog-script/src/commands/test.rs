@@ -38,6 +38,8 @@ fn source(file: &str, text: &str, project: Project<'_>) -> usize {
         macros: project.macros.map(|m| m as &dyn ProcMacros),
         files: project.files,
         to_server: project.to_server,
+        content: project.content,
+        others: project.others,
     };
     let checked = yog_script_analyze::check_in(file, text, env);
     let program = Program::of(&[&system::DECLS, &checked.file.decls]);
