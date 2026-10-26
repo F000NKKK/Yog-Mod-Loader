@@ -5,6 +5,7 @@ import dev.yog.script.reflection.MethodInfo;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * What generic code does with a type parameter's value that Java's erased
@@ -47,13 +48,26 @@ public final class Generics {
 
     /** {@code value}'s method {@code name} of {@code args.length} parameters, run. */
     private static Object run(Type type, Object value, String name, Object[] args) {
-        for (MethodInfo m : type.GetMethods()) {
-            if (m.Name().equals(name) && !m.IsStatic() && m.GetParameters().length == args.length) {
-                return m.Invoke(value, args);
-            }
-        }
-        throw new IllegalStateException("`" + type + "` has no method `" + name + "` of " + args.length + " parameters");
+        return method(type, name, args.length).Invoke(value, args);
     }
+
+    /** Each type's instance methods found, by name and parameter count: looked up once (types are canonical). */
+    private static final Map<Type, Map<String, MethodInfo>> FOUND = new ConcurrentHashMap<>();
+
+    private static MethodInfo method(Type type, String name, int count) {
+        Map<String, MethodInfo> of = FOUND.computeIfAbsent(type, t -> new ConcurrentHashMap<>());
+        return of.computeIfAbsent(name + SEP + count, k -> {
+            for (MethodInfo m : type.GetMethods()) {
+                if (m.Name().equals(name) && !m.IsStatic() && m.GetParameters().length == count) {
+                    return m;
+                }
+            }
+            throw new IllegalStateException("`" + type + "` has no method `" + name + "` of " + count + " parameters");
+        });
+    }
+
+    /** What parts a found method's key. */
+    private static final String SEP = "/";
 
     /** A new {@code type} made with nothing ({@code new T()}): a value's zero, else its constructor's. */
     public static Object made(Type type) {
