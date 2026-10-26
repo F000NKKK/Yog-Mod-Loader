@@ -79,6 +79,11 @@ impl Parser<'_, '_, '_> {
         if self.at(Punct::LBrace) {
             return self.block().map(Stmt::Block);
         }
+        if self.at_word(&crate::words::r#await::WORD)
+            && self.nth_word(1, &crate::words::foreach::WORD)
+        {
+            return crate::words::foreach::awaited(self);
+        }
         let word = ALL.iter().find_map(|w| {
             w.role(|r| match *r {
                 Role::Stmt { parse } if self.at_word(w) => Some(parse),

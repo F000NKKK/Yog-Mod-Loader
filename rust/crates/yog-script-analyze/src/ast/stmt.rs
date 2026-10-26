@@ -47,6 +47,9 @@ pub enum Stmt {
         /// `foreach (let mut x in items)`: each item lent to be changed
         /// (Rust's `iter_mut`); else read only.
         mutable: bool,
+        /// `await foreach`: the items of an `IAsyncEnumerable<T>`, each
+        /// awaited (in an `async` method).
+        awaits: bool,
     },
     For {
         init: Option<Box<Stmt>>,

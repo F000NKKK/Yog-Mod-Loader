@@ -1,0 +1,9 @@
+namespace System.Collections.Generic;
+
+/// A sequence whose items come as they're ready: gone through by `await
+/// foreach`, written as an `async` iterator (`async IAsyncEnumerable<T>
+/// F() { … await …; yield return x; … }`).
+[Intrinsic]
+public interface IAsyncEnumerable<out T> {
+    IAsyncEnumerator<T> GetAsyncEnumerator();
+}

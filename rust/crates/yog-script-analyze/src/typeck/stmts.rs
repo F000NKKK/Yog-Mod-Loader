@@ -60,7 +60,8 @@ impl Checker<'_, '_, '_> {
                 iter,
                 body,
                 mutable,
-            } => self.foreach((ty.as_ref(), binding, *mutable), iter, body),
+                awaits,
+            } => self.foreach((ty.as_ref(), binding, *mutable), (iter, *awaits), body),
             Stmt::For {
                 init,
                 cond,
@@ -122,11 +123,16 @@ impl Checker<'_, '_, '_> {
     fn foreach(
         &mut self,
         (ty, binding, mutable): (Option<&ast::Type>, &Binding, bool),
-        iter: &Expr,
+        (iter, awaits): (&Expr, bool),
         body: &Stmt,
     ) {
         let items = self.expr(iter);
-        let item = self.item_of(&items);
+        // `await foreach`: an `IAsyncEnumerable<T>`'s items.
+        let item = if awaits {
+            self.sequence_item(&items, yog_script_ids::system::ASYNC_ENUMERABLE)
+        } else {
+            self.item_of(&items)
+        };
         let t = ty.map_or(item, |t| self.type_of(t));
         self.types.set_item(iter, t.clone());
         self.scoped(|c| {
@@ -260,10 +266,18 @@ impl Checker<'_, '_, '_> {
         match t.non_null() {
             Type::Array(item, _) => (**item).clone(),
             Type::String => Type::Char,
+            _ => self.sequence_item(t, ENUMERABLE),
+        }
+    }
+
+    /// The `T` of sequence interface `of<T>` (`IEnumerable`,
+    /// `IAsyncEnumerable`) that `t` is or implements; unknown when it isn't one.
+    pub(super) fn sequence_item(&self, t: &Type, of: &str) -> Type {
+        match t.non_null() {
             Type::Own(name, args) => self
                 .lineage_of(name, args)
                 .into_iter()
-                .find(|(k, _)| k.name == ENUMERABLE && k.arity == 1)
+                .find(|(k, _)| k.name == of && k.arity == 1)
                 .and_then(|(_, args)| args.into_iter().next())
                 .unwrap_or(Type::Unknown),
             _ => Type::Unknown,

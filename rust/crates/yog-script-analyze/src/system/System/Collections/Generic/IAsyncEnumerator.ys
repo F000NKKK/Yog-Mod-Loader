@@ -1,0 +1,11 @@
+namespace System.Collections.Generic;
+
+using System.Threading.Tasks;
+
+/// A walk through an `IAsyncEnumerable<T>`: `MoveNextAsync` waits for the
+/// next item, `Current` is it.
+[Intrinsic]
+public interface IAsyncEnumerator<out T> : IAsyncDisposable {
+    T Current { get; }
+    Task<bool> MoveNextAsync();
+}

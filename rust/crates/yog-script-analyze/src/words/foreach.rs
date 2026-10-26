@@ -14,6 +14,17 @@ pub static WORD: Word = Word {
 };
 
 fn parse(p: &mut Parser) -> PResult<Stmt> {
+    parse_in(p, false)
+}
+
+/// `await foreach (…)`: at `await`, `foreach` after it.
+pub(crate) fn awaited(p: &mut Parser) -> PResult<Stmt> {
+    p.bump();
+    parse_in(p, true)
+}
+
+/// `foreach (…) body`, its items awaited when `awaits`.
+fn parse_in(p: &mut Parser, awaits: bool) -> PResult<Stmt> {
     p.bump();
     p.need(Punct::LParen)?;
     let ty = if p.eat_word(&r#let::WORD) { None } else { Some(p.ty()?) };
@@ -29,5 +40,6 @@ fn parse(p: &mut Parser) -> PResult<Stmt> {
         iter,
         body,
         mutable,
+        awaits,
     })
 }

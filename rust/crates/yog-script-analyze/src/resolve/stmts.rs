@@ -54,8 +54,16 @@ impl Resolver<'_, '_> {
                 iter,
                 body,
                 mutable,
+                awaits,
             } => {
                 self.opt_ty(ty.as_ref());
+                if *awaits && !self.cx.awaits {
+                    self.report.error(
+                        script_problem::AWAIT_OUTSIDE_ASYNC,
+                        iter.span,
+                        "`await foreach` waits in an `async` method",
+                    );
+                }
                 self.expr(iter);
                 // `let mut`: each item lent to be changed; else read only.
                 let kind = if *mutable {
