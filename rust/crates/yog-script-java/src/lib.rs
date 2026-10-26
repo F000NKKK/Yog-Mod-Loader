@@ -15,6 +15,7 @@ mod commands;
 mod decimals;
 mod decls;
 mod delegates;
+mod drops;
 mod enums;
 mod events;
 mod exprs;

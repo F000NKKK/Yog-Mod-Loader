@@ -6,10 +6,10 @@ namespace System.Threading;
 public sealed class ReadWriteLock<T> {
     public ReadWriteLock(T value) {}
 
-    public ReadGuard<T> Read();
-    public WriteGuard<T> Write();
-    public ReadGuard<T>? TryRead();
-    public WriteGuard<T>? TryWrite();
+    public readonly ReadGuard<T> Read();
+    public readonly WriteGuard<T> Write();
+    public readonly ReadGuard<T>? TryRead();
+    public readonly WriteGuard<T>? TryWrite();
 }
 
 /// A read of a `ReadWriteLock`, until it's dropped.

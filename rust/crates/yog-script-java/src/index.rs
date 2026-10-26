@@ -493,6 +493,16 @@ impl Index {
         self.takes_types(t) && self.statics.contains(&(t.clone(), name.to_string()))
     }
 
+    /// Whether `t` is, implements or inherits `interface` (by name).
+    pub fn implements(&self, t: &TypeRef, interface: &str) -> bool {
+        if t.0 == interface {
+            return true;
+        }
+        self.types
+            .get(t)
+            .is_some_and(|i| i.bases.iter().any(|b| self.implements(b, interface)))
+    }
+
     pub fn kind(&self, t: &TypeRef) -> Option<Kind> {
         self.types.get(t).map(|i| i.kind)
     }

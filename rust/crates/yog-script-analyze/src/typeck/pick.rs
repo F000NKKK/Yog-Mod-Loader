@@ -92,7 +92,13 @@ impl Checker<'_, '_, '_> {
                     // `out let x`: of the type its parameter gives.
                     self.bind_as(&name.text, p.clone(), !mutable);
                     self.types.set(&arg.value, p.clone());
-                } else if is_lambda(&arg.value) || is_collection(&arg.value) || group {
+                } else if is_lambda(&arg.value)
+                    || is_collection(&arg.value)
+                    || group
+                    // A literal is the number its parameter wants (`1` an
+                    // `i64`'s, a `T` bound to one too), as C#'s.
+                    || (super::exprs::is_number_literal(&arg.value) && p.non_null().is_numeric())
+                {
                     self.fits(&arg.value, p);
                 } else {
                     self.note_conversion(&arg.value, g, p);

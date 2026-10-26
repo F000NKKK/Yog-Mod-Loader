@@ -11,9 +11,9 @@ public sealed class Shared<T> {
     /// The value shared.
     public T Value { get; }
     /// One more owner of the same value.
-    public Shared<T> Clone();
+    public readonly Shared<T> Clone();
     /// A reference that doesn't keep the value.
-    public Weak<T> Downgrade();
+    public readonly Weak<T> Downgrade();
     /// Whether two are owners of one value.
     public static bool Same(Shared<T> a, Shared<T> b);
 }

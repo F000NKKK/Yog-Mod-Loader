@@ -10,11 +10,11 @@ public enum ThreadPriority { Lowest, BelowNormal, Normal, AboveNormal, Highest }
 public sealed class Thread {
     public Thread(Action start) {}
 
-    public void Start();
+    public readonly void Start();
     /// Waits for it to end.
-    public void Join();
+    public readonly void Join();
     /// Waits for it to end at most `timeout`: whether it did.
-    public bool Join(TimeSpan timeout);
+    public readonly bool Join(TimeSpan timeout);
     public string Name { get; set; }
     /// A background thread doesn't keep the game running.
     public bool IsBackground { get; set; }
@@ -40,12 +40,12 @@ public sealed class Thread {
 [Intrinsic]
 public sealed class ThreadHandle<T> {
     /// Waits for it: its value; its panic, panicked again here.
-    public T Join();
+    public readonly T Join();
     public bool IsFinished { get; }
 }
 
 /// What `Thread.Scope` gives its body: threads joined at its end.
 [Intrinsic]
 public sealed class ThreadScope {
-    public void Run(Action work);
+    public readonly void Run(Action work);
 }

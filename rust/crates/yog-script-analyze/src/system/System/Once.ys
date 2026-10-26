@@ -7,10 +7,10 @@ public sealed class Once<T> {
     public Once() {}
 
     /// Sets it unless it's set: whether this did.
-    public bool TrySet(T value);
+    public readonly bool TrySet(T value);
     /// Its value, made by `make` if it's not set yet (once, whoever asks).
-    public T GetOrInit(Func<T> make);
+    public readonly T GetOrInit(Func<T> make);
     /// Its value, `null` until it's set.
-    public T? Get();
+    public readonly T? Get();
     public bool IsSet { get; }
 }

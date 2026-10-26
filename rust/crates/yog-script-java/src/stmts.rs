@@ -15,8 +15,19 @@ use yog_script_ids::java::{
 
 impl Gen<'_> {
     pub(crate) fn block_stmts(&mut self, b: &Block) {
-        for s in &b.stmts {
+        self.stmts_dropping(&b.stmts);
+    }
+
+    /// `stmts` in order; what a local holds dropped at the block's end
+    /// (`drops`).
+    fn stmts_dropping(&mut self, stmts: &[Stmt]) {
+        for (i, s) in stmts.iter().enumerate() {
             self.stmt(s);
+            let rest = &stmts[i + 1..];
+            if let Some(name) = self.dropped_local(s, rest) {
+                self.dropping(name, |g| g.stmts_dropping(rest));
+                return;
+            }
         }
     }
 

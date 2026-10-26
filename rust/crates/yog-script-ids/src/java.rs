@@ -42,6 +42,7 @@ pub const SUPER: &str = "super";
 pub const THIS: &str = "this";
 pub const THROW: &str = "throw";
 pub const TRY: &str = "try";
+pub const FINALLY: &str = "finally";
 pub const CATCH: &str = "catch";
 pub const VAR: &str = "var";
 pub const WHILE: &str = "while";

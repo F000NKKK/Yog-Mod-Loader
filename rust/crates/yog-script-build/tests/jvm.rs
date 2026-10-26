@@ -167,7 +167,8 @@ fn safe_calls_skip_null() {
 }
 
 /// Threads, locks and atomics: work split over threads adds up, a lock's
-/// value changed by each in turn, scoped threads joined, once set once.
+/// value changed by each in turn (its guard dropped at its block's end),
+/// scoped threads joined, once set once.
 #[test]
 fn threads_locks_and_atomics() {
     let src = "using System.Threading;\n\
@@ -180,7 +181,7 @@ fn threads_locks_and_atomics() {
                            handles.Add(Thread.Run(() => {\n\
                                for (let mut i = 0; i < 1000; i += 1) {\n\
                                    hits.Increment();\n\
-                                   using (let mut g = total.Enter()) { g.Value = g.Value + 1; }\n\
+                                   { let mut g = total.Enter(); g.Value = g.Value + 1; }\n\
                                }\n\
                                return 1;\n\
                            }));\n\
@@ -197,9 +198,8 @@ fn threads_locks_and_atomics() {
                        let second = once.TrySet(\"b\");\n\
                        let cell = new Cell<i32>(1);\n\
                        cell.Update(x => x * 7);\n\
-                       let mut g = total.Enter();\n\
-                       let sum = g.Value;\n\
-                       g.Dispose();\n\
+                       let mut sum = 0i64;\n\
+                       { let g = total.Enter(); sum = g.Value; }\n\
                        return joined + \" \" + hits.Load() + \" \" + sum + \" \" + scoped.Load() + \" \"\n\
                            + first + second + once.Get() + \" \" + cell.Get();\n\
                    }\n\
@@ -208,4 +208,40 @@ fn threads_locks_and_atomics() {
         return;
     };
     assert_eq!(out, "4 4000 4000 15 TrueFalsea 7");
+}
+
+/// Dropping, as Rust's: a local's `IDisposable` disposed at its block's
+/// end, however it ends; one moved on or returned is its new owner's.
+#[test]
+fn locals_are_dropped_at_their_scopes_end() {
+    let src = "public class Res(string name) : IDisposable {\n\
+                   public string Name = name;\n\
+                   public void Dispose() { D.Log += Name + \";\"; }\n\
+               }\n\
+               public static class D {\n\
+                   public static string Log = \"\";\n\
+                   static Res Made() { let r = new Res(\"made\"); return r; }\n\
+                   static void Keep(Res r) { }\n\
+                   static i32 Early(bool leave) {\n\
+                       let a = new Res(\"early\");\n\
+                       if (leave) { return 1; }\n\
+                       return 2;\n\
+                   }\n\
+                   public static string Run() {\n\
+                       {\n\
+                           let a = new Res(\"a\");\n\
+                           let b = new Res(\"b\");\n\
+                       }\n\
+                       let m = Made();\n\
+                       Log += \"|\";\n\
+                       let c = new Res(\"c\");\n\
+                       Keep(move c);\n\
+                       Early(true);\n\
+                       return Log;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("d.ys", src)], "t.DScript.D.Run()") else {
+        return;
+    };
+    assert_eq!(out, "b;a;|early;", "the last made dropped first; made, c moved on");
 }

@@ -8,6 +8,9 @@ pub const GET_HASH_CODE: &str = "GetHashCode";
 pub const TO_STRING: &str = "ToString";
 pub const GET_TYPE: &str = "GetType";
 
+// `IDisposable`'s: what a drop calls.
+pub const DISPOSE: &str = "Dispose";
+
 // Collections (`List<T>`).
 pub const COUNT: &str = "Count";
 pub const ADD: &str = "Add";

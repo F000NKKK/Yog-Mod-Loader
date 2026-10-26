@@ -11,17 +11,17 @@ public enum MemoryOrder { Relaxed, Acquire, Release, AcqRel, SeqCst }
 public sealed class Atomic<T> {
     public Atomic(T value) {}
 
-    public T Load(MemoryOrder order = MemoryOrder.SeqCst);
-    public void Store(T value, MemoryOrder order = MemoryOrder.SeqCst);
+    public readonly T Load(MemoryOrder order = MemoryOrder.SeqCst);
+    public readonly void Store(T value, MemoryOrder order = MemoryOrder.SeqCst);
     /// The value put in, the one there given back.
-    public T Exchange(T value, MemoryOrder order = MemoryOrder.SeqCst);
+    public readonly T Exchange(T value, MemoryOrder order = MemoryOrder.SeqCst);
     /// Puts `value` in if `expected` is there: what was there.
-    public T CompareExchange(T expected, T value, MemoryOrder order = MemoryOrder.SeqCst);
+    public readonly T CompareExchange(T expected, T value, MemoryOrder order = MemoryOrder.SeqCst);
     /// A whole number's sum with `delta`, kept: the new value.
-    public T Add(T delta, MemoryOrder order = MemoryOrder.SeqCst);
-    public T Increment(MemoryOrder order = MemoryOrder.SeqCst);
-    public T Decrement(MemoryOrder order = MemoryOrder.SeqCst);
+    public readonly T Add(T delta, MemoryOrder order = MemoryOrder.SeqCst);
+    public readonly T Increment(MemoryOrder order = MemoryOrder.SeqCst);
+    public readonly T Decrement(MemoryOrder order = MemoryOrder.SeqCst);
     /// The value changed by `change`, retried until no other thread came
     /// between: the new value.
-    public T Update(Func<T, T> change);
+    public readonly T Update(Func<T, T> change);
 }

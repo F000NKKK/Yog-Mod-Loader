@@ -7,5 +7,5 @@ public sealed class Weak<T> {
     public Weak(T value) {}
 
     /// The value, while something still keeps it.
-    public T? TryGet();
+    public readonly T? TryGet();
 }

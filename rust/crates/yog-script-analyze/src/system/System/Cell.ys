@@ -6,10 +6,10 @@ namespace System;
 public sealed class Cell<T> {
     public Cell(T value) {}
 
-    public T Get();
-    public void Set(T value);
+    public readonly T Get();
+    public readonly void Set(T value);
     /// The value put in, the one there given back.
-    public T Replace(T value);
+    public readonly T Replace(T value);
     /// The value changed by `change`.
-    public void Update(Func<T, T> change);
+    public readonly void Update(Func<T, T> change);
 }
