@@ -126,7 +126,7 @@ impl Checker<'_, '_, '_> {
 
     /// Method `m` (its declaration's `context`) as a call uses it: whose,
     /// which of its name, its signature as declared.
-    fn method_use(&mut self, m: &Method, context: &Context) -> MethodUse {
+    pub(super) fn method_use(&mut self, m: &Method, context: &Context) -> MethodUse {
         let owner = context.owner.clone();
         let (params, ret) = match &owner {
             Some(key) => {

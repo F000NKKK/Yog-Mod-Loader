@@ -15,6 +15,7 @@ mod decls;
 mod delegates;
 mod enums;
 mod exprs;
+mod groups;
 mod identity;
 mod index;
 mod indexers;

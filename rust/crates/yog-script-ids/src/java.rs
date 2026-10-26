@@ -53,6 +53,8 @@ pub const LONG_SUFFIX: &str = "L";
 pub const UNSIGNED_SHR: &str = ">>>";
 /// Bits together (`a | b`): `Type`'s and `MemberInfo`'s flags joined.
 pub const BIT_OR: &str = "|";
+/// A method reference (`c::Times`).
+pub const METHOD_REF: &str = "::";
 /// A Java source file's extension.
 pub const SOURCE_EXT: &str = ".java";
 

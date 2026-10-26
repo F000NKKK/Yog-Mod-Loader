@@ -80,7 +80,11 @@ fn block_lambdas_give_their_last_value() {
     let src = "i32 Apply(i32 x, Func<i32, i32> f) => f(x);\n\
                i32 F() => Apply(4) {\n    let y = it + 1;\n    y * y\n};\n";
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
-    for want in ["Apply(4, (it) -> {", "final var y = (it + 1);", "return (y * y);"] {
+    for want in [
+        "Apply(4, (it) -> {",
+        "final var y = (it + 1);",
+        "return (y * y);",
+    ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
@@ -113,6 +117,37 @@ fn yogs_surface_is_the_bus() {
         "if (dev.yog.script.host.String.StartsWith(e.playerName(), Prefix)) {",
         "new dev.yog.bus.YogServices.World.SetBlock(e.dimension(), e.pos(), \"minecraft:glass\").call();",
         "return null;",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+/// A method group: a name a lambda calling it, a member Java's reference.
+#[test]
+fn method_groups_are_delegates() {
+    let src = "class Calc {\n    public i32 Times(i32 x) => x;\n    public static i32 Plus(i32 x) => x;\n}\n\
+               i32 Twice(i32 x) => x * 2;\n\
+               i32 F(Calc c) {\n    Func<i32, i32> f = Twice;\n    Func<i32, i32> g = c.Times;\n    Func<i32, i32> h = Calc.Plus;\n    return f(1) + g(2) + h(3);\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in ["f = ($t1) -> Twice($t1);", "g = c::Times;", "h = Calc::Plus;"] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+/// A method as an event's handler: made once, called with each event.
+#[test]
+fn a_method_handles_an_event() {
+    let src = "mod Glassy {\n    Version = \"1.0.0\";\n    Targets = mc 1.20.1..26.2;\n\
+               Glassy() {\n        Block.Break += OnBreak;\n    }\n\
+               void OnBreak(Block.BreakArgs e) { }\n}\n";
+    let checked = yog_script_analyze::check("glassy.ys", src);
+    let out = compile("glassy.ys", src, &checked, "yogscript.glassy")
+        .map(|c| c.source)
+        .unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "= ($t3) -> OnBreak($t3);",
+        "dev.yog.bus.YogEvents.Block.Break.on(0, ($t2) -> {",
+        "$t1.Invoke($t2);",
     ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }

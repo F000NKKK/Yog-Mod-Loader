@@ -41,6 +41,7 @@ impl Checker<'_, '_, '_> {
             self.check_passing(&s.passes, args, given);
             let params: Vec<Type> = s.params.iter().map(|p| p.substitute(&found)).collect();
             for ((arg, g), p) in args.iter().zip(given).zip(&params) {
+                let group = self.is_group(&arg.value);
                 if let ExprKind::Declare {
                     ty: None,
                     name,
@@ -50,7 +51,7 @@ impl Checker<'_, '_, '_> {
                     // `out let x`: of the type its parameter gives.
                     self.bind_as(&name.text, p.clone(), !mutable);
                     self.types.set(&arg.value, p.clone());
-                } else if is_lambda(&arg.value) || is_collection(&arg.value) {
+                } else if is_lambda(&arg.value) || is_collection(&arg.value) || group {
                     self.fits(&arg.value, p);
                 } else {
                     self.note_conversion(&arg.value, g, p);
@@ -81,6 +82,7 @@ impl Checker<'_, '_, '_> {
             return None;
         }
         let mut found = s.bound.clone();
+        let groups: Vec<bool> = args.iter().map(|a| self.is_group(&a.value)).collect();
         for ((g, p), a) in given.iter().zip(&s.params).zip(args) {
             // `[a, b]` is what's wanted: an array, a list, a set (C# 12's).
             if is_collection(&a.value) && collection_target(p) {
@@ -90,11 +92,12 @@ impl Checker<'_, '_, '_> {
                 return None;
             }
         }
-        for (p, a) in s
+        for ((p, a), _) in s
             .params
             .iter()
             .zip(args)
-            .filter(|(_, a)| is_lambda(&a.value))
+            .zip(&groups)
+            .filter(|((_, a), group)| is_lambda(&a.value) || **group)
         {
             let Some((params, ret)) = self.lambda_sig(&p.substitute(&found)) else {
                 continue;
@@ -106,7 +109,10 @@ impl Checker<'_, '_, '_> {
             if params.iter().any(open) {
                 continue;
             }
-            let got = self.quietly(|c| c.lambda_result(&a.value, &params));
+            let got = match self.group_result(&a.value, &params) {
+                Some(given) => given,
+                None => self.quietly(|c| c.lambda_result(&a.value, &params)),
+            };
             if got.known() && !self.unify(&ret, &got, &s.generics, &mut found) {
                 return None;
             }
@@ -137,7 +143,7 @@ impl Checker<'_, '_, '_> {
             &[i] => {
                 let one = &sigs[i];
                 for ((g, p), a) in given.iter().zip(&one.params).zip(args) {
-                    if is_lambda(&a.value) || is_collection(&a.value) {
+                    if is_lambda(&a.value) || is_collection(&a.value) || self.is_group(&a.value) {
                         self.fits(&a.value, p);
                     } else {
                         self.want(g, p, a.value.span);

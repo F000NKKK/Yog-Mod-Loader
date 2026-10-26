@@ -24,10 +24,7 @@ impl Checker<'_, '_, '_> {
                 self.types.set(e, own);
                 true
             }
-            ExprKind::Ident(name) if self.local(name).is_none() => {
-                self.method_as(name, params, ret, e.span)
-            }
-            _ => false,
+            _ => self.group_as(e, params, ret),
         }
     }
 
@@ -164,30 +161,6 @@ impl Checker<'_, '_, '_> {
             }
             _ => self.stmts(stmts),
         }
-    }
-
-    /// Method `name` where delegate `params → ret` is wanted: one of its
-    /// overloads must take those and give that.
-    fn method_as(&mut self, name: &str, params: &[Type], ret: &Type, at: Span) -> bool {
-        let methods = self.callable(name);
-        if methods.is_empty() {
-            return false;
-        }
-        let fits = methods.iter().any(|(m, context)| {
-            let (taken, given) = self.in_context(context, |c| c.signature_types(m));
-            taken.len() == params.len()
-                && params.iter().zip(&taken).all(|(p, t)| p.converts_to(t))
-                && given.converts_to(ret)
-        });
-        if !fits {
-            let wanted = Type::Fn(params.to_vec(), Box::new(ret.clone()));
-            self.report.error(
-                script_problem::TYPE_MISMATCH,
-                at,
-                format!("no overload of `{name}` is a `{wanted}`"),
-            );
-        }
-        true
     }
 }
 

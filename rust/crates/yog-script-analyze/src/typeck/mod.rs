@@ -20,6 +20,7 @@ mod delegates;
 mod exprs;
 mod game;
 mod generics;
+mod groups;
 mod indexers;
 mod inherit;
 mod lambdas;

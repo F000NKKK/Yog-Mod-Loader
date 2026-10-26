@@ -4,7 +4,7 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Binding, Block, Expr, ExprKind, Stmt};
 
-use yog_script_ids::clr::{ACCESSOR_SEP, TUPLE_ITEM};
+use yog_script_ids::clr::{ACCESSOR_SEP, INVOKE, TUPLE_ITEM};
 
 use super::Gen;
 use crate::modifier;
@@ -438,10 +438,22 @@ impl Gen<'_> {
 
 impl Gen<'_> {
     /// `Group.Event += handler`: listened to on the bus, the handler
-    /// changing nothing (its listener gives `null`).
+    /// changing nothing (its listener gives `null`). A method or a
+    /// delegate's value made once, then called with each event's.
     fn listen(&mut self, event: &str, handler: &Expr) {
         let ExprKind::Lambda { params, body } = &handler.kind else {
-            return self.not_yet("a handler that isn't a lambda", handler.span);
+            let Some(t @ Type::Fn(..)) = self.types.of(handler).cloned() else {
+                return self.not_yet("this handler", handler.span);
+            };
+            let (made, each) = (self.temp(), self.temp());
+            let delegate = self.expr(handler);
+            self.code
+                .line(format!("{FINAL} {} {made} = {delegate};", self.java(&t, false)));
+            self.code.open(format!("{event}.on(0, ({each}) ->"));
+            self.code.line(format!("{made}.{INVOKE}({each});"));
+            self.code.line(format!("{RETURN} {NULL};"));
+            self.code.close(");");
+            return;
         };
         let name = params.first().map_or_else(
             || yog_script_analyze::ast::IT.to_string(),

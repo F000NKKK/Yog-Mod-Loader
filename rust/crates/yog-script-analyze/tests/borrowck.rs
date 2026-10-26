@@ -90,17 +90,30 @@ fn values_are_given_before_use() {
         codes("static i32 F(bool c) { i32 x; if (c) { x = 1; } return x; }"),
         [script_problem::UNASSIGNED]
     );
-    assert!(codes("static i32 F(bool c) { i32 x; if (c) { x = 1; } else { x = 2; } return x; }").is_empty());
+    assert!(
+        codes("static i32 F(bool c) { i32 x; if (c) { x = 1; } else { x = 2; } return x; }")
+            .is_empty()
+    );
     assert_eq!(
         codes("static bool F(bool c, out i32 x) { if (c) { x = 1; } return c; }"),
         [script_problem::UNASSIGNED]
     );
-    assert!(codes("static bool F(bool c, out i32 x) { if (c) { x = 1; return true; } x = 0; return c; }").is_empty());
+    assert!(
+        codes(
+            "static bool F(bool c, out i32 x) { if (c) { x = 1; return true; } x = 0; return c; }"
+        )
+        .is_empty()
+    );
     // Read before it's given, an `out` one is as a local without a value.
     assert_eq!(
         codes("static void F(out i32 x) { let y = x; x = y; }"),
         [script_problem::UNASSIGNED]
     );
     // Given by a call's `out`.
-    assert!(codes("static void G(out i32 x) { x = 1; }\n    static i32 F() { i32 x; G(out x); return x; }").is_empty());
+    assert!(
+        codes(
+            "static void G(out i32 x) { x = 1; }\n    static i32 F() { i32 x; G(out x); return x; }"
+        )
+        .is_empty()
+    );
 }

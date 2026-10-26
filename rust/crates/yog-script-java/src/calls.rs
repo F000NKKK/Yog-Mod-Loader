@@ -140,7 +140,7 @@ impl Gen<'_> {
 
     /// The Java name of the method call `e` chose (`name` in Yog Script):
     /// its own, unless Java needs it named after its type too.
-    fn called_name(&self, e: &Expr, name: &str) -> String {
+    pub(crate) fn called_name(&self, e: &Expr, name: &str) -> String {
         let java = self
             .types
             .method(e)

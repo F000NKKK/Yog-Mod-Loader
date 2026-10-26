@@ -50,6 +50,9 @@ impl Gen<'_> {
     }
 
     fn expr_kind(&mut self, e: &Expr) -> String {
+        if let Some(group) = self.group(e) {
+            return group;
+        }
         match &e.kind {
             ExprKind::Int(n) => self.number(&n.to_string(), e),
             ExprKind::Float(x) => self.number(&format!("{x:?}"), e),
