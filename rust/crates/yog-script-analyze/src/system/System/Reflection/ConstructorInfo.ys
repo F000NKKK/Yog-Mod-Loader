@@ -7,5 +7,5 @@ public readonly class ConstructorInfo : MethodBase {
     public override Type? DeclaringType { get; }
     public override MemberTypes MemberType { get; }
     /// A new object made with `parameters`.
-    public object Invoke(object?[]? parameters);
+    public object Invoke(in object?[]? parameters);
 }

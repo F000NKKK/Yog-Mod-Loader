@@ -56,7 +56,7 @@ public readonly sealed class Type : MemberInfo {
     /// Whether a value of `c` can be held as this: the same type, one
     /// inheriting or implementing it, anything for `object`.
     public bool IsAssignableFrom(Type? c);
-    public bool IsInstanceOfType(object? o);
+    public bool IsInstanceOfType(in object? o);
     /// Whether it inherits class `c` (not itself, not an interface).
     public bool IsSubclassOf(Type c);
 

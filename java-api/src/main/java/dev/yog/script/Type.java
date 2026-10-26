@@ -66,20 +66,40 @@ public abstract class Type extends MemberInfo {
         return Of(value.getClass());
     }
 
+    /**
+     * Class {@code c}'s type: its own description; the library's companion
+     * of it; for a lambda (a delegate's) or an enum's case (a record of its
+     * sealed interface), what it's of; else Java's class as it is.
+     */
     private static Type find(Class<?> c) {
         if (c.isArray()) {
             return Of(c.getComponentType()).MakeArrayType();
         }
-        try {
-            java.lang.Object described = c.getField(DESCRIPTION_FIELD).get(null);
-            if (described instanceof Type t) {
-                return t;
-            }
-        } catch (ReflectiveOperationException e) {
-            // Not compiled from Yog Script: the library's, or Java's own.
+        Type own = declared(c);
+        if (own != null) {
+            return own;
         }
         Type known = Library.of(c);
-        return known != null ? known : new ForeignType(c);
+        if (known != null) {
+            return known;
+        }
+        for (Class<?> of : c.getInterfaces()) {
+            Type made = c.isHidden() || of.isSealed() ? declared(of) : null;
+            if (made != null) {
+                return made;
+            }
+        }
+        return new ForeignType(c);
+    }
+
+    /** The description {@code c} declares itself ({@code $TYPE}), if it does. */
+    private static Type declared(Class<?> c) {
+        try {
+            return c.getDeclaredField(DESCRIPTION_FIELD).get(null) instanceof Type t ? t : null;
+        } catch (ReflectiveOperationException e) {
+            // Not compiled from Yog Script.
+            return null;
+        }
     }
 
     // What it is.

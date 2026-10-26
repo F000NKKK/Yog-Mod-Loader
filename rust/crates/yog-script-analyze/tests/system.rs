@@ -158,7 +158,9 @@ fn types_are_values() {
               bool Kinds(Type t) => t.IsAssignableFrom(typeof(string)) && t.GetGenericArguments().Length == 1;\n\
               object? Call(object box) => box.GetType().GetMethod(\"Area\")!.Invoke(box, null);\n\
               i32 Count(Type t) => t.GetFields().Length + t.GetProperties().Length + t.GetConstructors()[0].GetParameters().Length;\n\
-              bool Old(Type t) => t.IsDefined(typeof(Obsolete), true) || t.GetCustomAttributes(false).Length > 0;\n";
+              bool Old(Type t) => t.IsDefined(typeof(Obsolete), true) || t.GetCustomAttributes(false).Length > 0;\n\
+              string Of(Box<i32> b) {\n    let x = move b;\n    return x.GetType().Name + x.ToString();\n}\n\
+              object? Call(System.Reflection.MethodInfo m, object box) => m.Invoke(in box, [\"a\", 3]);\n";
     let problems = check("a.ys", ok).problems;
     assert!(problems.is_empty(), "{problems:#?}");
     // A type isn't a string.

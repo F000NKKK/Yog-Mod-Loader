@@ -168,6 +168,11 @@ impl OwnTypes {
             }
             i += 1;
         }
+        // `object` last: every type's base, as C#'s.
+        let object = TypeKey::new(yog_script_ids::clr::OBJECT, 0);
+        if !out.contains(&object) && self.types.contains_key(&object) {
+            out.push(object);
+        }
         out
     }
 

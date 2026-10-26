@@ -79,29 +79,20 @@ impl Checker<'_, '_, '_> {
 }
 
 impl Checker<'_, '_, '_> {
-    /// Method `m` of `this`'s type, not `readonly`: none it implements or
-    /// overrides is, or a call through that one (on an `in`) would change
-    /// what mustn't.
-    pub(super) fn implements_readonly(&mut self, m: &Method) {
+    /// Whether method `m` of `this`'s type implements or overrides a
+    /// `readonly` one (`object`'s `ToString`, an interface's): then it's
+    /// `readonly` too, or a call through that one (on an `in`) would
+    /// change what mustn't.
+    pub(super) fn implements_readonly(&self, m: &Method) -> bool {
         let Some(Type::Own(of, _)) = &self.this else {
-            return;
+            return false;
         };
         let name = &m.name.text;
-        let base = self.own.lineage_named(of).into_iter().skip(1).find(|k| {
+        self.own.lineage_named(of).into_iter().skip(1).any(|k| {
             self.own
-                .of_key(k)
+                .of_key(&k)
                 .is_some_and(|t| t.readonly.iter().any(|r| r == name))
-        });
-        if let Some(base) = base {
-            self.report.error(
-                script_problem::BORROW,
-                m.name.span,
-                format!(
-                    "`{}`'s `{name}` is `readonly`: this one must be too",
-                    base.name
-                ),
-            );
-        }
+        })
     }
 }
 

@@ -252,6 +252,12 @@ impl Checker<'_, '_, '_> {
         );
     }
 
+    /// Whether `e` is a delegate (its type looked at quietly: it's checked after).
+    fn is_delegate_value(&mut self, e: &Expr) -> bool {
+        let t = self.quietly(|c| c.expr(e));
+        self.delegate_sig(&t).is_some()
+    }
+
     /// What `callee` calls.
     pub(super) fn callee(&mut self, callee: &Expr) -> Callee {
         match &callee.kind {
@@ -263,8 +269,11 @@ impl Checker<'_, '_, '_> {
                 self.delegate(name)
                     .map_or(Callee::Unknown, |sig| Callee::Typed(vec![sig]))
             }
-            // `Charged?.Invoke(…)`: a delegate's own call.
-            ExprKind::Member { expr, name, .. } if name.text == yog_script_ids::clr::INVOKE => {
+            // `Charged?.Invoke(…)`: a delegate's own call (`MethodInfo`'s
+            // `Invoke` is a method like any).
+            ExprKind::Member { expr, name, .. }
+                if name.text == yog_script_ids::clr::INVOKE && self.is_delegate_value(expr) =>
+            {
                 let t = self.expr(expr);
                 match self.delegate_sig(&t) {
                     Some((params, ret)) => Callee::Typed(vec![signature_of(&params, &ret)]),

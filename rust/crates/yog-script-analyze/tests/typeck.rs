@@ -371,6 +371,10 @@ fn what_implements_a_readonly_member_is_readonly() {
                       i32 F(in ICounter c) => c.Get();\n"
     );
     assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+    // Unmarked, it's `readonly` all the same: `object`'s `ToString` overridden.
+    let implied = "class Tag { public string Name = \"t\"; public override string ToString() => Name; }\n\
+                   string F(in Tag t) => t.ToString();\n";
+    assert!(codes(implied).is_empty(), "{:?}", codes(implied));
 }
 
 #[test]

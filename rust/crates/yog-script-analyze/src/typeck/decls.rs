@@ -17,12 +17,11 @@ impl Checker<'_, '_, '_> {
     }
 
     /// Method `m` (declaration `d`): its body, `this` read-only in it when
-    /// it's `readonly`; one that isn't implements nothing that is.
+    /// it's `readonly` — or implements a member that is.
     fn method_decl(&mut self, d: &Decl, m: &Method, side: Side) {
-        let readonly = d.has(Modifier::Readonly) || self.this_readonly();
-        if !readonly && !d.has(Modifier::Static) {
-            self.implements_readonly(m);
-        }
+        let readonly = d.has(Modifier::Readonly)
+            || self.this_readonly()
+            || (!d.has(Modifier::Static) && self.implements_readonly(m));
         let outer = std::mem::replace(&mut self.readonly_this, readonly);
         self.method(m, side);
         self.readonly_this = outer;

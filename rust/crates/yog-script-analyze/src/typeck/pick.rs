@@ -128,7 +128,7 @@ impl Checker<'_, '_, '_> {
             &[i] => {
                 let one = &sigs[i];
                 for ((g, p), a) in given.iter().zip(&one.params).zip(args) {
-                    if is_lambda(&a.value) {
+                    if is_lambda(&a.value) || is_collection(&a.value) {
                         self.fits(&a.value, p);
                     } else {
                         self.want(g, p, a.value.span);

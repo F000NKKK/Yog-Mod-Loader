@@ -13,5 +13,5 @@ public readonly class MethodInfo : MethodBase {
     public Type[] GetGenericArguments();
     /// It called on `obj` (`null` for a static one) with `parameters`;
     /// what it gives (`null` for nothing).
-    public object? Invoke(object? obj, object?[]? parameters);
+    public object? Invoke(in object? obj, in object?[]? parameters);
 }

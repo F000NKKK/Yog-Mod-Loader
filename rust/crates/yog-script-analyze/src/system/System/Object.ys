@@ -6,11 +6,11 @@ namespace System;
 [Host]
 public class Object {
     /// Whether `obj` is this one's equal (the same object, unless its type says).
-    public virtual bool Equals(object? obj);
+    public readonly virtual bool Equals(object? obj);
     /// A number equal values share: what sets and dictionaries find them by.
-    public virtual i32 GetHashCode();
+    public readonly virtual i32 GetHashCode();
     /// What it is: its type (a generic object's definition on the JVM).
-    public Type GetType();
+    public readonly Type GetType();
     /// The value as text.
-    public virtual string ToString();
+    public readonly virtual string ToString();
 }
