@@ -264,6 +264,8 @@ pub struct Param {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variant {
+    /// Its `///` lines.
+    pub doc: Vec<String>,
     pub name: Name,
     pub fields: Vec<Param>,
     /// `Wood = 1`: its number.

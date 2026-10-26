@@ -1,0 +1,16 @@
+namespace System.Reflection;
+
+/// Which members `GetMethods(…)` and the rest give, as .NET's: public or
+/// not, of an instance or static, its own only or what it inherits too.
+[Flags]
+public enum BindingFlags {
+    Default = 0,
+    IgnoreCase = 1,
+    DeclaredOnly = 2,
+    Instance = 4,
+    Static = 8,
+    Public = 16,
+    NonPublic = 32,
+    /// A base's public and protected static members too.
+    FlattenHierarchy = 64,
+}

@@ -5,24 +5,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A type's members as {@code GetMethods()} and the rest give them, as .NET's
- * default: the public ones, its own and — of the instance's — those it
- * inherits that nothing nearer hides.
+ * A type's members as {@code GetMethods(…)} and the rest give them, as
+ * .NET's: those {@link BindingFlags} ask for — public or not, of an
+ * instance or static, its own or inherited too (a base's private ones
+ * never; its static ones only flattened) — those nearer hiding what they
+ * replace.
  */
 public final class Members {
     private Members() {}
 
-    /** {@code t}'s public members of {@code kind}. */
+    /** What {@code GetMethods()} without flags asks for: public, instance and static. */
+    private static BindingFlags standard() {
+        return BindingFlags.of(BindingFlags.Public.value() | BindingFlags.Instance.value() | BindingFlags.Static.value());
+    }
+
     public static <M extends MemberInfo> List<M> of(Type t, Class<M> kind) {
+        return of(t, kind, standard());
+    }
+
+    /** {@code t}'s members of {@code kind} that {@code flags} asks for. */
+    public static <M extends MemberInfo> List<M> of(Type t, Class<M> kind, BindingFlags flags) {
         List<M> out = new ArrayList<>();
         boolean own = true;
-        for (Type at = t; at != null; at = at.BaseType()) {
+        for (Type at = t; at != null; at = flags.HasFlag(BindingFlags.DeclaredOnly) ? null : at.BaseType()) {
             for (MemberInfo m : at.members()) {
-                if (!kind.isInstance(m) || !m.isPublic()) {
-                    continue;
-                }
-                boolean inherits = !own && (((Member) m).IsStatic() || m instanceof ConstructorInfo);
-                if (!inherits && !hidden(out, m)) {
+                if (kind.isInstance(m) && asked(m, flags, own) && !hidden(out, m)) {
                     out.add(kind.cast(m));
                 }
             }
@@ -31,11 +38,30 @@ public final class Members {
         return out;
     }
 
-    /** {@code t}'s public member of {@code kind} named {@code name}; {@code null} when there's none, a panic when there's more than one. */
+    /** Whether {@code flags} asks for {@code m} ({@code own}: of the type itself, not a base). */
+    private static boolean asked(MemberInfo m, BindingFlags flags, boolean own) {
+        Member member = (Member) m;
+        boolean visible = m.isPublic() ? flags.HasFlag(BindingFlags.Public) : flags.HasFlag(BindingFlags.NonPublic);
+        boolean placed = member.IsStatic() ? flags.HasFlag(BindingFlags.Static) : flags.HasFlag(BindingFlags.Instance);
+        if (own) {
+            return visible && placed;
+        }
+        boolean inherits = !member.IsPrivate()
+                && !(m instanceof ConstructorInfo)
+                && (!member.IsStatic() || flags.HasFlag(BindingFlags.FlattenHierarchy));
+        return visible && placed && inherits;
+    }
+
     public static <M extends MemberInfo> M named(Type t, Class<M> kind, String name) {
+        return named(t, kind, name, standard());
+    }
+
+    /** {@code t}'s member of {@code kind} named {@code name} that {@code flags} asks for; {@code null} for none, a panic for several. */
+    public static <M extends MemberInfo> M named(Type t, Class<M> kind, String name, BindingFlags flags) {
+        boolean anyCase = flags.HasFlag(BindingFlags.IgnoreCase);
         M found = null;
-        for (M m : of(t, kind)) {
-            if (m.Name().equals(name)) {
+        for (M m : of(t, kind, flags)) {
+            if (anyCase ? m.Name().equalsIgnoreCase(name) : m.Name().equals(name)) {
                 if (found != null) {
                     throw new IllegalStateException("`" + t.Name() + "` has more than one `" + name + "`: say which by its parameters' types");
                 }

@@ -318,4 +318,5 @@ an interpreter of the nodes.
    interpolation, nested lambdas, a type's own operators); `System.Enum`
    (done: one model for every enum — `ys.md` §3 — its runtime class of
    numbers and data, `GetValues`, `GetNames`, `Parse`, `TryParse`,
-   `IsDefined`, `[Flags]`); `BindingFlags` next.
+   `IsDefined`, `[Flags]`); `BindingFlags` (done: public or not, instance
+   or static, declared only, flattened, case ignored — .NET's rules).

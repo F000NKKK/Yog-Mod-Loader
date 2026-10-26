@@ -1,6 +1,7 @@
 package dev.yog.script;
 
 import dev.yog.script.reflection.ArrayType;
+import dev.yog.script.reflection.BindingFlags;
 import dev.yog.script.reflection.ConstructorInfo;
 import dev.yog.script.reflection.DeclaredType;
 import dev.yog.script.reflection.FieldInfo;
@@ -305,6 +306,38 @@ public abstract class Type extends MemberInfo {
 
     public ConstructorInfo[] GetConstructors() {
         return Members.of(this, ConstructorInfo.class).toArray(new ConstructorInfo[0]);
+    }
+
+    public MemberInfo[] GetMembers(BindingFlags bindingAttr) {
+        return Members.of(this, MemberInfo.class, bindingAttr).toArray(new MemberInfo[0]);
+    }
+
+    public FieldInfo[] GetFields(BindingFlags bindingAttr) {
+        return Members.of(this, FieldInfo.class, bindingAttr).toArray(new FieldInfo[0]);
+    }
+
+    public FieldInfo GetField(String name, BindingFlags bindingAttr) {
+        return Members.named(this, FieldInfo.class, name, bindingAttr);
+    }
+
+    public PropertyInfo[] GetProperties(BindingFlags bindingAttr) {
+        return Members.of(this, PropertyInfo.class, bindingAttr).toArray(new PropertyInfo[0]);
+    }
+
+    public PropertyInfo GetProperty(String name, BindingFlags bindingAttr) {
+        return Members.named(this, PropertyInfo.class, name, bindingAttr);
+    }
+
+    public MethodInfo[] GetMethods(BindingFlags bindingAttr) {
+        return Members.of(this, MethodInfo.class, bindingAttr).toArray(new MethodInfo[0]);
+    }
+
+    public MethodInfo GetMethod(String name, BindingFlags bindingAttr) {
+        return Members.named(this, MethodInfo.class, name, bindingAttr);
+    }
+
+    public ConstructorInfo[] GetConstructors(BindingFlags bindingAttr) {
+        return Members.of(this, ConstructorInfo.class, bindingAttr).toArray(new ConstructorInfo[0]);
     }
 
     public ConstructorInfo GetConstructor(Type[] types) {

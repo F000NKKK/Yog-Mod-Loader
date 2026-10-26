@@ -2,7 +2,7 @@
 
 use crate::ast::{DeclKind, Variant};
 use crate::parser::{PResult, Parser};
-use crate::source::token::Punct;
+use crate::source::token::{Punct, Tok};
 use crate::words::{Role, Word};
 
 pub static WORD: Word = Word {
@@ -36,10 +36,15 @@ fn parse(p: &mut Parser) -> PResult<DeclKind> {
     Ok(DeclKind::Enum { name, generics, base, variants, body })
 }
 
-/// `Idle`, `Charging(i32 Rate)`, `Wood = 1`.
+/// `Idle`, `Charging(i32 Rate)`, `Wood = 1`, its `///` lines before it.
 fn variant(p: &mut Parser) -> PResult<Variant> {
+    let mut doc = Vec::new();
+    while let Tok::Doc(line) = p.tok() {
+        doc.push(line.clone());
+        p.bump();
+    }
     let name = p.name("a case")?;
     let fields = if p.at(Punct::LParen) { p.params()? } else { Vec::new() };
     let value = if p.eat(Punct::Eq) { Some(p.expr()?) } else { None };
-    Ok(Variant { name, fields, value })
+    Ok(Variant { doc, name, fields, value })
 }

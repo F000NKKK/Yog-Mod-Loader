@@ -75,6 +75,16 @@ public readonly sealed class Type : MemberInfo {
     public MethodInfo? GetMethod(string name, Type[] types);
     public ConstructorInfo[] GetConstructors();
     public ConstructorInfo? GetConstructor(Type[] types);
+    /// The members `bindingAttr` asks for: say `Public` or `NonPublic` (or
+    /// both), and `Instance` or `Static` (or both), as .NET's.
+    public MemberInfo[] GetMembers(BindingFlags bindingAttr);
+    public FieldInfo[] GetFields(BindingFlags bindingAttr);
+    public FieldInfo? GetField(string name, BindingFlags bindingAttr);
+    public PropertyInfo[] GetProperties(BindingFlags bindingAttr);
+    public PropertyInfo? GetProperty(string name, BindingFlags bindingAttr);
+    public MethodInfo[] GetMethods(BindingFlags bindingAttr);
+    public MethodInfo? GetMethod(string name, BindingFlags bindingAttr);
+    public ConstructorInfo[] GetConstructors(BindingFlags bindingAttr);
 
     public override string ToString();
 }
