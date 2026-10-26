@@ -8,7 +8,7 @@ use yog_codegen::{Blocks, Comments, Identifiers, Literals};
 use yog_script_analyze::spelling::{
     CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE, TEXT_PREFIX, UNICODE_OPEN, VERBATIM, is_keyword,
 };
-use yog_script_analyze::words::{class, public, r#const, r#static, string};
+use yog_script_analyze::words::{class, r#const, public, r#static, string};
 
 /// The Yog Script language.
 pub struct Ys;

@@ -1,0 +1,61 @@
+namespace Yog;
+
+using System.Logging;
+
+/// The game's log (`latest.log` and its console, where the game and Yog
+/// write theirs): one logger per category, the game's own levels.
+[Intrinsic]
+public static class GameLog {
+    /// Whether entries of `level` of `category` are written.
+    public static bool IsEnabled(LogLevel level, string category);
+    /// `message` of `category` written at `level`, `error`'s message after it.
+    public static void Write(LogLevel level, string category, string message, Error? error);
+}
+
+/// The game's log as a logging provider (`builder.AddGameLog()`): each
+/// entry written to the game's log of its category, the scopes it's in
+/// before its message (`[Request 7] => …`).
+[ProviderAlias("Game")]
+public readonly sealed class GameLogProvider : ILoggerProvider, ISupportExternalScope {
+    private readonly Once<IExternalScopeProvider> _scopes = new Once<IExternalScopeProvider>();
+
+    public readonly ILogger CreateLogger(string categoryName) => new GameLogger(categoryName, this);
+
+    public readonly void SetScopeProvider(IExternalScopeProvider scopeProvider) {
+        _scopes.TrySet(scopeProvider);
+    }
+
+    /// The scopes an entry's in, written before its message.
+    public string ScopesText() {
+        let provider = _scopes.Get();
+        if (provider == null) {
+            return "";
+        }
+        let mut text = "";
+        provider.ForEachScope((scope, state) => { text = text + "[" + scope + "] => "; }, 0);
+        return text;
+    }
+
+    public void Dispose() { }
+
+    /// The game's logger of a category.
+    private readonly sealed class GameLogger(string category, GameLogProvider provider) : ILogger {
+        public readonly void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Error? error, Func<TState, Error?, string> formatter) {
+            if (IsEnabled(logLevel)) {
+                GameLog.Write(logLevel, category, provider.ScopesText() + formatter(state, error), error);
+            }
+        }
+
+        public readonly bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None && GameLog.IsEnabled(logLevel, category);
+
+        public readonly IDisposable? BeginScope<TState>(TState state) => null;
+    }
+}
+
+/// The game's log added to a logging builder.
+public static class GameLogExtensions {
+    /// Entries written to the game's log too.
+    public static void AddGameLog(this in ILoggingBuilder builder) {
+        builder.AddProvider(new GameLogProvider());
+    }
+}

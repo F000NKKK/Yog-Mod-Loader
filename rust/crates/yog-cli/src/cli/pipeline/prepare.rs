@@ -7,8 +7,8 @@ use std::process::Command;
 
 use yog_cli::project::bench;
 use yog_cli::project::cargo_toml::generate_cargo_toml;
-use yog_cli::project::script_lib;
 use yog_cli::project::manifest::{MANIFEST, YogToml, project_root};
+use yog_cli::project::script_lib;
 use yog_cli::ui::yui;
 use yog_cli::{content, diagnostics, yres};
 use yog_ids::{build_problem, rust_crate};

@@ -246,7 +246,8 @@ fn id_sets<'a>(c: &'a Content) -> Vec<IdSet<'a>> {
     }
     sets.push(IdSet {
         name: code_set::TEXTURES,
-        doc: "The textures of `resources/` (`.ytexture`), by id — what the mod's code draws.".into(),
+        doc: "The textures of `resources/` (`.ytexture`), by id — what the mod's code draws."
+            .into(),
         ids: c.textures.iter().map(String::as_str).collect(),
     });
     sets

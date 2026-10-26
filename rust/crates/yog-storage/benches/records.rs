@@ -20,7 +20,12 @@ struct Charger {
 const BLOCKS: [usize; 3] = [16, 256, 4096];
 
 fn key(i: usize) -> String {
-    format!("{}_{}_{}/charge.Charger", i % 16, 64 + i / 256, (i / 16) % 16)
+    format!(
+        "{}_{}_{}/charge.Charger",
+        i % 16,
+        64 + i / 256,
+        (i / 16) % 16
+    )
 }
 
 fn state(i: usize) -> Charger {

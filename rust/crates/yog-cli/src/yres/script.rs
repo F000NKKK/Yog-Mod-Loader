@@ -7,7 +7,9 @@ use std::fmt::Write as _;
 
 use yog_codegen::{Blocks, Comments, Header, Regenerate};
 use yog_codegen_ys::Ys;
-use yog_script_analyze::words::{bool as bool_word, f64 as f64_word, i64 as i64_word, u32 as u32_word};
+use yog_script_analyze::words::{
+    bool as bool_word, f64 as f64_word, i64 as i64_word, u32 as u32_word,
+};
 
 use super::{Entry, Kind, Value};
 
@@ -40,12 +42,18 @@ pub(super) fn medium(acc: &str, id: &str) -> String {
 /// A color's, number's or flag's member: a constant.
 pub(super) fn value(e: &Entry, acc: &str) -> Option<String> {
     let (ty, v) = match (e.kind, &e.value) {
-        (Kind::Color, _) => (u32_word::WORD.text, format!("0x{:08X}", super::color_of(e)?)),
+        (Kind::Color, _) => (
+            u32_word::WORD.text,
+            format!("0x{:08X}", super::color_of(e)?),
+        ),
         (Kind::Number, Value::Num(lit)) => match super::accessors::number(lit) {
             (true, v) => (i64_word::WORD.text, v),
             (false, v) => (f64_word::WORD.text, v),
         },
-        (Kind::Bool, v) => (bool_word::WORD.text, matches!(v, Value::Bool(true)).to_string()),
+        (Kind::Bool, v) => (
+            bool_word::WORD.text,
+            matches!(v, Value::Bool(true)).to_string(),
+        ),
         _ => return None,
     };
     Some(Ys::const_value(ty, &member(acc), &v))

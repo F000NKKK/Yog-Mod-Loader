@@ -736,3 +736,25 @@ fn logging() {
         "Information App: Moved 3 items to chest | Warning App[Request 7]: inside | Error App: Failed 42 || one 1,two || False"
     );
 }
+
+/// The game's log as a provider: added by `AddGameLog`, aliased `Game` in
+/// the rules (its writing is the game's, not run here).
+#[test]
+fn game_log_provider() {
+    let src = "using System.Logging;\n\
+               using Yog;\n\
+               public static class G {\n\
+                   public static string Run() {\n\
+                       let factory = LoggerFactory.Create(b => {\n\
+                           b.AddGameLog();\n\
+                           b.AddFilter((provider, category, level) => provider != null);\n\
+                       });\n\
+                       let log = factory.CreateLogger(\"Pipes\");\n\
+                       return \"made\";\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("g.ys", src)], "t.GScript.G.Run()") else {
+        return;
+    };
+    assert_eq!(out, "made");
+}

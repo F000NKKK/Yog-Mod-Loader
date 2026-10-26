@@ -192,10 +192,24 @@ mod frames {
                 parent: Some(top ^ 1),
                 keys: vec![top, 0, top >> 1],
             };
-            assert_eq!(read_frame::<Wide>(&to_frame(&w)), Some(w.clone()), "frame {top:#x}");
+            assert_eq!(
+                read_frame::<Wide>(&to_frame(&w)),
+                Some(w.clone()),
+                "frame {top:#x}"
+            );
             let bytes = yog_data::to_bytes(&w);
-            assert_eq!(yog_data::read_bytes::<Wide>(&bytes).ok(), Some(w.clone()), "binary {top:#x}");
-            assert_eq!(yog_data::from_value::<Wide>(&w.write()).ok().map(|r| r.value), Some(w), "value {top:#x}");
+            assert_eq!(
+                yog_data::read_bytes::<Wide>(&bytes).ok(),
+                Some(w.clone()),
+                "binary {top:#x}"
+            );
+            assert_eq!(
+                yog_data::from_value::<Wide>(&w.write())
+                    .ok()
+                    .map(|r| r.value),
+                Some(w),
+                "value {top:#x}"
+            );
         }
     }
 

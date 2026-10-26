@@ -328,3 +328,20 @@ an interpreter of the nodes.
    numbers and data, `GetValues`, `GetNames`, `Parse`, `TryParse`,
    `IsDefined`, `[Flags]`); `BindingFlags` (done: public or not, instance
    or static, declared only, flattened, case ignored — .NET's rules).
+5. `System.Logging` (done): Microsoft.Extensions.Logging and its
+   Abstractions, written in Yog Script — `LogLevel`, `EventId`, `ILogger`
+   (`ILogger<T>`), `ILoggerFactory`, `ILoggerProvider`, scopes
+   (`IExternalScopeProvider`, `LoggerExternalScopeProvider` over
+   `AsyncLocal`), message templates (`LogValuesFormatter`,
+   `FormattedLogValues`: named holes, `{{ }}`, alignment; a template is
+   written raw, `"""Moved {Count} items"""`, since `"{x}"` interpolates),
+   `LoggerExtensions`, `LoggerMessage.Define`/`DefineScope`, `Logger<T>`,
+   the `Null*` ones, `LogEntry<TState>`; `LoggerFactory` with its filter
+   rules (`LoggerFilterRule`, `LoggerFilterOptions`, `ProviderAlias`, the
+   rule selector), `ILoggingBuilder` and its extensions, and a queued
+   provider (`QueuedLoggerProvider`: entries written in order by a task
+   of its own, `FlushAsync`). Loggers, factories, providers and builders
+   are `readonly interface`s: shared values, their implementations
+   `readonly` (thread-safe). The builder's extensions lend it, so they go
+   one per statement, not chained. Yog's provider is `Yog.GameLogProvider`
+   (`builder.AddGameLog()`): the game's log, a logger per category.

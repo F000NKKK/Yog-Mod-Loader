@@ -3,7 +3,9 @@
 pub(super) const WORDS: &[&str] = &["new"];
 
 pub(super) fn run(rest: &[String]) -> Result<(), String> {
-    let rust = rest.iter().any(|a| a == crate::cli::project::new::RUST_FLAG);
+    let rust = rest
+        .iter()
+        .any(|a| a == crate::cli::project::new::RUST_FLAG);
     let name = rest
         .iter()
         .find(|a| *a != crate::cli::project::new::RUST_FLAG)

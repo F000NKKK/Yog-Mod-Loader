@@ -6,7 +6,10 @@ fn a_chunks_instance_reads_with_its_dimension() {
         scope: SESSION.into(),
         instance: instance.into(),
     };
-    assert!(store(&at("")).is_some(), "the session's store is always there");
+    assert!(
+        store(&at("")).is_some(),
+        "the session's store is always there"
+    );
     let chunk = Where {
         scope: CHUNK.into(),
         instance: format!("minecraft{SEP}the{SEP}nether{SEP}-3{SEP}12"),

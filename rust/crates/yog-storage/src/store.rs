@@ -69,7 +69,9 @@ impl Store {
             old.extend_from_slice(bytes);
             return;
         }
-        shelf.values.insert(key, yog_data::Value::Bytes(bytes.to_vec()));
+        shelf
+            .values
+            .insert(key, yog_data::Value::Bytes(bytes.to_vec()));
     }
 
     /// Takes out every value whose key starts with `prefix`; how many.

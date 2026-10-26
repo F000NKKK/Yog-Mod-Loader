@@ -142,6 +142,7 @@ public final class Library {
             java.util.Map.entry(void.class, () -> VoidCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.Weak.class, () -> WeakCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.BlockObject.class, () -> BlockObjectCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.yog.GameLog.class, () -> GameLogCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.GameTime.class, () -> GameTimeCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.ItemObject.class, () -> ItemObjectCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.yog.Sender.class, () -> SenderCompanion.TYPE),

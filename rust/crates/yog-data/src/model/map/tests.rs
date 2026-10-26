@@ -5,7 +5,9 @@ use super::*;
 #[test]
 fn a_big_maps_index_follows_its_changes() {
     let n = INDEXED_FROM * 4;
-    let mut map: Map = (0..n).map(|i| (format!("k{i}"), Value::Int(i as i64))).collect();
+    let mut map: Map = (0..n)
+        .map(|i| (format!("k{i}"), Value::Int(i as i64)))
+        .collect();
     assert_eq!(map.get("k3"), Some(&Value::Int(3)));
     assert_eq!(map.remove("k1"), Some(Value::Int(1)));
     assert_eq!(map.index_of("k2"), Some(1));
@@ -24,7 +26,11 @@ fn a_big_maps_index_follows_its_changes() {
 /// Equal maps are equal whether one's indexed or not.
 #[test]
 fn equality_is_the_entries() {
-    let make = || -> Map { (0..INDEXED_FROM * 2).map(|i| (format!("k{i}"), Value::Int(i as i64))).collect() };
+    let make = || -> Map {
+        (0..INDEXED_FROM * 2)
+            .map(|i| (format!("k{i}"), Value::Int(i as i64)))
+            .collect()
+    };
     let (a, b) = (make(), make());
     let _ = a.get("k0");
     assert_eq!(a, b);
