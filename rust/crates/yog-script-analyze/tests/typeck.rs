@@ -359,6 +359,21 @@ fn what_is_lent_read_only_isnt_changed() {
 }
 
 #[test]
+fn what_implements_a_readonly_member_is_readonly() {
+    let types = "interface ICounter { readonly i32 Get(); }\n";
+    // Called through an `in ICounter`, it mustn't change its object.
+    let bad = format!(
+        "{types}class C : ICounter {{ public i32 N; public i32 Get() {{ N += 1; return N; }} }}\n"
+    );
+    assert_eq!(codes(&bad), [script_problem::BORROW], "{:?}", codes(&bad));
+    let ok = format!(
+        "{types}class C : ICounter {{ public i32 N; public readonly i32 Get() => N; }}\n\
+                      i32 F(in ICounter c) => c.Get();\n"
+    );
+    assert!(codes(&ok).is_empty(), "{:?}", codes(&ok));
+}
+
+#[test]
 fn records_never_change() {
     let types = "record Pos(i32 X, i32 Y);\n";
     // Shared freely (Copy), never written, even through a `let mut`.

@@ -44,6 +44,9 @@ impl Checker<'_, '_, '_> {
             DeclKind::Operator(op) => self.method(&op.method, side),
             DeclKind::Method(m) => {
                 let readonly = d.has(Modifier::Readonly) || self.this_readonly();
+                if !readonly && !d.has(Modifier::Static) {
+                    self.implements_readonly(m);
+                }
                 let outer = std::mem::replace(&mut self.readonly_this, readonly);
                 self.method(m, side);
                 self.readonly_this = outer;

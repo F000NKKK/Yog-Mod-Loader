@@ -8,7 +8,7 @@ use yog_ids::script_problem;
 
 use super::Checker;
 use super::model::Type;
-use crate::ast::{Expr, ExprKind};
+use crate::ast::{Expr, ExprKind, Method};
 use crate::source::token::Span;
 
 impl Checker<'_, '_, '_> {
@@ -74,6 +74,33 @@ impl Checker<'_, '_, '_> {
             }
             ExprKind::This => self.readonly_this.then(this_why),
             _ => None,
+        }
+    }
+}
+
+impl Checker<'_, '_, '_> {
+    /// Method `m` of `this`'s type, not `readonly`: none it implements or
+    /// overrides is, or a call through that one (on an `in`) would change
+    /// what mustn't.
+    pub(super) fn implements_readonly(&mut self, m: &Method) {
+        let Some(Type::Own(of, _)) = &self.this else {
+            return;
+        };
+        let name = &m.name.text;
+        let base = self.own.lineage_named(of).into_iter().skip(1).find(|k| {
+            self.own
+                .of_key(k)
+                .is_some_and(|t| t.readonly.iter().any(|r| r == name))
+        });
+        if let Some(base) = base {
+            self.report.error(
+                script_problem::BORROW,
+                m.name.span,
+                format!(
+                    "`{}`'s `{name}` is `readonly`: this one must be too",
+                    base.name
+                ),
+            );
         }
     }
 }

@@ -32,7 +32,7 @@ public class SortedList<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyDict
     // Its pairs as a collection's, through `ICollection<KeyValuePair<…>>` only.
     bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
     void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item);
-    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item);
+    readonly bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item);
     bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item);
     // Its keys and values as a read-only dictionary's.
     IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
