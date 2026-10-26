@@ -112,8 +112,8 @@ Namespaces and `using`s work as in C#:
 
 - `namespace Charge.Machines;` puts the rest of the file in a namespace;
   `namespace Charge.Machines { … }` what's in its braces.
-- `using System.Yog.Ui;` brings in the types of a namespace (not the namespaces
-  in it); `using static System.Yog.Chat;` the static members of a type
+- `using Yog.Ui;` brings in the types of a namespace (not the namespaces
+  in it); `using static Yog.Chat;` the static members of a type
   (`Broadcast(…)`); `using Grid = Dictionary<Pos, i32>;` names a type or a
   namespace; `global using …;` is every file's of the mod.
 - A simple name is, in turn: a type of the namespace the code is in (or
@@ -122,11 +122,11 @@ Namespaces and `using`s work as in C#:
   alias it; then a namespace.
 - Every namespace starts with `System`. `System.*` is the language's
   (`System`, `System.Meta`, `System.Collections.Generic`, …);
-  `System.Yog.*` is Yog's own (its objects, groups and events,
-  `System.Yog.Ui`, `System.Yog.Native`); `System.Game.*` is the game's
+  `Yog.*` is Yog's own (its objects, groups and events,
+  `Yog.Ui`, `Yog.Native`); `System.Game.*` is the game's
   classes, a `.yns` file's only (`using System.Game.World.Entity;`, or
   `System.Game.World.Entity.LivingEntity` in full).
-- `System` and `System.Yog` are every file's `using`s (as .NET's implicit
+- `System` and `Yog` are every file's `using`s (as .NET's implicit
   usings): Yog's objects need none.
 
 ```ebnf
@@ -583,7 +583,7 @@ In a patch body:
 ## 7. One file, every form
 
 ```ys
-using System.Yog.Ui;
+using Yog.Ui;
 
 mod Charge {
     Version = "1.0.0";

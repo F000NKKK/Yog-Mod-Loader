@@ -1,9 +1,9 @@
 //! Names by namespace, as in C#. A simple name is, in turn: a type of the
 //! namespace the code is in (or one enclosing it); a `using` alias; a type
-//! one of the `using`s brings in — `System` and `System.Yog` among them,
+//! one of the `using`s brings in — `System` and `Yog` among them,
 //! every file's, as .NET's implicit usings — where two bringing one in is
 //! an ambiguity; a namespace. Everything starts with `System`: Yog's
-//! objects are `System.Yog`'s, the game's classes `System.Game`'s — a
+//! objects are `Yog`'s, the game's classes `System.Game`'s — a
 //! `.yns` file's only (`using System.Game.World.Entity;`).
 
 use std::collections::HashMap;
@@ -21,9 +21,10 @@ use yog_script_ids::system::{COLLECTIONS_GENERIC, LINQ, ROOT, TEXT};
 /// What a namespace's segments are joined with.
 const SEP: &str = yog_script_ids::system::NAMESPACE_SEP;
 
-/// `System.Yog`: Yog's objects, groups and events.
+/// `Yog`: Yog's objects, groups and events — beside `System`, never in it
+/// (the language's library doesn't depend on Yog).
 pub(super) fn yog_ns() -> Vec<String> {
-    vec![ROOT.to_string(), yog_codegen::pascal(yog_ids::ns::YOG)]
+    vec![yog_codegen::pascal(yog_ids::ns::YOG)]
 }
 
 /// `System.Game`: the game's classes (a `.yns`'s).

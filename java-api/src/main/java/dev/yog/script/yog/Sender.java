@@ -1,6 +1,6 @@
 package dev.yog.script.yog;
 
-/** Yog Script's {@code System.Yog.Sender}: who ran a command, and what it's told. */
+/** Yog Script's {@code Yog.Sender}: who ran a command, and what it's told. */
 public final class Sender {
     private final String name;
     private final String uuid;

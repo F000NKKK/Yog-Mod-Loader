@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
- * Yog Script's {@code System.Yog.ItemObject}: an item a mod declares, as a
+ * Yog Script's {@code Yog.ItemObject}: an item a mod declares, as a
  * stack of it is used — made for each use (its constructor subscribes)
  * until stacks keep state. A handler's panic is logged: the game goes on.
  */

@@ -20,7 +20,7 @@ file a namespace); what runs is the runtime's, in Java (`java-api`'s
   (`dev.yog.script`), each namespace under it a package of its
   lowercased name (`System.Collections.Generic.List<T>` is
   `dev.yog.script.collections.generic.List<T>`, a Java word escaped:
-  `System.Yog.Native` is `…yog.native_`). Members keep C#'s names in
+  `Yog.Native` is `…yog.native_`). Members keep C#'s names in
   Java too (`list.Add(x)` is `list.Add(x)`).
 - A name several arities share (`Action`, `Action<T>`, …) is told apart
   as the CLR does, by its arity: `Action2` for `Action`2`, the one of none
@@ -39,7 +39,7 @@ file a namespace); what runs is the runtime's, in Java (`java-api`'s
   in `host`, so it doesn't hide Java's `String` in the runtime's package).
   `Split` gives a `List<string>` (Yog Script has no arrays of its own).
 - `System`, `System.Collections.Generic`, `System.Linq`, `System.Text`
-  and `System.Yog` are every file's `using`s; the rest is `using`'d.
+  and `Yog` are every file's `using`s; the rest is `using`'d.
 
 ## The chain
 

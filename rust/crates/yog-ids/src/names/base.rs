@@ -372,6 +372,13 @@ names! {
 
     /// A mod's stores (`yog-storage`): `<root>/yog-data/<mod>/…`, the
     /// whole-game and whole-world stores by name, the rest in folders.
+    /// A mod's Yog Script on the JVM: its classes' package starts with
+    /// this, then the mod's id (`yogscript.ystest`) — how the runtime
+    /// tells whose code calls it.
+    script_jvm {
+        PACKAGE_ROOT = "yogscript",
+    }
+
     storage {
         DIR = "yog-data",
         GAME = crate::bus_word::GAME,

@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * Yog Script's {@code System.Yog.Text}: words a player reads — a
+ * Yog Script's {@code Yog.Text}: words a player reads — a
  * translation key and its arguments, translated into each player's language
  * as the game shows it (a translatable text component), or plain words.
  */

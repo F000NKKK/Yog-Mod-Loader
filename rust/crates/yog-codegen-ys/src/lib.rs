@@ -42,7 +42,7 @@ impl Ys {
     }
 
     /// `public static Text Name => t"key";`: a translatable text, by its
-    /// key (System.Yog's `Text`).
+    /// key (Yog's `Text`).
     pub fn text_getter(name: &str, key: &str) -> String {
         let quoted = Self::string(key);
         let unquoted = quoted.strip_prefix(QUOTE).unwrap_or(&quoted);

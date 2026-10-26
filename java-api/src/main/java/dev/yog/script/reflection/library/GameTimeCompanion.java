@@ -5,7 +5,7 @@ package dev.yog.script.reflection.library;
 public final class GameTimeCompanion {
     private GameTimeCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.GameTime.class, "System.Yog.GameTime", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, GameTimeCompanion::$describe);
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.GameTime.class, "Yog.GameTime", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, GameTimeCompanion::$describe);
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {

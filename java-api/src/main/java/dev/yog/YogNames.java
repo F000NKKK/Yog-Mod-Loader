@@ -326,6 +326,15 @@ public final class YogNames {
         public static final java.util.List<String> ALL_VALUES = java.util.List.of(UNEXPECTED_CHAR, UNTERMINATED, BAD_NUMBER, EXPECTED, PATCH_OUTSIDE_NANITES, BAD_REFERENCE, DUPLICATE, OUTSIDE_LOOP, SKIP_OUTSIDE_BEFORE, IT_OUTSIDE_LAMBDA, THIS_OUTSIDE_MEMBER, ASSIGN_TO_CONSTANT, NAMING, AWAIT_OUTSIDE_ASYNC, TYPE_MISMATCH, NULLABLE, UNKNOWN_MEMBER, WRONG_SIDE, WRONG_ARGS, TARGETS, NO_VERSION, AMBIGUOUS, DIRECTIVE, LIFETIME, MOVED, BORROW, PASS, INHERIT, NOT_EXHAUSTIVE, MACRO, ATTRIBUTE, NOT_COMPILED, UNDECLARED, OPERATOR, UNKNOWN_TYPE, UNASSIGNED, CONTENT_PROPERTY, NO_CONTENT_FILE);
     }
 
+    public static final class ScriptJvm {
+        private ScriptJvm() {}
+
+        public static final String PACKAGE_ROOT = "yogscript";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(PACKAGE_ROOT);
+    }
+
     public static final class Storage {
         private Storage() {}
 

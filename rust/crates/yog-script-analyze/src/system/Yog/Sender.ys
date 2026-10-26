@@ -1,4 +1,4 @@
-namespace System.Yog;
+namespace Yog;
 
 /// Who ran a command: a player, or the server's console.
 [Intrinsic]

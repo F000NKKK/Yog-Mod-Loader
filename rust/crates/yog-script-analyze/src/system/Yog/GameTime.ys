@@ -1,4 +1,4 @@
-namespace System.Yog;
+namespace Yog;
 
 using System.Threading.Tasks;
 

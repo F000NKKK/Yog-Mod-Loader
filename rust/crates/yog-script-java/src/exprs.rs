@@ -62,7 +62,7 @@ impl Gen<'_> {
             ExprKind::Null => NULL.into(),
             ExprKind::Char(c) => format!("'{}'", self.code.str(&c.to_string()).trim_matches('"')),
             ExprKind::RawStr(s) | ExprKind::Tag(s) => self.code.str(s),
-            // `t"key"`: System.Yog's `Text` of the key.
+            // `t"key"`: Yog's `Text` of the key.
             ExprKind::Text(key) => format!(
                 "{}.{TEXT_OF}({})",
                 self.index.place(yog_script_ids::system::TEXT_TYPE, 0),

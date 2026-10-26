@@ -11,5 +11,5 @@ description = "Yog Script for yog-codegen: its comments, string literals, reserv
 yog-codegen = { workspace = true }
 # How Yog Script is spelled: its reader's words and escapes.
 yog-script-analyze = { workspace = true }
-# System.Yog's names (`Text`).
+# Yog's names (`Text`).
 yog-script-ids = { workspace = true }

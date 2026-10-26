@@ -3,7 +3,7 @@ namespace System.Threading.Tasks;
 /// Work that finishes later — a delay, an `async` method — awaited without
 /// stopping what runs: what awaits it goes on on its own side (in the
 /// game, at that side's tick it's done by). Its panic is its awaiter's.
-/// Game time (ticks) is `System.Yog.GameTime`'s.
+/// Game time (ticks) is `Yog.GameTime`'s.
 [Intrinsic]
 public class Task {
     /// Done: it finished or it failed.

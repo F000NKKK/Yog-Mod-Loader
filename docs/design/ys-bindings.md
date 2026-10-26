@@ -60,7 +60,7 @@ public abstract class ChargerUi : Screen {
 }
 ```
 
-`Screen` (System.Yog) has the lifecycle as events (`Opened`, `Closed`,
+`Screen` (Yog) has the lifecycle as events (`Opened`, `Closed`,
 `Back`, `Tick`), `Open()`/`Close()`, `Navigate<T>()`, and `Dialog<T>()`,
 as yog-kit's `Cx` does for Rust (mvvm-v2 V11, V12).
 
@@ -167,7 +167,7 @@ map as follows:
 2. ✅ `res.g.ys` from `.yres` (§4).
 3. ✅ `yog.toml` `language`, and `yog new` starts a mod in it (`--rust`).
    Next: IDLE's defaults follow it (§3).
-4. Screens (§2): `Screen` in System.Yog; the generated `<screen>.g.ys`;
+4. Screens (§2): `Screen` in Yog; the generated `<screen>.g.ys`;
    the mirror and the `ui_channel` messages; binding checks against the
    YS schema; write sets.
 5. Lists, dialogs and navigation for YS screens.

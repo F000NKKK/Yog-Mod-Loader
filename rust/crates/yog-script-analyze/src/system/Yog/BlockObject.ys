@@ -1,4 +1,4 @@
-namespace System.Yog;
+namespace Yog;
 
 /// A block a mod declares (`block Lamp { … }`), at its place in a world:
 /// made the first time something happens there (its constructor

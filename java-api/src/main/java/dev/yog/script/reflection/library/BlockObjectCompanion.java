@@ -5,7 +5,7 @@ package dev.yog.script.reflection.library;
 public final class BlockObjectCompanion {
     private BlockObjectCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.BlockObject.class, "System.Yog.BlockObject", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, BlockObjectCompanion::$describe);
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.BlockObject.class, "Yog.BlockObject", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, BlockObjectCompanion::$describe);
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {

@@ -1,4 +1,4 @@
-namespace System.Yog.Native;
+namespace Yog.Native;
 
 /// An `event` on the bus: `+=` listens to what's emitted there, `Invoke`
 /// emits it.

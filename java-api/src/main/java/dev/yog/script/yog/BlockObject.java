@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
- * Yog Script's {@code System.Yog.BlockObject}: a block a mod declares, at
+ * Yog Script's {@code Yog.BlockObject}: a block a mod declares, at
  * its place in a world. Made the first time something happens there (its
  * constructor subscribes), kept while the server runs, gone when it's
  * broken. A handler's panic is logged: the game goes on.

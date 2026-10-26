@@ -5,7 +5,7 @@ package dev.yog.script.reflection.library;
 public final class TextCompanion {
     private TextCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.Text.class, "System.Yog.Text", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, TextCompanion::$describe);
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.Text.class, "Yog.Text", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, TextCompanion::$describe);
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {

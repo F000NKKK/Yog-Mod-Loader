@@ -259,14 +259,14 @@ fn the_games_classes_are_a_yns_files_only() {
         yns("extend Player {\n    public i32 Visits = 0;\n}\ni32 F(Player p) => p.Visits;\n")
             .is_empty()
     );
-    // As in C#, a name two `using`s bring in (`System.Yog`, every file's, among
+    // As in C#, a name two `using`s bring in (`Yog`, every file's, among
     // them) is ambiguous: an alias, as above, or the full name settles it.
     let ambiguous = "targets mc 1.21.1..1.21.1;\nusing System.Game.World.Entity.Player;\nf32 F(Player p) => 1;\n";
     let found = codes_of(check_with("a.yns", ambiguous, Some(&index)).problems);
     assert_eq!(found, [script_problem::AMBIGUOUS]);
     assert!(yns("f32 F(System.Game.World.Entity.Player.Player p) => p.Health;\n").is_empty());
     assert_eq!(
-        yns("i32 F(System.Yog.Player p) => p.Health;\n"),
+        yns("i32 F(Yog.Player p) => p.Health;\n"),
         [script_problem::UNKNOWN_MEMBER]
     );
     // A `.ys` reaches Yog, not the game: `Player` is Yog's there.
@@ -322,7 +322,7 @@ fn namespaces_and_usings_work_as_in_csharp() {
     let src = "namespace Charge {\n    record Pos(i32 X);\n}\nnamespace Other {\n    using Charge;\n    i32 F(Pos p) => p.Y;\n}\n";
     assert_eq!(codes(src), [script_problem::UNKNOWN_MEMBER]);
     // An alias of a namespace; the static members of a type.
-    let src = "using Y = System.Yog;\nusing static System.Yog.Chat;\nvoid F(Y.Player p) {\n    bool sent = Broadcast(\"hi\");\n    Broadcast(1, 2);\n}\n";
+    let src = "using Y = Yog;\nusing static Yog.Chat;\nvoid F(Y.Player p) {\n    bool sent = Broadcast(\"hi\");\n    Broadcast(1, 2);\n}\n";
     assert_eq!(codes(src), [script_problem::WRONG_ARGS]);
 }
 
@@ -741,7 +741,7 @@ fn bits_steps_and_assignments_use_a_types_operators() {
     );
 }
 
-/// `Text` is System.Yog's: written by its name, `t"key"` one, `t"key"(a)`
+/// `Text` is Yog's: written by its name, `t"key"` one, `t"key"(a)`
 /// one with its arguments, a `string` one by its implicit conversion; it
 /// isn't a `string`.
 #[test]

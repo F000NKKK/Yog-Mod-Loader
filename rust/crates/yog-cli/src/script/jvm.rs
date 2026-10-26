@@ -12,7 +12,7 @@ use crate::diagnostics;
 use crate::project::manifest::{SOURCES_DIR, YogToml};
 
 /// What a mod's compiled Yog Script's package starts with: `yogscript.<mod>`.
-const PACKAGE_ROOT: &str = "yogscript";
+use yog_ids::script_jvm::PACKAGE_ROOT;
 /// Where its builds work, under the build folder.
 const WORK_DIR: &str = "scripts";
 /// The compiler, on `PATH` when no JDK of the version's Java is installed

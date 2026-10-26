@@ -1,9 +1,9 @@
 //! The System library's names (`yog-script-analyze/src/system/**`): its
 //! namespaces, the types and attributes the language and its tools know.
 
-/// Every namespace of the library and of what a source reaches starts
-/// here: `System`, `System.Yog` (Yog's objects), `System.Game` (the game's
-/// classes, a `.yns`'s).
+/// The language's library's root (`System`, `System.Collections`, …) and
+/// the game's classes' (`System.Game`, a `.yns`'s); Yog's own are beside
+/// it, under `Yog` — the language never depends on Yog.
 pub const ROOT: &str = "System";
 
 /// `System.Collections.Generic`: every file's `using`, as .NET's implicit ones.
@@ -25,7 +25,7 @@ pub const FOLDER_SEP: char = '/';
 pub const RESULT: &str = "Result";
 /// What an `async` method gives and `await` waits for.
 pub const TASK: &str = "Task";
-/// `System.Yog.Text`: what a player reads, a translation key and its
+/// `Yog.Text`: what a player reads, a translation key and its
 /// arguments (`t"key"`'s type).
 pub const TEXT_TYPE: &str = "Text";
 /// What a mod's content inherits: a block's, an item's.
@@ -133,7 +133,7 @@ pub const UI: &str = "Ui";
 /// C#'s `EventArgs`.
 pub const ARGS_SUFFIX: &str = "Args";
 
-/// The bus's attributes (`System.Yog.Native`): a call, an event, a method provided.
+/// The bus's attributes (`Yog.Native`): a call, an event, a method provided.
 pub const SERVICE: &str = "Service";
 pub const EVENT: &str = "Event";
 pub const PROVIDE: &str = "Provide";

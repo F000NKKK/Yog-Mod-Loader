@@ -5,7 +5,7 @@ package dev.yog.script.reflection.library;
 public final class ItemObjectCompanion {
     private ItemObjectCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.ItemObject.class, "System.Yog.ItemObject", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, ItemObjectCompanion::$describe);
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.ItemObject.class, "Yog.ItemObject", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, ItemObjectCompanion::$describe);
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {

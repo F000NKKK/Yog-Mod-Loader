@@ -161,7 +161,7 @@ fn an_await_some_paths_reach_is_jumped_past() {
 /// mods load.
 #[test]
 fn events_are_handlers() {
-    let src = "using System.Yog.Native;\n\
+    let src = "using Yog.Native;\n\
                record Overloaded(i64 Energy);\n\
                [Event(\"charge:overloaded\")]\npublic static event Action<Overloaded> Overloads;\n\
                [Provide(\"charge:double\")]\nstatic i64 Double(i64 x) => x * 2;\n\
@@ -236,7 +236,7 @@ fn commands_are_ways_of_running() {
     }
 }
 
-/// `t"key"` is System.Yog's `Text` of the key; its arguments go in `With`;
+/// `t"key"` is Yog's `Text` of the key; its arguments go in `With`;
 /// a `string` becomes one by `Text`'s implicit conversion.
 #[test]
 fn texts_are_yogs_text() {

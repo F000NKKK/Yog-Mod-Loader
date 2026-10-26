@@ -5,7 +5,7 @@ import dev.yog.script.Func1;
 import dev.yog.script.threading.tasks.Scheduler;
 import dev.yog.script.threading.tasks.Task;
 
-/** Yog Script's {@code System.Yog.GameTime}: the game's time, its side's ticks. */
+/** Yog Script's {@code Yog.GameTime}: the game's time, its side's ticks. */
 public final class GameTime {
     private GameTime() {}
 

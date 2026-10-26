@@ -342,7 +342,7 @@ fn literal(kind: &ExprKind) -> Option<Type> {
             .unwrap_or_else(|| Type::Unit(unit_of(unit))),
         ExprKind::RawStr(_) => Type::String,
         ExprKind::Char(_) => Type::Char,
-        // `t"key"`: System.Yog's.
+        // `t"key"`: Yog's.
         ExprKind::Text(_) => Type::own(yog_script_ids::system::TEXT_TYPE.to_string()),
         ExprKind::Content { kind, .. } => Type::Content(kind.clone()),
         ExprKind::Tag(_) => Type::Tag,

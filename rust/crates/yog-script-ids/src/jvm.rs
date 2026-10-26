@@ -51,7 +51,7 @@ pub const RUNTIME: &str = runtime!();
 /// Java's classes compiled code names.
 pub const OBJECTS: &str = concat!(java_util!(), sep!(), "Objects");
 pub const MAP: &str = concat!(java_util!(), sep!(), "Map");
-/// `System.Yog.Text`'s text of a key (`t"key"`), and a text with its
+/// `Yog.Text`'s text of a key (`t"key"`), and a text with its
 /// arguments (`t"key"(a, b)`).
 pub const TEXT_OF: &str = "Of";
 pub const TEXT_WITH: &str = "With";

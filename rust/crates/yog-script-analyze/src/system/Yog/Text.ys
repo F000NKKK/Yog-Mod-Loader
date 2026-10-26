@@ -1,4 +1,4 @@
-namespace System.Yog;
+namespace Yog;
 
 /// What a player reads: words to translate into each player's language,
 /// by a key of the mod's lang files (`t"charge.title"`), its arguments

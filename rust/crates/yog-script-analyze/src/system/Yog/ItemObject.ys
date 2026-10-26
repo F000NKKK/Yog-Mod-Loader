@@ -1,4 +1,4 @@
-namespace System.Yog;
+namespace Yog;
 
 /// An item a mod declares (`item Gem { … }`), as a stack of it is used:
 /// made for each use (its constructor subscribes) until stacks keep state.

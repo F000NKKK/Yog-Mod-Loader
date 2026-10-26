@@ -2,7 +2,7 @@
 package dev.yog.script.yog.native_;
 
 public final class Provide extends dev.yog.script.Attribute {
-    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.native_.Provide.class, "System.Yog.Native.Provide", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, dev.yog.script.yog.native_.Provide::$describe);
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.native_.Provide.class, "Yog.Native.Provide", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, dev.yog.script.yog.native_.Provide::$describe);
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class));

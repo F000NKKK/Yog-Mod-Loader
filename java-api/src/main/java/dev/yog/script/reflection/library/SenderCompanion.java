@@ -5,7 +5,7 @@ package dev.yog.script.reflection.library;
 public final class SenderCompanion {
     private SenderCompanion() {}
 
-    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.Sender.class, "System.Yog.Sender", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, SenderCompanion::$describe);
+    public static final dev.yog.script.Type TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.Sender.class, "Yog.Sender", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, SenderCompanion::$describe);
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
