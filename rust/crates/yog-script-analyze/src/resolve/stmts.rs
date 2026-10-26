@@ -55,27 +55,7 @@ impl Resolver<'_, '_> {
                 body,
                 mutable,
                 awaits,
-            } => {
-                self.opt_ty(ty.as_ref());
-                if *awaits && !self.cx.awaits {
-                    self.report.error(
-                        script_problem::AWAIT_OUTSIDE_ASYNC,
-                        iter.span,
-                        "`await foreach` waits in an `async` method",
-                    );
-                }
-                self.expr(iter);
-                // `let mut`: each item lent to be changed; else read only.
-                let kind = if *mutable {
-                    DefKind::Variable
-                } else {
-                    DefKind::ReadOnly
-                };
-                self.looping(|r| {
-                    r.binding(binding, kind);
-                    r.stmt(body);
-                });
-            }
+            } => self.foreach(ty.as_ref(), (binding, *mutable), (iter, *awaits), body),
             Stmt::For {
                 init,
                 cond,
@@ -144,6 +124,35 @@ impl Resolver<'_, '_> {
             Binding::One(n) => self.bind(n, kind),
             Binding::Tuple(names) => names.iter().for_each(|n| self.bind(n, kind)),
         }
+    }
+
+    /// `foreach (… in iter) body` (`awaits`: `await foreach`, in an `async` method only).
+    fn foreach(
+        &mut self,
+        ty: Option<&crate::ast::Type>,
+        (binding, mutable): (&Binding, bool),
+        (iter, awaits): (&Expr, bool),
+        body: &Stmt,
+    ) {
+        self.opt_ty(ty);
+        if awaits && !self.cx.awaits {
+            self.report.error(
+                script_problem::AWAIT_OUTSIDE_ASYNC,
+                iter.span,
+                "`await foreach` waits in an `async` method",
+            );
+        }
+        self.expr(iter);
+        // `let mut`: each item lent to be changed; else read only.
+        let kind = if mutable {
+            DefKind::Variable
+        } else {
+            DefKind::ReadOnly
+        };
+        self.looping(|r| {
+            r.binding(binding, kind);
+            r.stmt(body);
+        });
     }
 
     /// The place an assignment writes: a name of the source's own must be
