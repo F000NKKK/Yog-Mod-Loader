@@ -29,7 +29,11 @@ fn jdk() -> PathBuf {
 pub fn run(sources: &[(&str, &str)], expr: &str) -> Option<String> {
     let (jdk, jar) = (jdk(), runtime_jar());
     if !jdk.join("bin/javac").is_file() || !jar.is_file() {
-        eprintln!("SKIPPED: no JDK at {} or no {}", jdk.display(), jar.display());
+        eprintln!(
+            "SKIPPED: no JDK at {} or no {}",
+            jdk.display(),
+            jar.display()
+        );
         return None;
     }
     // One folder a run: tests run side by side.
@@ -56,7 +60,11 @@ pub fn run(sources: &[(&str, &str)], expr: &str) -> Option<String> {
             ..Env::default()
         };
         let checked = check_in(name, text, env);
-        assert!(checked.problems.is_empty(), "{name}: {:#?}", checked.problems);
+        assert!(
+            checked.problems.is_empty(),
+            "{name}: {:#?}",
+            checked.problems
+        );
         let named: Vec<(&str, &[Decl])> = sources
             .iter()
             .zip(&decls)

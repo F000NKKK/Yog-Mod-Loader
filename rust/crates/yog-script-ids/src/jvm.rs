@@ -291,6 +291,14 @@ pub mod reflection {
     /// The source's class's constants of the arguments its objects are made
     /// with (`$kept1`): each list worked out once.
     pub const KEPT: &str = "$kept";
+    /// A generic type's static fields, one set per list of arguments: its
+    /// sets (`$staticSets`, a `Statics`), each a `$Statics` made by `of`,
+    /// reached by `$statics(arguments)`.
+    pub const STATICS: &str = concat!(runtime!(), sep!(), "Statics");
+    pub const STATICS_FIELD: &str = "$staticSets";
+    pub const STATICS_METHOD: &str = "$statics";
+    pub const STATICS_CLASS: &str = "$Statics";
+    pub const STATICS_OF: &str = OF;
     /// What fills a type's description, beside `$TYPE` (`Box::$describe`).
     pub const DESCRIBE: &str = "$describe";
     pub const DESCRIPTION: &str = concat!(reflection!(), sep!(), "TypeDescription");
@@ -298,6 +306,8 @@ pub mod reflection {
     /// (its result and parameters after it), a constructor, a method's own
     /// type parameter.
     pub const FIELD_MEMBER: &str = "Field";
+    /// A generic type's static field, one per list of its arguments.
+    pub const PER_TYPE_FIELD: &str = "PerTypeField";
     pub const PROPERTY: &str = "Property";
     pub const METHOD: &str = "Method";
     pub const RETURNS: &str = "Returns";
@@ -395,12 +405,44 @@ pub mod tasks {
     pub const PARAM_FIELD: &str = "$p";
     /// An iterator's machine (`IEnumerator<T>`), the sequence making one
     /// for each walk (`IEnumerable<T>`), and what gives its next item.
-    pub const ITERATION: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "Iteration");
-    pub const ITERATION_SOURCE: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "IterationSource");
+    pub const ITERATION: &str = concat!(
+        runtime!(),
+        sep!(),
+        "collections",
+        sep!(),
+        "generic",
+        sep!(),
+        "Iteration"
+    );
+    pub const ITERATION_SOURCE: &str = concat!(
+        runtime!(),
+        sep!(),
+        "collections",
+        sep!(),
+        "generic",
+        sep!(),
+        "IterationSource"
+    );
     pub const YIELD: &str = "$yield";
     /// An `async` iterator's machine and its sequence (`IAsyncEnumerable<T>`).
-    pub const ASYNC_ITERATION: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "AsyncIteration");
-    pub const ASYNC_ITERATION_SOURCE: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "AsyncIterationSource");
+    pub const ASYNC_ITERATION: &str = concat!(
+        runtime!(),
+        sep!(),
+        "collections",
+        sep!(),
+        "generic",
+        sep!(),
+        "AsyncIteration"
+    );
+    pub const ASYNC_ITERATION_SOURCE: &str = concat!(
+        runtime!(),
+        sep!(),
+        "collections",
+        sep!(),
+        "generic",
+        sep!(),
+        "AsyncIterationSource"
+    );
     /// What a task gives (`Task<T>`'s), and a `Task`'s failure thrown again.
     pub const RESULT: &str = "Result";
     pub const CHECK: &str = "check";

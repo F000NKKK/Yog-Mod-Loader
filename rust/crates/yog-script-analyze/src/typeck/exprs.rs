@@ -27,7 +27,7 @@ impl Checker<'_, '_, '_> {
                 self.walk_inner(e);
                 Type::Bool
             }
-            ExprKind::Ident(name) => self.name(name, e.span),
+            ExprKind::Ident(name) => self.ident(e, name),
             ExprKind::This => self.this.clone().unwrap_or(Type::Unknown),
             ExprKind::Base => self.base(),
             ExprKind::Declare { ty, name, mutable } => {
@@ -112,6 +112,14 @@ impl Checker<'_, '_, '_> {
     }
 
     /// A name: a local, a member of `this`, the file's own, a type.
+    /// Name `e`: a local's (marked so), a member's, a type's.
+    fn ident(&mut self, e: &Expr, name: &str) -> Type {
+        if self.local(name).is_some() {
+            self.types.set_local(e);
+        }
+        self.name(name, e.span)
+    }
+
     fn name(&mut self, name: &str, at: Span) -> Type {
         if let Some(t) = self.local(name) {
             return t.clone();

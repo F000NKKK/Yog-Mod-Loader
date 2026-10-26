@@ -15,18 +15,15 @@ impl Gen<'_> {
     pub(crate) fn lock_stmt(&mut self, target: &Expr, value: Option<&Name>, body: &Stmt) {
         let lock = self.expr(target);
         let guard = self.temp();
-        self.code
-            .line(format!("{VAR} {guard} = {lock}.{ENTER}();"));
+        self.code.line(format!("{VAR} {guard} = {lock}.{ENTER}();"));
         let held = match self.types.of(target).map(Type::non_null) {
             Some(Type::Own(_, args)) if args.len() == 1 => args[0].clone(),
             _ => Type::Unknown,
         };
         if let Some(n) = value {
             let t = self.java(&held, false);
-            self.code.line(format!(
-                "{t} {} = {guard}.{VALUE}();",
-                Self::ident(&n.text)
-            ));
+            self.code
+                .line(format!("{t} {} = {guard}.{VALUE}();", Self::ident(&n.text)));
         }
         self.code.open(TRY);
         match body {

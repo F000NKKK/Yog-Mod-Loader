@@ -40,9 +40,9 @@ pub fn stmt_yields(s: &Stmt) -> bool {
         Stmt::If {
             then, otherwise, ..
         } => stmt_yields(then) || otherwise.as_deref().is_some_and(stmt_yields),
-        Stmt::Foreach { body, .. }
-        | Stmt::While { body, .. }
-        | Stmt::DoWhile { body, .. } => stmt_yields(body),
+        Stmt::Foreach { body, .. } | Stmt::While { body, .. } | Stmt::DoWhile { body, .. } => {
+            stmt_yields(body)
+        }
         Stmt::For {
             init, step, body, ..
         } => {

@@ -100,7 +100,10 @@ pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
             otherwise,
         } => awaits(cond) || stmt_awaits(then) || otherwise.as_deref().is_some_and(stmt_awaits),
         Stmt::Foreach {
-            iter, body, awaits: each, ..
+            iter,
+            body,
+            awaits: each,
+            ..
         } => *each || awaits(iter) || stmt_awaits(body),
         Stmt::For {
             init,

@@ -21,7 +21,11 @@ impl Gen<'_> {
         if self.machine.is_none() || !arms.iter().any(|a| awaits(&a.value)) {
             return None;
         }
-        if let Some(g) = arms.iter().filter_map(|a| a.guard.as_ref()).find(|g| awaits(g)) {
+        if let Some(g) = arms
+            .iter()
+            .filter_map(|a| a.guard.as_ref())
+            .find(|g| awaits(g))
+        {
             self.not_yet("an `await` in a `switch` arm's guard", g.span);
             return Some(String::new());
         }
@@ -93,7 +97,11 @@ impl Gen<'_> {
     }
 
     /// A field of type `t` (an object's where it isn't known) holding `v`.
-    pub(crate) fn field_of_type(&mut self, t: Option<&yog_script_analyze::Type>, v: &str) -> String {
+    pub(crate) fn field_of_type(
+        &mut self,
+        t: Option<&yog_script_analyze::Type>,
+        v: &str,
+    ) -> String {
         let ty = match t.filter(|t| t.known()) {
             Some(t) => self.java(t, true),
             None => yog_script_ids::jvm::OBJECT.to_string(),
@@ -112,7 +120,9 @@ fn bound_names(p: &Pattern) -> Vec<&yog_script_analyze::ast::Name> {
         Pattern::Variant { args, .. } | Pattern::Tuple(args) => {
             args.iter().flat_map(bound_names).collect()
         }
-        Pattern::Property { fields, .. } => fields.iter().flat_map(|(_, f)| bound_names(f)).collect(),
+        Pattern::Property { fields, .. } => {
+            fields.iter().flat_map(|(_, f)| bound_names(f)).collect()
+        }
         Pattern::And(a, b) | Pattern::Or(a, b) => {
             let mut all = bound_names(a);
             all.extend(bound_names(b));

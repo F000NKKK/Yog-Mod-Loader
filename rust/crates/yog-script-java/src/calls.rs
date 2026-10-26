@@ -121,6 +121,11 @@ impl Gen<'_> {
     ) -> String {
         let host = on_type.and_then(|t| self.index.host(t));
         let member = match on_type.map(Type::non_null) {
+            Some(Type::Static(of, args))
+                if self.index.static_per_type(&(of.clone(), args.len()), name) =>
+            {
+                return self.per_type_static(of, args, name);
+            }
             Some(Type::Static(of, _)) => return self.static_member(of, name),
             // A built-in type's property: its companion's static, the value first.
             Some(t) if let Some(host) = host => {

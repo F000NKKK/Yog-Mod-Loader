@@ -74,6 +74,16 @@ impl Gen<'_> {
             ExprKind::Ident(name) if self.cells.contains(name) => {
                 format!("{}.{REF_VALUE}", Self::ident(name))
             }
+            // A generic type's static field: its arguments' set's.
+            ExprKind::Ident(name)
+                if !self.types.is_local(e)
+                    && self
+                        .owner
+                        .as_ref()
+                        .is_some_and(|o| self.index.static_per_type(o, name)) =>
+            {
+                self.own_static(name)
+            }
             // A property of `this` by its name: its getter.
             ExprKind::Ident(name)
                 if self
@@ -287,8 +297,9 @@ impl Gen<'_> {
             t
         };
         let failed = format!("new {RUNTIME}.Result.Err<>({err}.Error())");
-        self.code
-            .open(format!("if ({t} instanceof {RUNTIME}.Result.Err<?, ?> {err})"));
+        self.code.open(format!(
+            "if ({t} instanceof {RUNTIME}.Result.Err<?, ?> {err})"
+        ));
         if let Some(gives) = self.machine.as_ref().map(|m| m.gives.clone()) {
             // The task's own `Result`: Java infers none from the `Err` taken.
             self.async_return(Some(format!("({gives}) ({OBJECT}) {failed}")));

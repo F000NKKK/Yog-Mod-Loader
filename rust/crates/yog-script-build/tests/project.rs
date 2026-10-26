@@ -48,7 +48,8 @@ fn another_sources_own_methods_stay_its_own() {
 /// reached from the mod's own code.
 #[test]
 fn the_contents_ids_are_reached_by_name() {
-    let generated = "public static class Blocks {\n    public const string Lamp = \"test:lamp\";\n}\n";
+    let generated =
+        "public static class Blocks {\n    public const string Lamp = \"test:lamp\";\n}\n";
     let name = "obj/generated/yog-content.g.ys";
     let content = declarations(name, generated, Env::default());
     let others: [&[Decl]; 1] = [&content];

@@ -24,7 +24,11 @@ fn content_with_members_is_its_kinds_object() {
         "return Pos().y();",
         "dev.yog.script.yog.BlockObject.register(\"test:lamp\", Lamp::new);",
     ] {
-        assert!(java.source.contains(want), "missing `{want}` in:\n{}", java.source);
+        assert!(
+            java.source.contains(want),
+            "missing `{want}` in:\n{}",
+            java.source
+        );
     }
     assert!(
         !java.source.contains("Content.Register"),

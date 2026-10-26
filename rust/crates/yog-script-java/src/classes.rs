@@ -54,6 +54,7 @@ impl Gen<'_> {
         self.code.open(head);
         self.describe(d);
         self.constants(body);
+        self.statics_holder(&(ys.to_string(), arity), header, body);
         for f in fields(body) {
             self.code.line(format!(
                 "{PUBLIC} {} {};",
@@ -154,24 +155,28 @@ impl Gen<'_> {
     /// `const` and `static` fields, set where they're declared: a constant
     /// or a `static readonly` one Java's `static final`.
     pub(crate) fn constants(&mut self, body: &[Decl]) {
+        let per_type = self
+            .owner
+            .as_ref()
+            .is_some_and(|o| self.index.takes_types(o));
         for d in body {
             if let DeclKind::Field(f) = &d.kind
                 && (d.has(Modifier::Const) || d.has(Modifier::Static))
-                && let Some(v) = &f.value
+                && !(per_type && !d.has(Modifier::Const))
             {
                 let fixed = d.has(Modifier::Const) || d.has(Modifier::Readonly);
-                let (t, n, v) = (
-                    self.written(&f.ty, false),
-                    Self::ident(&f.name.text),
-                    self.expr(v),
-                );
+                let (t, n) = (self.written(&f.ty, false), Self::ident(&f.name.text));
+                let v = match &f.value {
+                    Some(v) => format!(" = {}", self.expr(v)),
+                    None => String::new(),
+                };
                 let fin = if fixed {
                     modifier(FINAL)
                 } else {
                     String::new()
                 };
                 self.code
-                    .line(format!("{PUBLIC} {STATIC} {fin}{t} {n} = {v};"));
+                    .line(format!("{PUBLIC} {STATIC} {fin}{t} {n}{v};"));
             }
         }
     }
@@ -238,7 +243,13 @@ impl Gen<'_> {
     }
 
     /// Written constructor `c` of a type (`taking` its type arguments).
-    fn constructor(&mut self, name: &str, (header, body): (&TypeHeader, &[Decl]), c: &Ctor, taking: bool) {
+    fn constructor(
+        &mut self,
+        name: &str,
+        (header, body): (&TypeHeader, &[Decl]),
+        c: &Ctor,
+        taking: bool,
+    ) {
         let params = self.ctor_params(&c.params, taking);
         self.code.open(format!("{PUBLIC} {name}({params})"));
         match &c.chain {
@@ -257,7 +268,11 @@ impl Gen<'_> {
                     None => String::new(),
                 };
                 let base = self.base_types(header);
-                let args = if base.is_empty() { args } else { joined(&base, &args) };
+                let args = if base.is_empty() {
+                    args
+                } else {
+                    joined(&base, &args)
+                };
                 self.code.line(format!("{SUPER}({args});"));
                 self.keep_types(taking);
                 self.first_values(body);

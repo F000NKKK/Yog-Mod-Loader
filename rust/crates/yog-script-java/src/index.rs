@@ -71,6 +71,9 @@ pub(crate) struct Index {
     /// Each type's static methods, by name: a generic own type's take its
     /// type arguments (`$typeT`) as a generic method its own.
     statics: HashSet<(TypeRef, String)>,
+    /// Each type's static fields (not its constants), by name: a generic
+    /// own type's are one set per list of its arguments.
+    static_fields: HashSet<(TypeRef, String)>,
     /// The units the source declares (`unit Energy;`), beside the game's.
     units: HashSet<String>,
     /// Each `event`, by its type's name (the file's or a mod's: none) and
@@ -163,6 +166,11 @@ impl Index {
                 && m.has(yog_script_analyze::ast::Modifier::Static)
             {
                 self.statics.insert((of.clone(), method.name.text.clone()));
+            }
+            if let DeclKind::Field(f) = &m.kind
+                && m.has(yog_script_analyze::ast::Modifier::Static)
+            {
+                self.static_fields.insert((of.clone(), f.name.text.clone()));
             }
             if let DeclKind::Event { name: e, .. } = &m.kind {
                 self.events
@@ -491,6 +499,13 @@ impl Index {
     /// arguments first: one of an own generic type.
     pub fn static_taking_types(&self, t: &TypeRef, name: &str) -> bool {
         self.takes_types(t) && self.statics.contains(&(t.clone(), name.to_string()))
+    }
+
+    /// Whether `name` is a static field of `t` kept per list of its
+    /// arguments (C#'s: `Box<int>.Count` isn't `Box<string>.Count`): one of
+    /// an own generic type's.
+    pub fn static_per_type(&self, t: &TypeRef, name: &str) -> bool {
+        self.takes_types(t) && self.static_fields.contains(&(t.clone(), name.to_string()))
     }
 
     /// Whether `t` is, implements or inherits `interface` (by name).

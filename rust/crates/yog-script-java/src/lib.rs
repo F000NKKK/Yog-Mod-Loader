@@ -26,8 +26,8 @@ mod indexers;
 mod java_names;
 mod kept;
 mod library;
-mod locks;
 mod load;
+mod locks;
 mod machine;
 mod macros;
 mod messages;
@@ -36,8 +36,9 @@ mod patterns;
 mod raisers;
 mod reflection;
 mod refs;
-mod safe_calls;
 mod reified;
+mod safe_calls;
+mod statics;
 mod stmts;
 mod switch;
 mod trees;
@@ -229,6 +230,9 @@ pub(crate) struct Gen<'c> {
     mod_id: Option<String>,
     /// The file has a `$Load`.
     has_load: bool,
+    /// The code being written is a `$Statics`' (`statics.rs`): its type's
+    /// static fields are its own.
+    in_statics: bool,
 }
 
 impl<'c> Gen<'c> {
@@ -261,6 +265,7 @@ impl<'c> Gen<'c> {
             boxed: std::collections::HashSet::new(),
             on_load: Vec::new(),
             has_load: false,
+            in_statics: false,
             mod_id: None,
             in_command: false,
         }

@@ -148,7 +148,12 @@ impl Gen<'_> {
         // their values first.
         let class_handed = self.static_type_params(d).unwrap_or_default();
         let mut names: Vec<String> = class_handed.iter().map(|(g, _)| g.clone()).collect();
-        names.extend(m.generics.iter().filter(|g| !g.lifetime).map(|g| g.name.text.clone()));
+        names.extend(
+            m.generics
+                .iter()
+                .filter(|g| !g.lifetime)
+                .map(|g| g.name.text.clone()),
+        );
         let generics = if names.is_empty() {
             String::new()
         } else {

@@ -47,7 +47,9 @@ impl Gen<'_> {
     /// inherits, implements it.
     fn is_disposable(&self, t: &Type) -> bool {
         match t.non_null() {
-            Type::Own(name, args) => self.index.implements(&(name.clone(), args.len()), DISPOSABLE),
+            Type::Own(name, args) => self
+                .index
+                .implements(&(name.clone(), args.len()), DISPOSABLE),
             _ => false,
         }
     }

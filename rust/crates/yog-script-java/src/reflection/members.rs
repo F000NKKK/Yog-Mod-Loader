@@ -7,8 +7,8 @@ use yog_script_analyze::words::{get, init, set};
 use yog_script_ids::clr::ACCESSOR_SEP;
 use yog_script_ids::jvm::reflection::{
     ABSTRACT, CELL_OF, CELLS, CONSTRUCTOR, FIELD_MEMBER, INIT_ONLY, LITERAL, MAKE_BY_REF,
-    MEMBER_INFO, METHOD_PARAMETER, PARAMETER, PARAMETER_INFO, PASSED_OUT, PRIVATE, PROPERTY,
-    PROTECTED, STATIC, TAKES, TYPE, VIRTUAL,
+    MEMBER_INFO, METHOD_PARAMETER, PARAMETER, PARAMETER_INFO, PASSED_OUT, PER_TYPE_FIELD, PRIVATE,
+    PROPERTY, PROTECTED, STATIC, STATICS_METHOD, TAKES, TYPE, VIRTUAL,
 };
 
 use super::consts::{ARGS, DESCRIPTION, NO_TRAITS, OBJECT, VALUE};
@@ -101,6 +101,12 @@ impl Gen<'_> {
 
     fn field_described(&self, owner: &Owner, d: &Decl, name: &str, ty: &Written) -> String {
         let n = Self::ident(name);
+        if self
+            .index
+            .static_per_type(&(owner.name.to_string(), owner.arity), name)
+        {
+            return self.per_type_field_described(owner, d, name, ty);
+        }
         let at = if d.has(Modifier::Static) || d.has(Modifier::Const) {
             owner.raw.clone()
         } else {
@@ -117,6 +123,33 @@ impl Gen<'_> {
         };
         format!(
             "{DESCRIPTION}.{FIELD_MEMBER}({}, {}, {}, {OBJECT} -> {at}.{n}, {set});",
+            self.code.str(name),
+            member_traits(d),
+            self.member_type(owner, ty, &[])
+        )
+    }
+
+    /// A generic type's static field: its arguments' set's (`statics.rs`).
+    fn per_type_field_described(
+        &self,
+        owner: &Owner,
+        d: &Decl,
+        name: &str,
+        ty: &Written,
+    ) -> String {
+        let at = format!(
+            "{}.{STATICS_METHOD}({ARGS}).{}",
+            owner.raw,
+            Self::ident(name)
+        );
+        let set = if d.has(Modifier::Readonly) {
+            NULL.to_string()
+        } else {
+            let v = self.cast_value(owner, ty, &[], VALUE);
+            format!("({ARGS}, {VALUE}) -> {at} = {v}")
+        };
+        format!(
+            "{DESCRIPTION}.{PER_TYPE_FIELD}({}, {}, {}, {ARGS} -> {at}, {set});",
             self.code.str(name),
             member_traits(d),
             self.member_type(owner, ty, &[])
@@ -177,9 +210,16 @@ impl Gen<'_> {
         let args = self.args_cast(owner, (params, 0), &[]);
         // An own generic type's take its type arguments first: not known
         // to a reflective call (its `MakeGenericType` keeps them after).
-        let args = if self.index.takes_types(&(owner.name.to_string(), owner.arity)) {
+        let args = if self
+            .index
+            .takes_types(&(owner.name.to_string(), owner.arity))
+        {
             let sep = if args.is_empty() { "" } else { ", " };
-            format!("({}[]) {}{sep}{args}", yog_script_ids::jvm::reflection::TYPE, yog_script_ids::java::NULL)
+            format!(
+                "({}[]) {}{sep}{args}",
+                yog_script_ids::jvm::reflection::TYPE,
+                yog_script_ids::java::NULL
+            )
         } else {
             args
         };

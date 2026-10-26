@@ -23,8 +23,8 @@ use yog_script_ids::java::{
 };
 use yog_script_ids::jvm::OBJECT;
 use yog_script_ids::jvm::tasks::{
-    ASYNC, ASYNC_ITERATION, ASYNC_ITERATION_SOURCE, FINISH, ITERATION, ITERATION_SOURCE, LOOP, MACHINE, MADE, PARAM_FIELD, RUN, START,
-    STATE, STEP, TASK, YIELD,
+    ASYNC, ASYNC_ITERATION, ASYNC_ITERATION_SOURCE, FINISH, ITERATION, ITERATION_SOURCE, LOOP,
+    MACHINE, MADE, PARAM_FIELD, RUN, START, STATE, STEP, TASK, YIELD,
 };
 
 use super::Gen;
@@ -243,8 +243,7 @@ impl Gen<'_> {
             } else {
                 ITERATION_SOURCE
             };
-            self.code
-                .open(format!("{RETURN} {NEW} {source}<>(() ->"));
+            self.code.open(format!("{RETURN} {NEW} {source}<>(() ->"));
             self.code
                 .line(format!("{FINAL} {VAR} {made} = {NEW} {class}();"));
             for (param, field) in &params {

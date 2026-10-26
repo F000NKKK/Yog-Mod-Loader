@@ -42,6 +42,9 @@ pub struct Types {
     /// The operators `op=` applies (`v += w` on a `Vec`), by the place it
     /// writes.
     assigned: HashMap<usize, OperatorUse>,
+    /// The names that are a local's or a parameter's (not a member's), by
+    /// the name's expression.
+    locals: std::collections::HashSet<usize>,
 }
 
 /// A lambda given as an expression tree: its delegate's type, and the
@@ -164,6 +167,15 @@ impl Types {
 
     pub(super) fn set_message(&mut self, e: &Expr, m: Message) {
         self.messages.insert(key(e), m);
+    }
+
+    /// Whether name `e` is a local's or a parameter's (not a member's).
+    pub fn is_local(&self, e: &Expr) -> bool {
+        self.locals.contains(&key(e))
+    }
+
+    pub(super) fn set_local(&mut self, e: &Expr) {
+        self.locals.insert(key(e));
     }
 
     pub(super) fn set_method(&mut self, e: &Expr, used: MethodUse) {

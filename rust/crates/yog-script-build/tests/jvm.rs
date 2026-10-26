@@ -11,7 +11,10 @@ fn a_project_runs() {
                     public static i32 Sum(params i32[] xs) { let mut t = 0; foreach (let x in xs) { t += x; } return t; }\n\
                     public static i32 Run() => new Size(3, 4).Area() + Sum(1, 2, 3);\n\
                 }\n";
-    let Some(out) = support::run(&[("size.ys", size), ("main.ys", main)], "t.MainScript.Calc.Run()") else {
+    let Some(out) = support::run(
+        &[("size.ys", size), ("main.ys", main)],
+        "t.MainScript.Calc.Run()",
+    ) else {
         return;
     };
     assert_eq!(out, "18");
@@ -137,7 +140,10 @@ fn awaits_around_safe_access() {
     let Some(out) = support::run(&[("s.ys", src)], "t.SScript.S.Run()") else {
         return;
     };
-    assert_eq!(out, "3 -1 7 -1 1", "the argument awaited once, for the box there");
+    assert_eq!(
+        out, "3 -1 7 -1 1",
+        "the argument awaited once, for the box there"
+    );
 }
 
 /// `?.` calls, as C#'s: nothing called (its arguments not computed) on
@@ -243,7 +249,10 @@ fn locals_are_dropped_at_their_scopes_end() {
     let Some(out) = support::run(&[("d.ys", src)], "t.DScript.D.Run()") else {
         return;
     };
-    assert_eq!(out, "b;a;|early;", "the last made dropped first; made, c moved on");
+    assert_eq!(
+        out, "b;a;|early;",
+        "the last made dropped first; made, c moved on"
+    );
 }
 
 /// Iterators, as C#'s: items given one at a time as they're asked for
@@ -479,4 +488,33 @@ fn constructor_params() {
         return;
     };
     assert_eq!(out, "3 0 2");
+}
+
+/// A generic type's static fields: one set per list of its arguments, its
+/// first values (a type parameter's too) set when the set is first reached.
+#[test]
+fn statics_per_closed_type() {
+    let src = "public class Counter<TItem> {\n\
+                   public static i32 Made = 0;\n\
+                   public static string Name = typeof(TItem).Name;\n\
+                   public static List<TItem> Seen = new List<TItem>();\n\
+                   public Counter(TItem item) { Made += 1; Seen.Add(item); }\n\
+                   public static i32 Count() => Made;\n\
+                   public readonly i32 Mine() => Made;\n\
+               }\n\
+               public static class S {\n\
+                   public static string Run() {\n\
+                       let a = new Counter<i32>(1);\n\
+                       let b = new Counter<i32>(2);\n\
+                       let c = new Counter<string>(\"x\");\n\
+                       Counter<bool>.Made = 7;\n\
+                       return Counter<i32>.Made + \" \" + Counter<string>.Count() + \" \" + c.Mine() + \" \" + Counter<bool>.Made\n\
+                           + \" \" + Counter<string>.Name + \" \" + Counter<i32>.Seen.Count\n\
+                           + \" \" + typeof(Counter<i32>).GetField(\"Made\").GetValue(null);\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("s.ys", src)], "t.SScript.S.Run()") else {
+        return;
+    };
+    assert_eq!(out, "2 1 1 7 String 2 2");
 }

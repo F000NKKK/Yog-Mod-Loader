@@ -29,7 +29,9 @@ impl Gen<'_> {
         if !self.index.takes_types(&(name.clone(), targs.len())) {
             return self.made_of_type(t, format!("{NEW} {java}({args})"));
         }
-        let list = self.types_list(t).unwrap_or_else(|| yog_script_ids::java::NULL.into());
+        let list = self
+            .types_list(t)
+            .unwrap_or_else(|| yog_script_ids::java::NULL.into());
         let sep = if args.is_empty() { "" } else { ", " };
         format!("{NEW} {java}({list}{sep}{args})")
     }

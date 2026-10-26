@@ -49,8 +49,7 @@ impl Gen<'_> {
             Some(v) => format!("{{ {v} = {NULL}; {} }}", Self::jump(past)),
             None => Self::jump(past),
         };
-        self.code
-            .line(format!("{IF} ({held} == {NULL}) {skipped}"));
+        self.code.line(format!("{IF} ({held} == {NULL}) {skipped}"));
         let a = self.call_args(e, args);
         let call = self.method_call_on(e, on, held.to_string(), name, &a);
         match &value {

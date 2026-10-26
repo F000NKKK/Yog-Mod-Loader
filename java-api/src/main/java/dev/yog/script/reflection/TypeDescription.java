@@ -53,6 +53,12 @@ public final class TypeDescription {
         return this;
     }
 
+    /** A generic type's static field {@code name}, one per list of its arguments: read and written by them. */
+    public TypeDescription PerTypeField(String name, int traits, Type type, Function<Type[], Object> get, BiConsumer<Type[], Object> set) {
+        members.add(new PerTypeFieldInfo(parts(name, traits), type, get, set));
+        return this;
+    }
+
     public TypeDescription Property(String name, int traits, Type type, Function<Object, Object> get, BiConsumer<Object, Object> set) {
         members.add(new PropertyInfo(parts(name, traits), type, get, set));
         return this;

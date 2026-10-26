@@ -68,9 +68,8 @@ pub fn build_jar(
         .map(|(name, text)| yog_script_analyze::declarations(name, text, env))
         .collect();
     for (i, (name, text)) in sources.iter().enumerate() {
-        let others: Vec<&[yog_script_analyze::ast::Decl]> = project_but(&decls, i)
-            .map(|(_, d)| d)
-            .collect();
+        let others: Vec<&[yog_script_analyze::ast::Decl]> =
+            project_but(&decls, i).map(|(_, d)| d).collect();
         let env = yog_script_analyze::Env {
             others: &others,
             ..env
