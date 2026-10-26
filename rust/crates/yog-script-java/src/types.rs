@@ -35,6 +35,7 @@ impl Gen<'_> {
             }
             Type::Nullable(inner) => self.java(inner, true),
             Type::Fn(params, ret) => self.fn_type(params, ret),
+            Type::Tuple(items, _) => self.generic(&self.tuple_place(items.len()), items),
             // A handle is its subject; a payload its record.
             Type::Yog(name) if yog::is_handle(name) => STRING.into(),
             Type::Yog(name) => yog::data(name).unwrap_or_else(|| OBJECT.into()),
@@ -77,6 +78,10 @@ impl Gen<'_> {
             TypeKind::Nullable(inner) => self.written(inner, true),
             TypeKind::Array { item, rank } => self.written_array(item, *rank),
             TypeKind::Borrow { ty, .. } => self.written(ty, boxed),
+            TypeKind::Tuple(items) => {
+                let items: Vec<String> = items.iter().map(|(t, _)| self.written(t, true)).collect();
+                format!("{}<{}>", self.tuple_place(items.len()), items.join(", "))
+            }
             // A path out of the library (a game class's, in a `.yns`) as written.
             TypeKind::Path { path, .. }
                 if path.len() > 1 && path[0].text != yog_script_ids::system::ROOT =>

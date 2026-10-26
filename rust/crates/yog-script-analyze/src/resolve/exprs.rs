@@ -45,7 +45,7 @@ impl Resolver<'_, '_> {
                     }
                 }
             }
-            ExprKind::Tuple(items) => items.iter().for_each(|i| self.expr(i)),
+            ExprKind::Tuple { items, .. } => items.iter().for_each(|i| self.expr(i)),
             ExprKind::Collection(items) => items.iter().for_each(|i| match i {
                 Element::Item(e) | Element::Spread(e) => self.expr(e),
                 Element::Entry(k, v) => {

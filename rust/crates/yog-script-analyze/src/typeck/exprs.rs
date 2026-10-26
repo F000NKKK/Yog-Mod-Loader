@@ -70,6 +70,7 @@ impl Checker<'_, '_, '_> {
             }
             ExprKind::NotNull(inner) => self.expr(inner).non_null().clone(),
             ExprKind::Collection(items) => self.collection(items),
+            ExprKind::Tuple { items, names } => self.tuple(items, names, e.span),
             ExprKind::TypeArgs { expr, args } => self.type_args_expr(expr, args),
             ExprKind::Index { expr, args } => {
                 let on = self.expr(expr);
@@ -94,9 +95,6 @@ impl Checker<'_, '_, '_> {
             ExprKind::Is { expr, .. } | ExprKind::Has { expr, .. } => {
                 self.expr(expr);
             }
-            ExprKind::Tuple(items) => items.iter().for_each(|i| {
-                self.expr(i);
-            }),
             ExprKind::Range { from, to, .. } => {
                 self.expr(from);
                 self.expr(to);
@@ -231,9 +229,16 @@ impl Checker<'_, '_, '_> {
         {
             return;
         }
+        if self.tuple_as(e, wanted.non_null()) {
+            return;
+        }
         let t = self.expr(e);
         if is_number_literal(e) && (wanted.non_null().is_numeric()) {
             self.note_conversion(e, &t, wanted);
+            // A literal is the number wanted (`1` an `i64`'s, as C#'s).
+            if super::builtin::is_number(wanted.non_null()) && *wanted.non_null() != Type::Decimal {
+                self.types.set(e, wanted.non_null().clone());
+            }
             return;
         }
         self.want(&t, wanted, e.span);

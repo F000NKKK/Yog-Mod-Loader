@@ -54,6 +54,13 @@ impl Checker<'_, '_, '_> {
             );
         }
         let t = match on.non_null() {
+            Type::Tuple(types, names) => match Self::tuple_item(types, names, name) {
+                Some(t) => t,
+                None => {
+                    self.unknown_member(on.non_null(), name, at);
+                    Type::Unknown
+                }
+            },
             Type::Static(of, args) => {
                 let t = self.statics_type(of, args);
                 let found = self.own_member(&t, name);

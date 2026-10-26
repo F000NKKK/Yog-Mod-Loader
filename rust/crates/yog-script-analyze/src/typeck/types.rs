@@ -43,6 +43,8 @@ pub struct OperatorUse {
 #[derive(Debug, Clone, PartialEq)]
 pub struct MethodUse {
     pub owner: Option<String>,
+    /// Its type's arity (`ValueTuple<T1, T2>`'s 2): one of its name.
+    pub owner_arity: usize,
     pub name: String,
     pub overload: usize,
     pub params: Vec<Type>,

@@ -146,6 +146,7 @@ impl Checker<'_, '_, '_> {
             .and_then(|all| all.iter().position(|x| x == m))
             .unwrap_or_default();
         MethodUse {
+            owner_arity: owner.as_ref().map_or(0, |k| k.arity),
             owner: owner.map(|k| k.name),
             name: m.name.text.clone(),
             overload,

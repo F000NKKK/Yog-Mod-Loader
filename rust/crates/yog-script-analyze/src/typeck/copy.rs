@@ -42,7 +42,7 @@ impl Checker<'_, '_, '_> {
         match t {
             Type::Array(..) | Type::Object => false,
             Type::Nullable(inner) => self.copy_seen(inner, seen),
-            Type::Tuple(items) => items.iter().all(|i| self.copy_seen(i, seen)),
+            Type::Tuple(items, _) => items.iter().all(|i| self.copy_seen(i, seen)),
             Type::Own(name, args) => self.own_copy(&TypeKey::new(name.clone(), args.len()), seen),
             // Numbers, strings, handles, delegates, what isn't known.
             _ => true,

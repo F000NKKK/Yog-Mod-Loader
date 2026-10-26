@@ -13,7 +13,7 @@ impl Expr {
                     f(e);
                 }
             }),
-            ExprKind::Tuple(items) | ExprKind::Macro { args: items, .. } => {
+            ExprKind::Tuple { items, .. } | ExprKind::Macro { args: items, .. } => {
                 items.iter().for_each(f)
             }
             ExprKind::Collection(items) => items.iter().for_each(|i| match i {

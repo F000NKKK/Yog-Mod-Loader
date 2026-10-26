@@ -2,9 +2,9 @@
 package dev.yog.script;
 
 public final class TimeSpan implements dev.yog.script.IEquatable<dev.yog.script.TimeSpan>, dev.yog.script.IComparable<dev.yog.script.TimeSpan>, Cloneable {
-    public static final long NanosecondsPerTick = 100;
-    public static final long TicksPerMicrosecond = 10;
-    public static final long TicksPerMillisecond = 10000;
+    public static final long NanosecondsPerTick = 100L;
+    public static final long TicksPerMicrosecond = 10L;
+    public static final long TicksPerMillisecond = 10000L;
     public static final long TicksPerSecond = (TicksPerMillisecond * 1000);
     public static final long TicksPerMinute = (TicksPerSecond * 60);
     public static final long TicksPerHour = (TicksPerMinute * 60);

@@ -69,6 +69,10 @@ pub const DICTIONARY: &str = "Dictionary";
 pub const ENUMERABLE: &str = "IEnumerable";
 pub const KEY_VALUE_PAIR: &str = "KeyValuePair";
 
+/// A tuple's type (`ValueTuple<T1, …, T7>`), as many items as it may hold.
+pub const VALUE_TUPLE: &str = "ValueTuple";
+pub const TUPLE_ITEMS: usize = 7;
+
 /// `System.Array`: every array's members and statics (`Length`, `Sort`).
 pub const ARRAY: &str = "Array";
 

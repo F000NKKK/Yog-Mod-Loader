@@ -1,0 +1,75 @@
+namespace System;
+
+// A tuple's type, as .NET's `ValueTuple`: `(i32, string)` is a
+// `ValueTuple<i32, string>`, its items `Item1`, `Item2`…, compared and
+// copied by value.
+
+/// A tuple of 1.
+public struct ValueTuple<T1>(T1 item1) {
+    public T1 Item1 = item1;
+
+    public override string ToString() => "(" + Item1 + ")";
+}
+
+/// A tuple of 2.
+public struct ValueTuple<T1, T2>(T1 item1, T2 item2) {
+    public T1 Item1 = item1;
+    public T2 Item2 = item2;
+
+    public override string ToString() => "(" + Item1 + ", " + Item2 + ")";
+}
+
+/// A tuple of 3.
+public struct ValueTuple<T1, T2, T3>(T1 item1, T2 item2, T3 item3) {
+    public T1 Item1 = item1;
+    public T2 Item2 = item2;
+    public T3 Item3 = item3;
+
+    public override string ToString() => "(" + Item1 + ", " + Item2 + ", " + Item3 + ")";
+}
+
+/// A tuple of 4.
+public struct ValueTuple<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) {
+    public T1 Item1 = item1;
+    public T2 Item2 = item2;
+    public T3 Item3 = item3;
+    public T4 Item4 = item4;
+
+    public override string ToString() => "(" + Item1 + ", " + Item2 + ", " + Item3 + ", " + Item4 + ")";
+}
+
+/// A tuple of 5.
+public struct ValueTuple<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) {
+    public T1 Item1 = item1;
+    public T2 Item2 = item2;
+    public T3 Item3 = item3;
+    public T4 Item4 = item4;
+    public T5 Item5 = item5;
+
+    public override string ToString() => "(" + Item1 + ", " + Item2 + ", " + Item3 + ", " + Item4 + ", " + Item5 + ")";
+}
+
+/// A tuple of 6.
+public struct ValueTuple<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) {
+    public T1 Item1 = item1;
+    public T2 Item2 = item2;
+    public T3 Item3 = item3;
+    public T4 Item4 = item4;
+    public T5 Item5 = item5;
+    public T6 Item6 = item6;
+
+    public override string ToString() => "(" + Item1 + ", " + Item2 + ", " + Item3 + ", " + Item4 + ", " + Item5 + ", " + Item6 + ")";
+}
+
+/// A tuple of 7.
+public struct ValueTuple<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) {
+    public T1 Item1 = item1;
+    public T2 Item2 = item2;
+    public T3 Item3 = item3;
+    public T4 Item4 = item4;
+    public T5 Item5 = item5;
+    public T6 Item6 = item6;
+    public T7 Item7 = item7;
+
+    public override string ToString() => "(" + Item1 + ", " + Item2 + ", " + Item3 + ", " + Item4 + ", " + Item5 + ", " + Item6 + ", " + Item7 + ")";
+}

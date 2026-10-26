@@ -37,6 +37,7 @@ mod pick;
 mod shapes;
 mod stmts;
 pub(crate) mod surface;
+mod tuples;
 mod types;
 mod variance;
 mod variants;
@@ -206,6 +207,7 @@ impl Checker<'_, '_, '_> {
             // An own type, or one it inherits, given the arguments wanted.
             (Type::Own(a, xs), Type::Own(b, ys)) => self.own_converts(a, xs, (b, ys), true),
             (Type::Array(..), wanted) => self.array_converts(got.non_null(), wanted),
+            (Type::Tuple(got, _), Type::Tuple(wanted, _)) => self.tuple_converts(got, wanted),
             // A lambda or a method where a delegate of its shape is wanted.
             (Type::Fn(..), Type::Own(..)) => {
                 match (self.delegate_sig(got), self.delegate_sig(wanted)) {

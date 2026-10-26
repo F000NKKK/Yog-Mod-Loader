@@ -17,9 +17,13 @@ impl Checker<'_, '_, '_> {
         match &t.kind {
             TypeKind::Nullable(inner) => self.type_of(inner).nullable(),
             TypeKind::Array { item, rank } => Type::Array(Box::new(self.type_of(item)), *rank),
-            TypeKind::Tuple(items) => {
-                Type::Tuple(items.iter().map(|(t, _)| self.type_of(t)).collect())
-            }
+            TypeKind::Tuple(items) => Type::Tuple(
+                items.iter().map(|(t, _)| self.type_of(t)).collect(),
+                items
+                    .iter()
+                    .map(|(_, n)| n.as_ref().map(|n| n.text.clone()))
+                    .collect(),
+            ),
             // A borrow is typed as what it lends; the borrow checker sees the rest.
             TypeKind::Borrow { ty, .. } => self.type_of(ty),
             TypeKind::Lifetime(_) => Type::Unknown,
@@ -42,6 +46,11 @@ impl Checker<'_, '_, '_> {
         }
         if [TICKS, SECONDS, BLOCKS].contains(&name) {
             return Type::Unit(name.to_string());
+        }
+        // `ValueTuple<A, B>` is `(A, B)`, as C#'s.
+        if name == yog_script_ids::system::VALUE_TUPLE && !args.is_empty() {
+            let names = vec![None; args.len()];
+            return Type::Tuple(args, names);
         }
         if self.own.units.iter().any(|u| u == name) {
             return Type::Unit(name.to_string());

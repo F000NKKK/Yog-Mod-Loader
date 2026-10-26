@@ -6,6 +6,9 @@
 pub const INDEXER: &str = "Item";
 pub const ACCESSOR_SEP: char = '_';
 
+/// A tuple's items' own names: `Item1`, `Item2`, … (`ValueTuple`'s fields).
+pub const TUPLE_ITEM: &str = "Item";
+
 /// What calling a delegate calls (`handler(x)` is `handler.Invoke(x)`).
 pub const INVOKE: &str = "Invoke";
 

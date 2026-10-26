@@ -394,5 +394,31 @@ fn date_times_are_dotnets() {
 #[test]
 fn void_is_system_void() {
     assert!(codes("Void F() {}\nvoid G() {\n    F();\n}\n").is_empty());
-    assert_eq!(codes("Void F() {}\ni32 G() => F();\n"), [script_problem::TYPE_MISMATCH]);
+    assert_eq!(
+        codes("Void F() {}\ni32 G() => F();\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn tuples_are_csharps() {
+    let ok = "(i32 Min, i32 Max) Bounds(in List<i32> xs) => (xs.Min(), xs.Max());\n\
+              i32 Width(List<i32> xs) {\n    let b = Bounds(xs);\n    let (lo, hi) = b;\n    return b.Max - b.Item1 + hi - lo;\n}\n\
+              (string, i64) Named() => (\"a\", 1);\n\
+              string Inferred(string name, i32 age) {\n    let t = (name, age);\n    return t.name + t.age;\n}\n\
+              (string Key, i32 N) Explicit() => (Key: \"k\", N: 2);\n\
+              ValueTuple<i32, i32> Spelled() => (1, 2);\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    for (bad, code) in [
+        (
+            "(i32, i32) F() => (1, \"a\");\n",
+            script_problem::TYPE_MISMATCH,
+        ),
+        (
+            "i32 G((i32 A, i32 B) t) => t.C;\n",
+            script_problem::UNKNOWN_MEMBER,
+        ),
+    ] {
+        assert_eq!(codes(bad), [code], "{bad}");
+    }
 }

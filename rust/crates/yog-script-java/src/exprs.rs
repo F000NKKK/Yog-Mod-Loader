@@ -5,7 +5,7 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
-use yog_script_ids::jvm::{HELPERS, OBJECT};
+use yog_script_ids::jvm::{DOUBLE, FLOAT, HELPERS, INT, LONG, OBJECT};
 use yog_script_ids::members::TO_STRING;
 
 use super::Gen;
@@ -16,7 +16,8 @@ impl Gen<'_> {
     /// `e` as handed on: a struct's object copied, as Yog Script copies it.
     pub(crate) fn handed_expr(&mut self, e: &Expr) -> String {
         let v = self.expr(e);
-        let is_struct = matches!(self.types.of(e), Some(Type::Own(n, _)) if self.index.kind(n) == Some(Kind::Struct));
+        let is_struct = matches!(self.types.of(e), Some(Type::Own(n, _)) if self.index.kind(n) == Some(Kind::Struct))
+            || Self::is_tuple(self.types.of(e));
         if is_struct && matches!(e.kind, ExprKind::Ident(_) | ExprKind::Member { .. }) {
             format!("{v}.copy()")
         } else {
@@ -44,8 +45,8 @@ impl Gen<'_> {
 
     fn expr_kind(&mut self, e: &Expr) -> String {
         match &e.kind {
-            ExprKind::Int(n) => n.to_string(),
-            ExprKind::Float(x) => format!("{x:?}"),
+            ExprKind::Int(n) => self.number(&n.to_string(), e),
+            ExprKind::Float(x) => self.number(&format!("{x:?}"), e),
             ExprKind::Unit { value, unit } => self.unit(value, unit, e),
             ExprKind::Bool(b) => b.to_string(),
             ExprKind::Null => "null".into(),
@@ -103,6 +104,7 @@ impl Gen<'_> {
             }
             ExprKind::NewArray { sizes, init, .. } => self.new_array(e, sizes, init.as_deref()),
             ExprKind::Collection(items) => self.collection(e, items),
+            ExprKind::Tuple { items, .. } => self.tuple(items),
             ExprKind::Lambda { params, body } => self.lambda(e, params, body),
             ExprKind::Switch { expr, arms } => self.switch(e, expr, arms),
             ExprKind::Is { expr, pattern } => self.is(expr, pattern),
@@ -122,15 +124,19 @@ impl Gen<'_> {
 
     /// `20t`, `5u8`: a number of its type.
     fn unit(&mut self, value: &str, unit: &str, e: &Expr) -> String {
+        let _ = unit;
+        self.number(value, e)
+    }
+
+    /// A number written `value`, of the type `e` is where it stands (`1L`
+    /// where an `i64` is wanted, `2f` an `f32`).
+    fn number(&self, value: &str, e: &Expr) -> String {
         match self.types.of(e).and_then(primitive) {
-            Some("long") => format!("{value}L"),
-            Some("float") => format!("{value}f"),
-            Some("double") => format!("{value}d"),
-            Some(p) if p != "int" => format!("(({p}) {value})"),
-            _ => {
-                let _ = unit;
-                value.to_string()
-            }
+            Some(LONG) => format!("{value}L"),
+            Some(FLOAT) => format!("{value}f"),
+            Some(DOUBLE) => format!("{value}d"),
+            Some(p) if p != INT => format!("(({p}) {value})"),
+            _ => value.to_string(),
         }
     }
 

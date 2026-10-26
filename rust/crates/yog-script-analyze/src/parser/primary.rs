@@ -1,7 +1,7 @@
 //! Primary expressions: literals, names, brackets and tuples, collections.
 
 use super::{PResult, Parser};
-use crate::ast::{Element, Expr, ExprKind, StrSeg};
+use crate::ast::{Element, Expr, ExprKind, Name, StrSeg};
 use crate::source::token::{Punct, Span, StrPart, Tok, Token};
 
 impl Parser<'_, '_, '_> {
@@ -72,21 +72,34 @@ impl Parser<'_, '_, '_> {
         })
     }
 
-    /// `(e)`, `(a, b)`.
+    /// `(e)`, `(a, b)`, `(X: 1, Y: 2)`.
     fn paren(&mut self) -> PResult<Expr> {
         let start = self.need(Punct::LParen)?;
-        let mut first = self.expr()?;
-        if self.eat(Punct::RParen) {
+        let (first_name, mut first) = self.tuple_item()?;
+        if first_name.is_none() && self.eat(Punct::RParen) {
             first.span = start.to(self.prev());
             return Ok(first);
         }
         self.need(Punct::Comma)?;
-        let mut items = vec![first];
-        items.extend(self.list(Punct::RParen, Self::expr)?);
+        let rest = self.list(Punct::RParen, Self::tuple_item)?;
+        let (names, items) = std::iter::once((first_name, first)).chain(rest).unzip();
         Ok(Expr {
-            kind: ExprKind::Tuple(items),
+            kind: ExprKind::Tuple { items, names },
             span: start.to(self.prev()),
         })
+    }
+
+    /// A tuple's item, `Name:` before it when it's named.
+    fn tuple_item(&mut self) -> PResult<(Option<Name>, Expr)> {
+        let named = matches!(self.tok(), Tok::Ident(_)) && self.nth_is(1, Punct::Colon);
+        let name = if named {
+            let name = self.name("an item's name")?;
+            self.bump();
+            Some(name)
+        } else {
+            None
+        };
+        Ok((name, self.expr()?))
     }
 
     /// `[a, b]`, `[k => v]`, `[..xs]`.

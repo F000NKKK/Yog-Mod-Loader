@@ -67,7 +67,7 @@ impl<'p> Interp<'p> {
     /// The forms made of others, past the common ones.
     fn compound(&mut self, e: &Expr) -> Run<Value> {
         match &e.kind {
-            ExprKind::Tuple(items) => Ok(Value::list(
+            ExprKind::Tuple { items, .. } => Ok(Value::list(
                 items.iter().map(|i| self.eval(i)).collect::<Run<_>>()?,
             )),
             ExprKind::Collection(items) => self.collection(items),

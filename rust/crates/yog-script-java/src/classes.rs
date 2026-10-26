@@ -12,6 +12,11 @@ use crate::index::Kind;
 
 use yog_script_ids::jvm::{BUS_CALL, CLONEABLE, COPY, REQUEST};
 
+/// A type argument not known (`Box<?>`).
+const WILDCARD: &str = "?";
+/// Java's word that a cast its generics can't check is known safe.
+const UNCHECKED: &str = "@SuppressWarnings(\"unchecked\")";
+
 impl Gen<'_> {
     /// A `mod`: a class the runtime finds and makes (`YsMod`).
     pub(crate) fn mod_class(&mut self, d: &Decl, name: &str, body: &[Decl]) {
@@ -35,6 +40,11 @@ impl Gen<'_> {
         also: Option<&str>,
     ) {
         let struct_ = self.index.kind(name) == Some(Kind::Struct);
+        // Its name in Java: the arity's too, when its name has several
+        // (`ValueTuple2` for `ValueTuple<T1, T2>`).
+        let ys = name;
+        let java = self.simple_name(name, header);
+        let name = java.as_str();
         let (extends, interfaces) = self.bases(header);
         let mut implements = interfaces;
         implements.extend(also.map(str::to_string));
@@ -69,15 +79,35 @@ impl Gen<'_> {
         }
         self.constructors(name, header, body);
         self.members(body, Place::Class);
-        self.inherited_getters(name, body);
+        self.inherited_getters(ys, body);
         let stored: Vec<&str> = fields(body).into_iter().map(|(_, f)| f).collect();
-        self.identity(name, body, struct_.then_some(stored.as_slice()));
+        // `instanceof` takes a generic one with its arguments unknown: `Box<?>`.
+        let arity = header.generics.iter().filter(|g| !g.lifetime).count();
+        let tested = if arity == 0 {
+            name.to_string()
+        } else {
+            format!("{name}<{}>", vec![WILDCARD; arity].join(", "))
+        };
+        self.identity(&tested, body, struct_.then_some(stored.as_slice()));
         if struct_ {
-            self.code.open(format!("public {name} {COPY}()"));
-            self.code.line(format!("try {{ return ({name}) clone(); }} catch (CloneNotSupportedException e) {{ throw new AssertionError(e); }}"));
+            // Of its own type, arguments and all (a generic one's cast is safe: a clone).
+            let own = format!("{name}{}", generic_list(&header.generics));
+            if !header.generics.is_empty() {
+                self.code.line(UNCHECKED);
+            }
+            self.code.open(format!("public {own} {COPY}()"));
+            self.code.line(format!("try {{ return ({own}) clone(); }} catch (CloneNotSupportedException e) {{ throw new AssertionError(e); }}"));
             self.code.close("");
         }
         self.code.close("");
+    }
+
+    /// Type `name`'s own name in Java (`header`'s arity told apart, as
+    /// `Index::place` does): its place's last name.
+    pub(crate) fn simple_name(&self, name: &str, header: &TypeHeader) -> String {
+        let arity = header.generics.iter().filter(|g| !g.lifetime).count();
+        let place = self.index.place(name, arity);
+        place.rsplit('.').next().unwrap_or(&place).to_string()
     }
 
     /// `const` and `static` fields, set where they're declared: a constant

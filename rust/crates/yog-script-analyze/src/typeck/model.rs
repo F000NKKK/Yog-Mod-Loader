@@ -57,7 +57,9 @@ pub enum Type {
     /// An array: `T[]` (rank 1), `T[,]` (rank 2); a Java array a game
     /// class gives or takes too.
     Array(Box<Type>, usize),
-    Tuple(Vec<Type>),
+    /// `(i32 X, string)`: its items' types, and their names where given
+    /// (names don't make tuple types apart: `(i32 X)` is `(i32 Y)`).
+    Tuple(Vec<Type>, Vec<Option<String>>),
     /// A delegate: `Action<A, B>` (its result `void`), `Func<A, R>`.
     Fn(Vec<Type>, Box<Type>),
     Nullable(Box<Type>),
@@ -188,8 +190,15 @@ impl fmt::Display for Type {
                 }
                 write!(f, "{item}{ranks}")
             }
-            Type::Tuple(items) => {
-                let items: Vec<_> = items.iter().map(ToString::to_string).collect();
+            Type::Tuple(items, names) => {
+                let items: Vec<String> = items
+                    .iter()
+                    .zip(names.iter().chain(std::iter::repeat(&None)))
+                    .map(|(t, n)| match n {
+                        Some(n) => format!("{t} {n}"),
+                        None => t.to_string(),
+                    })
+                    .collect();
                 write!(f, "({})", items.join(", "))
             }
             Type::Fn(params, ret) => {

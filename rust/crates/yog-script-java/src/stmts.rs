@@ -51,12 +51,20 @@ impl Gen<'_> {
             }
             Stmt::Local {
                 binding: Binding::Tuple(names),
+                value,
+                mutable,
                 ..
-            } => {
-                if let Some(n) = names.first() {
-                    self.not_yet("a tuple taken apart", n.span);
+            } => match value {
+                Some(v) => {
+                    let fin = if *mutable { "" } else { "final " };
+                    self.taken_apart(names, v, fin);
                 }
-            }
+                None => {
+                    if let Some(n) = names.first() {
+                        self.not_yet("a tuple taken apart without a value", n.span);
+                    }
+                }
+            },
             Stmt::Assign { place, op, value } => self.assign(place, op.as_ref(), value),
             Stmt::If {
                 cond,

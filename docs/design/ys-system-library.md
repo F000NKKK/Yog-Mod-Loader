@@ -63,7 +63,7 @@ System
   ICloneable                  Clone
   Nullable<T>                 (T?) HasValue, Value, GetValueOrDefault
   Action<…>, Func<…>, Predicate<T>, Comparison<T>, Converter<TIn, TOut>
-  Tuple / ValueTuple          (a, b) Item1…, deconstruction
+  ValueTuple<T1…T7>           (a, b), (X: 1, Y: 2), names inferred, Item1…, `let (a, b) = t` (done)
   Lazy<T>                     Value, IsValueCreated
   TimeSpan                    Ticks, Days…, TotalSeconds…, FromSeconds…, Add, Negate, Duration,
                               + - * / == < … (operators)            : IEquatable, IComparable

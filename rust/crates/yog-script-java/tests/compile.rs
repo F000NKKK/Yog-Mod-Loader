@@ -368,3 +368,20 @@ fn date_times_and_system_names_are_javas() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn tuples_are_value_tuples() {
+    let src = "(i32 Min, i32 Max) Bounds(in List<i32> xs) => (xs.Min(), xs.Max());\n\
+               i32 Width(List<i32> xs) {\n    let b = Bounds(in xs);\n    let (lo, hi) = b;\n    return b.Max - lo + hi;\n}\n\
+               (string, i64) Named() => (\"a\", 1);\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "public static dev.yog.script.ValueTuple2<Integer, Integer> Bounds(",
+        "return new dev.yog.script.ValueTuple2<>(",
+        "final var lo = $t",
+        "b.Item2",
+        "new dev.yog.script.ValueTuple2<>(\"a\", 1L)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

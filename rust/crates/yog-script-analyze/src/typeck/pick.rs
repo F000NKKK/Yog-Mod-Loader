@@ -175,7 +175,7 @@ pub(super) fn is_lambda(e: &Expr) -> bool {
 fn open(t: &Type) -> bool {
     match t {
         Type::Param(_) => true,
-        Type::Own(_, args) | Type::Tuple(args) => args.iter().any(open),
+        Type::Own(_, args) | Type::Tuple(args, _) => args.iter().any(open),
         Type::Array(item, _) | Type::Nullable(item) => open(item),
         Type::Fn(params, ret) => params.iter().any(open) || open(ret),
         _ => false,

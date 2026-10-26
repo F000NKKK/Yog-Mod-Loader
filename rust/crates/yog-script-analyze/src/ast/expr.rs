@@ -47,7 +47,11 @@ pub enum ExprKind {
     Default(Option<Type>),
     /// `mc >= 1.21`: the running game's version.
     Mc(VersionCond),
-    Tuple(Vec<Expr>),
+    /// `(a, b)`, `(X: 1, Y: 2)`: a tuple, its items' names where written.
+    Tuple {
+        items: Vec<Expr>,
+        names: Vec<Option<Name>>,
+    },
     /// `[a, b]`, `[k => v]`, `[..xs]`: a list, a set or a map by its target.
     Collection(Vec<Element>),
     /// `new Pos(1, 2, 3)`, `new(4)`, `new Battery { Count = 2 }`.

@@ -37,6 +37,7 @@ impl Gen<'_> {
                 Some(format!("{}()", Self::ident(name)))
             }
             Some(Type::Yog(_)) => Some(format!("{}()", yog::field(name))),
+            Some(Type::Tuple(_, names)) => Some(Self::tuple_field(names, name)),
             _ => None,
         }
         .unwrap_or_else(|| Self::ident(name));
@@ -128,7 +129,10 @@ impl Gen<'_> {
             .method(e)
             .and_then(|m| Some((m.owner.as_deref()?, m)))
             .filter(|(owner, _)| !self.index.is_host(owner))
-            .and_then(|(owner, m)| self.index.java_name_of(owner, &m.name, m.overload));
+            .and_then(|(owner, m)| {
+                let owner = (owner.to_string(), m.owner_arity);
+                self.index.java_name_of(&owner, &m.name, m.overload)
+            });
         Self::ident(java.as_deref().unwrap_or(name))
     }
 

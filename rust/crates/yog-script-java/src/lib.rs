@@ -23,6 +23,7 @@ mod operators;
 mod reified;
 mod stmts;
 mod switch;
+mod tuples;
 mod types;
 
 use yog_codegen::Code;
@@ -118,8 +119,8 @@ pub(crate) struct Gen<'c> {
     /// Types are written nested in the source's class (a source's), or
     /// each as a file's own (the library's).
     nested: bool,
-    /// The type whose members are being written.
-    owner: Option<String>,
+    /// The type whose members are being written, by name and arity.
+    owner: Option<crate::java_names::TypeRef>,
 }
 
 impl<'c> Gen<'c> {

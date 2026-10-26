@@ -202,7 +202,8 @@ impl Gen<'_> {
         header: &TypeHeader,
         body: &[Decl],
     ) {
-        let outer = self.owner.replace(name.to_string());
+        let arity = header.generics.iter().filter(|g| !g.lifetime).count();
+        let outer = self.owner.replace((name.to_string(), arity));
         self.type_of_kind(d, (word, name), header, body);
         self.owner = outer;
     }

@@ -141,7 +141,7 @@ impl Checker<'_, '_, '_> {
     fn bind_binding(&mut self, b: &Binding, t: &Type, fixed: bool) {
         match (b, t) {
             (Binding::One(n), _) => self.bind_as(&n.text, t.clone(), fixed),
-            (Binding::Tuple(names), Type::Tuple(items)) if names.len() == items.len() => {
+            (Binding::Tuple(names), Type::Tuple(items, _)) if names.len() == items.len() => {
                 for (n, item) in names.iter().zip(items) {
                     self.bind_as(&n.text, item.clone(), fixed);
                 }

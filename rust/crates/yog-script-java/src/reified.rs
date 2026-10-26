@@ -17,10 +17,10 @@ impl Gen<'_> {
         let Some(used) = self.types.method(e).cloned() else {
             return Vec::new();
         };
-        let reified = used
-            .owner
-            .as_deref()
-            .is_some_and(|o| self.index.is_reified(o, &used.name, used.overload));
+        let reified = used.owner.as_deref().is_some_and(|o| {
+            let owner = (o.to_string(), used.owner_arity);
+            self.index.is_reified(&owner, &used.name, used.overload)
+        });
         if !reified {
             return Vec::new();
         }
@@ -46,7 +46,10 @@ impl Gen<'_> {
             .types
             .method(e)
             .and_then(|m| Some((m.owner.as_deref()?, m)))
-            .is_some_and(|(o, m)| self.index.is_reified(o, &m.name, m.overload));
+            .is_some_and(|(o, m)| {
+                let owner = (o.to_string(), m.owner_arity);
+                self.index.is_reified(&owner, &m.name, m.overload)
+            });
         match self.types.of(e) {
             Some(t) if reified && t.known() => {
                 format!("(({}) ({OBJECT}) {called})", self.java(t, false))
@@ -69,7 +72,7 @@ impl Gen<'_> {
 fn names_parameter(t: &Type) -> bool {
     match t {
         Type::Param(_) => true,
-        Type::Own(_, args) | Type::Tuple(args) => args.iter().any(names_parameter),
+        Type::Own(_, args) | Type::Tuple(args, _) => args.iter().any(names_parameter),
         Type::Array(item, _) | Type::Nullable(item) => names_parameter(item),
         _ => false,
     }
