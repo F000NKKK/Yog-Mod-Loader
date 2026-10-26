@@ -63,6 +63,6 @@ public final class Single {
     }
 
     public static java.lang.String ToString(float value) {
-        return java.lang.String.valueOf(value);
+        return Written.number(java.lang.Float.toString(value), value);
     }
 }

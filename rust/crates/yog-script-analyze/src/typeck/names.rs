@@ -16,7 +16,7 @@ use super::surface::SURFACE;
 use crate::ast::{self, Decl, DeclKind, Name};
 use crate::index::namespace;
 use crate::source::token::Span;
-use yog_script_ids::system::{COLLECTIONS_GENERIC, LINQ, ROOT};
+use yog_script_ids::system::{COLLECTIONS_GENERIC, LINQ, ROOT, TEXT};
 
 /// What a namespace's segments are joined with.
 const SEP: &str = yog_script_ids::system::NAMESPACE_SEP;
@@ -50,6 +50,7 @@ impl Directives {
                 vec![ROOT.to_string()],
                 COLLECTIONS_GENERIC.map(String::from).to_vec(),
                 LINQ.map(String::from).to_vec(),
+                TEXT.map(String::from).to_vec(),
                 yog_ns(),
             ],
             ..Directives::default()

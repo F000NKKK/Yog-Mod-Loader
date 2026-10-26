@@ -23,6 +23,7 @@ pub(super) fn members(t: &mut OwnType, body: &[Decl]) {
                 t.values.insert(name.text.clone(), ty.clone());
             }
             DeclKind::Operator(op) => t.operators.push(op.clone()),
+            DeclKind::Ctor(c) => t.ctors.push(c.params.clone()),
             DeclKind::Indexer(ix) => {
                 if let Some(get) = ix.getter() {
                     t.indexers.push(Indexer {

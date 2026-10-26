@@ -63,6 +63,6 @@ public final class Double {
     }
 
     public static java.lang.String ToString(double value) {
-        return java.lang.String.valueOf(value);
+        return Written.number(java.lang.Double.toString(value), value);
     }
 }

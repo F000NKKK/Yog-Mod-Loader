@@ -1,0 +1,26 @@
+namespace System;
+
+/// Numbers drawn at random: .NET's `System.Random` (seeded, the same seed
+/// draws the same numbers).
+[Intrinsic]
+public class Random {
+    public Random() {}
+    public Random(i32 seed) {}
+
+    /// One shared by everyone who doesn't need their own.
+    public static Random Shared { get; }
+
+    /// A whole number from 0 up to `i32.MaxValue` (out).
+    public i32 Next();
+    /// From 0 up to `maxValue` (out).
+    public i32 Next(i32 maxValue);
+    /// From `minValue` (in) up to `maxValue` (out).
+    public i32 Next(i32 minValue, i32 maxValue);
+    public i64 NextInt64();
+    public i64 NextInt64(i64 minValue, i64 maxValue);
+    /// From 0 (in) up to 1 (out).
+    public f64 NextDouble();
+    public f32 NextSingle();
+    /// `values` put in an order drawn at random.
+    public void Shuffle<T>(ref T[] values);
+}

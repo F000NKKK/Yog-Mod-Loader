@@ -9,8 +9,9 @@ pub const ROOT: &str = "System";
 /// `System.Collections.Generic`: every file's `using`, as .NET's implicit ones.
 pub const COLLECTIONS_GENERIC: [&str; 3] = [ROOT, "Collections", "Generic"];
 
-/// `System.Linq`: every file's `using` too.
+/// `System.Linq`, `System.Text`: every file's `using`s too.
 pub const LINQ: [&str; 2] = [ROOT, "Linq"];
+pub const TEXT: [&str; 2] = [ROOT, "Text"];
 
 /// What a namespace's names are joined with (`System.Collections`).
 pub const NAMESPACE_SEP: &str = ".";

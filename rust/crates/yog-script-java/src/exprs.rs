@@ -6,6 +6,7 @@ use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
 use yog_script_ids::jvm::{HELPERS, OBJECT};
+use yog_script_ids::members::TO_STRING;
 
 use super::Gen;
 use crate::index::Kind;
@@ -142,10 +143,27 @@ impl Gen<'_> {
         for s in segs {
             match s {
                 StrSeg::Text(t) => parts.push(self.code.str(t)),
-                StrSeg::Expr(e) => parts.push(format!("({})", self.expr(e))),
+                StrSeg::Expr(e) => {
+                    let v = self.expr(e);
+                    parts.push(format!("({})", self.as_text(e, v)));
+                }
             }
         }
         format!("({})", parts.join(" + "))
+    }
+
+    /// `v` (`e`'s) where text is made of it: a number Java writes its own
+    /// way (`2.0`, `true`) written as Yog Script does (`2`, `True`).
+    fn as_text(&self, e: &Expr, v: String) -> String {
+        match self.types.of(e).map(Type::non_null) {
+            Some(t @ (Type::F32 | Type::F64 | Type::Bool | Type::Decimal)) => {
+                match self.index.host(t) {
+                    Some(host) => format!("{host}.{TO_STRING}({v})"),
+                    None => v,
+                }
+            }
+            _ => v,
+        }
     }
 
     fn unary(&mut self, op: UnOp, expr: &Expr) -> String {
@@ -185,6 +203,12 @@ impl Gen<'_> {
         {
             return v;
         }
+        // Text put together: each piece written as Yog Script writes it.
+        let (l, r) = if op == BinOp::Add && self.types.of(e) == Some(&Type::String) {
+            (self.as_text(left, l), self.as_text(right, r))
+        } else {
+            (l, r)
+        };
         let objects =
             !matches!(self.types.of(left).map(|t| t.non_null()), Some(t) if primitive(t).is_some());
         match op {
@@ -225,7 +249,11 @@ impl Gen<'_> {
         body: &LambdaBody,
     ) -> String {
         let void = matches!(self.types.of(e), Some(Type::Fn(_, ret)) if **ret == Type::Void);
-        let names: Vec<String> = if params.is_empty() {
+        // None named: `it`, when its delegate takes one; none when none.
+        let takes_none = matches!(self.types.of(e), Some(Type::Fn(p, _)) if p.is_empty());
+        let names: Vec<String> = if params.is_empty() && takes_none {
+            Vec::new()
+        } else if params.is_empty() {
             vec![yog_script_analyze::ast::IT.to_string()]
         } else {
             params.iter().map(|p| Self::ident(&p.name.text)).collect()

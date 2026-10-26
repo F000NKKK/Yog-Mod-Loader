@@ -291,13 +291,13 @@ impl Checker<'_, '_, '_> {
         args: Option<&[crate::ast::Arg]>,
         init: &[(crate::ast::Name, Expr)],
     ) -> Type {
-        args.into_iter().flatten().for_each(|a| {
-            self.expr(&a.value);
-        });
+        let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
+        if let Some(args) = args {
+            self.constructed(&t, args, e.span);
+        }
         init.iter().for_each(|(_, v)| {
             self.expr(v);
         });
-        let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
         self.made(&t, e.span);
         t
     }

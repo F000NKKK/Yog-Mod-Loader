@@ -335,3 +335,21 @@ fn numbers_members_are_their_companions() {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }
+
+#[test]
+fn random_text_and_lazy_are_the_runtimes() {
+    let src = "void Mix(Random rng, i32[] xs) {\n    let mut ys = move xs;\n    rng.Shuffle(ref ys);\n}\n\
+               string Text() {\n    let mut b = new StringBuilder();\n    b.Append(2.5);\n    b.Length = 1;\n    return b.ToString();\n}\n\
+               i32 Later() => new Lazy<i32>(() => 42).Value;\n\
+               string Say(f64 x, bool b) => \"x = {x}, \" + b;\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "ys = rng.Shuffle(ys);",
+        "b.set_Length(1);",
+        "new dev.yog.script.Lazy<Integer>(() -> {",
+        "dev.yog.script.host.Double.ToString(x)",
+        "dev.yog.script.host.Boolean.ToString(b)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}

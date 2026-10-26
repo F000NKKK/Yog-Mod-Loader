@@ -63,6 +63,8 @@ pub(crate) struct OwnType {
     pub record: bool,
     /// Its primary constructor's parameters (`class Obsolete(string message)`).
     pub ctor: Vec<ast::Param>,
+    /// Its constructors written in its body, by their parameters.
+    pub ctors: Vec<Vec<ast::Param>>,
     /// Its type parameters' names (`T` of `Box<T>`).
     pub generics: Vec<String>,
     /// How each may vary (`out T` of `IEnumerable<out T>`), in order.

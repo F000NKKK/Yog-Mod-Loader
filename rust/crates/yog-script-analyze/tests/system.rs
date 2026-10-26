@@ -348,3 +348,30 @@ fn numbers_and_chars_have_their_members() {
         [script_problem::UNKNOWN_MEMBER]
     );
 }
+
+#[test]
+fn random_text_and_lazy_are_dotnets() {
+    let ok = "i32 Roll(Random rng) => rng.Next(1, 7) + Random.Shared.Next(10);\n\
+              f64 Unit() => new Random(42).NextDouble();\n\
+              void Mix(Random rng, i32[] xs) {\n    let mut ys = move xs;\n    rng.Shuffle(ref ys);\n}\n\
+              string Text(List<string> names) {\n    let mut b = new StringBuilder();\n    foreach (let n in names) {\n        b.Append(n).Append(',').Append(3);\n    }\n    b.Length = b.Length - 1;\n    b[0] = 'X';\n    return b.AppendLine().ToString();\n}\n\
+              i32 Later() {\n    let lazy = new Lazy<i32>(() => 42);\n    return lazy.IsValueCreated ? 0 : lazy.Value;\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    assert_eq!(
+        codes("string F(Random r) => r.NextDouble();\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
+fn a_constructors_arguments_are_checked() {
+    let ok = "class Box(i32 size) {\n    public i32 Size = size;\n}\nBox F() => new Box(3);\nLazy<string> G() => new Lazy<string>(() => \"x\");\n";
+    assert!(codes(ok).is_empty(), "{:?}", check("a.ys", ok).problems);
+    for bad in [
+        "class Box(i32 size) {\n    public i32 Size = size;\n}\nBox F() => new Box(\"no\");\n",
+        "Lazy<i32> G() => new Lazy<i32>(() => \"x\");\n",
+        "Random H() => new Random(\"seed\");\n",
+    ] {
+        assert_eq!(codes(bad), [script_problem::TYPE_MISMATCH], "{bad}");
+    }
+}

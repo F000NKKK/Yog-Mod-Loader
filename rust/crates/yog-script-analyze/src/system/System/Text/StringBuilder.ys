@@ -1,0 +1,31 @@
+namespace System.Text;
+
+/// Text put together piece by piece, changed in place: .NET's
+/// `StringBuilder` (`string`s don't change; this does).
+[Intrinsic]
+public sealed class StringBuilder {
+    public StringBuilder() {}
+    public StringBuilder(string value) {}
+
+    /// How many characters it holds; set shorter, it's cut.
+    public i32 Length { get; set; }
+    public char this[i32 index] { get; set; }
+
+    /// `value` added at its end (written as `ToString` writes it); itself, to add more.
+    public StringBuilder Append(string? value);
+    public StringBuilder Append(char value);
+    public StringBuilder Append(bool value);
+    public StringBuilder Append(i32 value);
+    public StringBuilder Append(i64 value);
+    public StringBuilder Append(f32 value);
+    public StringBuilder Append(f64 value);
+    public StringBuilder Append(decimal value);
+    public StringBuilder Append(object? value);
+    public StringBuilder AppendLine();
+    public StringBuilder AppendLine(string? value);
+    public StringBuilder Insert(i32 index, string? value);
+    public StringBuilder Remove(i32 startIndex, i32 length);
+    public StringBuilder Replace(string oldValue, string? newValue);
+    public StringBuilder Clear();
+    public override string ToString();
+}

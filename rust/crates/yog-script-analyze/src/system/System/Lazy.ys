@@ -1,0 +1,11 @@
+namespace System;
+
+/// A value made the first time it's asked for, then kept: .NET's `Lazy<T>`.
+[Intrinsic]
+public class Lazy<T> {
+    public Lazy(Func<T> valueFactory) {}
+
+    /// The value: made by the factory the first time.
+    public T Value { get; }
+    public bool IsValueCreated { get; }
+}
