@@ -1,0 +1,15 @@
+namespace System.Collections.Concurrent;
+
+/// A queue many threads add to and take from at once (.NET's).
+[Intrinsic]
+public readonly class ConcurrentQueue<T> {
+    public ConcurrentQueue() {}
+
+    public void Enqueue(T item);
+    /// The first item, taken away, if there's one.
+    public T? TryDequeue();
+    /// The first item, left there, if there's one.
+    public T? TryPeek();
+    public i32 Count { get; }
+    public bool IsEmpty { get; }
+}

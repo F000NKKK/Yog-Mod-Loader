@@ -1,0 +1,56 @@
+namespace System.Threading.Channels;
+
+using System.Threading.Tasks;
+
+/// What a bounded channel does with a write when it's full.
+public enum BoundedChannelFullMode { Wait, DropNewest, DropOldest, DropWrite }
+
+/// Channels (.NET's `System.Threading.Channels`, Rust's `mpsc`): values
+/// handed between threads and tasks, in order, by many writers to many
+/// readers; an item moved in, read once.
+[Intrinsic]
+public static class Channel {
+    /// A channel that takes any number of items.
+    public static Channel<T> CreateUnbounded<T>();
+    /// A channel of at most `capacity` items, what's written past it as
+    /// `fullMode` says.
+    public static Channel<T> CreateBounded<T>(i32 capacity, BoundedChannelFullMode fullMode = BoundedChannelFullMode.Wait);
+}
+
+/// A channel: its writing end and its reading end.
+[Intrinsic]
+public readonly class Channel<T> {
+    public ChannelWriter<T> Writer { get; }
+    public ChannelReader<T> Reader { get; }
+}
+
+/// A channel's writing end.
+[Intrinsic]
+public readonly class ChannelWriter<T> {
+    /// Writes `item` unless it's full or completed: whether it did.
+    public bool TryWrite(T item);
+    /// Writes `item`, waiting for room (a full bounded channel).
+    public Task WriteAsync(T item);
+    /// Writes `item`, blocking for room.
+    public void Write(T item);
+    /// No more items: readers end once they've read the rest.
+    public void Complete();
+}
+
+/// A channel's reading end.
+[Intrinsic]
+public readonly class ChannelReader<T> {
+    /// The next item, if there's one now.
+    public T? TryRead();
+    /// The next item, waited for; a panic once the channel is completed and read.
+    public Task<T> ReadAsync();
+    /// The next item, blocking for it.
+    public T Read();
+    /// Waits for an item: `false` once the channel is completed and read.
+    public Task<bool> WaitToReadAsync();
+    /// Every item, as it comes, until the channel is completed: `await foreach`.
+    public IAsyncEnumerable<T> ReadAllAsync();
+    /// Done once the channel is completed and read.
+    public Task Completion { get; }
+    public i32 Count { get; }
+}

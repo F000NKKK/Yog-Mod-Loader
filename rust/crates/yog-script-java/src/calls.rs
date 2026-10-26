@@ -32,6 +32,25 @@ impl Gen<'_> {
         out.join(", ")
     }
 
+    /// `<A, B>` before a generic method's name in its call `e`, when its
+    /// type arguments are known: Java can't infer one its arguments don't
+    /// name (`Channel.<Integer>CreateBounded(4)`); nothing otherwise.
+    pub(crate) fn type_witness(&self, e: &Expr) -> String {
+        let Some(used) = self.types.method(e) else {
+            return String::new();
+        };
+        if used.type_args.is_empty()
+            || used
+                .type_args
+                .iter()
+                .any(|t| !t.known() || *t == Type::Null || matches!(t, Type::Fn(..)))
+        {
+            return String::new();
+        }
+        let args: Vec<String> = used.type_args.iter().map(|t| self.java(t, true)).collect();
+        format!("<{}>", args.join(", "))
+    }
+
     /// Call `e`'s arguments: those its `params` parameter takes (the call's
     /// expanded form) packed in an array of its item type.
     pub(crate) fn call_args(&mut self, e: &Expr, args: &[Arg]) -> String {
@@ -351,7 +370,7 @@ impl Gen<'_> {
                     let diamond = if self.index.named(of).1 > 0 { "<>" } else { "" };
                     format!("{NEW} {}.{n}{diamond}({a})", self.own(of))
                 }
-                _ => format!("{}.{n}({a})", self.own(of)),
+                _ => format!("{}.{}{n}({a})", self.own(of), self.type_witness(e)),
             },
             // A method of a `[Host]` type (`string`'s, `object`'s): its
             // companion's, the value first.

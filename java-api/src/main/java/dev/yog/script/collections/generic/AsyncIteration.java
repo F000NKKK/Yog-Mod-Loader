@@ -33,11 +33,14 @@ public abstract class AsyncIteration<T> implements IAsyncEnumerator<T>, Runnable
 
     @Override
     public final void run() {
+        java.util.Map<Object, Object> outer = dev.yog.script.threading.ExecutionContext.capture();
         try {
             $step();
         } catch (RuntimeException e) {
             done = true;
             pending.fail(e);
+        } finally {
+            dev.yog.script.threading.ExecutionContext.restore(outer);
         }
     }
 

@@ -1,0 +1,11 @@
+namespace System.Threading;
+
+/// A value that flows with the logical call (.NET's `AsyncLocal<T>`): into
+/// the tasks started from it, across its `await`s, back in its context.
+/// A change made in a task stays in it.
+[Intrinsic]
+public readonly class AsyncLocal<T> {
+    public AsyncLocal() {}
+
+    public T? Value { get; set; }
+}

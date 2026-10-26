@@ -1,0 +1,18 @@
+namespace System.Threading;
+
+using System.Threading.Tasks;
+
+/// Set once it's been signalled so many times (.NET's `CountdownEvent`).
+[Intrinsic]
+public readonly class Countdown {
+    public Countdown(i32 initialCount) {}
+
+    /// Counts `signalCount` down: whether that set it.
+    public bool Signal(i32 signalCount = 1);
+    public void AddCount(i32 signalCount = 1);
+    public void Wait();
+    public bool Wait(TimeSpan timeout);
+    public Task WaitAsync();
+    public i32 CurrentCount { get; }
+    public bool IsSet { get; }
+}

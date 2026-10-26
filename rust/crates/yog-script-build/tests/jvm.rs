@@ -356,3 +356,56 @@ fn tasks_across_threads_and_contexts() {
     };
     assert_eq!(out, "42 1 0 1 21 5 True");
 }
+
+/// Channels, semaphores, signals, countdowns, concurrent collections,
+/// Parallel and AsyncLocal, across the pool's threads.
+#[test]
+fn channels_and_coordination() {
+    let src = "using System.Threading;\nusing System.Threading.Tasks;\nusing System.Threading.Channels;\nusing System.Collections.Concurrent;\n\
+               public static class C {\n\
+                   public static AsyncLocal<string> Who = new AsyncLocal<string>();\n\
+                   static async Task<i32> Sum(ChannelReader<i32> reader) {\n\
+                       let mut total = 0;\n\
+                       await foreach (let x in reader.ReadAllAsync()) { total += x; }\n\
+                       return total;\n\
+                   }\n\
+                   static async Task<string> Flows() {\n\
+                       Who.Value = \"outer\";\n\
+                       let seen = await Task.Run(() => Who.Value ?? \"none\");\n\
+                       return seen;\n\
+                   }\n\
+                   public static string Run() {\n\
+                       let ch = Channel.CreateBounded<i32>(4);\n\
+                       let w = ch.Writer;\n\
+                       let producer = Task.Run(() => { for (let mut i = 1; i <= 100; i += 1) { w.Write(i); } w.Complete(); });\n\
+                       let sum = Sum(ch.Reader).Result;\n\
+                       producer.Wait();\n\
+                       let gate = new Semaphore(2);\n\
+                       let inside = new Atomic<i32>(0);\n\
+                       let most = new Atomic<i32>(0);\n\
+                       let counted = new Countdown(8);\n\
+                       let words = new ConcurrentDictionary<i32, string>();\n\
+                       Parallel.For(0, 8, i => {\n\
+                           gate.Wait();\n\
+                           let now = inside.Increment();\n\
+                           most.Update(m => now > m ? now : m);\n\
+                           Thread.Sleep(TimeSpan.FromMilliseconds(5));\n\
+                           inside.Decrement();\n\
+                           gate.Release();\n\
+                           words.GetOrAdd(i % 3, k => \"w\" + k);\n\
+                           counted.Signal();\n\
+                       });\n\
+                       counted.Wait();\n\
+                       let go = new Signal();\n\
+                       let waiter = Task.Run(() => { go.Wait(); return 7; });\n\
+                       go.Set();\n\
+                       Who.Value = null;\n\
+                       let flows = Flows().Result;\n\
+                       return sum + \" \" + (most.Load() <= 2) + \" \" + words.Count + \" \" + waiter.Result + \" \" + flows + \" \" + (Who.Value ?? \"none\");\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("c.ys", src)], "t.CScript.C.Run()") else {
+        return;
+    };
+    assert_eq!(out, "5050 True 3 7 outer none");
+}

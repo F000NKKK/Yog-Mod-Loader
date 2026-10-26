@@ -51,7 +51,8 @@ public abstract class TaskScheduler {
     }
 
     /** {@code work} run by this scheduler, {@link #Current()} it meanwhile. */
-    void run(Runnable work) {
+    void run(Runnable given) {
+        Runnable work = dev.yog.script.threading.ExecutionContext.flowing(given);
         QueueTask(() -> {
             TaskScheduler outer = RUNNING.get();
             RUNNING.set(this);

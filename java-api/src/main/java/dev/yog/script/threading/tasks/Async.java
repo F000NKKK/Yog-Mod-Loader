@@ -20,6 +20,8 @@ public abstract class Async<T> implements Runnable {
 
     @Override
     public final void run() {
+        // What it changes flows on in it, not back to whoever ran it.
+        java.util.Map<Object, Object> outer = dev.yog.script.threading.ExecutionContext.capture();
         try {
             $step();
         } catch (RuntimeException e) {
@@ -27,6 +29,8 @@ public abstract class Async<T> implements Runnable {
                 YogLog.error("Yog Script: an async method panicked: " + e.getMessage());
             }
             task.fail(e);
+        } finally {
+            dev.yog.script.threading.ExecutionContext.restore(outer);
         }
     }
 

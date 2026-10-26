@@ -1,0 +1,18 @@
+namespace System.Threading;
+
+using System.Threading.Tasks;
+
+/// A flag threads wait for (.NET's `ManualResetEventSlim`; `autoReset`: an
+/// `AutoResetEvent`, letting one waiter through for each `Set`).
+[Intrinsic]
+public readonly class Signal {
+    public Signal(bool initialState = false, bool autoReset = false) {}
+
+    public void Set();
+    public void Reset();
+    public void Wait();
+    /// As `Wait()`, at most `timeout`: whether it was set.
+    public bool Wait(TimeSpan timeout);
+    public Task WaitAsync();
+    public bool IsSet { get; }
+}

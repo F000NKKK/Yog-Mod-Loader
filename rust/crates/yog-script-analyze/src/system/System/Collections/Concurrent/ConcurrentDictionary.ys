@@ -1,0 +1,28 @@
+namespace System.Collections.Concurrent;
+
+/// A dictionary many threads read and change at once (.NET's).
+[Intrinsic]
+public readonly class ConcurrentDictionary<TKey, TValue> {
+    public ConcurrentDictionary() {}
+
+    /// Adds unless the key is there: whether it did.
+    public bool TryAdd(TKey key, TValue value);
+    /// The value of `key`, if it's there.
+    public TValue? TryGetValue(TKey key);
+    /// Takes `key` out: its value, if it was there.
+    public TValue? TryRemove(TKey key);
+    /// The value of `key`, made by `make` first if it isn't there (once).
+    public TValue GetOrAdd(TKey key, Func<TKey, TValue> make);
+    /// `add` made when `key` isn't there, else `update`d: the value kept.
+    public TValue AddOrUpdate(TKey key, Func<TKey, TValue> add, Func<TKey, TValue, TValue> update);
+    /// Sets `key` to `value`.
+    public void Set(TKey key, TValue value);
+    public bool ContainsKey(TKey key);
+    public i32 Count { get; }
+    public bool IsEmpty { get; }
+    /// The keys as they are now.
+    public List<TKey> Keys { get; }
+    /// The values as they are now.
+    public List<TValue> Values { get; }
+    public void Clear();
+}

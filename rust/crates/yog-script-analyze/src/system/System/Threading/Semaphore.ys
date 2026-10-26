@@ -1,0 +1,18 @@
+namespace System.Threading;
+
+using System.Threading.Tasks;
+
+/// At most so many at once (.NET's `SemaphoreSlim`): each enters by waiting,
+/// leaves by releasing.
+[Intrinsic]
+public readonly class Semaphore {
+    public Semaphore(i32 initialCount, i32 maxCount = i32.MaxValue) {}
+
+    public void Wait();
+    /// As `Wait()`, at most `timeout`: whether it entered.
+    public bool Wait(TimeSpan timeout);
+    public Task WaitAsync();
+    /// Lets `releaseCount` more in: the count before.
+    public i32 Release(i32 releaseCount = 1);
+    public i32 CurrentCount { get; }
+}

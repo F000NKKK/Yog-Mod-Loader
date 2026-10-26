@@ -19,9 +19,32 @@ pub(crate) fn boxed_locals(stmts: &[Stmt]) -> HashSet<String> {
 
 #[derive(Default)]
 struct Seen {
+    /// The method's own locals (not a lambda's).
     declared: HashSet<String>,
     captured: HashSet<String>,
     changed: HashSet<String>,
+    /// The names each lambda being gone through declares (its parameters,
+    /// its locals), innermost last: one of those isn't a capture.
+    lambdas: Vec<HashSet<String>>,
+}
+
+impl Seen {
+    /// `name` declared where the walk is: the method's, or the lambda's.
+    fn declare(&mut self, name: &str) {
+        match self.lambdas.last_mut() {
+            Some(own) => {
+                own.insert(name.to_string());
+            }
+            None => {
+                self.declared.insert(name.to_string());
+            }
+        }
+    }
+
+    /// Whether `name` is a lambda's own, there.
+    fn lambdas_own(&self, name: &str) -> bool {
+        self.lambdas.iter().any(|own| own.contains(name))
+    }
 }
 
 impl Seen {
@@ -29,12 +52,8 @@ impl Seen {
         match s {
             Stmt::Local { binding, value, .. } => {
                 match binding {
-                    Binding::One(n) => {
-                        self.declared.insert(n.text.clone());
-                    }
-                    Binding::Tuple(names) => names.iter().for_each(|n| {
-                        self.declared.insert(n.text.clone());
-                    }),
+                    Binding::One(n) => self.declare(&n.text),
+                    Binding::Tuple(names) => names.iter().for_each(|n| self.declare(&n.text)),
                 }
                 if let Some(v) = value {
                     self.expr(v, inside);
@@ -56,7 +75,16 @@ impl Seen {
                     self.stmt(o, inside);
                 }
             }
-            Stmt::Foreach { iter, body, .. } => {
+            Stmt::Foreach {
+                binding,
+                iter,
+                body,
+                ..
+            } => {
+                match binding {
+                    Binding::One(n) => self.declare(&n.text),
+                    Binding::Tuple(names) => names.iter().for_each(|n| self.declare(&n.text)),
+                }
                 self.expr(iter, inside);
                 self.stmt(body, inside);
             }
@@ -92,13 +120,18 @@ impl Seen {
     /// `e`, `inside` a lambda (what it names captured).
     fn expr(&mut self, e: &Expr, inside: bool) {
         match &e.kind {
-            ExprKind::Ident(n) if inside => {
+            ExprKind::Ident(n) if inside && !self.lambdas_own(n) => {
                 self.captured.insert(n.clone());
             }
-            ExprKind::Lambda { body, .. } => match body {
-                LambdaBody::Expr(x) => self.expr(x, true),
-                LambdaBody::Block(stmts) => stmts.iter().for_each(|s| self.stmt(s, true)),
-            },
+            ExprKind::Lambda { params, body, .. } => {
+                self.lambdas
+                    .push(params.iter().map(|p| p.name.text.clone()).collect());
+                match body {
+                    LambdaBody::Expr(x) => self.expr(x, true),
+                    LambdaBody::Block(stmts) => stmts.iter().for_each(|s| self.stmt(s, true)),
+                }
+                self.lambdas.pop();
+            }
             ExprKind::Unary { op, expr } if op.steps() => {
                 self.changed_place(expr);
                 self.expr(expr, inside);
@@ -120,7 +153,9 @@ impl Seen {
 
     /// `place` written: a local's name changed.
     fn changed_place(&mut self, place: &Expr) {
-        if let ExprKind::Ident(n) = &place.kind {
+        if let ExprKind::Ident(n) = &place.kind
+            && !self.lambdas_own(n)
+        {
             self.changed.insert(n.clone());
         }
     }

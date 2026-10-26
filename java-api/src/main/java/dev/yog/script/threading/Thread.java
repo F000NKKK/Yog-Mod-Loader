@@ -19,7 +19,7 @@ public final class Thread {
     private ThreadPriority priority = ThreadPriority.Normal;
 
     public Thread(Action start) {
-        this.thread = new java.lang.Thread(start::Invoke);
+        this.thread = new java.lang.Thread(ExecutionContext.flowing(start::Invoke));
     }
 
     private Thread(java.lang.Thread thread) {

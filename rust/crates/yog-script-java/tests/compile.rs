@@ -222,7 +222,7 @@ fn arrays_are_javas() {
     for want in [
         "new int[3][4]",
         // A null `T[]?` resized: generic code made it, the place's type it's made.
-        "names = dev.yog.script.host.Array.Of(dev.yog.script.host.Array.Resize(names, 3), String[].class);",
+        "names = dev.yog.script.host.Array.Of(dev.yog.script.host.Array.<String>Resize(names, 3), String[].class);",
         "g[1][2] = 5;",
         "for (var v : $t",
         "dev.yog.script.host.Array.GetLength(g, 2, 1)",

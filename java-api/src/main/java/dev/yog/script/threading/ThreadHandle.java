@@ -10,13 +10,13 @@ public final class ThreadHandle<T> extends TypedObject {
     private volatile RuntimeException failed;
 
     private ThreadHandle(Func1<T> work) {
-        this.thread = new java.lang.Thread(() -> {
+        this.thread = new java.lang.Thread(ExecutionContext.flowing(() -> {
             try {
                 value = work.Invoke();
             } catch (RuntimeException e) {
                 failed = e;
             }
-        });
+        }));
     }
 
     static <T> ThreadHandle<T> started(Func1<T> work) {

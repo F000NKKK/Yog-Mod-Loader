@@ -1,0 +1,12 @@
+namespace System.Threading;
+
+/// Threads meeting at a point, phase after phase (.NET's and Rust's `Barrier`).
+[Intrinsic]
+public readonly class Barrier {
+    public Barrier(i32 participantCount) {}
+
+    /// Waits for every participant to reach it: then each goes on.
+    public void SignalAndWait();
+    public i32 ParticipantCount { get; }
+    public i64 CurrentPhaseNumber { get; }
+}

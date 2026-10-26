@@ -1,0 +1,11 @@
+namespace System.Threading.Tasks;
+
+/// Work split over the pool, waited for (.NET's `Parallel`, rayon's): its
+/// body's captures shared between threads.
+[Intrinsic]
+public static class Parallel {
+    /// `body(i)` for each `i` from `fromInclusive` up to `toExclusive`.
+    public static void For(i32 fromInclusive, i32 toExclusive, Action<i32> body);
+    /// `body(item)` for each of `items`.
+    public static void ForEach<T>(IEnumerable<T> items, Action<T> body);
+}

@@ -146,7 +146,8 @@ public class Task {
      * synchronization context of the thread asking ({@code await}'s), posted
      * there when another thread finishes it; with none, where it's finished.
      */
-    public void onDone(Runnable then) {
+    public void onDone(Runnable given) {
+        Runnable then = dev.yog.script.threading.ExecutionContext.flowing(given);
         SynchronizationContext home = SynchronizationContext.Current();
         Runnable resume = home == null ? then : () -> {
             if (home.IsCurrent()) {
@@ -159,7 +160,8 @@ public class Task {
     }
 
     /** {@code then} run once it's done, where it's finished: no context taken ({@code ConfigureAwait(false)}). */
-    public void onDoneUncaptured(Runnable then) {
+    public void onDoneUncaptured(Runnable given) {
+        Runnable then = dev.yog.script.threading.ExecutionContext.flowing(given);
         onDoneUncaptured(then, then);
     }
 
