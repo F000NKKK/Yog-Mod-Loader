@@ -766,3 +766,13 @@ fn params_take_the_rest() {
         [script_problem::TYPE_MISMATCH]
     );
 }
+
+/// A `readonly` field is set by its type's constructors, as C#'s, and
+/// nowhere else (a lambda in a constructor neither).
+#[test]
+fn readonly_fields_are_set_in_constructors() {
+    let ok = "class Box {\n    private readonly i32 _size;\n    public Box(i32 size) { _size = size; }\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    let bad = "class Box {\n    private readonly i32 _size;\n    public void Grow() { _size = 2; }\n}\n";
+    assert_eq!(codes(bad), [script_problem::ASSIGN_TO_CONSTANT]);
+}

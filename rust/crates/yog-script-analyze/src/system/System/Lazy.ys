@@ -1,11 +1,16 @@
 namespace System;
 
-/// A value made the first time it's asked for, then kept: .NET's `Lazy<T>`.
-[Intrinsic]
-public class Lazy<T> {
-    public Lazy(Func<T> valueFactory) {}
+/// A value made the first time it's asked for, then kept: .NET's `Lazy<T>`
+/// — a `Once<T>` and what makes its value (made once, whoever asks).
+public readonly class Lazy<T> {
+    private readonly Func<T> _make;
+    private readonly Once<T> _value = new Once<T>();
+
+    public Lazy(Func<T> valueFactory) {
+        _make = valueFactory;
+    }
 
     /// The value: made by the factory the first time.
-    public T Value { get; }
-    public bool IsValueCreated { get; }
+    public T Value => _value.GetOrInit(_make);
+    public bool IsValueCreated => _value.IsSet;
 }

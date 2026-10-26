@@ -121,7 +121,10 @@ impl Resolver<'_, '_> {
                     .iter()
                     .flat_map(|(_, args)| args)
                     .for_each(|a| r.expr(&a.value));
+                // Its `readonly` fields are set here.
+                let outer = std::mem::replace(&mut r.cx.constructing, true);
                 r.block(&c.body);
+                r.cx.constructing = outer;
             }),
             DeclKind::Type {
                 word, header, body, ..
@@ -332,7 +335,7 @@ fn field_kind(d: &Decl) -> DefKind {
     if d.has(Modifier::Const) {
         DefKind::Constant
     } else if d.has(Modifier::Readonly) {
-        DefKind::ReadOnly
+        DefKind::ReadOnlyField
     } else {
         DefKind::Field
     }

@@ -27,6 +27,8 @@ pub enum DefKind {
     Case,
     /// A field or a property that can be set.
     Field,
+    /// A `readonly` field: set by its type's constructors only (C#'s).
+    ReadOnlyField,
     /// A block, an item, a mod's own kind of content; a screen.
     Content,
     Component,

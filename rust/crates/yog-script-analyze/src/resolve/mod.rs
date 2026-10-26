@@ -40,6 +40,8 @@ struct Context {
     member: bool,
     /// In an `async` method (or a test): `await` may wait.
     awaits: bool,
+    /// In a constructor's body: its type's `readonly` fields may be set.
+    constructing: bool,
 }
 
 pub(crate) struct Resolver<'r, 's> {

@@ -409,3 +409,22 @@ fn channels_and_coordination() {
     };
     assert_eq!(out, "5050 True 3 7 outer none");
 }
+
+/// `Lazy<T>`, written in Yog Script over `Once<T>`: made once, by whoever asks first.
+#[test]
+fn lazy_is_made_once() {
+    let src = "using System.Threading;\nusing System.Threading.Tasks;\n\
+               public static class L {\n\
+                   public static Atomic<i32> Made = new Atomic<i32>(0);\n\
+                   public static string Run() {\n\
+                       let lazy = new Lazy<string>(() => { Made.Increment(); return \"v\"; });\n\
+                       let before = lazy.IsValueCreated;\n\
+                       Parallel.For(0, 16, i => { let v = lazy.Value; });\n\
+                       return before + \" \" + lazy.Value + \" \" + Made.Load() + \" \" + lazy.IsValueCreated;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("l.ys", src)], "t.LScript.L.Run()") else {
+        return;
+    };
+    assert_eq!(out, "False v 1 True");
+}

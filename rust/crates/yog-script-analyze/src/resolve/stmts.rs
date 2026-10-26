@@ -153,10 +153,10 @@ impl Resolver<'_, '_> {
             self.expr(place);
             return;
         };
-        if self
-            .refer(name, place.span)
-            .is_some_and(|kind| !kind.assignable())
-        {
+        let constructing = self.cx.constructing;
+        if self.refer(name, place.span).is_some_and(|kind| {
+            !(kind.assignable() || kind == DefKind::ReadOnlyField && constructing)
+        }) {
             self.report.error(
                 script_problem::ASSIGN_TO_CONSTANT,
                 place.span,

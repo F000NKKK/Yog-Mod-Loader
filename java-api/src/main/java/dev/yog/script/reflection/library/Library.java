@@ -62,7 +62,6 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.host.Int64.class, () -> Int64Companion.TYPE),
             java.util.Map.entry(long.class, () -> Int64Companion.TYPE),
             java.util.Map.entry(Long.class, () -> Int64Companion.TYPE),
-            java.util.Map.entry(dev.yog.script.Lazy.class, () -> LazyCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.linq.Enumerable.class, () -> EnumerableCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.linq.expressions.Expression.class, () -> ExpressionCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.linq.expressions.ParameterExpression.class, () -> ParameterExpressionCompanion.TYPE),
