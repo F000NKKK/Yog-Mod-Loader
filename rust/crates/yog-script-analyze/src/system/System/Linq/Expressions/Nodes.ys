@@ -19,12 +19,16 @@ public readonly class ConstantExpression : Expression {
 public readonly class BinaryExpression : Expression {
     public Expression Left { get; }
     public Expression Right { get; }
+    /// The operator a type declares it is (`op_Addition`); `null` for the language's.
+    public MethodInfo? Method { get; }
 }
 
 /// One operand and its operator.
 [Intrinsic]
 public readonly class UnaryExpression : Expression {
     public Expression Operand { get; }
+    /// The operator a type declares it is; `null` for the language's.
+    public MethodInfo? Method { get; }
 }
 
 /// A field or a property read; `Expression` `null` for a static one.

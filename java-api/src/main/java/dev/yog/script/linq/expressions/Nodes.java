@@ -39,13 +39,13 @@ final class Nodes {
         return out.append(CLOSE).toString();
     }
 
-    /** A {@code delegate} that runs {@code body} with its arguments as {@code parameters}. */
-    static <D> D compiled(Class<D> delegate, Expression body, ParameterExpression[] parameters) {
+    /** A {@code delegate} that runs {@code body} with its arguments as {@code parameters}, those of {@code outer} seen too. */
+    static <D> D compiled(Class<D> delegate, Expression body, ParameterExpression[] parameters, Scope outer) {
         Object made = Proxy.newProxyInstance(delegate.getClassLoader(), new Class<?>[] {delegate}, (self, method, args) -> {
             if (!method.getName().equals(INVOKE)) {
                 return ofObject(self, method, args);
             }
-            Scope scope = new Scope(null);
+            Scope scope = new Scope(outer);
             for (int i = 0; i < parameters.length; i++) {
                 scope.bind(parameters[i], args[i]);
             }

@@ -37,6 +37,11 @@ public readonly abstract class Expression {
     public static BinaryExpression Coalesce(Expression left, Expression right);
     public static BinaryExpression ArrayIndex(Expression array, Expression index);
 
+    /// `left binaryType right`; `method` the operator a type declares (`null`: the language's).
+    public static BinaryExpression MakeBinary(ExpressionType binaryType, Expression left, Expression right, bool liftToNull, MethodInfo? method);
+    /// `unaryType operand`, of `type`; `method` the operator a type declares (`null`: the language's).
+    public static UnaryExpression MakeUnary(ExpressionType unaryType, Expression operand, Type type, MethodInfo? method);
+
     public static UnaryExpression Not(Expression expression);
     public static UnaryExpression Negate(Expression expression);
     public static UnaryExpression Convert(Expression expression, Type type);

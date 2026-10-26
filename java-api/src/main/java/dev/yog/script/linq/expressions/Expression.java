@@ -42,7 +42,7 @@ public abstract class Expression {
         for (int i = 0; i < names.length; i++) {
             parameters[i] = new ParameterExpression(types[i], names[i]);
         }
-        return new Expression1<>(delegate, body.apply(parameters), parameters, compiled);
+        return new Expression1<>(delegate, body.apply(parameters), parameters, compiled, null);
     }
 
     /** {@code owner}'s method {@code name}, the {@code overload}-th of its name, as the compiler chose it. */
@@ -54,6 +54,32 @@ public abstract class Expression {
             }
         }
         throw new IllegalStateException("`" + owner.Name() + "` has no `" + name + "` #" + overload);
+    }
+
+    /** {@code type}'s constructor the compiler chose: the {@code overload}-th of its own. */
+    public static ConstructorInfo constructorOf(Type type, int overload) {
+        int seen = 0;
+        for (dev.yog.script.reflection.MemberInfo m : type.members()) {
+            if (m instanceof ConstructorInfo c && seen++ == overload) {
+                return c;
+            }
+        }
+        throw new IllegalStateException("`" + type.Name() + "` has no constructor #" + overload);
+    }
+
+    /** {@code owner}'s operator {@code name} ({@code op_Addition}) taking {@code operands}: the one of its name when they don't say. */
+    public static MethodInfo operatorOf(Type owner, String name, Type[] operands) {
+        MethodInfo exact = owner.GetMethod(name, operands);
+        return exact != null ? exact : methodOf(owner, name, 0);
+    }
+
+    /** A lambda inside a tree: run by its nodes, its outer lambdas' parameters seen from where it's made. */
+    public static <D> Expression1<D> nested(Class<D> delegate, Type delegateType, String[] names, Type[] types, Function<ParameterExpression[], Expression> body) {
+        ParameterExpression[] parameters = new ParameterExpression[names.length];
+        for (int i = 0; i < names.length; i++) {
+            parameters[i] = new ParameterExpression(types[i], names[i]);
+        }
+        return new Expression1<>(delegateType, body.apply(parameters), parameters, delegate);
     }
 
     /** {@code type}'s static property {@code name}, else its static field of the name. */
@@ -169,16 +195,26 @@ public abstract class Expression {
         return BinaryExpression.of(ExpressionType.ArrayIndex, array, index);
     }
 
+    /** {@code left binaryType right}; {@code method} the operator a type declares (none: the language's). */
+    public static BinaryExpression MakeBinary(ExpressionType binaryType, Expression left, Expression right, boolean liftToNull, MethodInfo method) {
+        return method == null ? BinaryExpression.of(binaryType, left, right) : BinaryExpression.declared(binaryType, left, right, method);
+    }
+
+    /** {@code unaryType operand}, of {@code type}; {@code method} the operator a type declares (none: the language's). */
+    public static UnaryExpression MakeUnary(ExpressionType unaryType, Expression operand, Type type, MethodInfo method) {
+        return new UnaryExpression(unaryType, operand, method == null ? type : method.ReturnType(), method);
+    }
+
     public static UnaryExpression Not(Expression expression) {
-        return new UnaryExpression(ExpressionType.Not, expression, expression.Type());
+        return new UnaryExpression(ExpressionType.Not, expression, expression.Type(), null);
     }
 
     public static UnaryExpression Negate(Expression expression) {
-        return new UnaryExpression(ExpressionType.Negate, expression, expression.Type());
+        return new UnaryExpression(ExpressionType.Negate, expression, expression.Type(), null);
     }
 
     public static UnaryExpression Convert(Expression expression, Type type) {
-        return new UnaryExpression(ExpressionType.Convert, expression, type);
+        return new UnaryExpression(ExpressionType.Convert, expression, type, null);
     }
 
     // Members, calls, the rest.
@@ -217,6 +253,6 @@ public abstract class Expression {
 
     /** A lambda of {@code parameters} giving {@code body}, compiled as a {@code delegate} (its class handed first, {@code [Reified]}). */
     public static <D> Expression1<D> Lambda(Class<D> delegate, Expression body, ParameterExpression[] parameters) {
-        return new Expression1<>(Type.Of(delegate), body, parameters, Nodes.compiled(delegate, body, parameters));
+        return new Expression1<>(Type.Of(delegate), body, parameters, delegate);
     }
 }

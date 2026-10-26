@@ -12,5 +12,6 @@ public final class UnaryExpressionCompanion {
         d.Base(dev.yog.script.Type.Of(dev.yog.script.linq.expressions.Expression.class));
         d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Operand", 0, dev.yog.script.Type.Of(dev.yog.script.linq.expressions.Expression.class), o -> ((dev.yog.script.linq.expressions.UnaryExpression) o).Operand(), null);
+        d.Property("Method", 0, dev.yog.script.Type.Of(dev.yog.script.reflection.MethodInfo.class), o -> ((dev.yog.script.linq.expressions.UnaryExpression) o).Method(), null);
     }
 }

@@ -30,6 +30,8 @@ pub const TYPE: &str = "Type";
 /// An expression tree of a delegate (`System.Linq.Expressions.Expression<TDelegate>`):
 /// a lambda given where one is wanted is quoted.
 pub const EXPRESSION: &str = "Expression";
+/// What an expression tree's node is (`ExpressionType.Add`).
+pub const EXPRESSION_TYPE: &str = "ExpressionType";
 
 /// Every enum of values' base (`System.Enum`), and the attribute making
 /// one's values bits (`[Flags]`).

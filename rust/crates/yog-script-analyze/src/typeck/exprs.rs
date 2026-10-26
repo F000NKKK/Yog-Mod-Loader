@@ -305,7 +305,7 @@ impl Checker<'_, '_, '_> {
     ) -> Type {
         let t = ty.map_or(Type::Unknown, |t| self.type_of(t));
         if let Some(args) = args {
-            self.constructed(&t, args, e.span);
+            self.constructed(e, &t, args);
         }
         init.iter().for_each(|(_, v)| {
             self.expr(v);

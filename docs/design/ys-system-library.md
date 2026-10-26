@@ -314,8 +314,11 @@ an interpreter of the nodes.
    `Expression<TDelegate>` is wanted is written as its tree — constants,
    parameters, members, calls by the method chosen, operators, `?:`,
    casts, an array's item — and as itself, which `Compile()` gives; a
-   hand-made tree's `Compile()` runs its nodes; not yet in a tree: `new`,
-   interpolation, nested lambdas, a type's own operators); `System.Enum`
+   hand-made tree's `Compile()` runs its nodes; `new` by the constructor
+   chosen, a string's parts, a lambda inside one — run by the tree, the
+   lambdas around it seen — and a type's own operators by their methods
+   (`MakeBinary`, `MakeUnary`), described as .NET's `op_Addition`);
+   `System.Enum`
    (done: one model for every enum — `ys.md` §3 — its runtime class of
    numbers and data, `GetValues`, `GetNames`, `Parse`, `TryParse`,
    `IsDefined`, `[Flags]`); `BindingFlags` (done: public or not, instance

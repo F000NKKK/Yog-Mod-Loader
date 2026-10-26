@@ -3,14 +3,14 @@
 //! constructor takes: `new Lazy<i32>(() => 42)`).
 
 use super::Checker;
-use super::members::{Callee, Signature};
+use super::members::Signature;
 use super::model::Type;
-use crate::ast::{Arg, ExprKind, Param};
-use crate::source::token::Span;
+use crate::ast::{Arg, Expr, ExprKind, Param};
 
 impl Checker<'_, '_, '_> {
-    /// `new t(args)`.
-    pub(super) fn constructed(&mut self, t: &Type, args: &[Arg], at: Span) {
+    /// `new t(args)` (expression `e`): the constructor chosen noted.
+    pub(super) fn constructed(&mut self, e: &Expr, t: &Type, args: &[Arg]) {
+        let at = e.span;
         let sigs = match t {
             Type::Own(name, targs) => self.constructors(name, targs),
             _ => Vec::new(),
@@ -23,7 +23,10 @@ impl Checker<'_, '_, '_> {
             })
             .collect();
         if !sigs.is_empty() {
-            self.called(Callee::Typed(sigs), &given, args, at);
+            let args: Vec<&Arg> = args.iter().collect();
+            if let (_, Some(chosen)) = self.pick(&sigs, &given, &args, at) {
+                self.types.set_constructor(e, chosen.index);
+            }
         }
     }
 

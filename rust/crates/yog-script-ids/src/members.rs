@@ -85,3 +85,6 @@ pub const LESS_THAN: &str = "LessThan";
 pub const LESS_THAN_OR_EQUAL: &str = "LessThanOrEqual";
 pub const GREATER_THAN: &str = "GreaterThan";
 pub const GREATER_THAN_OR_EQUAL: &str = "GreaterThanOrEqual";
+pub const NEW: &str = "New";
+pub const MAKE_BINARY: &str = "MakeBinary";
+pub const MAKE_UNARY: &str = "MakeUnary";

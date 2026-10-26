@@ -149,7 +149,12 @@ pub mod trees {
     pub const QUOTE: &str = "quote";
     pub const METHOD_OF: &str = "methodOf";
     pub const STATIC_MEMBER: &str = "staticMember";
-    /// The tree's lambda's parameter: the quoted lambda's parameters' nodes.
+    /// A `new`'s constructor, a type's operator, a lambda inside a tree.
+    pub const CONSTRUCTOR_OF: &str = "constructorOf";
+    pub const OPERATOR_OF: &str = "operatorOf";
+    pub const NESTED: &str = "nested";
+    /// The tree's lambdas' parameter (`$ps0`, `$ps1` inside it): a lambda's
+    /// parameters' nodes.
     pub const PARAMETERS: &str = "$ps";
 }
 

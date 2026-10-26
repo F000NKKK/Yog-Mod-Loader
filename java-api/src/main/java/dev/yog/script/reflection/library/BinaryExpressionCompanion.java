@@ -13,5 +13,6 @@ public final class BinaryExpressionCompanion {
         d.Attribute(() -> new dev.yog.script.Intrinsic());
         d.Property("Left", 0, dev.yog.script.Type.Of(dev.yog.script.linq.expressions.Expression.class), o -> ((dev.yog.script.linq.expressions.BinaryExpression) o).Left(), null);
         d.Property("Right", 0, dev.yog.script.Type.Of(dev.yog.script.linq.expressions.Expression.class), o -> ((dev.yog.script.linq.expressions.BinaryExpression) o).Right(), null);
+        d.Property("Method", 0, dev.yog.script.Type.Of(dev.yog.script.reflection.MethodInfo.class), o -> ((dev.yog.script.linq.expressions.BinaryExpression) o).Method(), null);
     }
 }

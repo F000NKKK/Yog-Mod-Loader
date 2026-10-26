@@ -59,6 +59,8 @@ impl Gen<'_> {
                     ..
                 } => Some(self.property_described(owner, d, (&name.text, ty), accessors)),
                 DeclKind::Method(m) => self.method_described(owner, d, m),
+                // A type's operator: its static method, as .NET's (`op_Addition`).
+                DeclKind::Operator(op) => self.method_described(owner, d, &op.method),
                 DeclKind::Ctor(c) if made => {
                     Some(self.constructor_described(owner, &member_traits(d), &c.params))
                 }

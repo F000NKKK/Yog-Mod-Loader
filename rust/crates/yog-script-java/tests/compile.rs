@@ -301,9 +301,9 @@ fn a_quoted_lambda_is_its_tree_and_its_code() {
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
     for want in [
         "dev.yog.script.linq.expressions.Expression.quote(",
-        "new String[] { \"p\" }, new dev.yog.script.Type[] { dev.yog.script.Type.Of(Pos.class) }, $ps -> ",
+        "new String[] { \"p\" }, new dev.yog.script.Type[] { dev.yog.script.Type.Of(Pos.class) }, $ps0 -> ",
         // Its nodes: members by name, calls by the method chosen.
-        "dev.yog.script.linq.expressions.Expression.GreaterThan(dev.yog.script.linq.expressions.Expression.Add(dev.yog.script.linq.expressions.Expression.PropertyOrField($ps[0], \"X\"), ",
+        "dev.yog.script.linq.expressions.Expression.GreaterThan(dev.yog.script.linq.expressions.Expression.Add(dev.yog.script.linq.expressions.Expression.PropertyOrField($ps0[0], \"X\"), ",
         "dev.yog.script.linq.expressions.Expression.methodOf(dev.yog.script.Type.Of(Pos.class), \"Twice\", 0)",
         // Its code: what `Compile()` gives.
         "(dev.yog.script.Func2<Pos, Boolean>) (p) -> {",
@@ -339,6 +339,33 @@ fn enums_are_numbers_their_cases_data() {
     }
     // After `_ =>` nothing is reached: no panic written for no arm.
     assert!(!out.contains("noArm"), "{out}");
+}
+
+#[test]
+fn a_tree_has_news_text_lambdas_and_operators() {
+    let src = "using System.Linq.Expressions;\n\
+               struct Money(i32 cents) {\n    public i32 Cents = cents;\n\
+               public static Money operator +(Money a, Money b) => new Money(a.Cents + b.Cents);\n}\n\
+               class Pos(i32 x) {\n    public i32 X = x;\n}\n\
+               Expression<Func<i32, Pos>> Made() => x => new Pos(x);\n\
+               Expression<Func<i32, string>> Text() => x => \"x is {x}\";\n\
+               Expression<Func<List<i32>, i32, bool>> Any() => (xs, n) => xs.Any(y => y > n);\n\
+               Expression<Func<Money, Money, Money>> Sum() => (a, b) => a + b;\n\
+               i32[] Items(List<i32> xs) => [xs[0], xs[1]];\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "Expression.New(dev.yog.script.linq.expressions.Expression.constructorOf(dev.yog.script.Type.Of(Pos.class), 0), new dev.yog.script.linq.expressions.Expression[] { $ps0[0] })",
+        "Expression.Add(dev.yog.script.linq.expressions.Expression.Constant((Object) \"x is \", ",
+        // A lambda inside: its own parameters, the outer ones seen.
+        "Expression.nested(dev.yog.script.Func2.class, ",
+        "$ps1 -> dev.yog.script.linq.expressions.Expression.GreaterThan($ps1[0], $ps0[1])",
+        // A type's operator: its method.
+        "Expression.MakeBinary(dev.yog.script.linq.expressions.ExpressionType.Add, $ps0[0], $ps0[1], false, dev.yog.script.linq.expressions.Expression.operatorOf(dev.yog.script.Type.Of(Money.class), \"op_Addition\", ",
+        // A collection's items written themselves: typed.
+        "new int[] { xs.get_Item(0), xs.get_Item(1) }",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
 }
 
 #[test]

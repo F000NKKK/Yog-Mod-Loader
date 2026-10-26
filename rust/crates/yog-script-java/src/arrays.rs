@@ -70,14 +70,15 @@ impl Gen<'_> {
         };
         let java = self.java(&t, false);
         if items.iter().all(|i| matches!(i, Element::Item(_))) {
-            let values: Vec<ArrayItem> = items
+            // The items themselves (their types are known by their nodes, not copies').
+            let parts: Vec<String> = items
                 .iter()
                 .filter_map(|i| match i {
-                    Element::Item(x) => Some(ArrayItem::Value(x.clone())),
+                    Element::Item(x) => Some(self.handed_expr(x)),
                     _ => None,
                 })
                 .collect();
-            return format!("new {java} {}", self.array_items(&values));
+            return format!("new {java} {{ {} }}", parts.join(", "));
         }
         // A spread's length isn't known: the items gathered, then copied.
         let list = self.collection_of_list(e, items);

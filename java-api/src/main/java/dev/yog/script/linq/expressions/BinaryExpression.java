@@ -1,6 +1,7 @@
 package dev.yog.script.linq.expressions;
 
 import dev.yog.script.Type;
+import dev.yog.script.reflection.MethodInfo;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -45,11 +46,23 @@ public class BinaryExpression extends Expression {
 
     private final Expression left;
     private final Expression right;
+    private final MethodInfo method;
 
-    private BinaryExpression(ExpressionType nodeType, Expression left, Expression right, Type type) {
+    private BinaryExpression(ExpressionType nodeType, Expression left, Expression right, Type type, MethodInfo method) {
         super(nodeType, type);
         this.left = left;
         this.right = right;
+        this.method = method;
+    }
+
+    /** {@code left op right} by the operator {@code method} a type declares: of its result's type. */
+    static BinaryExpression declared(ExpressionType op, Expression left, Expression right, MethodInfo method) {
+        return new BinaryExpression(op, left, right, method.ReturnType(), method);
+    }
+
+    /** The operator a type declares it is; {@code null} for the language's. */
+    public MethodInfo Method() {
+        return method;
     }
 
     /** {@code left op right}: a test gives a {@code bool}, {@code ??} the right's type, an array's item its item's, the rest the left's. */
@@ -64,7 +77,7 @@ public class BinaryExpression extends Expression {
         } else {
             type = left.Type();
         }
-        return new BinaryExpression(op, left, right, type);
+        return new BinaryExpression(op, left, right, type, null);
     }
 
     public Expression Left() {
@@ -79,6 +92,9 @@ public class BinaryExpression extends Expression {
     Object evaluate(Scope scope) {
         Object l = left.evaluate(scope);
         ExpressionType op = NodeType();
+        if (method != null) {
+            return method.Invoke(null, new Object[] {l, right.evaluate(scope)});
+        }
         if (op == ExpressionType.AndAlso) {
             return (Boolean) l && (Boolean) right.evaluate(scope);
         }
