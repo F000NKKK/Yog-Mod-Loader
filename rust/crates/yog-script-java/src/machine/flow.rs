@@ -13,9 +13,9 @@ use super::{awaits, stmt_awaits};
 use crate::Gen;
 
 /// Where a loop split by an `await` goes: its top (or its step), past it.
-struct Loop {
-    again: usize,
-    past: usize,
+pub(super) struct Loop {
+    pub(super) again: usize,
+    pub(super) past: usize,
 }
 
 impl Gen<'_> {
@@ -99,6 +99,13 @@ impl Gen<'_> {
                 step,
                 body,
             } => self.split_for(init.as_deref(), cond.as_ref(), step.as_deref(), body),
+            Stmt::Foreach {
+                binding: Binding::One(n),
+                iter,
+                body,
+                awaits: true,
+                ..
+            } => self.split_await_foreach(n, iter, body),
             Stmt::Foreach {
                 binding: Binding::One(n),
                 iter,
@@ -373,7 +380,7 @@ impl Gen<'_> {
     }
 
     /// A split loop's body: its `break` and `continue` jumps.
-    fn split_body(&mut self, l: &Loop, body: &Stmt) {
+    pub(super) fn split_body(&mut self, l: &Loop, body: &Stmt) {
         self.breaks.push(Some(Self::jump(l.past)));
         self.continues.push(Some(Self::jump(l.again)));
         self.machine_branch(body);

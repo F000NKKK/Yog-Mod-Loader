@@ -8,6 +8,12 @@ pub const GET_HASH_CODE: &str = "GetHashCode";
 pub const TO_STRING: &str = "ToString";
 pub const GET_TYPE: &str = "GetType";
 
+// An async sequence's walk (`await foreach`): made, stepped, read, let go.
+pub const GET_ASYNC_ENUMERATOR: &str = "GetAsyncEnumerator";
+pub const MOVE_NEXT_ASYNC: &str = "MoveNextAsync";
+pub const CURRENT: &str = "Current";
+pub const DISPOSE_ASYNC: &str = "DisposeAsync";
+
 // `IDisposable`'s: what a drop calls.
 pub const DISPOSE: &str = "Dispose";
 

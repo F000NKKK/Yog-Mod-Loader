@@ -398,6 +398,9 @@ pub mod tasks {
     pub const ITERATION: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "Iteration");
     pub const ITERATION_SOURCE: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "IterationSource");
     pub const YIELD: &str = "$yield";
+    /// An `async` iterator's machine and its sequence (`IAsyncEnumerable<T>`).
+    pub const ASYNC_ITERATION: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "AsyncIteration");
+    pub const ASYNC_ITERATION_SOURCE: &str = concat!(runtime!(), sep!(), "collections", sep!(), "generic", sep!(), "AsyncIterationSource");
     /// What a task gives (`Task<T>`'s), and a `Task`'s failure thrown again.
     pub const RESULT: &str = "Result";
     pub const CHECK: &str = "check";

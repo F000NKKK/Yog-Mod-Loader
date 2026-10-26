@@ -109,6 +109,7 @@ pub const ENUMERABLE: &str = "IEnumerable";
 /// async sequence.
 pub const ENUMERATOR: &str = "IEnumerator";
 pub const ASYNC_ENUMERABLE: &str = "IAsyncEnumerable";
+pub const ASYNC_ENUMERATOR: &str = "IAsyncEnumerator";
 pub const KEY_VALUE_PAIR: &str = "KeyValuePair";
 
 /// A tuple's type (`ValueTuple<T1, …, T7>`), as many items as it may hold.

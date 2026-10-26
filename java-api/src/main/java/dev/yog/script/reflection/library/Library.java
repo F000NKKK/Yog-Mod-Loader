@@ -20,6 +20,8 @@ public final class Library {
             java.util.Map.entry(dev.yog.script.collections.generic.Dictionary.class, () -> DictionaryCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.collections.generic.EqualityComparer.class, () -> EqualityComparerCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.collections.generic.HashSet.class, () -> HashSetCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.collections.generic.IAsyncEnumerable.class, () -> IAsyncEnumerableCompanion.TYPE),
+            java.util.Map.entry(dev.yog.script.collections.generic.IAsyncEnumerator.class, () -> IAsyncEnumeratorCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.collections.generic.ICollection.class, () -> ICollectionCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.collections.generic.IComparer.class, () -> IComparerCompanion.TYPE),
             java.util.Map.entry(dev.yog.script.collections.generic.IDictionary.class, () -> IDictionaryCompanion.TYPE),

@@ -279,3 +279,30 @@ fn iterators_yield_their_items() {
     };
     assert_eq!(out, "1,4,9,16,25,36,49, 28 3x3 14");
 }
+
+/// `async` iterators and `await foreach`: items awaited between, walked
+/// as they come, `yield break` ending them, a `break` leaving the walk.
+#[test]
+fn async_iterators_and_await_foreach() {
+    let src = "using System.Threading.Tasks;\n\
+               public static class Q {\n\
+                   static async Task<i32> Twice(i32 x) => await Task.FromResult(x * 2);\n\
+                   static async IAsyncEnumerable<i32> Doubles(i32 upTo) {\n\
+                       for (let mut i = 1; i <= upTo; i += 1) {\n\
+                           if (i > 4) { yield break; }\n\
+                           yield return await Twice(i);\n\
+                       }\n\
+                   }\n\
+                   static async Task<string> Walk() {\n\
+                       let mut text = \"\";\n\
+                       await foreach (let d in Doubles(10)) { text += d + \",\"; }\n\
+                       await foreach (let d in Doubles(10)) { if (d > 2) { break; } text += \"[\" + d + \"]\"; }\n\
+                       return text;\n\
+                   }\n\
+                   public static string Run() => Walk().Result;\n\
+               }\n";
+    let Some(out) = support::run(&[("q.ys", src)], "t.QScript.Q.Run()") else {
+        return;
+    };
+    assert_eq!(out, "2,4,6,8,[2]");
+}

@@ -7,6 +7,7 @@
 //! is written as any (`flow.rs`), an `await` in a value as it's met
 //! (`awaits.rs`).
 
+mod async_foreach;
 mod awaits;
 mod branches;
 mod flow;
@@ -22,7 +23,7 @@ use yog_script_ids::java::{
 };
 use yog_script_ids::jvm::OBJECT;
 use yog_script_ids::jvm::tasks::{
-    ASYNC, FINISH, ITERATION, ITERATION_SOURCE, LOOP, MACHINE, MADE, PARAM_FIELD, RUN, START,
+    ASYNC, ASYNC_ITERATION, ASYNC_ITERATION_SOURCE, FINISH, ITERATION, ITERATION_SOURCE, LOOP, MACHINE, MADE, PARAM_FIELD, RUN, START,
     STATE, STEP, TASK, YIELD,
 };
 
@@ -54,6 +55,8 @@ pub(crate) struct Shape<'a> {
     pub gives_value: bool,
     /// An iterator's: `gives` its items' type, each `yield return` one.
     pub iterator: bool,
+    /// An `async` iterator's (`IAsyncEnumerable<T>`): awaits between its items.
+    pub async_iterator: bool,
 }
 
 /// An async method's or lambda's code.
@@ -92,15 +95,17 @@ impl Gen<'_> {
             task: m.ret.is_some(),
             gives_value: task_arg.is_some(),
             iterator: false,
+            async_iterator: false,
         };
         self.code.open(head);
         self.machine_of(&shape);
         self.code.close("");
     }
 
-    /// Iterator method `m` (Java's `head`): a sequence making its machine
-    /// for each walk, each `yield return` an item it gives.
-    pub(crate) fn iterator_method(&mut self, head: &str, m: &Method) {
+    /// Iterator method `m` (Java's `head`; `async`: an `IAsyncEnumerable`'s,
+    /// awaiting between its items): a sequence making its machine for each
+    /// walk, each `yield return` an item it gives.
+    pub(crate) fn iterator_method(&mut self, head: &str, m: &Method, is_async: bool) {
         let Some(MethodBody::Block(b)) = &m.body else {
             return self.not_yet("an iterator without a block", m.name.span);
         };
@@ -119,6 +124,7 @@ impl Gen<'_> {
             task: false,
             gives_value: false,
             iterator: true,
+            async_iterator: is_async,
         };
         self.code.open(head);
         self.machine_of(&shape);
@@ -174,6 +180,7 @@ impl Gen<'_> {
             task: *ret != Type::Void,
             gives_value: task_arg.is_some(),
             iterator: false,
+            async_iterator: false,
         };
         // Written apart, as a lambda's body: what it computes stays inside.
         let outer = std::mem::take(&mut self.code);
@@ -215,7 +222,11 @@ impl Gen<'_> {
         // Named apart: an async lambda's machine may be inside another's.
         let n = self.temp();
         let (class, made) = (format!("{MACHINE}{n}"), format!("{MADE}{n}"));
-        let base = if shape.iterator { ITERATION } else { ASYNC };
+        let base = match (shape.iterator, shape.async_iterator) {
+            (true, true) => ASYNC_ITERATION,
+            (true, false) => ITERATION,
+            _ => ASYNC,
+        };
         self.code.open(format!(
             "{FINAL} {CLASS} {class} {EXTENDS} {base}<{}>",
             shape.gives
@@ -227,8 +238,13 @@ impl Gen<'_> {
         self.code.close("");
         if shape.iterator {
             // A machine for each walk, each its own copy of the arguments.
+            let source = if shape.async_iterator {
+                ASYNC_ITERATION_SOURCE
+            } else {
+                ITERATION_SOURCE
+            };
             self.code
-                .open(format!("{RETURN} {NEW} {ITERATION_SOURCE}<>(() ->"));
+                .open(format!("{RETURN} {NEW} {source}<>(() ->"));
             self.code
                 .line(format!("{FINAL} {VAR} {made} = {NEW} {class}();"));
             for (param, field) in &params {
