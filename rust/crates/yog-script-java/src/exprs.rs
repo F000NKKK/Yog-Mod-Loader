@@ -129,6 +129,11 @@ impl Gen<'_> {
         match &e.kind {
             ExprKind::Cast { ty, expr } => match self.enum_cast(e, expr) {
                 Some(v) => v,
+                // A number made a `decimal`: by its conversion, not Java's cast.
+                None if self.types.of(e).map(Type::non_null) == Some(&Type::Decimal) => {
+                    let v = self.expr(expr);
+                    self.as_decimal(expr, v)
+                }
                 None => format!("(({}) {})", self.written(ty, false), self.expr(expr)),
             },
             ExprKind::NotNull(inner)

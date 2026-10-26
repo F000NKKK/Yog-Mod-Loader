@@ -758,3 +758,26 @@ fn game_log_provider() {
     };
     assert_eq!(out, "made");
 }
+
+/// .NET's formatting: `{x,5:F2}` holes, numbers' `ToString(format)`
+/// (standard and custom), `string.Format`.
+#[test]
+fn formatting() {
+    let src = "public static class F {\n\
+                   public static string Run() {\n\
+                       let x = 1234.5678;\n\
+                       let n = 42;\n\
+                       let a = \"[{x:F2}] [{n,5}] [{n,-5}] [{n:X4}] [{-1:X}] [{x:N1}] [{0.256:P1}] [{x:E3}] [{n:D5}] [{x:0.0}] [{x:#,##0}]\";\n\
+                       let b = string.Format(\"\"\"{0} + {1,4:F1} = {{{2}}}\"\"\", n, 2.25, true);\n\
+                       let c = 255.ToString(\"x\") + \" \" + (12345678901i64).ToString(\"N0\") + \" \" + ((decimal)0.5).ToString(\"F3\") + \" \" + 1.5e-7.ToString(\"G\");\n\
+                       return a + \" | \" + b + \" | \" + c;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("f.ys", src)], "t.FScript.F.Run()") else {
+        return;
+    };
+    assert_eq!(
+        out,
+        "[1234.57] [   42] [42   ] [002A] [FFFFFFFF] [1,234.6] [25.6 %] [1.235E+003] [00042] [1234.6] [1,235] | 42 +  2.3 = {True} | ff 12,345,678,901 0.500 1.5E-07"
+    );
+}

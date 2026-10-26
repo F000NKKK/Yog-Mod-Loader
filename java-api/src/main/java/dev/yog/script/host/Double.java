@@ -62,6 +62,11 @@ public final class Double {
         return java.lang.Double.compare(value, obj) == 0;
     }
 
+    /** Written by .NET format string {@code format} ({@code F2}, {@code X8}, {@code 0.00}). */
+    public static java.lang.String ToString(double value, java.lang.String format) {
+        return NumberFormats.floating(value, false, format);
+    }
+
     public static java.lang.String ToString(double value) {
         return Written.number(java.lang.Double.toString(value), value);
     }

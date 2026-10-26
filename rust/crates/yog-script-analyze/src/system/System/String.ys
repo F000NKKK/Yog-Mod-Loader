@@ -43,5 +43,9 @@ public sealed class String : IComparable<string>, IEquatable<string> {
     public static bool IsNullOrWhiteSpace(string? value);
     public static string Join(string separator, in IEnumerable<string> values);
     public static string Concat(string a, string b);
+    /// .NET's composite format: `Format("{0,5:F2} of {1}", a, b)` — each
+    /// hole an argument by its index, padded by its alignment, written by
+    /// its format; `{{ }}` are braces.
+    public static string Format(string format, params object?[] args);
     public static i32 Compare(string a, string b);
 }

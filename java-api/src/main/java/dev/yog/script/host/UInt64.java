@@ -36,6 +36,11 @@ public final class UInt64 {
         return value == obj;
     }
 
+    /** Written by .NET format string {@code format} ({@code F2}, {@code X8}, {@code 0.00}). */
+    public static java.lang.String ToString(long value, java.lang.String format) {
+        return value >= 0 ? NumberFormats.integer(value, Long.SIZE, false, format) : NumberFormats.decimal(NumberFormats.unsigned(value), format);
+    }
+
     public static java.lang.String ToString(long value) {
         return java.lang.Long.toUnsignedString(value);
     }

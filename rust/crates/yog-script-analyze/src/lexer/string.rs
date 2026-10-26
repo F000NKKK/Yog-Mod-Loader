@@ -13,6 +13,9 @@ pub const ESCAPE: char = '\\';
 /// A string's interpolation's ends (`{name}`); doubled, the character.
 pub const OPEN: char = '{';
 pub const CLOSE: char = '}';
+/// What starts a hole's alignment (`{n,5}`) and its format (`{x:F2}`).
+pub const ALIGNMENT: char = ',';
+pub const FORMAT: char = ':';
 /// A character by its code, after `\\`: `u{e9}`.
 pub const UNICODE_OPEN: &str = "u{";
 /// The escapes after `\\` of a character each: the letter, the character.
@@ -38,7 +41,14 @@ impl Lexer<'_, '_, '_> {
                     if !text.is_empty() {
                         parts.push(StrPart::Text(std::mem::take(&mut text)));
                     }
-                    parts.push(StrPart::Expr(self.interpolation()));
+                    let tokens = self.interpolation();
+                    let alignment = self.hole_part(ALIGNMENT, &[FORMAT, CLOSE]);
+                    let format = self.hole_part(FORMAT, &[CLOSE]);
+                    parts.push(StrPart::Expr {
+                        tokens,
+                        alignment,
+                        format,
+                    });
                     if self.bump() != Some(CLOSE) {
                         return self.unterminated(start, Tok::Str(parts));
                     }
@@ -50,6 +60,20 @@ impl Lexer<'_, '_, '_> {
             parts.push(StrPart::Text(text));
         }
         self.push(Tok::Str(parts), start);
+    }
+
+    /// A hole's part after `lead` (`,5`, `:F2`), as written, up to one of
+    /// `ends`; none when it hasn't one.
+    fn hole_part(&mut self, lead: char, ends: &[char]) -> Option<String> {
+        if self.peek() != Some(lead) {
+            return None;
+        }
+        self.bump();
+        let from = self.pos;
+        while self.peek().is_some_and(|c| !ends.contains(&c)) {
+            self.bump();
+        }
+        Some(self.src[from..self.pos].trim().to_string())
     }
 
     /// The tokens of a `{expr}`, up to its `}`.

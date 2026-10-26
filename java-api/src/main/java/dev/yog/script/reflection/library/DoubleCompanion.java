@@ -31,5 +31,6 @@ public final class DoubleCompanion {
         d.Method("CompareTo", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Double.CompareTo((Double) o, (Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
         d.Method("Equals", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Double.Equals((Double) o, (Double) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Double.class), false);
         d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Double.ToString((Double) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+        d.Method("ToString", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Double.ToString((Double) o, (String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("format", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
 }

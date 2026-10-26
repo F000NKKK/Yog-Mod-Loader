@@ -62,6 +62,11 @@ public final class Single {
         return java.lang.Float.compare(value, obj) == 0;
     }
 
+    /** Written by .NET format string {@code format} ({@code F2}, {@code X8}, {@code 0.00}). */
+    public static java.lang.String ToString(float value, java.lang.String format) {
+        return NumberFormats.floating(value, true, format);
+    }
+
     public static java.lang.String ToString(float value) {
         return Written.number(java.lang.Float.toString(value), value);
     }

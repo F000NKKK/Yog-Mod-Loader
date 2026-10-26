@@ -64,6 +64,11 @@ public final class Decimal {
         return value.compareTo(obj) == 0;
     }
 
+    /** Written by .NET format string {@code format} ({@code F2}, {@code X8}, {@code 0.00}). */
+    public static java.lang.String ToString(java.math.BigDecimal value, java.lang.String format) {
+        return NumberFormats.decimal(value, format);
+    }
+
     public static java.lang.String ToString(java.math.BigDecimal value) {
         return value.toPlainString();
     }

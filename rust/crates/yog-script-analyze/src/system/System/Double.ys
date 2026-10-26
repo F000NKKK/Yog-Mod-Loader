@@ -28,4 +28,6 @@ public readonly struct Double : IComparable<f64>, IEquatable<f64> {
     public i32 CompareTo(f64 value);
     public bool Equals(f64 obj);
     public override string ToString();
+    /// Written by .NET format string `format` (`F2`, `N0`, `X8`, `0.00`), invariant culture.
+    public string ToString(string format);
 }

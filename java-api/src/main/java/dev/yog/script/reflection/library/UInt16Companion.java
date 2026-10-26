@@ -19,5 +19,6 @@ public final class UInt16Companion {
         d.Method("CompareTo", 0, new String[] {  }, (o, a) -> dev.yog.script.host.UInt16.CompareTo((Integer) o, (Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.UInt16.class), false);
         d.Method("Equals", 0, new String[] {  }, (o, a) -> dev.yog.script.host.UInt16.Equals((Integer) o, (Integer) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.UInt16.class), false);
         d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.UInt16.ToString((Integer) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+        d.Method("ToString", 0, new String[] {  }, (o, a) -> dev.yog.script.host.UInt16.ToString((Integer) o, (String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("format", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
 }

@@ -84,7 +84,8 @@ impl<'s, 'r, 'a> Lexer<'s, 'r, 'a> {
     /// nothing opened here; that `}` is left for the caller.
     pub(crate) fn run(&mut self, interpolation: bool) {
         while let Some(c) = self.peek() {
-            if interpolation && c == '}' && self.open.is_empty() {
+            // A hole's expression ends at its `}`, its alignment's `,` or its format's `:`.
+            if interpolation && matches!(c, '}' | ',' | ':') && self.open.is_empty() {
                 return;
             }
             self.token(c);

@@ -50,7 +50,7 @@ impl Gen<'_> {
     }
 
     /// Operand `v` (`e`'s) as a `decimal`: one already, or made one.
-    fn as_decimal(&self, e: &Expr, v: String) -> String {
+    pub(crate) fn as_decimal(&self, e: &Expr, v: String) -> String {
         match self.types.of(e).map(Type::non_null) {
             Some(Type::Decimal) | None => v,
             Some(_) => format!("{}.{OP_IMPLICIT}({v})", self.index.place(DECIMAL, 0)),

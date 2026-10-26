@@ -147,4 +147,9 @@ public final class String {
     public static int Compare(java.lang.String a, java.lang.String b) {
         return a.compareTo(b);
     }
+
+    /** .NET's composite format: {@code {0,5:F2}} of {@code args} ({@link CompositeFormat}). */
+    public static java.lang.String Format(java.lang.String format, java.lang.Object[] args) {
+        return CompositeFormat.format(format, args);
+    }
 }

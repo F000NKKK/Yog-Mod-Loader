@@ -35,6 +35,11 @@ public final class SByte {
         return value == obj;
     }
 
+    /** Written by .NET format string {@code format} ({@code F2}, {@code X8}, {@code 0.00}). */
+    public static java.lang.String ToString(byte value, java.lang.String format) {
+        return NumberFormats.integer(value, java.lang.Byte.SIZE, true, format);
+    }
+
     public static java.lang.String ToString(byte value) {
         return java.lang.String.valueOf(value);
     }

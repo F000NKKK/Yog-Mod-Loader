@@ -26,4 +26,6 @@ public readonly struct Decimal : IComparable<decimal>, IEquatable<decimal> {
     public i32 CompareTo(decimal value);
     public bool Equals(decimal obj);
     public override string ToString();
+    /// Written by .NET format string `format` (`F2`, `N0`, `X8`, `0.00`), invariant culture.
+    public string ToString(string format);
 }

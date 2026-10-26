@@ -209,7 +209,7 @@ impl Parser<'_, '_, '_> {
         for part in parts {
             match part {
                 StrPart::Text(t) => text.push_str(t),
-                StrPart::Expr(_) => {
+                StrPart::Expr { .. } => {
                     let code = yog_ids::script_problem::EXPECTED;
                     return Err(self.error(code, span, format!("{what} can't have `{{…}}` in it")));
                 }

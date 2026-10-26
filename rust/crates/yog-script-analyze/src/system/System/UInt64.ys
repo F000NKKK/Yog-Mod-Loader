@@ -14,4 +14,6 @@ public readonly struct UInt64 : IComparable<u64>, IEquatable<u64> {
     public i32 CompareTo(u64 value);
     public bool Equals(u64 obj);
     public override string ToString();
+    /// Written by .NET format string `format` (`F2`, `N0`, `X8`, `0.00`), invariant culture.
+    public string ToString(string format);
 }

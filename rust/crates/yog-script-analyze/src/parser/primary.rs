@@ -1,7 +1,7 @@
 //! Primary expressions: literals, names, brackets and tuples, collections.
 
 use super::{PResult, Parser};
-use crate::ast::{Element, Expr, ExprKind, Name, StrSeg};
+use crate::ast::{Arg, Element, Expr, ExprKind, Name, StrSeg};
 use crate::source::token::{Punct, Span, StrPart, Tok, Token};
 
 impl Parser<'_, '_, '_> {
@@ -43,9 +43,84 @@ impl Parser<'_, '_, '_> {
             .iter()
             .map(|part| match part {
                 StrPart::Text(t) => StrSeg::Text(t.clone()),
-                StrPart::Expr(toks) => StrSeg::Expr(self.interpolated(toks, span)),
+                StrPart::Expr {
+                    tokens,
+                    alignment,
+                    format,
+                } => {
+                    let value = self.interpolated(tokens, span);
+                    StrSeg::Expr(self.formatted(value, (alignment.as_deref(), format.as_deref())))
+                }
             })
             .collect()
+    }
+
+    /// A hole's value, formatted and padded as written: `{x,5:F2}` is
+    /// `x.ToString("F2").PadLeft(5)` (a negative alignment `PadRight`).
+    fn formatted(
+        &mut self,
+        value: Expr,
+        (alignment, format): (Option<&str>, Option<&str>),
+    ) -> Expr {
+        use yog_script_ids::members::{PAD_LEFT, PAD_RIGHT, TO_STRING};
+        let span = value.span;
+        let text = |s: &str| Expr {
+            kind: ExprKind::Str(vec![StrSeg::Text(s.to_string())]),
+            span,
+        };
+        let call = |on: Expr, name: &str, args: Vec<Expr>| Expr {
+            kind: ExprKind::Call {
+                callee: Box::new(Expr {
+                    kind: ExprKind::Member {
+                        expr: Box::new(on),
+                        name: Name {
+                            text: name.to_string(),
+                            span,
+                        },
+                        safe: false,
+                    },
+                    span,
+                }),
+                args: args
+                    .into_iter()
+                    .map(|value| Arg {
+                        name: None,
+                        pass: None,
+                        value,
+                    })
+                    .collect(),
+            },
+            span,
+        };
+        let mut out = match format {
+            Some(f) => call(value, TO_STRING, vec![text(f)]),
+            None if alignment.is_some() => call(value, TO_STRING, Vec::new()),
+            None => value,
+        };
+        if let Some(a) = alignment {
+            let Ok(width) = a.parse::<i64>() else {
+                self.report.error(
+                    yog_ids::script_problem::EXPECTED,
+                    span,
+                    format!("a hole's alignment is a whole number, not `{a}`"),
+                );
+                return out;
+            };
+            let (pad, by) = if width < 0 {
+                (PAD_RIGHT, -width)
+            } else {
+                (PAD_LEFT, width)
+            };
+            out = call(
+                out,
+                pad,
+                vec![Expr {
+                    kind: ExprKind::Int(by),
+                    span,
+                }],
+            );
+        }
+        out
     }
 
     fn interpolated(&mut self, toks: &[Token], span: Span) -> Expr {

@@ -27,5 +27,6 @@ public final class DecimalCompanion {
         d.Method("CompareTo", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.CompareTo((java.math.BigDecimal) o, (java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class)).Takes("value", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
         d.Method("Equals", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.Equals((java.math.BigDecimal) o, (java.math.BigDecimal) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Decimal.class), false);
         d.Method("ToString", dev.yog.script.reflection.MemberInfo.VIRTUAL, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.ToString((java.math.BigDecimal) o)).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class));
+        d.Method("ToString", 0, new String[] {  }, (o, a) -> dev.yog.script.host.Decimal.ToString((java.math.BigDecimal) o, (String) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.String.class)).Takes("format", dev.yog.script.Type.Of(dev.yog.script.host.String.class), false);
     }
 }

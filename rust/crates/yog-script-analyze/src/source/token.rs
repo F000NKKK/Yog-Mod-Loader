@@ -13,7 +13,13 @@ pub const QUOTE: char = '\'';
 #[derive(Debug, Clone, PartialEq)]
 pub enum StrPart {
     Text(String),
-    Expr(Vec<Token>),
+    /// `{expr,alignment:format}`: the expression's tokens, then what pads
+    /// and formats its value, as written (C#'s composite format).
+    Expr {
+        tokens: Vec<Token>,
+        alignment: Option<String>,
+        format: Option<String>,
+    },
 }
 
 /// What a token is.

@@ -35,6 +35,11 @@ public final class UInt32 {
         return value == obj;
     }
 
+    /** Written by .NET format string {@code format} ({@code F2}, {@code X8}, {@code 0.00}). */
+    public static java.lang.String ToString(long value, java.lang.String format) {
+        return NumberFormats.integer(value, Integer.SIZE, false, format);
+    }
+
     public static java.lang.String ToString(long value) {
         return java.lang.String.valueOf(value);
     }

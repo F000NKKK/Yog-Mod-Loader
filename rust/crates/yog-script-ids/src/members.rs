@@ -6,6 +6,9 @@
 pub const EQUALS: &str = "Equals";
 pub const GET_HASH_CODE: &str = "GetHashCode";
 pub const TO_STRING: &str = "ToString";
+/// `string`'s padding: what a hole's alignment (`{n,5}`) is written as.
+pub const PAD_LEFT: &str = "PadLeft";
+pub const PAD_RIGHT: &str = "PadRight";
 pub const GET_TYPE: &str = "GetType";
 
 // An async sequence's walk (`await foreach`): made, stepped, read, let go.
