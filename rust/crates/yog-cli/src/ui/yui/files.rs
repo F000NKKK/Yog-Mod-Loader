@@ -142,6 +142,7 @@ pub fn generate_all(root: &Path) -> Result<Generated, Diagnostic> {
             && !wanted.contains(&stale)
             && stale != res_index
             && stale != content_file
+            && stale != crate::project::script_lib::root_file(root)
             && !stale.starts_with(&content_parts)
             && !stale.starts_with(&res_dir)
         {

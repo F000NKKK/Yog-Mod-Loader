@@ -27,16 +27,21 @@ pub fn has_rust(root: &Path) -> bool {
     root.join(SOURCES_DIR).join(RUST_LIB).is_file()
 }
 
+/// The generated root's file in the mod at `root` (what cleaning up
+/// generated code leaves alone).
+pub fn root_file(root: &Path) -> std::path::PathBuf {
+    root.join(yog_ids::project::OBJ)
+        .join(generated_dir())
+        .join(FILE)
+}
+
 /// Writes the generated root when the mod has no `src/lib.rs` (only when
 /// it changed); `content`: whether the build generated content code.
 pub fn write(root: &Path, content: bool) -> Result<(), String> {
     if has_rust(root) {
         return Ok(());
     }
-    let file = root
-        .join(yog_ids::project::OBJ)
-        .join(generated_dir())
-        .join(FILE);
+    let file = root_file(root);
     if let Some(dir) = file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }

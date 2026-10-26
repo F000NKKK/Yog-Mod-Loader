@@ -512,7 +512,9 @@ impl<'a> Build<'a> {
             defs,
             textures: self.shared.own_textures,
         };
+        // A mod without Rust has the generated root calling it.
         if content.registers_anything()
+            && crate::project::script_lib::has_rust(self.shared.root)
             && !mentions_content_macro(&self.shared.root.join(yog_ids::project::SRC))
         {
             self.out.warnings.push(caveat("the mod has content (blocks, items, particles, videos, …), but src/ never calls `yog_api::content!();` — it isn't registered"));
