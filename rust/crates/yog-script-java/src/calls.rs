@@ -58,9 +58,6 @@ impl Gen<'_> {
         let Some((from, used)) = used.and_then(|u| u.rest_from.map(|k| (k, u))) else {
             return self.args(args);
         };
-        let from = from.min(args.len());
-        let head = self.args(&args[..from]);
-        let tail = self.args(&args[from..]);
         // Its item type: an argument's as taken, else the array's declared.
         let item = used
             .taken
@@ -71,9 +68,26 @@ impl Gen<'_> {
                 _ => None,
             })
             .unwrap_or(Type::Unknown);
-        let java = self.java(&item, false);
+        self.packed_args(args, from, &item)
+    }
+
+    /// `new` expression `e`'s arguments, its constructor's `params` ones
+    /// packed as a call's are.
+    pub(crate) fn new_args(&mut self, e: &Expr, args: &[Arg]) -> String {
+        match self.types.constructor_rest(e).cloned() {
+            Some((from, item)) => self.packed_args(args, from, &item),
+            None => self.args(args),
+        }
+    }
+
+    /// `args`, those from `from` on packed in an array of `item`.
+    fn packed_args(&mut self, args: &[Arg], from: usize, item: &Type) -> String {
+        let from = from.min(args.len());
+        let head = self.args(&args[..from]);
+        let tail = self.args(&args[from..]);
+        let java = self.java(item, false);
         // A type parameter's array is made as an object one (Java's).
-        let array = if crate::reified::names_parameter(&item) {
+        let array = if crate::reified::names_parameter(item) {
             format!("({java}[]) {NEW} {OBJECT}[] {{ {tail} }}")
         } else {
             format!("{NEW} {java}[] {{ {tail} }}")
@@ -400,7 +414,7 @@ impl Gen<'_> {
         args: &[Arg],
         init: &[(Name, Expr)],
     ) -> String {
-        let a = self.args(args);
+        let a = self.new_args(e, args);
         let t = match ty {
             Some(t) => self.written(t, true),
             None => self

@@ -26,6 +26,13 @@ impl Checker<'_, '_, '_> {
             let args: Vec<&Arg> = args.iter().collect();
             if let (_, Some(chosen)) = self.pick(&sigs, &given, &args, at) {
                 self.types.set_constructor(e, chosen.index);
+                if let Some(from) = chosen.rest_from {
+                    let item = match sigs[chosen.index].params.last() {
+                        Some(Type::Array(item, _)) => (**item).clone(),
+                        _ => Type::Unknown,
+                    };
+                    self.types.set_constructor_rest(e, from, item);
+                }
             }
         }
     }
@@ -54,11 +61,14 @@ impl Checker<'_, '_, '_> {
         Signature {
             params: params.iter().map(|p| self.type_of(&p.ty)).collect(),
             passes: params.iter().map(|p| p.pass).collect(),
-            required: params.iter().take_while(|p| p.default.is_none()).count(),
+            required: params
+                .iter()
+                .take_while(|p| p.default.is_none() && !p.params)
+                .count(),
             ret: Type::Void,
             generics: Vec::new(),
             bound: Default::default(),
-            rest: false,
+            rest: params.last().is_some_and(|p| p.params),
         }
     }
 }

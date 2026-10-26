@@ -32,6 +32,9 @@ pub struct Types {
     /// The constructor each `new T(…)` chose: which of the type's, its body's
     /// in order and then its primary one, by the `new`.
     constructors: HashMap<usize, usize>,
+    /// A `new` whose constructor's `params` takes its arguments from one on
+    /// (the call's expanded form): from where, and the array's item type.
+    constructor_rests: HashMap<usize, (usize, Type)>,
     /// The method each call chose, by the call.
     methods: HashMap<usize, MethodUse>,
     /// Calls across sides, by the call.
@@ -134,6 +137,16 @@ impl Types {
     /// Which of its type's constructors `new` expression `e` chose.
     pub fn constructor(&self, e: &Expr) -> Option<usize> {
         self.constructors.get(&key(e)).copied()
+    }
+
+    /// Where `new` expression `e`'s `params` arguments start, and their
+    /// item type, when it packs them.
+    pub fn constructor_rest(&self, e: &Expr) -> Option<&(usize, Type)> {
+        self.constructor_rests.get(&key(e))
+    }
+
+    pub(super) fn set_constructor_rest(&mut self, e: &Expr, from: usize, item: Type) {
+        self.constructor_rests.insert(key(e), (from, item));
     }
 
     pub(super) fn set_constructor(&mut self, e: &Expr, index: usize) {

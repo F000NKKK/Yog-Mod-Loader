@@ -457,3 +457,26 @@ fn lock_statements_hold_and_write_back() {
     };
     assert_eq!(out, "1001 1001");
 }
+
+/// A constructor's `params`: the arguments past the others packed, an
+/// array given for it as it is, none an empty one.
+#[test]
+fn constructor_params() {
+    let src = "public class Bag {\n\
+                   public i32 Count;\n\
+                   public string Name;\n\
+                   public Bag(string name, params i32[] items) { Name = name; Count = items.Length; }\n\
+               }\n\
+               public static class B {\n\
+                   public static string Run() {\n\
+                       let a = new Bag(\"a\", 1, 2, 3);\n\
+                       let b = new Bag(\"b\");\n\
+                       let c = new Bag(\"c\", new i32[] { 4, 5 });\n\
+                       return a.Count + \" \" + b.Count + \" \" + c.Count;\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("b.ys", src)], "t.BScript.B.Run()") else {
+        return;
+    };
+    assert_eq!(out, "3 0 2");
+}
