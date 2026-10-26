@@ -2,4 +2,5 @@
 package dev.yog.script.meta;
 
 public record Item(String Name, String Kind, dev.yog.script.collections.generic.List<dev.yog.script.meta.Field> Fields, String Source) {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.meta.Item.class, "System.Meta.Item", dev.yog.script.Type.CLASS, new String[] {  }, d -> {});
 }

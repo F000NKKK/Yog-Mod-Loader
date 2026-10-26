@@ -1,0 +1,64 @@
+namespace System;
+
+using System.Reflection;
+
+/// A type as a value — `typeof(T)`, `x.GetType()` — as .NET's
+/// `System.Type`: what it is, its type parameters and arguments, what it
+/// inherits; one object per type, so `==` tells them apart. Its
+/// description is its declaration's, written beside it by the compiler.
+[Intrinsic]
+public sealed class Type : MemberInfo {
+    /// Its name, a generic one's arity after a backtick (`List`1`), an
+    /// array's ranks after it (`Int32[]`).
+    public override string Name { get; }
+    public override Type? DeclaringType { get; }
+    public override MemberTypes MemberType { get; }
+    public string? Namespace { get; }
+    /// Its namespace and name, a constructed type's arguments after
+    /// (`System.Collections.Generic.List`1[[System.Int32]]`); `null` for a
+    /// type parameter.
+    public string? FullName { get; }
+    /// The class it inherits; `null` for `object`, an interface, a type parameter.
+    public Type? BaseType { get; }
+
+    public bool IsClass { get; }
+    public bool IsInterface { get; }
+    public bool IsValueType { get; }
+    public bool IsEnum { get; }
+    public bool IsArray { get; }
+    public bool IsAbstract { get; }
+    public bool IsSealed { get; }
+    /// A number, `bool` or `char` (not `decimal`, not `string`).
+    public bool IsPrimitive { get; }
+    /// Generic: a definition (`List<T>`) or one made of it (`List<i32>`).
+    public bool IsGenericType { get; }
+    public bool IsGenericTypeDefinition { get; }
+    public bool IsConstructedGenericType { get; }
+    /// A type parameter (`T`): its place among its type's.
+    public bool IsGenericParameter { get; }
+    public i32 GenericParameterPosition { get; }
+
+    /// A constructed type's arguments, a definition's parameters.
+    public Type[] GetGenericArguments();
+    /// The definition a generic type is made of (`List<T>` of `List<i32>`).
+    public Type GetGenericTypeDefinition();
+    /// This definition made of `typeArguments` (`List<T>` → `List<i32>`).
+    public Type MakeGenericType(Type[] typeArguments);
+    /// An array's items' type; `null` for what isn't an array.
+    public Type? GetElementType();
+    public i32 GetArrayRank();
+    /// An array of it (`T[]`); of `rank` (`T[,]`).
+    public Type MakeArrayType();
+    public Type MakeArrayType(i32 rank);
+    /// Every interface it implements, inherited ones too.
+    public Type[] GetInterfaces();
+
+    /// Whether a value of `c` can be held as this: the same type, one
+    /// inheriting or implementing it, anything for `object`.
+    public bool IsAssignableFrom(Type? c);
+    public bool IsInstanceOfType(object? o);
+    /// Whether it inherits class `c` (not itself, not an interface).
+    public bool IsSubclassOf(Type c);
+
+    public override string ToString();
+}

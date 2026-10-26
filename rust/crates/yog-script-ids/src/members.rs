@@ -6,6 +6,7 @@
 pub const EQUALS: &str = "Equals";
 pub const GET_HASH_CODE: &str = "GetHashCode";
 pub const TO_STRING: &str = "ToString";
+pub const GET_TYPE: &str = "GetType";
 
 // Collections (`List<T>`).
 pub const COUNT: &str = "Count";
@@ -52,3 +53,7 @@ pub const GROUP_BY: &str = "GroupBy";
 pub const JOIN: &str = "Join";
 pub const GROUP_JOIN: &str = "GroupJoin";
 pub const CAST: &str = "Cast";
+
+// `System.Type`'s: a generic type made of its arguments, an array of a type.
+pub const MAKE_GENERIC_TYPE: &str = "MakeGenericType";
+pub const MAKE_ARRAY_TYPE: &str = "MakeArrayType";

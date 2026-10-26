@@ -2,5 +2,6 @@
 package dev.yog.script;
 
 public interface IEquatable<T> {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.IEquatable.class, "System.IEquatable", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> {});
     boolean Equals(T other);
 }

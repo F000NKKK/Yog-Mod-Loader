@@ -2,6 +2,7 @@
 package dev.yog.script.yog.native_;
 
 public final class Service extends dev.yog.script.Attribute {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.yog.native_.Service.class, "System.Yog.Native.Service", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class)));
     public Service(String address) {
         super();
     }

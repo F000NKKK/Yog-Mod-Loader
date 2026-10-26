@@ -37,10 +37,11 @@ public final class Ys {
     }
 
     /**
-     * A type's own {@code x++} as a value: {@code x} as it was, read before
-     * {@code stepped} (its step's assignment, an argument after it) changed it.
+     * {@code was}, {@code then} evaluated after it: a type's own {@code x++}'s
+     * value ({@code x} as it was, before its step's assignment), a number's
+     * {@code GetType()} (its declared type, the value still read).
      */
-    public static <T> T before(T was, Object stepped) {
+    public static <T> T before(T was, Object then) {
         return was;
     }
 

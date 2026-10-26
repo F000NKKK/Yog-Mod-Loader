@@ -2,6 +2,7 @@
 package dev.yog.script;
 
 public abstract class Attribute {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Attribute.class, "System.Attribute", dev.yog.script.Type.CLASS | dev.yog.script.Type.ABSTRACT, new String[] {  }, d -> {});
     public Attribute() {
         super();
     }

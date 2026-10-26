@@ -53,6 +53,8 @@ pub(crate) struct Index {
     hosts: HashSet<String>,
     /// The `[Intrinsic]` types: the runtime's, written by hand.
     intrinsics: HashSet<String>,
+    /// Each type's namespace, as written (`System.Collections.Generic`).
+    namespaces: HashMap<String, String>,
     /// Each type's shape, for its methods' Java names.
     shapes: HashMap<crate::java_names::TypeRef, crate::java_names::Shape>,
 }
@@ -76,6 +78,15 @@ impl Index {
             match &d.kind {
                 DeclKind::Namespace { path, body: None } => {
                     self.namespace = path.iter().map(|n| n.text.clone()).collect();
+                }
+                DeclKind::Namespace {
+                    path,
+                    body: Some(body),
+                } => {
+                    let outer = self.namespace.clone();
+                    self.namespace.extend(path.iter().map(|n| n.text.clone()));
+                    self.walk(body);
+                    self.namespace = outer;
                 }
                 DeclKind::Delegate(m) => {
                     self.declared(&m.name.text, arity(&m.generics));
@@ -200,6 +211,10 @@ impl Index {
     /// Type `name` of `arity` declared here: its arity noted, and its
     /// package when it's the library's.
     fn declared(&mut self, name: &str, arity: usize) {
+        self.namespaces.insert(
+            name.to_string(),
+            self.namespace.join(yog_script_ids::system::NAMESPACE_SEP),
+        );
         self.arities
             .entry(name.to_string())
             .or_default()
@@ -265,6 +280,11 @@ impl Index {
         name: &crate::java_names::TypeRef,
     ) -> Option<&crate::java_names::Shape> {
         self.shapes.get(name)
+    }
+
+    /// Type `name`'s namespace (empty when it's in none).
+    pub fn namespace_of(&self, name: &str) -> &str {
+        self.namespaces.get(name).map_or("", String::as_str)
     }
 
     /// Whether type `name` is a `[Host]` one: a built-in type's members.

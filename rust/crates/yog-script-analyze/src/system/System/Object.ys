@@ -9,6 +9,8 @@ public class Object {
     public virtual bool Equals(object? obj);
     /// A number equal values share: what sets and dictionaries find them by.
     public virtual i32 GetHashCode();
+    /// What it is: its type (a generic object's definition on the JVM).
+    public Type GetType();
     /// The value as text.
     public virtual string ToString();
 }

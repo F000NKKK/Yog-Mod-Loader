@@ -2,6 +2,7 @@
 package dev.yog.script;
 
 public final class AttributeUsage extends dev.yog.script.Attribute {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.AttributeUsage.class, "System.AttributeUsage", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class)));
     public boolean AllowMultiple;
     public boolean Inherited;
     public AttributeUsage(dev.yog.script.AttributeTargets on) {

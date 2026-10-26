@@ -2,6 +2,7 @@
 package dev.yog.script.numerics;
 
 public final class Matrix4x4 implements dev.yog.script.IEquatable<dev.yog.script.numerics.Matrix4x4>, Cloneable {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.numerics.Matrix4x4.class, "System.Numerics.Matrix4x4", dev.yog.script.Type.STRUCT, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.numerics.Matrix4x4.class) })));
     public static final dev.yog.script.numerics.Matrix4x4 Identity = new dev.yog.script.numerics.Matrix4x4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
     public float M11;
     public float M12;

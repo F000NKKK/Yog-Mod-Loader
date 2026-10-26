@@ -3,7 +3,7 @@
 //! `Invoke`. The source's are nested in its class; the library's are the
 //! runtime's (`Action2`, by the CLR's arity rule: `Index::place`).
 
-use yog_script_analyze::ast::Method;
+use yog_script_analyze::ast::{Decl, Method};
 use yog_script_ids::clr::INVOKE;
 
 use super::Gen;
@@ -11,7 +11,7 @@ use crate::decls::generic_list;
 
 impl Gen<'_> {
     /// `delegate R Name<…>(params);` as a functional interface.
-    pub(crate) fn delegate_decl(&mut self, m: &Method) {
+    pub(crate) fn delegate_decl(&mut self, d: &Decl, m: &Method) {
         let place = self.index.place(&m.name.text, generics_of(m));
         let name = place.rsplit('.').next().unwrap_or(&place);
         let ret = m
@@ -25,6 +25,7 @@ impl Gen<'_> {
             "public {stat}interface {name}{}",
             generic_list(&m.generics)
         ));
+        self.describe(d);
         self.code.line(format!("{ret} {INVOKE}({params});"));
         self.code.close("");
     }

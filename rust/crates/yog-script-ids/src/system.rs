@@ -24,6 +24,9 @@ pub const FOLDER_SEP: char = '/';
 /// `Err(e)`), as Rust's prelude brings them.
 pub const RESULT: &str = "Result";
 
+/// What `typeof(T)` and `x.GetType()` give: a type as a value (`System.Type`).
+pub const TYPE: &str = "Type";
+
 /// The base of every attribute class.
 pub const ATTRIBUTE: &str = "Attribute";
 

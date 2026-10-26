@@ -3,4 +3,5 @@ package dev.yog.script;
 
 public enum AttributeTargets {
     Class, Struct, Enum, Interface, Method, Property, Field, Parameter, ReturnValue, Module, All;
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.AttributeTargets.class, "System.AttributeTargets", dev.yog.script.Type.ENUM, new String[] {  }, d -> {});
 }

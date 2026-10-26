@@ -2,6 +2,7 @@
 package dev.yog.script.numerics;
 
 public final class Vector3 implements dev.yog.script.IEquatable<dev.yog.script.numerics.Vector3>, Cloneable {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.numerics.Vector3.class, "System.Numerics.Vector3", dev.yog.script.Type.STRUCT, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.numerics.Vector3.class) })));
     public static final dev.yog.script.numerics.Vector3 Zero = new dev.yog.script.numerics.Vector3(0, 0, 0);
     public static final dev.yog.script.numerics.Vector3 One = new dev.yog.script.numerics.Vector3(1, 1, 1);
     public static final dev.yog.script.numerics.Vector3 UnitX = new dev.yog.script.numerics.Vector3(1, 0, 0);

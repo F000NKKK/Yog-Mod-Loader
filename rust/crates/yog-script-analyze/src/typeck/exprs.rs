@@ -34,6 +34,10 @@ impl Checker<'_, '_, '_> {
                 self.declare(ty.as_ref(), &name.text, *mutable)
             }
             ExprKind::NameOf(expr) => self.name_of(expr),
+            ExprKind::TypeOf(ty) => {
+                self.type_of(ty);
+                Type::own(yog_script_ids::system::TYPE)
+            }
             ExprKind::Move(expr) => self.expr(expr),
             ExprKind::Default(Some(ty)) => self.type_of(ty),
             ExprKind::Member { expr, name, safe } => {

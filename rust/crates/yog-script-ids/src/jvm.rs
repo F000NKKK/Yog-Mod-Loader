@@ -12,7 +12,8 @@ pub const HOST_PACKAGE: &str = "host";
 /// The runtime's helpers compiled code calls (`Ys.at`, `Ys.noArm`).
 pub const HELPERS: &str = "Ys";
 
-/// The helper giving a type's own `x++` its old value (`Ys.before(x, x = …)`).
+/// The helper giving a value with another evaluated after it: a type's own
+/// `x++`'s old value (`Ys.before(x, x = …)`), a number's `GetType()`.
 pub const BEFORE: &str = "before";
 
 /// What every mod's class implements, the runtime finding it by.
@@ -82,3 +83,36 @@ pub const BOXED: [(&str, &str); 8] = [
     (BOOLEAN, "Boolean"),
     (CHAR, "Character"),
 ];
+
+/// Reflection as compiled code reaches it: a type's description is in its
+/// class's `$TYPE` (`Type.Declare(…)`), a type as a value is `Type.Of(X.class)`.
+pub mod reflection {
+    /// `System.Type`'s class, in full: a source's own `Type` doesn't hide it.
+    pub const TYPE: &str = "dev.yog.script.Type";
+    pub const FIELD: &str = "$TYPE";
+    pub const OF: &str = "Of";
+    pub const DECLARE: &str = "Declare";
+    /// The description's: the class it inherits, an interface, a type parameter.
+    pub const BASE: &str = "Base";
+    pub const INTERFACE: &str = "Interface";
+    pub const PARAMETER: &str = "Parameter";
+    /// What a declared type is, `Type`'s flags.
+    pub const CLASS: &str = "CLASS";
+    pub const STRUCT: &str = "STRUCT";
+    pub const INTERFACE_TRAIT: &str = "INTERFACE";
+    pub const ENUM: &str = "ENUM";
+    pub const DELEGATE: &str = "DELEGATE";
+    pub const ABSTRACT: &str = "ABSTRACT";
+    pub const SEALED: &str = "SEALED";
+    pub const PRIMITIVE: &str = "PRIMITIVE";
+    /// The runtime's hand-written types' descriptions: a companion each
+    /// (`Int32Companion.TYPE`) in this package, found by their classes through
+    /// `Library.of`; `System.Array`'s and an array's interfaces' there too.
+    pub const PACKAGE: &str = "dev.yog.script.reflection.library";
+    pub const COMPANION_SUFFIX: &str = "Companion";
+    pub const COMPANION_FIELD: &str = "TYPE";
+    pub const LIBRARY: &str = "Library";
+    pub const LIBRARY_OF: &str = "of";
+    pub const LIBRARY_ARRAY: &str = "array";
+    pub const LIBRARY_ARRAY_INTERFACES: &str = "arrayInterfaces";
+}

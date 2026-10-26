@@ -2,5 +2,6 @@
 package dev.yog.script;
 
 public interface IComparable<T> {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.IComparable.class, "System.IComparable", dev.yog.script.Type.INTERFACE, new String[] { "T" }, d -> {});
     int CompareTo(T other);
 }

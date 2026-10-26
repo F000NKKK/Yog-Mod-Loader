@@ -3,5 +3,6 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface Action6<T1, T2, T3, T4, T5, T6> {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Action6.class, "System.Action", dev.yog.script.Type.DELEGATE, new String[] { "T1", "T2", "T3", "T4", "T5", "T6" }, d -> {});
     void Invoke(T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6);
 }

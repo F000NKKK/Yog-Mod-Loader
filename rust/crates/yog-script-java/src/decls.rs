@@ -69,7 +69,7 @@ impl Gen<'_> {
                 self.property_accessors(place, (&t, &n), accessors);
             }
             DeclKind::Indexer(ix) => self.indexer(d, ix, place),
-            DeclKind::Delegate(m) => self.delegate_decl(m),
+            DeclKind::Delegate(m) => self.delegate_decl(d, m),
             DeclKind::Operator(op) => self.method(d, &op.method, place),
             DeclKind::Type {
                 word,
@@ -84,7 +84,7 @@ impl Gen<'_> {
                 variants,
                 body,
                 ..
-            } => self.enum_decl(&name.text, generics, variants, body),
+            } => self.enum_decl(d, (&name.text, generics), variants, body),
             DeclKind::Mod { name, body } => self.mod_class(d, &name.text, body),
             DeclKind::Namespace {
                 body: Some(body), ..
@@ -216,7 +216,7 @@ impl Gen<'_> {
         body: &[Decl],
     ) {
         match self.index.kind(name) {
-            Some(Kind::Record) => self.record(name, header, body),
+            Some(Kind::Record) => self.record(d, name, header, body),
             Some(Kind::Interface) => {
                 let bases = header
                     .bases
@@ -232,6 +232,7 @@ impl Gen<'_> {
                     "public interface {name}{}{extends}",
                     generic_list(&header.generics)
                 ));
+                self.describe(d);
                 self.members(body, Place::Interface);
                 self.code.close("");
             }
@@ -242,18 +243,19 @@ impl Gen<'_> {
         }
     }
 
-    fn record(&mut self, name: &str, header: &TypeHeader, body: &[Decl]) {
+    fn record(&mut self, d: &Decl, name: &str, header: &TypeHeader, body: &[Decl]) {
         let params = self.params(header.ctor.as_deref().unwrap_or_default());
         let implements = self.implements(&header.bases);
         self.code.open(format!(
             "public record {name}{}({params}){implements}",
             generic_list(&header.generics)
         ));
-        for d in body {
-            if matches!(d.kind, DeclKind::Field(_)) {
-                self.not_yet("a record's own field", decl_span(d));
+        self.describe(d);
+        for member in body {
+            if matches!(member.kind, DeclKind::Field(_)) {
+                self.not_yet("a record's own field", decl_span(member));
             } else {
-                self.decl(d, Place::Fixed);
+                self.decl(member, Place::Fixed);
             }
         }
         self.code.close("");

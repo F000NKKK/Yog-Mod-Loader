@@ -3,4 +3,5 @@ package dev.yog.script;
 
 public enum DayOfWeek {
     Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday;
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.DayOfWeek.class, "System.DayOfWeek", dev.yog.script.Type.ENUM, new String[] {  }, d -> {});
 }

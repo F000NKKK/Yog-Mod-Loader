@@ -177,6 +177,48 @@ delegate type: `+=` / `-=` subscribe and leave, `Invoke` (or `?.Invoke`)
 raises it. Yog's events (`Player.Join += e => …`) are `event`s of the
 surface's delegates.
 
+## Reflection and expression trees
+
+As .NET's: `System.Type` (`typeof(T)`, `x.GetType()`), and in
+`System.Reflection` `MemberInfo`, `FieldInfo`, `PropertyInfo`,
+`MethodInfo`, `ConstructorInfo`, `ParameterInfo`, `BindingFlags`, the
+attributes read by `GetCustomAttributes<T>()`; in
+`System.Linq.Expressions` `Expression<TDelegate>` and its nodes.
+
+**What a type is comes from its declaration, never from Java.** Java's
+classes know Java's names (`Integer`, `ValueTuple2`, `ISet$Add`), not Yog
+Script's (`Int32`, `ValueTuple<T1, T2>`, `Add`), and erase generics. So
+the compiler writes, beside every type it compiles, its description: a
+`$TYPE` (`dev.yog.script.Type`) of its name, namespace, kind, type
+parameters, base and interfaces, and — built when first asked for — its
+members, each in Yog Script's terms (its name, its types as `Type`s, its
+attributes as the objects they are), each with what reads, writes or
+calls it (a lambda written next to the member, so `private` ones are
+reached as C#'s `BindingFlags.NonPublic` reaches them). The library's
+types get theirs the same way; the runtime's hand-written ones
+(`[Intrinsic]`, `[Host]`) from a generated companion (`*Type` in
+`dev.yog.script.reflection.library`), made from their `.ys` declarations
+— one truth, no tables.
+
+At run time `Type.Of(x)` finds a value's `Type` by its class (its
+`$TYPE`, or the library's companion: `Integer` is `Int32`). A Java class
+Yog Script doesn't declare is seen by its Java name, without members.
+
+On the JVM an object doesn't keep its generic arguments: `typeof(List<i32>)`
+has them, as written; `xs.GetType()` of a `List<i32>` gives `List<T>`'s
+definition (not there yet: objects carrying the arguments they were made
+with). A generic method's `MethodInfo` is
+called erased (`MakeGenericMethod` gives the same method).
+
+**Expression trees**: a lambda given where an `Expression<Func<…>>` is
+wanted is compiled twice — as the tree of its nodes (`ParameterExpression`,
+`ConstantExpression`, `MemberExpression`, `MethodCallExpression`,
+`BinaryExpression`, `UnaryExpression`, `ConditionalExpression`,
+`NewExpression`, `LambdaExpression`, each with its `NodeType` and `Type`,
+members as `MemberInfo`s) and as the lambda itself, which is what
+`Compile()` gives. Trees made by hand (`Expression.Add(…)`) are compiled by
+an interpreter of the nodes.
+
 ## Steps
 
 0. The language under the library (done): indexers, `value` / `field`,
@@ -258,4 +300,9 @@ surface's delegates.
    written as .NET writes them: `2`, `1E+20`, `True`, `∞`), `TimeSpan`, `DateTime` with `DayOfWeek`, `Void` (done), `System.Numerics`' vectors
    (done, matrices and quaternions too); query syntax (done: every clause, more
    than one range variable carried as a tuple, C#'s transparent identifiers).
-4. `System.Reflection`, `System.Linq.Expressions`.
+4. `System.Reflection`, `System.Linq.Expressions`: `System.Type`
+   (done: `typeof`, `GetType()`, names as the CLR writes them, generics
+   and arrays made, what a type inherits, `$TYPE` beside each compiled
+   type, companions of the runtime's); members (`FieldInfo`,
+   `PropertyInfo`, `MethodInfo`, `ConstructorInfo`) next, then attributes,
+   then expression trees.

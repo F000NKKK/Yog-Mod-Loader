@@ -1,0 +1,12 @@
+namespace System.Reflection;
+
+/// A type's member — a field, a property, a method, a constructor, a
+/// nested type, the type itself — as Reflection sees it: .NET's
+/// `MemberInfo`.
+[Intrinsic]
+public abstract class MemberInfo {
+    public abstract string Name { get; }
+    /// The type declaring it; `null` for a type not nested in one.
+    public abstract Type? DeclaringType { get; }
+    public abstract MemberTypes MemberType { get; }
+}

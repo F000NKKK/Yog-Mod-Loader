@@ -113,6 +113,13 @@ impl Gen<'_> {
                 format!("({v} instanceof {t} {tmp} ? {tmp} : null)")
             }
             ExprKind::NameOf(inner) => self.code.str(&last_name(inner)),
+            ExprKind::TypeOf(ty) => match self.type_value(ty, &|_| None) {
+                Some(v) => v,
+                None => {
+                    self.not_yet("`typeof` of a type parameter", e.span);
+                    String::new()
+                }
+            },
             ExprKind::Macro { name, args } => self.macro_call(e, &name.text, args),
             ExprKind::Default(_) => self.types.of(e).map_or("null", |t| zero(t)).to_string(),
             _ => {

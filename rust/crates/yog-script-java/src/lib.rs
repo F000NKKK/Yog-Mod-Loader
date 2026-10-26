@@ -20,6 +20,7 @@ mod indexers;
 mod java_names;
 mod library;
 mod operators;
+mod reflection;
 mod reified;
 mod stmts;
 mod switch;

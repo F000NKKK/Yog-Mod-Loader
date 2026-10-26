@@ -231,6 +231,17 @@ impl Gen<'_> {
         let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
         let n = self.called_name(e, name);
+        // A number's `GetType()`: its type as declared, read after the
+        // value is — Java's box can't tell a `u8` from an `i32`.
+        if name == yog_script_ids::members::GET_TYPE
+            && let Some(t) = on_type
+                .as_ref()
+                .filter(|t| crate::types::primitive(t).is_some())
+            && let Some(v) = self.value_of(t)
+        {
+            use yog_script_ids::jvm::{BEFORE, HELPERS};
+            return format!("{RUNTIME}.{HELPERS}.{BEFORE}({v}, {target})");
+        }
         // An extension method: its type's static, the receiver first.
         if let Some(owner) = self
             .types

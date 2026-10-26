@@ -2,6 +2,7 @@
 package dev.yog.script;
 
 public final class TimeSpan implements dev.yog.script.IEquatable<dev.yog.script.TimeSpan>, dev.yog.script.IComparable<dev.yog.script.TimeSpan>, Cloneable {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.TimeSpan.class, "System.TimeSpan", dev.yog.script.Type.STRUCT, new String[] {  }, d -> d.Interface(dev.yog.script.Type.Of(dev.yog.script.IEquatable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class) })).Interface(dev.yog.script.Type.Of(dev.yog.script.IComparable.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.TimeSpan.class) })));
     public static final long NanosecondsPerTick = 100L;
     public static final long TicksPerMicrosecond = 10L;
     public static final long TicksPerMillisecond = 10000L;

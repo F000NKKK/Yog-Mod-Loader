@@ -2,4 +2,5 @@
 package dev.yog.script.collections.generic;
 
 public record KeyValuePair<TKey, TValue>(TKey Key, TValue Value) {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.collections.generic.KeyValuePair.class, "System.Collections.Generic.KeyValuePair", dev.yog.script.Type.STRUCT, new String[] { "TKey", "TValue" }, d -> {});
 }

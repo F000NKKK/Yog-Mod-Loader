@@ -2,6 +2,7 @@
 package dev.yog.script;
 
 public final class Obsolete extends dev.yog.script.Attribute {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Obsolete.class, "System.Obsolete", dev.yog.script.Type.CLASS | dev.yog.script.Type.SEALED, new String[] {  }, d -> d.Base(dev.yog.script.Type.Of(dev.yog.script.Attribute.class)));
     public Obsolete(String message) {
         super();
     }

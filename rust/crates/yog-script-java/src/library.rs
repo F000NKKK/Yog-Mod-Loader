@@ -2,7 +2,8 @@
 //! whole — its delegates, classes, enums, attributes — a file each, at its
 //! place in the runtime (`dev/yog/script/Action2.java`). The library is
 //! compiled by the compiler it's the library of; a type marked `[Intrinsic]`
-//! (`Result`, `Math`) is the runtime's, written by hand.
+//! (`Result`, `Math`) is the runtime's, written by hand; its description
+//! for Reflection is written as a companion.
 
 use yog_data::Diagnostic;
 use yog_script_analyze::ast::{Decl, DeclKind};
@@ -12,9 +13,10 @@ use yog_script_analyze::{Types, check};
 use super::Gen;
 use crate::decls::Place;
 use crate::index::Index;
+use crate::reflection::Companions;
 
 /// What the library's generated files say they come from.
-const SOURCE: &str = "the System library";
+pub(crate) const SOURCE: &str = "the System library";
 /// A Java source's extension, and what separates a package's names.
 const JAVA_EXT: &str = ".java";
 const PACKAGE_SEP: char = '.';
@@ -32,15 +34,23 @@ pub struct JavaFile {
 pub fn library() -> Result<Vec<JavaFile>, Vec<Diagnostic>> {
     let mut files = Vec::new();
     let mut problems = Vec::new();
+    let mut companions = Companions::default();
     for (path, src) in system::sources() {
         let mut checked = check(path, src);
         problems.append(&mut checked.problems);
-        for (d, name, arity) in checked.file.decls.iter().filter_map(written_here) {
+        for (d, name, arity) in checked.file.decls.iter().filter_map(type_named) {
+            if is_intrinsic(d) {
+                let mut g = library_gen(&checked.types, (path, src));
+                files.push(companions.add(&mut g, d, (name, arity)));
+                continue;
+            }
             let (file, mut said) = java_file(&checked.types, d, (path, src), (name, arity));
             problems.append(&mut said);
             files.push(file);
         }
     }
+    let none = Types::default();
+    files.push(companions.library(&mut library_gen(&none, (SOURCE, ""))));
     if problems.is_empty() {
         Ok(files)
     } else {
@@ -55,8 +65,7 @@ fn java_file(
     source: (&str, &str),
     (name, arity): (&str, usize),
 ) -> (JavaFile, Vec<Diagnostic>) {
-    let mut g = Gen::new(types, Index::collect(&[]), source.0, source.1);
-    g.nested = false;
+    let mut g = library_gen(types, source);
     let place = g.index.place(name, arity);
     let package = place.rsplit_once(PACKAGE_SEP).map_or("", |(p, _)| p);
     g.code.line(format!(
@@ -74,12 +83,15 @@ fn java_file(
     (file, std::mem::take(&mut g.report.out))
 }
 
-/// A library declaration the compiler writes: a type, not the runtime's;
-/// its name and arity.
-fn written_here(d: &Decl) -> Option<(&Decl, &str, usize)> {
-    if is_intrinsic(d) {
-        return None;
-    }
+/// A generator of the library's files, for `source` (`types` its types).
+fn library_gen<'c>(types: &'c Types, source: (&'c str, &'c str)) -> Gen<'c> {
+    let mut g = Gen::new(types, Index::collect(&[]), source.0, source.1);
+    g.nested = false;
+    g
+}
+
+/// A library declaration that's a type: its name and arity.
+fn type_named(d: &Decl) -> Option<(&Decl, &str, usize)> {
     let (name, generics) = match &d.kind {
         DeclKind::Delegate(m) => (&m.name, &m.generics),
         DeclKind::Type { name, header, .. } => (name, &header.generics),

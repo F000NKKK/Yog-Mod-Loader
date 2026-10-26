@@ -69,6 +69,7 @@ impl Gen<'_> {
             "public {stat}{lead}class {name}{}{extends}{implements}",
             generic_list(&header.generics)
         ));
+        self.describe(d);
         self.constants(body);
         for f in fields(body) {
             self.code.line(format!(
@@ -226,8 +227,8 @@ impl Gen<'_> {
 
     pub(crate) fn enum_decl(
         &mut self,
-        name: &str,
-        generics: &[Generic],
+        d: &Decl,
+        (name, generics): (&str, &[Generic]),
         variants: &[Variant],
         body: &[Decl],
     ) {
@@ -235,6 +236,7 @@ impl Gen<'_> {
             let cases: Vec<String> = variants.iter().map(|v| Self::ident(&v.name.text)).collect();
             self.code.open(format!("public enum {name}"));
             self.code.line(format!("{};", cases.join(", ")));
+            self.describe(d);
             self.members(body, Place::Fixed);
             self.code.close("");
             return;
@@ -248,6 +250,7 @@ impl Gen<'_> {
             "public sealed interface {name}{g} permits {}",
             cases.join(", ")
         ));
+        self.describe(d);
         for v in variants {
             let fields = self.params(&v.fields);
             self.code.line(format!(

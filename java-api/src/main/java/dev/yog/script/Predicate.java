@@ -3,5 +3,6 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface Predicate<T> {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.Predicate.class, "System.Predicate", dev.yog.script.Type.DELEGATE, new String[] { "T" }, d -> {});
     boolean Invoke(T obj);
 }

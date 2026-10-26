@@ -2,6 +2,7 @@
 package dev.yog.script;
 
 public class EventArgs {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.EventArgs.class, "System.EventArgs", dev.yog.script.Type.CLASS, new String[] {  }, d -> {});
     public static final dev.yog.script.EventArgs Empty = new dev.yog.script.EventArgs();
     public EventArgs() {
         super();

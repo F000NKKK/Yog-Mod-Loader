@@ -17,6 +17,10 @@ public final class Object {
         return java.util.Objects.hashCode(value);
     }
 
+    public static dev.yog.script.Type GetType(java.lang.Object value) {
+        return dev.yog.script.Type.Of(value);
+    }
+
     public static java.lang.String ToString(java.lang.Object value) {
         return java.lang.String.valueOf(value);
     }

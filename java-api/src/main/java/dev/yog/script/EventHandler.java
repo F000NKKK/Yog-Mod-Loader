@@ -3,5 +3,6 @@ package dev.yog.script;
 
 @FunctionalInterface
 public interface EventHandler {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.EventHandler.class, "System.EventHandler", dev.yog.script.Type.DELEGATE, new String[] {  }, d -> {});
     void Invoke(Object sender, dev.yog.script.EventArgs e);
 }

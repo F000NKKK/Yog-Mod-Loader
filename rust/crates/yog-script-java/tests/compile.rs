@@ -222,6 +222,27 @@ fn arrays_are_javas() {
 }
 
 #[test]
+fn types_are_described_beside_them() {
+    let src = "namespace My.Mod;\ninterface IShape {}\nclass Box<T> : IShape {\n    public T Item;\n}\n\
+               bool Same(object o) => o.GetType() == typeof(Box<i32>);\n\
+               Type Array() => typeof(string[]);\n\
+               Type Small(u8 b) => b.GetType();\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        // Its description: its name as declared, what it is, its parameters, its bases.
+        "public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(Box.class, \"My.Mod.Box\", dev.yog.script.Type.CLASS, new String[] { \"T\" }, d -> d.Interface(dev.yog.script.Type.Of(IShape.class)));",
+        "dev.yog.script.Type.Declare(IShape.class, \"My.Mod.IShape\", dev.yog.script.Type.INTERFACE",
+        "dev.yog.script.host.Object.GetType(o)",
+        "dev.yog.script.Type.Of(Box.class).MakeGenericType(new dev.yog.script.Type[] { dev.yog.script.Type.Of(dev.yog.script.host.Int32.class) })",
+        "dev.yog.script.Type.Of(dev.yog.script.host.String.class).MakeArrayType(1)",
+        // A number's: as declared, Java's `int` can't say `u8`.
+        "dev.yog.script.Ys.before(dev.yog.script.Type.Of(dev.yog.script.host.Byte.class), b)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));

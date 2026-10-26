@@ -2,5 +2,6 @@
 package dev.yog.script;
 
 public interface IDisposable {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.IDisposable.class, "System.IDisposable", dev.yog.script.Type.INTERFACE, new String[] {  }, d -> {});
     void Dispose();
 }

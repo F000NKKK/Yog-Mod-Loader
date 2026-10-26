@@ -2,6 +2,7 @@
 package dev.yog.script;
 
 public final class ValueTuple1<T1> implements Cloneable {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.ValueTuple1.class, "System.ValueTuple", dev.yog.script.Type.STRUCT, new String[] { "T1" }, d -> {});
     public T1 Item1;
     public ValueTuple1(T1 item1) {
         super();

@@ -151,6 +151,21 @@ fn read_only_collections_are_read_through_in() {
 }
 
 #[test]
+fn types_are_values() {
+    let ok = "class Box<T> {\n    public T Item;\n}\n\
+              bool Same(object o) => o.GetType() == typeof(Box<i32>) || typeof(List<string>).IsGenericType;\n\
+              string Name(Box<string> b) => b.GetType().Name + typeof(i32[]).FullName + typeof(i32).Namespace;\n\
+              bool Kinds(Type t) => t.IsAssignableFrom(typeof(string)) && t.GetGenericArguments().Length == 1;\n";
+    let problems = check("a.ys", ok).problems;
+    assert!(problems.is_empty(), "{problems:#?}");
+    // A type isn't a string.
+    assert_eq!(
+        codes("string F() => typeof(i32);\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+#[test]
 fn collections_are_the_librarys_own() {
     let ok = "i32 Sum(List<i32> xs) {\n    let mut total = 0;\n    foreach (let x in xs) {\n        total += x;\n    }\n    return total + xs.Count + xs[0];\n}\n\
               bool Has(Dictionary<string, i32> ages, string name) => ages.ContainsKey(name) && ages[name] > 3;\n\

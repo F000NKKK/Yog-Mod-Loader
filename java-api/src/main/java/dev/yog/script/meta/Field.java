@@ -2,4 +2,5 @@
 package dev.yog.script.meta;
 
 public record Field(String Name, String Type) {
+    public static final dev.yog.script.Type $TYPE = dev.yog.script.Type.Declare(dev.yog.script.meta.Field.class, "System.Meta.Field", dev.yog.script.Type.CLASS, new String[] {  }, d -> {});
 }
