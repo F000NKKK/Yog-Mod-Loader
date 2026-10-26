@@ -22,6 +22,7 @@ mod java_names;
 mod kept;
 mod library;
 mod operators;
+mod patterns;
 mod reflection;
 mod reified;
 mod stmts;

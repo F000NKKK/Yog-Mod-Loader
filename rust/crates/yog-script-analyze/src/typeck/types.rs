@@ -25,6 +25,8 @@ pub struct Types {
     /// The lambdas given where an expression tree is wanted
     /// (`Expression<Func<i32, bool>>`), by the lambda.
     quoted: HashMap<usize, Quoted>,
+    /// The type of each name a pattern binds (`let r`, `Monster m`), by the name.
+    bindings: HashMap<usize, Type>,
     /// The constructor each `new T(…)` chose: which of the type's, its body's
     /// in order and then its primary one, by the `new`.
     constructors: HashMap<usize, usize>,
@@ -93,6 +95,15 @@ impl Types {
     }
 
     /// The method call `e` chose, when it's an own one.
+    /// The type of name `n` a pattern binds.
+    pub fn binding(&self, n: &crate::ast::Name) -> Option<&Type> {
+        self.bindings.get(&(std::ptr::from_ref(n) as usize))
+    }
+
+    pub(super) fn set_binding(&mut self, n: &crate::ast::Name, t: Type) {
+        self.bindings.insert(std::ptr::from_ref(n) as usize, t);
+    }
+
     /// Which of its type's constructors `new` expression `e` chose.
     pub fn constructor(&self, e: &Expr) -> Option<usize> {
         self.constructors.get(&key(e)).copied()

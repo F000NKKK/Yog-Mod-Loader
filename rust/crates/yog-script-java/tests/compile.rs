@@ -391,6 +391,27 @@ fn generic_objects_keep_their_arguments() {
 }
 
 #[test]
+fn patterns_are_conditions() {
+    let src = "enum Mode { Idle, Charging(i32 Rate), Full }\n\
+               class Monster(i32 health) {\n    public i32 Health = health;\n}\n\
+               string Kind(i32 n) => n switch {\n    0 or 1 => \"small\",\n    > 1 and < 10 => \"mid\",\n    _ => \"big\",\n};\n\
+               string Pair((i32, string) p) => p switch {\n    (0, let s) => s,\n    _ => \"other\",\n};\n\
+               bool Weak(object o) => o is Monster { Health: < 5 };\n\
+               i32 Fast(Mode m) {\n    if (m is Mode.Charging(let r) && r > 3) {\n        return r;\n    }\n    return 0;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "if ((java.util.Objects.equals($t",
+        ".Item1, 0)) {",
+        "instanceof Monster $t",
+        // A name an `is` binds: declared before, assigned in the condition.
+        "int r;",
+        "dev.yog.script.Ys.bound(r = $t",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));

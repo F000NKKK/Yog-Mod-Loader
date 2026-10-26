@@ -57,10 +57,14 @@ impl Checker<'_, '_, '_> {
         result
     }
 
-    /// The names an arm's pattern binds, typed by the value it matches.
-    fn bind_arm(&mut self, p: &Pattern, on: &Type) {
+    /// The names pattern `p` binds (an arm's, an `is`'s), typed by the
+    /// value it matches.
+    pub(super) fn bind_arm(&mut self, p: &Pattern, on: &Type) {
         match p {
-            Pattern::Let(n) => self.bind_as(&n.text, on.clone(), true),
+            Pattern::Let(n) => {
+                self.types.set_binding(n, on.clone());
+                self.bind_as(&n.text, on.clone(), true);
+            }
             Pattern::Variant { path, args } => {
                 let (fields, context) = match (on.non_null(), path.last()) {
                     (Type::Own(of, of_args), Some(case)) => (
@@ -85,6 +89,25 @@ impl Checker<'_, '_, '_> {
             Pattern::Or(a, b) | Pattern::And(a, b) => {
                 self.bind_arm(a, on);
                 self.bind_arm(b, on);
+            }
+            // `(let a, 0)`: each item's pattern on its item.
+            Pattern::Tuple(items) => {
+                let types = match on.non_null() {
+                    Type::Tuple(types, _) => types.clone(),
+                    _ => Vec::new(),
+                };
+                for (i, item) in items.iter().enumerate() {
+                    let t = types.get(i).cloned().unwrap_or(Type::Unknown);
+                    self.bind_arm(item, &t);
+                }
+            }
+            // `Monster { Health: let h }`: each member's pattern on the member.
+            Pattern::Property { ty, fields } => {
+                let t = ty.as_ref().map_or_else(|| on.clone(), |t| self.type_of(t));
+                for (name, field) in fields {
+                    let ft = self.own_member(&t, &name.text);
+                    self.bind_arm(field, &ft);
+                }
             }
             _ => self.bind_pattern(p),
         }

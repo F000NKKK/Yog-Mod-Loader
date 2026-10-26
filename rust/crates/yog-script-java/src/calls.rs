@@ -24,14 +24,31 @@ impl Gen<'_> {
     pub(crate) fn member(&mut self, e: &Expr, on: &Expr, name: &str, safe: bool) -> String {
         let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
-        let host = on_type.as_ref().and_then(|t| self.index.host(t));
-        let member = match on_type.as_ref().map(Type::non_null) {
+        let read = self.member_of(&target, on_type.as_ref(), name, safe);
+        match on_type.as_ref().map(Type::non_null) {
+            Some(Type::Yog(_)) => self.viewed(e, read),
+            _ => read,
+        }
+    }
+
+    /// Member `name` of `target` (of type `on_type`) read: a field, a
+    /// property's getter, a built-in's companion's, a tuple's item;
+    /// `safe` (`?.`): `null` when `target` is.
+    pub(crate) fn member_of(
+        &mut self,
+        target: &str,
+        on_type: Option<&Type>,
+        name: &str,
+        safe: bool,
+    ) -> String {
+        let host = on_type.and_then(|t| self.index.host(t));
+        let member = match on_type.map(Type::non_null) {
             Some(Type::Static(of, _)) => return self.static_member(of, name),
             // A built-in type's property: its companion's static, the value first.
             Some(t) if let Some(host) = host => {
                 let n = Self::ident(name);
                 let rank = array_rank(t);
-                return self.maybe_null(&target, safe, |v| format!("{host}.{n}({v}{rank})"));
+                return self.maybe_null(target, safe, |v| format!("{host}.{n}({v}{rank})"));
             }
             Some(Type::Own(of, args)) if self.index.called(&(of.clone(), args.len()), name) => {
                 Some(format!("{}()", Self::ident(name)))
@@ -41,11 +58,7 @@ impl Gen<'_> {
             _ => None,
         }
         .unwrap_or_else(|| Self::ident(name));
-        let read = self.maybe_null(&target, safe, |v| format!("{v}.{member}"));
-        match on_type.as_ref().map(Type::non_null) {
-            Some(Type::Yog(_)) => self.viewed(e, read),
-            _ => read,
-        }
+        self.maybe_null(target, safe, |v| format!("{v}.{member}"))
     }
 
     /// `read(v)` of `target`; `safe` (`?.`): `null` when `target` is.

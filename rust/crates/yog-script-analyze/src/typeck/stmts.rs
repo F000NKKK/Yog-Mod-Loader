@@ -156,7 +156,11 @@ impl Checker<'_, '_, '_> {
     /// it guards (`if (target is Player p && …)`).
     fn patterns_in(&mut self, e: &Expr) {
         match &e.kind {
-            ExprKind::Is { pattern, .. } => self.bind_pattern(pattern),
+            // Typed by what's matched, looked at quietly: it's checked after.
+            ExprKind::Is { expr, pattern } => {
+                let on = self.quietly(|c| c.expr(expr));
+                self.bind_arm(pattern, &on);
+            }
             ExprKind::Binary { left, right, .. } => {
                 self.patterns_in(left);
                 self.patterns_in(right);
@@ -169,6 +173,7 @@ impl Checker<'_, '_, '_> {
         match p {
             Pattern::Type { ty, bind: Some(n) } => {
                 let t = self.type_of(ty);
+                self.types.set_binding(n, t.clone());
                 self.bind_as(&n.text, t, true);
             }
             Pattern::Let(n) => self.bind_as(&n.text, Type::Unknown, true),

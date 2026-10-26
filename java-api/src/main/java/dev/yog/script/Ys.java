@@ -45,6 +45,14 @@ public final class Ys {
         return was;
     }
 
+    /**
+     * A pattern's name bound inside a condition ({@code x is Mode.Charging(let r)}):
+     * its assignment the argument, the condition going on — always true.
+     */
+    public static boolean bound(Object assigned) {
+        return true;
+    }
+
     /** A {@code switch} no arm of which takes {@code value}. */
     public static YsPanic noArm(Object value, String at) {
         return new YsPanic("no arm of this `switch` takes `" + value + "`", at);

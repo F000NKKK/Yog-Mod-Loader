@@ -81,6 +81,10 @@ pub const HELPERS: &str = "Ys";
 /// `x++`'s old value (`Ys.before(x, x = …)`), a number's `GetType()`.
 pub const BEFORE: &str = "before";
 
+/// The helper binding a pattern's name inside a condition
+/// (`x instanceof Mode.Charging c && Ys.bound(r = c.Rate()) && r > 3`).
+pub const BOUND: &str = "bound";
+
 /// What every mod's class implements, the runtime finding it by.
 pub const MOD_INTERFACE: &str = concat!(runtime!(), sep!(), "YsMod");
 
