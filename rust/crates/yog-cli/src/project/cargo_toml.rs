@@ -7,7 +7,12 @@ use std::path::{Path, PathBuf};
 /// Generate the hidden Cargo.toml from yog.toml metadata.
 /// `benches`: the mod's `yog bench` files — they add `[dev-dependencies]`,
 /// `[[bench]]` targets and an `rlib` for them to link.
-pub fn generate_cargo_toml(meta: &YogToml, benches: &[crate::project::bench::BenchFile]) -> String {
+/// `lib`: the crate root, from `obj/` ([`crate::project::script_lib::lib_path`]).
+pub fn generate_cargo_toml(
+    meta: &YogToml,
+    benches: &[crate::project::bench::BenchFile],
+    lib: &str,
+) -> String {
     let authors_toml = authors_line(meta);
     let edition = meta.edition.as_deref().unwrap_or(DEFAULT_EDITION);
     let patch = local_patch(meta);
@@ -23,7 +28,7 @@ description  = {description:?}
 [lib]
 name       = "{lib_name}"
 crate-type = {crate_types}
-path       = "../src/lib.rs"
+path       = {lib:?}
 
 [dependencies]
 {api_dep}

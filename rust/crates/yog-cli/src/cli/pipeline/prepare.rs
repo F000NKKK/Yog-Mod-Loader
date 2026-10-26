@@ -7,6 +7,7 @@ use std::process::Command;
 
 use yog_cli::project::bench;
 use yog_cli::project::cargo_toml::generate_cargo_toml;
+use yog_cli::project::script_lib;
 use yog_cli::project::manifest::{MANIFEST, YogToml, project_root};
 use yog_cli::ui::yui;
 use yog_cli::{content, diagnostics, yres};
@@ -46,6 +47,7 @@ pub(crate) fn prepare() -> Result<Prepared, String> {
     yog_cli::script::check(&root)?;
     warn_all(&content.warnings);
     content::write_source(&root, &content)?;
+    script_lib::write(&root, content.source.is_some())?;
     let build_dir = write_build_dir(&root, &meta)?;
     settle_lock(&root, &build_dir)?;
     Ok(Prepared {
@@ -87,7 +89,7 @@ fn write_build_dir(root: &Path, meta: &YogToml) -> Result<PathBuf, String> {
     bench::write_sources(root, &benches)?;
     write_file(
         &build_dir.join(CARGO_TOML),
-        generate_cargo_toml(meta, &benches).as_bytes(),
+        generate_cargo_toml(meta, &benches, &script_lib::lib_path(root)).as_bytes(),
     )?;
     let yui::Generated { screens, warnings } =
         yui::generate_all(root).map_err(diagnostics::reported)?;

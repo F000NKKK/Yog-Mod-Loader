@@ -6,4 +6,5 @@ pub mod cargo_toml;
 pub mod exports;
 pub mod manifest;
 pub(crate) mod rust_code;
+pub mod script_lib;
 pub mod toml;

@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use yog_cli::project::bench;
-use yog_cli::project::manifest::{RUST_LIB, SOURCES_DIR, YogToml};
+use yog_cli::project::manifest::YogToml;
 use yog_cli::{content, diagnostics};
 use yog_ids::build_problem;
 
@@ -132,13 +132,9 @@ pub(crate) fn build(
         resources,
         content,
     } = prepare()?;
-    // A mod without Rust (its code all Yog Script) has no native to build.
-    let has_rust = root.join(SOURCES_DIR).join(RUST_LIB).is_file();
-    let bundled = if has_rust {
-        build_natives(&root, &meta, &build_dir, symbols, platforms)?
-    } else {
-        Vec::new()
-    };
+    // A mod without Rust still has a native: its content's
+    // (`script_lib`'s generated root).
+    let bundled = build_natives(&root, &meta, &build_dir, symbols, platforms)?;
     // Save Cargo.lock as yog.lock
     let new_lock = build_dir.join("Cargo.lock");
     if new_lock.exists() {
