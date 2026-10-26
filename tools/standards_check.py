@@ -313,10 +313,14 @@ def check(path, text):
         f.ids_repeats = sum(1 for l in lines for lit in IDS_LITERAL.findall(ids_code(l)) if repeated[lit] > 1)
     for i, l in enumerate(lines[:tests]):
         code = l.split("//")[0] if lang != "java" or "//" in l else l
-        if SILENCE.search(l) and "//" not in l and (i == 0 or "//" not in lines[i - 1]):
-            f.silenced += 1
-        # What a string says isn't code (a macro's description names `panic!`).
+        # A block comment's line (`/** … */`, ` * …`) says, it isn't code.
+        if l.lstrip().startswith(("/*", "* ", "*/")) or l.strip() == "*":
+            code = ""
+        # What a string says isn't code (a macro's description names `panic!`,
+        # a Java generator's constant is `@SuppressWarnings`'s text).
         bare = LITERALS.sub('""', code)
+        if SILENCE.search(bare) and "//" not in l and (i == 0 or "//" not in lines[i - 1]):
+            f.silenced += 1
         if lang == "rs" and PANIC.search(bare) and i not in in_const_fn:
             f.panics += 1
         # A command line tool's output is what it's for (CODE_STANDARDS: CLI output is exempt).
