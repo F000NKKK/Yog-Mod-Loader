@@ -3,9 +3,11 @@
 //! checked read, a struct copied where it's handed on).
 
 use yog_script_analyze::Type;
-use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
+use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, Stmt, StrSeg, UnOp};
 
-use yog_script_ids::java::{BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NULL, ZERO, ZERO_CHAR};
+use yog_script_ids::java::{
+    BOOLEAN, CHAR, DOUBLE, FALSE, FLOAT, INT, LONG, NULL, RETURN, ZERO, ZERO_CHAR,
+};
 use yog_script_ids::jvm::{
     COPY, EQUALS, HELPERS, OBJECT, OBJECTS, REF_VALUE, REQUIRE_NON_NULL_ELSE,
 };
@@ -324,10 +326,22 @@ impl Gen<'_> {
             // A value given to nothing: a statement, as one written alone.
             LambdaBody::Expr(body) if void => self.expr_stmt(body),
             LambdaBody::Expr(body) => {
-                let v = self.expr(body);
-                self.code.line(format!("return {v};"));
+                let v = self.handed_expr(body);
+                self.code.line(format!("{RETURN} {v};"));
             }
-            LambdaBody::Block(stmts) => stmts.iter().for_each(|s| self.stmt(s)),
+            LambdaBody::Block(stmts) => {
+                for s in stmts {
+                    match s {
+                        // Its last expression, without `;`: its value.
+                        Stmt::Value(v) if !void => {
+                            let v = self.handed_expr(v);
+                            self.code.line(format!("{RETURN} {v};"));
+                        }
+                        Stmt::Value(v) => self.expr_stmt(v),
+                        s => self.stmt(s),
+                    }
+                }
+            }
         }
         self.code.close("");
         let text = std::mem::replace(&mut self.code, outer).finish();

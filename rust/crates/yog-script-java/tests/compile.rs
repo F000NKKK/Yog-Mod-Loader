@@ -74,6 +74,17 @@ fn ref_and_out_pass_cells() {
     }
 }
 
+/// A trailing block lambda: `it` its parameter, its last expression its value.
+#[test]
+fn block_lambdas_give_their_last_value() {
+    let src = "i32 Apply(i32 x, Func<i32, i32> f) => f(x);\n\
+               i32 F() => Apply(4) {\n    let y = it + 1;\n    y * y\n};\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in ["Apply(4, (it) -> {", "final var y = (it + 1);", "return (y * y);"] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
 #[test]
 fn what_isnt_written_yet_is_said() {
     let src = "i32 F() => await 1;\n";
