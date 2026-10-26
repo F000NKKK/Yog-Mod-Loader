@@ -177,7 +177,13 @@ impl Resolver<'_, '_> {
                 kind,
             });
         }
-        self.check_case(name, Case::Camel);
+        // A local function is named as any method is (C#'s).
+        let case = if kind == DefKind::Method {
+            Case::Pascal
+        } else {
+            Case::Camel
+        };
+        self.check_case(name, case);
     }
 
     /// The definition `name` stands for here, innermost first.

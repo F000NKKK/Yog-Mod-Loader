@@ -48,8 +48,26 @@ impl Seen {
 }
 
 impl Seen {
+    /// A local function's code: reaching the block's locals as a lambda's does.
+    fn local_function(&mut self, d: &yog_script_analyze::ast::Decl) {
+        let yog_script_analyze::ast::DeclKind::Method(m) = &d.kind else {
+            return;
+        };
+        self.lambdas
+            .push(m.params.iter().map(|p| p.name.text.clone()).collect());
+        match &m.body {
+            Some(yog_script_analyze::ast::MethodBody::Expr(x)) => self.expr(x, true),
+            Some(yog_script_analyze::ast::MethodBody::Block(b)) => {
+                b.stmts.iter().for_each(|s| self.stmt(s, true));
+            }
+            None => {}
+        }
+        self.lambdas.pop();
+    }
+
     fn stmt(&mut self, s: &Stmt, inside: bool) {
         match s {
+            Stmt::Function(d) => self.local_function(d),
             Stmt::Local { binding, value, .. } => {
                 match binding {
                     Binding::One(n) => self.declare(&n.text),

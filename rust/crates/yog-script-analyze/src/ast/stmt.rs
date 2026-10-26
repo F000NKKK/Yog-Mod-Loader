@@ -17,6 +17,17 @@ pub enum Binding {
     Tuple(Vec<Name>),
 }
 
+impl Binding {
+    /// The names it binds.
+    pub fn names(&self) -> impl Iterator<Item = &str> {
+        let names: Vec<&str> = match self {
+            Binding::One(n) => vec![n.text.as_str()],
+            Binding::Tuple(ns) => ns.iter().map(|n| n.text.as_str()).collect(),
+        };
+        names.into_iter()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     /// `let x = …;`, `let mut x = …;`, `i32 x;`,
@@ -76,6 +87,9 @@ pub enum Stmt {
     Yield(Option<Expr>, Span),
     /// `unsafe { … }`: the threads checks skipped inside (a warning).
     Unsafe(Block, Span),
+    /// A local function (C#'s): a method declared in a block, reaching the
+    /// block's locals, called anywhere in it (before it too).
+    Function(Box<super::Decl>),
     /// `lock (target) body` or `lock (target, ref let value) body`: a
     /// `Lock<T>` held for `body`, its value lent as `value`.
     Lock {
@@ -87,4 +101,15 @@ pub enum Stmt {
     Expr(Expr),
     /// A block lambda's last expression, without `;`: its value.
     Value(Expr),
+}
+
+/// The local functions `stmts` declare.
+pub fn local_functions(stmts: &[Stmt]) -> impl Iterator<Item = &super::Method> {
+    stmts.iter().filter_map(|s| match s {
+        Stmt::Function(d) => match &d.kind {
+            super::DeclKind::Method(m) => Some(m),
+            _ => None,
+        },
+        _ => None,
+    })
 }

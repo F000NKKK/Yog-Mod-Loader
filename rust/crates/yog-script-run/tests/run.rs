@@ -144,3 +144,9 @@ fn constructors_run_with_their_chain() {
                i32 Run() { let a = new Mid(4); let b = new Leaf(); return a.Log * 100 + b.Log; }\n";
     assert_eq!(run(src, "Run", vec![]), Ok(int(234 * 100 + 17)));
 }
+
+#[test]
+fn local_functions_run_in_their_block() {
+    let src = "i32 Run() { let mut total = 0; void Add(i32 x) { total += x; } Add(2); Add(3); return total + Fact(4); i32 Fact(i32 k) => k <= 1 ? 1 : k * Fact(k - 1); }\n";
+    assert_eq!(run(src, "Run", vec![]), Ok(int(29)));
+}

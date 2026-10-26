@@ -95,8 +95,31 @@ impl Checker<'_, '_> {
                 self.state.dead = true;
             }
             Stmt::Expr(e) | Stmt::Value(e) => self.expr(e),
+            Stmt::Function(d) => self.local_function(d),
             _ => {}
         }
+    }
+
+    /// A local function's code: checked on its own, as a lambda's is —
+    /// what it moves isn't moved here, its `return` isn't the method's.
+    fn local_function(&mut self, d: &crate::ast::Decl) {
+        let crate::ast::DeclKind::Method(m) = &d.kind else {
+            return;
+        };
+        let outer = self.state.clone();
+        let outs = std::mem::take(&mut self.outs);
+        self.state.push();
+        for p in &m.params {
+            self.state
+                .declare(&p.name.text, super::state::Var::default());
+        }
+        match &m.body {
+            Some(crate::ast::MethodBody::Block(b)) => self.block(b),
+            Some(crate::ast::MethodBody::Expr(e)) => self.expr(e),
+            None => {}
+        }
+        self.state = outer;
+        self.outs = outs;
     }
 
     /// A loop's body, read twice: the second turn sees what the first moved.

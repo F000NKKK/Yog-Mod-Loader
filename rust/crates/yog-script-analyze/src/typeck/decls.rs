@@ -18,7 +18,7 @@ impl Checker<'_, '_, '_> {
 
     /// Method `m` (declaration `d`): its body, `this` read-only in it when
     /// it's `readonly` — or implements a member that is.
-    fn method_decl(&mut self, d: &Decl, m: &Method, side: Side) {
+    pub(super) fn method_decl(&mut self, d: &Decl, m: &Method, side: Side) {
         let readonly = d.has(Modifier::Readonly)
             || self.this_readonly()
             || (!d.has(Modifier::Static) && self.implements_readonly(m));

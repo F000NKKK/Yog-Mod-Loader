@@ -124,6 +124,9 @@ pub(crate) struct Checker<'r, 's, 'i> {
     /// The names known not null (`nulls.rs`), each with how many scopes
     /// deep it was proven: it holds for locals of the scopes outside that.
     non_null: Vec<(usize, String)>,
+    /// The local functions in reach, each with how many scopes deep its
+    /// block is (`stmts.rs`).
+    local_fns: Vec<(usize, crate::ast::Method)>,
 }
 
 /// What a source may reach: the game's classes (a `.yns`), sending to the
@@ -194,6 +197,7 @@ pub(crate) fn check<'d>(
         constraints: Vec::new(),
         meeting: false,
         non_null: Vec::new(),
+        local_fns: Vec::new(),
     };
     c.type_bases();
     c.type_delegates();
@@ -210,6 +214,8 @@ impl Checker<'_, '_, '_> {
         let out = f(self);
         self.scopes.pop();
         self.scopes_left(self.scopes.len());
+        let depth = self.scopes.len();
+        self.local_fns.retain(|(d, _)| *d <= depth);
         out
     }
 

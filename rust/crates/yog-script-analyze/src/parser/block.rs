@@ -93,6 +93,9 @@ impl Parser<'_, '_, '_> {
         if let Some(parse) = word {
             return parse(self);
         }
+        if self.local_fn_ahead() {
+            return Ok(Stmt::Function(Box::new(self.decl()?)));
+        }
         if let Some(len) = self.typed_ahead()
             && matches!(self.nth(len + 1), Tok::Punct(Punct::Eq | Punct::Semi))
         {
@@ -107,6 +110,31 @@ impl Parser<'_, '_, '_> {
         let s = self.assign_or(expr)?;
         self.end()?;
         Ok(s)
+    }
+
+    /// Whether a local function starts here: its modifiers (`static`,
+    /// `async`), its result (`void`, a type), its name, then `(` or `<`.
+    fn local_fn_ahead(&self) -> bool {
+        let mut at = 0;
+        while [&crate::words::r#static::WORD, &crate::words::r#async::WORD]
+            .iter()
+            .any(|w| self.nth_word(at, w))
+        {
+            at += 1;
+        }
+        let ret = if self.nth_word(at, &crate::words::void::WORD) {
+            Some(1)
+        } else {
+            self.type_len(at)
+        };
+        let Some(len) = ret else {
+            return false;
+        };
+        matches!(self.nth(at + len), Tok::Ident(_))
+            && matches!(
+                self.nth(at + len + 1),
+                Tok::Punct(Punct::LParen | Punct::Lt)
+            )
     }
 
     /// `T name (= value)?`, without the `;`.

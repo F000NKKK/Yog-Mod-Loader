@@ -7,7 +7,17 @@ use crate::value::Value;
 
 impl<'p> Interp<'p> {
     pub(crate) fn block(&mut self, b: &Block) -> Run<()> {
-        self.scoped(|i| b.stmts.iter().try_for_each(|s| i.stmt(s)))
+        self.scoped(|i| {
+            // Its local functions, called anywhere in it.
+            let depth = i.local_fns.len();
+            i.local_fns.extend(b.stmts.iter().filter_map(|s| match s {
+                Stmt::Function(d) => Some(std::rc::Rc::new((**d).clone())),
+                _ => None,
+            }));
+            let ran = b.stmts.iter().try_for_each(|s| i.stmt(s));
+            i.local_fns.truncate(depth);
+            ran
+        })
     }
 
     pub(crate) fn stmt(&mut self, s: &Stmt) -> Run<()> {

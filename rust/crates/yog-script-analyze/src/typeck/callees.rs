@@ -11,6 +11,9 @@ impl Checker<'_, '_, '_> {
     /// `on.name(…)`: what's called (`on` is `expr`).
     pub(super) fn method_of(&mut self, expr: &Expr, name: &Name) -> Callee {
         let on = self.expr(expr);
+        if let Some(methods) = self.nullable_methods(&on, &name.text) {
+            return Callee::Own(methods);
+        }
         match on.non_null() {
             Type::Own(of, _) | Type::Static(of, _) => self.own_method_of(expr, &on, of, name),
             Type::Yog(group) => match self.extension_methods(group, &name.text) {

@@ -6,8 +6,9 @@
 //! something nullable is assigned to it.
 
 use super::Checker;
+use super::context::Context;
 use super::model::Type;
-use crate::ast::{BinOp, Expr, ExprKind, Pattern, Stmt, UnOp};
+use crate::ast::{BinOp, Expr, ExprKind, Method, Pattern, Stmt, UnOp};
 use crate::macros::builtin::{Gives, named};
 
 impl Checker<'_, '_, '_> {
@@ -142,5 +143,33 @@ pub(super) fn leaves(s: &Stmt) -> bool {
             ..
         }) => named(&name.text).is_some_and(|b| matches!(b.gives, Gives::Never)),
         _ => false,
+    }
+}
+
+impl Checker<'_, '_, '_> {
+    /// A value type's `T?` as `Nullable<T>`, when `t` is one.
+    fn as_nullable(&self, t: &Type) -> Option<Type> {
+        match t {
+            Type::Nullable(inner) if !self.is_reference(inner) => Some(Type::Own(
+                yog_script_ids::system::NULLABLE.to_string(),
+                vec![(**inner).clone()],
+            )),
+            _ => None,
+        }
+    }
+
+    /// Member `name` of `on`, a value type's `T?` (`HasValue`, `Value`).
+    pub(super) fn nullable_member(&mut self, on: &Type, name: &str) -> Option<Type> {
+        let t = self.own_member(&self.as_nullable(on)?, name);
+        t.known().then_some(t)
+    }
+
+    /// Methods `name` of `on`, a value type's `T?` (`GetValueOrDefault`).
+    pub(super) fn nullable_methods(
+        &mut self,
+        on: &Type,
+        name: &str,
+    ) -> Option<Vec<(Method, Context)>> {
+        self.own_methods(&self.as_nullable(on)?, name)
     }
 }

@@ -49,6 +49,9 @@ impl Checker<'_, '_, '_> {
         if is_side_call(name) {
             return Type::Unknown;
         }
+        if let Some(t) = self.nullable_member(on, name) {
+            return t;
+        }
         if on.is_nullable() && !safe {
             self.report.error(
                 script_problem::NULLABLE,
@@ -328,6 +331,15 @@ impl Checker<'_, '_, '_> {
     /// The source's own methods `name` reachable unqualified here: `this`'s
     /// (its components' and extensions' too), else the file's.
     pub(super) fn callable(&self, name: &str) -> Vec<(Method, Context)> {
+        let local: Vec<(Method, Context)> = self
+            .local_fns
+            .iter()
+            .filter(|(_, m)| m.name.text == name)
+            .map(|(_, m)| (m.clone(), self.here()))
+            .collect();
+        if !local.is_empty() {
+            return local;
+        }
         let in_this = self.this.clone().and_then(|t| match &t {
             Type::Game(class) | Type::Yog(class) => self.extension_methods(class, name),
             _ => self.own_methods(&t, name),

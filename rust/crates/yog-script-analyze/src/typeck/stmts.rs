@@ -12,6 +12,11 @@ impl Checker<'_, '_, '_> {
     }
 
     pub(super) fn stmts(&mut self, stmts: &[Stmt]) {
+        // A block's local functions are called anywhere in it, before them too.
+        let depth = self.scopes.len();
+        for f in crate::ast::local_functions(stmts) {
+            self.local_fns.push((depth, f.clone()));
+        }
         for s in stmts {
             self.stmt(s);
         }
@@ -19,32 +24,19 @@ impl Checker<'_, '_, '_> {
 
     pub(super) fn stmt(&mut self, s: &Stmt) {
         match s {
+            Stmt::Function(d) => {
+                if let crate::ast::DeclKind::Method(m) = &d.kind {
+                    let side = self.side;
+                    self.method_decl(d, m, side);
+                }
+            }
             Stmt::Local {
                 ty,
                 binding,
                 value,
                 mutable,
             } => self.local_decl(ty.as_ref(), binding, value.as_ref(), *mutable),
-            Stmt::Assign { place, op, value } => {
-                let t = self.expr(place);
-                self.written(place);
-                // `=`, and `+=`/`-=` on a delegate (an event's subscription):
-                // the value must be one.
-                match op {
-                    Some(op) if self.delegate_sig(&t).is_none() => {
-                        self.compound(place, *op, &t, value);
-                    }
-                    _ => {
-                        self.fits(value, &t);
-                        self.handed(value, &t);
-                        if let Some(path) = super::nulls::path_of(place)
-                            && let Some(v) = self.types.of(value).cloned()
-                        {
-                            self.assigned_to(&path, &v);
-                        }
-                    }
-                }
-            }
+            Stmt::Assign { place, op, value } => self.assign_stmt(place, op.as_ref(), value),
             Stmt::If {
                 cond,
                 then,
@@ -177,6 +169,29 @@ impl Checker<'_, '_, '_> {
             }
             c.branch(body);
         });
+    }
+
+    /// `place op= value`: the value fitting the place (`+=`/`-=` on a
+    /// delegate: an event's subscription); what's known not null updated.
+    fn assign_stmt(&mut self, place: &Expr, op: Option<&BinOp>, value: &Expr) {
+        let t = self.expr(place);
+        self.written(place);
+        // `=`, and `+=`/`-=` on a delegate (an event's subscription):
+        // the value must be one.
+        match op {
+            Some(&op) if self.delegate_sig(&t).is_none() => self.compound(place, op, &t, value),
+            _ => {
+                self.fits(value, &t);
+                self.handed(value, &t);
+            }
+        }
+        // `x = v`, `x ??= v`: not null after, when `v` isn't.
+        if matches!(op, None | Some(BinOp::Coalesce))
+            && let Some(path) = super::nulls::path_of(place)
+            && let Some(v) = self.types.of(value).cloned()
+        {
+            self.assigned_to(&path, &v);
+        }
     }
 
     /// `if (cond) then else otherwise`: each branch with what `cond` proves

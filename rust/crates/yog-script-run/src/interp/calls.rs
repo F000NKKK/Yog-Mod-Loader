@@ -4,7 +4,9 @@
 
 use std::rc::Rc;
 
-use yog_script_analyze::ast::{Arg, Expr, ExprKind, LambdaBody, Method, Pass};
+use yog_script_analyze::ast::{
+    Arg, Decl, DeclKind, Expr, ExprKind, LambdaBody, Method, Modifier, Pass,
+};
 use yog_script_analyze::token::Span;
 
 use super::{Interp, Run, Stop};
@@ -61,6 +63,9 @@ impl<'p> Interp<'p> {
     fn call_name(&mut self, name: &str, args: &[Arg], given: Vec<Value>, at: Span) -> Run<Value> {
         if let Some(f) = self.lookup(name) {
             return self.call_value(&f, given, at);
+        }
+        if let Some(d) = self.local_fn(name) {
+            return self.run_local_fn(d, given);
         }
         if let Some(Value::Object(o)) = self.this.clone() {
             let class = o.borrow().class.clone();
@@ -232,4 +237,33 @@ fn packed(m: &Method, mut given: Vec<Value>) -> Vec<Value> {
         given.push(Value::list(rest));
     }
     given
+}
+
+impl<'p> Interp<'p> {
+    /// Local function `name` in reach, if there's one.
+    fn local_fn(&self, name: &str) -> Option<std::rc::Rc<Decl>> {
+        self.local_fns
+            .iter()
+            .rev()
+            .find(|d| matches!(&d.kind, DeclKind::Method(m) if m.name.text == name))
+            .cloned()
+    }
+
+    /// Local function `d` run with `given`, the block's locals in reach.
+    fn run_local_fn(&mut self, d: std::rc::Rc<Decl>, given: Vec<Value>) -> Run<Value> {
+        let DeclKind::Method(m) = &d.kind else {
+            return Ok(Value::Void);
+        };
+        let ran = self.scoped(|i| {
+            for (p, v) in m.params.iter().zip(given) {
+                i.bind(&p.name.text, v);
+            }
+            i.body(m.body.as_ref())
+        })?;
+        Ok(if d.has(Modifier::Async) {
+            Value::done(ran)
+        } else {
+            ran
+        })
+    }
 }

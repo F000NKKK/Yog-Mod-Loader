@@ -194,7 +194,10 @@ impl Gen<'_> {
             self.code.line(format!("{head};"));
             return;
         }
-        let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&m.params));
+        // A local function's code keeps the cells of the method around it.
+        let mut cells = self.cells.clone();
+        cells.extend(crate::refs::cells(&m.params));
+        let outer = std::mem::replace(&mut self.cells, cells);
         let generics = Self::method_type_params(m);
         let yields = yog_script_analyze::body_yields(m.body.as_ref());
         if yields {

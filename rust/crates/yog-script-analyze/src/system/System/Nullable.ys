@@ -1,7 +1,16 @@
 namespace System;
 
-/// A value type's `T?` as Reflection sees it: `typeof(i32?)` is
-/// `Nullable<Int32>`, as .NET's. Written `T?`; a reference type's `?` is
-/// the type itself.
+/// A value type's `T?` (.NET's `Nullable<T>`): written `T?`, a value or
+/// `null`; as Reflection sees it, `typeof(i32?)` is `Nullable<Int32>`. A
+/// reference type's `?` is the type itself, with none of these members.
 [Intrinsic]
-public struct Nullable<T> {}
+public struct Nullable<T> {
+    /// Whether it holds a value (it isn't `null`).
+    public bool HasValue { get; }
+    /// Its value; a panic when it's `null`.
+    public T Value { get; }
+    /// Its value, else `T`'s default.
+    public readonly T GetValueOrDefault();
+    /// Its value, else `defaultValue`.
+    public readonly T GetValueOrDefault(T defaultValue);
+}

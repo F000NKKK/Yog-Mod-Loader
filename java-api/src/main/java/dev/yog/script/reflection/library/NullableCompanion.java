@@ -10,5 +10,9 @@ public final class NullableCompanion {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void $describe(dev.yog.script.reflection.TypeDescription d) {
         d.Attribute(() -> new dev.yog.script.Intrinsic());
+        d.Property("HasValue", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.Nullable) o).HasValue(), null);
+        d.Property("Value", 0, d.Parameter(0), o -> ((dev.yog.script.Nullable) o).Value(), null);
+        d.Method("GetValueOrDefault", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Nullable) o).GetValueOrDefault()).Returns(d.Parameter(0));
+        d.Method("GetValueOrDefault", 0, new String[] {  }, (o, a) -> ((dev.yog.script.Nullable) o).GetValueOrDefault(a[0])).Returns(d.Parameter(0)).Takes("defaultValue", d.Parameter(0), false);
     }
 }

@@ -127,6 +127,9 @@ impl Gen<'_> {
         name: &str,
         safe: bool,
     ) -> String {
+        if let Some(read) = self.nullable_member(target, on_type, name) {
+            return read;
+        }
         let host = on_type.and_then(|t| self.index.host(t));
         let member = match on_type.map(Type::non_null) {
             Some(Type::Static(of, args))
@@ -209,6 +212,15 @@ impl Gen<'_> {
                 t if self.is_delegate(t) => format!("{}.{INVOKE}({a})", self.expr(callee)),
                 _ if self.is_result_case(name) => {
                     format!("{NEW} {}.{}<>({a})", self.own(RESULT), Self::ident(name))
+                }
+                _ if let Some(holder) = self.local_fn_holder(name) => {
+                    let on = if holder.is_empty() {
+                        String::new()
+                    } else {
+                        format!("{holder}.")
+                    };
+                    let a = self.with_classes(e, Vec::new(), a);
+                    format!("{on}{}({a})", Self::ident(name))
                 }
                 _ => {
                     let a = self.with_classes(e, Vec::new(), a);
@@ -395,6 +407,12 @@ impl Gen<'_> {
     ) -> String {
         let on_type = self.types.of(on).cloned();
         let (target, on_type) = self.through_bound(on, target, on_type);
+        let used = self.types.method(e).cloned();
+        let owner = used.as_ref().and_then(|u| u.owner.clone());
+        let gives = self.types.of(e).cloned();
+        if let Some(v) = self.nullable_call((owner.as_deref(), name), &target, a, gives.as_ref()) {
+            return v;
+        }
         let n = self.called_name(e, name);
         // A number's `GetType()`: its type as declared, read after the
         // value is — Java's box can't tell a `u8` from an `i32`.

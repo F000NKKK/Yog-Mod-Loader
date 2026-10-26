@@ -5,7 +5,7 @@
 //! drop, and isn't disposed here.
 
 use yog_script_analyze::Type;
-use yog_script_analyze::ast::{Binding, Expr, ExprKind, Stmt};
+use yog_script_analyze::ast::{Binding, Expr, ExprKind, MethodBody, Stmt};
 use yog_script_ids::java::{FINALLY, IF, NULL, TRY};
 use yog_script_ids::system::DISPOSABLE;
 
@@ -83,9 +83,20 @@ fn moves(e: &Expr, name: &str) -> bool {
     found
 }
 
+/// Each expression of method body `body` (its statements', theirs too).
+pub(crate) fn each_body_expr(body: Option<&MethodBody>, f: &mut dyn FnMut(&Expr)) {
+    match body {
+        Some(MethodBody::Expr(e)) => f(e),
+        Some(MethodBody::Block(b)) => b.stmts.iter().for_each(|s| each_expr(s, f)),
+        None => {}
+    }
+}
+
 /// Each expression statement `s` holds, its inner statements' too.
 fn each_expr(s: &Stmt, f: &mut dyn FnMut(&Expr)) {
     match s {
+        // Its own code, apart: what it uses isn't the block's statements'.
+        Stmt::Function(_) => {}
         Stmt::Local { value, .. } => value.iter().for_each(&mut *f),
         Stmt::Assign { place, value, .. } => {
             f(place);

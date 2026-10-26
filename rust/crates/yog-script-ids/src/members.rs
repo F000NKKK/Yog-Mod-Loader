@@ -126,3 +126,7 @@ pub const WAIT: &str = "Wait";
 pub const GET_RESULT: &str = "GetResult";
 pub const GET_AWAITER: &str = "GetAwaiter";
 pub const CONFIGURE_AWAIT: &str = "ConfigureAwait";
+
+/// A value type's `T?`'s members (`System.Nullable<T>`).
+pub const HAS_VALUE: &str = "HasValue";
+pub const GET_VALUE_OR_DEFAULT: &str = "GetValueOrDefault";

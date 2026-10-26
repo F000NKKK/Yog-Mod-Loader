@@ -14,7 +14,7 @@ mod stmts;
 
 use std::collections::HashMap;
 
-use yog_script_analyze::ast::{Method, MethodBody};
+use yog_script_analyze::ast::{Decl, Method, MethodBody};
 use yog_script_analyze::token::Span;
 
 use crate::program::Program;
@@ -55,6 +55,8 @@ pub struct Interp<'p> {
     statics: HashMap<(String, String), Value>,
     /// The type whose method is running (its statics reached by name).
     class: Option<&'p str>,
+    /// The local functions in reach, innermost last.
+    local_fns: Vec<std::rc::Rc<Decl>>,
 }
 
 /// How many items an iterator gives the interpreter before it's taken for
@@ -79,6 +81,7 @@ impl<'p> Interp<'p> {
             yielded: Vec::new(),
             statics: HashMap::new(),
             class: None,
+            local_fns: Vec::new(),
         }
     }
 

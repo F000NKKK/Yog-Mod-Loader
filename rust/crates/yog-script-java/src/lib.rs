@@ -29,10 +29,12 @@ mod java_names;
 mod kept;
 mod library;
 mod load;
+mod local_fns;
 mod locks;
 mod machine;
 mod macros;
 mod messages;
+mod nullables;
 mod operators;
 mod patterns;
 mod raisers;
@@ -235,6 +237,9 @@ pub(crate) struct Gen<'c> {
     /// The type being written is declared in another type (a `static`
     /// nested class in Java, wherever its file is).
     inner_type: bool,
+    /// The local functions in reach, innermost last: each name and the
+    /// object of the local class it's called on (`local_fns.rs`).
+    local_fns: Vec<(String, String)>,
     /// The code being written is a `$Statics`' (`statics.rs`): its type's
     /// static fields are its own.
     in_statics: bool,
@@ -271,6 +276,7 @@ impl<'c> Gen<'c> {
             on_load: Vec::new(),
             has_load: false,
             inner_type: false,
+            local_fns: Vec::new(),
             in_statics: false,
             mod_id: None,
             in_command: false,

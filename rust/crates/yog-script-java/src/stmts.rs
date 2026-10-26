@@ -15,7 +15,10 @@ use yog_script_ids::java::{
 
 impl Gen<'_> {
     pub(crate) fn block_stmts(&mut self, b: &Block) {
+        let depth = self.local_fns.len();
+        self.local_functions_first(&b.stmts);
         self.stmts_dropping(&b.stmts);
+        self.local_fns.truncate(depth);
     }
 
     /// `stmts` in order; what a local holds dropped at the block's end
@@ -170,7 +173,10 @@ impl Gen<'_> {
     /// `f` writing a body of `stmts`: its locals a lambda captures and
     /// something changes cells.
     pub(crate) fn with_boxed<R>(&mut self, stmts: &[Stmt], f: impl FnOnce(&mut Self) -> R) -> R {
-        let outer = std::mem::replace(&mut self.boxed, crate::captures::boxed_locals(stmts));
+        // A local function's code keeps the cells of the method around it.
+        let mut boxed = self.boxed.clone();
+        boxed.extend(crate::captures::boxed_locals(stmts));
+        let outer = std::mem::replace(&mut self.boxed, boxed);
         let cells = self.cells.clone();
         let out = f(self);
         self.cells = cells;
@@ -227,6 +233,7 @@ impl Gen<'_> {
                 }
             },
             Stmt::Expr(e) | Stmt::Value(e) => self.expr_stmt(e),
+            Stmt::Function(d) => self.local_function(d),
             _ => {}
         }
     }

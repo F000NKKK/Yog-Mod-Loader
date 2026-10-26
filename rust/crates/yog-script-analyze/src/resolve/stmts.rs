@@ -12,6 +12,10 @@ impl Resolver<'_, '_> {
     }
 
     pub(super) fn stmts(&mut self, stmts: &[Stmt]) {
+        // A block's local functions are called anywhere in it, before them too.
+        for f in crate::ast::local_functions(stmts) {
+            self.bind(&f.name, DefKind::Method);
+        }
         for s in stmts {
             self.stmt(s);
         }
@@ -24,6 +28,11 @@ impl Resolver<'_, '_> {
 
     pub(super) fn stmt(&mut self, s: &Stmt) {
         match s {
+            Stmt::Function(d) => {
+                if let crate::ast::DeclKind::Method(m) = &d.kind {
+                    self.method(m, d.has(crate::ast::Modifier::Async));
+                }
+            }
             Stmt::Local {
                 ty,
                 binding,

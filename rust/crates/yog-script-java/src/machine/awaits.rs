@@ -127,6 +127,8 @@ pub(crate) fn stmt_awaits(s: &Stmt) -> bool {
         Stmt::Lock { .. } => false,
         Stmt::Expr(e) | Stmt::Value(e) => awaits(e),
         Stmt::Break(_) | Stmt::Continue(_) => false,
+        // A local function's awaits are its own code's.
+        Stmt::Function(_) => false,
     }
 }
 
