@@ -82,18 +82,18 @@ public final class YogCommands {
     /** Typed commands with greedy `string` args last: Brigadier tries a command's branches in registration order, so word chains go first. */
     private static java.util.List<YogTypes.CommandSpec> typedSchemaOrder(java.util.List<YogTypes.CommandSpec> declared) {
         java.util.List<YogTypes.CommandSpec> out = new java.util.ArrayList<>(declared);
-        out.sort(java.util.Comparator.comparing(d -> d.schema() != null && d.schema().contains("string")));
+        out.sort(java.util.Comparator.comparing(d -> d.schema() != null && d.schema().contains(dev.yog.YogNames.CommandArg.STRING)));
         return out;
     }
 
     private static RequiredArgumentBuilder<CommandSourceStack, ?> buildArgNode(String type, String argName) {
         return switch (type) {
-            case "int"      -> Commands.argument(argName, IntegerArgumentType.integer());
-            case "float"    -> Commands.argument(argName, FloatArgumentType.floatArg());
-            case "word"     -> Commands.argument(argName, StringArgumentType.word());
-            case "string"   -> Commands.argument(argName, StringArgumentType.greedyString());
-            case "player"   -> Commands.argument(argName, EntityArgument.player());
-            case "blockpos" -> Commands.argument(argName, BlockPosArgument.blockPos());
+            case dev.yog.YogNames.CommandArg.INT      -> Commands.argument(argName, IntegerArgumentType.integer());
+            case dev.yog.YogNames.CommandArg.FLOAT    -> Commands.argument(argName, FloatArgumentType.floatArg());
+            case dev.yog.YogNames.CommandArg.WORD     -> Commands.argument(argName, StringArgumentType.word());
+            case dev.yog.YogNames.CommandArg.STRING   -> Commands.argument(argName, StringArgumentType.greedyString());
+            case dev.yog.YogNames.CommandArg.PLAYER   -> Commands.argument(argName, EntityArgument.player());
+            case dev.yog.YogNames.CommandArg.BLOCKPOS -> Commands.argument(argName, BlockPosArgument.blockPos());
             default         -> Commands.argument(argName, StringArgumentType.word());
         };
     }
@@ -111,13 +111,13 @@ public final class YogCommands {
     private static String resolveArg(String type, String argName, CommandContext<CommandSourceStack> ctx) {
         try {
             return switch (type) {
-                case "int"      -> String.valueOf(IntegerArgumentType.getInteger(ctx, argName));
-                case "float"    -> String.valueOf(FloatArgumentType.getFloat(ctx, argName));
-                case "word", "string" -> StringArgumentType.getString(ctx, argName);
-                case "player"   -> EntityArgument.getPlayer(ctx, argName).getName().getString();
-                case "blockpos" -> {
+                case dev.yog.YogNames.CommandArg.INT      -> String.valueOf(IntegerArgumentType.getInteger(ctx, argName));
+                case dev.yog.YogNames.CommandArg.FLOAT    -> String.valueOf(FloatArgumentType.getFloat(ctx, argName));
+                case dev.yog.YogNames.CommandArg.WORD, dev.yog.YogNames.CommandArg.STRING -> StringArgumentType.getString(ctx, argName);
+                case dev.yog.YogNames.CommandArg.PLAYER   -> EntityArgument.getPlayer(ctx, argName).getName().getString();
+                case dev.yog.YogNames.CommandArg.BLOCKPOS -> {
                     net.minecraft.core.BlockPos pos = BlockPosArgument.getBlockPos(ctx, argName);
-                    yield pos.getX() + "," + pos.getY() + "," + pos.getZ();
+                    yield pos.getX() + dev.yog.YogNames.Sep.LIST + pos.getY() + dev.yog.YogNames.Sep.LIST + pos.getZ();
                 }
                 default -> StringArgumentType.getString(ctx, argName);
             };

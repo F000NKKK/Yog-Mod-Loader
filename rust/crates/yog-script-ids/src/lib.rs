@@ -10,5 +10,6 @@ pub mod clr;
 pub mod java;
 pub mod jvm;
 pub mod members;
+pub mod rust;
 pub mod system;
 pub mod units;

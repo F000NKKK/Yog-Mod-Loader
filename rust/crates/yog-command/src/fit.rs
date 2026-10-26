@@ -6,7 +6,7 @@
 /// What joins the words a greedy argument takes.
 const WORD_SEP: &str = " ";
 /// The argument type that takes the rest of the line.
-pub const GREEDY: &str = "string";
+use yog_ids::command_arg::STRING as GREEDY;
 
 /// How a handler takes a command's arguments.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -136,6 +136,24 @@ pub const LOAD: &str = "$Load";
 pub const SERVICE_CALL: &str = "call";
 /// A content's objects made by its class once registered (`BlockObject.register`).
 pub const OBJECTS_REGISTER: &str = "register";
+/// A `command`'s class (`ChargeCommand`), its ways of running declared
+/// (`Commands.declare`), each a wrapper (`$runFill1`) reading the arguments
+/// the game parsed (a list of text).
+pub const COMMAND_SUFFIX: &str = "Command";
+pub const COMMANDS_DECLARE: &str = concat!(
+    runtime!(),
+    sep!(),
+    "yog",
+    sep!(),
+    "Commands",
+    sep!(),
+    "declare"
+);
+pub const RUN_WAY: &str = "$run";
+pub const LIST: &str = concat!(java_util!(), sep!(), "List");
+pub const PARSE_INT: &str = "Integer.parseInt";
+pub const PARSE_FLOAT: &str = "Float.parseFloat";
+pub const PARSE_DOUBLE: &str = "Double.parseDouble";
 /// An `event`'s handlers (the runtime's `Event`): added (by a key),
 /// removed by it, each called, the last's value given; a method's key
 /// made of its object and itself (`List.of(c, "Times#0")`).

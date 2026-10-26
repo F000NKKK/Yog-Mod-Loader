@@ -1,0 +1,17 @@
+namespace System.Yog;
+
+/// Who ran a command: a player, or the server's console.
+[Intrinsic]
+public sealed class Sender {
+    /// Its name: a player's, or the console's.
+    public string Name { get; }
+    /// It's the server's console, not a player.
+    public bool IsConsole { get; }
+    /// The player who ran it; `null` for the console.
+    public Player? Player { get; }
+    /// The world it ran in (`minecraft:overworld`); `""` for the console.
+    public string Dimension { get; }
+
+    /// What it's told once the command's run (the last said).
+    public void Reply(string text);
+}

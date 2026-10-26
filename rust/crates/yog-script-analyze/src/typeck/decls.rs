@@ -27,7 +27,7 @@ impl Checker<'_, '_, '_> {
         self.readonly_this = outer;
     }
 
-    fn decl(&mut self, d: &Decl) {
+    pub(super) fn decl(&mut self, d: &Decl) {
         self.attributes(&d.attributes);
         self.extern_has_service(d);
         let side = side_of(d).unwrap_or(self.side);
@@ -76,6 +76,7 @@ impl Checker<'_, '_, '_> {
             DeclKind::Event { ty, .. } => {
                 self.type_of(ty);
             }
+            DeclKind::Command { body, .. } => self.command(body),
             DeclKind::System { .. } | DeclKind::Test { .. } => {
                 self.handler(d, side);
             }
@@ -172,14 +173,20 @@ impl Checker<'_, '_, '_> {
             } else {
                 ret
             };
-            c.body(m.body.as_ref(), &m.params, Some(ret), side);
+            c.body(
+                (m.body.as_ref(), m.requires.as_ref()),
+                &m.params,
+                Some(ret),
+                side,
+            );
         });
     }
 
-    /// A body: its parameters bound, its result expected.
+    /// A body: its parameters bound, what it `requires` a `bool` of them,
+    /// its result expected.
     fn body(
         &mut self,
-        body: Option<&MethodBody>,
+        (body, requires): (Option<&MethodBody>, Option<&crate::ast::Expr>),
         params: &[Param],
         returns: Option<Type>,
         side: Side,
@@ -187,6 +194,9 @@ impl Checker<'_, '_, '_> {
         let this = self.this.clone();
         self.within(this, side, returns.clone(), |c| {
             c.params(params);
+            if let Some(r) = requires {
+                c.condition(r);
+            }
             match body {
                 Some(MethodBody::Block(b)) => c.block(b),
                 Some(MethodBody::Expr(e)) => match returns {
@@ -280,7 +290,12 @@ impl Checker<'_, '_, '_> {
         };
         for a in accessors {
             let scope = [params.to_vec(), accessor_scope(ty, a, property)].concat();
-            self.body(a.body.as_ref(), &scope, Some(accessor_result(a, &t)), side);
+            self.body(
+                (a.body.as_ref(), None),
+                &scope,
+                Some(accessor_result(a, &t)),
+                side,
+            );
         }
         t
     }

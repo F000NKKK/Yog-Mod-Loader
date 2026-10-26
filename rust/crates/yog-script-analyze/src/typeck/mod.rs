@@ -13,6 +13,7 @@ mod builtin;
 mod callees;
 mod calls;
 mod collections;
+pub mod commands;
 mod content;
 mod context;
 mod copy;

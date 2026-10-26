@@ -11,6 +11,7 @@ mod calls;
 mod captures;
 mod classes;
 mod collections;
+mod commands;
 mod decimals;
 mod decls;
 mod delegates;

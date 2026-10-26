@@ -71,6 +71,7 @@ names! {
         DIMENSION = "dimension",
         EQUIPMENT = "equipment",
         EVENT = "event",
+        FLOAT = "float",
         FRAME = "frame",
         FUNCTION = "function",
         GENERIC = "generic",
@@ -145,6 +146,19 @@ names! {
         WIDTH = "width",
         X = "x",
         Y = "y",
+    }
+
+    /// The types a command's arguments are (its schema's words: `int
+    /// player`), as the hosts read them with the game's parsers (a block
+    /// position is written a list, `x,y,z`).
+    command_arg {
+        INT = crate::word::INT,
+        FLOAT = crate::word::FLOAT,
+        WORD = "word",
+        /// The rest of the line: last only.
+        STRING = crate::word::STRING,
+        PLAYER = crate::word::PLAYER,
+        BLOCKPOS = "blockpos",
     }
 
     /// The kinds of content: what a reference names (`@item:…`), what a

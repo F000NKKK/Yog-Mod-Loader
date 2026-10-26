@@ -6,7 +6,7 @@
 
 mod fit;
 
-pub use fit::{Fit, GREEDY};
+pub use fit::Fit;
 
 /// Details of a command invocation.
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ impl CommandContext {
     /// Typed argument `idx` as a block position (`"x,y,z"`), or `None`.
     pub fn arg_blockpos(&self, idx: usize) -> Option<(i32, i32, i32)> {
         let s = self.arg_str(idx)?;
-        let mut it = s.split(',');
+        let mut it = s.split(yog_ids::sep::LIST);
         let x = it.next()?.parse().ok()?;
         let y = it.next()?.parse().ok()?;
         let z = it.next()?.parse().ok()?;

@@ -7,3 +7,5 @@ license = "MIT OR Apache-2.0"
 description = "Yog command domain — types for registering chat commands."
 
 [dependencies]
+# Its arguments' types, as the hosts read them.
+yog-ids = { workspace = true }

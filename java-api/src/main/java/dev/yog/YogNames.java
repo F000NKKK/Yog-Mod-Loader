@@ -70,6 +70,7 @@ public final class YogNames {
         public static final String DIMENSION = "dimension";
         public static final String EQUIPMENT = "equipment";
         public static final String EVENT = "event";
+        public static final String FLOAT = "float";
         public static final String FRAME = "frame";
         public static final String FUNCTION = "function";
         public static final String GENERIC = "generic";
@@ -145,7 +146,21 @@ public final class YogNames {
         public static final String Y = "y";
 
         /** Every name of the group, in order. */
-        public static final java.util.List<String> ALL_VALUES = java.util.List.of(VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FRAME, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, CUTSCENE, DATA, DEFAULT, DOC, DYNAMIC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(VIDEO, DISPLAY, MESSAGE, PARTICLE, TARGET, WALL, ARMOR, BASE, BLOCK, AIR, CATEGORY, CHUNK, CONTENT, DAMAGE, DIMENSION, EQUIPMENT, EVENT, FLOAT, FRAME, FUNCTION, GENERIC, GUI, INT, ITEM, KEY, MODELS, MODS, OPTIONAL, PLAYER, PNG, RESULT, SPRITE, STATE, TAG, TEXTURE, UI, VALUES, ITEMS, BLOCKS, ENTITIES, RECIPES, LOOT, SPAWN_EGG, SOUND, ANIMATION, ANY, AUTO, BOOL, BOTTOM, BYTES, CENTER, COLOR, COUNT, CUTSCENE, DATA, DEFAULT, DOC, DYNAMIC, END, ENTRIES, FALSE, FILE, FILL, HEIGHT, ID, IMAGE, KIND, LEFT, MOD, MODEL, NAME, NONE, NUMBER, OUTLINE, RIGHT, SIZE, SOURCE, SRC, START, STRETCH, STRING, TEXT, TOP, TRUE, TYPE, UV, VALUE, WHEN, WIDTH, X, Y);
+    }
+
+    public static final class CommandArg {
+        private CommandArg() {}
+
+        public static final String INT = "int";
+        public static final String FLOAT = "float";
+        public static final String WORD = "word";
+        public static final String STRING = "string";
+        public static final String PLAYER = "player";
+        public static final String BLOCKPOS = "blockpos";
+
+        /** Every name of the group, in order. */
+        public static final java.util.List<String> ALL_VALUES = java.util.List.of(INT, FLOAT, WORD, STRING, PLAYER, BLOCKPOS);
     }
 
     public static final class Kind {

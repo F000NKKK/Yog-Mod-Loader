@@ -189,7 +189,7 @@ native runtime's own): whatever the checks let through — a cycle of
 `Shared`s, a value a host still holds — is still collected, never leaked
 for good.
 
-- **Locals**: `let x = …` never changes; `let mut x = …` may. Only a `mut` local is lent by `ref` or assigned.
+- **Locals**: `let x = …` never changes; `let mut x = …` may. Only a `mut` local is lent by `ref` or assigned. A `foreach` item is read only; `foreach (let mut x in items)` lends each one to be changed (Rust's `iter_mut`).
 - **Moves are explicit**: handing an owned value on is written `move x`
   (in an argument or an assignment; returning a local needs none — it
   ends there anyway); after it `x` is gone — using it is a build error. Copies are implicit only for
@@ -659,7 +659,7 @@ server void Welcome(Player.JoinArgs e) {
 
 command "charge" {
     server void Fill(Sender source, Player target = source.Player) requires source.IsOp {
-        foreach (let battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
+        foreach (let mut battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
     }
 }
 ```

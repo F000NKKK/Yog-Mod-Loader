@@ -59,24 +59,14 @@ impl Checker<'_, '_, '_> {
                 binding,
                 iter,
                 body,
-            } => self.foreach(ty.as_ref(), binding, iter, body),
+                mutable,
+            } => self.foreach((ty.as_ref(), binding, *mutable), iter, body),
             Stmt::For {
                 init,
                 cond,
                 step,
                 body,
-            } => self.scoped(|c| {
-                if let Some(i) = init {
-                    c.stmt(i);
-                }
-                if let Some(cond) = cond {
-                    c.condition(cond);
-                }
-                if let Some(s) = step {
-                    c.stmt(s);
-                }
-                c.branch(body);
-            }),
+            } => self.for_loop((init.as_deref(), cond.as_ref(), step.as_deref()), body),
             Stmt::While { cond, body } | Stmt::DoWhile { body, cond } => self.scoped(|c| {
                 c.condition(cond);
                 c.branch(body);
@@ -124,13 +114,38 @@ impl Checker<'_, '_, '_> {
 
     /// `foreach (T x in items)`: `x` an item of what's gone through (an
     /// `IEnumerable<T>`'s `T`), or of the type written.
-    fn foreach(&mut self, ty: Option<&ast::Type>, binding: &Binding, iter: &Expr, body: &Stmt) {
+    fn foreach(
+        &mut self,
+        (ty, binding, mutable): (Option<&ast::Type>, &Binding, bool),
+        iter: &Expr,
+        body: &Stmt,
+    ) {
         let items = self.expr(iter);
         let item = self.item_of(&items);
         let t = ty.map_or(item, |t| self.type_of(t));
         self.types.set_item(iter, t.clone());
         self.scoped(|c| {
-            c.bind_binding(binding, &t, true);
+            c.bind_binding(binding, &t, !mutable);
+            c.branch(body);
+        });
+    }
+
+    /// `for (init; cond; step) body`, in a scope of its own.
+    fn for_loop(
+        &mut self,
+        (init, cond, step): (Option<&Stmt>, Option<&Expr>, Option<&Stmt>),
+        body: &Stmt,
+    ) {
+        self.scoped(|c| {
+            if let Some(i) = init {
+                c.stmt(i);
+            }
+            if let Some(cond) = cond {
+                c.condition(cond);
+            }
+            if let Some(s) = step {
+                c.stmt(s);
+            }
             c.branch(body);
         });
     }

@@ -321,7 +321,7 @@ names! {
         ANY = crate::word::ANY,
         BOOL = crate::word::BOOL,
         INT = crate::word::INT,
-        FLOAT = "float",
+        FLOAT = crate::word::FLOAT,
         STRING = crate::word::STRING,
         ATOM = "atom",
         TEXT = crate::word::TEXT,

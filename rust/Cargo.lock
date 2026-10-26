@@ -2368,6 +2368,9 @@ dependencies = [
 [[package]]
 name = "yog-command"
 version = "0.4.0"
+dependencies = [
+ "yog-ids",
+]
 
 [[package]]
 name = "yog-config"

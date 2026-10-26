@@ -83,3 +83,11 @@ pub fn field(name: &str) -> String {
 pub fn is_handle(name: &str) -> bool {
     yog_event::SUBJECTS.iter().any(|(_, h)| *h == name)
 }
+
+/// The player's handle's name (`Player`): its type's own.
+pub fn player() -> &'static str {
+    let full = std::any::type_name::<yog_event::Player>();
+    full.rsplit(yog_script_ids::rust::PATH_SEP)
+        .next()
+        .unwrap_or(full)
+}

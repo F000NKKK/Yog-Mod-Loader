@@ -161,6 +161,26 @@ fn content_inherits_its_kinds_object() {
     assert!(codes(src).is_empty(), "{:?}", codes(src));
 }
 
+/// A command's methods take who ran it first, then what the game parses;
+/// what one requires is a `bool`.
+#[test]
+fn commands_take_a_sender_and_parsed_arguments() {
+    let ok = "command \"charge\" {\n    server string Fill(Sender source, Player target, i32 amount = 1) requires !source.IsConsole => \"ok\";\n}\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    assert_eq!(
+        codes("command \"charge\" {\n    void Fill(i32 amount) { }\n}\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+    assert_eq!(
+        codes("command \"charge\" {\n    void Fill(Sender source, bool[] all) { }\n}\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+    assert_eq!(
+        codes("command \"charge\" {\n    void Fill(Sender source) requires 1 { }\n}\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
 /// The game's classes by C#'s names, and their sides.
 fn game() -> ClassIndex {
     let m = |name: &str, desc: &str| Member {

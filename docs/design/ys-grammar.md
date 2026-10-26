@@ -369,7 +369,7 @@ assign_op   = '=' | '+=' | '-=' | '*=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=
 place       = postfix ;                                              (* a name, a member, an index *)
 
 if_stmt     = 'if' '(' expr ')' stmt ('else' stmt)? ;
-foreach_stmt = 'foreach' '(' ('let' | type) (IDENT | '(' IDENT (',' IDENT)+ ')') 'in' expr ')' stmt ;
+foreach_stmt = 'foreach' '(' ('let' | type) 'mut'? (IDENT | '(' IDENT (',' IDENT)+ ')') 'in' expr ')' stmt ;   (* `mut`: each item lent to be changed *)
 for_stmt    = 'for' '(' local_decl? ';' expr? ';' assign? ')' stmt ;
 while_stmt  = 'while' '(' expr ')' stmt ;
 do_stmt     = 'do' stmt 'while' '(' expr ')' ';' ;
@@ -528,7 +528,7 @@ LINQ's names, on every collection and on the world's queries:
 
 ```ys
 let names = players.Where { it.Level > 10 }.Select { it.Name };
-foreach (let battery in Inventory.OfType<Battery>()) battery.Charge.Fill();
+foreach (let mut battery in Inventory.OfType<Battery>()) battery.Charge.Fill();
 let total = stacks.Sum(s => s.Count);
 List<i32> empty = [];
 Dictionary<string, i32> scores = ["alex" => 3, "sam" => 5];
@@ -678,7 +678,7 @@ screen ChargerScreen(Charger block) : Ui("charger.yui") {
 
 command "charge" {
     server void Fill(Sender source, Player target = source.Player) requires source.IsOp {
-        foreach (let battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
+        foreach (let mut battery in target.Inventory.OfType<Battery>()) battery.Charge.Energy = battery.Charge.Capacity;
     }
 }
 

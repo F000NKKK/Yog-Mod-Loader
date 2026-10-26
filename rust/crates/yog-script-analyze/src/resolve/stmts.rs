@@ -53,11 +53,18 @@ impl Resolver<'_, '_> {
                 binding,
                 iter,
                 body,
+                mutable,
             } => {
                 self.opt_ty(ty.as_ref());
                 self.expr(iter);
+                // `let mut`: each item lent to be changed; else read only.
+                let kind = if *mutable {
+                    DefKind::Variable
+                } else {
+                    DefKind::ReadOnly
+                };
                 self.looping(|r| {
-                    r.binding(binding, DefKind::ReadOnly);
+                    r.binding(binding, kind);
                     r.stmt(body);
                 });
             }

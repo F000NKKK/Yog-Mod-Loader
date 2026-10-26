@@ -107,6 +107,7 @@ impl Gen<'_> {
                 body,
             } => self.enum_decl(d, (&name.text, generics, base.as_ref()), variants, body),
             DeclKind::Mod { name, body } => self.mod_class(d, &name.text, body),
+            DeclKind::Command { name, body } => self.command_class(name, body),
             // Its properties are its definition, made by `yog build`; its
             // members, its kind's object's class.
             DeclKind::Content {
