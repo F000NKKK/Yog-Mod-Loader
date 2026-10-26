@@ -430,6 +430,19 @@ fn foreach_takes_items_apart() {
 }
 
 #[test]
+fn a_loop_whose_condition_takes_steps() {
+    let src = "enum Mode { Go, Stop }\nMode At(i32 i) => i < 3 ? Mode.Go : Mode.Stop;\n\
+               i32 F() {\n    let mut n = 0;\n\
+               \x20   for (let mut i = 0; At(i) switch { Mode.Go => true, Mode.Stop => false }; i += 1) {\n\
+               \x20       if (i == 1) {\n            continue;\n        }\n        n += i;\n    }\n    return n;\n}\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    // Checked each time, the body a block `continue` leaves to the step.
+    for want in ["while (true) {", "if (!($t", ") break;", "break $t"] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));

@@ -9,7 +9,7 @@ use yog_script_ids::clr::{ACCESSOR_SEP, TUPLE_ITEM};
 use super::Gen;
 use crate::modifier;
 use yog_script_ids::java::{
-    BREAK, CONTINUE, DO, ELSE, FINAL, FOR, IF, INT, NULL, RETURN, VAR, WHILE,
+    BREAK, CONTINUE, DO, ELSE, FINAL, FOR, IF, INT, NULL, RETURN, TRUE, VAR, WHILE,
 };
 
 impl Gen<'_> {
@@ -68,13 +68,19 @@ impl Gen<'_> {
                     self.branch(ELSE, o);
                 }
             }
+            Stmt::While { cond, body } if crate::switch::hoists(cond) => {
+                self.stepped_loop((Some(cond), true), None, body);
+            }
             Stmt::While { cond, body } => {
                 let c = self.expr(cond);
-                self.branch(&format!("{WHILE} ({c})"), body);
+                self.loop_body(|g| g.branch(&format!("{WHILE} ({c})"), body));
+            }
+            Stmt::DoWhile { body, cond } if crate::switch::hoists(cond) => {
+                self.stepped_loop((Some(cond), false), None, body);
             }
             Stmt::DoWhile { body, cond } => {
                 self.code.open(DO);
-                self.stmt(body);
+                self.loop_body(|g| g.stmt(body));
                 let c = self.expr(cond);
                 self.code.close(&format!(" {WHILE} ({c});"));
             }
@@ -137,9 +143,15 @@ impl Gen<'_> {
             Stmt::Break(_) => {
                 self.code.line(format!("{BREAK};"));
             }
-            Stmt::Continue(_) => {
-                self.code.line(format!("{CONTINUE};"));
-            }
+            // In a loop written in steps: past its body, to its step.
+            Stmt::Continue(_) => match self.continues.last().cloned().flatten() {
+                Some(label) => {
+                    self.code.line(format!("{BREAK} {label};"));
+                }
+                None => {
+                    self.code.line(format!("{CONTINUE};"));
+                }
+            },
             Stmt::Return(value, _) | Stmt::Skip(value, _) => match value {
                 Some(v) => {
                     let v = self.handed_expr(v);
@@ -276,29 +288,78 @@ impl Gen<'_> {
         body: &Stmt,
     ) {
         // In a block of its own, its first statement before it: Java's
-        // `for` with the condition and the step in its head.
+        // `for` with the condition and the step in its head — or, either
+        // computed in steps, a loop of them.
         self.code.open("");
         if let Some(i) = init {
             self.stmt(i);
         }
-        let c = match cond {
-            Some(c) if crate::switch::hoists(c) => {
-                return self.not_yet("a `for`'s condition computed in steps", c.span);
-            }
-            Some(c) => self.expr(c),
-            None => String::new(),
+        let simple_step = match step {
+            Some(Stmt::Assign { value, .. }) => !crate::switch::hoists(value),
+            Some(Stmt::Expr(e)) => !crate::switch::hoists(e),
+            Some(_) => false,
+            None => true,
         };
+        if cond.is_some_and(crate::switch::hoists) || !simple_step {
+            self.stepped_loop((cond, true), step, body);
+            self.code.close("");
+            return;
+        }
+        let c = cond.map(|c| self.expr(c)).unwrap_or_default();
         let step = match step {
-            Some(Stmt::Assign { place, op, value }) if !crate::switch::hoists(value) => {
+            Some(Stmt::Assign { place, op, value }) => {
                 let (p, v) = (self.expr(place), self.expr(value));
                 self.set(place, *op, &p, &v)
             }
-            Some(Stmt::Expr(e)) if !crate::switch::hoists(e) => self.expr(e),
-            Some(other) => return self.not_yet("this `for` step", step_span(other)),
-            None => String::new(),
+            Some(Stmt::Expr(e)) => self.expr(e),
+            _ => String::new(),
         };
-        self.branch(&format!("{FOR} (; {c}; {step})"), body);
+        self.loop_body(|g| g.branch(&format!("{FOR} (; {c}; {step})"), body));
         self.code.close("");
+    }
+
+    /// A loop whose condition or step is computed in steps: `while (true)`,
+    /// the condition checked first or (a `do`'s) last, the body in a
+    /// labeled block a `continue` leaves, then the step.
+    fn stepped_loop(
+        &mut self,
+        (cond, first): (Option<&Expr>, bool),
+        step: Option<&Stmt>,
+        body: &Stmt,
+    ) {
+        self.code.open(format!("{WHILE} ({TRUE})"));
+        let check = |g: &mut Self| {
+            if let Some(c) = cond {
+                let c = g.expr(c);
+                g.code.line(format!("{IF} (!({c})) {BREAK};"));
+            }
+        };
+        if first {
+            check(self);
+        }
+        let label = self.temp();
+        self.code.open(format!("{label}:"));
+        self.continues.push(Some(label));
+        match body {
+            Stmt::Block(b) => self.block_stmts(b),
+            other => self.stmt(other),
+        }
+        self.continues.pop();
+        self.code.close("");
+        if let Some(s) = step {
+            self.stmt(s);
+        }
+        if !first {
+            check(self);
+        }
+        self.code.close("");
+    }
+
+    /// A loop's body written by `f`, its `continue` Java's own.
+    fn loop_body(&mut self, f: impl FnOnce(&mut Self)) {
+        self.continues.push(None);
+        f(self);
+        self.continues.pop();
     }
 
     fn foreach(&mut self, binding: &Binding, iter: &Expr, body: &Stmt) {
@@ -317,13 +378,11 @@ impl Gen<'_> {
         {
             let (a, b) = (self.expr(from), self.expr(to));
             let cmp = if *inclusive { "<=" } else { "<" };
-            return self.branch(
-                &format!("{FOR} ({INT} {name} = {a}; {name} {cmp} {b}; {name}++)"),
-                body,
-            );
+            let head = format!("{FOR} ({INT} {name} = {a}; {name} {cmp} {b}; {name}++)");
+            return self.loop_body(|g| g.branch(&head, body));
         }
         let (items, rows) = self.gone_through(iter);
-        self.branch(&format!("{FOR} ({VAR} {name} : {items})"), body);
+        self.loop_body(|g| g.branch(&format!("{FOR} ({VAR} {name} : {items})"), body));
         for _ in 0..rows {
             self.code.close("");
         }
@@ -370,10 +429,10 @@ impl Gen<'_> {
                 Self::ident(&n.text)
             ));
         }
-        match body {
-            Stmt::Block(b) => self.block_stmts(b),
-            other => self.stmt(other),
-        }
+        self.loop_body(|g| match body {
+            Stmt::Block(b) => g.block_stmts(b),
+            other => g.stmt(other),
+        });
         self.code.close("");
         for _ in 0..rows {
             self.code.close("");
@@ -401,12 +460,5 @@ impl Gen<'_> {
         }
         self.code.line(format!("{RETURN} {NULL};"));
         self.code.close(");");
-    }
-}
-
-fn step_span(s: &Stmt) -> yog_script_analyze::token::Span {
-    match s {
-        Stmt::Expr(e) | Stmt::Value(e) => e.span,
-        _ => yog_script_analyze::token::Span::default(),
     }
 }

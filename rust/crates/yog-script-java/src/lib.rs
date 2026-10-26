@@ -130,6 +130,9 @@ pub(crate) struct Gen<'c> {
     /// The type arguments objects are made with, each list a constant of
     /// the source's class (`$types1`): worked out once, not per object.
     kept_types: Vec<String>,
+    /// The loops being written, innermost last: a loop written in steps
+    /// its label a `continue` leaves its body by; Java's own none.
+    continues: Vec<Option<String>>,
 }
 
 impl<'c> Gen<'c> {
@@ -146,6 +149,7 @@ impl<'c> Gen<'c> {
             nested: true,
             owner: None,
             kept_types: Vec::new(),
+            continues: Vec::new(),
         }
     }
 }
