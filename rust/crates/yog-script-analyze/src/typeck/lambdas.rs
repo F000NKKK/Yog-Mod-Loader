@@ -53,7 +53,14 @@ impl Checker<'_, '_, '_> {
         }
         self.as_delegate(e, &params, &ret);
         self.types.set(e, wanted.non_null().clone());
-        self.types.set_quoted(e, delegate);
+        self.types.set_quoted(
+            e,
+            super::types::Quoted {
+                delegate,
+                params,
+                ret,
+            },
+        );
         true
     }
 

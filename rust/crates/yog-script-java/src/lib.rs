@@ -24,6 +24,7 @@ mod reflection;
 mod reified;
 mod stmts;
 mod switch;
+mod trees;
 mod tuples;
 mod types;
 

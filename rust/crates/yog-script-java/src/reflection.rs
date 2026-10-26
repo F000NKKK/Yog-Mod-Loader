@@ -11,3 +11,4 @@ mod members;
 mod values;
 
 pub(crate) use companions::Companions;
+pub(crate) use values::of_class;

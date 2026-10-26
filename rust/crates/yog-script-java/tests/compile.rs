@@ -288,6 +288,27 @@ fn attributes_are_made_when_asked_for() {
 }
 
 #[test]
+fn a_quoted_lambda_is_its_tree_and_its_code() {
+    let src = "using System.Linq.Expressions;\n\
+               class Pos(i32 x) {\n    public i32 X = x;\n    public i32 Twice() => X * 2;\n}\n\
+               Expression<Func<Pos, bool>> Far() => p => p.X + p.Twice() > 10;\n\
+               bool Run(Pos p) => Far().Compile()(p);\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "dev.yog.script.linq.expressions.Expression.quote(",
+        "new String[] { \"p\" }, new dev.yog.script.Type[] { dev.yog.script.Type.Of(Pos.class) }, $ps -> ",
+        // Its nodes: members by name, calls by the method chosen.
+        "dev.yog.script.linq.expressions.Expression.GreaterThan(dev.yog.script.linq.expressions.Expression.Add(dev.yog.script.linq.expressions.Expression.PropertyOrField($ps[0], \"X\"), ",
+        "dev.yog.script.linq.expressions.Expression.methodOf(dev.yog.script.Type.Of(Pos.class), \"Twice\", 0)",
+        // Its code: what `Compile()` gives.
+        "(dev.yog.script.Func2<Pos, Boolean>) (p) -> {",
+        "Far().Compile().Invoke(p)",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+#[test]
 fn variance_is_a_recast() {
     let out = java("IEnumerable<object> Out(List<string> xs) => xs;\n")
         .unwrap_or_else(|p| panic!("{p:#?}"));

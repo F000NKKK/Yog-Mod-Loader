@@ -10,7 +10,7 @@ import java.util.function.Function;
 /**
  * Code as a tree to read: Yog Script's {@code System.Linq.Expressions.Expression},
  * its nodes made by these factories — or by the compiler, from a lambda
- * given where an {@code Expression<Func<…>>} is wanted ({@link #Quote}).
+ * given where an {@code Expression<Func<…>>} is wanted ({@link #quote}).
  */
 public abstract class Expression {
     private final ExpressionType nodeType;
@@ -37,12 +37,36 @@ public abstract class Expression {
     }
 
     /** A lambda the compiler quoted: its parameters ({@code names} of {@code types}), its {@code body} made of them, {@code compiled} as code. */
-    public static <D> Expression1<D> Quote(Type delegate, String[] names, Type[] types, Function<ParameterExpression[], Expression> body, D compiled) {
+    public static <D> Expression1<D> quote(Type delegate, String[] names, Type[] types, Function<ParameterExpression[], Expression> body, D compiled) {
         ParameterExpression[] parameters = new ParameterExpression[names.length];
         for (int i = 0; i < names.length; i++) {
             parameters[i] = new ParameterExpression(types[i], names[i]);
         }
         return new Expression1<>(delegate, body.apply(parameters), parameters, compiled);
+    }
+
+    /** {@code owner}'s method {@code name}, the {@code overload}-th of its name, as the compiler chose it. */
+    public static MethodInfo methodOf(Type owner, String name, int overload) {
+        int seen = 0;
+        for (dev.yog.script.reflection.MemberInfo m : owner.members()) {
+            if (m instanceof MethodInfo method && method.Name().equals(name) && seen++ == overload) {
+                return method;
+            }
+        }
+        throw new IllegalStateException("`" + owner.Name() + "` has no `" + name + "` #" + overload);
+    }
+
+    /** {@code type}'s static property {@code name}, else its static field of the name. */
+    public static MemberExpression staticMember(Type type, String name) {
+        PropertyInfo property = type.GetProperty(name);
+        if (property != null) {
+            return Property(null, property);
+        }
+        FieldInfo field = type.GetField(name);
+        if (field == null) {
+            throw new IllegalArgumentException("`" + type.Name() + "` has no property or field `" + name + "`");
+        }
+        return Field(null, field);
     }
 
     // Leaves.

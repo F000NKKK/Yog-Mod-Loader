@@ -23,13 +23,22 @@ pub struct Types {
     /// JVM's generics have none), by expression.
     recasts: HashMap<usize, Type>,
     /// The lambdas given where an expression tree is wanted
-    /// (`Expression<Func<i32, bool>>`), each with its delegate's type.
-    quoted: HashMap<usize, Type>,
+    /// (`Expression<Func<i32, bool>>`), by the lambda.
+    quoted: HashMap<usize, Quoted>,
     /// The method each call chose, by the call.
     methods: HashMap<usize, MethodUse>,
     /// The operators `op=` applies (`v += w` on a `Vec`), by the place it
     /// writes.
     assigned: HashMap<usize, OperatorUse>,
+}
+
+/// A lambda given as an expression tree: its delegate's type, and the
+/// parameters and result the delegate gives it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Quoted {
+    pub delegate: Type,
+    pub params: Vec<Type>,
+    pub ret: Type,
 }
 
 /// An operator or a conversion a type declares, as used: the type, its
@@ -63,13 +72,13 @@ pub struct MethodUse {
 impl Types {
     /// The type `e`'s value is recast to, going where it's wanted by
     /// variance (`IEnumerable<string>` as an `IEnumerable<object>`).
-    /// Lambda `e`'s delegate, when it's given as an expression tree.
-    pub fn quoted(&self, e: &Expr) -> Option<&Type> {
+    /// Lambda `e` as an expression tree, when it's given as one.
+    pub fn quoted(&self, e: &Expr) -> Option<&Quoted> {
         self.quoted.get(&key(e))
     }
 
-    pub(super) fn set_quoted(&mut self, e: &Expr, delegate: Type) {
-        self.quoted.insert(key(e), delegate);
+    pub(super) fn set_quoted(&mut self, e: &Expr, quoted: Quoted) {
+        self.quoted.insert(key(e), quoted);
     }
 
     pub fn recast(&self, e: &Expr) -> Option<&Type> {

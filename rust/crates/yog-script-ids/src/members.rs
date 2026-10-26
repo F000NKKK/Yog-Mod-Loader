@@ -57,3 +57,31 @@ pub const CAST: &str = "Cast";
 // `System.Type`'s: a generic type made of its arguments, an array of a type.
 pub const MAKE_GENERIC_TYPE: &str = "MakeGenericType";
 pub const MAKE_ARRAY_TYPE: &str = "MakeArrayType";
+
+// `System.Linq.Expressions.Expression`'s factories a quoted lambda's tree is made by.
+pub const CONSTANT: &str = "Constant";
+pub const PROPERTY_OR_FIELD: &str = "PropertyOrField";
+pub const CALL: &str = "Call";
+pub const CONDITION: &str = "Condition";
+pub const CONVERT: &str = "Convert";
+pub const ARRAY_INDEX: &str = "ArrayIndex";
+pub const NOT: &str = "Not";
+pub const NEGATE: &str = "Negate";
+pub const COALESCE: &str = "Coalesce";
+pub const SUBTRACT: &str = "Subtract";
+pub const MULTIPLY: &str = "Multiply";
+pub const DIVIDE: &str = "Divide";
+pub const MODULO: &str = "Modulo";
+pub const AND: &str = "And";
+pub const OR: &str = "Or";
+pub const EXCLUSIVE_OR: &str = "ExclusiveOr";
+pub const LEFT_SHIFT: &str = "LeftShift";
+pub const RIGHT_SHIFT: &str = "RightShift";
+pub const AND_ALSO: &str = "AndAlso";
+pub const OR_ELSE: &str = "OrElse";
+pub const EQUAL: &str = "Equal";
+pub const NOT_EQUAL: &str = "NotEqual";
+pub const LESS_THAN: &str = "LessThan";
+pub const LESS_THAN_OR_EQUAL: &str = "LessThanOrEqual";
+pub const GREATER_THAN: &str = "GreaterThan";
+pub const GREATER_THAN_OR_EQUAL: &str = "GreaterThanOrEqual";

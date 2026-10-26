@@ -169,6 +169,20 @@ fn types_are_values() {
 }
 
 #[test]
+fn lambdas_are_quoted_as_expression_trees() {
+    let ok = "using System.Linq.Expressions;\n\
+              Expression<Func<i32, bool>> Big() => x => x > 10;\n\
+              bool Run() => Big().Compile()(12) && Big().Body.NodeType == ExpressionType.GreaterThan;\n\
+              Expression<Func<i32, i32>> Made() {\n    let x = Expression.Parameter(typeof(i32), \"x\");\n\
+              \x20   return Expression.Lambda<Func<i32, i32>>(Expression.Add(x, Expression.Constant(1)), [x]);\n}\n";
+    let problems = check("a.ys", ok).problems;
+    assert!(problems.is_empty(), "{problems:#?}");
+    // A tree is of an expression, not a block (C#'s CS0834).
+    let block = "using System.Linq.Expressions;\nExpression<Func<i32, i32>> F() => x => {\n    return x;\n};\n";
+    assert_eq!(codes(block), [script_problem::TYPE_MISMATCH]);
+}
+
+#[test]
 fn collections_are_the_librarys_own() {
     let ok = "i32 Sum(List<i32> xs) {\n    let mut total = 0;\n    foreach (let x in xs) {\n        total += x;\n    }\n    return total + xs.Count + xs[0];\n}\n\
               bool Has(Dictionary<string, i32> ages, string name) => ages.ContainsKey(name) && ages[name] > 3;\n\

@@ -105,7 +105,10 @@ impl Gen<'_> {
             ExprKind::NewArray { sizes, init, .. } => self.new_array(e, sizes, init.as_deref()),
             ExprKind::Collection(items) => self.collection(e, items),
             ExprKind::Tuple { items, .. } => self.tuple(items),
-            ExprKind::Lambda { params, body } => self.lambda(e, params, body),
+            ExprKind::Lambda { params, body } => match self.types.quoted(e).cloned() {
+                Some(quoted) => self.quoted_lambda(e, (params, body), &quoted),
+                None => self.lambda(e, params, body),
+            },
             ExprKind::Switch { expr, arms } => self.switch(e, expr, arms),
             ExprKind::Is { expr, pattern } => self.is(expr, pattern),
             ExprKind::As { expr, ty } => {
@@ -262,15 +265,29 @@ impl Gen<'_> {
         body: &LambdaBody,
     ) -> String {
         let void = matches!(self.types.of(e), Some(Type::Fn(_, ret)) if **ret == Type::Void);
-        // None named: `it`, when its delegate takes one; none when none.
         let takes_none = matches!(self.types.of(e), Some(Type::Fn(p, _)) if p.is_empty());
-        let names: Vec<String> = if params.is_empty() && takes_none {
+        let names = self.lambda_names(params, takes_none);
+        self.lambda_of(&names, body, void)
+    }
+
+    /// A lambda's parameters' names; none named: `it`, when its delegate
+    /// takes one (`takes_none`: none).
+    pub(crate) fn lambda_names(
+        &self,
+        params: &[yog_script_analyze::ast::LambdaParam],
+        takes_none: bool,
+    ) -> Vec<String> {
+        if params.is_empty() && takes_none {
             Vec::new()
         } else if params.is_empty() {
             vec![yog_script_analyze::ast::IT.to_string()]
         } else {
             params.iter().map(|p| Self::ident(&p.name.text)).collect()
-        };
+        }
+    }
+
+    /// Java's lambda of `names` running `body`; `void`: it gives nothing.
+    pub(crate) fn lambda_of(&mut self, names: &[String], body: &LambdaBody, void: bool) -> String {
         let head = format!("({}) ->", names.join(", "));
         // Its body written apart: what it computes first stays inside it.
         let outer = std::mem::take(&mut self.code);

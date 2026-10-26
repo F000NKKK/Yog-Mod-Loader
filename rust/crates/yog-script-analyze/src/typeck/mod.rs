@@ -46,7 +46,7 @@ mod written;
 use std::collections::HashMap;
 
 pub use model::Type;
-pub use types::{MethodUse, OperatorUse, Types};
+pub use types::{MethodUse, OperatorUse, Quoted, Types};
 
 use crate::ast::File;
 use crate::index::{ClassIndex, Lookup, Side};

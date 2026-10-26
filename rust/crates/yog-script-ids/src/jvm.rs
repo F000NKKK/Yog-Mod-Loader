@@ -140,3 +140,15 @@ pub mod reflection {
     pub const INIT_ONLY: &str = "INIT_ONLY";
     pub const LITERAL: &str = "LITERAL";
 }
+
+/// Expression trees as compiled code makes them: a quoted lambda is
+/// `Expression.quote(delegate, names, types, $ps -> tree, lambda)`, its
+/// calls' methods found as the compiler chose them (`methodOf`), a static
+/// member by its name (`staticMember`).
+pub mod trees {
+    pub const QUOTE: &str = "quote";
+    pub const METHOD_OF: &str = "methodOf";
+    pub const STATIC_MEMBER: &str = "staticMember";
+    /// The tree's lambda's parameter: the quoted lambda's parameters' nodes.
+    pub const PARAMETERS: &str = "$ps";
+}

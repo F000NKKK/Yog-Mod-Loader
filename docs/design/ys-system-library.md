@@ -310,8 +310,10 @@ an interpreter of the nodes.
    metadata is); attributes (done: `GetCustomAttribute<T>()`,
    `GetCustomAttributes`, `IsDefined` — each made anew from what's
    written, a type's base's inherited; `[Derive(…)]`, naming macros, has
-   no value); expression trees (in progress: the library's
-   declarations, a lambda quoted where an `Expression<TDelegate>` is
-   wanted, the runtime's nodes and the interpreter running hand-made
-   ones; the compiler writing the tree next); `BindingFlags` (needs
-   enums' `|`).
+   no value); expression trees (done: a lambda given where an
+   `Expression<TDelegate>` is wanted is written as its tree — constants,
+   parameters, members, calls by the method chosen, operators, `?:`,
+   casts, an array's item — and as itself, which `Compile()` gives; a
+   hand-made tree's `Compile()` runs its nodes; not yet in a tree: `new`,
+   interpolation, nested lambdas, a type's own operators); `BindingFlags`
+   (needs enums' `|`).
