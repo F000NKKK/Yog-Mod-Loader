@@ -46,7 +46,7 @@ HEX_COLOR = re.compile(r"\b0x[0-9A-Fa-f_]{8,11}\b")
 # A fraction other than 0, 1, 2 and 0.5 (arithmetic, not meaning).
 FLOAT_MAGIC = re.compile(r"(?<![\w.])(?!(?:[012](?:\.0+)?|0\.50*)(?:f32|f64|f)?\b(?!\.\d))\d+\.\d+(?:f32|f64|f)?\b")
 INT_MAGIC = re.compile(r"(?<![\w.#\[])(?!(?:0|1|2|10|100)\b)\d{2,}(?:u8|u16|u32|u64|usize|i32|i64)?\b(?!\.)")
-CONST_LINE = re.compile(r"^\s*(pub(\([^)]*\))?\s+)?(const|static)\s|^\s*(export\s+)?const\s+[A-Z_][A-Z0-9_]*\s*[:=]|static final")
+CONST_LINE = re.compile(r"^\s*(pub(\([^)]*\))?\s+)?(const|static)\s|^\s*(export\s+)?const\s+[A-Z_][A-Z0-9_]*\s*[:=]|static final|^\s*((public|private|protected|internal)\s+)?const\s+\w+\s+[A-Z]\w*\s*=")
 
 SILENCE = re.compile(r"#!?\[allow\(|@ts-ignore|@ts-expect-error|eslint-disable|@SuppressWarnings")
 PANIC = re.compile(r"\.unwrap\(\)|\.expect\(|\bpanic!\(|\bunreachable!\(|\btodo!\(|\bunimplemented!\(")
