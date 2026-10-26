@@ -16,6 +16,18 @@ impl Checker<'_, '_, '_> {
         }
     }
 
+    /// Method `m` (declaration `d`): its body, `this` read-only in it when
+    /// it's `readonly`; one that isn't implements nothing that is.
+    fn method_decl(&mut self, d: &Decl, m: &Method, side: Side) {
+        let readonly = d.has(Modifier::Readonly) || self.this_readonly();
+        if !readonly && !d.has(Modifier::Static) {
+            self.implements_readonly(m);
+        }
+        let outer = std::mem::replace(&mut self.readonly_this, readonly);
+        self.method(m, side);
+        self.readonly_this = outer;
+    }
+
     fn decl(&mut self, d: &Decl) {
         self.attributes(&d.attributes);
         self.extern_has_service(d);
@@ -42,15 +54,7 @@ impl Checker<'_, '_, '_> {
                 self.accessors(&ix.ty, Of::Indexer(&ix.params), &ix.accessors, side);
             }
             DeclKind::Operator(op) => self.method(&op.method, side),
-            DeclKind::Method(m) => {
-                let readonly = d.has(Modifier::Readonly) || self.this_readonly();
-                if !readonly && !d.has(Modifier::Static) {
-                    self.implements_readonly(m);
-                }
-                let outer = std::mem::replace(&mut self.readonly_this, readonly);
-                self.method(m, side);
-                self.readonly_this = outer;
-            }
+            DeclKind::Method(m) => self.method_decl(d, m, side),
             DeclKind::Ctor(c) => {
                 let this = self.this.clone();
                 self.within(this, side, Some(Type::Void), |ch| {
