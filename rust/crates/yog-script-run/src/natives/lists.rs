@@ -1,6 +1,6 @@
 //! A list's members.
 
-use yog_script_ids::members::{ADD, CLEAR, CONTAINS, COUNT, INDEX_OF, REMOVE_AT};
+use yog_script_ids::members::{ADD, CLEAR, CONTAINS, COUNT, INDEX_OF, LENGTH, REMOVE_AT};
 
 use std::cell::RefCell;
 
@@ -9,7 +9,8 @@ use crate::value::Value;
 
 pub(super) fn member(items: &[Value], name: &str) -> Option<Value> {
     match name {
-        COUNT => Some(Value::Int(i64::try_from(items.len()).unwrap_or(i64::MAX))),
+        // A list's `Count`, an array's `Length`: the interpreter keeps both as lists.
+        COUNT | LENGTH => Some(Value::Int(i64::try_from(items.len()).unwrap_or(i64::MAX))),
         _ => None,
     }
 }

@@ -33,6 +33,7 @@ impl Checker<'_, '_, '_> {
             ret,
             generics,
             bound: Default::default(),
+            rest: false,
         }])
     }
 

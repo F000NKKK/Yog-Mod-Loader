@@ -253,3 +253,23 @@ fn texts_are_yogs_text() {
         assert!(java.contains(want), "missing `{want}` in:\n{java}");
     }
 }
+
+/// A `params` parameter's arguments packed in an array of its item type;
+/// an array given for it passed as it is.
+#[test]
+fn params_are_packed() {
+    let src = "i32 Count(string f, params object[] xs) => xs.Length;\n\
+               i32 A() => Count(\"x\", 1, \"two\");\ni32 B() => Count(\"x\");\ni32 C(object[] all) => Count(\"x\", move all);\n";
+    let checked = yog_script_analyze::check("p.ys", src);
+    assert!(checked.problems.is_empty(), "{:#?}", checked.problems);
+    let java = yog_script_java::compile("p.ys", src, &checked, "p")
+        .unwrap_or_else(|p| panic!("{p:#?}"))
+        .source;
+    for want in [
+        "Count(\"x\", new Object[] { 1, \"two\" })",
+        "Count(\"x\", new Object[] {  })",
+        "Count(\"x\", all)",
+    ] {
+        assert!(java.contains(want), "missing `{want}` in:\n{java}");
+    }
+}

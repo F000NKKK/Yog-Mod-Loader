@@ -32,6 +32,40 @@ impl Gen<'_> {
         out.join(", ")
     }
 
+    /// Call `e`'s arguments: those its `params` parameter takes (the call's
+    /// expanded form) packed in an array of its item type.
+    pub(crate) fn call_args(&mut self, e: &Expr, args: &[Arg]) -> String {
+        let used = self.types.method(e).cloned();
+        let Some((from, used)) = used.and_then(|u| u.rest_from.map(|k| (k, u))) else {
+            return self.args(args);
+        };
+        let from = from.min(args.len());
+        let head = self.args(&args[..from]);
+        let tail = self.args(&args[from..]);
+        // Its item type: an argument's as taken, else the array's declared.
+        let item = used
+            .taken
+            .get(from)
+            .cloned()
+            .or_else(|| match used.params.last() {
+                Some(Type::Array(item, _)) => Some((**item).clone()),
+                _ => None,
+            })
+            .unwrap_or(Type::Unknown);
+        let java = self.java(&item, false);
+        // A type parameter's array is made as an object one (Java's).
+        let array = if crate::reified::names_parameter(&item) {
+            format!("({java}[]) {NEW} {OBJECT}[] {{ {tail} }}")
+        } else {
+            format!("{NEW} {java}[] {{ {tail} }}")
+        };
+        if head.is_empty() {
+            array
+        } else {
+            format!("{head}, {array}")
+        }
+    }
+
     pub(crate) fn member(&mut self, e: &Expr, on: &Expr, name: &str, safe: bool) -> String {
         let on_type = self.types.of(on).cloned();
         let target = self.expr(on);
@@ -114,7 +148,7 @@ impl Gen<'_> {
         if let Some(ev) = self.event_of(raised) {
             return self.raise(e, &ev, args);
         }
-        let a = self.args(args);
+        let a = self.call_args(e, args);
         match &callee.kind {
             ExprKind::Ident(name) => match self.types.of(callee) {
                 // A delegate held: called by its interface's method.

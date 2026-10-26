@@ -38,6 +38,9 @@ pub(super) struct Signature {
     pub generics: Vec<String>,
     /// Those of them given before (`F<i32>(…)`).
     pub bound: super::generics::Bound,
+    /// Its last parameter is `params T[] rest`: the arguments past the
+    /// others go in it, or an array of them does (C#'s).
+    pub rest: bool,
 }
 
 impl Checker<'_, '_, '_> {
@@ -441,6 +444,7 @@ impl Checker<'_, '_, '_> {
                     ret: Type::of_shape(&m.reply),
                     generics: Vec::new(),
                     bound: Default::default(),
+                    rest: false,
                 })
                 .collect(),
         )
@@ -463,6 +467,7 @@ impl Checker<'_, '_, '_> {
                         ret,
                         generics: Vec::new(),
                         bound: Default::default(),
+                        rest: false,
                     })
                     .collect(),
             ),
@@ -492,6 +497,7 @@ fn signature_of(params: &[Type], ret: &Type) -> Signature {
         ret: ret.clone(),
         generics: Vec::new(),
         bound: Default::default(),
+        rest: false,
     }
 }
 

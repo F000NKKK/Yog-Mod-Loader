@@ -573,7 +573,11 @@ fn arity(generics: &[yog_script_analyze::ast::Generic]) -> usize {
 /// a Java word escaped as an identifier would be.
 fn package(namespace: &[String]) -> String {
     // `System.X` is the runtime's `x`; `Yog.X` its `yog.x`.
-    let skip = usize::from(namespace.first().is_some_and(|n| n == yog_script_ids::system::ROOT));
+    let skip = usize::from(
+        namespace
+            .first()
+            .is_some_and(|n| n == yog_script_ids::system::ROOT),
+    );
     std::iter::once(RUNTIME.to_string())
         .chain(namespace.iter().skip(skip).map(|n| {
             <yog_codegen_java::Java as yog_codegen::Identifiers>::ident(&n.to_lowercase())

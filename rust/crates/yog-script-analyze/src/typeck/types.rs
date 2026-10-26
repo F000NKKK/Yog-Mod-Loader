@@ -87,6 +87,9 @@ pub struct MethodUse {
     pub extension: bool,
     /// How many type parameters of its own it has (`F<A, B>`: 2).
     pub generics: usize,
+    /// Its `params` parameter takes the arguments from this one on, packed
+    /// in an array of its item type (the call's expanded form).
+    pub rest_from: Option<usize>,
 }
 
 impl Types {

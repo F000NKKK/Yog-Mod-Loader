@@ -141,6 +141,7 @@ impl Checker<'_, '_, '_> {
                 extension,
                 taken: c.params,
                 type_args: c.type_args,
+                rest_from: c.rest_from,
                 ..self.method_use(m, context)
             }
         });
@@ -179,6 +180,7 @@ impl Checker<'_, '_, '_> {
             type_args: Vec::new(),
             extension: false,
             generics: m.generics.iter().filter(|g| !g.lifetime).count(),
+            rest_from: None,
         }
     }
 
@@ -196,10 +198,15 @@ impl Checker<'_, '_, '_> {
         self.with_types(bound, |c| Signature {
             params: m.params.iter().map(|p| c.type_of(&p.ty)).collect(),
             passes: m.params.iter().map(|p| p.pass).collect(),
-            required: m.params.iter().take_while(|p| p.default.is_none()).count(),
+            required: m
+                .params
+                .iter()
+                .take_while(|p| p.default.is_none() && !p.params)
+                .count(),
             ret: m.ret.as_ref().map_or(Type::Void, |t| c.type_of(t)),
             generics,
             bound: Default::default(),
+            rest: m.params.last().is_some_and(|p| p.params),
         })
     }
 }

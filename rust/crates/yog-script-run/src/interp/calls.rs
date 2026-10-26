@@ -165,6 +165,7 @@ impl<'p> Interp<'p> {
         given: Vec<Value>,
         at: Span,
     ) -> Run<Value> {
+        let given = packed(m, given);
         let ended = self.invoke(m, this, given, at)?;
         for (a, v) in args.iter().zip(ended.params) {
             match (&a.pass, &a.value.kind) {
@@ -210,4 +211,21 @@ impl<'p> Interp<'p> {
     pub(crate) fn stop(&self, message: String, span: Span) -> Stop {
         Stop::Panic(super::Panic { message, span })
     }
+}
+
+/// `given` as `m` takes them: what its `params` parameter takes packed in
+/// a list, unless an array (a list) was given for it alone.
+fn packed(m: &Method, mut given: Vec<Value>) -> Vec<Value> {
+    let Some(fixed) = m.params.len().checked_sub(1) else {
+        return given;
+    };
+    if !m.params[fixed].params || given.len() < fixed {
+        return given;
+    }
+    let as_written = given.len() == m.params.len() && matches!(given.last(), Some(Value::List(_)));
+    if !as_written {
+        let rest = given.split_off(fixed);
+        given.push(Value::list(rest));
+    }
+    given
 }

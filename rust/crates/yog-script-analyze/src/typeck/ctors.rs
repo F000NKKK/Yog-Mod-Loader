@@ -58,6 +58,7 @@ impl Checker<'_, '_, '_> {
             ret: Type::Void,
             generics: Vec::new(),
             bound: Default::default(),
+            rest: false,
         }
     }
 }

@@ -143,7 +143,10 @@ fn content_props_are_its_files() {
     );
     assert_eq!(
         codes("item Gem {\n    MaxStack = 16;\n    FireResistant = true;\n}\n"),
-        [script_problem::CONTENT_PROPERTY, script_problem::CONTENT_PROPERTY]
+        [
+            script_problem::CONTENT_PROPERTY,
+            script_problem::CONTENT_PROPERTY
+        ]
     );
 }
 
@@ -163,10 +166,7 @@ fn content_binds_to_its_file() {
         codes_of(yog_script_analyze::check_in("a.ys", src, env).problems)
     };
     assert!(check("block Lamp {\n    public i32 Uses = 0;\n}\nitem Gem { }\n").is_empty());
-    assert_eq!(
-        check("block Glow { }\n"),
-        [script_problem::NO_CONTENT_FILE]
-    );
+    assert_eq!(check("block Glow { }\n"), [script_problem::NO_CONTENT_FILE]);
     assert_eq!(
         check("item Lamp { }\n"),
         [script_problem::NO_CONTENT_FILE],
@@ -750,6 +750,19 @@ fn text_is_yogs() {
     assert!(codes(ok).is_empty(), "{:?}", codes(ok));
     assert_eq!(
         codes("string S() => t\"m.title\";\n"),
+        [script_problem::TYPE_MISMATCH]
+    );
+}
+
+/// `params T[] rest`, as C#'s: the arguments past the others go in it,
+/// or an array of them does; each of them a `T`.
+#[test]
+fn params_take_the_rest() {
+    let ok = "i32 Count(string f, params i32[] xs) => xs.Length;\n\
+              i32 A() => Count(\"x\");\ni32 B() => Count(\"x\", 1, 2, 3);\ni32 C() => Count(\"x\", new i32[] { 1, 2 });\n";
+    assert!(codes(ok).is_empty(), "{:?}", codes(ok));
+    assert_eq!(
+        codes("i32 Count(params i32[] xs) => xs.Length;\ni32 A() => Count(1, \"two\");\n"),
         [script_problem::TYPE_MISMATCH]
     );
 }

@@ -88,3 +88,11 @@ fn test_blocks_pass_or_fail() {
         .collect();
     assert_eq!(ends, [("twice", true), ("wrong", false)]);
 }
+
+/// A `params` parameter takes the arguments past the others, packed.
+#[test]
+fn params_take_the_rest() {
+    let src = "i32 Count(string f, params i32[] xs) => xs.Length;\ni32 Three() => Count(\"x\", 1, 2, 3);\ni32 None() => Count(\"x\");\n";
+    assert_eq!(run(src, "Three", vec![]), Ok(int(3)));
+    assert_eq!(run(src, "None", vec![]), Ok(int(0)));
+}

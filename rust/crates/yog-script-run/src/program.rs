@@ -154,8 +154,14 @@ impl<'a> Program<'a> {
 
 /// Whether `m` can be called with `count` arguments (the rest defaulted).
 fn takes(m: &Method, count: usize) -> bool {
-    let required = m.params.iter().take_while(|p| p.default.is_none()).count();
-    (required..=m.params.len()).contains(&count)
+    let required = m
+        .params
+        .iter()
+        .take_while(|p| p.default.is_none() && !p.params)
+        .count();
+    // A `params` one takes any number past the others.
+    let rest = m.params.last().is_some_and(|p| p.params);
+    (required..=m.params.len()).contains(&count) || (rest && count >= required)
 }
 
 /// A body's fields, computed properties and methods.

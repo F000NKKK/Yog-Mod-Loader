@@ -119,11 +119,7 @@ impl Gen<'_> {
             let a = self.args(args);
             return format!("{BUS_EMIT}({address}, {}, {a})", self.payload(ev));
         }
-        let gives = self
-            .types
-            .of(e)
-            .filter(|t| **t != Type::Void)
-            .cloned();
+        let gives = self.types.of(e).filter(|t| **t != Type::Void).cloned();
         if let Some(raiser) = self.raiser(&ev.delegate, args, gives.as_ref()) {
             let a = self.args(args);
             let sep = if a.is_empty() { "" } else { ", " };

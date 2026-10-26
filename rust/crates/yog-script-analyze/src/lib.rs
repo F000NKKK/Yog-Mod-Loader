@@ -28,8 +28,8 @@ pub mod words;
 /// How Yog Script spells what its reader reads: what a writer of it
 /// (`yog-codegen-ys`) writes the same way.
 pub mod spelling {
-    pub use crate::lexer::{TEXT_PREFIX, VERBATIM};
     pub use crate::lexer::string::{CLOSE, ESCAPE, ESCAPES, OPEN, QUOTE, UNICODE_OPEN};
+    pub use crate::lexer::{TEXT_PREFIX, VERBATIM};
 
     /// Whether `name` is reserved: a keyword, written `@name` as a name.
     #[must_use]

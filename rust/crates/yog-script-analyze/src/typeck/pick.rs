@@ -19,6 +19,35 @@ pub(super) struct Chosen {
     pub params: Vec<Type>,
     /// Its own type parameters' types, in order (unknown where nothing said).
     pub type_args: Vec<Type>,
+    /// Its `params` taking the arguments from this one on, packed in an
+    /// array (its expanded form); `None` when they're as written.
+    pub rest_from: Option<usize>,
+}
+
+/// `s` in its expanded form for `count` arguments: its `params T[]`
+/// parameter one `T` for each argument past the others. None when it has
+/// none, or fewer arguments are given than come before it.
+fn expanded(s: &Signature, count: usize) -> Option<Signature> {
+    let fixed = s.params.len().checked_sub(1)?;
+    if !s.rest || count < fixed {
+        return None;
+    }
+    let Type::Array(item, 1) = &s.params[fixed] else {
+        return None;
+    };
+    let mut params = s.params[..fixed].to_vec();
+    params.extend(std::iter::repeat_n((**item).clone(), count - fixed));
+    let mut passes = s.passes[..fixed.min(s.passes.len())].to_vec();
+    passes.resize(count, None);
+    Some(Signature {
+        params,
+        passes,
+        required: count,
+        ret: s.ret.clone(),
+        generics: s.generics.clone(),
+        bound: s.bound.clone(),
+        rest: false,
+    })
 }
 
 impl Checker<'_, '_, '_> {
@@ -35,9 +64,21 @@ impl Checker<'_, '_, '_> {
             self.lambdas_alone(args);
             return (Type::Unknown, None);
         }
-        let fitting = (0..sigs.len()).find_map(|i| self.fit(&sigs[i], given, args).map(|f| (i, f)));
-        if let Some((i, found)) = fitting {
-            let s = &sigs[i];
+        // As written first, then a `params` one expanded (C#'s order).
+        // A `params` one as written takes its array as its last argument.
+        let as_written = |s: &Signature| !s.rest || given.len() == s.params.len();
+        let fitting = (0..sigs.len())
+            .filter(|&i| as_written(&sigs[i]))
+            .find_map(|i| self.fit(&sigs[i], given, args).map(|f| (i, f, None)))
+            .or_else(|| {
+                (0..sigs.len()).find_map(|i| {
+                    let x = expanded(&sigs[i], given.len())?;
+                    self.fit(&x, given, args).map(|f| (i, f, Some(x)))
+                })
+            });
+        if let Some((i, found, expanded)) = fitting {
+            let rest_from = expanded.as_ref().map(|_| sigs[i].params.len() - 1);
+            let s = expanded.as_ref().unwrap_or(&sigs[i]);
             self.check_passing(&s.passes, args, given);
             let params: Vec<Type> = s.params.iter().map(|p| p.substitute(&found)).collect();
             for ((arg, g), p) in args.iter().zip(given).zip(&params) {
@@ -69,6 +110,7 @@ impl Checker<'_, '_, '_> {
                     index: i,
                     params,
                     type_args,
+                    rest_from,
                 }),
             );
         }
@@ -128,7 +170,10 @@ impl Checker<'_, '_, '_> {
         args: &[&Arg],
         at: Span,
     ) -> (Type, Option<Chosen>) {
-        let takes = |s: &Signature| (s.required..=s.params.len()).contains(&given.len());
+        let takes = |s: &Signature| {
+            (s.required..=s.params.len()).contains(&given.len())
+                || (s.rest && given.len() + 1 >= s.params.len())
+        };
         let taking: Vec<usize> = (0..sigs.len()).filter(|&i| takes(&sigs[i])).collect();
         match taking.as_slice() {
             [] => {
@@ -161,6 +206,7 @@ impl Checker<'_, '_, '_> {
                         index: i,
                         params,
                         type_args,
+                        rest_from: None,
                     }),
                 )
             }

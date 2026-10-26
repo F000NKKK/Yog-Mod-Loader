@@ -42,7 +42,10 @@ impl Gen<'_> {
         gives: Option<&Type>,
     ) -> Option<String> {
         let plain = |t: &Type| t.known() && *t != Type::Null && !names_parameter(t);
-        if !self.nested || !plain(delegate) || args.iter().any(|a| a.pass.is_some() || a.name.is_some()) {
+        if !self.nested
+            || !plain(delegate)
+            || args.iter().any(|a| a.pass.is_some() || a.name.is_some())
+        {
             return None;
         }
         let mut params = Vec::new();
@@ -59,7 +62,11 @@ impl Gen<'_> {
             None => None,
         };
         let delegate = self.java(delegate, false);
-        if let Some(r) = self.raisers.iter().find(|r| r.same(&delegate, &params, &gives)) {
+        if let Some(r) = self
+            .raisers
+            .iter()
+            .find(|r| r.same(&delegate, &params, &gives))
+        {
             return Some(r.name.clone());
         }
         let name = format!("{RAISER}{}", self.raisers.len() + 1);
@@ -94,8 +101,10 @@ impl Gen<'_> {
                 "{PRIVATE} {STATIC} {ret} {}({EVENT_CLASS}<{}> {event}{params})",
                 r.name, r.delegate
             ));
-            self.code
-                .line(format!("{LIST}<{}> {hs} = {event}.{EVENT_HANDLERS}();", r.delegate));
+            self.code.line(format!(
+                "{LIST}<{}> {hs} = {event}.{EVENT_HANDLERS}();",
+                r.delegate
+            ));
             let call = format!("{hs}.{LIST_GET}({i}).{INVOKE}({})", names.join(", "));
             let each = format!("{FOR} ({INT} {i} = 0, {n} = {hs}.{LIST_SIZE}(); {i} < {n}; {i}++)");
             if let Some(t) = &r.gives {
