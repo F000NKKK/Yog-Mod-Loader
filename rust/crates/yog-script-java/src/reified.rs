@@ -7,9 +7,7 @@ use yog_script_analyze::ast::Expr;
 use yog_script_ids::jvm::OBJECT;
 
 use super::Gen;
-
-/// What names a Java class as a value.
-const CLASS: &str = ".class";
+use yog_script_ids::java::CLASS_LITERAL;
 
 impl Gen<'_> {
     /// The classes call `e`'s method is handed first, when it's `[Reified]`.
@@ -64,7 +62,7 @@ impl Gen<'_> {
         if !t.known() || names_parameter(t) {
             return None;
         }
-        Some(format!("{}{CLASS}", erased(&self.java(t, false))))
+        Some(format!("{}{CLASS_LITERAL}", erased(&self.java(t, false))))
     }
 }
 

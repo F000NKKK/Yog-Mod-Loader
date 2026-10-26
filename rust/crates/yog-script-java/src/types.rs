@@ -8,11 +8,11 @@ use yog_script_analyze::{Type, builtin_type, system_type, yog};
 
 use super::Gen;
 
-pub(crate) use yog_script_ids::jvm::RUNTIME;
-use yog_script_ids::jvm::{
-    BIG_DECIMAL, BOOLEAN, BOXED, BOXED_VOID, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, OBJECT, SHORT,
-    STRING, VOID,
+use yog_script_ids::java::{
+    BOOLEAN, BOXED, BOXED_VOID, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT, VOID,
 };
+pub(crate) use yog_script_ids::jvm::RUNTIME;
+use yog_script_ids::jvm::{BIG_DECIMAL, OBJECT, STRING};
 
 impl Gen<'_> {
     /// `t` in Java; `boxed`: where only an object goes (a type argument).

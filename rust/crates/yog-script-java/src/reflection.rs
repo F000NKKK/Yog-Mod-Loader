@@ -5,6 +5,7 @@
 
 mod attributes;
 mod companions;
+mod consts;
 mod described;
 mod invokers;
 mod members;

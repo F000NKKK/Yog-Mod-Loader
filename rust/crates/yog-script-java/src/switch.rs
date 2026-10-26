@@ -6,28 +6,30 @@ use yog_script_analyze::ast::{Arm, Expr, ExprKind};
 
 use super::Gen;
 use crate::types::RUNTIME;
+use yog_script_ids::java::{BREAK, IF, THROW, VAR};
+use yog_script_ids::jvm::OBJECT;
 
 impl Gen<'_> {
     pub(crate) fn switch(&mut self, e: &Expr, on: &Expr, arms: &[Arm]) -> String {
         let t = self
             .types
             .of(e)
-            .map_or_else(|| "Object".to_string(), |t| self.java(t, false));
+            .map_or_else(|| OBJECT.to_string(), |t| self.java(t, false));
         let (result, label, value) = (self.temp(), self.temp(), self.temp());
         let v = self.expr(on);
         self.code.line(format!("{t} {result};"));
         self.code.open(format!("{label}:"));
-        self.code.line(format!("var {value} = {v};"));
+        self.code.line(format!("{VAR} {value} = {v};"));
         let matched = self.types.of(on).cloned();
         for arm in arms {
             let depth = self.pattern_open(&arm.pattern, (&value, matched.as_ref()));
             if let Some(g) = &arm.guard {
                 let g = self.expr(g);
-                self.code.open(format!("if ({g})"));
+                self.code.open(format!("{IF} ({g})"));
             }
             let out = self.handed_expr(&arm.value);
             self.code.line(format!("{result} = {out};"));
-            self.code.line(format!("break {label};"));
+            self.code.line(format!("{BREAK} {label};"));
             if arm.guard.is_some() {
                 self.code.close("");
             }
@@ -41,7 +43,7 @@ impl Gen<'_> {
             }
         }
         self.code.line(format!(
-            "throw {RUNTIME}.Ys.noArm({value}, {});",
+            "{THROW} {RUNTIME}.Ys.noArm({value}, {});",
             self.at(e.span)
         ));
         self.code.close("");

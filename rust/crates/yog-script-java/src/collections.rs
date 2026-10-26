@@ -10,6 +10,7 @@ use yog_script_ids::system::{DICTIONARY, LIST};
 use super::Gen;
 use crate::index::Kind;
 
+use yog_script_ids::java::{FOR, NEW, VAR};
 use yog_script_ids::jvm::{ARRAY_LIST, VIEW};
 
 impl Gen<'_> {
@@ -34,9 +35,9 @@ impl Gen<'_> {
             Type::Own(name, args)
         };
         let java = self.java(&made, false);
-        let new = self.made_of_type(&made, format!("new {java}()"));
+        let new = self.made_of_type(&made, format!("{NEW} {java}()"));
         let t = self.temp();
-        self.code.line(format!("var {t} = {new};"));
+        self.code.line(format!("{VAR} {t} = {new};"));
         for i in items {
             match i {
                 Element::Item(x) => {
@@ -50,7 +51,7 @@ impl Gen<'_> {
                 Element::Spread(s) => {
                     let (all, item) = (self.expr(s), self.temp());
                     self.code
-                        .line(format!("for (var {item} : {all}) {t}.Add({item});"));
+                        .line(format!("{FOR} ({VAR} {item} : {all}) {t}.Add({item});"));
                 }
             }
         }
@@ -66,7 +67,7 @@ impl Gen<'_> {
         };
         let t = self.temp();
         self.code
-            .line(format!("var {t} = new {ARRAY_LIST}<{item}>();"));
+            .line(format!("{VAR} {t} = {NEW} {ARRAY_LIST}<{item}>();"));
         for i in items {
             match i {
                 Element::Item(x) | Element::Entry(x, _) => {
@@ -76,7 +77,7 @@ impl Gen<'_> {
                 Element::Spread(s) => {
                     let (all, one) = (self.expr(s), self.temp());
                     self.code
-                        .line(format!("for (var {one} : {all}) {t}.add({one});"));
+                        .line(format!("{FOR} ({VAR} {one} : {all}) {t}.add({one});"));
                 }
             }
         }

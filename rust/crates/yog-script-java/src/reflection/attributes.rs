@@ -7,6 +7,7 @@ use yog_script_analyze::ast::Attribute;
 use yog_script_ids::jvm::reflection::ATTRIBUTE;
 
 use crate::Gen;
+use yog_script_ids::java::NEW;
 
 impl Gen<'_> {
     /// `.Attribute(…)` of each of `attributes` that's made of values.
@@ -21,7 +22,7 @@ impl Gen<'_> {
             }
             let args: Vec<String> = a.args.iter().map(|arg| self.expr(&arg.value)).collect();
             out.push_str(&format!(
-                ".{ATTRIBUTE}(() -> new {}({}))",
+                ".{ATTRIBUTE}(() -> {NEW} {}({}))",
                 self.index.place(name, 0),
                 args.join(", ")
             ));

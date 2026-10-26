@@ -7,9 +7,7 @@ use yog_script_analyze::ast::{BinOp, Expr};
 use yog_script_ids::clr::{DECIMAL, OP_IMPLICIT};
 
 use super::Gen;
-
-/// The precision a `decimal` division keeps (.NET's 28-29 digits).
-const DIVISION: &str = yog_script_ids::jvm::DIVISION_CONTEXT;
+use yog_script_ids::jvm::DIVISION_CONTEXT;
 
 impl Gen<'_> {
     /// Whether `left op right` is a `decimal`'s (`e` its whole).
@@ -32,7 +30,7 @@ impl Gen<'_> {
             BinOp::Sub => "subtract",
             BinOp::Mul => "multiply",
             BinOp::Rem => "remainder",
-            BinOp::Div => return Some(format!("{l}.divide({r}, {DIVISION})")),
+            BinOp::Div => return Some(format!("{l}.divide({r}, {DIVISION_CONTEXT})")),
             BinOp::Eq => return Some(format!("({l}.compareTo({r}) == 0)")),
             BinOp::NotEq => return Some(format!("({l}.compareTo({r}) != 0)")),
             BinOp::Lt | BinOp::LtEq | BinOp::Gt | BinOp::GtEq => {

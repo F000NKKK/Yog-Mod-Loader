@@ -74,6 +74,10 @@ pub const OF_MEMBER: &str = "Of";
 /// (`[Host]`), apart so `String` there doesn't hide Java's.
 pub const HOST_PACKAGE: &str = "host";
 
+/// What a temporary of compiled code is named with (`$t1`): a `$`, which
+/// Yog Script's names never have.
+pub const TEMP: &str = "$t";
+
 /// The runtime's helpers compiled code calls (`Ys.at`, `Ys.noArm`).
 pub const HELPERS: &str = "Ys";
 
@@ -139,28 +143,6 @@ pub const NESTED: char = '$';
 /// Java's string as a class file names it (a game class's descriptor).
 pub const STRING_INTERNAL: &str = "java/lang/String";
 
-/// Java's primitive types and the classes they box to, by the primitive.
-pub const VOID: &str = "void";
-pub const BOXED_VOID: &str = "Void";
-pub const BYTE: &str = "byte";
-pub const SHORT: &str = "short";
-pub const INT: &str = "int";
-pub const LONG: &str = "long";
-pub const FLOAT: &str = "float";
-pub const DOUBLE: &str = "double";
-pub const BOOLEAN: &str = "boolean";
-pub const CHAR: &str = "char";
-pub const BOXED: [(&str, &str); 8] = [
-    (BYTE, "Byte"),
-    (SHORT, "Short"),
-    (INT, "Integer"),
-    (LONG, "Long"),
-    (FLOAT, "Float"),
-    (DOUBLE, "Double"),
-    (BOOLEAN, "Boolean"),
-    (CHAR, "Character"),
-];
-
 /// Reflection as compiled code reaches it: a type's description is in its
 /// class's `$TYPE` (`Type.Declare(…)`), a type as a value is `Type.Of(X.class)`.
 pub mod reflection {
@@ -188,7 +170,7 @@ pub mod reflection {
     /// The runtime's hand-written types' descriptions: a companion each
     /// (`Int32Companion.TYPE`) in this package, found by their classes through
     /// `Library.of`; `System.Array`'s and an array's interfaces' there too.
-    pub const PACKAGE: &str = concat!(reflection!(), sep!(), "library");
+    pub const LIBRARY_PACKAGE: &str = concat!(reflection!(), sep!(), "library");
     pub const COMPANION_SUFFIX: &str = "Companion";
     pub const COMPANION_FIELD: &str = "TYPE";
     pub const LIBRARY: &str = "Library";

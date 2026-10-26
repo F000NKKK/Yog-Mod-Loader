@@ -7,6 +7,10 @@ use yog_script_analyze::ast::{BinOp, Binding, Block, Expr, ExprKind, Stmt};
 use yog_script_ids::clr::ACCESSOR_SEP;
 
 use super::Gen;
+use crate::modifier;
+use yog_script_ids::java::{
+    BREAK, CONTINUE, DO, ELSE, FINAL, FOR, IF, INT, NULL, RETURN, VAR, WHILE,
+};
 
 impl Gen<'_> {
     pub(crate) fn block_stmts(&mut self, b: &Block) {
@@ -32,7 +36,11 @@ impl Gen<'_> {
                 value,
                 mutable,
             } => {
-                let fin = if *mutable { "" } else { "final " };
+                let fin = if *mutable {
+                    String::new()
+                } else {
+                    modifier(FINAL)
+                };
                 let name = Self::ident(&n.text);
                 match value {
                     Some(v) => {
@@ -41,7 +49,7 @@ impl Gen<'_> {
                         let ty = match (written, self.types.of(v)) {
                             (Some(w), _) => self.written(w, false),
                             (None, Some(t @ Type::Fn(..))) => self.java(t, false),
-                            _ => "var".to_string(),
+                            _ => VAR.to_string(),
                         };
                         let v = self.handed_expr(v);
                         self.code.line(format!("{fin}{ty} {name} = {v};"));
@@ -56,8 +64,12 @@ impl Gen<'_> {
                 ..
             } => match value {
                 Some(v) => {
-                    let fin = if *mutable { "" } else { "final " };
-                    self.taken_apart(names, v, fin);
+                    let fin = if *mutable {
+                        String::new()
+                    } else {
+                        modifier(FINAL)
+                    };
+                    self.taken_apart(names, v, &fin);
                 }
                 None => {
                     if let Some(n) = names.first() {
@@ -72,20 +84,20 @@ impl Gen<'_> {
                 otherwise,
             } => {
                 let c = self.expr(cond);
-                self.branch(&format!("if ({c})"), then);
+                self.branch(&format!("{IF} ({c})"), then);
                 if let Some(o) = otherwise {
-                    self.branch("else", o);
+                    self.branch(ELSE, o);
                 }
             }
             Stmt::While { cond, body } => {
                 let c = self.expr(cond);
-                self.branch(&format!("while ({c})"), body);
+                self.branch(&format!("{WHILE} ({c})"), body);
             }
             Stmt::DoWhile { body, cond } => {
-                self.code.open("do");
+                self.code.open(DO);
                 self.stmt(body);
                 let c = self.expr(cond);
-                self.code.close(&format!(" while ({c});"));
+                self.code.close(&format!(" {WHILE} ({c});"));
             }
             Stmt::For {
                 init,
@@ -111,18 +123,18 @@ impl Gen<'_> {
                 self.code.close("");
             }
             Stmt::Break(_) => {
-                self.code.line("break;");
+                self.code.line(format!("{BREAK};"));
             }
             Stmt::Continue(_) => {
-                self.code.line("continue;");
+                self.code.line(format!("{CONTINUE};"));
             }
             Stmt::Return(value, _) | Stmt::Skip(value, _) => match value {
                 Some(v) => {
                     let v = self.handed_expr(v);
-                    self.code.line(format!("return {v};"));
+                    self.code.line(format!("{RETURN} {v};"));
                 }
                 None => {
-                    self.code.line("return;");
+                    self.code.line(format!("{RETURN};"));
                 }
             },
             Stmt::Expr(e) | Stmt::Value(e) => self.expr_stmt(e),
@@ -152,7 +164,7 @@ impl Gen<'_> {
             self.code.line(format!("{v};"));
         } else if !v.is_empty() {
             let t = self.temp();
-            self.code.line(format!("var {t} = {v};"));
+            self.code.line(format!("{VAR} {t} = {v};"));
         }
     }
 
@@ -273,7 +285,7 @@ impl Gen<'_> {
             Some(other) => return self.not_yet("this `for` step", step_span(other)),
             None => String::new(),
         };
-        self.branch(&format!("for (; {c}; {step})"), body);
+        self.branch(&format!("{FOR} (; {c}; {step})"), body);
         self.code.close("");
     }
 
@@ -291,7 +303,7 @@ impl Gen<'_> {
             let (a, b) = (self.expr(from), self.expr(to));
             let cmp = if *inclusive { "<=" } else { "<" };
             return self.branch(
-                &format!("for (int {name} = {a}; {name} {cmp} {b}; {name}++)"),
+                &format!("{FOR} ({INT} {name} = {a}; {name} {cmp} {b}; {name}++)"),
                 body,
             );
         }
@@ -301,7 +313,7 @@ impl Gen<'_> {
             Some(Type::Array(_, rank)) => self.array_loops(&items, *rank),
             _ => (items, 0),
         };
-        self.branch(&format!("for (var {name} : {items})"), body);
+        self.branch(&format!("{FOR} ({VAR} {name} : {items})"), body);
         for _ in 0..rows {
             self.code.close("");
         }
@@ -326,7 +338,7 @@ impl Gen<'_> {
                 stmts.iter().for_each(|s| self.stmt(s))
             }
         }
-        self.code.line("return null;");
+        self.code.line(format!("{RETURN} {NULL};"));
         self.code.close(");");
     }
 }

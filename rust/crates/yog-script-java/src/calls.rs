@@ -12,6 +12,8 @@ use super::Gen;
 use crate::index::Kind;
 use crate::types::RUNTIME;
 use yog_script_ids::clr::INVOKE;
+use yog_script_ids::java::{CLASS_LITERAL, NEW, NULL, VAR};
+use yog_script_ids::jvm::OBJECT;
 
 impl Gen<'_> {
     pub(crate) fn args(&mut self, args: &[Arg]) -> String {
@@ -67,8 +69,8 @@ impl Gen<'_> {
             return read(target);
         }
         let t = self.temp();
-        self.code.line(format!("var {t} = {target};"));
-        format!("({t} == null ? null : {})", read(&t))
+        self.code.line(format!("{VAR} {t} = {target};"));
+        format!("({t} == {NULL} ? {NULL} : {})", read(&t))
     }
 
     /// `Type.Name`: an enum's case, a static field.
@@ -101,7 +103,7 @@ impl Gen<'_> {
                 // A delegate held: called by its interface's method.
                 t if self.is_delegate(t) => format!("{}.{INVOKE}({a})", Self::ident(name)),
                 _ if self.is_result_case(name) => {
-                    format!("new {}.{}<>({a})", self.own(RESULT), Self::ident(name))
+                    format!("{NEW} {}.{}<>({a})", self.own(RESULT), Self::ident(name))
                 }
                 _ => {
                     let a = self.with_classes(e, Vec::new(), a);
@@ -218,7 +220,7 @@ impl Gen<'_> {
     /// `called`, an array generic code gave, made Java's array of `t`.
     fn as_array(&self, called: String, t: &Type) -> String {
         format!(
-            "{}.{}({called}, {}.class)",
+            "{}.{}({called}, {}{CLASS_LITERAL})",
             self.array_host(),
             yog_script_ids::jvm::TYPED_ARRAY,
             self.java(t, false)
@@ -270,7 +272,7 @@ impl Gen<'_> {
                 Some(Kind::Enum) if !self.index.case_fields(Some(of), name).is_empty() => {
                     // A generic enum's case: its arguments inferred (`<>`).
                     let diamond = if self.index.named(of).1 > 0 { "<>" } else { "" };
-                    format!("new {}.{n}{diamond}({a})", self.own(of))
+                    format!("{NEW} {}.{n}{diamond}({a})", self.own(of))
                 }
                 _ => format!("{}.{n}({a})", self.own(of)),
             },
@@ -283,9 +285,9 @@ impl Gen<'_> {
             Some(Type::Yog(group)) => match yog::service(group, name) {
                 Some(s) if s.on_handle => {
                     let sep = if a.is_empty() { "" } else { ", " };
-                    format!("new {}({target}{sep}{a}).call()", s.record)
+                    format!("{NEW} {}({target}{sep}{a}).call()", s.record)
                 }
-                Some(s) => format!("new {}({a}).call()", s.record),
+                Some(s) => format!("{NEW} {}({a}).call()", s.record),
                 None => {
                     self.not_yet("this Yog method", e.span);
                     String::new()
@@ -317,18 +319,18 @@ impl Gen<'_> {
             None => self
                 .types
                 .of(e)
-                .map_or_else(|| "Object".into(), |t| self.java(t, true)),
+                .map_or_else(|| OBJECT.into(), |t| self.java(t, true)),
         };
         // A handle is its subject: `new World(dim)` is `dim`.
         if matches!(self.types.of(e), Some(Type::Yog(h)) if yog::is_handle(h)) {
             return a;
         }
-        let made = self.made_keeping_types(e, format!("new {t}({a})"));
+        let made = self.made_keeping_types(e, format!("{NEW} {t}({a})"));
         if init.is_empty() {
             return made;
         }
         let tmp = self.temp();
-        self.code.line(format!("var {tmp} = {made};"));
+        self.code.line(format!("{VAR} {tmp} = {made};"));
         for (field, v) in init {
             let v = self.handed_expr(v);
             self.code

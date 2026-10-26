@@ -7,6 +7,7 @@ use yog_script_analyze::Type;
 use yog_script_ids::jvm::reflection::{KEPT, MADE, TYPE};
 
 use crate::Gen;
+use yog_script_ids::java::{FINAL, NEW, PRIVATE, STATIC};
 
 impl Gen<'_> {
     /// `made` (an object of type `t`), keeping `t`'s arguments when it keeps
@@ -25,7 +26,7 @@ impl Gen<'_> {
         else {
             return made;
         };
-        let list = format!("new {TYPE}[] {{ {} }}", values.join(", "));
+        let list = format!("{NEW} {TYPE}[] {{ {} }}", values.join(", "));
         format!("{TYPE}.{MADE}({made}, {})", self.kept(list))
     }
 
@@ -49,7 +50,7 @@ impl Gen<'_> {
     pub(crate) fn kept_types_constants(&mut self) {
         for (at, list) in std::mem::take(&mut self.kept_types).iter().enumerate() {
             self.code.line(format!(
-                "private static final {TYPE}[] {KEPT}{} = {list};",
+                "{PRIVATE} {STATIC} {FINAL} {TYPE}[] {KEPT}{} = {list};",
                 at + 1
             ));
         }

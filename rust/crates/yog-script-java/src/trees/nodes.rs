@@ -10,17 +10,16 @@ use yog_script_ids::jvm::trees::{
     CONSTRUCTOR_OF, METHOD_OF, OPERATOR_OF, PARAMETERS, STATIC_MEMBER,
 };
 use yog_script_ids::members::{
-    ADD, ARRAY_INDEX, CALL, CONDITION, CONSTANT, CONVERT, MAKE_BINARY, MAKE_UNARY, NEGATE, NEW,
-    NOT, PROPERTY_OR_FIELD,
+    ADD, ARRAY_INDEX, CALL, CONDITION, CONSTANT, CONVERT, MAKE_BINARY, MAKE_UNARY, NEGATE,
+    NEW as NEW_NODE, NOT, PROPERTY_OR_FIELD,
 };
 use yog_script_ids::system::EXPRESSION_TYPE;
 
 use super::{Scopes, binary_factory};
 use crate::Gen;
 use crate::reflection::of_class;
-
-/// No object: a static method's call.
-const NULL: &str = "null";
+use yog_script_ids::java::{FALSE, NEW, NULL};
+use yog_script_ids::jvm::OBJECT;
 
 impl Gen<'_> {
     /// `e` as a tree's node, inside the lambdas `scopes`; what can't be one
@@ -114,7 +113,7 @@ impl Gen<'_> {
             Some(used) => {
                 let method = self.operator_node(&used, &[left, right])?;
                 Some(format!(
-                    "{ex}.{MAKE_BINARY}({}.{factory}, {l}, {r}, false, {method})",
+                    "{ex}.{MAKE_BINARY}({}.{factory}, {l}, {r}, {FALSE}, {method})",
                     self.node_types()
                 ))
             }
@@ -166,7 +165,7 @@ impl Gen<'_> {
             .map(|o| self.types.of(o).and_then(|t| self.value_of(t)))
             .collect::<Option<Vec<_>>>()?;
         Some(format!(
-            "{}.{OPERATOR_OF}({owner}, {}, new {TYPE}[] {{ {} }})",
+            "{}.{OPERATOR_OF}({owner}, {}, {NEW} {TYPE}[] {{ {} }})",
             self.expressions(),
             self.code.str(&used.method),
             types.join(", ")
@@ -178,8 +177,8 @@ impl Gen<'_> {
         let ex = self.expressions();
         let v = self.expr(e);
         match self.types.of(e).and_then(|t| self.value_of(t)) {
-            Some(t) => Some(format!("{ex}.{CONSTANT}((Object) {v}, {t})")),
-            None => Some(format!("{ex}.{CONSTANT}((Object) {v})")),
+            Some(t) => Some(format!("{ex}.{CONSTANT}(({OBJECT}) {v}, {t})")),
+            None => Some(format!("{ex}.{CONSTANT}(({OBJECT}) {v})")),
         }
     }
 
@@ -188,7 +187,7 @@ impl Gen<'_> {
         let ex = self.expressions();
         let string = self.value_of(&Type::String)?;
         let text =
-            |g: &Self, t: &str| format!("{ex}.{CONSTANT}((Object) {}, {string})", g.code.str(t));
+            |g: &Self, t: &str| format!("{ex}.{CONSTANT}(({OBJECT}) {}, {string})", g.code.str(t));
         if segs.iter().all(|s| matches!(s, StrSeg::Text(_))) {
             return self.constant(e);
         }
@@ -266,7 +265,7 @@ impl Gen<'_> {
             nodes.push(self.tree(&a.value, scopes)?);
         }
         Some(format!(
-            "{ex}.{CALL}({instance}, {method}, new {ex}[] {{ {} }})",
+            "{ex}.{CALL}({instance}, {method}, {NEW} {ex}[] {{ {} }})",
             nodes.join(", ")
         ))
     }
@@ -283,7 +282,7 @@ impl Gen<'_> {
             .map(|a| self.tree(&a.value, scopes))
             .collect::<Option<Vec<_>>>()?;
         Some(format!(
-            "{ex}.{NEW}({ex}.{CONSTRUCTOR_OF}({made}, {overload}), new {ex}[] {{ {} }})",
+            "{ex}.{NEW_NODE}({ex}.{CONSTRUCTOR_OF}({made}, {overload}), {NEW} {ex}[] {{ {} }})",
             nodes.join(", ")
         ))
     }

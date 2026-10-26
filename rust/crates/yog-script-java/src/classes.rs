@@ -10,13 +10,14 @@ use super::Gen;
 use crate::decls::{Place, generic_list};
 use crate::index::Kind;
 
+use crate::modifier;
+use yog_script_ids::java::{
+    ABSTRACT, CATCH, CLASS, CLASS_LITERAL, EXTENDS, FINAL, IMPLEMENTS, NEW, OVERRIDE, PRIVATE,
+    PUBLIC, RECORD, RETURN, STATIC, SUPER, THIS, THROW, TRY, VOID,
+};
+use yog_script_ids::java::{UNCHECKED, WILDCARD};
 use yog_script_ids::jvm::reflection::{TYPE, TYPED, TYPES_FIELD};
 use yog_script_ids::jvm::{BUS_CALL, CLONEABLE, COPY, REQUEST};
-
-/// A type argument not known (`Box<?>`).
-const WILDCARD: &str = "?";
-/// Java's word that a cast its generics can't check is known safe.
-const UNCHECKED: &str = "@SuppressWarnings(\"unchecked\")";
 
 impl Gen<'_> {
     /// A `mod`: a class the runtime finds and makes (`YsMod`).
@@ -61,26 +62,32 @@ impl Gen<'_> {
         let implements = if implements.is_empty() {
             String::new()
         } else {
-            format!(" implements {}", implements.join(", "))
+            format!(" {IMPLEMENTS} {}", implements.join(", "))
         };
-        let extends = extends.map(|b| format!(" extends {b}")).unwrap_or_default();
+        let extends = extends
+            .map(|b| format!(" {EXTENDS} {b}"))
+            .unwrap_or_default();
         let lead = if d.has(Modifier::Abstract) {
-            "abstract "
+            modifier(ABSTRACT)
         } else if d.has(Modifier::Sealed) || struct_ {
-            "final "
+            modifier(FINAL)
         } else {
-            ""
+            String::new()
         };
-        let stat = if self.nested { "static " } else { "" };
+        let stat = if self.nested {
+            modifier(STATIC)
+        } else {
+            String::new()
+        };
         self.code.open(format!(
-            "public {stat}{lead}class {name}{}{extends}{implements}",
+            "{PUBLIC} {stat}{lead}{CLASS} {name}{}{extends}{implements}",
             generic_list(&header.generics)
         ));
         self.describe(d);
         self.constants(body);
         for f in fields(body) {
             self.code.line(format!(
-                "public {} {};",
+                "{PUBLIC} {} {};",
                 self.written(f.0, false),
                 Self::ident(f.1)
             ));
@@ -106,8 +113,8 @@ impl Gen<'_> {
             if !header.generics.is_empty() {
                 self.code.line(UNCHECKED);
             }
-            self.code.open(format!("public {own} {COPY}()"));
-            self.code.line(format!("try {{ return ({own}) clone(); }} catch (CloneNotSupportedException e) {{ throw new AssertionError(e); }}"));
+            self.code.open(format!("{PUBLIC} {own} {COPY}()"));
+            self.code.line(format!("{TRY} {{ {RETURN} ({own}) clone(); }} {CATCH} (CloneNotSupportedException e) {{ {THROW} {NEW} AssertionError(e); }}"));
             self.code.close("");
         }
         self.code.close("");
@@ -115,12 +122,12 @@ impl Gen<'_> {
 
     /// What keeps a generic object's type arguments (`Typed`).
     fn typed_members(&mut self) {
-        self.code.line(format!("private {TYPE}[] {TYPES_FIELD};"));
+        self.code.line(format!("{PRIVATE} {TYPE}[] {TYPES_FIELD};"));
         self.code.line(format!(
-            "@Override public {TYPE}[] {TYPES_FIELD}() {{ return {TYPES_FIELD}; }}"
+            "{OVERRIDE} {PUBLIC} {TYPE}[] {TYPES_FIELD}() {{ {RETURN} {TYPES_FIELD}; }}"
         ));
         self.code.line(format!(
-            "@Override public void {TYPES_FIELD}({TYPE}[] arguments) {{ this.{TYPES_FIELD} = arguments; }}"
+            "{OVERRIDE} {PUBLIC} {VOID} {TYPES_FIELD}({TYPE}[] arguments) {{ {THIS}.{TYPES_FIELD} = arguments; }}"
         ));
     }
 
@@ -146,8 +153,13 @@ impl Gen<'_> {
                     Self::ident(&f.name.text),
                     self.expr(v),
                 );
-                let fin = if fixed { "final " } else { "" };
-                self.code.line(format!("public static {fin}{t} {n} = {v};"));
+                let fin = if fixed {
+                    modifier(FINAL)
+                } else {
+                    String::new()
+                };
+                self.code
+                    .line(format!("{PUBLIC} {STATIC} {fin}{t} {n} = {v};"));
             }
         }
     }
@@ -187,25 +199,25 @@ impl Gen<'_> {
         let primary = header.ctor.as_deref().unwrap_or_default();
         if ctors.is_empty() || !primary.is_empty() {
             let params = self.params(primary);
-            self.code.open(format!("public {name}({params})"));
-            self.code.line("super();");
+            self.code.open(format!("{PUBLIC} {name}({params})"));
+            self.code.line(format!("{SUPER}();"));
             self.first_values(body);
             self.code.close("");
         }
         for c in ctors {
             let params = self.params(&c.params);
-            self.code.open(format!("public {name}({params})"));
+            self.code.open(format!("{PUBLIC} {name}({params})"));
             match &c.chain {
                 Some((Chain::This, args)) => {
                     let args = self.args(args);
-                    self.code.line(format!("this({args});"));
+                    self.code.line(format!("{THIS}({args});"));
                 }
                 other => {
                     let args = match other {
                         Some((_, args)) => self.args(args),
                         None => String::new(),
                     };
-                    self.code.line(format!("super({args});"));
+                    self.code.line(format!("{SUPER}({args});"));
                     self.first_values(body);
                 }
             }
@@ -230,7 +242,8 @@ impl Gen<'_> {
             };
             if let Some(v) = value {
                 let v = self.handed_expr(v);
-                self.code.line(format!("this.{} = {v};", Self::ident(name)));
+                self.code
+                    .line(format!("{THIS}.{} = {v};", Self::ident(name)));
             }
         }
     }
@@ -241,8 +254,8 @@ impl Gen<'_> {
         for (ty, field) in fields(body) {
             if self.index.inherited_call(name, field) {
                 let (t, f) = (self.written(ty, false), Self::ident(field));
-                self.code.open(format!("public {t} {f}()"));
-                self.code.line(format!("return this.{f};"));
+                self.code.open(format!("{PUBLIC} {t} {f}()"));
+                self.code.line(format!("{RETURN} {THIS}.{f};"));
                 self.code.close("");
             }
         }
@@ -258,7 +271,7 @@ impl Gen<'_> {
                 if void {
                     self.code.line(format!("{v};"))
                 } else {
-                    self.code.line(format!("return {v};"))
+                    self.code.line(format!("{RETURN} {v};"))
                 };
             }
             None => {}
@@ -278,7 +291,7 @@ impl Gen<'_> {
         let request = format!("{}{REQUEST}", m.name.text);
         let fields = self.params(&m.params);
         self.code
-            .line(format!("public record {request}({fields}) {{}}"));
+            .line(format!("{PUBLIC} {RECORD} {request}({fields}) {{}}"));
         let reply = m
             .ret
             .as_ref()
@@ -290,11 +303,11 @@ impl Gen<'_> {
             .collect();
         self.code.open(head);
         let call = format!(
-            "{BUS_CALL}({address}, new {request}({}), {reply}.class)",
+            "{BUS_CALL}({address}, {NEW} {request}({}), {reply}{CLASS_LITERAL})",
             args.join(", ")
         );
         if m.ret.is_some() {
-            self.code.line(format!("return {call};"))
+            self.code.line(format!("{RETURN} {call};"))
         } else {
             self.code.line(format!("{call};"))
         };

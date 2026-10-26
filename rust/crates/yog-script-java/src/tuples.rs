@@ -9,6 +9,7 @@ use yog_script_ids::clr::TUPLE_ITEM;
 use yog_script_ids::system::VALUE_TUPLE;
 
 use super::Gen;
+use yog_script_ids::java::{FINAL, NEW, VAR};
 
 impl Gen<'_> {
     /// Where a tuple of `count` items is in Java.
@@ -20,7 +21,7 @@ impl Gen<'_> {
     pub(crate) fn tuple(&mut self, items: &[Expr]) -> String {
         let items: Vec<String> = items.iter().map(|i| self.handed_expr(i)).collect();
         format!(
-            "new {}<>({})",
+            "{NEW} {}<>({})",
             self.tuple_place(items.len()),
             items.join(", ")
         )
@@ -37,11 +38,11 @@ impl Gen<'_> {
     /// `let (a, b) = v;` (`fin`: `final ` or nothing).
     pub(crate) fn taken_apart(&mut self, names: &[Name], v: &Expr, fin: &str) {
         let (whole, t) = (self.handed_expr(v), self.temp());
-        self.code.line(format!("final var {t} = {whole};"));
+        self.code.line(format!("{FINAL} {VAR} {t} = {whole};"));
         for (i, n) in names.iter().enumerate() {
             let name = Self::ident(&n.text);
             self.code
-                .line(format!("{fin}var {name} = {t}.{TUPLE_ITEM}{};", i + 1));
+                .line(format!("{fin}{VAR} {name} = {t}.{TUPLE_ITEM}{};", i + 1));
         }
     }
 

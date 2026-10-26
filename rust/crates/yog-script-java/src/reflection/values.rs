@@ -10,9 +10,7 @@ use yog_script_ids::system::NULLABLE;
 
 use crate::Gen;
 use crate::index::Kind;
-
-/// What names a Java class as a value.
-const CLASS: &str = ".class";
+use yog_script_ids::java::{CLASS_LITERAL, NEW};
 
 impl Gen<'_> {
     /// Written type `t` as a `Type`; a type parameter as `param` reaches
@@ -171,7 +169,7 @@ impl Gen<'_> {
 
 /// `Type.Of(class.class)`.
 pub(crate) fn of_class(class: &str) -> String {
-    format!("{TYPE}.{OF_TYPE}({class}{CLASS})")
+    format!("{TYPE}.{OF_TYPE}({class}{CLASS_LITERAL})")
 }
 
 /// Definition `def` made of `args`, when there are any.
@@ -180,7 +178,7 @@ fn made_of(def: String, args: &[String]) -> String {
         def
     } else {
         format!(
-            "{def}.{MAKE_GENERIC_TYPE}(new {TYPE}[] {{ {} }})",
+            "{def}.{MAKE_GENERIC_TYPE}({NEW} {TYPE}[] {{ {} }})",
             args.join(", ")
         )
     }

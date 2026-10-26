@@ -10,19 +10,10 @@ use yog_script_ids::jvm::reflection::{
     PARAMETER, PRIVATE, PROPERTY, PROTECTED, STATIC, TAKES, VIRTUAL,
 };
 
+use super::consts::{ARGS, DESCRIPTION, NO_TRAITS, OBJECT, VALUE};
 use crate::Gen;
 use crate::index::Kind;
-
-/// The description's lambdas' parameters: the object, a value set, the arguments.
-pub(super) const OBJECT: &str = "o";
-pub(super) const VALUE: &str = "v";
-pub(super) const ARGS: &str = "a";
-/// The description, as its method names it.
-pub(super) const DESCRIPTION: &str = "d";
-/// No getter or setter.
-const NONE: &str = "null";
-pub(super) const NO_TRAITS: &str = "0";
-const TRAIT_SEP: &str = " | ";
+use yog_script_ids::java::{NEW, NULL};
 
 /// The type whose members are described, as their uses need it.
 pub(super) struct Owner<'o> {
@@ -81,7 +72,7 @@ impl Gen<'_> {
                 let ty = self.member_type(owner, &p.ty, &[]);
                 let n = Self::ident(&p.name.text);
                 format!(
-                    "{DESCRIPTION}.{PROPERTY}({}, {NO_TRAITS}, {ty}, {OBJECT} -> (({}) {OBJECT}).{n}(), {NONE});",
+                    "{DESCRIPTION}.{PROPERTY}({}, {NO_TRAITS}, {ty}, {OBJECT} -> (({}) {OBJECT}).{n}(), {NULL});",
                     self.code.str(&p.name.text),
                     owner.raw
                 )
@@ -96,7 +87,7 @@ impl Gen<'_> {
             .iter()
             .map(|c| {
                 format!(
-                    "{DESCRIPTION}.{FIELD_MEMBER}({}, {MEMBER_INFO}.{STATIC} | {MEMBER_INFO}.{LITERAL}, {ty}, {OBJECT} -> {}.{}, {NONE});",
+                    "{DESCRIPTION}.{FIELD_MEMBER}({}, {MEMBER_INFO}.{STATIC} | {MEMBER_INFO}.{LITERAL}, {ty}, {OBJECT} -> {}.{}, {NULL});",
                     self.code.str(c),
                     owner.raw,
                     Self::ident(c)
@@ -114,7 +105,7 @@ impl Gen<'_> {
         };
         let fixed = d.has(Modifier::Const) || d.has(Modifier::Readonly);
         let set = if fixed {
-            NONE.to_string()
+            NULL.to_string()
         } else {
             let v = self.cast_value(owner, ty, &[], VALUE);
             format!("({OBJECT}, {VALUE}) -> {at}.{n} = {v}")
@@ -149,14 +140,14 @@ impl Gen<'_> {
             (None, false) => format!("(({}) {OBJECT})", owner.raw),
         };
         let get = match &owner.host {
-            _ if !readable => NONE.to_string(),
+            _ if !readable => NULL.to_string(),
             Some((host, _)) if !stat => format!("{OBJECT} -> {host}.{n}({target})"),
             _ if called => format!("{OBJECT} -> {target}.{n}()"),
             _ => format!("{OBJECT} -> {target}.{n}"),
         };
         let v = self.cast_value(owner, ty, &[], VALUE);
         let set = if !writable || owner.host.is_some() {
-            NONE.to_string()
+            NULL.to_string()
         } else if called {
             let setter = format!("{}{ACCESSOR_SEP}{n}", set::WORD.text);
             format!("({OBJECT}, {VALUE}) -> {target}.{setter}({v})")
@@ -180,7 +171,7 @@ impl Gen<'_> {
     ) -> String {
         let args = self.args_cast(owner, params, &[]);
         let mut out = format!(
-            "{DESCRIPTION}.{CONSTRUCTOR}({traits}, {ARGS} -> new {}({args}))",
+            "{DESCRIPTION}.{CONSTRUCTOR}({traits}, {ARGS} -> {NEW} {}({args}))",
             owner.raw
         );
         out.push_str(&self.takes(owner, params, &[]));
@@ -281,7 +272,7 @@ pub(super) fn member_traits(d: &Decl) -> String {
             .iter()
             .map(|f| format!("{MEMBER_INFO}.{f}"))
             .collect::<Vec<_>>()
-            .join(TRAIT_SEP)
+            .join(&super::consts::flags_sep())
     }
 }
 

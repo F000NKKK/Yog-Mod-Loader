@@ -19,6 +19,7 @@ use yog_script_ids::members::{
 use yog_script_ids::system::EXPRESSION;
 
 use crate::Gen;
+use yog_script_ids::java::{CLASS_LITERAL, NEW};
 
 /// The lambdas a node is inside, innermost last: each one's parameters' names.
 type Scopes = Vec<Vec<String>>;
@@ -73,7 +74,7 @@ impl Gen<'_> {
         let tree = self.tree(value, &inner)?;
         let class = erased(&self.java(&delegate, false));
         Some(format!(
-            "{}.{NESTED}({class}.class, {}, {}, {}{} -> {tree})",
+            "{}.{NESTED}({class}{CLASS_LITERAL}, {}, {}, {}{} -> {tree})",
             self.expressions(),
             self.value_of(&delegate)?,
             self.parameters_of(&names, &types),
@@ -90,7 +91,7 @@ impl Gen<'_> {
             .map(|t| self.value_of(t).unwrap_or_default())
             .collect();
         format!(
-            "new String[] {{ {} }}, new {TYPE}[] {{ {} }}",
+            "{NEW} String[] {{ {} }}, {NEW} {TYPE}[] {{ {} }}",
             quoted.join(", "),
             types.join(", ")
         )

@@ -5,14 +5,15 @@
 use yog_script_analyze::Type;
 use yog_script_analyze::ast::{BinOp, Expr, ExprKind, LambdaBody, StrSeg, UnOp};
 
-use yog_script_ids::jvm::{
-    DOUBLE, EQUALS, FLOAT, HELPERS, INT, LONG, OBJECT, OBJECTS, REQUIRE_NON_NULL_ELSE,
-};
+use yog_script_ids::java::{DOUBLE, FLOAT, INT, LONG};
+use yog_script_ids::jvm::{EQUALS, HELPERS, OBJECT, OBJECTS, REQUIRE_NON_NULL_ELSE};
 use yog_script_ids::members::TO_STRING;
 
 use super::Gen;
 use crate::index::Kind;
 use crate::types::{RUNTIME, primitive};
+use yog_script_ids::java::NULL;
+use yog_script_ids::java::UNSIGNED_SHR;
 
 impl Gen<'_> {
     /// `e` as handed on: a struct's object copied, as Yog Script copies it.
@@ -51,7 +52,7 @@ impl Gen<'_> {
             ExprKind::Float(x) => self.number(&format!("{x:?}"), e),
             ExprKind::Unit { value, unit } => self.unit(value, unit, e),
             ExprKind::Bool(b) => b.to_string(),
-            ExprKind::Null => "null".into(),
+            ExprKind::Null => NULL.into(),
             ExprKind::Char(c) => format!("'{}'", self.code.str(&c.to_string()).trim_matches('"')),
             ExprKind::RawStr(s) | ExprKind::Text(s) | ExprKind::Tag(s) => self.code.str(s),
             ExprKind::Content { id, .. } => self.code.str(id),
@@ -315,9 +316,6 @@ impl Gen<'_> {
         text.trim_end().to_string()
     }
 }
-
-/// Java's shift that fills with zeros.
-const UNSIGNED_SHR: &str = ">>>";
 
 pub(crate) fn op_text(op: BinOp) -> &'static str {
     match op {

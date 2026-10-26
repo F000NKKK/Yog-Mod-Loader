@@ -103,6 +103,7 @@ fn mods(decls: &[yog_script_analyze::ast::Decl]) -> Vec<String> {
 
 use yog_script_ids::jvm::CLASS_SUFFIX;
 use yog_script_ids::jvm::MOD_INTERFACE;
+use yog_script_ids::jvm::TEMP;
 
 fn file_name(path: &str) -> String {
     std::path::Path::new(path)
@@ -177,6 +178,8 @@ impl Gen<'_> {
     }
 }
 
-/// What a temporary's name starts with: a `$`, which Yog Script names
-/// never have.
-const TEMP: &str = "$t";
+/// Java's word `word` (`public`, `static`) as it stands before what it
+/// marks: followed by a space.
+pub(crate) fn modifier(word: &str) -> String {
+    format!("{word} ")
+}

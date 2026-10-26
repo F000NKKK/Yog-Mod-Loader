@@ -4,16 +4,15 @@
 //! so a set or a dictionary's key finds a struct by its value.
 
 use yog_script_analyze::ast::{Decl, DeclKind, Method, Modifier};
-use yog_script_ids::jvm::{EQUALS, HASH, HASH_CODE, INT, OBJECT, OBJECTS, STRING, TO_STRING};
+use yog_script_ids::java::INT;
+use yog_script_ids::jvm::{EQUALS, HASH, HASH_CODE, OBJECT, OBJECTS, STRING, TO_STRING};
 use yog_script_ids::members::{EQUALS as YS_EQUALS, GET_HASH_CODE, TO_STRING as YS_TO_STRING};
 
 use super::Gen;
+use yog_script_ids::java::{BOOLEAN, INSTANCEOF, OVERRIDE, PUBLIC, RETURN, TRUE};
 
 /// What Java's `equals` names the other object.
 const OTHER: &str = "other";
-/// Java's mark of a method standing in for its base's, and its `true`.
-const OVERRIDE: &str = "@Override";
-const TRUE: &str = "true";
 
 impl Gen<'_> {
     /// Type `name`'s `equals`, `hashCode`, `toString` (`fields`: what a
@@ -45,17 +44,18 @@ impl Gen<'_> {
     fn equals(&mut self, name: &str, same: &str) {
         self.code.line(OVERRIDE);
         self.code
-            .open(format!("public boolean {EQUALS}({OBJECT} {OTHER})"));
-        self.code
-            .line(format!("return {OTHER} instanceof {name} that && {same};"));
+            .open(format!("{PUBLIC} {BOOLEAN} {EQUALS}({OBJECT} {OTHER})"));
+        self.code.line(format!(
+            "{RETURN} {OTHER} {INSTANCEOF} {name} that && {same};"
+        ));
         self.code.close("");
     }
 
     /// Java's `java()`, giving `value`.
     fn bridge(&mut self, ret: &str, java: &str, value: &str) {
         self.code.line(OVERRIDE);
-        self.code.open(format!("public {ret} {java}()"));
-        self.code.line(format!("return {value};"));
+        self.code.open(format!("{PUBLIC} {ret} {java}()"));
+        self.code.line(format!("{RETURN} {value};"));
         self.code.close("");
     }
 }

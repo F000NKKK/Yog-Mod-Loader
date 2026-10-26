@@ -10,9 +10,8 @@ use yog_script_ids::jvm::TYPED_ARRAY as TYPED;
 use yog_script_ids::system::ARRAY;
 
 use super::Gen;
-
-/// What a Java array's type adds for each rank.
-const RANK: &str = "[]";
+use yog_script_ids::java::RANK;
+use yog_script_ids::java::{CLASS_LITERAL, FOR, NEW, VAR};
 
 impl Gen<'_> {
     /// `on[i, j]` of an array: `on[i][j]`.
@@ -36,13 +35,13 @@ impl Gen<'_> {
         let java = self.java(&t, false);
         match init {
             // Java takes no sizes with the items.
-            Some(items) => format!("new {java} {}", self.array_items(items)),
+            Some(items) => format!("{NEW} {java} {}", self.array_items(items)),
             None => {
                 let (item, ranks) = split_ranks(&java);
                 let sizes: Vec<String> = sizes.iter().map(|s| self.expr(s)).collect();
                 let rest = ranks.saturating_sub(sizes.len());
                 format!(
-                    "new {item}{}{}",
+                    "{NEW} {item}{}{}",
                     Self::array_slot("", &sizes),
                     RANK.repeat(rest)
                 )
@@ -78,12 +77,12 @@ impl Gen<'_> {
                     _ => None,
                 })
                 .collect();
-            return format!("new {java} {{ {} }}", parts.join(", "));
+            return format!("{NEW} {java} {{ {} }}", parts.join(", "));
         }
         // A spread's length isn't known: the items gathered, then copied.
         let list = self.collection_of_list(e, items);
         format!(
-            "{}.{TYPED}({list}.toArray(), {java}.class)",
+            "{}.{TYPED}({list}.toArray(), {java}{CLASS_LITERAL})",
             self.array_host()
         )
     }
@@ -99,7 +98,7 @@ impl Gen<'_> {
         let mut over = items.to_string();
         for _ in 1..rank {
             let row = self.temp();
-            self.code.open(format!("for (var {row} : {over})"));
+            self.code.open(format!("{FOR} ({VAR} {row} : {over})"));
             over = row;
         }
         (over, rank - 1)

@@ -10,16 +10,13 @@ use yog_script_ids::jvm::reflection::{
     FIELD, INTERFACE, INTERFACE_TRAIT, PRIMITIVE, SEALED, STRUCT, TYPE,
 };
 
-use super::members::{DESCRIPTION, NO_TRAITS, Owner};
+use super::consts::{DESCRIPTION, NO_TRAITS};
+use super::members::Owner;
 use crate::Gen;
 use crate::index::Kind;
-
-/// What joins a namespace and a name, and `Type`'s flags.
-const NAMESPACE_SEP: &str = ".";
-const TRAIT_SEP: &str = " | ";
-/// Java's word that the description's casts (to a generic type's raw
-/// class, to a type parameter) are known safe.
-const UNCHECKED: &str = "@SuppressWarnings({\"unchecked\", \"rawtypes\"})";
+use yog_script_ids::java::UNCHECKED_RAW;
+use yog_script_ids::java::{CLASS_LITERAL, FINAL, NEW, PRIVATE, PUBLIC, STATIC, VOID};
+use yog_script_ids::system::NAMESPACE_SEP;
 
 /// A type declaration as its description needs it.
 struct Declared<'d> {
@@ -39,7 +36,7 @@ impl Gen<'_> {
             .place(what.name, type_params(what.generics).len());
         if let Some(v) = self.declaration(d, &holder) {
             self.code
-                .line(format!("public static final {TYPE} {FIELD} = {v};"));
+                .line(format!("{PUBLIC} {STATIC} {FINAL} {TYPE} {FIELD} = {v};"));
             self.describe_method(d);
         }
     }
@@ -63,9 +60,9 @@ impl Gen<'_> {
             .collect();
         let names: Vec<String> = params.iter().map(|p| self.code.str(p)).collect();
         Some(format!(
-            "{TYPE}.{DECLARE}({java}.class, {}, {}, new String[] {{ {} }}, {holder}::{DESCRIBE})",
+            "{TYPE}.{DECLARE}({java}{CLASS_LITERAL}, {}, {}, {NEW} String[] {{ {} }}, {holder}::{DESCRIBE})",
             self.code.str(&full),
-            traits.join(TRAIT_SEP),
+            traits.join(&super::consts::flags_sep()),
             names.join(", "),
         ))
     }
@@ -73,9 +70,9 @@ impl Gen<'_> {
     /// `$describe`: what `d` inherits and its members, a call each.
     pub(crate) fn describe_method(&mut self, d: &Decl) {
         let lines = self.described_lines(d);
-        self.code.line(UNCHECKED);
+        self.code.line(UNCHECKED_RAW);
         self.code.open(format!(
-            "private static void {DESCRIBE}({DESCRIPTION_CLASS} {DESCRIPTION})"
+            "{PRIVATE} {STATIC} {VOID} {DESCRIBE}({DESCRIPTION_CLASS} {DESCRIPTION})"
         ));
         for l in lines {
             self.code.line(l);

@@ -8,6 +8,8 @@ use yog_script_ids::clr::INVOKE;
 
 use super::Gen;
 use crate::decls::generic_list;
+use crate::modifier;
+use yog_script_ids::java::{FUNCTIONAL, INTERFACE, PUBLIC, STATIC, VOID};
 
 impl Gen<'_> {
     /// `delegate R Name<…>(params);` as a functional interface.
@@ -17,12 +19,16 @@ impl Gen<'_> {
         let ret = m
             .ret
             .as_ref()
-            .map_or_else(|| "void".to_string(), |t| self.written(t, false));
+            .map_or_else(|| VOID.to_string(), |t| self.written(t, false));
         let params = self.params(&m.params);
-        let stat = if self.nested { "static " } else { "" };
-        self.code.line("@FunctionalInterface");
+        let stat = if self.nested {
+            modifier(STATIC)
+        } else {
+            String::new()
+        };
+        self.code.line(FUNCTIONAL);
         self.code.open(format!(
-            "public {stat}interface {name}{}",
+            "{PUBLIC} {stat}{INTERFACE} {name}{}",
             generic_list(&m.generics)
         ));
         self.describe(d);

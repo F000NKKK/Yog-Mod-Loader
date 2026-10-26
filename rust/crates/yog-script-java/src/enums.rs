@@ -20,9 +20,12 @@ use yog_script_ids::system::{ENUM, FLAGS as FLAGS_ATTRIBUTE};
 use crate::Gen;
 use crate::decls::{Place, generic_list};
 use crate::index::Kind;
-
-/// A Java `long` literal's suffix.
-const LONG: &str = "L";
+use crate::modifier;
+use yog_script_ids::java::{
+    BOOLEAN, CLASS, CLASS_LITERAL, EXTENDS, FINAL, INSTANCEOF, INT, LONG, LONG_SUFFIX, NEW,
+    OVERRIDE, PERMITS, PRIVATE, PROTECTED, PUBLIC, RETURN, SEALED, STATIC, SUPER, THIS,
+};
+use yog_script_ids::jvm::OBJECT;
 
 impl Gen<'_> {
     /// Enum `d` (`name` of `generics`, numbers of `base`).
@@ -38,17 +41,21 @@ impl Gen<'_> {
         };
         let g = generic_list(generics);
         let base_class = self.index.place(ENUM, 0);
-        let stat = if self.nested { "static " } else { "" };
+        let stat = if self.nested {
+            modifier(STATIC)
+        } else {
+            String::new()
+        };
         let data: Vec<String> = variants
             .iter()
             .filter(|v| !v.fields.is_empty())
             .map(|v| format!("{name}.{}", Self::ident(&v.name.text)))
             .collect();
         let head = if data.is_empty() {
-            format!("public {stat}final class {name}{g} extends {base_class}")
+            format!("{PUBLIC} {stat}{FINAL} {CLASS} {name}{g} {EXTENDS} {base_class}")
         } else {
             format!(
-                "public {stat}sealed class {name}{g} extends {base_class} permits {}",
+                "{PUBLIC} {stat}{SEALED} {CLASS} {name}{g} {EXTENDS} {base_class} {PERMITS} {}",
                 data.join(", ")
             )
         };
@@ -60,17 +67,18 @@ impl Gen<'_> {
             if v.fields.is_empty() {
                 let case = Self::ident(&v.name.text);
                 self.code.line(format!(
-                    "public static final {name} {case} = {TABLE}.{OF}({n}{LONG});"
+                    "{PUBLIC} {STATIC} {FINAL} {name} {case} = {TABLE}.{OF}({n}{LONG_SUFFIX});"
                 ));
             }
         }
-        self.code
-            .line(format!("protected {name}(long value) {{ super(value); }}"));
         self.code.line(format!(
-            "@Override protected {base_class}.{TABLE_CLASS}<?> {TABLE_OF}() {{ return {TABLE}; }}"
+            "{PROTECTED} {name}({LONG} value) {{ {SUPER}(value); }}"
         ));
         self.code.line(format!(
-            "public static {name} {OF}(long value) {{ return {TABLE}.{OF}(value); }}"
+            "{OVERRIDE} {PROTECTED} {base_class}.{TABLE_CLASS}<?> {TABLE_OF}() {{ {RETURN} {TABLE}; }}"
+        ));
+        self.code.line(format!(
+            "{PUBLIC} {STATIC} {name} {OF}({LONG} value) {{ {RETURN} {TABLE}.{OF}(value); }}"
         ));
         for (v, n) in variants.iter().zip(&numbers) {
             if !v.fields.is_empty() {
@@ -95,7 +103,10 @@ impl Gen<'_> {
             .iter()
             .map(|v| self.code.str(&v.name.text))
             .collect();
-        let values: Vec<String> = numbers.iter().map(|n| format!("{n}{LONG}")).collect();
+        let values: Vec<String> = numbers
+            .iter()
+            .map(|n| format!("{n}{LONG_SUFFIX}"))
+            .collect();
         let underlying = base
             .and_then(|b| match &b.kind {
                 yog_script_analyze::ast::TypeKind::Path { path, .. } => {
@@ -112,7 +123,7 @@ impl Gen<'_> {
             .map(|(i, _)| i.to_string())
             .collect();
         let mut out = format!(
-            "private static final {base_class}.{TABLE_CLASS}<{name}> {TABLE} = new {base_class}.{TABLE_CLASS}<>({name}.class, {name}::new, new String[] {{ {} }}, new long[] {{ {} }}).{WIDTH}({bits}, {signed})",
+            "{PRIVATE} {STATIC} {FINAL} {base_class}.{TABLE_CLASS}<{name}> {TABLE} = {NEW} {base_class}.{TABLE_CLASS}<>({name}{CLASS_LITERAL}, {name}::{NEW}, {NEW} String[] {{ {} }}, {NEW} {LONG}[] {{ {} }}).{WIDTH}({bits}, {signed})",
             names.join(", "),
             values.join(", ")
         );
@@ -136,7 +147,7 @@ impl Gen<'_> {
     ) {
         let case = Self::ident(&v.name.text);
         self.code.open(format!(
-            "public static final class {case}{g} extends {name}{g}"
+            "{PUBLIC} {STATIC} {FINAL} {CLASS} {case}{g} {EXTENDS} {name}{g}"
         ));
         let fields: Vec<(String, String)> = v
             .fields
@@ -144,19 +155,19 @@ impl Gen<'_> {
             .map(|f| (self.written(&f.ty, false), Self::ident(&f.name.text)))
             .collect();
         for (t, f) in &fields {
-            self.code.line(format!("public final {t} {f};"));
+            self.code.line(format!("{PUBLIC} {FINAL} {t} {f};"));
         }
         let params: Vec<String> = fields.iter().map(|(t, f)| format!("{t} {f}")).collect();
         self.code
-            .open(format!("public {case}({})", params.join(", ")));
-        self.code.line(format!("super({number}{LONG});"));
+            .open(format!("{PUBLIC} {case}({})", params.join(", ")));
+        self.code.line(format!("{SUPER}({number}{LONG_SUFFIX});"));
         for (_, f) in &fields {
-            self.code.line(format!("this.{f} = {f};"));
+            self.code.line(format!("{THIS}.{f} = {f};"));
         }
         self.code.close("");
         for (t, f) in &fields {
             self.code
-                .line(format!("public {t} {f}() {{ return {f}; }}"));
+                .line(format!("{PUBLIC} {t} {f}() {{ {RETURN} {f}; }}"));
         }
         let arity = generics.iter().filter(|g| !g.lifetime).count();
         let tested = if arity == 0 {
@@ -169,12 +180,12 @@ impl Gen<'_> {
             .map(|(_, f)| format!(" && {OBJECTS}.{EQUALS}({f}, that.{f})"))
             .collect();
         self.code.line(format!(
-            "@Override public boolean equals(Object other) {{ return other instanceof {tested} that{}; }}",
+            "{OVERRIDE} {PUBLIC} {BOOLEAN} equals({OBJECT} other) {{ {RETURN} other {INSTANCEOF} {tested} that{}; }}",
             same.concat()
         ));
         let hashed: Vec<&str> = fields.iter().map(|(_, f)| f.as_str()).collect();
         self.code.line(format!(
-            "@Override public int hashCode() {{ return {OBJECTS}.{HASH}({VALUE}(), {}); }}",
+            "{OVERRIDE} {PUBLIC} {INT} hashCode() {{ {RETURN} {OBJECTS}.{HASH}({VALUE}(), {}); }}",
             hashed.join(", ")
         ));
         // Each field as text, as `object`'s `ToString` writes it.
@@ -184,7 +195,7 @@ impl Gen<'_> {
             .map(|(_, f)| format!("{shown_by}.{TO_STRING}({f})"))
             .collect();
         self.code.line(format!(
-            "@Override public String toString() {{ return \"{}(\" + {} + \")\"; }}",
+            "{OVERRIDE} {PUBLIC} String toString() {{ {RETURN} \"{}(\" + {} + \")\"; }}",
             v.name.text,
             shown.join(" + \", \" + ")
         ));
@@ -273,7 +284,7 @@ impl Gen<'_> {
         }
         let class = self.enum_class(cast)?;
         let v = self.expr(inner);
-        Some(format!("{class}.{OF}((long) {v})"))
+        Some(format!("{class}.{OF}(({LONG}) {v})"))
     }
 }
 

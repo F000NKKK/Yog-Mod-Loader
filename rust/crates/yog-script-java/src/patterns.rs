@@ -9,14 +9,12 @@ use yog_script_analyze::Type;
 use yog_script_analyze::ast::{Expr, ExprKind, Name, Pattern, TypeKind};
 use yog_script_ids::clr::TUPLE_ITEM;
 use yog_script_ids::jvm::enums::COMPARE;
-use yog_script_ids::jvm::{BOUND, EQUALS, HELPERS, OBJECTS, RUNTIME};
+use yog_script_ids::jvm::{BOUND, EQUALS, HELPERS, OBJECT, OBJECTS, RUNTIME};
 use yog_script_ids::system::ENUM;
 
 use super::Gen;
 use crate::index::Kind;
-
-/// What's always so: an arm taking anything.
-const ALWAYS: &str = "true";
+use yog_script_ids::java::{IF, INSTANCEOF, NULL, TRUE, VAR};
 
 impl Gen<'_> {
     /// `x is pattern` as a value: its condition, the names it binds
@@ -29,7 +27,7 @@ impl Gen<'_> {
             (ExprKind::Ident(_) | ExprKind::This, _) | (_, None) => (v, String::new()),
             (_, Some(t)) => {
                 let (temp, boxed) = (self.temp(), self.java(t, true));
-                let bound = format!("((Object) ({v})) instanceof {boxed} {temp} && ");
+                let bound = format!("(({OBJECT}) ({v})) {INSTANCEOF} {boxed} {temp} && ");
                 (temp, bound)
             }
         };
@@ -43,9 +41,9 @@ impl Gen<'_> {
     /// names it binds declared before the statement it's in.
     fn test(&mut self, p: &Pattern, v: &str, on: Option<&Type>) -> Option<String> {
         Some(match p {
-            Pattern::Wild(_) => ALWAYS.to_string(),
+            Pattern::Wild(_) => TRUE.to_string(),
             Pattern::Let(n) => self.bound(n, v),
-            Pattern::Value(x) if matches!(x.kind, ExprKind::Null) => format!("{v} == null"),
+            Pattern::Value(x) if matches!(x.kind, ExprKind::Null) => format!("{v} == {NULL}"),
             Pattern::Value(x) => {
                 let x = self.expr(x);
                 format!("{OBJECTS}.{EQUALS}({v}, {x})")
@@ -101,9 +99,9 @@ impl Gen<'_> {
     pub(crate) fn pattern_open(&mut self, p: &Pattern, (v, on): (&str, Option<&Type>)) -> usize {
         if !binds(p) {
             return match self.test(p, v, on) {
-                Some(cond) if cond == ALWAYS => 0,
+                Some(cond) if cond == TRUE => 0,
                 Some(cond) => {
-                    self.code.open(format!("if ({cond})"));
+                    self.code.open(format!("{IF} ({cond})"));
                     1
                 }
                 None => 0,
@@ -112,12 +110,12 @@ impl Gen<'_> {
         match p {
             Pattern::Let(n) => {
                 self.code
-                    .line(format!("var {} = {v};", Self::ident(&n.text)));
+                    .line(format!("{VAR} {} = {v};", Self::ident(&n.text)));
                 0
             }
             Pattern::Variant { path, args } => {
                 let (case, fields) = self.case_test(path, v, on);
-                self.code.open(format!("if ({})", case.test));
+                self.code.open(format!("{IF} ({})", case.test));
                 let mut depth = 1;
                 for (arg, field) in args.iter().zip(fields) {
                     depth += self.pattern_open(arg, (&format!("{}.{field}()", case.bound), None));
@@ -137,7 +135,7 @@ impl Gen<'_> {
                 let (tests, of, target) = self.property_target(ty.as_ref(), v, on);
                 let mut depth = 0;
                 if !tests.is_empty() {
-                    self.code.open(format!("if ({})", tests.join(" && ")));
+                    self.code.open(format!("{IF} ({})", tests.join(" && ")));
                     depth += 1;
                 }
                 for (name, field) in fields {
@@ -226,7 +224,7 @@ impl Gen<'_> {
             _ => String::new(),
         };
         let test = format!(
-            "{v} instanceof {}{given} {c}",
+            "{v} {INSTANCEOF} {}{given} {c}",
             self.qualified(of.as_deref(), &case)
         );
         let fields = self
@@ -264,14 +262,14 @@ impl Gen<'_> {
                 return Some(format!("{v} == {written}"));
             }
             return Some(match bind {
-                Some(b) => format!("{v} instanceof {written} {}", Self::ident(b)),
-                None => format!("{v} instanceof {written}"),
+                Some(b) => format!("{v} {INSTANCEOF} {written} {}", Self::ident(b)),
+                None => format!("{v} {INSTANCEOF} {written}"),
             });
         }
         let t = self.written(ty, true);
         Some(match bind {
-            Some(b) => format!("{v} instanceof {t} {}", Self::ident(b)),
-            None => format!("{v} instanceof {t}"),
+            Some(b) => format!("{v} {INSTANCEOF} {t} {}", Self::ident(b)),
+            None => format!("{v} {INSTANCEOF} {t}"),
         })
     }
 
@@ -289,9 +287,9 @@ impl Gen<'_> {
                 let bound = self.temp();
                 let t = self.written(written, true);
                 let of = self.types_of_written(written);
-                (vec![format!("{v} instanceof {t} {bound}")], of, bound)
+                (vec![format!("{v} {INSTANCEOF} {t} {bound}")], of, bound)
             }
-            None => (vec![format!("{v} != null")], on.cloned(), v.to_string()),
+            None => (vec![format!("{v} != {NULL}")], on.cloned(), v.to_string()),
         }
     }
 

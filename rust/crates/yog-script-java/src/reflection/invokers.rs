@@ -5,11 +5,10 @@
 use yog_script_analyze::ast::{Decl, Method, Modifier, Pass};
 use yog_script_ids::jvm::reflection::{METHOD, RETURNS};
 
-use super::members::{ARGS, DESCRIPTION, OBJECT, Owner, member_traits};
+use super::consts::{ARGS, DESCRIPTION, OBJECT};
+use super::members::{Owner, member_traits};
 use crate::Gen;
-
-/// No caller: a method Reflection can't call yet.
-const NONE: &str = "null";
+use yog_script_ids::java::{NEW, NULL, RETURN};
 
 impl Gen<'_> {
     /// Method `m` (declaration `d`) of `owner` described, when Reflection
@@ -38,7 +37,7 @@ impl Gen<'_> {
                 .unwrap_or_default(),
         };
         Some(format!(
-            "{DESCRIPTION}.{METHOD}({}, {}, new String[] {{ {} }}, {}).{RETURNS}({returns}){};",
+            "{DESCRIPTION}.{METHOD}({}, {}, {NEW} String[] {{ {} }}, {}).{RETURNS}({returns}){};",
             self.code.str(&m.name.text),
             member_traits(d),
             names.join(", "),
@@ -55,7 +54,7 @@ impl Gen<'_> {
             &m.name.text,
             self.index.overload_of(&owner_ref, m),
         ) {
-            return NONE.to_string();
+            return NULL.to_string();
         }
         let n = Self::ident(&self.index.java_name(&owner_ref, m));
         let args = self.args_cast(owner, &m.params, generics);
@@ -69,7 +68,7 @@ impl Gen<'_> {
             _ => format!("(({}) {OBJECT}).{n}({args})", owner.raw),
         };
         if m.ret.is_none() {
-            format!("({OBJECT}, {ARGS}) -> {{ {call}; return null; }}")
+            format!("({OBJECT}, {ARGS}) -> {{ {call}; {RETURN} {NULL}; }}")
         } else {
             format!("({OBJECT}, {ARGS}) -> {call}")
         }
