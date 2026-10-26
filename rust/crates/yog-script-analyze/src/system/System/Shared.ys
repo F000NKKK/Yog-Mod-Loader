@@ -1,0 +1,19 @@
+namespace System;
+
+/// A value with several owners, each a cheap `Clone()` of it (Rust's `Rc`
+/// and `Arc`: which one is the compiler's choice, by whether it crosses a
+/// thread). What's shared is read; changing it is a `Cell`'s or a
+/// `Lock`'s inside.
+[Intrinsic]
+public sealed class Shared<T> {
+    public Shared(T value) {}
+
+    /// The value shared.
+    public T Value { get; }
+    /// One more owner of the same value.
+    public Shared<T> Clone();
+    /// A reference that doesn't keep the value.
+    public Weak<T> Downgrade();
+    /// Whether two are owners of one value.
+    public static bool Same(Shared<T> a, Shared<T> b);
+}

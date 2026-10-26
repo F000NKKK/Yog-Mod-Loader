@@ -1,0 +1,11 @@
+namespace System.Threading;
+
+/// A value per thread, made by its factory the first time a thread asks
+/// (.NET's `ThreadLocal<T>`, Rust's `thread_local!`).
+[Intrinsic]
+public sealed class ThreadLocal<T> {
+    public ThreadLocal(Func<T> make) {}
+
+    public T Value { get; set; }
+    public bool IsValueCreated { get; }
+}

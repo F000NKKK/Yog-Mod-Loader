@@ -1,0 +1,15 @@
+namespace System;
+
+/// A value changed through a shared reference, on one thread (Rust's `Cell`
+/// and `RefCell`; across threads, a `Lock` or an `Atomic`).
+[Intrinsic]
+public sealed class Cell<T> {
+    public Cell(T value) {}
+
+    public T Get();
+    public void Set(T value);
+    /// The value put in, the one there given back.
+    public T Replace(T value);
+    /// The value changed by `change`.
+    public void Update(Func<T, T> change);
+}

@@ -77,6 +77,7 @@ on an arbitrary object (use a `Lock<T>`), `Interlocked` as a static class
 | YS | From | What |
 |---|---|---|
 | `Channel<T>` | C# `System.Threading.Channels`, Rust `mpsc`/crossbeam, `BlockingCollection` | `Channel.Bounded<T>(n, full: Wait/DropOldest/DropNewest)`, `Channel.Unbounded<T>()`; a `Writer` (`Write`, `TryWrite`, `WriteAsync`, `Complete()`) and a `Reader` (`Read`, `TryRead`, `ReadAsync`, `ReadAllAsync()` for `await foreach`, `Completion`). Many writers, many readers. Items are moved in. |
+| `IAsyncEnumerable<T>` / `IAsyncEnumerator<T>` | C# | A sequence read with `await foreach`, written as an `async` iterator (`async IAsyncEnumerable<T> F() { … yield return x; … await … }`); `WithCancellation(token)`; Linq over it (`System.Linq.AsyncEnumerable`). |
 | `ConcurrentDictionary<K, V>` | C# | `GetOrAdd`, `AddOrUpdate`, `TryRemove`, … as .NET's. |
 | `ConcurrentQueue<T>` | C# | `Enqueue`, `TryDequeue`, `TryPeek`. |
 
@@ -165,13 +166,21 @@ uses (CLAUDE.md, dedup + yog-sync).
    `Cell`, `Lock` (+ `lock` statement), `ReadWriteLock`, `Atomic`,
    `Once`/`Lazy`, `Thread` (+ `Run`, `Scope`), `ThreadLocal`,
    `CancellationToken`. JVM tests for each (`tests/jvm.rs`).
-2. `Channel<T>`, `Semaphore`, `Signal`, `Countdown`, `Barrier`,
+2. `IAsyncEnumerable<T>`, `await foreach`, async iterators; `Channel<T>`,
+   `Semaphore`, `Signal`, `Countdown`, `Barrier`,
    `ConcurrentDictionary`, `ConcurrentQueue`, `AsyncLocal`, `Task.Run`,
    `ThreadPool`, `Parallel`.
 3. The checker's sendable/shareable inference, errors and `unsafe`.
 4. Rust lowering of the set (with step 3 of the plan: Rust lowering).
 
-## 5. Open questions for review
+## 5. Decided
+
+Taken as recommended (2026-10-27), each easy to change:
+- `lock` comes in both forms, `lock (x, ref let v) { … }` and `using (let g = x.Enter())`.
+- `Shared<T>` is one type, and the compiler picks `Rc` or `Arc`.
+- `unsafe` exists, with a warning where it's used.
+
+## 6. Open questions for review
 
 - `lock (x, ref let v) { … }`: is this the statement form you want, or is
   `using (let g = x.Lock()) { g.Value += 1; }` enough?

@@ -1,0 +1,30 @@
+namespace System.Threading;
+
+/// What cancels: its token handed to the work that should stop (.NET's).
+[Intrinsic]
+public sealed class CancellationTokenSource : IDisposable {
+    public CancellationTokenSource() {}
+
+    public CancellationToken Token { get; }
+    public bool IsCancellationRequested { get; }
+    public void Cancel();
+    /// Cancels once `delay` has passed.
+    public void CancelAfter(TimeSpan delay);
+    /// A source cancelled when either token is.
+    public static CancellationTokenSource Linked(CancellationToken a, CancellationToken b);
+    public void Dispose();
+}
+
+/// Whether work should stop: asked, or a callback registered (.NET's).
+[Intrinsic]
+public sealed class CancellationToken {
+    /// A token never cancelled.
+    public static CancellationToken None { get; }
+    public bool IsCancellationRequested { get; }
+    public bool CanBeCanceled { get; }
+    /// `callback` run when it's cancelled (at once if it is): its
+    /// registration, disposed to take it back.
+    public IDisposable Register(Action callback);
+    /// Panics when it's cancelled.
+    public void ThrowIfCancellationRequested();
+}

@@ -1,0 +1,27 @@
+namespace System.Threading;
+
+/// A value many threads read at once or one writes (Rust's `RwLock`, .NET's
+/// `ReaderWriterLockSlim`).
+[Intrinsic]
+public sealed class ReadWriteLock<T> {
+    public ReadWriteLock(T value) {}
+
+    public ReadGuard<T> Read();
+    public WriteGuard<T> Write();
+    public ReadGuard<T>? TryRead();
+    public WriteGuard<T>? TryWrite();
+}
+
+/// A read of a `ReadWriteLock`, until it's dropped.
+[Intrinsic]
+public sealed class ReadGuard<T> : IDisposable {
+    public T Value { get; }
+    public void Dispose();
+}
+
+/// A write of a `ReadWriteLock`, until it's dropped.
+[Intrinsic]
+public sealed class WriteGuard<T> : IDisposable {
+    public T Value { get; set; }
+    public void Dispose();
+}

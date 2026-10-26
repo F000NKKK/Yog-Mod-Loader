@@ -165,3 +165,47 @@ fn safe_calls_skip_null() {
     };
     assert_eq!(out, "-1 12 1");
 }
+
+/// Threads, locks and atomics: work split over threads adds up, a lock's
+/// value changed by each in turn, scoped threads joined, once set once.
+#[test]
+fn threads_locks_and_atomics() {
+    let src = "using System.Threading;\n\
+               public static class P {\n\
+                   public static string Run() {\n\
+                       let hits = new Atomic<i32>(0);\n\
+                       let total = new Lock<i64>(0);\n\
+                       let mut handles = new List<ThreadHandle<i32>>();\n\
+                       for (let mut t = 0; t < 4; t += 1) {\n\
+                           handles.Add(Thread.Run(() => {\n\
+                               for (let mut i = 0; i < 1000; i += 1) {\n\
+                                   hits.Increment();\n\
+                                   using (let mut g = total.Enter()) { g.Value = g.Value + 1; }\n\
+                               }\n\
+                               return 1;\n\
+                           }));\n\
+                       }\n\
+                       let mut joined = 0;\n\
+                       foreach (let h in handles) { joined += h.Join(); }\n\
+                       let scoped = new Atomic<i32>(0);\n\
+                       Thread.Scope(s => {\n\
+                           s.Run(() => { scoped.Add(10); });\n\
+                           s.Run(() => { scoped.Add(5); });\n\
+                       });\n\
+                       let once = new Once<string>();\n\
+                       let first = once.TrySet(\"a\");\n\
+                       let second = once.TrySet(\"b\");\n\
+                       let cell = new Cell<i32>(1);\n\
+                       cell.Update(x => x * 7);\n\
+                       let mut g = total.Enter();\n\
+                       let sum = g.Value;\n\
+                       g.Dispose();\n\
+                       return joined + \" \" + hits.Load() + \" \" + sum + \" \" + scoped.Load() + \" \"\n\
+                           + first + second + once.Get() + \" \" + cell.Get();\n\
+                   }\n\
+               }\n";
+    let Some(out) = support::run(&[("p.ys", src)], "t.PScript.P.Run()") else {
+        return;
+    };
+    assert_eq!(out, "4 4000 4000 15 TrueFalsea 7");
+}

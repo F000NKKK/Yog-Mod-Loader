@@ -1,0 +1,11 @@
+namespace System;
+
+/// A value on the heap with one owner: a recursive struct or enum, a big
+/// struct moved in O(1) (Rust's `Box<T>`).
+[Intrinsic]
+public sealed class Box<T> {
+    public Box(T value) {}
+
+    /// The value, read and written in place.
+    public T Value { get; set; }
+}

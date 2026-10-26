@@ -1,0 +1,51 @@
+namespace System.Threading;
+
+/// How much of the processor a thread asks for.
+public enum ThreadPriority { Lowest, BelowNormal, Normal, AboveNormal, Highest }
+
+/// A thread of its own (.NET's `Thread`, Rust's `std::thread`): what it
+/// runs owns what it captures (`move`). Tasks (`Task`) are the light way;
+/// a thread is for work that blocks or runs long.
+[Intrinsic]
+public sealed class Thread {
+    public Thread(Action start) {}
+
+    public void Start();
+    /// Waits for it to end.
+    public void Join();
+    /// Waits for it to end at most `timeout`: whether it did.
+    public bool Join(TimeSpan timeout);
+    public string Name { get; set; }
+    /// A background thread doesn't keep the game running.
+    public bool IsBackground { get; set; }
+    public ThreadPriority Priority { get; set; }
+    public bool IsAlive { get; }
+    public i32 ManagedThreadId { get; }
+
+    /// The thread running this.
+    public static Thread CurrentThread { get; }
+    public static void Sleep(TimeSpan time);
+    /// Lets another thread run.
+    public static void Yield();
+    /// Spins `iterations` times: waiting without letting go of the processor.
+    public static void SpinWait(i32 iterations);
+    /// `work` run on a thread of its own: its handle, `Join()` giving its value.
+    public static ThreadHandle<T> Run<T>(Func<T> work);
+    /// Threads that may borrow the caller's values: each started by the
+    /// scope's `Run`, all joined before `Scope` returns.
+    public static void Scope(Action<ThreadScope> body);
+}
+
+/// A thread `Thread.Run` started: what it gives.
+[Intrinsic]
+public sealed class ThreadHandle<T> {
+    /// Waits for it: its value; its panic, panicked again here.
+    public T Join();
+    public bool IsFinished { get; }
+}
+
+/// What `Thread.Scope` gives its body: threads joined at its end.
+[Intrinsic]
+public sealed class ThreadScope {
+    public void Run(Action work);
+}

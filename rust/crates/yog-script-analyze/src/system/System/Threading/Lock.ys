@@ -1,0 +1,31 @@
+namespace System.Threading;
+
+/// A value one thread at a time reaches (Rust's `Mutex`, C#'s `lock`): held
+/// by entering it, the guard giving the value until it's dropped; its
+/// condition waited on and notified (Rust's `Condvar`, `Monitor.Wait`/`Pulse`).
+[Intrinsic]
+public sealed class Lock<T> {
+    public Lock(T value) {}
+
+    /// Waits for it: the guard holding it.
+    public LockGuard<T> Enter();
+    /// The guard when no one holds it, else `null`.
+    public LockGuard<T>? TryEnter();
+    /// The guard when it's got within `timeout`, else `null`.
+    public LockGuard<T>? TryEnter(TimeSpan timeout);
+    /// Wakes one thread waiting on its condition.
+    public void Notify();
+    /// Wakes every thread waiting on its condition.
+    public void NotifyAll();
+}
+
+/// A held `Lock`: its value, until it's dropped (`using`).
+[Intrinsic]
+public sealed class LockGuard<T> : IDisposable {
+    public T Value { get; set; }
+    /// Lets go of the lock until notified, then holds it again.
+    public void Wait();
+    /// As `Wait()`, at most `timeout`: whether it was notified.
+    public bool Wait(TimeSpan timeout);
+    public void Dispose();
+}
