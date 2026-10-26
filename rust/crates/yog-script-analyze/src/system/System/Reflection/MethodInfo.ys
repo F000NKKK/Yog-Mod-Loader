@@ -10,7 +10,14 @@ public readonly class MethodInfo : MethodBase {
     public Type ReturnType { get; }
     /// Generic: it has type parameters of its own (called erased on the JVM).
     public bool IsGenericMethod { get; }
+    /// A generic one's definition: its type parameters not given arguments.
+    public bool IsGenericMethodDefinition { get; }
+    /// Whether it can't be called yet: a generic one's definition.
+    public bool ContainsGenericParameters { get; }
+    /// Its own type parameters; a made one's, their arguments.
     public Type[] GetGenericArguments();
+    /// This definition made of `typeArguments`: what can be called.
+    public MethodInfo MakeGenericMethod(Type[] typeArguments);
     /// It called on `obj` (`null` for a static one) with `parameters`;
     /// what it gives (`null` for nothing).
     public object? Invoke(in object? obj, in object?[]? parameters);

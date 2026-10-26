@@ -129,7 +129,28 @@ fn method_groups_are_delegates() {
                i32 Twice(i32 x) => x * 2;\n\
                i32 F(Calc c) {\n    Func<i32, i32> f = Twice;\n    Func<i32, i32> g = c.Times;\n    Func<i32, i32> h = Calc.Plus;\n    return f(1) + g(2) + h(3);\n}\n";
     let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
-    for want in ["f = ($t1) -> Twice($t1);", "g = c::Times;", "h = Calc::Plus;"] {
+    for want in [
+        "f = ($t1) -> Twice($t1);",
+        "g = c::Times;",
+        "h = Calc::Plus;",
+    ] {
+        assert!(out.contains(want), "missing `{want}` in:\n{out}");
+    }
+}
+
+/// Generics kept: a method's type parameters handed to it, a type's read
+/// off its object.
+#[test]
+fn type_parameters_are_values() {
+    let src = "class Box<T> {\n    public string Kind() => typeof(T).Name;\n}\n\
+               string Name<T>() => typeof(T).Name;\nstring F() => Name<i32>();\n";
+    let out = java(src).unwrap_or_else(|p| panic!("{p:#?}"));
+    for want in [
+        "dev.yog.script.Type.argument(this, Box.class, 0).Name()",
+        "public static <T> String Name(dev.yog.script.Type $typeT) {",
+        "return $typeT.Name();",
+        "Name(dev.yog.script.Type.Of(dev.yog.script.host.Int32.class))",
+    ] {
         assert!(out.contains(want), "missing `{want}` in:\n{out}");
     }
 }

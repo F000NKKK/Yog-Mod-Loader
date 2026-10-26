@@ -20,6 +20,10 @@ impl Gen<'_> {
             return None;
         };
         let taken = params.len();
+        if self.takes_types(&used) {
+            self.not_yet("a generic method as a delegate", e.span);
+            return Some(String::new());
+        }
         if used.owner.as_deref().is_some_and(|o| self.index.is_host(o)) {
             self.not_yet("a method group of a built-in type", e.span);
             return Some(String::new());

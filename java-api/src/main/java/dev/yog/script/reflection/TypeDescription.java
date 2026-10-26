@@ -66,6 +66,12 @@ public final class TypeDescription {
         return this;
     }
 
+    /** The last method compiled from Yog Script: handed its type arguments first. */
+    public TypeDescription TakesTypes() {
+        ((MethodInfo) last).takesTypes = true;
+        return this;
+    }
+
     public TypeDescription Returns(Type type) {
         ((MethodInfo) last).returns = type;
         return this;

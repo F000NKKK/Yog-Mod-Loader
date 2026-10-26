@@ -221,6 +221,12 @@ pub mod reflection {
     pub const CELLS: &str = "$cells";
     pub const CELL_OF: &str = OF;
     pub const CELLS_BACK: &str = "back";
+    /// Generics kept: a type's parameter read off its object
+    /// (`Type.argument(this, Box.class, 0)`), a method's handed to it
+    /// (`$typeT`), a compiled generic method's description marked so.
+    pub const ARGUMENT_OF: &str = "argument";
+    pub const TYPE_ARG: &str = "$type";
+    pub const TAKES_TYPES: &str = "TakesTypes";
 }
 
 /// Expression trees as compiled code makes them: a quoted lambda is

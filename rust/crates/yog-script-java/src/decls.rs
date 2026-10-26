@@ -50,6 +50,11 @@ impl Gen<'_> {
     }
 
     pub(crate) fn decl(&mut self, d: &Decl, place: Place) {
+        let params = self.object_type_params(d);
+        self.with_type_params(params, |g| g.decl_kind(d, place));
+    }
+
+    fn decl_kind(&mut self, d: &Decl, place: Place) {
         match &d.kind {
             DeclKind::Method(m) => self.method(d, m, place),
             DeclKind::Field(f) if place == Place::File => {
@@ -118,7 +123,7 @@ impl Gen<'_> {
         } else {
             format!("{generics} ")
         };
-        let params = self.params(&m.params);
+        let params = self.method_params(m);
         let name = match &self.owner {
             Some(owner) => Self::ident(&self.index.java_name(owner, m)),
             None => Self::ident(&m.name.text),
@@ -143,7 +148,8 @@ impl Gen<'_> {
             return;
         }
         let outer = std::mem::replace(&mut self.cells, crate::refs::cells(&m.params));
-        self.body(&head, m.body.as_ref(), void);
+        let generics = Self::method_type_params(m);
+        self.with_type_params(generics, |g| g.body(&head, m.body.as_ref(), void));
         self.cells = outer;
     }
 
@@ -207,7 +213,18 @@ impl Gen<'_> {
     ) {
         let arity = header.generics.iter().filter(|g| !g.lifetime).count();
         let outer = self.owner.replace((name.to_string(), arity));
+        let generics = header
+            .generics
+            .iter()
+            .filter(|g| !g.lifetime)
+            .map(|g| g.name.text.clone())
+            .collect();
+        let outer_generics = std::mem::replace(&mut self.owner_generics, generics);
+        // A nested type reaches none of its outer one's.
+        let outer_params = std::mem::take(&mut self.type_params);
         self.type_of_kind(d, (word, name), header, body);
+        self.type_params = outer_params;
+        self.owner_generics = outer_generics;
         self.owner = outer;
     }
 

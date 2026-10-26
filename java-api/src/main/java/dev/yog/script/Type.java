@@ -74,6 +74,33 @@ public abstract class Type extends MemberInfo {
         return type;
     }
 
+    /**
+     * Type parameter {@code i} of class {@code declaring} as {@code self}'s
+     * type has it: the argument it was made with, where it or what it
+     * inherits or implements is made of {@code declaring}; else the
+     * parameter (an object made where it wasn't known).
+     */
+    public static Type argument(java.lang.Object self, Class<?> declaring, int i) {
+        Type definition = Of(declaring);
+        Type own = Of(self);
+        for (Type t = own; t != null; t = t.BaseType()) {
+            if (madeOf(t, definition)) {
+                return t.GetGenericArguments()[i];
+            }
+        }
+        for (Type t : own.GetInterfaces()) {
+            if (madeOf(t, definition)) {
+                return t.GetGenericArguments()[i];
+            }
+        }
+        return definition.GetGenericArguments()[i];
+    }
+
+    /** Whether {@code t} is generic {@code definition} or made of it. */
+    private static boolean madeOf(Type t, Type definition) {
+        return t == definition || t.IsConstructedGenericType() && t.GetGenericTypeDefinition() == definition;
+    }
+
     /** {@code made}, keeping the type {@code arguments} it was made with. */
     public static <T extends Typed> T made(T made, Type[] arguments) {
         made.$types(arguments);

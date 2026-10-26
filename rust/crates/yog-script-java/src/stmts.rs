@@ -447,8 +447,10 @@ impl Gen<'_> {
             };
             let (made, each) = (self.temp(), self.temp());
             let delegate = self.expr(handler);
-            self.code
-                .line(format!("{FINAL} {} {made} = {delegate};", self.java(&t, false)));
+            self.code.line(format!(
+                "{FINAL} {} {made} = {delegate};",
+                self.java(&t, false)
+            ));
             self.code.open(format!("{event}.on(0, ({each}) ->"));
             self.code.line(format!("{made}.{INVOKE}({each});"));
             self.code.line(format!("{RETURN} {NULL};"));

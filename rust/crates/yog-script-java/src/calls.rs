@@ -127,10 +127,12 @@ impl Gen<'_> {
         }
     }
 
-    /// Call `e`'s arguments: a `[Reified]` method's classes first, then
+    /// Call `e`'s arguments: a `[Reified]` method's classes or a generic
+    /// one's type arguments first, then
     /// `before` (an extension's receiver), then `args`, written.
     fn with_classes(&mut self, e: &Expr, before: Vec<String>, args: String) -> String {
         let mut all = self.reified_classes(e);
+        all.extend(self.handed_types(e));
         all.extend(before);
         if !args.is_empty() {
             all.push(args);

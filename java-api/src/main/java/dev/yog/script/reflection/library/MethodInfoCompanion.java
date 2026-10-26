@@ -16,7 +16,10 @@ public final class MethodInfoCompanion {
         d.Property("MemberType", dev.yog.script.reflection.MemberInfo.VIRTUAL, dev.yog.script.Type.Of(dev.yog.script.reflection.MemberTypes.class), o -> ((dev.yog.script.reflection.MethodInfo) o).MemberType(), null);
         d.Property("ReturnType", 0, dev.yog.script.Type.Of(dev.yog.script.Type.class), o -> ((dev.yog.script.reflection.MethodInfo) o).ReturnType(), null);
         d.Property("IsGenericMethod", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.MethodInfo) o).IsGenericMethod(), null);
+        d.Property("IsGenericMethodDefinition", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.MethodInfo) o).IsGenericMethodDefinition(), null);
+        d.Property("ContainsGenericParameters", 0, dev.yog.script.Type.Of(dev.yog.script.host.Boolean.class), o -> ((dev.yog.script.reflection.MethodInfo) o).ContainsGenericParameters(), null);
         d.Method("GetGenericArguments", 0, new String[] {  }, (o, a) -> ((dev.yog.script.reflection.MethodInfo) o).GetGenericArguments()).Returns(dev.yog.script.Type.Of(dev.yog.script.Type.class).MakeArrayType(1));
+        d.Method("MakeGenericMethod", 0, new String[] {  }, (o, a) -> ((dev.yog.script.reflection.MethodInfo) o).MakeGenericMethod((dev.yog.script.Type[]) a[0])).Returns(dev.yog.script.Type.Of(dev.yog.script.reflection.MethodInfo.class)).Takes("typeArguments", dev.yog.script.Type.Of(dev.yog.script.Type.class).MakeArrayType(1), false);
         d.Method("Invoke", 0, new String[] {  }, (o, a) -> ((dev.yog.script.reflection.MethodInfo) o).Invoke((Object) a[0], (Object[]) a[1])).Returns(dev.yog.script.Type.Of(dev.yog.script.host.Object.class)).Takes("obj", dev.yog.script.Type.Of(dev.yog.script.host.Object.class), false).Takes("parameters", dev.yog.script.Type.Of(dev.yog.script.host.Object.class).MakeArrayType(1), false);
     }
 }

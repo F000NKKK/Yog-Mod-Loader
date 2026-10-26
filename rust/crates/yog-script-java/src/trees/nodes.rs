@@ -10,8 +10,8 @@ use yog_script_ids::jvm::trees::{
     CONSTRUCTOR_OF, METHOD_OF, OPERATOR_OF, PARAMETERS, STATIC_MEMBER,
 };
 use yog_script_ids::members::{
-    ADD, ARRAY_INDEX, CALL, CONDITION, CONSTANT, CONVERT, MAKE_BINARY, MAKE_UNARY, NEGATE,
-    NEW as NEW_NODE, NOT, PROPERTY_OR_FIELD,
+    ADD, ARRAY_INDEX, CALL, CONDITION, CONSTANT, CONVERT, MAKE_BINARY, MAKE_GENERIC_METHOD,
+    MAKE_UNARY, NEGATE, NEW as NEW_NODE, NOT, PROPERTY_OR_FIELD,
 };
 use yog_script_ids::system::EXPRESSION_TYPE;
 
@@ -238,11 +238,23 @@ impl Gen<'_> {
             return self.not_tree(e);
         };
         let owner_type = of_class(&self.index.place(&owner, used.owner_arity));
-        let method = format!(
+        let mut method = format!(
             "{ex}.{METHOD_OF}({owner_type}, {}, {})",
             self.code.str(&used.name),
             used.overload
         );
+        // A generic one made of what the call gave it (`Any<Int32>`), as .NET's tree has it.
+        if used.generics > 0 {
+            let args = used
+                .type_args
+                .iter()
+                .map(|t| self.value_of(t))
+                .collect::<Option<Vec<_>>>()?;
+            method = format!(
+                "{method}.{MAKE_GENERIC_METHOD}({NEW} {TYPE}[] {{ {} }})",
+                args.join(", ")
+            );
+        }
         let mut nodes = Vec::new();
         let receiver = match &callee.kind {
             ExprKind::Member { expr, .. }

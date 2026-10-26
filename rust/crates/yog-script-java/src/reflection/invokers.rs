@@ -3,7 +3,7 @@
 //! its Java name), its result and its parameters.
 
 use yog_script_analyze::ast::{Decl, Method, Modifier};
-use yog_script_ids::jvm::reflection::{METHOD, RETURNS};
+use yog_script_ids::jvm::reflection::{METHOD, RETURNS, TAKES_TYPES};
 
 use super::consts::{ARGS, DESCRIPTION, OBJECT};
 use super::members::{Owner, around_cells, member_traits};
@@ -30,14 +30,29 @@ impl Gen<'_> {
                 .value_of(&yog_script_analyze::Type::Void)
                 .unwrap_or_default(),
         };
+        let takes_types = if self.handed_count(owner, &generics) > 0 {
+            format!(".{TAKES_TYPES}()")
+        } else {
+            String::new()
+        };
         Some(format!(
-            "{DESCRIPTION}.{METHOD}({}, {}, {NEW} String[] {{ {} }}, {}).{RETURNS}({returns}){};",
+            "{DESCRIPTION}.{METHOD}({}, {}, {NEW} String[] {{ {} }}, {}){takes_types}.{RETURNS}({returns}){};",
             self.code.str(&m.name.text),
             member_traits(d),
             names.join(", "),
             self.invoker(owner, d, (m, &generics)),
             self.takes(owner, &m.params, &generics)
         ))
+    }
+
+    /// How many type arguments a method of `owner` with `generics` is
+    /// handed first: a compiled one's, each.
+    fn handed_count(&self, owner: &Owner, generics: &[String]) -> usize {
+        if self.index.is_intrinsic(owner.name) || owner.host.is_some() {
+            0
+        } else {
+            generics.len()
+        }
     }
 
     /// What calls `m`: `(o, a) -> …` giving its result, `null` for nothing.
@@ -51,7 +66,8 @@ impl Gen<'_> {
             return NULL.to_string();
         }
         let n = Self::ident(&self.index.java_name(&owner_ref, m));
-        let args = self.args_cast(owner, &m.params, generics);
+        let handed = self.handed_count(owner, generics);
+        let args = self.args_cast(owner, (&m.params, handed), generics);
         let stat = d.has(Modifier::Static);
         let call = match &owner.host {
             Some((host, value)) if !stat => {
@@ -63,7 +79,7 @@ impl Gen<'_> {
         };
         let gives = m.ret.is_some();
         let runtime = self.index.is_intrinsic(owner.name);
-        match around_cells(&m.params, &call, (gives, runtime)) {
+        match around_cells((&m.params, handed), &call, (gives, runtime)) {
             Some(block) => format!("({OBJECT}, {ARGS}) -> {block}"),
             None if gives => format!("({OBJECT}, {ARGS}) -> {call}"),
             None => format!("({OBJECT}, {ARGS}) -> {{ {call}; {RETURN} {NULL}; }}"),

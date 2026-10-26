@@ -11,7 +11,7 @@ use yog_script_ids::java::{FINAL, NEW, PRIVATE, STATIC};
 
 impl Gen<'_> {
     /// `made` (an object of type `t`), keeping `t`'s arguments when it keeps
-    /// them and they're known here (generic code not knowing its `T` can't).
+    /// them and they're known here (a type parameter's as the code reaches it).
     pub(crate) fn made_of_type(&mut self, t: &Type, made: String) -> String {
         let Type::Own(name, args) = t.non_null() else {
             return made;
@@ -27,7 +27,13 @@ impl Gen<'_> {
             return made;
         };
         let list = format!("{NEW} {TYPE}[] {{ {} }}", values.join(", "));
-        format!("{TYPE}.{MADE}({made}, {})", self.kept(list))
+        // One of a type parameter's is what the code reaches: made each time.
+        let list = if args.iter().any(crate::reified::names_parameter) {
+            list
+        } else {
+            self.kept(list)
+        };
+        format!("{TYPE}.{MADE}({made}, {list})")
     }
 
     /// Arguments `list`'s constant (the library's files have no class of a

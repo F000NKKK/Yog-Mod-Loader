@@ -74,6 +74,8 @@ pub struct MethodUse {
     pub type_args: Vec<Type>,
     /// An extension method (`xs.Where(…)`): the receiver its first argument.
     pub extension: bool,
+    /// How many type parameters of its own it has (`F<A, B>`: 2).
+    pub generics: usize,
 }
 
 impl Types {

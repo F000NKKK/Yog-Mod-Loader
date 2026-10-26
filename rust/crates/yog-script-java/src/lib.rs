@@ -31,6 +31,7 @@ mod stmts;
 mod switch;
 mod trees;
 mod tuples;
+mod type_args;
 mod types;
 mod with;
 
@@ -144,6 +145,11 @@ pub(crate) struct Gen<'c> {
     /// The call being written is the runtime's: its `ref` arguments passed
     /// as values, the value it gives the place's (`xs = Array.Resize(xs, n)`).
     runtime_call: bool,
+    /// The type parameters in reach, innermost last: each name and its
+    /// value (`$typeT`, `Type.argument(this, Box.class, 0)`).
+    type_params: Vec<(String, String)>,
+    /// The type being written's own type parameters, by name.
+    owner_generics: Vec<String>,
 }
 
 impl<'c> Gen<'c> {
@@ -164,6 +170,8 @@ impl<'c> Gen<'c> {
             cells: std::collections::HashSet::new(),
             given_back: Vec::new(),
             runtime_call: false,
+            type_params: Vec::new(),
+            owner_generics: Vec::new(),
         }
     }
 }

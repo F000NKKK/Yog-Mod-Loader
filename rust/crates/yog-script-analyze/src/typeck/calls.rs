@@ -155,6 +155,7 @@ impl Checker<'_, '_, '_> {
             taken: Vec::new(),
             type_args: Vec::new(),
             extension: false,
+            generics: m.generics.iter().filter(|g| !g.lifetime).count(),
         }
     }
 

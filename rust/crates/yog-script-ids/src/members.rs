@@ -56,6 +56,7 @@ pub const CAST: &str = "Cast";
 
 // `System.Type`'s: a generic type made of its arguments, an array of a type.
 pub const MAKE_GENERIC_TYPE: &str = "MakeGenericType";
+pub const MAKE_GENERIC_METHOD: &str = "MakeGenericMethod";
 pub const MAKE_ARRAY_TYPE: &str = "MakeArrayType";
 
 // `System.Linq.Expressions.Expression`'s factories a quoted lambda's tree is made by.

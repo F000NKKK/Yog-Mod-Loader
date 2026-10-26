@@ -24,7 +24,7 @@ impl Gen<'_> {
             TypeKind::Path { path, args } => {
                 let name = path.last().map_or("", |n| n.text.as_str());
                 if args.is_empty() {
-                    if let Some(p) = param(name) {
+                    if let Some(p) = param(name).or_else(|| self.type_param(name)) {
                         return Some(p);
                     }
                     if let Some(b) = builtin_type(name).or_else(|| system_type(name)) {
@@ -72,7 +72,8 @@ impl Gen<'_> {
     /// Type `t` (as checked) as a `Type`, when it names no type parameter.
     pub(crate) fn value_of(&self, t: &Type) -> Option<String> {
         match t {
-            Type::Param(_) | Type::Unknown => None,
+            Type::Param(name) => self.type_param(name),
+            Type::Unknown => None,
             Type::Nullable(inner) => {
                 let v = self.value_of(inner)?;
                 Some(if self.value_type(inner) {

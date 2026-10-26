@@ -8,7 +8,7 @@ use yog_script_ids::clr::ACCESSOR_SEP;
 use yog_script_ids::jvm::reflection::{
     ABSTRACT, CELL_OF, CELLS, CONSTRUCTOR, FIELD_MEMBER, INIT_ONLY, LITERAL, MAKE_BY_REF,
     MEMBER_INFO, METHOD_PARAMETER, PARAMETER, PARAMETER_INFO, PASSED_OUT, PRIVATE, PROPERTY,
-    PROTECTED, STATIC, TAKES, VIRTUAL,
+    PROTECTED, STATIC, TAKES, TYPE, VIRTUAL,
 };
 
 use super::consts::{ARGS, DESCRIPTION, NO_TRAITS, OBJECT, VALUE};
@@ -174,10 +174,10 @@ impl Gen<'_> {
         traits: &str,
         params: &[Param],
     ) -> String {
-        let args = self.args_cast(owner, params, &[]);
+        let args = self.args_cast(owner, (params, 0), &[]);
         let made = format!("{NEW} {}({args})", owner.raw);
         let runtime = self.index.is_intrinsic(owner.name);
-        let make = match around_cells(params, &made, (true, runtime)) {
+        let make = match around_cells((params, 0), &made, (true, runtime)) {
             Some(block) => block,
             None => made,
         };
@@ -208,19 +208,26 @@ impl Gen<'_> {
     /// `a[0], a[1]`, each cast to its parameter's type.
     /// A compiled method's `ref` and `out` ones each a cell of it; the
     /// runtime's take it as it is.
-    pub(super) fn args_cast(&self, owner: &Owner, params: &[Param], generics: &[String]) -> String {
+    /// A compiled generic method's type arguments come first (`handed`
+    /// of them, each a `Type`).
+    pub(super) fn args_cast(
+        &self,
+        owner: &Owner,
+        (params, handed): (&[Param], usize),
+        generics: &[String],
+    ) -> String {
         let cells = !self.index.is_intrinsic(owner.name);
-        params
-            .iter()
-            .enumerate()
-            .map(|(i, p)| match p.pass {
+        let types = (0..handed).map(|i| format!("({TYPE}) {ARGS}[{i}]"));
+        let values = params.iter().enumerate().map(|(i, p)| {
+            let at = i + handed;
+            match p.pass {
                 Some(Pass::Ref | Pass::Out) if cells => {
-                    format!("{REF}.{CELL_OF}({ARGS}, {i}, {CELLS})")
+                    format!("{REF}.{CELL_OF}({ARGS}, {at}, {CELLS})")
                 }
-                _ => self.cast_value(owner, &p.ty, generics, &format!("{ARGS}[{i}]")),
-            })
-            .collect::<Vec<_>>()
-            .join(", ")
+                _ => self.cast_value(owner, &p.ty, generics, &format!("{ARGS}[{at}]")),
+            }
+        });
+        types.chain(values).collect::<Vec<_>>().join(", ")
     }
 
     /// A member's type `t` as a `Type`: the type's parameters and the
@@ -337,17 +344,21 @@ fn passing(pass: Pass) -> Option<String> {
 /// value (`gives`) or `null` the result — a `runtime` method's `ref` one
 /// given what it gives back. `None` when none's passed so.
 pub(super) fn around_cells(
-    params: &[Param],
+    (params, handed): (&[Param], usize),
     call: &str,
     (gives, runtime): (bool, bool),
 ) -> Option<String> {
-    let first = params
-        .iter()
-        .position(|p| matches!(p.pass, Some(Pass::Ref | Pass::Out)))?;
+    let first = handed
+        + params
+            .iter()
+            .position(|p| matches!(p.pass, Some(Pass::Ref | Pass::Out)))?;
     if runtime {
         return Some(format!("{{ {ARGS}[{first}] = {call}; {RETURN} {NULL}; }}"));
     }
-    let cells = format!("{REF}<?>[] {CELLS} = {NEW} {REF}<?>[{}];", params.len());
+    let cells = format!(
+        "{REF}<?>[] {CELLS} = {NEW} {REF}<?>[{}];",
+        handed + params.len()
+    );
     let back = format!("{REF}.{CELLS_BACK}({ARGS}, {CELLS});");
     Some(if gives {
         format!("{{ {cells} {VAR} {TEMP} = {call}; {back} {RETURN} {TEMP}; }}")
