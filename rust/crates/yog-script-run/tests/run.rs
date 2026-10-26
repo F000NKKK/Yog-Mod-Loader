@@ -96,3 +96,11 @@ fn params_take_the_rest() {
     assert_eq!(run(src, "Three", vec![]), Ok(int(3)));
     assert_eq!(run(src, "None", vec![]), Ok(int(0)));
 }
+
+/// An iterator run at once: its items a list, `yield break` its end.
+#[test]
+fn iterators_give_their_items() {
+    let src = "IEnumerable<i32> Evens(i32 upTo) {\n    for (let mut i = 0; i < upTo; i += 1) {\n        if (i > 6) { yield break; }\n        if (i % 2 == 0) { yield return i; }\n    }\n}\n\
+               i32 Sum() { let mut t = 0; foreach (let x in Evens(100)) { t += x; } return t; }\n";
+    assert_eq!(run(src, "Sum", vec![]), Ok(int(12)));
+}

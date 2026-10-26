@@ -46,7 +46,14 @@ pub struct Interp<'p> {
     depth: usize,
     /// What `dbg!` logged, in order.
     pub log: Vec<String>,
+    /// The items each iterator being run has yielded, innermost last: the
+    /// interpreter runs an iterator to its end at once, its items a list.
+    yielded: Vec<Vec<Value>>,
 }
+
+/// How many items an iterator gives the interpreter before it's taken for
+/// an endless one (run at once, it'd never end).
+const MAX_YIELDED: usize = 1_000_000;
 
 /// A method's end: its result, and its parameters' last values (what a
 /// `ref` or an `out` gives back).
@@ -63,6 +70,7 @@ impl<'p> Interp<'p> {
             this: None,
             depth: 0,
             log: Vec::new(),
+            yielded: Vec::new(),
         }
     }
 
@@ -147,7 +155,29 @@ impl<'p> Interp<'p> {
             };
             self.bind(&p.name.text, v);
         }
-        self.body(m.body.as_ref())
+        if !yog_script_analyze::body_yields(m.body.as_ref()) {
+            return self.body(m.body.as_ref());
+        }
+        // An iterator: run to its end, its items a list.
+        self.yielded.push(Vec::new());
+        let ran = self.body(m.body.as_ref());
+        let items = self.yielded.pop().unwrap_or_default();
+        ran.map(|_| Value::list(items))
+    }
+
+    /// `yield return v`: an item of the iterator being run.
+    pub(crate) fn yield_item(&mut self, v: Value, at: Span) -> Run<()> {
+        let full = self.yielded.last().is_some_and(|items| items.len() >= MAX_YIELDED);
+        if full {
+            return self.panic(
+                format!("an iterator gave {MAX_YIELDED} items: the interpreter runs one to its end, and this one may have none"),
+                at,
+            );
+        }
+        if let Some(items) = self.yielded.last_mut() {
+            items.push(v);
+        }
+        Ok(())
     }
 
     /// A method's or a getter's body run: its value.

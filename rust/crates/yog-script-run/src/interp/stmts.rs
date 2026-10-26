@@ -92,6 +92,11 @@ impl<'p> Interp<'p> {
                 };
                 Err(Stop::Return(v))
             }
+            Stmt::Yield(Some(e), at) => {
+                let v = self.eval(e)?;
+                self.yield_item(v, *at)
+            }
+            Stmt::Yield(None, _) => Err(Stop::Return(Value::Void)),
             Stmt::Expr(e) => self.eval(e).map(drop),
             // A block lambda's last value: what it gives.
             Stmt::Value(e) => Err(Stop::Return(self.eval(e)?)),
